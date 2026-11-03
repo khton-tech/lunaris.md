@@ -12,6 +12,8 @@ export function checkSource(source, filename, scope) {
   const errors = [];
   const tree = ts.createSourceFile(filename, source, ts.ScriptTarget.Latest, true);
   const allowed = new Set(dependencies[scope].map(name => `@lunaris/${name}`));
+  // The shared validator owns the reviewed, platform-neutral SemVer dependency.
+  if (scope === 'manifest') allowed.add('semver');
   function specifier(node) {
     if (!ts.isStringLiteral(node)) {
       errors.push(`${filename}: nonliteral imports are forbidden in core packages`);

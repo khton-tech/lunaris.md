@@ -1,4 +1,23 @@
-/** Serializable contract kinds; validation is introduced in P2. */
+export { isValidId, isExactVersion, isVersionRange, versionSatisfies } from "./versions.js";
+export { validateManifest } from "./validation.js";
+
+export interface ManifestDiagnostic {
+  readonly code: "MANIFEST_INVALID" | "VERSION_INCOMPATIBLE";
+  readonly pluginId?: string;
+  readonly path: string;
+  readonly message: string;
+}
+
+export type ManifestValidationResult =
+  | { readonly ok: true; readonly manifest: PluginManifest }
+  | { readonly ok: false; readonly diagnostics: readonly ManifestDiagnostic[] };
+
+export interface HostVersions {
+  readonly engineVersion: string;
+  readonly sdkVersion: string;
+}
+
+/** Serializable contract kinds shared across installed package copies. */
 export type ContractKind = "api" | "event" | "hook";
 
 export interface ProvidedContract {

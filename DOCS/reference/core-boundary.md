@@ -10,7 +10,7 @@ Status: accepted P0 specification. This page specifies the intended 0.1 API; it 
 `requires` entries: `{ kind, id, range: string, optional?: boolean }` (default false).
 Permission IDs follow the same ID grammar. Lists have no duplicates; required and optional permissions are disjoint. Permissions are atomic names, with no wildcards, implicit hierarchy or URL parsing in 0.1. Names do not imply grants. A contract can declare separate `providePermission` and `consumePermission` names; any operation needing them requires declaration and an effective host grant. Shared contract packages define this metadata, not consumers.
 
-`validateManifest(input: unknown)` returns `{ ok: true, manifest: PluginManifest }` or `{ ok: false, diagnostics: readonly ManifestDiagnostic[] }`. Invalid objects are never executed. Validation copies data; caller mutation must not change registered metadata. Diagnostics identify code, plugin ID when valid and JSON-style field path. Schema validation is shared by the host and CLI, never reimplemented in a plugin.
+`validateManifest(input: unknown, versions?: HostVersions)` returns `{ ok: true, manifest: PluginManifest }` or `{ ok: false, diagnostics: readonly ManifestDiagnostic[] }`. Optional host versions enable engine/SDK compatibility checks; hosts must supply actual versions before loading. Invalid objects are never executed. Validation copies data; caller mutation must not change registered metadata. Diagnostics identify code, plugin ID when valid and JSON-style field path. Schema validation is shared by the host and CLI, never reimplemented in a plugin.
 
 ## SDK surface
 
