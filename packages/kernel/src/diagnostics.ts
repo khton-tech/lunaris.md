@@ -23,4 +23,9 @@ export class Diagnostics {
   }
 
   snapshot(): readonly Diagnostic[] { return Object.freeze(this.#history.map(entry => entry.diagnostic)); }
+
+  cause(sequence: number): Readonly<{ cause: unknown }> | undefined {
+    const entry = this.#history.find(item => item.diagnostic.sequence === sequence);
+    return entry ? Object.freeze({ cause: entry.cause }) : undefined;
+  }
 }

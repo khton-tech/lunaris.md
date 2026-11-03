@@ -74,3 +74,21 @@ revive lost optional bindings. Explicit restart resolves dependencies afresh.
 Consumer API validators receive a frozen mediated method facade; provider-side
 validators still inspect their own implementation. Retained facade methods keep
 all permission, publication and activation checks.
+
+### Trusted host diagnostic detail
+
+`kernel.diagnosticCause(sequence)` explicitly retrieves a frozen `{ cause: unknown }`
+wrapper for a retained diagnostic. It returns `undefined` for an unknown or evicted
+sequence, including invalid numeric values. A retained entry without a cause has
+`{ cause: undefined }`. Detail uses the same bounded history and monotonic sequence
+as `inspect().diagnostics`; there is no second retention buffer or persistence.
+The returned cause is the original value by identity, with no property access,
+serialization, cloning or sanitization. Retrieval is privileged and opt-in per
+sequence, available only on the host kernel, never on plugin context.
+
+A trusted host may inspect ordinary Error message/stack/cause or correlate error
+identity. Raw causes can contain secrets, payloads or hostile proxies. The host
+must apply its own access controls and redaction before logging or displaying
+detail; kernel snapshots continue exposing only object/value categories. Hosts
+that retain returned values extend their lifetime themselves. No mandatory logger
+plugin or automatic export is introduced.

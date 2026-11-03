@@ -58,4 +58,6 @@ export interface Kernel {
   revoke(pluginId: string, permission: string): void;
   stopAll(): Promise<void>;
   inspect(): KernelSnapshot;
+  /** Trusted host only: raw retained cause; undefined after eviction or for unknown sequences. */
+  diagnosticCause(sequence: number): Readonly<{ cause: unknown }> | undefined;
 }

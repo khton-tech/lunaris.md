@@ -296,6 +296,8 @@ class Runtime {
   grant = (id: string, permission: string): void => this.#permissions.grant(id, permission);
   revoke = (id: string, permission: string): void => this.#permissions.revoke(id, permission);
 
+  diagnosticCause = (sequence: number): Readonly<{ cause: unknown }> | undefined => this.#diagnostics.cause(sequence);
+
   inspect = (): KernelSnapshot => Object.freeze({
     plugins: Object.freeze([...this.#plugins.values()].sort((a, b) => a.definition.manifest.id < b.definition.manifest.id ? -1 : 1).map(record => Object.freeze({
       manifest: record.definition.manifest, state: record.state,
@@ -315,5 +317,6 @@ class Runtime {
 export function createKernel(options: KernelOptions): Kernel {
   const runtime = new Runtime(options);
   return Object.freeze({ register: runtime.register, start: runtime.start, stop: runtime.stop,
-    restart: runtime.restart, selectProvider: runtime.selectProvider, grant: runtime.grant, revoke: runtime.revoke, stopAll: runtime.stopAll, inspect: runtime.inspect });
+    restart: runtime.restart, selectProvider: runtime.selectProvider, grant: runtime.grant, revoke: runtime.revoke, stopAll: runtime.stopAll, inspect: runtime.inspect,
+    diagnosticCause: runtime.diagnosticCause });
 }
