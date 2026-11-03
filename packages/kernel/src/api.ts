@@ -63,7 +63,8 @@ export class ApiRuntime {
         this.access.authorize(binding.provider, entry.token, "provide");
         try {
           const result = this.access.invoke(() => method.apply(entry.implementation, args));
-          if (result instanceof Promise) return result.catch(cause => {
+          if (result !== null && (typeof result === "object" || typeof result === "function") &&
+            typeof (result as PromiseLike<unknown>).then === "function") return Promise.resolve(result).catch(cause => {
             this.diagnostics.record("API_CALL_FAILED", { ...context(record, activation), contractId: token.id }, cause); throw cause;
           });
           return result;
