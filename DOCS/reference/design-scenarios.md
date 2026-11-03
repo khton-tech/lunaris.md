@@ -1,6 +1,6 @@
 # SDK-only design scenarios
 
-Status: P0 authored scenarios, not executable plugins. P2 will compile these against the public SDK; P7 will add executable fixtures with individual plugin docs. Every snippet imports only `@lunaris/sdk` and shared contracts. Manifest snippets below are abbreviations of full serializable manifests, not independent identity fields.
+Status: P0 authored scenarios, compiled against the public SDK in P2 (`packages/sdk/test/scenarios.ts`, checked by `npm run check -- sdk`). These are not executable runtime plugins; P7 will add executable fixtures with individual plugin docs. Every scenario imports only `@lunaris/sdk` and shared contracts. Manifest snippets below are abbreviations of full serializable manifests, not independent identity fields.
 
 Use the following common wrapper and manifest defaults:
 

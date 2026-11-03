@@ -1,0 +1,26 @@
+import { validateManifest } from "@lunaris/manifest";
+import type { PluginManifest } from "@lunaris/manifest";
+import type { Disposable, MaybePromise, PluginContext } from "./context.js";
+import { readDataObject } from "./data.js";
+import { LunarisError } from "./errors.js";
+
+export interface PluginDefinition {
+  readonly manifest: PluginManifest;
+  readonly activate: (context: PluginContext) => MaybePromise<void | Disposable>;
+}
+
+/** Validate/copy metadata without executing activation or coupling SDK to a runtime. */
+export function definePlugin(definition: PluginDefinition): PluginDefinition {
+  const data = readDataObject(definition, ["manifest", "activate"], "MANIFEST_INVALID");
+  const result = validateManifest(data.manifest);
+  if (!result.ok) {
+    const first = result.diagnostics[0];
+    throw new LunarisError("MANIFEST_INVALID", "Invalid plugin manifest.",
+      { ...(first?.pluginId ? { pluginId: first.pluginId } : {}), ...(first ? { path: first.path } : {}) },
+      { cause: result.diagnostics });
+  }
+  if (typeof data.activate !== "function") {
+    throw new LunarisError("MANIFEST_INVALID", "Plugin activation must be a function.", { pluginId: result.manifest.id, path: "$.activate" });
+  }
+  return Object.freeze({ manifest: result.manifest, activate: data.activate as PluginDefinition["activate"] });
+}

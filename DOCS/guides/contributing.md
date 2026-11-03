@@ -14,7 +14,7 @@ The last command builds the manifest package and its affected consumers (SDK/ker
 
 For routine work use `npm run check -- sdk` or `npm run check -- kernel`. Multiple explicit scopes are allowed. Missing/unknown scopes fail instead of silently triggering a full run. Errors return nonzero and show captured failure details; successful checks print one summary. Source boundary analysis runs across the three small core packages because the dependency rule itself spans them. It is an architecture check for trusted repository code, not hostile-code isolation.
 
-The SDK currently exposes manifest and disposable types; kernel exposes the lifecycle state type only. No `createKernel`, plugin activation or manifest runtime validation is implemented at P1. See [the design boundary](../reference/core-boundary.md) for planned operations and [the plan](../CoreImplementationPlan.md) for delivery gates.
+The SDK exposes validated plugin definitions, typed tokens, context/ownership interfaces, declaration checks and structured errors. Manifest runtime validation is implemented. Kernel still exposes the lifecycle state type only: `createKernel` and activation are P3 work. See [the SDK reference](../reference/sdk.md), [the design boundary](../reference/core-boundary.md) and [the plan](../CoreImplementationPlan.md) for delivery gates.
 
 ## Changes and review
 

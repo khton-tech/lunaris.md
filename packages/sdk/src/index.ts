@@ -5,9 +5,10 @@ export type {
   RequiredContract,
 } from "@lunaris/manifest";
 
-export type MaybePromise<T> = T | Promise<T>;
-
-/** A resource whose owner may release it more than once safely. */
-export interface Disposable {
-  dispose(): MaybePromise<void>;
-}
+export type { CancellationSignal, Disposable, MaybePromise, PluginContext, ResourceScope } from "./context.js";
+export type { PluginDefinition } from "./plugin.js";
+export { definePlugin } from "./plugin.js";
+export type { ErrorCode, ErrorContext } from "./errors.js";
+export { LunarisError } from "./errors.js";
+export type { ApiToken, ApiMethods, ContractToken, DeclarationRole, EventToken, HookToken, TokenMetadata, TypedToken } from "./tokens.js";
+export { defineApi, defineEvent, defineHook, contractKey, assertCompatibleTokens, assertDeclaration } from "./tokens.js";

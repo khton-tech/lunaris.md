@@ -1,6 +1,6 @@
 # Core public boundary (design contract)
 
-Status: accepted P0 specification. This page specifies the intended 0.1 API; it does not claim a runtime exists. Implementation status is tracked only in [the plan](../CoreImplementationPlan.md).
+Status: accepted P0 specification. SDK definitions and manifest validation are implemented in P2; lifecycle and capability operations described here still require the runtime. See [implemented SDK exports](sdk.md), [manifest validation](manifest.md) and [the plan](../CoreImplementationPlan.md) for delivery status.
 
 ## Manifest
 
