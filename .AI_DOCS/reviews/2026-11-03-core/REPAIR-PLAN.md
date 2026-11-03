@@ -21,3 +21,7 @@ access, resolver and test modules.
    checks/release validation, and record measured outcomes and remaining limits.
 
 Scores will be reassessed from evidence, not used as implementation targets.
+
+Completed: lifecycle reservation (53093eb), canonical metadata (57d7ca4), directed
+dependency closure index (7113a25). Full local release validation passed with 268
+tests and zero skips. Current acceptance and limits: [HARDENING.md](HARDENING.md).

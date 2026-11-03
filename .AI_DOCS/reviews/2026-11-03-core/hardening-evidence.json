@@ -1,0 +1,160 @@
+{
+  "phase": "post-hardening",
+  "node": "v26.13.0",
+  "platform": "win32/x64",
+  "results": [
+    {
+      "id": "F01",
+      "kind": "api",
+      "settledOperations": 3,
+      "scheduledDeadlines": 0,
+      "cleanup": "passed"
+    },
+    {
+      "id": "F01",
+      "kind": "event",
+      "settledOperations": 3,
+      "scheduledDeadlines": 0,
+      "cleanup": "passed"
+    },
+    {
+      "id": "F01",
+      "kind": "hook",
+      "settledOperations": 3,
+      "scheduledDeadlines": 0,
+      "cleanup": "passed"
+    },
+    {
+      "id": "F02",
+      "consumers": 1,
+      "callsPerSample": 10000,
+      "samplesMs": [
+        7.411,
+        7.243,
+        6.692
+      ]
+    },
+    {
+      "id": "F02",
+      "consumers": 100,
+      "callsPerSample": 10000,
+      "samplesMs": [
+        8.094,
+        6.619,
+        6.64
+      ]
+    },
+    {
+      "id": "F02",
+      "consumers": 500,
+      "callsPerSample": 10000,
+      "samplesMs": [
+        7.192,
+        6.95,
+        6.546
+      ]
+    },
+    {
+      "id": "F02-dispatch",
+      "kind": "event",
+      "consumers": 1,
+      "callsPerSample": 50,
+      "samplesMs": [
+        0.328,
+        0.312,
+        0.281
+      ]
+    },
+    {
+      "id": "F02-dispatch",
+      "kind": "event",
+      "consumers": 100,
+      "callsPerSample": 50,
+      "samplesMs": [
+        14.781,
+        14.006,
+        14.498
+      ]
+    },
+    {
+      "id": "F02-dispatch",
+      "kind": "event",
+      "consumers": 500,
+      "callsPerSample": 50,
+      "samplesMs": [
+        70.485,
+        66.8,
+        67.163
+      ]
+    },
+    {
+      "id": "F02-dispatch",
+      "kind": "hook",
+      "consumers": 1,
+      "callsPerSample": 50,
+      "samplesMs": [
+        0.369,
+        0.364,
+        0.366
+      ]
+    },
+    {
+      "id": "F02-dispatch",
+      "kind": "hook",
+      "consumers": 100,
+      "callsPerSample": 50,
+      "samplesMs": [
+        25.144,
+        24.711,
+        24.599
+      ]
+    },
+    {
+      "id": "F02-dispatch",
+      "kind": "hook",
+      "consumers": 500,
+      "callsPerSample": 50,
+      "samplesMs": [
+        126.165,
+        133.295,
+        129.935
+      ]
+    },
+    {
+      "id": "R07",
+      "unrelatedPairs": 100,
+      "dependencyNodes": 2,
+      "samplesMs": [
+        0.19,
+        0.086,
+        0.049,
+        0.06,
+        0.041
+      ]
+    },
+    {
+      "id": "R07",
+      "unrelatedPairs": 500,
+      "dependencyNodes": 2,
+      "samplesMs": [
+        0.11,
+        0.065,
+        0.051,
+        0.045,
+        0.039
+      ]
+    },
+    {
+      "id": "R07",
+      "unrelatedPairs": 1000,
+      "dependencyNodes": 2,
+      "samplesMs": [
+        0.091,
+        0.042,
+        0.033,
+        0.032,
+        0.03
+      ]
+    }
+  ]
+}

@@ -1,12 +1,14 @@
 # Core code review
 
-Date: 2026-11-03. Status: repairs independently rechecked; follow-up found a blocking lifecycle regression and remaining scaling risk. Historical findings and repair evidence retained below.
+Date: 2026-11-03. Status: follow-up blockers repaired and full local release checks passed. Historical findings and repair evidence retained below.
 Reviewed baseline: `5d13d3212ae29e69c752d508859bf6b48ed3c0b1`.
 Review branch: `review/core-audit`. Initial working tree was clean.
 
-Latest assessment: [independent repair follow-up](FOLLOWUP.md), reviewed head
-`3698b21`. Repair work: 75/100; local core readiness: 65/100. Original regression
-tests pass, but F01 reproduces permanent queue deadlocks and blocks acceptance.
+Latest acceptance: [core hardening](HARDENING.md), implementation commits
+`53093eb`, `57d7ca4`, `7113a25`; local core readiness reassessed at 88/100 after
+268 passing release tests and new scaling evidence. The prior
+[independent repair follow-up](FOLLOWUP.md) assessed commit `3698b21` at 65/100;
+its F01/F02 findings and R07 scaling gap are addressed by the latest changes.
 
 ## Scope and method
 

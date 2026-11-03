@@ -1,7 +1,7 @@
 // Regression entry point replacing the historical buggy-baseline assertions.
 import { spawnSync } from 'node:child_process';
-const files = ['review-api', 'review-lifecycle', 'review-diagnostics'].map(name => `packages/kernel/test/${name}.test.mjs`);
-const run = spawnSync(process.execPath, ['--test', ...files], { encoding: 'utf8' });
+const files = ['review-api', 'review-lifecycle', 'review-diagnostics', 'hardening-lifecycle', 'hardening-metadata', 'hardening-resolution'].map(name => `packages/kernel/test/${name}.test.mjs`);
+const run = spawnSync(process.execPath, ['--test', ...files], { encoding: 'utf8', timeout: 30000 });
 if (run.status !== 0) {
   console.error(run.stdout || run.stderr || run.error?.message || 'Core review checks failed.');
   process.exitCode = 1;
