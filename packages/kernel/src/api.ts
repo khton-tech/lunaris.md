@@ -53,9 +53,6 @@ export class ApiRuntime {
     if (!entry) throw new LunarisError("PROVIDER_UNAVAILABLE", "Provider did not publish the required API.", { ...context(record), contractId: token.id });
     this.access.compatible(entry.token, token);
     this.access.authorize(binding.provider, entry.token, "provide");
-    this.access.validate(token, entry.implementation);
-    this.access.check(record, activation, token, optional ? "optional" : "require");
-    this.access.available(binding, token);
     const handle = Object.create(null) as Record<PropertyKey, unknown>;
     for (const [name, method] of entry.methods) {
       handle[name] = (...args: never[]): unknown => {
@@ -74,6 +71,12 @@ export class ApiRuntime {
         }
       };
     }
-    return Object.freeze(handle) as T;
+    Object.freeze(handle);
+    this.access.validate(token, handle);
+    this.access.check(record, activation, token, optional ? "optional" : "require");
+    this.access.available(binding, token);
+    this.access.authorize(binding.provider, entry.token, "provide");
+    if (binding.activation.apis.get(key) !== entry) throw new LunarisError("PROVIDER_UNAVAILABLE", "API registration was disposed.", { contractId: token.id });
+    return handle as T;
   }
 }
