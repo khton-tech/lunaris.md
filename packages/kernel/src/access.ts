@@ -4,7 +4,7 @@ import { context, requirementKey } from "./model.js";
 import type { Activation, Binding, Registration } from "./model.js";
 
 export class Access {
-  #contracts = new Map<string, Map<Registration, Activation>>();
+  #contracts = new Map<string, { token: ContractToken; owners: Set<Activation> }>();
   #snapshots = new WeakMap<ContractToken, ContractToken>();
 
   snapshot<T extends ContractToken>(token: T): T {
@@ -19,15 +19,36 @@ export class Access {
     return snapshot as T;
   }
 
-  release(record: Registration, activation: Activation): void {
+  release(activation: Activation): void {
     for (const key of activation.tokens.keys()) {
-      const owners = this.#contracts.get(key);
-      if (owners?.get(record) === activation) owners.delete(record);
-      if (owners?.size === 0) this.#contracts.delete(key);
+      const contract = this.#contracts.get(key);
+      contract?.owners.delete(activation);
+      if (contract?.owners.size === 0) this.#contracts.delete(key);
     }
   }
+
+  #assertMetadata(key: string, token: ContractToken): void {
+    const active = this.#contracts.get(key);
+    if (active) assertCompatibleTokens(active.token, token);
+  }
+
+  #admit(key: string, activation: Activation, token: ContractToken): void {
+    let contract = this.#contracts.get(key);
+    if (!contract) {
+      // Canonical metadata must not retain a departed participant's validator closure.
+      const { validate: _validate, ...metadata } = token;
+      this.#contracts.set(key, contract = { token: this.snapshot(metadata), owners: new Set() });
+    }
+    contract.owners.add(activation);
+  }
+
+  commit(activation: Activation): void {
+    // Validate the whole transaction before publishing any canonical metadata.
+    for (const [key, token] of activation.tokens) this.#assertMetadata(key, token);
+    for (const [key, token] of activation.tokens) this.#admit(key, activation, token);
+  }
+
   constructor(
-    private readonly records: ReadonlyMap<string, Registration>,
     readonly authorize: (record: Registration, token: ContractToken, role: "provide" | "consume") => void,
     readonly invoke: <T>(callback: () => T) => T,
   ) {}
@@ -45,16 +66,12 @@ export class Access {
     if (record.activation !== activation) throw new LunarisError("SCOPE_CLOSED", "Stale activation.", context(record, activation));
     assertDeclaration(record.definition.manifest, token, role);
     const key = contractKey(token);
-    for (const [other, priorActivation] of this.#contracts.get(key) ?? []) {
-      if (other !== record && other.state !== "active") continue;
-      const prior = priorActivation.tokens.get(key);
-      if (prior) assertCompatibleTokens(prior, token);
-    }
+    const prior = activation.tokens.get(key);
+    if (prior && prior !== token) assertCompatibleTokens(prior, token);
+    this.#assertMetadata(key, token);
     this.authorize(record, token, role === "provide" ? "provide" : "consume");
     activation.tokens.set(key, token);
-    let owners = this.#contracts.get(key);
-    if (!owners) this.#contracts.set(key, owners = new Map());
-    owners.set(record, activation);
+    if (record.state === "active") this.#admit(key, activation, token);
   }
 
   binding(record: Registration, activation: Activation, token: ContractToken, role: "require" | "optional" | "consume"): Binding | undefined {

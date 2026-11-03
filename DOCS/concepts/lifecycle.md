@@ -108,10 +108,14 @@ of validated token metadata are reused only for frozen data tokens. Authorizatio
 activation identity, scope, provider availability and publication identity remain
 dynamic checks on every mediated call; no permission decision is cached.
 
-The kernel indexes observed contract owners, dispatch subscriptions by kind/ID,
-and registered providers by kind/ID. Scope closure removes contract-owner entries;
-subscription disposal removes empty buckets. Metadata conflicts still consider
-active participants and the current activation. Candidate lists retain version
+The kernel keeps one canonical immutable metadata record per committed contract,
+with activation owners, and indexes dispatch subscriptions and providers by kind/ID.
+Admission and commit reject conflicting metadata; commit validates the complete
+transaction before publishing it. Per-call metadata comparison is constant-time
+in the number of consumers. Scope closure releases ownership and the last owner
+removes the canonical record. Canonical records omit validator closures; each
+boundary still applies its own validator. Subscription disposal removes empty
+buckets. Candidate lists retain version
 filtering and sorted IDs. Dependency-free roots and idle active roots avoid global
 graph construction. Other roots retain the stable global optional-cycle policy;
 the resolver still traverses registry metadata for that policy, and is not claimed

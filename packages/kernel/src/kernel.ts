@@ -1,6 +1,6 @@
 import { validateManifest } from "@lunaris/manifest";
-import { assertCompatibleTokens, contractKey, definePlugin, LunarisError } from "@lunaris/sdk";
-import type { ApiToken, ContractKind, ContractToken, ErrorCode, PluginContext, PluginDefinition } from "@lunaris/sdk";
+import { contractKey, definePlugin, LunarisError } from "@lunaris/sdk";
+import type { ApiToken, ContractKind, ErrorCode, PluginContext, PluginDefinition } from "@lunaris/sdk";
 import { Diagnostics } from "./diagnostics.js";
 import { OwnedScope } from "./scope.js";
 import type { Kernel, KernelOptions, KernelSnapshot, Scheduler } from "./types.js";
@@ -44,7 +44,7 @@ class Runtime {
     }
     this.#diagnostics = new Diagnostics(capacity);
     this.#permissions = new PermissionPolicy(this.#plugins, this.#diagnostics, options);
-    this.#access = new Access(this.#plugins, this.#permissions.authorize, this.#invoke);
+    this.#access = new Access(this.#permissions.authorize, this.#invoke);
     this.#dispatch = new DispatchRuntime(this.#access, this.#diagnostics);
     this.#api = new ApiRuntime(this.#access, this.#diagnostics, (provider, activation, key) => {
       void this.#stopDependents(provider, activation, key).catch(cause => this.#diagnostics.record("CLEANUP_FAILED", context(provider, activation), cause));
@@ -129,15 +129,6 @@ class Runtime {
     });
   }
 
-  #compatible(token: ContractToken, current: Registration): void {
-    const key = contractKey(token);
-    for (const record of this.#plugins.values()) {
-      if (record !== current && record.state !== "active") continue;
-      const existing = record.activation?.apis.get(key);
-      if (existing) assertCompatibleTokens(existing.token, token);
-    }
-  }
-
   #pluginContext(record: Registration, activation: Activation): PluginContext {
     return Object.freeze({
       pluginId: record.definition.manifest.id, activationId: activation.id,
@@ -173,7 +164,7 @@ class Runtime {
     const scope = new OwnedScope({ pluginId: record.definition.manifest.id, activationId: id }, this.#invoke,
       cause => this.#diagnostics.record("CLEANUP_FAILED", { pluginId: record.definition.manifest.id, activationId: id, state: record.state }, cause),
       () => {
-        this.#access.release(record, activation);
+        this.#access.release(activation);
         apis.clear(); tokens.clear();
         if (record.state !== "stopping") void this.#stopDependents(record, activation).catch(cause => this.#diagnostics.record("CLEANUP_FAILED", context(record, activation), cause));
       });
@@ -220,10 +211,10 @@ class Runtime {
           throw new LunarisError("CONTRACT_UNAVAILABLE", "Advertised API was not published during activation.", { ...context(record), contractId: provided.id });
         }
       }
-      for (const entry of apis.values()) this.#compatible(entry.token, record);
       for (const token of tokens.values()) this.#access.check(record, activation, token,
         record.definition.manifest.provides.some(p => p.kind === token.kind && p.id === token.id && p.version === token.version) ? "provide" : "consume");
       for (const binding of bindings.values()) if (binding && !binding.requirement.optional) this.#access.available(binding, { ...binding.requirement, version: binding.version });
+      this.#access.commit(activation);
       record.state = "active";
     } catch (cause) {
       detached = true;
