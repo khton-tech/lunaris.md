@@ -1,9 +1,2 @@
-/** Host-visible lifecycle vocabulary; runtime operations arrive in P3. */
-export type PluginState =
-  | "registered"
-  | "resolving"
-  | "starting"
-  | "active"
-  | "stopping"
-  | "stopped"
-  | "failed";
+export { createKernel } from "./kernel.js";
+export type { Diagnostic, Kernel, KernelOptions, KernelSnapshot, PluginSnapshot, PluginState, Scheduler } from "./types.js";

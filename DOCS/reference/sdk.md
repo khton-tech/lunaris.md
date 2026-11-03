@@ -1,6 +1,6 @@
 # SDK reference (0.1 draft)
 
-Implemented P2 exports are available from `@lunaris/sdk`. Runtime lifecycle, resolution, events/hooks and effective permission grants arrive in P3–P6. The SDK defines that boundary without importing the kernel or any platform API.
+Implemented P2 exports are available from `@lunaris/sdk`. P3 implements [lifecycle and ownership](../concepts/lifecycle.md), including staged API provision. Resolution/handles, events/hooks and effective permission grants arrive in P4–P6. The SDK defines that boundary without importing the kernel or any platform API.
 
 ## Plugin definitions
 
@@ -18,7 +18,7 @@ export default definePlugin({
 
 `definePlugin` accepts exactly `manifest` and `activate`. The manifest is validated using the shared [manifest validator](manifest.md), copied and frozen. The definition is frozen; activation is not executed at definition time. Identity is declared only in the manifest, so a separate `id` is rejected. Invalid metadata/activation throws `LunarisError` with `MANIFEST_INVALID`, field context and manifest diagnostics as its cause.
 
-`PluginDefinition.activate(context)` returns `void`, a `Disposable`, or a promise of either. A disposable implements `dispose(): void | Promise<void>`. Scope ownership and cancellation are interfaces at this stage, with the lifecycle behavior specified in [the boundary](core-boundary.md). A plugin's external effects still require its own cleanup.
+`PluginDefinition.activate(context)` returns `void`, a `Disposable`, or a promise of either. A disposable implements `dispose(): void | Promise<void>`. Scope ownership and cancellation are implemented in P3 with behavior specified in [the boundary](core-boundary.md). A plugin's external effects still require its own cleanup.
 
 ## Typed contracts
 
@@ -36,7 +36,7 @@ export const Transform = defineHook<string>({
 });
 ```
 
-Metadata contains a canonical ID, full strict SemVer and optional `providePermission`, `consumePermission`, and `validate(value: unknown): boolean`. Constructors validate metadata and return frozen tokens. They retain validators without executing them; the future runtime will call validators at the specified boundaries. API shape parameters contain methods only, with no callable root or non-method properties. Context methods preserve method return types, including synchronous values and promises.
+Metadata contains a canonical ID, full strict SemVer and optional `providePermission`, `consumePermission`, and `validate(value: unknown): boolean`. Constructors validate metadata and return frozen tokens. They retain validators without executing them; P3 executes API implementation validators at provision, and later gates add remaining contract boundaries. API shape parameters contain methods only, with no callable root or non-method properties. Runtime API implementations must be plain method objects; class instances/accessors/non-method properties are rejected. Context types preserve method return types, including synchronous values and promises; invocation arrives in P4.
 
 `contractKey(token)` returns `kind:id@version`. Build metadata is retained as part of full contract identity. Runtime token identity is structural, independent of object identity or a package singleton. A private phantom type makes payloads invariant at compile time; it does not provide runtime validation or isolation.
 
@@ -54,7 +54,7 @@ Metadata contains a canonical ID, full strict SemVer and optional `providePermis
 | Hook | `hooks.register(token, handler, { priority? })`, `hooks.run(token, value)` | P5 |
 | Permissions | `permissions.has(name)`, `permissions.request(name)` | P6 |
 
-Registrations return disposables and will be automatically scoped. Event payloads are shallow readonly in TypeScript; hook input and output share one waterfall type. Token parameters control inference: mismatched API implementations, event payloads and hook outputs fail typechecks. `optional` returns a possibly absent API, not a dynamically rebinding service.
+API registrations return disposables and are automatically scoped. Event payloads are shallow readonly in TypeScript; hook input and output share one waterfall type. Token parameters control inference: mismatched API implementations, event payloads and hook outputs fail typechecks. `optional` returns a possibly absent API, not a dynamically rebinding service.
 
 `CancellationSignal` is a platform-neutral interface with zero-argument abort listeners. A native driver adapts it when a platform API requires native `AbortSignal`. Context has no host registry, grant management, native API, logger or commands. Host APIs will come from `@lunaris/kernel`.
 
