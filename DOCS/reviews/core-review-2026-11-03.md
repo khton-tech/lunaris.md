@@ -1,5 +1,24 @@
 # Core review — 2026-11-03
 
+## Resolution — 2026-11-03
+
+**All four findings are fixed on `fix/core-review-findings`.** The original review below describes revision `b8fe25a6f3a11ec229ebea8b69b5f2d1600c7dae`; its defect descriptions and source line references are historical. No merge into the target branch has been performed.
+
+| Finding | Resolution | Commits |
+| --- | --- | --- |
+| R1 | Public root disposal coordinates activation shutdown; later starts wait and create a fresh activation | `f2963a2` |
+| R2 | Required consumers finish or reach cleanup deadlines before provider resources are released; consumers already disposing remain included | `f2963a2`, `d9e0897` |
+| R3 | Bound provider versions must satisfy the consumed token's caret range as well as the manifest range, consistently across API/events/hooks | `7b2caf9` |
+| R4 | Rejected native/foreign Promises and thenables produce diagnostics while preserving original failures and synchronous return values | `dbd2ff3` |
+
+Final validation after the fixes:
+
+- `npm run check -- kernel`: **263 passed, zero skipped**, including affected test-kit, development-host, and CLI consumers; build, boundary checks, and type fixtures passed.
+- `node tools/scripts/audit-core-2026-11-03.mjs`: **R1–R4 all passed**, zero violated invariants, exit status 0. Original probe assertions were retained.
+- Added **45 regression cases** across root disposal/lifecycle concurrency, directional API/event/hook version compatibility, and asynchronous API results.
+
+The behavior is specified in [`core-lifecycle-contracts.md`](../reference/core-lifecycle-contracts.md). Root disposal during activation rolls back locally; child disposal remains local; active-root disposal uses the kernel's existing dependency-aware queues and deadlines. No public SDK signature changes or plugin-side workarounds were needed. The two lifecycle blockers confirmed by this review are resolved within the tested scope; the limits listed below still apply.
+
 ## Decision
 
 The current core passes its existing automated checks, but it is not ready to be treated as a stable lifecycle foundation. This review confirms **four defects: two P1 lifecycle defects and two P2 compatibility/diagnostic defects**. No P0 defect was confirmed.
