@@ -9,8 +9,14 @@ export interface PluginDefinition {
   readonly activate: (context: PluginContext) => MaybePromise<void | Disposable>;
 }
 
+/** Author input can come directly from JSON; the factory validates it at runtime. */
+export interface PluginInput {
+  readonly manifest: unknown;
+  readonly activate: PluginDefinition["activate"];
+}
+
 /** Validate/copy metadata without executing activation or coupling SDK to a runtime. */
-export function definePlugin(definition: PluginDefinition): PluginDefinition {
+export function definePlugin(definition: PluginInput): PluginDefinition {
   const data = readDataObject(definition, ["manifest", "activate"], "MANIFEST_INVALID");
   const result = validateManifest(data.manifest);
   if (!result.ok) {

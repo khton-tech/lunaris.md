@@ -61,3 +61,6 @@ ctx.permissions.grant("example.read");
 // @ts-expect-error API token shapes cannot be widened independently of implementations.
 const widerApi: ApiToken<{ greet(name: string): string | number }> = api;
 void [syncResult, asyncResult, widerApi, widerEvent, widerHook];
+
+declare const parsedJson: unknown;
+definePlugin({ manifest: parsedJson, activate(context) { context.signal.throwIfAborted(); } });

@@ -6,7 +6,7 @@ export type {
 } from "@lunaris/manifest";
 
 export type { CancellationSignal, Disposable, MaybePromise, PluginContext, ResourceScope } from "./context.js";
-export type { PluginDefinition } from "./plugin.js";
+export type { PluginDefinition, PluginInput } from "./plugin.js";
 export { definePlugin } from "./plugin.js";
 export type { ErrorCode, ErrorContext } from "./errors.js";
 export { LunarisError } from "./errors.js";

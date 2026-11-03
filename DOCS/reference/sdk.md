@@ -76,3 +76,4 @@ Undeclared contracts or incompatible versions throw `CONTRACT_UNDECLARED`. Missi
 ## Verification and examples
 
 Run `npm run check -- sdk` to compile SDK/kernel, test metadata/identity/declarations, enforce package boundaries and compile positive/negative SDK fixtures. The [nine design scenarios](design-scenarios.md) compile as `packages/sdk/test/scenarios.ts`, importing only the public SDK. They are type-level scenarios, not executable lifecycle tests. P7 will turn them into separately documented example plugins after runtime gates pass.
+`PluginInput.manifest` accepts unknown JSON data; `definePlugin` validates it and returns a typed immutable `PluginDefinition`. This permits direct JSON imports without plugin-side casts. An invalid JSON manifest still throws `MANIFEST_INVALID` before activation.
