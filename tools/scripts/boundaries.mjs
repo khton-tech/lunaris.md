@@ -6,6 +6,7 @@ export const dependencies = {
   manifest: [],
   sdk: ['manifest'],
   kernel: ['manifest', 'sdk'],
+  test: ['sdk', 'kernel'],
 };
 
 export function checkSource(source, filename, scope) {
