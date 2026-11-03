@@ -1,0 +1,85 @@
+{
+  "node": "v26.13.0",
+  "results": [
+    {
+      "id": "R01",
+      "evidence": {
+        "stateAfterLaterStop": "active"
+      }
+    },
+    {
+      "id": "R02",
+      "evidence": {
+        "requiredConsumer": "active",
+        "provider": "stopped"
+      }
+    },
+    {
+      "id": "R03",
+      "evidence": {
+        "rawCallsAfterRevokeAndStop": 2
+      }
+    },
+    {
+      "id": "R04",
+      "evidence": {
+        "selected": "review.second",
+        "bound": "review.first",
+        "activations": [
+          1,
+          0
+        ]
+      }
+    },
+    {
+      "id": "R05",
+      "evidence": {
+        "providerStarts": 2,
+        "boundActivation": "review.provider:1",
+        "actualActivation": "review.provider:3"
+      }
+    },
+    {
+      "id": "R06",
+      "unrelated": 0,
+      "calls": 10000,
+      "elapsedMs": 182.68
+    },
+    {
+      "id": "R06",
+      "unrelated": 100,
+      "calls": 10000,
+      "elapsedMs": 178.69
+    },
+    {
+      "id": "R06",
+      "unrelated": 1000,
+      "calls": 10000,
+      "elapsedMs": 199.7
+    },
+    {
+      "id": "R07",
+      "unrelatedPairs": 100,
+      "isolatedStartMs": 1.85
+    },
+    {
+      "id": "R07",
+      "unrelatedPairs": 500,
+      "isolatedStartMs": 29.71
+    },
+    {
+      "id": "R07",
+      "unrelatedPairs": 1000,
+      "isolatedStartMs": 115.89
+    },
+    {
+      "id": "R08",
+      "evidence": {
+        "emissionResolved": true,
+        "exposedCause": {
+          "kind": "object"
+        }
+      }
+    }
+  ]
+}
