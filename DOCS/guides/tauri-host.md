@@ -76,7 +76,7 @@ loading. Restart the development process or reload the window after code changes
 
 ## Recovery behavior
 
-The system screen displays host/kernel/SDK versions, plugin IDs/versions/states,
+The system screen displays host identity, kernel/SDK versions, plugin IDs/versions/states,
 owned-resource counts, disabled plugins and safe diagnostic codes with plugin and
 contract attribution. It uses text nodes rather than interpolated HTML. Raw error
 causes, arguments and payloads are not rendered. English and Russian catalogs are
@@ -136,3 +136,24 @@ behavior. Manually run `npm run tauri:dev` and check:
 The independent native workflow in `.github/workflows/tauri.yml` builds on the
 declared Windows target when host/core/tooling inputs change. It is configured;
 remote execution is not claimed by the local implementation.
+
+## Local implementation evidence — 2026-11-03
+
+Implementation commit: `6217ca8`, branch `feat/tauri-fallback-shell`.
+
+- `npm run release:check`: **337 tests passed, zero skipped**, workspace builds,
+  boundaries, type fixtures, CI-selection tests, export/documentation audit,
+  core benchmark and generated-plugin rehearsal (1999 ms).
+- `npm run tauri:check`: targeted host checks, frontend build, Rust formatting
+  and locked native compilation passed.
+- `npm run tauri:build`: **23 host runtime/DOM/close-adapter tests** plus shared
+  boundary checks and type fixtures passed; frontend assets and a native Windows
+  debug executable were built successfully without launching a window.
+- Runtime tests include failure/retry, optional-provider recovery, exclusion of
+  required providers, stale load/mount cancellation, the mount-adoption fault race,
+  cleanup failure/deadline handling and bounded safe diagnostics.
+
+Environment: Windows x64, Node 26.13.0, npm 11.20.0, Rust/Cargo 1.99.1,
+Tauri Rust 2.12.5 and JavaScript API/CLI 2.12.4. Actual WebView visuals, native close
+events and remote CI remain unverified. No merge, push, installer or publication
+was performed.

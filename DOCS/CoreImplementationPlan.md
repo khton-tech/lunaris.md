@@ -784,3 +784,25 @@ Changed files and public API impact: plan scope only; no reference-plugin packag
 Verification command and outcome: adjusted release check passed without these packages.
 Evidence commit / review: b328e59
 Remaining limitations or blocking SDK specification: revisit only after a new product/Owner requirement.
+
+## First application host milestone — 2026-11-03
+
+The Owner selected Tauri as the first target and authorized an independent minimal
+monochrome recovery interface. See [decision 0003](decisions/0003-tauri-recovery-shell.md)
+and the [host guide](guides/tauri-host.md). The original core milestone and deferred
+reference-plugin tasks retain their scope.
+
+| Task | Status | Delivered behavior / acceptance |
+|---|---|---|
+| K10.1 Tauri composition | DONE | Native Rust window, WebView frontend, actual public TypeScript kernel and browser scheduler; locked Windows debug build succeeds. |
+| K10.2 Independent system UI | DONE | Host-owned monochrome view, versions, plugin/resource states, safe diagnostics and independent English/Russian catalogs. |
+| K10.3 Recovery lifecycle | DONE | Startup/runtime/render faults return to the shell; retry rebuilds the kernel; excluded definitions cannot auto-start through dependencies; failed cleanup blocks in-process recovery. |
+| K10.4 Automated verification | DONE | 23 host tests; 337 full-release tests with zero skips; frontend/native checks, debug executable and dedicated Windows CI configuration. |
+| K10.5 Manual desktop acceptance | TODO | Owner runs the host-guide visual/native-window checklist. Desktop automation is prohibited; no visual or native event execution claim is made. |
+
+Branch / responsible contributor: `feat/tauri-fallback-shell` / Codex.
+Implementation evidence: `6217ca8`.
+Verification commands: `npm run tauri:check`, `npm run tauri:build`,
+`npm run release:check` — passed locally on the documented Windows environment.
+No kernel or SDK public API change was required. No product/reference plugins,
+native capability drivers, merge, push, installer or publication were added.
