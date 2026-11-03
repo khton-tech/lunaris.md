@@ -7,7 +7,10 @@ export const dependencies = {
   sdk: ['manifest'],
   kernel: ['manifest', 'sdk'],
   test: ['sdk', 'kernel'],
+  development: ['manifest', 'sdk', 'kernel'],
 };
+
+export const packagePath = scope => scope === "development" ? "hosts/development" : `packages/${scope}`;
 
 export function checkSource(source, filename, scope) {
   const errors = [];
@@ -22,13 +25,13 @@ export function checkSource(source, filename, scope) {
     }
     const value = node.text;
     if (value.startsWith('./') || value.startsWith('../')) {
-      const root = path.resolve('packages', scope, 'src');
+      const root = path.resolve(packagePath(scope), 'src');
       const resolved = path.resolve(path.dirname(filename), value);
       const relative = path.relative(root, resolved);
       if (relative.startsWith('..') || path.isAbsolute(relative)) {
         errors.push(`${filename}: relative import escapes source root: ${value}`);
       }
-    } else if (!allowed.has(value)) {
+    } else if (!allowed.has(value) && !(scope === 'development' && value.startsWith('node:'))) {
       errors.push(`${filename}: forbidden dependency: ${value}`);
     }
   }
@@ -41,7 +44,7 @@ export function checkSource(source, filename, scope) {
       else errors.push(`${filename}: nonliteral import type`);
     }
     if (ts.isImportEqualsDeclaration(node)) errors.push(`${filename}: import assignments are forbidden`);
-    if (ts.isCallExpression(node) && (
+    if (ts.isCallExpression(node) && (scope !== 'development' || node.expression.kind !== ts.SyntaxKind.ImportKeyword) && (
       node.expression.kind === ts.SyntaxKind.ImportKeyword ||
       (ts.isIdentifier(node.expression) && node.expression.text === 'require')
     )) errors.push(`${filename}: dynamic module loading is forbidden`);
@@ -54,7 +57,7 @@ export function checkSource(source, filename, scope) {
 export async function checkBoundaries(scopes) {
   const errors = [];
   for (const scope of scopes) {
-    const root = path.resolve('packages', scope, 'src');
+    const root = path.resolve(packagePath(scope), 'src');
     for (const entry of await readdir(root, { recursive: true, withFileTypes: true })) {
       if (!entry.isFile()) continue;
       const filename = path.join(entry.parentPath, entry.name);

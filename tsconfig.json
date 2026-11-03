@@ -1,9 +1,20 @@
 {
   "files": [],
   "references": [
-    { "path": "packages/manifest" },
-    { "path": "packages/sdk" },
-    { "path": "packages/kernel" },
-    { "path": "packages/test" }
+    {
+      "path": "packages/manifest"
+    },
+    {
+      "path": "packages/sdk"
+    },
+    {
+      "path": "packages/kernel"
+    },
+    {
+      "path": "packages/test"
+    },
+    {
+      "path": "hosts/development"
+    }
   ]
 }
