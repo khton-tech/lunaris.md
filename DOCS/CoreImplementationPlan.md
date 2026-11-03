@@ -1,6 +1,6 @@
 # Core implementation plan
 
-Status: P0 design and P1 foundation gates completed. P2 SDK/runtime validation work is next; no executable kernel exists yet.
+Status: P0–P2 gates completed. Public SDK definitions and manifest validation exist; executable kernel lifecycle implementation starts at P3.
 Baseline date: 2026-11-03.
 Source: [architecture proposal](TechDoc.md) and [repository rules](../AGENTS.md).
 
@@ -175,11 +175,11 @@ Gate: a small test runs through the supported command and package boundaries are
 
 Dependencies: P1 and D03/D04/D09. Start minimal in-memory test infrastructure here and grow it with each runtime feature.
 
-- [ ] **K02.1** Implement public plugin/context/disposable/signal types and `definePlugin`. Acceptance: design scenarios typecheck; negative type fixtures reject mismatched provider and consumer shapes.
-- [ ] **K02.2** Implement API/event/hook token definitions and canonical identity. Acceptance: duplicate package copies agree on identity; incompatible duplicate declarations are rejected.
-- [ ] **K02.3** Implement schema validation and structured diagnostics for ID, semantic versions, engine/SDK ranges, entry, provides/requires, optional requirements, and permissions. Acceptance: malformed manifests fail before entry evaluation; errors identify the field and plugin.
-- [ ] **K02.4** Eliminate metadata drift between manifest and plugin definition. Acceptance: mismatched IDs and undeclared registrations fail predictably; serialized manifests and runtime definitions use the same validation rules.
-- [ ] **K02.5** Publish the draft SDK/manifest reference and compile the design examples against it. Acceptance: examples import only public exports; host-only operations are unavailable in plugin context.
+- [x] **K02.1** Implement public plugin/context/disposable/signal types and `definePlugin`. Acceptance: design scenarios typecheck; negative type fixtures reject mismatched provider and consumer shapes.
+- [x] **K02.2** Implement API/event/hook token definitions and canonical identity. Acceptance: duplicate package copies agree on identity; incompatible duplicate declarations are rejected.
+- [x] **K02.3** Implement schema validation and structured diagnostics for ID, semantic versions, engine/SDK ranges, entry, provides/requires, optional requirements, and permissions. Acceptance: malformed manifests fail before entry evaluation; errors identify the field and plugin.
+- [x] **K02.4** Eliminate metadata drift between manifest and plugin definition. Acceptance: mismatched IDs and undeclared registrations fail predictably; serialized manifests and runtime definitions use the same validation rules.
+- [x] **K02.5** Publish the draft SDK/manifest reference and compile the design examples against it. Acceptance: examples import only public exports; host-only operations are unavailable in plugin context.
 
 Gate: the runtime can be implemented against a documented public boundary; no plugin needs an internal escape hatch.
 
@@ -346,7 +346,7 @@ Resume plugin work only after the SDK change is implemented and verified as its 
 
 ## 9. Immediate next slice
 
-P0 and P1 are complete on `codex/core-foundation` (base `main` at `729da7d`). Next implement P2: public plugin/context and token definitions, runtime manifest validation, negative type fixtures and compiled design scenarios. No executable kernel task is marked complete by foundation work. Continue on an isolated dependent branch when introducing the SDK module; record its base and do not merge without Owner approval.
+P0/P1 foundation branch was renamed from `codex/core-foundation` to `feat/core-foundation` at the Owner's request; branch policy was committed as `9f72d1d`. P2 is complete on stacked branch `feat/core-sdk`, based on `feat/core-foundation` at `9f72d1d`. Next implement P3 on `feat/core-lifecycle`: kernel instances, owned scopes, transactional lifecycle, deadlines and bounded diagnostics. Use the existing SDK and shared manifest validator. No executable kernel task is marked complete by SDK work; do not merge without Owner approval. Earlier evidence entries retain their original branch names as historical records.
 
 ## 10. Execution evidence
 
@@ -398,3 +398,53 @@ Changed files and public API impact: DOCS/guides/contributing.md; documents actu
 Verification command and outcome: rehearsed npm ci, npm run environment and npm run check -- manifest; no global compiler dependency. git diff --check passed.
 Evidence commit / review: 72df52f
 Remaining limitations or blocking SDK specification: P2/P3 remain necessary to build/run a plugin. No merge or publication performed.
+
+Task: K02.1
+Status: DONE
+Branch / responsible contributor: feat/core-sdk / Codex; stacked on feat/core-foundation at 9f72d1d
+Depends on: P1 72df52f
+Required / existing / new responsibilities: SDK previously had manifest/disposable types only; added plugin definitions, context, ownership/cancellation interfaces and stable errors.
+Changed files and public API impact: packages/sdk/src/{context,plugin,errors,index}.ts; definePlugin validates and freezes metadata without activation. No concrete kernel dependency.
+Verification command and outcome: npm run check -- sdk passed; nine SDK-only design scenarios and negative provider/consumer, readonly payload, optional API and host-access fixtures compile as expected.
+Evidence commit / review: f38f95b
+Remaining limitations or blocking SDK specification: scopes/context are public interfaces; lifecycle behavior is implemented/tested at P3, APIs at P4, dispatch at P5, effective grants at P6.
+
+Task: K02.2
+Status: DONE
+Branch / responsible contributor: feat/core-sdk / Codex
+Depends on: K02.1
+Required / existing / new responsibilities: no contract tokens existed; added typed API/event/hook factories, canonical keys and stateless metadata conflict checks.
+Changed files and public API impact: packages/sdk/src/tokens.ts; tokens retain exact full versions and permission metadata, validators are optional and excluded from identity.
+Verification command and outcome: npm run check -- sdk passed; independently evaluated token module copies share canonical identity; permission conflicts, invalid metadata and kind/version distinctions tested. Type fixtures reject method shape/payload widening and callable API roots.
+Evidence commit / review: f38f95b
+Remaining limitations or blocking SDK specification: future per-kernel registries must call assertCompatibleTokens; SDK has no global registry. Validator execution belongs to runtime contract operations.
+
+Task: K02.3
+Status: DONE
+Branch / responsible contributor: feat/core-sdk / Codex
+Depends on: P1
+Required / existing / new responsibilities: field schema existed as a specification; added runtime validation, immutable snapshots, field diagnostics and explicit host compatibility checks using pinned node-semver.
+Changed files and public API impact: packages/manifest/src/{validation,versions,index}.ts, locked semver 7.8.6 and development types, DOCS/reference/manifest.md; reviewed semver as the manifest package's permitted platform-neutral dependency.
+Verification command and outcome: npm run check -- manifest passed, including affected SDK/kernel checks. Invalid/missing/unknown fields, unsafe entry paths, duplicate declarations, overlapping permissions, prerelease matching, compatibility, mutation, accessors, trailing whitespace and custom array prototypes covered.
+Evidence commit / review: 44b903f; c5531cc
+Remaining limitations or blocking SDK specification: loader must supply actual host versions and verify filesystem real-path containment at P8; validation does not execute code or grant permissions. Browser execution remains unverified.
+
+Task: K02.4
+Status: DONE
+Branch / responsible contributor: feat/core-sdk / Codex
+Depends on: K02.1–K02.3
+Required / existing / new responsibilities: single manifest identity retained; shared declaration assertions added so runtime implementations reject undeclared registrations/access before publication.
+Changed files and public API impact: definePlugin rejects repeated top-level IDs; assertDeclaration checks exact provides, required/optional ranges, operation role and permission declarations through shared validation rules.
+Verification command and outcome: npm run check -- sdk passed; tests cover repeated identity, malformed definitions, undeclared contracts, wrong versions/kinds, required/optional mismatch and separate provider/consumer permission declarations.
+Evidence commit / review: f38f95b
+Remaining limitations or blocking SDK specification: public assertions are executable; registration wiring is P3/P4 work. Declaration checks do not substitute for effective host grants, scope or availability checks.
+
+Task: K02.5
+Status: DONE
+Branch / responsible contributor: feat/core-sdk / Codex
+Depends on: K02.1–K02.4
+Required / existing / new responsibilities: P0 drafts now compile; SDK/manifest references and contributing guide describe actual exports and separate future runtime behavior.
+Changed files and public API impact: DOCS/reference/{sdk,manifest,core-boundary,design-scenarios}.md; packages/sdk/test/scenarios.ts imports public SDK exports only. Hello needs no application services and stays below 30 source lines.
+Verification command and outcome: npm run check -- sdk and npm run check -- manifest passed; positive scenarios compile and negative fixtures reject host grants/registry/logger access; git diff --check passed.
+Evidence commit / review: f38f95b; 44b903f
+Remaining limitations or blocking SDK specification: compiled scenarios do not execute lifecycle; P7 will create executable, separately documented plugins after P3–P6 runtime gates. No merge or publishing performed.
