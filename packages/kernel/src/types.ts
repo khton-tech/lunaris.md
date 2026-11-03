@@ -12,6 +12,14 @@ export interface KernelOptions {
   readonly activationTimeoutMs?: number;
   readonly stopTimeoutMs?: number;
   readonly diagnosticCapacity?: number;
+  readonly initialGrants?: Readonly<Record<string, readonly string[]>>;
+  readonly requestPermission?: (request: PermissionRequest) => boolean | Promise<boolean>;
+}
+
+export interface PermissionRequest {
+  readonly pluginId: string;
+  readonly activationId: string;
+  readonly permission: string;
 }
 
 export interface Diagnostic {
@@ -31,6 +39,7 @@ export interface PluginSnapshot {
   readonly contracts: readonly string[];
   readonly ownedResources: number;
   readonly bindings: readonly { readonly contract: string; readonly providerId?: string; readonly activationId?: string; readonly version?: string }[];
+  readonly effectivePermissions: readonly string[];
 }
 
 export interface KernelSnapshot {
@@ -38,13 +47,15 @@ export interface KernelSnapshot {
   readonly diagnostics: readonly Diagnostic[];
 }
 
-/** P3 host surface; dependency selection and grant management arrive at later gates. */
+/** Privileged host composition surface; never included in plugin context. */
 export interface Kernel {
   register(definition: PluginDefinition): void;
   start(pluginId: string): Promise<void>;
   stop(pluginId: string): Promise<void>;
   restart(pluginId: string): Promise<void>;
   selectProvider(consumerId: string, kind: ContractKind, contractId: string, providerId: string): void;
+  grant(pluginId: string, permission: string): void;
+  revoke(pluginId: string, permission: string): void;
   stopAll(): Promise<void>;
   inspect(): KernelSnapshot;
 }

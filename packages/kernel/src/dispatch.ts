@@ -64,7 +64,11 @@ export class DispatchRuntime {
         if (entry.activation.scope.closed || !this.#subscriptions.has(entry)) continue;
         const output = await this.access.invoke(() => entry.callback(value));
         if (kind === "hook") {
+          this.#owner(record, activation, token, kind);
+          this.access.check(entry.consumer, entry.activation, entry.token, "consume");
           this.access.validate(entry.token, output);
+          this.access.check(entry.consumer, entry.activation, entry.token, "consume");
+          this.#owner(record, activation, token, kind);
           this.access.validate(token, output);
           value = output;
         }

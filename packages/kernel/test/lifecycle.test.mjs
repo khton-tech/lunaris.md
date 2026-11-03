@@ -222,7 +222,7 @@ test('indirect asynchronous lifecycle self-wait is bounded by activation deadlin
   assert.equal(snapshot(kernel).state, 'stopped');
 });
 
-test('unsupported dependency/dispatch operations fail explicitly and permissions default to denial', async () => {
+test('missing dependencies, uncommitted dispatch and default-denied permissions fail explicitly', async () => {
   const { kernel } = host();
   const Event = defineEvent({ id: 'example.event', version: '1.0.0' });
   const Hook = defineHook({ id: 'example.hook', version: '1.0.0' });
@@ -238,16 +238,18 @@ test('unsupported dependency/dispatch operations fail explicitly and permissions
     assert.equal(ctx.permissions.has('example.read'), false);
     assert.equal(await ctx.permissions.request('example.read'), false);
     await assert.rejects(ctx.permissions.request('example.unknown'), { code: 'PERMISSION_DENIED' });
-    assert.throws(() => ctx.provide(Sensitive, { value() {} }), { code: 'PERMISSION_DENIED' });
     await assert.rejects(ctx.events.emit(Event, {}), { code: 'CONTRACT_UNAVAILABLE' });
     await assert.rejects(ctx.hooks.run(Hook, ''), { code: 'CONTRACT_UNAVAILABLE' });
   }, {
-    ...provides,
-    provides: [...provides.provides, { kind: 'api', id: Sensitive.id, version: Sensitive.version }, { kind: 'event', id: Event.id, version: Event.version }, { kind: 'hook', id: Hook.id, version: Hook.version }],
+    provides: [{ kind: 'event', id: Event.id, version: Event.version }, { kind: 'hook', id: Hook.id, version: Hook.version }],
     requires: [{ kind: 'api', id: Api.id, range: '^1.0.0', optional: true }],
     permissions: ['example.serve'], optionalPermissions: ['example.read'],
   }));
   await kernel.start('example.plugin');
+  kernel.register(plugin('example.sensitive-provider', ctx => { ctx.provide(Sensitive, { value() {} }); }, {
+    provides: [{ kind: 'api', id: Sensitive.id, version: Sensitive.version }], permissions: ['example.serve'],
+  }));
+  await assert.rejects(kernel.start('example.sensitive-provider'), error => error.cause.code === 'PERMISSION_DENIED');
   await kernel.stopAll();
 });
 

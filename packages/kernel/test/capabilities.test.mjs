@@ -45,7 +45,7 @@ test('version ranges, minor compatibility, missing providers and explicit incomp
   await kernel.stopAll();
 });
 
-test('diamond graph uses stable topological order and stops required consumers before providers', async () => {
+test('branching graph uses stable topological order and stops required consumers before providers', async () => {
   const { kernel } = host(); const order = [];
   for (const [id, deps] of [['example.root', ['example.b', 'example.c']], ['example.b', ['example.z']], ['example.c', []], ['example.z', []]]) {
     const token = defineApi({ id, version: '1.0.0' });
@@ -59,6 +59,16 @@ test('diamond graph uses stable topological order and stops required consumers b
   assert.deepEqual(order.slice(4), ['-example.root', '-example.b', '-example.z']);
   assert.equal(snapshot(kernel, 'example.c').state, 'active');
   await kernel.stopAll();
+});
+
+test('diamond graph starts its shared leaf once and stops both dependency paths', async () => {
+  const { kernel } = host(); let leaves = 0;
+  for (const [id, deps] of [['example.root', ['example.b', 'example.c']], ['example.b', ['example.leaf']], ['example.c', ['example.leaf']], ['example.leaf', []]]) {
+    const token = defineApi({ id, version: '1.0.0' });
+    kernel.register(plugin(id, ctx => { if (id === 'example.leaf') leaves++; ctx.provide(token, {}); }, { provides: [advertised(id)], requires: deps.map(dep => required(dep)) }));
+  }
+  await kernel.start('example.root'); assert.equal(leaves, 1); await kernel.stop('example.leaf');
+  assert.ok(kernel.inspect().plugins.every(item => item.state === 'stopped')); await kernel.stopAll();
 });
 
 test('required cycles explain their path before any plugin runs; optional cycles omit an edge', async () => {
@@ -114,4 +124,12 @@ test('concurrent starts sharing a dependency activate it once', async () => {
   for (const id of ['example.a', 'example.b']) kernel.register(plugin(id, () => {}, { requires: [required()] }));
   const starts = [kernel.start('example.a'), kernel.start('example.b')]; await entered.promise; release.resolve();
   await Promise.all(starts); assert.equal(calls, 1); await kernel.stopAll();
+});
+
+test('an advertised API must actually be published before activation can commit', async () => {
+  const { kernel } = host(); let consumerRan = false;
+  kernel.register(plugin('example.provider', () => {}, { provides: [advertised()] }));
+  kernel.register(plugin('example.consumer', () => { consumerRan = true; }, { requires: [required()] }));
+  await assert.rejects(kernel.start('example.consumer'), { code: 'PROVIDER_UNAVAILABLE' });
+  assert.equal(consumerRan, false); assert.deepEqual(snapshot(kernel, 'example.provider').contracts, []); await kernel.stopAll();
 });

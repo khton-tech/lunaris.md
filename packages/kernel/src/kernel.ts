@@ -1,9 +1,9 @@
 import { validateManifest } from "@lunaris/manifest";
-import { assertCompatibleTokens, assertDeclaration, contractKey, definePlugin, LunarisError } from "@lunaris/sdk";
+import { assertCompatibleTokens, contractKey, definePlugin, LunarisError } from "@lunaris/sdk";
 import type { ApiToken, ContractKind, ContractToken, ErrorCode, PluginContext, PluginDefinition } from "@lunaris/sdk";
 import { Diagnostics } from "./diagnostics.js";
 import { OwnedScope } from "./scope.js";
-import type { Kernel, KernelOptions, KernelSnapshot, PluginState, Scheduler } from "./types.js";
+import type { Kernel, KernelOptions, KernelSnapshot, Scheduler } from "./types.js";
 
 import { context, requirementKey } from "./model.js";
 import type { Activation, Registration } from "./model.js";
@@ -12,6 +12,7 @@ import type { Plan } from "./resolver.js";
 import { Access } from "./access.js";
 import { ApiRuntime } from "./api.js";
 import { DispatchRuntime } from "./dispatch.js";
+import { PermissionPolicy } from "./permissions.js";
 
 class Runtime {
   #plugins = new Map<string, Registration>();
@@ -20,6 +21,7 @@ class Runtime {
   readonly #access: Access;
   readonly #api: ApiRuntime;
   readonly #dispatch: DispatchRuntime;
+  readonly #permissions: PermissionPolicy;
   #callbackDepth = 0;
   readonly #diagnostics: Diagnostics;
   readonly #scheduler: Scheduler;
@@ -39,11 +41,8 @@ class Runtime {
       throw new LunarisError("LIFECYCLE_INVALID", "Deadlines must be positive finite durations and diagnostic capacity a positive integer.");
     }
     this.#diagnostics = new Diagnostics(capacity);
-    this.#access = new Access(this.#plugins, (record, token, role) => {
-      if (role === "provide" ? token.providePermission : token.consumePermission) {
-        throw new LunarisError("PERMISSION_DENIED", "Sensitive operations require host grants.", context(record));
-      }
-    }, this.#invoke);
+    this.#permissions = new PermissionPolicy(this.#plugins, this.#diagnostics, options);
+    this.#access = new Access(this.#plugins, this.#permissions.authorize, this.#invoke);
     this.#dispatch = new DispatchRuntime(this.#access, this.#diagnostics);
     this.#api = new ApiRuntime(this.#access, this.#diagnostics, (provider, activation, key) => {
       void this.#stopDependents(provider, activation, key).catch(cause => this.#diagnostics.record("CLEANUP_FAILED", context(provider, activation), cause));
@@ -77,7 +76,9 @@ class Runtime {
       this.#diagnostics.record("PLUGIN_DUPLICATE", { pluginId: id });
       throw new LunarisError("PLUGIN_DUPLICATE", "Plugin ID is already registered.", { pluginId: id });
     }
-    this.#plugins.set(id, { definition: checked, state: "registered", tail: Promise.resolve() });
+    const record: Registration = { definition: checked, state: "registered", tail: Promise.resolve() };
+    this.#permissions.register(record);
+    this.#plugins.set(id, record);
   };
 
   #enqueue(id: string, operation: (record: Registration) => Promise<void>, internal = false): Promise<void> {
@@ -125,14 +126,6 @@ class Runtime {
   }
 
   #pluginContext(record: Registration, activation: Activation): PluginContext {
-    const permission = (name: string, optionalOnly: boolean): false => {
-      activation.scope.assertOpen();
-      const manifest = record.definition.manifest;
-      if (!manifest.optionalPermissions.includes(name) && (optionalOnly || !manifest.permissions.includes(name))) {
-        throw new LunarisError("PERMISSION_DENIED", "Permission is not declared for this operation.", this.#context(record));
-      }
-      return false;
-    };
     return Object.freeze({
       pluginId: record.definition.manifest.id, activationId: activation.id,
       signal: activation.scope.facade.signal, scope: activation.scope.facade,
@@ -141,10 +134,7 @@ class Runtime {
       optional: <T extends object>(token: ApiToken<T>): T | undefined => this.#api.use(record, activation, token, true),
       events: this.#dispatch.events(record, activation),
       hooks: this.#dispatch.hooks(record, activation),
-      permissions: Object.freeze({
-        has: (name: string) => permission(name, false),
-        request: async (name: string) => permission(name, true),
-      }),
+      permissions: this.#permissions.facade(record, activation),
     });
   }
 
@@ -180,7 +170,11 @@ class Runtime {
     let requiredContractId: string | undefined;
     let detached = false;
     try {
-      if (planningError) { resolutionFailure = planningError as LunarisError; throw planningError; }
+      if (planningError) {
+        resolutionFailure = planningError instanceof LunarisError ? planningError :
+          new LunarisError("LIFECYCLE_INVALID", "Dependency planning failed.", context(record), { cause: planningError });
+        throw resolutionFailure;
+      }
       for (const requirement of record.definition.manifest.requires) {
         const key = requirementKey(requirement);
         const providerId = selected.get(key);
@@ -207,6 +201,11 @@ class Runtime {
       });
       await this.#deadline(work, this.#activationTimeout, timeout, () => scope.close(timeout));
       scope.assertOpen();
+      for (const provided of record.definition.manifest.provides) {
+        if (provided.kind === "api" && !apis.has(contractKey(provided))) {
+          throw new LunarisError("CONTRACT_UNAVAILABLE", "Advertised API was not published during activation.", { ...context(record), contractId: provided.id });
+        }
+      }
       for (const entry of apis.values()) this.#compatible(entry.token, record);
       for (const token of tokens.values()) this.#access.check(record, activation, token,
         record.definition.manifest.provides.some(p => p.kind === token.kind && p.id === token.id && p.version === token.version) ? "provide" : "consume");
@@ -284,12 +283,18 @@ class Runtime {
     if (errors.length) throw new LunarisError("CLEANUP_FAILED", "One or more plugins failed to stop.", {}, { cause: new AggregateError(errors) });
   };
 
+  grant = (id: string, permission: string): void => this.#permissions.grant(id, permission);
+  revoke = (id: string, permission: string): void => this.#permissions.revoke(id, permission);
+
   inspect = (): KernelSnapshot => Object.freeze({
     plugins: Object.freeze([...this.#plugins.values()].sort((a, b) => a.definition.manifest.id < b.definition.manifest.id ? -1 : 1).map(record => Object.freeze({
       manifest: record.definition.manifest, state: record.state,
       ...(record.activation ? { activationId: record.activation.id } : {}),
-      contracts: Object.freeze(record.state === "active" && !record.activation?.scope.closed ? [...record.activation!.apis.keys()].sort() : []),
+      contracts: Object.freeze(record.state === "active" && !record.activation?.scope.closed ? [
+        ...record.activation!.apis.keys(), ...record.definition.manifest.provides.filter(p => p.kind !== "api").map(p => contractKey(p)),
+      ].sort() : []),
       ownedResources: record.activation?.scope.resourceCount ?? 0,
+      effectivePermissions: this.#permissions.effective(record.definition.manifest.id),
       bindings: Object.freeze([...record.activation?.bindings ?? []].map(([contract, binding]) => Object.freeze({ contract,
         ...(binding ? { providerId: binding.provider.definition.manifest.id, activationId: binding.activation.id, version: binding.version } : {}) }))),
     }))),
@@ -300,5 +305,5 @@ class Runtime {
 export function createKernel(options: KernelOptions): Kernel {
   const runtime = new Runtime(options);
   return Object.freeze({ register: runtime.register, start: runtime.start, stop: runtime.stop,
-    restart: runtime.restart, selectProvider: runtime.selectProvider, stopAll: runtime.stopAll, inspect: runtime.inspect });
+    restart: runtime.restart, selectProvider: runtime.selectProvider, grant: runtime.grant, revoke: runtime.revoke, stopAll: runtime.stopAll, inspect: runtime.inspect });
 }

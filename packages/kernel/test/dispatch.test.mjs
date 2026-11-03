@@ -118,3 +118,25 @@ test('owner validators reject malformed input before listener execution', async 
   await assert.rejects(ctx.events.emit(Valid, 42), { code: 'VALIDATION_FAILED' }); assert.equal(calls, 0);
   await kernel.stopAll();
 });
+
+test('nested hook pipelines are independent and thrown handler values propagate unchanged', async () => {
+  const { kernel } = host(); const get = owner(kernel); const order = []; let fail = false; const error = {};
+  consumer(kernel, 'example.listener', ctx => {
+    ctx.hooks.register(Hook, async value => { order.push('a' + value); if (fail) throw error; if (value === 1) await get().hooks.run(Hook, 2); return value; });
+    ctx.hooks.register(Hook, value => { order.push('b' + value); return value; });
+  }, Hook);
+  await kernel.start('example.listener'); assert.equal(await get().hooks.run(Hook, 1), 1);
+  assert.deepEqual(order, ['a1', 'a2', 'b2', 'b1']); fail = true;
+  await assert.rejects(get().hooks.run(Hook, 3), cause => cause === error);
+  assert.equal(order.at(-1), 'a3'); await kernel.stopAll();
+});
+
+test('stopped hook handlers receive no new validator invocation after their callback settles', async () => {
+  const { kernel } = host(); const get = owner(kernel); const entered = deferred(); const finish = deferred(); let validations = 0;
+  const Valid = defineHook({ id: Hook.id, version: Hook.version, validate: () => { validations++; return true; } });
+  consumer(kernel, 'example.listener', ctx => { ctx.hooks.register(Valid, async value => { entered.resolve(); await finish.promise; return value; }); }, Hook);
+  await kernel.start('example.listener'); const run = get().hooks.run(Hook, '');
+  const rejected = assert.rejects(run, { code: 'SCOPE_CLOSED' }); await entered.promise;
+  const before = validations; await kernel.stop('example.listener'); finish.resolve(); await rejected;
+  assert.equal(validations, before); await kernel.stopAll();
+});

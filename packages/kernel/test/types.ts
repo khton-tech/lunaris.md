@@ -25,3 +25,11 @@ snapshot.plugins[0]!.state = "active";
 // @ts-expect-error Internal controllers are not host package exports.
 import type { OwnedScope } from "@lunaris/kernel/src/scope.js";
 void operation;
+
+kernel.selectProvider("example.consumer", "api", "example.api", "example.provider");
+kernel.grant("example.consumer", "example.read");
+kernel.revoke("example.consumer", "example.read");
+// @ts-expect-error Host grants in inspection are immutable.
+snapshot.plugins[0]!.effectivePermissions.push("example.write");
+// @ts-expect-error Provider selection accepts only declared primitive kinds.
+kernel.selectProvider("example.consumer", "service", "example.api", "example.provider");

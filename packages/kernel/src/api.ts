@@ -54,6 +54,8 @@ export class ApiRuntime {
     this.access.compatible(entry.token, token);
     this.access.authorize(binding.provider, entry.token, "provide");
     this.access.validate(token, entry.implementation);
+    this.access.check(record, activation, token, optional ? "optional" : "require");
+    this.access.available(binding, token);
     const handle = Object.create(null) as Record<PropertyKey, unknown>;
     for (const [name, method] of entry.methods) {
       handle[name] = (...args: never[]): unknown => {
