@@ -1,6 +1,6 @@
 # Core code review
 
-Date: 2026-11-03. Status: review complete; findings open; no runtime fixes applied.
+Date: 2026-11-03. Status: repairs implemented and locally verified; historical findings retained below.
 Reviewed baseline: `5d13d3212ae29e69c752d508859bf6b48ed3c0b1`.
 Review branch: `review/core-audit`. Initial working tree was clean.
 
@@ -37,11 +37,10 @@ Verification on Windows x64, Node v26.13.0:
 - `node tools/scripts/review-core.mjs`: all five defect reproductions and the
   diagnostic observation passed; performance samples recorded.
 
-Reproducer: [review-core.mjs](../../../tools/scripts/review-core.mjs).
+Regression entry point (converted after repairs): [review-core.mjs](../../../tools/scripts/review-core.mjs).
 Machine-readable evidence: [evidence.json](evidence.json).
-The script asserts the observed buggy baseline, not the desired fixed behavior.
-After fixes, convert these scenarios to regression tests with the acceptance
-criteria below; a failed reproduction may then indicate a successful fix.
+The original script asserted the buggy baseline. It has been replaced by the
+public-boundary regression entry point; historical evidence.json remains unchanged.
 Timings are single local samples, not service-level guarantees or profiling data.
 
 ## Finding index
@@ -309,5 +308,43 @@ trees. Their absence does not establish completeness beyond the accepted scope.
    fixes land. This review does not certify the entire application or authorize
    merging/publishing.
 
-All eight findings remain open. The five reproduced behavior defects warrant
-fixes before treating the current core lifecycle/mediation guarantees as ready.
+The historical findings above describe the reviewed baseline. Their repair status
+and current verification are recorded below.
+
+
+## Repair verification (2026-11-03)
+
+Repair branch: `fix/core-review`. No merge or publication performed.
+
+| Finding | Resolution | Regression / evidence |
+|---|---|---|
+| R01 | Start reserves every planned queue before dependency awaits; stop is ordered behind root preparation; stopAll drains previously reserved operations | review-lifecycle: stop, stopAll, restart during blocked dependency |
+| R02 | Provider enters stopping before draining required consumers; new bindings and commits reject it | review-lifecycle: API/event/hook two-dependency interleavings |
+| R03 | Consumer validator receives frozen guarded facade; checks repeat after validation | review-api: retained sync/async methods after consume/provide revocation, disposal and either side stop/restart; mutation and receiver checks |
+| R04 | Queued lifecycle operations reject provider selection changes | review-lifecycle: rejected mutation and actual binding identity |
+| R05 | Idle active roots/dependencies are startup leaves; queued stops are tracked separately from idempotent starts | review-lifecycle: sequential/concurrent starts after optional loss; fresh binding after restart; start queued behind stop |
+| R06 | SDK provenance caches immutable declarations/tokens; kernel indexes contract owners and dispatch subscriptions; dynamic authorization/lifecycle checks retained | SDK defensive-cache regression; permission/stale-handle/dispatch tests; API/event/hook throughput and allocation samples |
+| R07 | Persistent provider index avoids registry-wide candidate scans; isolated/idle-active roots bypass unrelated graph construction | Existing deterministic chains/diamonds/optional-cycle/ambiguity tests; isolated and graph benchmarks |
+| R08 | Trusted host diagnosticCause(sequence) returns original retained cause explicitly; ordinary snapshots stay opaque and history bounds detail | review-diagnostics: distinguish errors, preserve identity, hostile proxy untouched, eviction, absent plugin access |
+
+Public semantics, diagnostic retention/redaction responsibility and performance
+limits are documented in DOCS/concepts/lifecycle.md. No plugin API workaround,
+new plugin service, mandatory logger or blanket authorization cache was added.
+The host diagnostic extension is kernel-only and is never exposed in PluginContext.
+
+Verification on Node v26.13.0 / Windows x64:
+
+- Kernel/SDK build: passed.
+- Affected kernel + SDK runtime tests: **92 passed, 0 failed**.
+- Kernel and SDK type-test projects: passed.
+- Public-boundary performance script: **24 samples**, including allocation sampling.
+- git diff --check: passed.
+
+Performance evidence: [repair-performance.json](repair-performance.json).
+Run `node tools/scripts/review-core.mjs` after building; add `--benchmark` to
+refresh measurements. Run affected kernel/SDK tests and their type projects for
+broader mediation and permission regression coverage. Timings include profiler
+and caller overhead; retained heap is distinct from sampled allocation volume.
+R07 keeps global metadata traversal for nontrivial roots to preserve the accepted
+optional-cycle policy; it does not promise constant startup cost for every graph.
+These checks do not certify hosts, CLI, remote CI or unsupported integrations.
