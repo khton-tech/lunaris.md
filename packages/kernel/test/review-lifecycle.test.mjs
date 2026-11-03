@@ -64,3 +64,25 @@ test('idempotent start does not revive a stopped optional dependency; restart re
   assert.equal(snapshot(kernel, 'review.consumer').bindings[0].activationId, snapshot(kernel, 'review.provider').activationId);
   await kernel.stopAll();
 });
+
+test('start queued behind stop resolves fresh dependencies instead of the former active binding', async () => {
+  const { kernel } = host();
+  kernel.register(plugin('review.provider', ctx => { ctx.provide(api, {}); }, { provides }));
+  kernel.register(plugin('review.consumer', () => {}, { requires }));
+  await kernel.start('review.consumer');
+  const old = snapshot(kernel, 'review.consumer').activationId;
+  const stopping = kernel.stop('review.consumer'); const starting = kernel.start('review.consumer');
+  await stopping; await starting;
+  assert.equal(snapshot(kernel, 'review.consumer').state, 'active');
+  assert.notEqual(snapshot(kernel, 'review.consumer').activationId, old);
+  await kernel.stopAll();
+});
+
+test('concurrent idempotent starts leave a lost optional provider stopped', async () => {
+  const { kernel } = host(); let starts = 0;
+  kernel.register(plugin('review.provider', ctx => { starts++; ctx.provide(api, {}); }, { provides }));
+  kernel.register(plugin('review.consumer', () => {}, { requires: requires.map(r => ({ ...r, optional: true })) }));
+  await kernel.start('review.consumer'); await kernel.stop('review.provider');
+  await Promise.all([kernel.start('review.consumer'), kernel.start('review.consumer')]);
+  assert.equal(starts, 1); await kernel.stopAll();
+});

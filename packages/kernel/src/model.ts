@@ -26,6 +26,7 @@ export interface Registration {
   state: PluginState;
   tail: Promise<void>;
   pending?: number;
+  pendingStops?: number;
   activation?: Activation;
 }
 export function context(record: Registration, activation = record.activation) {

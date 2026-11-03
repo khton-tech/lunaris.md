@@ -92,3 +92,30 @@ must apply its own access controls and redaction before logging or displaying
 detail; kernel snapshots continue exposing only object/value categories. Hosts
 that retain returned values extend their lifetime themselves. No mandatory logger
 plugin or automatic export is introduced.
+
+### Immutable metadata and lookup costs
+
+SDK declaration caching applies only to immutable manifests created by the local
+`definePlugin` factory and locally normalized tokens. Untrusted or shallow-frozen
+manifests and mutable tokens still receive defensive validation. Kernel snapshots
+of validated token metadata are reused only for frozen data tokens. Authorization,
+activation identity, scope, provider availability and publication identity remain
+dynamic checks on every mediated call; no permission decision is cached.
+
+The kernel indexes observed contract owners, dispatch subscriptions by kind/ID,
+and registered providers by kind/ID. Scope closure removes contract-owner entries;
+subscription disposal removes empty buckets. Metadata conflicts still consider
+active participants and the current activation. Candidate lists retain version
+filtering and sorted IDs. Dependency-free roots and idle active roots avoid global
+graph construction. Other roots retain the stable global optional-cycle policy;
+the resolver still traverses registry metadata for that policy, and is not claimed
+to be independent of unrelated registry size in every graph shape.
+
+`node --expose-gc tools/scripts/benchmark-core.mjs <output.json>` records public API,
+event and hook workloads across unrelated registry/subscription counts and manifest
+sizes, plus isolated roots, chains, diamonds and optional cycles. V8 allocation
+sampling uses a 32 KiB interval including collected objects; these are statistical
+estimates, not exact allocation totals. Retained heap deltas after GC are separate
+and can be negative. Instrumented timings include the benchmark caller and profiler;
+compare equivalent runs, not uninstrumented historical samples. No production
+latency budget or cross-platform guarantee is inferred from these local samples.

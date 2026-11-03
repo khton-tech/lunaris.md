@@ -10,6 +10,7 @@ export class ApiRuntime {
     private readonly lost: (provider: Registration, activation: Activation, key?: string) => void) {}
 
   provide<T extends object>(record: Registration, activation: Activation, token: ApiToken<T>, implementation: T): Disposable {
+    token = this.access.snapshot(token);
     this.access.check(record, activation, token, "provide");
     if (token.kind !== "api" || implementation === null || typeof implementation !== "object" ||
       ![Object.prototype, null].includes(Object.getPrototypeOf(implementation))) {
@@ -27,7 +28,7 @@ export class ApiRuntime {
     this.access.check(record, activation, token, "provide");
     const key = contractKey(token);
     if (activation.apis.has(key)) throw new LunarisError("CONTRACT_METADATA_CONFLICT", "API is already provided.", context(record));
-    const entry = { token: Object.freeze({ ...token }), implementation, methods };
+    const entry = { token, implementation, methods };
     activation.apis.set(key, entry);
     let disposed = false;
     const registration = Object.freeze({ dispose: () => {
@@ -44,10 +45,10 @@ export class ApiRuntime {
   }
 
   use<T extends object>(record: Registration, activation: Activation, token: ApiToken<T>, optional: boolean): T | undefined {
+    token = this.access.snapshot(token);
     if (token.kind !== "api") throw new LunarisError("CONTRACT_METADATA_CONFLICT", "Expected an API token.");
     const binding = this.access.binding(record, activation, token, optional ? "optional" : "require");
     if (!binding) return undefined;
-    token = Object.freeze({ ...token });
     const key = `api:${token.id}@${binding.version}`;
     const entry = binding.activation.apis.get(key);
     if (!entry) throw new LunarisError("PROVIDER_UNAVAILABLE", "Provider did not publish the required API.", { ...context(record), contractId: token.id });

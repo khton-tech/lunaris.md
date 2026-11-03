@@ -3,6 +3,7 @@ import type { PluginManifest } from "@lunaris/manifest";
 import type { Disposable, MaybePromise, PluginContext } from "./context.js";
 import { readDataObject } from "./data.js";
 import { LunarisError } from "./errors.js";
+import { rememberManifest } from "./tokens.js";
 
 export interface PluginDefinition {
   readonly manifest: PluginManifest;
@@ -28,5 +29,6 @@ export function definePlugin(definition: PluginInput): PluginDefinition {
   if (typeof data.activate !== "function") {
     throw new LunarisError("MANIFEST_INVALID", "Plugin activation must be a function.", { pluginId: result.manifest.id, path: "$.activate" });
   }
+  rememberManifest(result.manifest);
   return Object.freeze({ manifest: result.manifest, activate: data.activate as PluginDefinition["activate"] });
 }

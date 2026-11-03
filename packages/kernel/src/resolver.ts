@@ -11,15 +11,22 @@ export interface Plan {
   readonly omitted: readonly { readonly pluginId: string; readonly contractId: string }[];
 }
 
-export function candidates(records: ReadonlyMap<string, Registration>, requirement: RequiredContract): string[] {
-  return [...records].filter(([, record]) => record.definition.manifest.provides.some(provided =>
+export type ProviderIndex = Map<string, Set<string>>;
+
+export function candidates(records: ReadonlyMap<string, Registration>, requirement: RequiredContract, index?: ProviderIndex): string[] {
+  const ids = index ? [...index.get(requirementKey(requirement)) ?? []] : [...records.keys()];
+  return ids.filter(id => records.get(id)!.definition.manifest.provides.some(provided =>
     provided.kind === requirement.kind && provided.id === requirement.id && versionSatisfies(provided.version, requirement.range)))
-    .map(([id]) => id).sort();
+    .sort();
 }
 
 /** Resolve metadata before execution; optional cycle edges are omitted in stable global order. */
-export function resolve(root: string, records: ReadonlyMap<string, Registration>, selections: ReadonlyMap<string, string>): Plan {
+export function resolve(root: string, records: ReadonlyMap<string, Registration>, selections: ReadonlyMap<string, string>, index?: ProviderIndex): Plan {
   if (!records.has(root)) throw new LunarisError("PLUGIN_NOT_FOUND", "Plugin is not registered.", { pluginId: root });
+  const target = records.get(root)!;
+  if (!target.definition.manifest.requires.length || (target.state === "active" && !target.pendingStops && target.activation && !target.activation.scope.closed)) {
+    return { order: [root], edges: new Map([[root, new Map()]]), errors: new Map(), omitted: [] };
+  }
   const edges = new Map<string, Map<string, string | undefined>>();
   const errors = new Map<string, LunarisError>();
   const optional: { id: string; key: string; provider: string; contractId: string }[] = [];
@@ -30,11 +37,11 @@ export function resolve(root: string, records: ReadonlyMap<string, Registration>
     edges.set(id, dependencies);
     for (const requirement of [...record.definition.manifest.requires].sort((a, b) => requirementKey(a) < requirementKey(b) ? -1 : 1)) {
       const key = requirementKey(requirement);
-      if (record.state === "active" && record.activation && !record.activation.scope.closed) {
+      if (record.state === "active" && !record.pendingStops && record.activation && !record.activation.scope.closed) {
         dependencies.set(key, record.activation.bindings.get(key)?.provider.definition.manifest.id);
         continue;
       }
-      const available = candidates(records, requirement);
+      const available = candidates(records, requirement, index);
       const selected = selections.get(`${id}/${key}`);
       if ((selected && !available.includes(selected)) || (!selected && available.length > 1)) {
         errors.set(id, new LunarisError("PROVIDER_AMBIGUOUS", `Select a matching provider for ${key}; candidates: ${available.join(", ")}.`, { ...context(record), contractId: requirement.id }));
@@ -42,7 +49,8 @@ export function resolve(root: string, records: ReadonlyMap<string, Registration>
       }
       const provider = selected ?? available[0];
       if (!provider && !requirement.optional) {
-        const versions = [...records.values()].flatMap(item => item.definition.manifest.provides.filter(p => p.kind === requirement.kind && p.id === requirement.id).map(p => p.version));
+        const matching = index ? [...index.get(key) ?? []].map(id => records.get(id)!) : [...records.values()];
+        const versions = matching.flatMap(item => item.definition.manifest.provides.filter(p => p.kind === requirement.kind && p.id === requirement.id).map(p => p.version));
         errors.set(id, new LunarisError("PROVIDER_MISSING", `No provider matches ${key} ${requirement.range}; available: ${versions.sort().join(", ") || "none"}.`, { ...context(record), contractId: requirement.id }));
       }
       dependencies.set(key, requirement.optional ? undefined : provider);
@@ -65,7 +73,7 @@ export function resolve(root: string, records: ReadonlyMap<string, Registration>
     if (reachable.has(id)) return;
     if (errors.has(id)) throw errors.get(id)!;
     const record = records.get(id)!;
-    if (record.state === "active" && record.activation && !record.activation.scope.closed) {
+    if (record.state === "active" && !record.pendingStops && record.activation && !record.activation.scope.closed) {
       reachable.add(id);
       return;
     }

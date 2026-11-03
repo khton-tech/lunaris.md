@@ -8,7 +8,7 @@ import type { Kernel, KernelOptions, KernelSnapshot, Scheduler } from "./types.j
 import { context, requirementKey } from "./model.js";
 import type { Activation, Registration } from "./model.js";
 import { candidates, resolve } from "./resolver.js";
-import type { Plan } from "./resolver.js";
+import type { Plan, ProviderIndex } from "./resolver.js";
 import { Access } from "./access.js";
 import { ApiRuntime } from "./api.js";
 import { DispatchRuntime } from "./dispatch.js";
@@ -18,6 +18,7 @@ class Runtime {
   #plugins = new Map<string, Registration>();
   #nextActivation = 0;
   #selections = new Map<string, string>();
+  #providers: ProviderIndex = new Map();
   readonly #access: Access;
   readonly #api: ApiRuntime;
   readonly #dispatch: DispatchRuntime;
@@ -79,15 +80,25 @@ class Runtime {
     const record: Registration = { definition: checked, state: "registered", tail: Promise.resolve() };
     this.#permissions.register(record);
     this.#plugins.set(id, record);
+    for (const provided of checked.manifest.provides) {
+      const key = requirementKey(provided);
+      let providers = this.#providers.get(key);
+      if (!providers) this.#providers.set(key, providers = new Set());
+      providers.add(id);
+    }
   };
 
-  #enqueue(id: string, operation: (record: Registration) => Promise<void>, internal = false): Promise<void> {
+  #enqueue(id: string, operation: (record: Registration) => Promise<void>, internal = false, stopping = false): Promise<void> {
     try {
       if (!internal) this.#guard();
       const record = this.#plugins.get(id);
       if (!record) throw new LunarisError("PLUGIN_NOT_FOUND", "Plugin is not registered.", { pluginId: id });
       record.pending = (record.pending ?? 0) + 1;
-      const result = record.tail.then(() => operation(record)).finally(() => { record.pending!--; });
+      if (stopping) record.pendingStops = (record.pendingStops ?? 0) + 1;
+      const result = record.tail.then(() => operation(record)).finally(() => {
+        record.pending!--;
+        if (stopping) record.pendingStops!--;
+      });
       record.tail = result.catch(() => {});
       return result;
     } catch (error) {
@@ -161,6 +172,7 @@ class Runtime {
     const scope = new OwnedScope({ pluginId: record.definition.manifest.id, activationId: id }, this.#invoke,
       cause => this.#diagnostics.record("CLEANUP_FAILED", { pluginId: record.definition.manifest.id, activationId: id, state: record.state }, cause),
       () => {
+        this.#access.release(record, activation);
         apis.clear(); tokens.clear();
         if (record.state !== "stopping") void this.#stopDependents(record, activation).catch(cause => this.#diagnostics.record("CLEANUP_FAILED", context(record, activation), cause));
       });
@@ -245,7 +257,7 @@ class Runtime {
         binding?.provider === provider && binding.activation === activation && !binding.requirement.optional && (!key || key === bindingKey)))
       .sort((a, b) => a.definition.manifest.id < b.definition.manifest.id ? 1 : -1);
     for (const consumer of consumers) {
-      try { await this.#enqueue(consumer.definition.manifest.id, record => this.#stop(record), true); }
+      try { await this.#enqueue(consumer.definition.manifest.id, record => this.#stop(record), true, true); }
       catch (error) { errors.push(error); }
     }
     if (errors.length) throw new LunarisError("CLEANUP_FAILED", "Dependent shutdown failed.", context(provider, activation), { cause: new AggregateError(errors) });
@@ -254,7 +266,7 @@ class Runtime {
   start = async (id: string): Promise<void> => {
     this.#guard();
     let plan: Plan;
-    try { plan = resolve(id, this.#plugins, this.#selections); }
+    try { plan = resolve(id, this.#plugins, this.#selections, this.#providers); }
     catch (error) { await this.#enqueue(id, record => this.#activate(record, new Map(), error)); return; }
     for (const omitted of plan.omitted) this.#diagnostics.record("DEPENDENCY_CYCLE", omitted);
     // Reserve the root queue before yielding to dependency activation.
@@ -270,7 +282,7 @@ class Runtime {
     }
     await preceding;
   };
-  stop = (id: string): Promise<void> => this.#enqueue(id, record => this.#stop(record));
+  stop = (id: string): Promise<void> => this.#enqueue(id, record => this.#stop(record), false, true);
   restart = async (id: string): Promise<void> => { this.#guard(); await this.stop(id); await this.start(id); };
 
   selectProvider = (consumerId: string, kind: ContractKind, contractId: string, providerId: string): void => {
@@ -279,7 +291,7 @@ class Runtime {
     if (!consumer) throw new LunarisError("PLUGIN_NOT_FOUND", "Consumer is not registered.", { pluginId: consumerId });
     if (consumer.pending || ["resolving", "starting", "active", "stopping"].includes(consumer.state)) throw new LunarisError("LIFECYCLE_INVALID", "Stop the consumer before changing selection.", context(consumer));
     const requirement = consumer.definition.manifest.requires.find(r => r.kind === kind && r.id === contractId);
-    if (!requirement || !candidates(this.#plugins, requirement).includes(providerId)) throw new LunarisError("PROVIDER_MISSING", "Selected provider does not match the requirement.", { pluginId: consumerId, contractId });
+    if (!requirement || !candidates(this.#plugins, requirement, this.#providers).includes(providerId)) throw new LunarisError("PROVIDER_MISSING", "Selected provider does not match the requirement.", { pluginId: consumerId, contractId });
     this.#selections.set(consumerId + "/" + requirementKey(requirement), providerId);
   };
 

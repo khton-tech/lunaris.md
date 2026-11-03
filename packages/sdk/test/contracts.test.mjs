@@ -114,3 +114,17 @@ test('runtime errors carry immutable safe context and a separately retained caus
   assert.ok(Object.isFrozen(error.context));
   assert.equal(error.cause, cause);
 });
+
+test('declaration caches trust factory provenance and keep roles and mutable input defensive', () => {
+  const known = definePlugin({ manifest: manifest(provide), activate() {} }).manifest;
+  assertDeclaration(known, api, 'provide'); assertDeclaration(known, api, 'provide');
+  assert.throws(() => assertDeclaration(known, api, 'consume'), { code: 'CONTRACT_UNDECLARED' });
+  const mutable = manifest(provide);
+  assertDeclaration(mutable, api, 'provide'); mutable.provides = [];
+  assert.throws(() => assertDeclaration(mutable, api, 'provide'), { code: 'CONTRACT_UNDECLARED' });
+  const raw = { ...api }; assertDeclaration(known, raw, 'provide'); raw.version = '2.0.0';
+  assert.throws(() => assertDeclaration(known, raw, 'provide'), { code: 'CONTRACT_UNDECLARED' });
+  const shallow = Object.freeze(manifest(provide)); assertDeclaration(shallow, api, 'provide');
+  shallow.provides.length = 0;
+  assert.throws(() => assertDeclaration(shallow, api, 'provide'), { code: 'CONTRACT_UNDECLARED' });
+});

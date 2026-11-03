@@ -1,9 +1,31 @@
-import { assertCompatibleTokens, assertDeclaration, contractKey, LunarisError } from "@lunaris/sdk";
-import type { ContractToken, DeclarationRole } from "@lunaris/sdk";
+import { assertCompatibleTokens, assertDeclaration, contractKey, defineApi, defineEvent, defineHook, LunarisError } from "@lunaris/sdk";
+import type { ContractToken, DeclarationRole, TokenMetadata } from "@lunaris/sdk";
 import { context, requirementKey } from "./model.js";
 import type { Activation, Binding, Registration } from "./model.js";
 
 export class Access {
+  #contracts = new Map<string, Map<Registration, Activation>>();
+  #snapshots = new WeakMap<ContractToken, ContractToken>();
+
+  snapshot<T extends ContractToken>(token: T): T {
+    const prior = this.#snapshots.get(token);
+    if (prior) return prior as T;
+    contractKey(token);
+    const { kind, ...metadata } = token;
+    const checked = metadata as TokenMetadata;
+    const snapshot = kind === "api" ? defineApi(checked) : kind === "event" ? defineEvent(checked) : defineHook(checked);
+    this.#snapshots.set(snapshot, snapshot);
+    if (Object.isFrozen(token)) this.#snapshots.set(token, snapshot);
+    return snapshot as T;
+  }
+
+  release(record: Registration, activation: Activation): void {
+    for (const key of activation.tokens.keys()) {
+      const owners = this.#contracts.get(key);
+      if (owners?.get(record) === activation) owners.delete(record);
+      if (owners?.size === 0) this.#contracts.delete(key);
+    }
+  }
   constructor(
     private readonly records: ReadonlyMap<string, Registration>,
     readonly authorize: (record: Registration, token: ContractToken, role: "provide" | "consume") => void,
@@ -23,13 +45,16 @@ export class Access {
     if (record.activation !== activation) throw new LunarisError("SCOPE_CLOSED", "Stale activation.", context(record, activation));
     assertDeclaration(record.definition.manifest, token, role);
     const key = contractKey(token);
-    for (const other of this.records.values()) {
+    for (const [other, priorActivation] of this.#contracts.get(key) ?? []) {
       if (other !== record && other.state !== "active") continue;
-      const prior = other.activation?.tokens.get(key);
+      const prior = priorActivation.tokens.get(key);
       if (prior) assertCompatibleTokens(prior, token);
     }
     this.authorize(record, token, role === "provide" ? "provide" : "consume");
-    activation.tokens.set(key, Object.freeze({ ...token }));
+    activation.tokens.set(key, token);
+    let owners = this.#contracts.get(key);
+    if (!owners) this.#contracts.set(key, owners = new Map());
+    owners.set(record, activation);
   }
 
   binding(record: Registration, activation: Activation, token: ContractToken, role: "require" | "optional" | "consume"): Binding | undefined {

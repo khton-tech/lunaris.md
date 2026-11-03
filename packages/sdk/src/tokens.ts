@@ -29,8 +29,15 @@ export type HookToken<T> = TypedToken<"hook", T>;
 export type ApiMethods<T> = { [K in keyof T]: (...args: never[]) => unknown };
 
 const metadataFields = ["id", "version", "providePermission", "consumePermission", "validate"];
+const normalizedTokens = new WeakSet<object>();
+const validatedManifests = new WeakSet<object>();
+const declarations = new WeakMap<object, WeakMap<object, Set<DeclarationRole>>>();
+
+/** Internal SDK factory provenance; never trusts arbitrary frozen input. */
+export function rememberManifest(manifest: PluginManifest): void { validatedManifests.add(manifest); }
 
 function normalizeToken(input: unknown): ContractToken {
+  if (input !== null && typeof input === "object" && normalizedTokens.has(input)) return input as ContractToken;
   const data = readDataObject(input, ["kind", ...metadataFields], "CONTRACT_METADATA_CONFLICT");
   if (data.kind !== "api" && data.kind !== "event" && data.kind !== "hook") {
     throw new LunarisError("CONTRACT_METADATA_CONFLICT", "Unknown contract kind.");
@@ -46,7 +53,9 @@ function normalizeToken(input: unknown): ContractToken {
   if (Object.hasOwn(data, "validate") && typeof data.validate !== "function") {
     throw new LunarisError("CONTRACT_METADATA_CONFLICT", "Contract validator must be a function.", { contractId: data.id });
   }
-  return Object.freeze({ ...data }) as unknown as ContractToken;
+  const token = Object.freeze({ ...data }) as unknown as ContractToken;
+  normalizedTokens.add(token);
+  return token;
 }
 
 function createToken<K extends ContractKind, T>(kind: K, metadata: TokenMetadata): TypedToken<K, T> {
@@ -87,7 +96,9 @@ export type DeclarationRole = "provide" | "require" | "optional" | "consume";
 
 /** Validate a registration/access declaration before any runtime publication. */
 export function assertDeclaration(manifest: PluginManifest, token: ContractToken, role: DeclarationRole): void {
-  const result = validateManifest(manifest);
+  const cached = validatedManifests.has(manifest) && normalizedTokens.has(token);
+  if (cached && declarations.get(manifest)?.get(token)?.has(role)) return;
+  const result = validatedManifests.has(manifest) ? { ok: true as const, manifest } : validateManifest(manifest);
   if (!result.ok) {
     throw new LunarisError("MANIFEST_INVALID", "Invalid plugin manifest.", {}, { cause: result.diagnostics });
   }
@@ -106,5 +117,12 @@ export function assertDeclaration(manifest: PluginManifest, token: ContractToken
   const permission = role === "provide" ? checked.providePermission : checked.consumePermission;
   if (permission && !metadata.permissions.includes(permission) && !metadata.optionalPermissions.includes(permission)) {
     throw new LunarisError("PERMISSION_DENIED", "Contract permission is not declared.", context);
+  }
+  if (cached) {
+    let tokens = declarations.get(manifest);
+    if (!tokens) declarations.set(manifest, tokens = new WeakMap());
+    let roles = tokens.get(token);
+    if (!roles) tokens.set(token, roles = new Set());
+    roles.add(role);
   }
 }

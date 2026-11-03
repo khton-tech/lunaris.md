@@ -16,21 +16,26 @@ interface Subscription {
 }
 
 export class DispatchRuntime {
-  #subscriptions = new Set<Subscription>();
+  #subscriptions = new Map<string, Set<Subscription>>();
   #order = 0;
   constructor(private readonly access: Access, private readonly diagnostics: Diagnostics) {}
 
   #subscribe(record: Registration, activation: Activation, token: ContractToken,
     kind: "event" | "hook", callback: (value: unknown) => MaybePromise<unknown>, priority = 0): Disposable {
+    token = this.access.snapshot(token);
     if (token.kind !== kind || typeof callback !== "function" || !Number.isFinite(priority)) {
       throw new LunarisError("VALIDATION_FAILED", "Invalid dispatch registration.", { ...context(record), contractId: token.id });
     }
     const binding = this.access.binding(record, activation, token, "consume")!;
     this.access.authorize(binding.provider, token, "provide");
-    const entry: Subscription = { consumer: record, activation, binding, token: Object.freeze({ ...token }), callback, priority, order: ++this.#order };
-    this.#subscriptions.add(entry);
+    const entry: Subscription = { consumer: record, activation, binding, token, callback, priority, order: ++this.#order };
+    const key = `${kind}:${token.id}`;
+    let subscriptions = this.#subscriptions.get(key);
+    if (!subscriptions) this.#subscriptions.set(key, subscriptions = new Set());
+    subscriptions.add(entry);
     const disposable = Object.freeze({ dispose: () => {
-      this.#subscriptions.delete(entry);
+      subscriptions.delete(entry);
+      if (!subscriptions.size && this.#subscriptions.get(key) === subscriptions) this.#subscriptions.delete(key);
       activation.scope.release(disposable);
     } });
     activation.scope.own(disposable);
@@ -44,16 +49,17 @@ export class DispatchRuntime {
   }
 
   async #dispatch(record: Registration, activation: Activation, token: ContractToken, value: unknown, kind: "event" | "hook"): Promise<unknown> {
+    token = this.access.snapshot(token);
     this.#owner(record, activation, token, kind);
-    token = Object.freeze({ ...token });
     this.access.validate(token, value);
-    const snapshot = [...this.#subscriptions].filter(entry => entry.token.kind === kind && entry.token.id === token.id &&
+    const subscriptions = this.#subscriptions.get(`${kind}:${token.id}`);
+    const snapshot = [...subscriptions ?? []].filter(entry =>
       entry.binding.provider === record && entry.binding.activation === activation);
     if (kind === "hook") snapshot.sort((a, b) => a.priority - b.priority ||
       (a.consumer.definition.manifest.id < b.consumer.definition.manifest.id ? -1 : a.consumer.definition.manifest.id > b.consumer.definition.manifest.id ? 1 : a.order - b.order));
     for (const entry of snapshot) {
       this.#owner(record, activation, token, kind);
-      if (!this.#subscriptions.has(entry) || entry.consumer.state !== "active" || entry.consumer.activation !== entry.activation || entry.activation.scope.closed) continue;
+      if (!subscriptions!.has(entry) || entry.consumer.state !== "active" || entry.consumer.activation !== entry.activation || entry.activation.scope.closed) continue;
       try {
         this.access.check(entry.consumer, entry.activation, entry.token, "consume");
         this.access.available(entry.binding, entry.token);
@@ -61,7 +67,7 @@ export class DispatchRuntime {
         this.access.validate(entry.token, value);
         this.#owner(record, activation, token, kind);
         this.access.check(entry.consumer, entry.activation, entry.token, "consume");
-        if (entry.activation.scope.closed || !this.#subscriptions.has(entry)) continue;
+        if (entry.activation.scope.closed || !subscriptions!.has(entry)) continue;
         const output = await this.access.invoke(() => entry.callback(value));
         if (kind === "hook") {
           this.#owner(record, activation, token, kind);
