@@ -1,0 +1,10 @@
+{
+  "name": "@lunaris/sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "files": ["dist"],
+  "dependencies": { "@lunaris/manifest": "0.1.0" },
+  "scripts": { "build": "tsc -b" }
+}

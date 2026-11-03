@@ -1,0 +1,15 @@
+{
+  "name": "lunaris",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "workspaces": ["packages/*"],
+  "engines": { "node": ">=26.13.0 <27", "npm": ">=11 <12" },
+  "packageManager": "npm@11.20.0",
+  "scripts": {
+    "environment": "node tools/scripts/environment.mjs",
+    "build": "tsc -b",
+    "check": "node tools/scripts/check.mjs"
+  },
+  "devDependencies": { "typescript": "6.0.3" }
+}
