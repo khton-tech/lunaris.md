@@ -33,6 +33,7 @@ export class ApiRuntime {
     const registration = Object.freeze({ dispose: () => {
       if (disposed) return;
       disposed = true;
+      activation.scope.release(registration);
       if (activation.apis.get(key) === entry) {
         activation.apis.delete(key);
         if (!activation.scope.closed && record.state === "active") this.lost(record, activation, `api:${token.id}`);
@@ -51,6 +52,7 @@ export class ApiRuntime {
     const entry = binding.activation.apis.get(key);
     if (!entry) throw new LunarisError("PROVIDER_UNAVAILABLE", "Provider did not publish the required API.", { ...context(record), contractId: token.id });
     this.access.compatible(entry.token, token);
+    this.access.authorize(binding.provider, entry.token, "provide");
     this.access.validate(token, entry.implementation);
     const handle = Object.create(null) as Record<PropertyKey, unknown>;
     for (const [name, method] of entry.methods) {

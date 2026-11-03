@@ -11,6 +11,7 @@ import { candidates, resolve } from "./resolver.js";
 import type { Plan } from "./resolver.js";
 import { Access } from "./access.js";
 import { ApiRuntime } from "./api.js";
+import { DispatchRuntime } from "./dispatch.js";
 
 class Runtime {
   #plugins = new Map<string, Registration>();
@@ -18,6 +19,7 @@ class Runtime {
   #selections = new Map<string, string>();
   readonly #access: Access;
   readonly #api: ApiRuntime;
+  readonly #dispatch: DispatchRuntime;
   #callbackDepth = 0;
   readonly #diagnostics: Diagnostics;
   readonly #scheduler: Scheduler;
@@ -42,6 +44,7 @@ class Runtime {
         throw new LunarisError("PERMISSION_DENIED", "Sensitive operations require host grants.", context(record));
       }
     }, this.#invoke);
+    this.#dispatch = new DispatchRuntime(this.#access, this.#diagnostics);
     this.#api = new ApiRuntime(this.#access, this.#diagnostics, (provider, activation, key) => {
       void this.#stopDependents(provider, activation, key).catch(cause => this.#diagnostics.record("CLEANUP_FAILED", context(provider, activation), cause));
     });
@@ -122,14 +125,6 @@ class Runtime {
   }
 
   #pluginContext(record: Registration, activation: Activation): PluginContext {
-    const check = (token: ContractToken, role: "provide" | "require" | "optional" | "consume") => {
-      activation.scope.assertOpen();
-      assertDeclaration(record.definition.manifest, token, role);
-    };
-    const unsupported = (token: ContractToken, role: "provide" | "consume"): never => {
-      check(token, role);
-      throw new LunarisError("CONTRACT_UNAVAILABLE", "Event/hook dispatch arrives in P5.", { ...this.#context(record), contractId: token.id });
-    };
     const permission = (name: string, optionalOnly: boolean): false => {
       activation.scope.assertOpen();
       const manifest = record.definition.manifest;
@@ -144,14 +139,8 @@ class Runtime {
       provide: <T extends object>(token: ApiToken<T>, implementation: T) => this.#api.provide(record, activation, token, implementation),
       use: <T extends object>(token: ApiToken<T>): T => this.#api.use(record, activation, token, false)!,
       optional: <T extends object>(token: ApiToken<T>): T | undefined => this.#api.use(record, activation, token, true),
-      events: Object.freeze({
-        on: (token: ContractToken) => unsupported(token, "consume"),
-        emit: async (token: ContractToken) => unsupported(token, "provide"),
-      }),
-      hooks: Object.freeze({
-        register: (token: ContractToken) => unsupported(token, "consume"),
-        run: async (token: ContractToken) => unsupported(token, "provide"),
-      }),
+      events: this.#dispatch.events(record, activation),
+      hooks: this.#dispatch.hooks(record, activation),
       permissions: Object.freeze({
         has: (name: string) => permission(name, false),
         request: async (name: string) => permission(name, true),

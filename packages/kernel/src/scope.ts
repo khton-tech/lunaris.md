@@ -72,6 +72,14 @@ export class OwnedScope {
     return resource;
   }
 
+  /** Internal registrations can release an already-disposed ownership slot. */
+  release(resource: Disposable): void {
+    const entry = this.#known.get(resource);
+    if (!entry) return;
+    const index = this.#entries.indexOf(entry);
+    if (index !== -1) this.#entries.splice(index, 1);
+  }
+
   /** A returned teardown must be first even if it was already owned earlier. */
   teardown(resource: Disposable): void {
     const entry = this.#entry(resource);
