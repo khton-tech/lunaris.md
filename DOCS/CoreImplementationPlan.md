@@ -1,6 +1,6 @@
 # Core implementation plan
 
-Status: P0 design gate completed; P1 foundation in progress. Runtime implementation has not started.
+Status: P0 design and P1 foundation gates completed. P2 SDK/runtime validation work is next; no executable kernel exists yet.
 Baseline date: 2026-11-03.
 Source: [architecture proposal](TechDoc.md) and [repository rules](../AGENTS.md).
 
@@ -164,10 +164,10 @@ Gate: SDK design can express all milestone scenarios without workarounds. Propos
 
 Dependencies: P0 decisions D01/D02/D10.
 
-- [ ] **K01.1** Create an isolated foundation feature branch; add npm workspace metadata, strict compiler configuration, selected test runner, lockfile, and appropriate ignore rules. Acceptance: clean install and scoped package build succeed on the documented environment.
-- [ ] **K01.2** Establish SDK/kernel/manifest package exports and import-boundary checks. Acceptance: a plugin cannot resolve private package paths; kernel build has no platform imports.
-- [ ] **K01.3** Add repeatable scripts under `tools/scripts/` for environment checks and package-focused validation. Acceptance: failures return nonzero, summaries identify checked scope, and default output stays concise.
-- [ ] **K01.4** Document setup and contribution workflow, including commands, branch policy, commit cadence, and owner-controlled merges. Acceptance: a fresh checkout can follow the written setup without global package dependencies.
+- [x] **K01.1** Create an isolated foundation feature branch; add npm workspace metadata, strict compiler configuration, selected test runner, lockfile, and appropriate ignore rules. Acceptance: clean install and scoped package build succeed on the documented environment.
+- [x] **K01.2** Establish SDK/kernel/manifest package exports and import-boundary checks. Acceptance: a plugin cannot resolve private package paths; kernel build has no platform imports.
+- [x] **K01.3** Add repeatable scripts under `tools/scripts/` for environment checks and package-focused validation. Acceptance: failures return nonzero, summaries identify checked scope, and default output stays concise.
+- [x] **K01.4** Document setup and contribution workflow, including commands, branch policy, commit cadence, and owner-controlled merges. Acceptance: a fresh checkout can follow the written setup without global package dependencies.
 
 Gate: a small test runs through the supported command and package boundaries are enforceable. Do not create a Cargo workspace until there is a Rust responsibility to implement.
 
@@ -295,7 +295,7 @@ Tests accompany the feature that introduces behavior; P7 consolidates tooling ra
 | Integration | Provider + consumer + event + hook + stop + restart through public APIs |
 | Portability | No platform imports in kernel/SDK; execution on each explicitly supported target |
 
-No desktop automation is permitted. If later acceptance requires visual or OS interaction, provide the Owner with manual steps and expected results and record the returned outcome. For this planning-only change, verify documentation links, task identifiers, diff integrity, and Git status; runtime tests do not yet exist.
+No desktop automation is permitted. If later acceptance requires visual or OS interaction, provide the Owner with manual steps and expected results and record the returned outcome. For documentation-only changes, verify links, task identifiers, diff integrity and Git status. Foundation package-boundary/type tests exist from P1; feature runtime tests accompany P2 onward.
 
 ## 8. Tracking and execution rules
 
@@ -346,7 +346,7 @@ Resume plugin work only after the SDK change is implemented and verified as its 
 
 ## 9. Immediate next slice
 
-Begin with P0: settle D01–D10, specify the SDK/manifest boundary, and draft the plugin scenarios. Then implement P1 on an isolated feature branch. Installing tooling or initializing Git does not mark any kernel implementation task complete.
+P0 and P1 are complete on `codex/core-foundation` (base `main` at `729da7d`). Next implement P2: public plugin/context and token definitions, runtime manifest validation, negative type fixtures and compiled design scenarios. No executable kernel task is marked complete by foundation work. Continue on an isolated dependent branch when introducing the SDK module; record its base and do not merge without Owner approval.
 
 ## 10. Execution evidence
 
@@ -357,5 +357,44 @@ Depends on: repository baseline 729da7d
 Required / existing / new responsibilities: architecture proposal exists; accepted decisions, public boundary and nine SDK-only design scenarios added.
 Changed files and public API impact: DOCS/decisions/0001-core-baseline.md; DOCS/reference/core-boundary.md; DOCS/reference/design-scenarios.md. API signatures are specified, not implemented.
 Verification command and outcome: git diff --check; manual review of all nine scenario mappings and relative documentation links. No unresolved P1/P2 design blocker; no plugin implementation bypasses SDK.
-Evidence commit / review: recorded in subsequent P1 tracking entry.
+Evidence commit / review: aca8c65 (P0); tooling choice refined in 72df52f after verifying the registry package API.
 Remaining limitations or blocking SDK specification: scenarios are drafts until P2 typechecks; lifecycle and dispatch require P3–P6 evidence. No runtime exists yet.
+Task: K01.1
+Status: DONE
+Branch / responsible contributor: codex/core-foundation / Codex (base main at 729da7d)
+Depends on: P0 aca8c65
+Required / existing / new responsibilities: no workspace existed; added npm workspaces, exact TypeScript 6.0.3 dependency, lockfile, strict ES2022/ESM configuration and ignore rules. Node built-in test runner selected.
+Changed files and public API impact: root package/configuration files and package manifests; root exports only, packages private pending release readiness.
+Verification command and outcome: npm ci; node node_modules/typescript/bin/tsc -b --clean; npm run check -- manifest. Clean install and fresh package builds passed on Node 26.13.0/npm 11.20.0 Windows x64.
+Evidence commit / review: 72df52f
+Remaining limitations or blocking SDK specification: only observed environment verified; no runtime implementation or browser execution claim.
+
+Task: K01.2
+Status: DONE
+Branch / responsible contributor: codex/core-foundation / Codex
+Depends on: K01.1
+Required / existing / new responsibilities: manifest/SDK/kernel public package roots, package exports, source dependency direction, no platform ambient types and AST import-boundary checks added.
+Changed files and public API impact: packages/* and tools/scripts/boundaries*.mjs; serializable manifest/disposable/lifecycle vocabulary types only. No fake runtime functions exported.
+Verification command and outcome: npm run check -- manifest passed; three root-export runtime tests and positive/negative type fixtures passed; eight architecture-checker cases passed. Private src/dist/package.json subpaths fail; platform/kernel/private/escaping/dynamic imports are rejected.
+Evidence commit / review: 72df52f
+Remaining limitations or blocking SDK specification: architecture checks enforce trusted source conventions, not adversarial isolation; P2 defines plugin/context and token interfaces.
+
+Task: K01.3
+Status: DONE
+Branch / responsible contributor: codex/core-foundation / Codex
+Depends on: K01.1–K01.2
+Required / existing / new responsibilities: repeatable environment and package-focused validation scripts under tools/scripts/ added.
+Changed files and public API impact: tools/scripts/environment.mjs, check.mjs, boundaries.mjs; no plugin API change.
+Verification command and outcome: npm run environment and npm run check -- manifest passed with concise summaries; direct check.mjs with missing/unknown scopes returned exit code 1. TypeScript build/test failures propagate nonzero.
+Evidence commit / review: 72df52f
+Remaining limitations or blocking SDK specification: scope graph currently contains only the three existing core packages; extend it when adding packages.
+
+Task: K01.4
+Status: DONE
+Branch / responsible contributor: codex/core-foundation / Codex
+Depends on: K01.1–K01.3
+Required / existing / new responsibilities: documented fresh-checkout setup, focused commands, branch/commit policy, SDK boundaries and Owner-controlled merges.
+Changed files and public API impact: DOCS/guides/contributing.md; documents actual foundation exports separately from planned API.
+Verification command and outcome: rehearsed npm ci, npm run environment and npm run check -- manifest; no global compiler dependency. git diff --check passed.
+Evidence commit / review: 72df52f
+Remaining limitations or blocking SDK specification: P2/P3 remain necessary to build/run a plugin. No merge or publication performed.
