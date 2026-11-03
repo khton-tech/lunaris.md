@@ -1,11 +1,11 @@
 import { valid, validRange, satisfies } from "semver";
 
 export function isValidId(value: unknown): value is string {
-  return typeof value === "string" && /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/.test(value);
+  return typeof value === "string" && value.trim() === value && /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/.test(value);
 }
 
 export function isExactVersion(value: unknown): value is string {
-  return typeof value === "string" &&
+  return typeof value === "string" && value.trim() === value &&
     /^\d+\.\d+\.\d+(?:[-+].*)?$/.test(value) && valid(value) !== null;
 }
 

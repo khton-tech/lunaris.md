@@ -19,7 +19,7 @@ function dataRecord(input: unknown): Record<string, unknown> | undefined {
 }
 
 function dataArray(input: unknown): input is unknown[] {
-  if (!Array.isArray(input)) return false;
+  if (!Array.isArray(input) || Object.getPrototypeOf(input) !== Array.prototype) return false;
   if (Reflect.ownKeys(input).length !== input.length + 1) return false;
   for (let index = 0; index < input.length; index++) {
     const descriptor = Object.getOwnPropertyDescriptor(input, String(index));

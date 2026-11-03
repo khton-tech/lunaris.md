@@ -33,9 +33,9 @@ test('copies and deeply freezes valid metadata, preserving full versions', () =>
 });
 
 for (const [field, bad] of [
-  ['manifestVersion', 2], ['id', 'NoDots'], ['id', 'example.Bad'],
+  ['manifestVersion', 2], ['id', 'NoDots'], ['id', 'example.Bad'], ['id', 'example.id\n'],
   ['version', 'v1.0.0'], ['version', '1.0'], ['version', '01.0.0'],
-  ['version', '1.0.0-alpha.01'], ['engine', ''], ['sdk', 'nonsense'],
+  ['version', '1.0.0-alpha.01'], ['version', '1.0.0\n'], ['engine', ''], ['sdk', 'nonsense'],
   ['provides', {}], ['requires', null], ['permissions', undefined],
 ]) {
   test(`rejects invalid ${field}: ${String(bad)}`, () => {
@@ -106,6 +106,7 @@ test('rejects non-JSON records, sparse arrays and accessors without invoking the
   invalid(source, '$');
   const list = new Array(1);
   invalid(fixture({ provides: list }), '$.provides');
+  invalid(fixture({ provides: new (class extends Array {})() }), '$.provides');
   Object.defineProperty(list, '0', { get() { reads++; return {}; }, enumerable: true });
   invalid(fixture({ provides: list }), '$.provides');
   assert.equal(reads, 0);
