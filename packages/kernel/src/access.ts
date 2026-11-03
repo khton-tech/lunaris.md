@@ -54,7 +54,7 @@ export class Access {
   ) {}
 
   compatible(a: ContractToken, b: ContractToken): void {
-    if (a.kind !== b.kind || a.id !== b.id || a.version.split(".")[0] !== b.version.split(".")[0] ||
+    if (a.kind !== b.kind || a.id !== b.id || !versionSatisfies(a.version, `^${b.version}`) ||
       a.providePermission !== b.providePermission || a.consumePermission !== b.consumePermission) {
       throw new LunarisError("CONTRACT_METADATA_CONFLICT", "Incompatible contract metadata.", { contractId: a.id });
     }
@@ -89,8 +89,8 @@ export class Access {
     if (binding.provider.activation !== binding.activation || binding.provider.state !== "active" || binding.activation.scope.closed) {
       throw new LunarisError("PROVIDER_UNAVAILABLE", "Bound provider is unavailable.", { ...context(binding.provider, binding.activation), contractId: token.id });
     }
-    if (binding.version.split(".")[0] !== token.version.split(".")[0]) {
-      throw new LunarisError("CONTRACT_METADATA_CONFLICT", "Bound provider has a different contract major.", { contractId: token.id });
+    if (!versionSatisfies(binding.version, `^${token.version}`)) {
+      throw new LunarisError("CONTRACT_METADATA_CONFLICT", "Bound provider does not support the requested contract version.", { contractId: token.id });
     }
   }
 
@@ -100,3 +100,4 @@ export class Access {
     }
   }
 }
+import { versionSatisfies } from "@lunaris/manifest";
