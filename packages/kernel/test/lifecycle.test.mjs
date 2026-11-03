@@ -226,7 +226,7 @@ test('unsupported dependency/dispatch operations fail explicitly and permissions
   const { kernel } = host();
   const Event = defineEvent({ id: 'example.event', version: '1.0.0' });
   const Hook = defineHook({ id: 'example.hook', version: '1.0.0' });
-  const Sensitive = defineApi({ id: Api.id, version: Api.version, providePermission: 'example.serve' });
+  const Sensitive = defineApi({ id: 'example.sensitive', version: Api.version, providePermission: 'example.serve' });
   let called = false;
   kernel.register(plugin('example.required', () => { called = true; }, {
     requires: [{ kind: 'api', id: Api.id, range: '^1.0.0' }],
@@ -243,7 +243,7 @@ test('unsupported dependency/dispatch operations fail explicitly and permissions
     await assert.rejects(ctx.hooks.run(Hook, ''), { code: 'CONTRACT_UNAVAILABLE' });
   }, {
     ...provides,
-    provides: [...provides.provides, { kind: 'event', id: Event.id, version: Event.version }, { kind: 'hook', id: Hook.id, version: Hook.version }],
+    provides: [...provides.provides, { kind: 'api', id: Sensitive.id, version: Sensitive.version }, { kind: 'event', id: Event.id, version: Event.version }, { kind: 'hook', id: Hook.id, version: Hook.version }],
     requires: [{ kind: 'api', id: Api.id, range: '^1.0.0', optional: true }],
     permissions: ['example.serve'], optionalPermissions: ['example.read'],
   }));

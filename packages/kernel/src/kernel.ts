@@ -1,25 +1,23 @@
 import { validateManifest } from "@lunaris/manifest";
 import { assertCompatibleTokens, assertDeclaration, contractKey, definePlugin, LunarisError } from "@lunaris/sdk";
-import type { ApiToken, ContractToken, Disposable, ErrorCode, PluginContext, PluginDefinition } from "@lunaris/sdk";
+import type { ApiToken, ContractKind, ContractToken, ErrorCode, PluginContext, PluginDefinition } from "@lunaris/sdk";
 import { Diagnostics } from "./diagnostics.js";
 import { OwnedScope } from "./scope.js";
 import type { Kernel, KernelOptions, KernelSnapshot, PluginState, Scheduler } from "./types.js";
 
-interface Activation {
-  readonly id: string;
-  readonly scope: OwnedScope;
-  readonly apis: Map<string, { readonly token: ContractToken; readonly implementation: object }>;
-}
-interface Registration {
-  readonly definition: PluginDefinition;
-  state: PluginState;
-  tail: Promise<void>;
-  activation?: Activation;
-}
+import { context, requirementKey } from "./model.js";
+import type { Activation, Registration } from "./model.js";
+import { candidates, resolve } from "./resolver.js";
+import type { Plan } from "./resolver.js";
+import { Access } from "./access.js";
+import { ApiRuntime } from "./api.js";
 
 class Runtime {
   #plugins = new Map<string, Registration>();
   #nextActivation = 0;
+  #selections = new Map<string, string>();
+  readonly #access: Access;
+  readonly #api: ApiRuntime;
   #callbackDepth = 0;
   readonly #diagnostics: Diagnostics;
   readonly #scheduler: Scheduler;
@@ -39,6 +37,14 @@ class Runtime {
       throw new LunarisError("LIFECYCLE_INVALID", "Deadlines must be positive finite durations and diagnostic capacity a positive integer.");
     }
     this.#diagnostics = new Diagnostics(capacity);
+    this.#access = new Access(this.#plugins, (record, token, role) => {
+      if (role === "provide" ? token.providePermission : token.consumePermission) {
+        throw new LunarisError("PERMISSION_DENIED", "Sensitive operations require host grants.", context(record));
+      }
+    }, this.#invoke);
+    this.#api = new ApiRuntime(this.#access, this.#diagnostics, (provider, activation, key) => {
+      void this.#stopDependents(provider, activation, key).catch(cause => this.#diagnostics.record("CLEANUP_FAILED", context(provider, activation), cause));
+    });
   }
 
   #context(record: Registration) {
@@ -71,9 +77,9 @@ class Runtime {
     this.#plugins.set(id, { definition: checked, state: "registered", tail: Promise.resolve() });
   };
 
-  #enqueue(id: string, operation: (record: Registration) => Promise<void>): Promise<void> {
+  #enqueue(id: string, operation: (record: Registration) => Promise<void>, internal = false): Promise<void> {
     try {
-      this.#guard();
+      if (!internal) this.#guard();
       const record = this.#plugins.get(id);
       if (!record) throw new LunarisError("PLUGIN_NOT_FOUND", "Plugin is not registered.", { pluginId: id });
       const result = record.tail.then(() => operation(record));
@@ -115,40 +121,6 @@ class Runtime {
     }
   }
 
-  #provide<T extends object>(record: Registration, activation: Activation, token: ApiToken<T>, implementation: T): Disposable {
-    activation.scope.assertOpen();
-    assertDeclaration(record.definition.manifest, token, "provide");
-    if (token.kind !== "api") throw new LunarisError("CONTRACT_METADATA_CONFLICT", "Expected an API token.", this.#context(record));
-    if (token.providePermission) throw new LunarisError("PERMISSION_DENIED", "Sensitive providers require the P6 permission gateway.", this.#context(record));
-    if (implementation === null || typeof implementation !== "object" ||
-      ![Object.prototype, null].includes(Object.getPrototypeOf(implementation))) {
-      throw new LunarisError("VALIDATION_FAILED", "API implementation must be a plain object of methods.", this.#context(record));
-    }
-    for (const key of Reflect.ownKeys(implementation)) {
-      const descriptor = Object.getOwnPropertyDescriptor(implementation, key);
-      if (!descriptor || !("value" in descriptor) || typeof descriptor.value !== "function") {
-        throw new LunarisError("VALIDATION_FAILED", "API implementation contains a non-method field.", this.#context(record));
-      }
-    }
-    if (token.validate && this.#invoke(() => token.validate!(implementation)) !== true) {
-      throw new LunarisError("VALIDATION_FAILED", "API implementation failed contract validation.", this.#context(record));
-    }
-    activation.scope.assertOpen();
-    const key = contractKey(token);
-    this.#compatible(token, record);
-    if (activation.apis.has(key)) throw new LunarisError("CONTRACT_METADATA_CONFLICT", "API is already provided in this activation.", this.#context(record));
-    const entry = { token: Object.freeze({ ...token }), implementation };
-    activation.apis.set(key, entry);
-    let disposed = false;
-    const registration = Object.freeze({ dispose: () => {
-      if (disposed) return;
-      disposed = true;
-      if (activation.apis.get(key) === entry) activation.apis.delete(key);
-    } });
-    activation.scope.own(registration);
-    return registration;
-  }
-
   #pluginContext(record: Registration, activation: Activation): PluginContext {
     const check = (token: ContractToken, role: "provide" | "require" | "optional" | "consume") => {
       activation.scope.assertOpen();
@@ -169,12 +141,9 @@ class Runtime {
     return Object.freeze({
       pluginId: record.definition.manifest.id, activationId: activation.id,
       signal: activation.scope.facade.signal, scope: activation.scope.facade,
-      provide: <T extends object>(token: ApiToken<T>, implementation: T) => this.#provide(record, activation, token, implementation),
-      use: <T extends object>(token: ApiToken<T>): T => {
-        check(token, "require");
-        throw new LunarisError("PROVIDER_MISSING", "Capability resolution arrives in P4.", { ...this.#context(record), contractId: token.id });
-      },
-      optional: <T extends object>(token: ApiToken<T>): T | undefined => { check(token, "optional"); return undefined; },
+      provide: <T extends object>(token: ApiToken<T>, implementation: T) => this.#api.provide(record, activation, token, implementation),
+      use: <T extends object>(token: ApiToken<T>): T => this.#api.use(record, activation, token, false)!,
+      optional: <T extends object>(token: ApiToken<T>): T | undefined => this.#api.use(record, activation, token, true),
       events: Object.freeze({
         on: (token: ContractToken) => unsupported(token, "consume"),
         emit: async (token: ContractToken) => unsupported(token, "provide"),
@@ -201,31 +170,47 @@ class Runtime {
     }
   }
 
-  async #start(record: Registration): Promise<void> {
+  async #activate(record: Registration, selected: Map<string, string | undefined> = new Map(), planningError?: unknown): Promise<void> {
     if (record.state === "active") return;
     if (!["registered", "stopped", "failed"].includes(record.state)) throw new LunarisError("LIFECYCLE_INVALID", "Cannot start in this state.", this.#context(record));
     record.state = "resolving";
     const id = `${record.definition.manifest.id}:${++this.#nextActivation}`;
     const apis: Activation["apis"] = new Map();
+    const tokens: Activation["tokens"] = new Map();
+    const bindings: Activation["bindings"] = new Map();
     const scope = new OwnedScope({ pluginId: record.definition.manifest.id, activationId: id }, this.#invoke,
       cause => this.#diagnostics.record("CLEANUP_FAILED", { pluginId: record.definition.manifest.id, activationId: id, state: record.state }, cause),
-      () => apis.clear());
-    const activation = { id, scope, apis };
+      () => {
+        apis.clear(); tokens.clear();
+        if (record.state !== "stopping") void this.#stopDependents(record, activation).catch(cause => this.#diagnostics.record("CLEANUP_FAILED", context(record, activation), cause));
+      });
+    const activation: Activation = { id, scope, apis, tokens, bindings };
     record.activation = activation;
     const timeout = new LunarisError("ACTIVATION_TIMEOUT", "Activation deadline expired; JavaScript may still be running.", this.#context(record));
     let resolutionFailure: LunarisError | undefined;
     let requiredContractId: string | undefined;
     let detached = false;
     try {
-      const required = record.definition.manifest.requires.find(requirement => !requirement.optional);
-      if (required) {
-        requiredContractId = required.id;
-        resolutionFailure = new LunarisError("PROVIDER_MISSING", "Capability resolution arrives in P4.", { ...this.#context(record), contractId: required.id });
-        throw resolutionFailure;
+      if (planningError) { resolutionFailure = planningError as LunarisError; throw planningError; }
+      for (const requirement of record.definition.manifest.requires) {
+        const key = requirementKey(requirement);
+        const providerId = selected.get(key);
+        const provider = providerId ? this.#plugins.get(providerId) : undefined;
+        const provided = provider?.definition.manifest.provides.find(item => requirementKey(item) === key);
+        if (provider?.state === "active" && provider.activation && !provider.activation.scope.closed && provided) {
+          bindings.set(key, { requirement, provider, activation: provider.activation, version: provided.version });
+        } else {
+          bindings.set(key, undefined);
+          if (!requirement.optional) {
+            requiredContractId = requirement.id;
+            resolutionFailure = new LunarisError("PROVIDER_UNAVAILABLE", "Required provider failed to activate.", { ...context(record), contractId: requirement.id });
+            throw resolutionFailure;
+          }
+        }
       }
       record.state = "starting";
-      const context = this.#pluginContext(record, activation);
-      const work = Promise.resolve().then(() => this.#invoke(() => record.definition.activate(context))).then(teardown => {
+      const pluginContext = this.#pluginContext(record, activation);
+      const work = Promise.resolve().then(() => this.#invoke(() => record.definition.activate(pluginContext))).then(teardown => {
         if (teardown !== undefined) scope.teardown(teardown);
       }).catch(cause => {
         if (detached) this.#diagnostics.record("ACTIVATION_FAILED", { pluginId: record.definition.manifest.id, activationId: id, state: "failed" }, cause);
@@ -234,13 +219,16 @@ class Runtime {
       await this.#deadline(work, this.#activationTimeout, timeout, () => scope.close(timeout));
       scope.assertOpen();
       for (const entry of apis.values()) this.#compatible(entry.token, record);
+      for (const token of tokens.values()) this.#access.check(record, activation, token,
+        record.definition.manifest.provides.some(p => p.kind === token.kind && p.id === token.id && p.version === token.version) ? "provide" : "consume");
+      for (const binding of bindings.values()) if (binding && !binding.requirement.optional) this.#access.available(binding, { ...binding.requirement, version: binding.version });
       record.state = "active";
     } catch (cause) {
       detached = true;
       record.state = "failed";
       scope.close(cause);
       const code: ErrorCode = cause === timeout ? "ACTIVATION_TIMEOUT" :
-        resolutionFailure !== undefined && cause === resolutionFailure ? "PROVIDER_MISSING" : "ACTIVATION_FAILED";
+        resolutionFailure !== undefined && cause === resolutionFailure ? resolutionFailure.code : "ACTIVATION_FAILED";
       this.#diagnostics.record(code, { ...this.#context(record),
         ...(requiredContractId ? { contractId: requiredContractId } : {}) }, cause);
       let combined: unknown = cause;
@@ -254,15 +242,49 @@ class Runtime {
     if (record.state === "registered" || record.state === "stopped") return;
     const activation = record.activation;
     if (!activation) return;
+    const dependencyErrors = await this.#stopDependents(record, activation).catch(error => error);
     record.state = "stopping";
     activation.scope.close();
-    try { await this.#cleanup(record, activation); record.state = "stopped"; }
+    try { await this.#cleanup(record, activation); record.state = "stopped"; if (dependencyErrors) throw dependencyErrors; }
     catch (cause) { record.state = "failed"; throw cause; }
   }
 
-  start = (id: string): Promise<void> => this.#enqueue(id, record => this.#start(record));
+  async #stopDependents(provider: Registration, activation: Activation, key?: string): Promise<void> {
+    const errors: unknown[] = [];
+    const consumers = [...this.#plugins.values()].filter(record => record !== provider &&
+      record.activation && !record.activation.scope.closed && [...record.activation.bindings].some(([bindingKey, binding]) =>
+        binding?.provider === provider && binding.activation === activation && !binding.requirement.optional && (!key || key === bindingKey)))
+      .sort((a, b) => a.definition.manifest.id < b.definition.manifest.id ? 1 : -1);
+    for (const consumer of consumers) {
+      try { await this.#enqueue(consumer.definition.manifest.id, record => this.#stop(record), true); }
+      catch (error) { errors.push(error); }
+    }
+    if (errors.length) throw new LunarisError("CLEANUP_FAILED", "Dependent shutdown failed.", context(provider, activation), { cause: new AggregateError(errors) });
+  }
+
+  start = async (id: string): Promise<void> => {
+    this.#guard();
+    let plan: Plan;
+    try { plan = resolve(id, this.#plugins, this.#selections); }
+    catch (error) { await this.#enqueue(id, record => this.#activate(record, new Map(), error)); return; }
+    for (const omitted of plan.omitted) this.#diagnostics.record("DEPENDENCY_CYCLE", omitted);
+    for (const next of plan.order) {
+      try { await this.#enqueue(next, record => this.#activate(record, plan.edges.get(next))); }
+      catch (error) { if (next === id) throw error; }
+    }
+  };
   stop = (id: string): Promise<void> => this.#enqueue(id, record => this.#stop(record));
-  restart = (id: string): Promise<void> => this.#enqueue(id, async record => { await this.#stop(record); await this.#start(record); });
+  restart = async (id: string): Promise<void> => { this.#guard(); await this.stop(id); await this.start(id); };
+
+  selectProvider = (consumerId: string, kind: ContractKind, contractId: string, providerId: string): void => {
+    this.#guard();
+    const consumer = this.#plugins.get(consumerId);
+    if (!consumer) throw new LunarisError("PLUGIN_NOT_FOUND", "Consumer is not registered.", { pluginId: consumerId });
+    if (["resolving", "starting", "active", "stopping"].includes(consumer.state)) throw new LunarisError("LIFECYCLE_INVALID", "Stop the consumer before changing selection.", context(consumer));
+    const requirement = consumer.definition.manifest.requires.find(r => r.kind === kind && r.id === contractId);
+    if (!requirement || !candidates(this.#plugins, requirement).includes(providerId)) throw new LunarisError("PROVIDER_MISSING", "Selected provider does not match the requirement.", { pluginId: consumerId, contractId });
+    this.#selections.set(consumerId + "/" + requirementKey(requirement), providerId);
+  };
 
   stopAll = async (): Promise<void> => {
     this.#guard();
@@ -279,6 +301,8 @@ class Runtime {
       ...(record.activation ? { activationId: record.activation.id } : {}),
       contracts: Object.freeze(record.state === "active" && !record.activation?.scope.closed ? [...record.activation!.apis.keys()].sort() : []),
       ownedResources: record.activation?.scope.resourceCount ?? 0,
+      bindings: Object.freeze([...record.activation?.bindings ?? []].map(([contract, binding]) => Object.freeze({ contract,
+        ...(binding ? { providerId: binding.provider.definition.manifest.id, activationId: binding.activation.id, version: binding.version } : {}) }))),
     }))),
     diagnostics: this.#diagnostics.snapshot(),
   });
@@ -287,5 +311,5 @@ class Runtime {
 export function createKernel(options: KernelOptions): Kernel {
   const runtime = new Runtime(options);
   return Object.freeze({ register: runtime.register, start: runtime.start, stop: runtime.stop,
-    restart: runtime.restart, stopAll: runtime.stopAll, inspect: runtime.inspect });
+    restart: runtime.restart, selectProvider: runtime.selectProvider, stopAll: runtime.stopAll, inspect: runtime.inspect });
 }

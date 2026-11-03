@@ -1,4 +1,4 @@
-import type { ErrorCode, PluginDefinition, PluginManifest } from "@lunaris/sdk";
+import type { ContractKind, ErrorCode, PluginDefinition, PluginManifest } from "@lunaris/sdk";
 
 export type PluginState = "registered" | "resolving" | "starting" | "active" | "stopping" | "stopped" | "failed";
 
@@ -30,6 +30,7 @@ export interface PluginSnapshot {
   readonly activationId?: string;
   readonly contracts: readonly string[];
   readonly ownedResources: number;
+  readonly bindings: readonly { readonly contract: string; readonly providerId?: string; readonly activationId?: string; readonly version?: string }[];
 }
 
 export interface KernelSnapshot {
@@ -43,6 +44,7 @@ export interface Kernel {
   start(pluginId: string): Promise<void>;
   stop(pluginId: string): Promise<void>;
   restart(pluginId: string): Promise<void>;
+  selectProvider(consumerId: string, kind: ContractKind, contractId: string, providerId: string): void;
   stopAll(): Promise<void>;
   inspect(): KernelSnapshot;
 }

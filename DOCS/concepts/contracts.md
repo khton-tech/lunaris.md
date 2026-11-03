@@ -1,0 +1,15 @@
+# Capability resolution and API handles
+
+P4 extends the existing host lifecycle. Plugins still import only `@lunaris/sdk`; hosts additionally use `kernel.selectProvider(consumerId, kind, contractId, providerId)` while the consumer is inactive.
+
+Before executing entries, resolve required/optional declarations against registered providers using standard SemVer ranges. Missing/incompatible required providers fail with requested/available versions. Multiple matches require explicit host selection, including optional ambiguity. Required cycles report the dependency path before activation. Optional edges are considered in stable plugin/contract order and omitted when closing a cycle, with diagnostics. Ready nodes start in stable ID topological order. Independent concurrent starts share each provider's transition queue.
+
+Providers are selected for an activation. Required dependencies must commit first; a failed optional dependency binds absent. Already active consumers retain their bindings, including absent bindings. A newly registered or restarted provider does not silently rebind consumers. Restart/reselection is explicit. Dependencies committed before a consumer failure remain active until stopped.
+
+API providers must publish their advertised API through `ctx.provide`. A consumer uses `ctx.use(token)` for a required API or `ctx.optional(token)` for an optional API. Token version must be included in the declared range; selected provider and consumer token must have the same major and compatible permission metadata. Different compatible minor versions can communicate; each side's local validator checks its own boundary. A missing implementation yields `PROVIDER_UNAVAILABLE` rather than an unmediated reference.
+
+Handles are frozen method objects. They snapshot token metadata and methods, preserve the provider receiver and sync/async return shape, and check caller scope, provider activation, registration identity and effective permissions on every call. Provider throws/rejections propagate unchanged and are diagnosed as `API_CALL_FAILED` without payloads. No handle exposes the registry or implementation object. Method result objects are not recursively isolated; contract authors must not return unmediated privileged handles. This is a trusted single-realm API, not hostile-code isolation.
+
+Stopping a provider first stops transitive required consumers in reverse graph order. Optional consumers remain active, but retained handles report `PROVIDER_UNAVAILABLE`. Disposing an individual published API invalidates its old handles immediately and schedules required consumers for shutdown. Manually closing a provider scope has the same invalidation effect. An old registration disposable cannot remove a replacement. A cached caller method cannot survive caller stop/restart.
+
+Inspection adds frozen bindings: contract kind/ID and, when present, selected provider ID, activation ID and version. Default permission policy continues denying sensitive operations until P6. See `packages/kernel/test/capabilities.test.mjs`; run `npm run check -- kernel`.
