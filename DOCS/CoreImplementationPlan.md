@@ -1,6 +1,6 @@
 # Core implementation plan
 
-Status: P0–P6 gates completed. The kernel supports dependency resolution, scoped APIs, events/hooks and revocable host permissions. P7 test kit/reference plugins and P8 local host/CLI are next.
+Status: P0–P6 complete; remaining test-kit, local host/CLI and release verification work in progress. Standalone reference plugins are deferred by Owner instruction.
 Baseline date: 2026-11-03.
 Source: [architecture proposal](TechDoc.md) and [repository rules](../AGENTS.md).
 
@@ -234,10 +234,10 @@ Gate: permissions are enforced at the public runtime boundary, with explicit lim
 Dependencies: P3–P6; basic harness already developed incrementally since P2.
 
 - [ ] **K07.1** Stabilize `createTestKernel`, mock capability installation, lifecycle assertions, diagnostics capture, and controllable scheduling/deadlines. Acceptance: tests use explicit synchronization, not arbitrary sleeps or a product app.
-- [ ] **K07.2** Implement the P0 examples as executable fixtures, including failing activation and dependency loss. Acceptance: all examples build using SDK exports only and include their own `DOCS/`.
-- [ ] **K07.3** Implement replaceable logger and command plugins with shared contract definitions. Acceptance: kernel can start without either; substitute implementations pass the same consumer test.
+- [ ] **K07.2** **DEFERRED by Owner (2026-11-03)**. Original scope: Implement the P0 examples as executable fixtures, including failing activation and dependency loss. Acceptance: all examples build using SDK exports only and include their own `DOCS/`.
+- [ ] **K07.3** **DEFERRED by Owner (2026-11-03)**. Original scope: Implement replaceable logger and command plugins with shared contract definitions. Acceptance: kernel can start without either; substitute implementations pass the same consumer test.
 - [ ] **K07.4** Add repeated activation/stop leak checks and independent-kernel checks. Acceptance: owned resource counters return to baseline and diagnostics remain bounded.
-- [ ] **K07.5** Add a provider-to-fake-driver example using an in-memory driver under `plugins/systems/driver/`. Acceptance: consumer calls the provider through the SDK, provider calls the driver contract through the SDK, and neither imports platform internals.
+- [ ] **K07.5** **DEFERRED by Owner (2026-11-03)**. Original scope: Add a provider-to-fake-driver example using an in-memory driver under `plugins/systems/driver/`. Acceptance: consumer calls the provider through the SDK, provider calls the driver contract through the SDK, and neither imports platform internals.
 
 Gate: a plugin author can test lifecycle, capabilities, failure, and permissions without booting Lunaris UI or a native host.
 
@@ -629,3 +629,8 @@ Changed files and public API impact: packages/kernel/src and test; DOCS/concepts
 Verification command and outcome: npm run check -- kernel passed (58 kernel tests in final batch plus type/import checks); permissions.test.mjs and integration.test.mjs cover declared sensitive operations, in-flight completion and end-to-end stop/restart with zero cooperative owned resources.
 Evidence commit / review: f2af654
 Remaining limitations or blocking SDK specification: Trusted local JavaScript realm; no forced termination/deep value isolation. P7 reference packages and P8 local CLI remain outstanding. No merge/publication performed.
+
+
+## Owner scope adjustment — 2026-11-03
+
+The Owner requested completion of the remaining core work without test/reference plugins. K07.2 (executable example packages), K07.3 (logger/command reference plugins) and K07.5 (provider/fake-driver example packages) are DEFERRED, not completed. Retain ordinary automated tests, the reusable test kit, lifecycle leak checks and the CLI-generated plugin template. No standalone reference plugin or application capability package is required for the adjusted 0.1 gate. P7 and P9 gates are assessed against this adjusted scope. Merging/publishing still requires separate Owner authorization.
