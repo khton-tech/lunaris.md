@@ -19,6 +19,7 @@ class Runtime {
   #nextActivation = 0;
   #selections = new Map<string, string>();
   #providers: ProviderIndex = new Map();
+  #starts = new Map<Registration, Set<ReadonlyMap<string, string | undefined>>>();
   readonly #access: Access;
   readonly #api: ApiRuntime;
   readonly #dispatch: DispatchRuntime;
@@ -239,28 +240,57 @@ class Runtime {
     }
   }
 
-  async #stop(record: Registration): Promise<void> {
-    if (record.state === "registered" || record.state === "stopped") return;
+  async #stop(record: Registration, dependents: readonly Promise<void>[]): Promise<void> {
     const activation = record.activation;
-    if (!activation) return;
-    record.state = "stopping";
-    const dependencyErrors = await this.#stopDependents(record, activation).catch(error => error);
+    const cleanup = activation && record.state !== "registered" && record.state !== "stopped";
+    if (cleanup) record.state = "stopping";
+    const results = await Promise.allSettled(dependents);
+    const errors = results.flatMap(result => result.status === "rejected" ? [result.reason as unknown] : []);
+    const dependencyError = errors.length ? new LunarisError("CLEANUP_FAILED", "Dependent shutdown failed.", context(record), { cause: new AggregateError(errors) }) : undefined;
+    if (!cleanup) { if (dependencyError) throw dependencyError; return; }
     activation.scope.close();
-    try { await this.#cleanup(record, activation); record.state = "stopped"; if (dependencyErrors) throw dependencyErrors; }
+    try { await this.#cleanup(record, activation); record.state = "stopped"; if (dependencyError) throw dependencyError; }
     catch (cause) { record.state = "failed"; throw cause; }
   }
 
-  async #stopDependents(provider: Registration, activation: Activation, key?: string): Promise<void> {
-    const errors: unknown[] = [];
-    const consumers = [...this.#plugins.values()].filter(record => record !== provider &&
-      record.activation && !record.activation.scope.closed && [...record.activation.bindings].some(([bindingKey, binding]) =>
-        binding?.provider === provider && binding.activation === activation && !binding.requirement.optional && (!key || key === bindingKey)))
+  #dependents(provider: Registration, activation = provider.activation, key?: string): Registration[] {
+    const providerId = provider.definition.manifest.id;
+    return [...this.#plugins.values()].filter(record => record !== provider && (
+      (record.activation && !record.activation.scope.closed && [...record.activation.bindings].some(([bindingKey, binding]) =>
+        binding?.provider === provider && binding.activation === activation && !binding.requirement.optional && (!key || key === bindingKey))) ||
+      [...this.#starts.get(record) ?? []].some(selected => record.definition.manifest.requires.some(requirement =>
+        !requirement.optional && (!key || key === requirementKey(requirement)) && selected.get(requirementKey(requirement)) === providerId))))
       .sort((a, b) => a.definition.manifest.id < b.definition.manifest.id ? 1 : -1);
-    for (const consumer of consumers) {
-      try { await this.#enqueue(consumer.definition.manifest.id, record => this.#stop(record), true, true); }
-      catch (error) { errors.push(error); }
+  }
+
+  #reserveStops(roots: readonly Registration[], ready = Promise.resolve()): Promise<void>[] {
+    const scheduled = new Map<Registration, Promise<void>>();
+    const visiting = new Set<Registration>();
+    const visit = (record: Registration): Promise<void> => {
+      const prior = scheduled.get(record);
+      if (prior) return prior;
+      if (visiting.has(record)) throw new LunarisError("DEPENDENCY_CYCLE", "Required shutdown graph contains a cycle.", context(record));
+      visiting.add(record);
+      const dependents = this.#dependents(record).map(visit);
+      visiting.delete(record);
+      // All prerequisites are reserved synchronously. A running stop never queues
+      // work behind a later start that is waiting for this stop's own queue.
+      const operation = this.#enqueue(record.definition.manifest.id, async current => {
+        await ready;
+        await this.#stop(current, dependents);
+      }, true, true);
+      scheduled.set(record, operation);
+      return operation;
+    };
+    return roots.map(visit);
+  }
+
+  async #stopDependents(provider: Registration, activation: Activation, key?: string): Promise<void> {
+    const results = await Promise.allSettled(this.#reserveStops(this.#dependents(provider, activation, key)));
+    const errors = results.flatMap(result => result.status === "rejected" ? [result.reason as unknown] : []);
+    if (errors.length) {
+      throw new LunarisError("CLEANUP_FAILED", "Dependent shutdown failed.", context(provider, activation), { cause: new AggregateError(errors) });
     }
-    if (errors.length) throw new LunarisError("CLEANUP_FAILED", "Dependent shutdown failed.", context(provider, activation), { cause: new AggregateError(errors) });
   }
 
   start = async (id: string): Promise<void> => {
@@ -274,15 +304,28 @@ class Runtime {
     let preceding = Promise.resolve();
     for (const next of plan.order) {
       const ready = preceding;
+      const record = this.#plugins.get(next)!;
+      const selected = plan.edges.get(next)!;
+      let starts = this.#starts.get(record);
+      if (!starts) this.#starts.set(record, starts = new Set());
+      starts.add(selected);
       const operation = this.#enqueue(next, async record => {
-        await ready;
-        await this.#activate(record, plan.edges.get(next));
+        try { await ready; await this.#activate(record, selected); }
+        finally {
+          starts.delete(selected);
+          if (!starts.size) this.#starts.delete(record);
+        }
       });
       preceding = next === id ? operation : operation.catch(() => {});
     }
     await preceding;
   };
-  stop = (id: string): Promise<void> => this.#enqueue(id, record => this.#stop(record), false, true);
+  stop = async (id: string): Promise<void> => {
+    this.#guard();
+    const record = this.#plugins.get(id);
+    if (!record) { await this.#enqueue(id, async () => {}); return; }
+    await this.#reserveStops([record])[0];
+  };
   restart = async (id: string): Promise<void> => { this.#guard(); await this.stop(id); await this.start(id); };
 
   selectProvider = (consumerId: string, kind: ContractKind, contractId: string, providerId: string): void => {
@@ -297,11 +340,10 @@ class Runtime {
 
   stopAll = async (): Promise<void> => {
     this.#guard();
-    await Promise.all([...this.#plugins.values()].map(record => record.tail));
-    const errors: unknown[] = [];
-    for (const id of [...this.#plugins.keys()].sort().reverse()) {
-      try { await this.stop(id); } catch (error) { errors.push(error); }
-    }
+    const records = [...this.#plugins.keys()].sort().reverse().map(id => this.#plugins.get(id)!);
+    const ready = Promise.all(records.map(record => record.tail)).then(() => {});
+    const results = await Promise.allSettled(this.#reserveStops(records, ready));
+    const errors = results.flatMap(result => result.status === "rejected" ? [result.reason as unknown] : []);
     if (errors.length) throw new LunarisError("CLEANUP_FAILED", "One or more plugins failed to stop.", {}, { cause: new AggregateError(errors) });
   };
 

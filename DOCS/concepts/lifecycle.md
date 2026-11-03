@@ -60,9 +60,15 @@ Run `npm run check -- kernel` for public-boundary lifecycle/scope/deadline tests
 A start reserves all affected plugin queues synchronously before dependency work
 begins. A later stop of the root waits for that start, including dependency
 preparation. Selection changes are rejected while a lifecycle operation is queued.
-`stopAll` first drains the lifecycle queues present when it is called, then stops
-plugins in the documented order. Independently requested operations may still
-interleave; shutdown is not a permanent registry lock.
+Stops also reserve their complete required-consumer graph synchronously, including
+consumers whose starts are still pending. A running provider stop awaits only
+already reserved consumer stops; it never appends work behind a future start while
+holding the provider queue. Shared descendants are reserved once per stop request.
+Sibling queues can drain independently; required consumers complete before their
+provider cleanup. Reservations use reverse stable ID traversal.
+`stopAll` reserves all stops before yielding and waits for the lifecycle queues
+present at invocation before closing admission. Later operations queue behind those
+reserved stops; shutdown is not a permanent registry lock.
 
 A provider enters `stopping` before awaiting required consumers. Its scope closes
 after those consumers drain, but its endpoint is unavailable throughout this
