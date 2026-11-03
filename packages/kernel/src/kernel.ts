@@ -149,8 +149,24 @@ class Runtime {
     }
   }
 
+  #disposeRoot(record: Registration, activation: Activation): Promise<void> {
+    const scope = activation.scope;
+    // Activation rollback and completed/stale scopes already have local cleanup.
+    if (record.activation !== activation || record.state !== "active") {
+      if (record.state === "stopping" && !scope.closed) {
+        return Promise.reject(new LunarisError("LIFECYCLE_REENTRANT", "Root shutdown is already waiting for dependent cleanup.", context(record, activation)));
+      }
+      return scope.dispose();
+    }
+    const stopping = this.#reserveStops([record])[0]!;
+    record.state = "stopping";
+    // Revoke access immediately, but retain owned resources until dependents stop.
+    scope.close();
+    return stopping;
+  }
+
   async #activate(record: Registration, selected: Map<string, string | undefined> = new Map(), planningError?: unknown): Promise<void> {
-    if (record.state === "active") return;
+    if (record.state === "active" && record.activation && !record.activation.scope.closed) return;
     if (!["registered", "stopped", "failed"].includes(record.state)) throw new LunarisError("LIFECYCLE_INVALID", "Cannot start in this state.", this.#context(record));
     record.state = "resolving";
     const id = `${record.definition.manifest.id}:${++this.#nextActivation}`;
@@ -163,7 +179,7 @@ class Runtime {
         this.#access.release(activation);
         apis.clear(); tokens.clear();
         if (record.state !== "stopping") void this.#stopDependents(record, activation).catch(cause => this.#diagnostics.record("CLEANUP_FAILED", context(record, activation), cause));
-      });
+      }, undefined, undefined, () => this.#disposeRoot(record, activation));
     const activation: Activation = { id, scope, apis, tokens, bindings };
     record.activation = activation;
     const timeout = new LunarisError("ACTIVATION_TIMEOUT", "Activation deadline expired; JavaScript may still be running.", this.#context(record));

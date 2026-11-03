@@ -19,6 +19,7 @@ export class OwnedScope {
   #children = new Set<OwnedScope>();
   #known: WeakMap<object, Entry>;
   #disposal: Promise<void> | undefined;
+  #requestedDisposal: Promise<void> | undefined;
   #invoking = false;
   #errors: unknown[] = [];
 
@@ -29,6 +30,7 @@ export class OwnedScope {
     private readonly onClose: () => void = () => {},
     known = new WeakMap<object, Entry>(),
     private readonly onDisposed: () => void = () => {},
+    private readonly disposeRoot?: () => Promise<void>,
   ) {
     this.#known = known;
     this.#signal = new SignalController(invoke, onError);
@@ -36,11 +38,24 @@ export class OwnedScope {
       signal: this.#signal.signal,
       own: <T extends Disposable>(resource: T): T => this.own(resource),
       child: (): ResourceScope => this.child(),
-      dispose: (): Promise<void> => this.dispose(),
+      dispose: (): Promise<void> => this.#requestDisposal(),
     });
   }
 
   get closed(): boolean { return this.#closed; }
+
+  #requestDisposal(): Promise<void> {
+    if (this.#hasInvokingDisposer()) return Promise.reject(new LunarisError("LIFECYCLE_REENTRANT", "Recursive scope disposal.", this.context));
+    if (!this.disposeRoot) return this.dispose();
+    if (!this.#requestedDisposal) {
+      // Publish before closing the signal: abort listeners may request disposal again.
+      let resolve!: (result: Promise<void>) => void;
+      let reject!: (cause: unknown) => void;
+      this.#requestedDisposal = new Promise<void>((yes, no) => { resolve = yes; reject = no; });
+      try { resolve(this.disposeRoot()); } catch (cause) { reject(cause); }
+    }
+    return this.#requestedDisposal;
+  }
   get resourceCount(): number {
     return this.#entries.length + this.#pending.size + [...this.#children].reduce((count, child) => count + child.resourceCount, 0);
   }
