@@ -1,6 +1,6 @@
 # Core implementation plan
 
-Status: proposed delivery baseline; implementation has not started.
+Status: P0 design gate completed; P1 foundation in progress. Runtime implementation has not started.
 Baseline date: 2026-11-03.
 Source: [architecture proposal](TechDoc.md) and [repository rules](../AGENTS.md).
 
@@ -153,10 +153,10 @@ Status vocabulary: `TODO`, `IN_PROGRESS`, `BLOCKED`, `DONE`, `DEFERRED`. All tas
 
 Dependencies: repository baseline. Output: accepted architecture decisions and executable design scenarios.
 
-- [ ] **K00.1** Record D01–D10, distinguish accepted decisions from unresolved questions, and define the first supported runtime target. Acceptance: no unresolved decision blocks P1/P2.
-- [ ] **K00.2** Specify manifest fields, SDK surface, host management API, lifecycle transitions, and stable error categories. Acceptance: ownership, failure, version, and permission behavior are unambiguous.
-- [ ] **K00.3** Draft 5–10 SDK-only examples: hello, provider, consumer, event, hook, optional capability, permission denial, activation failure, and dependency loss. Acceptance: no internal imports or application services required by the base kernel; minimum example targets fewer than 30 authored source lines excluding manifest/test/docs.
-- [ ] **K00.4** Review scope against the proposal and record deliberate deferrals. Acceptance: each scenario maps to a public SDK method and backlog task; missing SDK operations are specified before plugin implementation.
+- [x] **K00.1** Record D01–D10, distinguish accepted decisions from unresolved questions, and define the first supported runtime target. Acceptance: no unresolved decision blocks P1/P2.
+- [x] **K00.2** Specify manifest fields, SDK surface, host management API, lifecycle transitions, and stable error categories. Acceptance: ownership, failure, version, and permission behavior are unambiguous.
+- [x] **K00.3** Draft 5–10 SDK-only examples: hello, provider, consumer, event, hook, optional capability, permission denial, activation failure, and dependency loss. Acceptance: no internal imports or application services required by the base kernel; minimum example targets fewer than 30 authored source lines excluding manifest/test/docs.
+- [x] **K00.4** Review scope against the proposal and record deliberate deferrals. Acceptance: each scenario maps to a public SDK method and backlog task; missing SDK operations are specified before plugin implementation.
 
 Gate: SDK design can express all milestone scenarios without workarounds. Proposed names in this document become binding only through this gate.
 
@@ -347,3 +347,15 @@ Resume plugin work only after the SDK change is implemented and verified as its 
 ## 9. Immediate next slice
 
 Begin with P0: settle D01–D10, specify the SDK/manifest boundary, and draft the plugin scenarios. Then implement P1 on an isolated feature branch. Installing tooling or initializing Git does not mark any kernel implementation task complete.
+
+## 10. Execution evidence
+
+Task: K00.1–K00.4
+Status: DONE
+Branch / responsible contributor: codex/core-foundation / Codex
+Depends on: repository baseline 729da7d
+Required / existing / new responsibilities: architecture proposal exists; accepted decisions, public boundary and nine SDK-only design scenarios added.
+Changed files and public API impact: DOCS/decisions/0001-core-baseline.md; DOCS/reference/core-boundary.md; DOCS/reference/design-scenarios.md. API signatures are specified, not implemented.
+Verification command and outcome: git diff --check; manual review of all nine scenario mappings and relative documentation links. No unresolved P1/P2 design blocker; no plugin implementation bypasses SDK.
+Evidence commit / review: recorded in subsequent P1 tracking entry.
+Remaining limitations or blocking SDK specification: scenarios are drafts until P2 typechecks; lifecycle and dispatch require P3–P6 evidence. No runtime exists yet.
