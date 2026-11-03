@@ -1,6 +1,6 @@
 # Core implementation plan
 
-Status: P0–P2 gates completed. Public SDK definitions and manifest validation exist; executable kernel lifecycle implementation starts at P3.
+Status: P0–P3 gates completed. Dependency-free transactional lifecycle, ownership and diagnostics are implemented. P4 capability resolution and scoped API handles are next.
 Baseline date: 2026-11-03.
 Source: [architecture proposal](TechDoc.md) and [repository rules](../AGENTS.md).
 
@@ -187,11 +187,11 @@ Gate: the runtime can be implemented against a documented public boundary; no pl
 
 Dependencies: P2. Use plugins without dependencies until P4.
 
-- [ ] **K03.1** Implement kernel instance creation, registration, lookup snapshots, and duplicate-ID rejection. Acceptance: independent kernel instances share no mutable state.
-- [ ] **K03.2** Implement ownership scopes, child scopes, cancellation, and reverse-order disposal. Acceptance: nested cleanup is idempotent and continues after a disposer throws.
-- [ ] **K03.3** Implement start, stop, retry, and restart with transactional publication. Acceptance: partial activation failure exposes no committed services and leaves zero owned resources.
-- [ ] **K03.4** Handle concurrent transitions, reentrancy, deadlines, and late async completions. Acceptance: repeated start/stop has defined results; stale activations cannot register in a fresh scope.
-- [ ] **K03.5** Add bounded diagnostics and lifecycle inspection. Acceptance: failures are attributable even without a logger plugin; snapshots cannot mutate internal state.
+- [x] **K03.1** Implement kernel instance creation, registration, lookup snapshots, and duplicate-ID rejection. Acceptance: independent kernel instances share no mutable state.
+- [x] **K03.2** Implement ownership scopes, child scopes, cancellation, and reverse-order disposal. Acceptance: nested cleanup is idempotent and continues after a disposer throws.
+- [x] **K03.3** Implement start, stop, retry, and restart with transactional publication. Acceptance: partial activation failure exposes no committed services and leaves zero owned resources after cooperative cleanup; noncooperative cleanup is timed out and reported without claiming release.
+- [x] **K03.4** Handle concurrent transitions, direct reentrancy, deadlines, and late async completions. Acceptance: repeated start/stop has defined results; stale activations cannot register in a fresh scope; indirect async host-closure self-waits are deadline-bounded as specified in D06's P3 refinement.
+- [x] **K03.5** Add bounded diagnostics and lifecycle inspection. Acceptance: failures are attributable even without a logger plugin; snapshots cannot mutate internal state.
 
 Gate: targeted lifecycle tests cover success, rollback, teardown failure, cancellation, timeout, and restart with no leaked registrations/listeners/timers owned through the SDK.
 
@@ -346,7 +346,7 @@ Resume plugin work only after the SDK change is implemented and verified as its 
 
 ## 9. Immediate next slice
 
-P0/P1 foundation branch was renamed from `codex/core-foundation` to `feat/core-foundation` at the Owner's request; branch policy was committed as `9f72d1d`. P2 is complete on stacked branch `feat/core-sdk`, based on `feat/core-foundation` at `9f72d1d`. Next implement P3 on `feat/core-lifecycle`: kernel instances, owned scopes, transactional lifecycle, deadlines and bounded diagnostics. Use the existing SDK and shared manifest validator. No executable kernel task is marked complete by SDK work; do not merge without Owner approval. Earlier evidence entries retain their original branch names as historical records.
+P0/P1 foundation branch was renamed from `codex/core-foundation` to `feat/core-foundation` at the Owner's request; branch policy was committed as `9f72d1d`. P2 is complete on stacked branch `feat/core-sdk`, based on `feat/core-foundation` at `9f72d1d`. P3 is complete on `feat/core-lifecycle`, based on `feat/core-sdk` at `17e0fed`. Next implement P4 on `feat/core-capabilities`: contract matching, deterministic required/optional dependency resolution, explicit provider selection, scoped API handles and provider loss. Preserve existing scope/deadline behavior and default denial; do not merge without Owner approval. Earlier evidence entries retain their original branch names as historical records.
 
 ## 10. Execution evidence
 
@@ -448,3 +448,53 @@ Changed files and public API impact: DOCS/reference/{sdk,manifest,core-boundary,
 Verification command and outcome: npm run check -- sdk and npm run check -- manifest passed; positive scenarios compile and negative fixtures reject host grants/registry/logger access; git diff --check passed.
 Evidence commit / review: f38f95b; 44b903f
 Remaining limitations or blocking SDK specification: compiled scenarios do not execute lifecycle; P7 will create executable, separately documented plugins after P3–P6 runtime gates. No merge or publishing performed.
+
+Task: K03.1
+Status: DONE
+Branch / responsible contributor: feat/core-lifecycle / Codex; stacked on feat/core-sdk at 17e0fed
+Depends on: P2
+Required / existing / new responsibilities: SDK/manifest boundary existed; added independent kernel instances, validated atomic registration, engine/SDK compatibility, duplicate rejection and frozen inspection.
+Changed files and public API impact: packages/kernel/src/{kernel,types,index}.ts. Host createKernel requires an injected Scheduler; no platform imports or plugin SDK changes.
+Verification command and outcome: npm run check -- kernel passed; public-export tests cover deferred activation, duplicate/compatibility failure, immutable snapshots and independent active kernels with the same plugin/contract identities.
+Evidence commit / review: 64a5906; host scheduler decision 54c3bab
+Remaining limitations or blocking SDK specification: only dependency-free activation at P3; graph resolution and host selection are P4. Current runtime compatibility versions are 0.1.0.
+
+Task: K03.2
+Status: DONE
+Branch / responsible contributor: feat/core-lifecycle / Codex
+Depends on: K03.1 and P2 scope/cancellation interfaces
+Required / existing / new responsibilities: added frozen SDK scope/signal facades, child ownership, abort listener cleanup, reverse awaited disposal, idempotency and aggregated cleanup failure.
+Changed files and public API impact: packages/kernel/src/{scope,signal}.ts; private controllers are not package exports. Repeated ownership of an object within an activation disposes it once.
+Verification command and outcome: npm run check -- kernel passed; exact nested abort/teardown/disposal order, child/parent recursive disposal, duplicate ownership, independent child release, listener mutation/errors, opaque thrown values and cleanup continuation covered.
+Evidence commit / review: 64a5906
+Remaining limitations or blocking SDK specification: arbitrary external effects are not reversible; indirect async parent/self-waits cannot be attributed without platform async context and are bounded by host deadlines when stopping.
+
+Task: K03.3
+Status: DONE
+Branch / responsible contributor: feat/core-lifecycle / Codex
+Depends on: K03.1–K03.2
+Required / existing / new responsibilities: start/stop/retry/restart queues, fresh activation identities and private API staging with commit-time canonical metadata checks added.
+Changed files and public API impact: kernel runtime uses SDK declaration assertions and validates method-only API implementation objects/validators. Old idempotent registration disposables cannot delete replacements.
+Verification command and outcome: npm run check -- kernel passed; commit visibility, rollback, cleanup failures, retry/restart, concurrent staging conflicts and stale registration disposal tested. Cooperative cleanup returns ownership slots to zero; failed activation exposes no contracts.
+Evidence commit / review: 64a5906
+Remaining limitations or blocking SDK specification: actual API consumption/handles are P4; event/hook dispatch is P5. Noncooperative disposal is reported as pending rather than falsely counted as released.
+
+Task: K03.4
+Status: DONE
+Branch / responsible contributor: feat/core-lifecycle / Codex
+Depends on: K03.3 and refined D06
+Required / existing / new responsibilities: management serialization, direct callback reentry rejection, manually schedulable deadlines, deadline drain and late-result/error observation added.
+Changed files and public API impact: required host Scheduler injection documented in DOCS/decisions/0002-lifecycle-execution.md; activation/stop duration defaults remain 5000 ms. No timer globals or native async-context dependency in kernel.
+Verification command and outcome: npm run check -- kernel passed; repeated start/stop, queued stop during start, direct reentry, indirect asynchronous lifecycle self-wait, activation/stop timeouts, hanging child cleanup, late returned resources/errors and stale SDK rejection covered with deferred promises and no sleeps.
+Evidence commit / review: 64a5906; design refinement 54c3bab
+Remaining limitations or blocking SDK specification: timers cannot interrupt synchronous JavaScript. Arbitrary async host-closure cycles are deadline-bounded, not universally detected. A host must provide a functioning scheduler; real host adapter comes later.
+
+Task: K03.5
+Status: DONE
+Branch / responsible contributor: feat/core-lifecycle / Codex
+Depends on: K03.1–K03.4
+Required / existing / new responsibilities: bounded internal diagnostic history, safe immutable snapshots, activation attribution and ownership counters added without a logger dependency.
+Changed files and public API impact: packages/kernel/src/diagnostics.ts and snapshot types; DOCS/concepts/lifecycle.md, SDK/boundary/contribution docs updated to actual P3 behavior.
+Verification command and outcome: npm run check -- kernel passed, including strict type fixtures and import boundaries; tests cover history capacity/order, original activation attribution, frozen snapshots, cleanup after arbitrary thrown objects and omission of private error/payload contents. git diff --check passed.
+Evidence commit / review: 64a5906
+Remaining limitations or blocking SDK specification: snapshot covers current activation and committed API metadata only; provider bindings/grants appear at P4/P6. Raw causes stay internal or on returned errors. No merge/publication performed.
