@@ -11,4 +11,10 @@ npm run core -- --help
 npm run release:check
 ```
 
-Verified locally on Windows x64, Node 26.13.0/npm 11.20.0. UI/editor features, native drivers, remote distribution, untrusted-code isolation and standalone reference plugins are outside this candidate. Packages remain private and feature branches require Owner approval to merge.
+Verified locally on Windows x64, Node 26.13.0/npm 11.20.0. Product UI/editor features, native drivers, remote distribution, untrusted-code isolation and standalone reference plugins are outside this candidate. Packages remain private and feature branches require Owner approval to merge.
+
+The first desktop host is now [Tauri with an independent recovery shell](DOCS/guides/tauri-host.md).
+Run `npm run tauri:check` for frontend/native checks, `npm run tauri:build` for a
+debug executable, and manually run `npm run tauri:dev` to open the application.
+The host has no product plugins configured yet; it displays kernel status and
+diagnostics and supplies retry/plugin-exclusion controls for application composition.

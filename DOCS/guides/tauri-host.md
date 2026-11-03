@@ -1,0 +1,138 @@
+# Tauri host and independent recovery shell
+
+The first application target is Tauri 2 on Windows. The existing TypeScript kernel
+runs in its WebView; Rust supplies the native window and packaged assets. No Node
+sidecar, Rust rewrite of the kernel, filesystem access or product plugin is added.
+
+## Architecture and responsibilities
+
+Required: launch the kernel in Tauri, retain a minimal diagnostic interface when
+application plugins fail, and offer explicit retry and plugin exclusion.
+
+Existing: public kernel registration/start/stop, immutable inspection, diagnostics,
+dependency resolution and SDK ownership. These operations are sufficient for the
+host's recovery responsibility; no SDK extension is required for this milestone.
+
+New: `hosts/tauri` contains the native host, browser scheduler, application-session
+controller, built-in message catalogs and monochrome system view. The fallback is
+host infrastructure, independent of product UI, themes and localization plugins.
+`packages/kernel` remains platform-neutral. Host management comes exclusively from
+the public kernel package; product plugins continue to use the public SDK.
+
+The application composition point is
+`hosts/tauri/src/application.ts`. It currently installs **no plugins** and no product
+view. A fresh desktop launch therefore shows the real system screen with an empty
+plugin list, not a demonstration application.
+
+## Commands
+
+Install root dependencies with `npm ci`, then use:
+
+```sh
+npm run tauri:check
+npm run tauri:build
+npm run tauri:dev
+```
+
+- `tauri:check` runs targeted host runtime/DOM/type/boundary checks, builds frontend
+  assets, checks Rust formatting and runs locked native compilation checks.
+- `tauri:build` runs targeted checks and builds a Windows debug executable with
+  embedded frontend assets. It creates no installer and launches no window. The
+  Windows output is `hosts/tauri/src-tauri/target/debug/lunaris-desktop.exe`.
+- `tauri:dev` opens the actual desktop window with the local frontend development
+  server. Run this manually for visual and native event verification.
+- `npm run web:dev --workspace @lunaris/tauri` serves only the frontend for manual
+  browser inspection. It is not evidence of native Tauri execution.
+
+Native prerequisites are Rust/MSVC C++ build tools and WebView2; see the official
+[Windows prerequisites](https://v2.tauri.app/start/prerequisites/). The toolchain is
+pinned in `hosts/tauri/src-tauri/rust-toolchain.toml`; npm and Cargo lockfiles record
+dependencies. The native builder uses the documented
+[Vite integration](https://v2.tauri.app/start/frontend/vite/).
+
+## Composition boundary
+
+`composeApplication(target)` is a **trusted host composition function**, loaded
+through a guarded asynchronous import after the system view is mounted. It returns
+an `ApplicationDefinition`:
+
+- `plugins`: SDK-created definitions to register.
+- `entrypoints`: root plugin IDs to start; dependencies start through the kernel.
+- Optional `view.mount(signal)`: a trusted renderer adapter that captures the
+  supplied target and returns a disposable. It must cooperate with cancellation
+  and release its rendering resources.
+
+This adapter is not an alternative plugin API. Do not pass its DOM target, session,
+kernel registry or native window into plugin contexts. A future plugin-driven UI
+must establish shared UI contracts and providers through the SDK; missing SDK
+operations must be specified before implementing a workaround. Layout, themes,
+localization and native drivers keep their own responsibilities.
+
+Each load attempt receives a fresh rendering target. On cancellation the target is
+detached immediately. A late renderer cannot visibly replace a newer application
+through that old target, and its late disposable is attempted. Module imports use
+normal JavaScript module caching; retry restarts plugin activations, not code
+loading. Restart the development process or reload the window after code changes.
+
+## Recovery behavior
+
+The system screen displays host/kernel/SDK versions, plugin IDs/versions/states,
+owned-resource counts, disabled plugins and safe diagnostic codes with plugin and
+contract attribution. It uses text nodes rather than interpolated HTML. Raw error
+causes, arguments and payloads are not rendered. English and Russian catalogs are
+built in and remain usable without a localization plugin. The initial locale
+follows the browser language and can be changed in the shell.
+
+The shell stays visible during startup. A successfully mounted product view
+replaces its main panel; the host's System control remains available for inspection.
+Without a product view, the shell remains the normal visible interface.
+
+Startup/loading/registration/rendering failures enter recovery. During operation,
+the host checks snapshots every 250 ms. Failed plugins, unavailable root plugins
+and new API, listener, hook or lifecycle failure diagnostics enter recovery too.
+Uncaught browser errors, rejected promises and subsequent resource-load failures
+also report faults. Normal permission denial is not treated as an application
+crash. The UI hides immediately on a reported fault; cleanup runs through the
+serialized host operation queue. Kernel-managed activation deadlines still apply.
+
+Retry disposes the old view, stops the old kernel and constructs a fresh kernel.
+Disable-and-retry excludes the selected plugin from the next registry, so dependency
+auto-start cannot silently restore it. Missing required providers correctly leave
+the application in recovery. Disabling an application entrypoint also leaves the
+system view visible. Enable-and-retry restores an excluded definition. Exclusions
+last only until the window reloads, and are explicitly described as session-local.
+
+Renderer loading/mounting and view cleanup use a host deadline, default 5000 ms.
+If cleanup fails or times out, the shell records the failure and blocks additional
+in-process recovery; close and restart the application. This avoids claiming safe
+recovery while external resources might still be live. Native close requests await
+session cleanup, and repeated close requests do not bypass that wait. Native
+permissions are restricted to event listen/unlisten and window destruction for
+the main window; no filesystem, process or network driver is installed. See
+[Tauri close-request semantics](https://v2.tauri.app/reference/javascript/api/namespacewindow/#oncloserequested).
+
+## Limits and manual acceptance
+
+This is a cooperative recovery boundary, not JavaScript isolation. A plugin can
+still access ambient browser capabilities. A blocking loop freezes the same
+WebView; process termination, WebView crashes, arbitrary DOM destruction or native
+crashes cannot be repaired by this shell. There is no watchdog process or automatic
+crash restart. The HTML contains a static startup/error message if the bootstrap
+itself cannot load; an operational interactive shell requires its own bundle to run.
+
+DOM tests run in Node with JSDOM, not desktop automation. Native compilation and
+mocked close callbacks do not establish actual WebView rendering or OS event
+behavior. Manually run `npm run tauri:dev` and check:
+
+1. The monochrome system view fits the window, versions are visible, and an empty
+   plugin list is explained without a blank application screen.
+2. Switching English/Russian updates labels and keyboard focus remains visible.
+   Resize to the minimum window width and check table scrolling when plugins exist.
+3. After product composition is introduced, verify normal mounting, System/back,
+   a failing activation/API/render, retry, plugin exclusion and dependency failure.
+4. Close the native window while cleanup is pending and verify it waits, then
+   closes. Check development-server shutdown separately after ending Tauri dev.
+
+The independent native workflow in `.github/workflows/tauri.yml` builds on the
+declared Windows target when host/core/tooling inputs change. It is configured;
+remote execution is not claimed by the local implementation.

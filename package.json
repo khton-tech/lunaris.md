@@ -21,7 +21,10 @@
     "ci": "node tools/scripts/ci.mjs",
     "audit": "node tools/scripts/audit.mjs",
     "benchmark": "node tools/scripts/benchmark.mjs",
-    "release:check": "node tools/scripts/release.mjs"
+    "release:check": "node tools/scripts/release.mjs",
+    "tauri:dev": "npm run desktop:dev --workspace @lunaris/tauri",
+    "tauri:check": "node tools/scripts/tauri.mjs check",
+    "tauri:build": "node tools/scripts/tauri.mjs build"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

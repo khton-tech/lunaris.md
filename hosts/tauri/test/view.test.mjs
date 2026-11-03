@@ -1,0 +1,40 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { JSDOM } from 'jsdom';
+import { TestScheduler } from '@lunaris/test';
+import { HostSession } from '@lunaris/tauri';
+import { mountSystemView } from '../dist/view.js';
+
+function setup(definition = { plugins: [], entrypoints: [] }) {
+  const dom = new JSDOM('<html><body><div id="system"></div><div id="app"></div></body></html>');
+  const document = dom.window.document;
+  const root = document.getElementById('system'); const app = document.getElementById('app');
+  const session = new HostSession({ scheduler: new TestScheduler(), load: async () => definition });
+  const view = mountSystemView(root, app, session, 'ru');
+  return { dom, document, root, app, session, view };
+}
+
+test('system view exposes versions, empty state and independent localization', async () => {
+  const { dom, document, root, session, view } = setup(); await session.start();
+  assert.match(root.textContent, /Ядро работает/); assert.match(root.textContent, /0\.1\.0/);
+  const select = root.querySelector('select'); select.value = 'en'; select.dispatchEvent(new dom.window.Event('change'));
+  assert.equal(document.documentElement.lang, 'en'); assert.match(root.textContent, /The kernel is running/);
+  await session.stop(); view.dispose(); dom.window.close();
+});
+
+test('mounted application is hidden immediately on failure and diagnostic text cannot inject HTML', async () => {
+  const { dom, root, app, session, view } = setup({ plugins: [], entrypoints: [], view: { mount() { return { dispose() {} }; } } });
+  await session.start(); assert.equal(app.hidden, false); assert.equal(root.querySelector('main').hidden, true);
+  await session.reportFault('view', '<img src=x onerror=alert(1)>');
+  assert.equal(app.hidden, true); assert.equal(root.querySelector('main').hidden, false);
+  assert.match(root.textContent, /<img src=x/); assert.equal(root.querySelector('img'), null);
+  assert.equal(root.querySelector('h1').getAttribute('role'), 'alert');
+  await session.stop(); view.dispose(); dom.window.close();
+});
+
+test('system control opens inspection and returns to a working application', async () => {
+  const { dom, root, app, session, view } = setup({ plugins: [], entrypoints: [], view: { mount() { return { dispose() {} }; } } });
+  await session.start(); const system = root.querySelector('header button');
+  system.click(); assert.equal(app.hidden, true); system.click(); assert.equal(app.hidden, false);
+  await session.stop(); view.dispose(); dom.window.close();
+});

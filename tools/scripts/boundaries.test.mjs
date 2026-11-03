@@ -28,3 +28,14 @@ test('only the development loader can dynamically evaluate local entries', () =>
   assert.deepEqual(checkSource('import(entry);', path.resolve('hosts/development/src/index.ts'), 'development'), []);
   assert.ok(checkSource('import(entry);', path.resolve('packages/cli/src/index.ts'), 'cli').length);
 });
+
+test('Tauri allows only its statically named guarded application composition import', () => {
+  const bootstrap = path.resolve('hosts/tauri/src/bootstrap.ts');
+  assert.deepEqual(checkSource('import("./application.js");', bootstrap, 'tauri'), []);
+  assert.ok(checkSource('import(entry);', bootstrap, 'tauri').length);
+  assert.ok(checkSource('import("./other.js");', bootstrap, 'tauri').length);
+  assert.ok(checkSource('import("./application.js");', path.resolve('hosts/tauri/src/session.ts'), 'tauri').length);
+  assert.ok(checkSource('import "node:fs";', bootstrap, 'tauri').length);
+  assert.ok(checkSource('import "@tauri-apps/api/window";', bootstrap, 'tauri').length);
+  assert.deepEqual(checkSource('import "@tauri-apps/api/window";', path.resolve('hosts/tauri/src/desktop.ts'), 'tauri'), []);
+});

@@ -1,0 +1,9 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext", "moduleResolution": "Bundler",
+    "lib": ["ES2022", "ESNext.Disposable", "DOM", "DOM.Iterable"], "rootDir": "src", "outDir": "dist"
+  },
+  "include": ["src/**/*.ts"],
+  "references": [{ "path": "../../packages/sdk" }, { "path": "../../packages/kernel" }]
+}

@@ -9,7 +9,8 @@ Before 1.0, incompatible public changes increment minor; compatible fixes increm
 | Windows x64, Node 26.13.0, npm 11.20.0 | Locally verified source-checkout target | Full release check, generated plugin install/build/test/dev and junction containment |
 | GitHub Windows runner, Node 26.13.0 | CI configured; remote run not performed in this session | `.github/workflows/core.yml`; same local scripts |
 | Other Node 26.x versions | Allowed development range, not individually verified | No expanded compatibility claim |
-| Linux/macOS/browser/Capacitor/Tauri | Not verified/supported yet | Platform-neutral kernel is preparation, not execution evidence |
+| Tauri 2 / Windows x64 | First desktop host implemented; frontend/native debug build verified; manual WebView/window acceptance pending | [Host guide](tauri-host.md), targeted host tests and locked native build |
+| Linux/macOS/browser/Capacitor | Not verified/supported yet | Platform-neutral kernel is preparation, not execution evidence |
 
 CI selects changed packages and their consumers for pull requests. Root/tooling/lockfile changes trigger the full core; documentation-only changes check local links. Push to main and manual runs also execute release validation over the declared Windows target. Action refs are pinned to official v7 commit IDs checked during setup. Hosted CI execution requires pushing the branch and is not claimed here.
 

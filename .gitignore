@@ -2,3 +2,9 @@ node_modules/
 dist/
 *.tsbuildinfo
 *.log
+web-dist/
+target/
+hosts/tauri/src-tauri/gen/
+hosts/tauri/src-tauri/icons/*
+!hosts/tauri/src-tauri/icons/icon.ico
+!hosts/tauri/src-tauri/icons/icon.png

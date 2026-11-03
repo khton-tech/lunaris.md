@@ -9,14 +9,19 @@ export const dependencies = {
   test: ['sdk', 'kernel'],
   development: ['manifest', 'sdk', 'kernel'],
   cli: ['manifest', 'sdk', 'kernel', 'test', 'development'],
+  tauri: ['sdk', 'kernel'],
 };
 
-export const packagePath = scope => scope === "development" ? "hosts/development" : `packages/${scope}`;
+export const packagePath = scope => ['development', 'tauri'].includes(scope) ? `hosts/${scope}` : `packages/${scope}`;
 
 export function checkSource(source, filename, scope) {
   const errors = [];
   const tree = ts.createSourceFile(filename, source, ts.ScriptTarget.Latest, true);
   const allowed = new Set(dependencies[scope].map(name => `@lunaris/${name}`));
+  if (scope === 'tauri' && path.resolve(filename) === path.resolve('hosts/tauri/src/desktop.ts')) {
+    allowed.add('@tauri-apps/api/core');
+    allowed.add('@tauri-apps/api/window');
+  }
   // The shared validator owns the reviewed, platform-neutral SemVer dependency.
   if (scope === 'manifest') allowed.add('semver');
   function specifier(node) {
@@ -37,6 +42,9 @@ export function checkSource(source, filename, scope) {
     }
   }
   function visit(node) {
+    const applicationLoader = scope === 'tauri' && path.resolve(filename) === path.resolve('hosts/tauri/src/bootstrap.ts') &&
+      ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+      node.arguments.length === 1 && ts.isStringLiteral(node.arguments[0]) && node.arguments[0].text === './application.js';
     if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier) {
       specifier(node.moduleSpecifier);
     }
@@ -45,7 +53,7 @@ export function checkSource(source, filename, scope) {
       else errors.push(`${filename}: nonliteral import type`);
     }
     if (ts.isImportEqualsDeclaration(node)) errors.push(`${filename}: import assignments are forbidden`);
-    if (ts.isCallExpression(node) && (scope !== 'development' || node.expression.kind !== ts.SyntaxKind.ImportKeyword) && (
+    if (!applicationLoader && ts.isCallExpression(node) && (scope !== 'development' || node.expression.kind !== ts.SyntaxKind.ImportKeyword) && (
       node.expression.kind === ts.SyntaxKind.ImportKeyword ||
       (ts.isIdentifier(node.expression) && node.expression.text === 'require')
     )) errors.push(`${filename}: dynamic module loading is forbidden`);
