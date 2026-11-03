@@ -1,6 +1,6 @@
 # Core implementation plan
 
-Status: P0–P6 complete; remaining test-kit, local host/CLI and release verification work in progress. Standalone reference plugins are deferred by Owner instruction.
+Status: adjusted local 0.1 implementation complete. 43 tasks DONE; K07.2/K07.3/K07.5 DEFERRED by Owner. Local release checks pass; merge/publishing require separate authorization.
 Baseline date: 2026-11-03.
 Source: [architecture proposal](TechDoc.md) and [repository rules](../AGENTS.md).
 
@@ -30,7 +30,7 @@ Tools observed locally: Git 2.53.0.windows.3, Node v26.13.0, npm 11.20.0, Cargo 
 
 ### First usable core: 0.1
 
-Deliver SDK-first plugin definitions; validated manifests; deterministic registration and dependency resolution; transactional activation; cancellation and cleanup; typed API/event/hook contracts; scoped access control; structured diagnostics; an in-memory test host; reference plugins; and local `create-plugin`, `dev`, `test`, `validate`, and `inspect` workflows. Version numbers and CLI names below express intended behavior, not existing commands.
+Deliver SDK-first plugin definitions; validated manifests; deterministic registration and dependency resolution; transactional activation; cancellation and cleanup; typed API/event/hook contracts; scoped access control; structured diagnostics; an in-memory test host; a reusable test kit (standalone reference plugins deferred by Owner); and local `create-plugin`, `dev`, `test`, `validate`, and `inspect` workflows. Version numbers and CLI names below express intended behavior, not existing commands.
 
 Use trusted, locally supplied plugins in one JavaScript realm for this milestone. This is a logical sandbox, not hostile-code isolation: a plugin can still access ambient JavaScript globals. SDK permission checks protect mediated operations; they do not make arbitrary JavaScript safe. Never claim that static import checks or TypeScript types create a security boundary.
 
@@ -229,14 +229,14 @@ Dependencies: P4/P5. Restricted operations must not be released before this gate
 
 Gate: permissions are enforced at the public runtime boundary, with explicit limits for ambient globals and in-flight work.
 
-### P7 — Test kit and reference plugins
+### P7 — Test kit (standalone reference plugins deferred by Owner)
 
 Dependencies: P3–P6; basic harness already developed incrementally since P2.
 
-- [ ] **K07.1** Stabilize `createTestKernel`, mock capability installation, lifecycle assertions, diagnostics capture, and controllable scheduling/deadlines. Acceptance: tests use explicit synchronization, not arbitrary sleeps or a product app.
+- [x] **K07.1** Stabilize `createTestKernel`, mock capability installation, lifecycle assertions, diagnostics capture, and controllable scheduling/deadlines. Acceptance: tests use explicit synchronization, not arbitrary sleeps or a product app.
 - [ ] **K07.2** **DEFERRED by Owner (2026-11-03)**. Original scope: Implement the P0 examples as executable fixtures, including failing activation and dependency loss. Acceptance: all examples build using SDK exports only and include their own `DOCS/`.
 - [ ] **K07.3** **DEFERRED by Owner (2026-11-03)**. Original scope: Implement replaceable logger and command plugins with shared contract definitions. Acceptance: kernel can start without either; substitute implementations pass the same consumer test.
-- [ ] **K07.4** Add repeated activation/stop leak checks and independent-kernel checks. Acceptance: owned resource counters return to baseline and diagnostics remain bounded.
+- [x] **K07.4** Add repeated activation/stop leak checks and independent-kernel checks. Acceptance: owned resource counters return to baseline and diagnostics remain bounded.
 - [ ] **K07.5** **DEFERRED by Owner (2026-11-03)**. Original scope: Add a provider-to-fake-driver example using an in-memory driver under `plugins/systems/driver/`. Acceptance: consumer calls the provider through the SDK, provider calls the driver contract through the SDK, and neither imports platform internals.
 
 Gate: a plugin author can test lifecycle, capabilities, failure, and permissions without booting Lunaris UI or a native host.
@@ -245,11 +245,11 @@ Gate: a plugin author can test lifecycle, capabilities, failure, and permissions
 
 Dependencies: P7; CLI reuses manifest validation and the test host.
 
-- [ ] **K08.1** Implement local loader with manifest-first checks, package-root entry containment, engine compatibility checks, and readable load errors. Acceptance: invalid/traversing entries fail before execution; valid local modules load through the host.
-- [ ] **K08.2** Implement `create-plugin` template with manifest, source, test, and plugin docs. Acceptance: generation does not overwrite existing work silently; generated plugin passes validation and its test.
-- [ ] **K08.3** Implement `dev`, `test`, and `validate`. Acceptance: one-shot commands have correct exit codes; `dev` shuts down scopes on exit; validation shares runtime rules. Use explicit restart initially rather than promising module-cache-safe hot reload.
-- [ ] **K08.4** Implement `inspect` over read-only host diagnostics. Acceptance: output explains states, selected providers, permissions, and failures without exposing mutable registries or sensitive payloads.
-- [ ] **K08.5** Write and rehearse the first-plugin quickstart. Acceptance: from installed documented prerequisites to a working generated plugin in at most ten minutes, with measured conditions and result recorded.
+- [x] **K08.1** Implement local loader with manifest-first checks, package-root entry containment, engine compatibility checks, and readable load errors. Acceptance: invalid/traversing entries fail before execution; valid local modules load through the host.
+- [x] **K08.2** Implement `create-plugin` template with manifest, source, test, and plugin docs. Acceptance: generation does not overwrite existing work silently; generated plugin passes validation and its test.
+- [x] **K08.3** Implement `dev`, `test`, and `validate`. Acceptance: one-shot commands have correct exit codes; `dev` shuts down scopes on exit; validation shares runtime rules. Use explicit restart initially rather than promising module-cache-safe hot reload.
+- [x] **K08.4** Implement `inspect` over read-only host diagnostics. Acceptance: output explains states, selected providers, permissions, and failures without exposing mutable registries or sensitive payloads.
+- [x] **K08.5** Write and rehearse the first-plugin quickstart. Acceptance: from installed documented prerequisites to a working generated plugin in at most ten minutes, with measured conditions and result recorded.
 
 Gate: a fresh directory can produce, run, inspect, test, and validate an SDK-only plugin using the documented workflow.
 
@@ -257,11 +257,11 @@ Gate: a fresh directory can produce, run, inspect, test, and validate an SDK-onl
 
 Dependencies: all preceding gates.
 
-- [ ] **K09.1** Add focused CI jobs and a supported-environment matrix. Acceptance: touched packages and dependents are checked; release validation runs all core acceptance scenarios on declared targets.
-- [ ] **K09.2** Review exports, diagnostics, manifest reference, lifecycle/permissions guides, and import boundaries. Acceptance: public examples match executable behavior and no deferred feature is advertised as implemented.
-- [ ] **K09.3** Record baseline performance for test-host startup, resolution at increasing graph sizes, and repeated lifecycle operations. Acceptance: reproducible commands and environment are included; investigate regressions rather than invent unsupported scale claims. Initial test-host startup target is under five seconds after dependencies are installed.
-- [ ] **K09.4** Write the 0.1 release checklist, known limitations, compatibility policy, and change log. Acceptance: no open blocker affecting a required scenario; evidence links and commit IDs are recorded.
-- [ ] **K09.5** Present completed branch changes and validation to the Owner. Acceptance: merge only after explicit Owner approval; do not equate task completion with merge or public publishing authorization.
+- [x] **K09.1** Add focused CI jobs and a supported-environment matrix. Acceptance: touched packages and dependents are checked; release validation runs all core acceptance scenarios on declared targets.
+- [x] **K09.2** Review exports, diagnostics, manifest reference, lifecycle/permissions guides, and import boundaries. Acceptance: public examples match executable behavior and no deferred feature is advertised as implemented.
+- [x] **K09.3** Record baseline performance for test-host startup, resolution at increasing graph sizes, and repeated lifecycle operations. Acceptance: reproducible commands and environment are included; investigate regressions rather than invent unsupported scale claims. Initial test-host startup target is under five seconds after dependencies are installed.
+- [x] **K09.4** Write the 0.1 release checklist, known limitations, compatibility policy, and change log. Acceptance: no open blocker affecting a required scenario; evidence links and commit IDs are recorded.
+- [x] **K09.5** Present completed branch changes and validation to the Owner. Acceptance: merge only after explicit Owner approval; do not equate task completion with merge or public publishing authorization.
 
 Gate: 0.1 is a usable local plugin platform with documented trust limits and repeatable validation.
 
@@ -346,9 +346,9 @@ Resume plugin work only after the SDK change is implemented and verified as its 
 
 ## 9. Immediate next slice
 
-P0/P1: `feat/core-foundation` (renamed under Owner policy). P2: `feat/core-sdk` at `17e0fed`. P3: `feat/core-lifecycle` at `3f22d59`. P4: `feat/core-capabilities`, stacked on P3 (`e5fa956`, SDK error refinement `37d2571`). P5: `feat/core-dispatch`, stacked on P4 (`858653c`). P6: `feat/core-permissions`, stacked on P5 (`f2af654`, including cross-gate hardening and integration).
+The Owner-adjusted local 0.1 scope is complete: 43 DONE tasks and three Owner-DEFERRED reference-plugin tasks (K07.2/K07.3/K07.5). No implementation task remains in this adjusted milestone. Review [the candidate checklist and evidence](releases/0.1.0.md) before an explicitly authorized merge or publication.
 
-Next batch: P7 and P8 together (10 tasks), using meaningful isolated dependent branches. Build the public test kit/reference plugins, then local loader/CLI and measured quickstart. Reserve P9's five release tasks for a separate verification batch. Thirty-one of 46 tasks are complete. No branch is merged into main without Owner approval. Historical evidence retains original branch names where applicable.
+Latest stacked branches: `feat/core-test-kit` on `feat/core-permissions` at `f8d7333`; `feat/core-local-tools` on test-kit at `c347d2a`; `feat/core-release-checks` on local-tools at `35e20eb`. Prior P0–P6 branches remain unmerged. The implementation/evidence commits below identify each slice; historical branch names are retained where applicable.
 
 ## 10. Execution evidence
 
@@ -634,3 +634,153 @@ Remaining limitations or blocking SDK specification: Trusted local JavaScript re
 ## Owner scope adjustment — 2026-11-03
 
 The Owner requested completion of the remaining core work without test/reference plugins. K07.2 (executable example packages), K07.3 (logger/command reference plugins) and K07.5 (provider/fake-driver example packages) are DEFERRED, not completed. Retain ordinary automated tests, the reusable test kit, lifecycle leak checks and the CLI-generated plugin template. No standalone reference plugin or application capability package is required for the adjusted 0.1 gate. P7 and P9 gates are assessed against this adjusted scope. Merging/publishing still requires separate Owner authorization.
+
+Task: K07.1
+Status: DONE
+Branch / responsible contributor: feat/core-test-kit (base feat/core-permissions at f8d7333) / Codex
+Depends on: P3–P6 public runtime
+Required / existing / new responsibilities: Public test kit composes the actual kernel, adds a deterministic scheduler, typed mock installation, lifecycle/resource assertions and bounded diagnostic capture.
+Changed files and public API impact: packages/test; SDK JSON input boundary; DOCS/guides/testing.md.
+Verification command and outcome: npm run check -- test; mock typing, scope release and explicitly synchronized timeout scenarios passed.
+Evidence commit / review: c347d2a; SDK JSON author-input refinement b3e9377
+Remaining limitations or blocking SDK specification: No implicit sensitive grants; advancing the fake clock does not flush arbitrary promises.
+
+Task: K07.4
+Status: DONE
+Branch / responsible contributor: feat/core-test-kit / Codex
+Depends on: P3–P6 public runtime
+Required / existing / new responsibilities: Repeated 50-cycle activation/stop checks, independent kernels, external resource counters and bounded diagnostic history tested through public exports.
+Changed files and public API impact: packages/test; SDK JSON input boundary; DOCS/guides/testing.md.
+Verification command and outcome: npm run check -- test; ownership/deadline counters returned to zero and history stayed within configured capacity.
+Evidence commit / review: c347d2a
+Remaining limitations or blocking SDK specification: Assertions cannot prove an arbitrary noncooperative external resource released.
+
+Task: K08.1
+Status: DONE
+Branch / responsible contributor: feat/core-local-tools (base feat/core-test-kit at c347d2a) / Codex
+Depends on: Adjusted P7 test kit and existing manifest/kernel contracts
+Required / existing / new responsibilities: Added Node-only development host with all-roots manifest-first validation, compatibility/real-path containment, normalized entry/manifest drift checks and cleanup.
+Changed files and public API impact: hosts/development, packages/cli, tools/scripts/rehearse.mjs and quickstart/host/CLI docs.
+Verification command and outcome: npm run check -- development; invalid/traversing metadata failed before evaluation; Windows directory-junction escape, drift and valid load/start/stop passed without skips.
+Evidence commit / review: bf5a48f; junction acceptance hardening adf34db
+Remaining limitations or blocking SDK specification: Trusted local code; normal Node module caching, initialization and filesystem race limitations are documented.
+
+Task: K08.2
+Status: DONE
+Branch / responsible contributor: feat/core-local-tools / Codex
+Depends on: Adjusted P7 test kit and existing manifest/kernel contracts
+Required / existing / new responsibilities: Generator creates a new TypeScript package with authoritative JSON manifest, SDK-only source, lifecycle test, strict configuration, local CLI launcher and individual plugin docs.
+Changed files and public API impact: hosts/development, packages/cli, tools/scripts/rehearse.mjs and quickstart/host/CLI docs.
+Verification command and outcome: npm run check -- cli; temporary package with spaces in its path installed offline, built, passed its real npm test and refused existing targets.
+Evidence commit / review: 35e20eb; complete generated-script rehearsal adf34db
+Remaining limitations or blocking SDK specification: Local dependency/compiler links require the source checkout to remain available; public distribution is deferred.
+
+Task: K08.3
+Status: DONE
+Branch / responsible contributor: feat/core-local-tools / Codex
+Depends on: Adjusted P7 test kit and existing manifest/kernel contracts
+Required / existing / new responsibilities: Implemented dev/test/validate with shared validation, real host scopes, nonzero failure status, explicit process restart and cleanup on stop/EOF/signals.
+Changed files and public API impact: hosts/development, packages/cli, tools/scripts/rehearse.mjs and quickstart/host/CLI docs.
+Verification command and outcome: npm run check -- cli; actual child test failures returned 1, malformed metadata did not evaluate entry, one-shot/live stdin-stop dev released resources. Nested Node test context is cleared.
+Evidence commit / review: 35e20eb; generated npm command acceptance adf34db
+Remaining limitations or blocking SDK specification: Live dev acceptance used stdin stop; terminal Ctrl+C/SIGTERM handlers are wired but were not exercised through desktop automation.
+
+Task: K08.4
+Status: DONE
+Branch / responsible contributor: feat/core-local-tools / Codex
+Depends on: Adjusted P7 test kit and existing manifest/kernel contracts
+Required / existing / new responsibilities: Inspect loads a short-lived host, prints immutable state/binding/effective-grant/safe-diagnostic snapshots and stops in finally.
+Changed files and public API impact: hosts/development, packages/cli, tools/scripts/rehearse.mjs and quickstart/host/CLI docs.
+Verification command and outcome: npm run check -- cli; active inspection and default empty grants verified; underlying safe snapshot tests remain in the kernel suite.
+Evidence commit / review: 35e20eb
+Remaining limitations or blocking SDK specification: Inspection executes trusted module code; validate performs only metadata/path checks.
+
+Task: K08.5
+Status: DONE
+Branch / responsible contributor: feat/core-local-tools / Codex
+Depends on: Adjusted P7 test kit and existing manifest/kernel contracts
+Required / existing / new responsibilities: Documented and automated the first-plugin journey with reusable tools/scripts/rehearse.mjs.
+Changed files and public API impact: hosts/development, packages/cli, tools/scripts/rehearse.mjs and quickstart/host/CLI docs.
+Verification command and outcome: npm run rehearse; final cached/offline generated npm workflow passed in 1963 ms. Clean root npm ci, build and all release checks together took 12638 ms on the documented Windows environment.
+Evidence commit / review: 35e20eb; full rehearsal and evidence adf34db
+Remaining limitations or blocking SDK specification: Timings use available Node/npm and cached root dependencies, not an internet-download guarantee.
+
+Task: K09.1
+Status: DONE
+Branch / responsible contributor: feat/core-release-checks (base feat/core-local-tools at 35e20eb) / Codex
+Depends on: Adjusted P0–P8 implementation
+Required / existing / new responsibilities: Added pinned official GitHub Actions, Windows/Node support matrix, touched-package selection with consumer checks and full release validation for main/manual runs.
+Changed files and public API impact: tools/scripts CI/audit/benchmark/release checks, .github/workflows/core.yml and release/support docs.
+Verification command and outcome: npm run ci with CI_BASE_SHA=35e20eb full SHA passed; selection tests cover changed package/host/tooling/docs paths. Full release check passed on declared local Windows target.
+Evidence commit / review: adf34db
+Remaining limitations or blocking SDK specification: Remote hosted CI has not been triggered; no push/merge was performed. Other targets are explicitly unverified.
+
+Task: K09.2
+Status: DONE
+Branch / responsible contributor: feat/core-release-checks / Codex
+Depends on: Adjusted P0–P8 implementation
+Required / existing / new responsibilities: Audited six package root exports, private import rejection, dependency boundaries, public declarations, error categories, docs links and implemented/deferred behavior.
+Changed files and public API impact: tools/scripts CI/audit/benchmark/release checks, .github/workflows/core.yml and release/support docs.
+Verification command and outcome: npm run audit passed for 22 documentation files and public package roots; strict positive/negative fixtures and architecture checks passed.
+Evidence commit / review: adf34db
+Remaining limitations or blocking SDK specification: Audit validates local link targets, not external website availability; no hostile-code isolation claim.
+
+Task: K09.3
+Status: DONE
+Branch / responsible contributor: feat/core-release-checks / Codex
+Depends on: Adjusted P0–P8 implementation
+Required / existing / new responsibilities: Added reproducible benchmarks for import/test-host startup, 10/50/100-node chains and 100 repeated lifecycle cycles.
+Changed files and public API impact: tools/scripts CI/audit/benchmark/release checks, .github/workflows/core.yml and release/support docs.
+Verification command and outcome: npm run benchmark; clean-run startup 34.72 ms (<5000 ms); chain start 3.34/5.12/9.13 ms; 100 cycles 1.66 ms; cooperative resources returned to baseline.
+Evidence commit / review: adf34db
+Remaining limitations or blocking SDK specification: Single local baseline, not a scale or cross-platform performance guarantee.
+
+Task: K09.4
+Status: DONE
+Branch / responsible contributor: feat/core-release-checks / Codex
+Depends on: Adjusted P0–P8 implementation
+Required / existing / new responsibilities: Added candidate checklist, compatibility/support policy, limitations, change log, root entry documentation and release reproduction/evidence.
+Changed files and public API impact: tools/scripts CI/audit/benchmark/release checks, .github/workflows/core.yml and release/support docs.
+Verification command and outcome: Clean npm ci + fresh tsc build + npm run release:check passed: 129 tests, 0 skipped, type/import checks, audit, benchmark and generated-plugin rehearsal.
+Evidence commit / review: adf34db
+Remaining limitations or blocking SDK specification: Private source-checkout candidate; reference-plugin tasks Owner-deferred, public distribution and native/UI targets outside scope.
+
+Task: K09.5
+Status: DONE
+Branch / responsible contributor: feat/core-release-checks / Codex
+Depends on: Adjusted P0–P8 implementation
+Required / existing / new responsibilities: Prepared completed stacked branches, documented evidence and final Owner handoff for the adjusted scope.
+Changed files and public API impact: tools/scripts CI/audit/benchmark/release checks, .github/workflows/core.yml and release/support docs.
+Verification command and outcome: Implementation and clean-install release checks are committed; final response presents completed work, deferred scope and validation.
+Evidence commit / review: adf34db; subsequent plan/evidence commit
+Remaining limitations or blocking SDK specification: Owner merge/publishing approval is separate and was not inferred from implementation authorization.
+
+Task: K07.2
+Status: DEFERRED
+Branch / responsible contributor: feat/core-test-kit / Owner scope instruction
+Depends on: Owner request dated 2026-11-03
+Required / existing / new responsibilities: standalone executable example packages excluded from this milestone; existing automated runtime tests remain.
+Changed files and public API impact: plan scope only; no reference-plugin package created.
+Verification command and outcome: adjusted release check passed without these packages.
+Evidence commit / review: b328e59
+Remaining limitations or blocking SDK specification: revisit only after a new product/Owner requirement.
+
+Task: K07.3
+Status: DEFERRED
+Branch / responsible contributor: feat/core-test-kit / Owner scope instruction
+Depends on: Owner request dated 2026-11-03
+Required / existing / new responsibilities: logger and command reference plugins/shared application contracts excluded from this milestone; existing automated runtime tests remain.
+Changed files and public API impact: plan scope only; no reference-plugin package created.
+Verification command and outcome: adjusted release check passed without these packages.
+Evidence commit / review: b328e59
+Remaining limitations or blocking SDK specification: revisit only after a new product/Owner requirement.
+
+Task: K07.5
+Status: DEFERRED
+Branch / responsible contributor: feat/core-test-kit / Owner scope instruction
+Depends on: Owner request dated 2026-11-03
+Required / existing / new responsibilities: standalone provider/fake-driver example packages excluded from this milestone; existing automated runtime tests remain.
+Changed files and public API impact: plan scope only; no reference-plugin package created.
+Verification command and outcome: adjusted release check passed without these packages.
+Evidence commit / review: b328e59
+Remaining limitations or blocking SDK specification: revisit only after a new product/Owner requirement.

@@ -1,6 +1,6 @@
 # Local CLI
 
-From a built checkout use `npm run core -- <command>`. Generated packages additionally expose `npm run core -- <command>` and convenience scripts. All failures return nonzero; output uses stable codes and safe messages without raw exception stacks/causes.
+From a built checkout use `npm run core -- <command>`. Generated packages additionally expose `npm run core -- <command>` and convenience scripts. All failures return nonzero. CLI wrapper errors use stable codes and safe messages without raw causes; the Node test runner emits its normal assertion reports.
 
 | Command | Behavior |
 |---|---|
