@@ -3,6 +3,7 @@ import { LunarisError } from "@lunaris/sdk";
 import type { RequiredContract } from "@lunaris/sdk";
 import { context, requirementKey } from "./model.js";
 import type { Registration } from "./model.js";
+import type { DependencyIndex } from "./dependency-index.js";
 
 export interface Plan {
   readonly order: readonly string[];
@@ -21,7 +22,7 @@ export function candidates(records: ReadonlyMap<string, Registration>, requireme
 }
 
 /** Resolve metadata before execution; optional cycle edges are omitted in stable global order. */
-export function resolve(root: string, records: ReadonlyMap<string, Registration>, selections: ReadonlyMap<string, string>, index?: ProviderIndex): Plan {
+export function resolve(root: string, records: ReadonlyMap<string, Registration>, selections: ReadonlyMap<string, string>, dependencies: DependencyIndex): Plan {
   if (!records.has(root)) throw new LunarisError("PLUGIN_NOT_FOUND", "Plugin is not registered.", { pluginId: root });
   const target = records.get(root)!;
   if (!target.definition.manifest.requires.length || (target.state === "active" && !target.pendingStops && target.activation && !target.activation.scope.closed)) {
@@ -31,7 +32,10 @@ export function resolve(root: string, records: ReadonlyMap<string, Registration>
   const errors = new Map<string, LunarisError>();
   const optional: { id: string; key: string; provider: string; contractId: string }[] = [];
   const omitted: { pluginId: string; contractId: string }[] = [];
-  for (const id of [...records.keys()].sort()) {
+  const index = dependencies.providers;
+  // This closure contains every possible outgoing edge, including optional and
+  // ambiguous candidates. Edges outside it cannot affect its cycle decisions.
+  for (const id of [...dependencies.related(root)].sort()) {
     const record = records.get(id)!;
     const dependencies = new Map<string, string | undefined>();
     edges.set(id, dependencies);

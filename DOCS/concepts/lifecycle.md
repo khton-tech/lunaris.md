@@ -116,10 +116,14 @@ in the number of consumers. Scope closure releases ownership and the last owner
 removes the canonical record. Canonical records omit validator closures; each
 boundary still applies its own validator. Subscription disposal removes empty
 buckets. Candidate lists retain version
-filtering and sorted IDs. Dependency-free roots and idle active roots avoid global
-graph construction. Other roots retain the stable global optional-cycle policy;
-the resolver still traverses registry metadata for that policy, and is not claimed
-to be independent of unrelated registry size in every graph shape.
+filtering and sorted IDs. Dependency-free roots and idle active roots avoid graph
+construction. Other roots traverse an incrementally indexed closure of all possible
+outgoing dependencies, including optional edges and unselected/version-incompatible
+candidates. Global sorted optional-edge decisions are preserved: no edge outside
+this closed set can be reached from inside it or change its cycle decisions.
+Incoming-only consumers and disconnected graphs are excluded. Late registrations
+update existing consumers' potential edges. A densely connected relevant graph
+can still be expensive; the index does not promise constant cost for every topology.
 
 `node --expose-gc tools/scripts/benchmark-core.mjs <output.json>` records public API,
 event and hook workloads across unrelated registry/subscription counts and manifest

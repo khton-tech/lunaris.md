@@ -8,7 +8,8 @@ import type { Kernel, KernelOptions, KernelSnapshot, Scheduler } from "./types.j
 import { context, requirementKey } from "./model.js";
 import type { Activation, Registration } from "./model.js";
 import { candidates, resolve } from "./resolver.js";
-import type { Plan, ProviderIndex } from "./resolver.js";
+import type { Plan } from "./resolver.js";
+import { DependencyIndex } from "./dependency-index.js";
 import { Access } from "./access.js";
 import { ApiRuntime } from "./api.js";
 import { DispatchRuntime } from "./dispatch.js";
@@ -18,7 +19,7 @@ class Runtime {
   #plugins = new Map<string, Registration>();
   #nextActivation = 0;
   #selections = new Map<string, string>();
-  #providers: ProviderIndex = new Map();
+  #dependencies = new DependencyIndex();
   #starts = new Map<Registration, Set<ReadonlyMap<string, string | undefined>>>();
   readonly #access: Access;
   readonly #api: ApiRuntime;
@@ -81,12 +82,7 @@ class Runtime {
     const record: Registration = { definition: checked, state: "registered", tail: Promise.resolve() };
     this.#permissions.register(record);
     this.#plugins.set(id, record);
-    for (const provided of checked.manifest.provides) {
-      const key = requirementKey(provided);
-      let providers = this.#providers.get(key);
-      if (!providers) this.#providers.set(key, providers = new Set());
-      providers.add(id);
-    }
+    this.#dependencies.register(checked.manifest);
   };
 
   #enqueue(id: string, operation: (record: Registration) => Promise<void>, internal = false, stopping = false): Promise<void> {
@@ -287,7 +283,7 @@ class Runtime {
   start = async (id: string): Promise<void> => {
     this.#guard();
     let plan: Plan;
-    try { plan = resolve(id, this.#plugins, this.#selections, this.#providers); }
+    try { plan = resolve(id, this.#plugins, this.#selections, this.#dependencies); }
     catch (error) { await this.#enqueue(id, record => this.#activate(record, new Map(), error)); return; }
     for (const omitted of plan.omitted) this.#diagnostics.record("DEPENDENCY_CYCLE", omitted);
     // Reserve the root queue before yielding to dependency activation.
@@ -325,7 +321,7 @@ class Runtime {
     if (!consumer) throw new LunarisError("PLUGIN_NOT_FOUND", "Consumer is not registered.", { pluginId: consumerId });
     if (consumer.pending || ["resolving", "starting", "active", "stopping"].includes(consumer.state)) throw new LunarisError("LIFECYCLE_INVALID", "Stop the consumer before changing selection.", context(consumer));
     const requirement = consumer.definition.manifest.requires.find(r => r.kind === kind && r.id === contractId);
-    if (!requirement || !candidates(this.#plugins, requirement, this.#providers).includes(providerId)) throw new LunarisError("PROVIDER_MISSING", "Selected provider does not match the requirement.", { pluginId: consumerId, contractId });
+    if (!requirement || !candidates(this.#plugins, requirement, this.#dependencies.providers).includes(providerId)) throw new LunarisError("PROVIDER_MISSING", "Selected provider does not match the requirement.", { pluginId: consumerId, contractId });
     this.#selections.set(consumerId + "/" + requirementKey(requirement), providerId);
   };
 
