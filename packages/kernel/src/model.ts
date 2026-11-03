@@ -25,6 +25,7 @@ export interface Registration {
   readonly definition: PluginDefinition;
   state: PluginState;
   tail: Promise<void>;
+  pending?: number;
   activation?: Activation;
 }
 export function context(record: Registration, activation = record.activation) {

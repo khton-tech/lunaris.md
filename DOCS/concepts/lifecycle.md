@@ -54,3 +54,23 @@ Activation timeout closes SDK access and reports `ACTIVATION_TIMEOUT`; rollback 
 Diagnostics retain the newest configured number of entries with monotonic sequence, stable code, plugin/activation/state and contract ID when known. Inspection includes only a generic object/value cause category: no thrown-object traversal, error message, arguments, implementation or payload. Raw causes remain in the bounded internal history and returned runtime errors. `stopAll` attempts every registered plugin with required consumers before providers and reverse stable ID tie breaks, aggregating errors. A `restart` is a stop followed by a fresh graph start; independent host requests can interleave between those operations.
 
 Run `npm run check -- kernel` for public-boundary lifecycle/scope/deadline tests and negative host type fixtures. Tests use deferred promises and the manual scheduler, with no arbitrary sleeps or product UI.
+
+### Pending graph operations (core review repairs)
+
+A start reserves all affected plugin queues synchronously before dependency work
+begins. A later stop of the root waits for that start, including dependency
+preparation. Selection changes are rejected while a lifecycle operation is queued.
+`stopAll` first drains the lifecycle queues present when it is called, then stops
+plugins in the documented order. Independently requested operations may still
+interleave; shutdown is not a permanent registry lock.
+
+A provider enters `stopping` before awaiting required consumers. Its scope closes
+after those consumers drain, but its endpoint is unavailable throughout this
+phase, including to other callers. A new required consumer cannot commit against
+it. Consumer cleanup already runs with its own SDK scope closed.
+
+Active plugins are leaves for startup execution: repeated start does not walk or
+revive lost optional bindings. Explicit restart resolves dependencies afresh.
+Consumer API validators receive a frozen mediated method facade; provider-side
+validators still inspect their own implementation. Retained facade methods keep
+all permission, publication and activation checks.

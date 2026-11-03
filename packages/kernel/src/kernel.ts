@@ -86,7 +86,8 @@ class Runtime {
       if (!internal) this.#guard();
       const record = this.#plugins.get(id);
       if (!record) throw new LunarisError("PLUGIN_NOT_FOUND", "Plugin is not registered.", { pluginId: id });
-      const result = record.tail.then(() => operation(record));
+      record.pending = (record.pending ?? 0) + 1;
+      const result = record.tail.then(() => operation(record)).finally(() => { record.pending!--; });
       record.tail = result.catch(() => {});
       return result;
     } catch (error) {
@@ -230,8 +231,8 @@ class Runtime {
     if (record.state === "registered" || record.state === "stopped") return;
     const activation = record.activation;
     if (!activation) return;
-    const dependencyErrors = await this.#stopDependents(record, activation).catch(error => error);
     record.state = "stopping";
+    const dependencyErrors = await this.#stopDependents(record, activation).catch(error => error);
     activation.scope.close();
     try { await this.#cleanup(record, activation); record.state = "stopped"; if (dependencyErrors) throw dependencyErrors; }
     catch (cause) { record.state = "failed"; throw cause; }
@@ -256,10 +257,18 @@ class Runtime {
     try { plan = resolve(id, this.#plugins, this.#selections); }
     catch (error) { await this.#enqueue(id, record => this.#activate(record, new Map(), error)); return; }
     for (const omitted of plan.omitted) this.#diagnostics.record("DEPENDENCY_CYCLE", omitted);
+    // Reserve the root queue before yielding to dependency activation.
+    // No queue is held while recursively enqueueing graph operations.
+    let preceding = Promise.resolve();
     for (const next of plan.order) {
-      try { await this.#enqueue(next, record => this.#activate(record, plan.edges.get(next))); }
-      catch (error) { if (next === id) throw error; }
+      const ready = preceding;
+      const operation = this.#enqueue(next, async record => {
+        await ready;
+        await this.#activate(record, plan.edges.get(next));
+      });
+      preceding = next === id ? operation : operation.catch(() => {});
     }
+    await preceding;
   };
   stop = (id: string): Promise<void> => this.#enqueue(id, record => this.#stop(record));
   restart = async (id: string): Promise<void> => { this.#guard(); await this.stop(id); await this.start(id); };
@@ -268,7 +277,7 @@ class Runtime {
     this.#guard();
     const consumer = this.#plugins.get(consumerId);
     if (!consumer) throw new LunarisError("PLUGIN_NOT_FOUND", "Consumer is not registered.", { pluginId: consumerId });
-    if (["resolving", "starting", "active", "stopping"].includes(consumer.state)) throw new LunarisError("LIFECYCLE_INVALID", "Stop the consumer before changing selection.", context(consumer));
+    if (consumer.pending || ["resolving", "starting", "active", "stopping"].includes(consumer.state)) throw new LunarisError("LIFECYCLE_INVALID", "Stop the consumer before changing selection.", context(consumer));
     const requirement = consumer.definition.manifest.requires.find(r => r.kind === kind && r.id === contractId);
     if (!requirement || !candidates(this.#plugins, requirement).includes(providerId)) throw new LunarisError("PROVIDER_MISSING", "Selected provider does not match the requirement.", { pluginId: consumerId, contractId });
     this.#selections.set(consumerId + "/" + requirementKey(requirement), providerId);
@@ -276,6 +285,7 @@ class Runtime {
 
   stopAll = async (): Promise<void> => {
     this.#guard();
+    await Promise.all([...this.#plugins.values()].map(record => record.tail));
     const errors: unknown[] = [];
     for (const id of [...this.#plugins.keys()].sort().reverse()) {
       try { await this.stop(id); } catch (error) { errors.push(error); }

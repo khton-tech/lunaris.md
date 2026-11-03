@@ -64,6 +64,11 @@ export function resolve(root: string, records: ReadonlyMap<string, Registration>
     if (path.includes(id)) throw new LunarisError("DEPENDENCY_CYCLE", `Dependency cycle: ${[...path, id].join(" -> ")}.`, { pluginId: root });
     if (reachable.has(id)) return;
     if (errors.has(id)) throw errors.get(id)!;
+    const record = records.get(id)!;
+    if (record.state === "active" && record.activation && !record.activation.scope.closed) {
+      reachable.add(id);
+      return;
+    }
     for (const dependency of new Set(edges.get(id)!.values())) if (dependency) {
       // Optional provider failures do not invalidate its consumer's graph.
       const isRequired = [...edges.get(id)!].some(([key, value]) => value === dependency && !records.get(id)!.definition.manifest.requires.find(r => requirementKey(r) === key)!.optional);
