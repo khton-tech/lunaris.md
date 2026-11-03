@@ -133,3 +133,32 @@ test('an API callback can request coordinated root shutdown', async () => {
   assert.deepEqual(order, ['consumer', 'provider']);
   assert.equal(snapshot(kernel, 'disposal.provider').state, 'stopped');
 });
+
+for (const action of ['root', 'host']) {
+  test(`provider shutdown waits for a closed consumer already disposing through ${action}`, async () => {
+    const { kernel } = host();
+    const entered = deferred(), finish = deferred();
+    let provider, consumer;
+    const order = [];
+    kernel.register(plugin('disposal.provider', ctx => {
+      provider = ctx;
+      ctx.provide(api, {});
+      return { dispose() { order.push('provider'); } };
+    }, { provides }));
+    kernel.register(plugin('disposal.consumer', ctx => {
+      consumer = ctx;
+      return { async dispose() { entered.resolve(); await finish.promise; order.push('consumer'); } };
+    }, { requires }));
+    await kernel.start('disposal.consumer');
+    const consumerStop = action === 'root' ? consumer.scope.dispose() : kernel.stop('disposal.consumer');
+    await entered.promise;
+    assert.equal(consumer.signal.aborted, true);
+    const providerStop = provider.scope.dispose();
+    // Flush queued shutdown work without releasing the consumer's explicit gate.
+    await new Promise(resolve => setImmediate(resolve));
+    assert.deepEqual(order, []);
+    finish.resolve();
+    await Promise.all([consumerStop, providerStop]);
+    assert.deepEqual(order, ['consumer', 'provider']);
+  });
+}

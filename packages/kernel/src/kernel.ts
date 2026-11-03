@@ -259,7 +259,7 @@ class Runtime {
   #dependents(provider: Registration, activation = provider.activation, key?: string): Registration[] {
     const providerId = provider.definition.manifest.id;
     return [...this.#plugins.values()].filter(record => record !== provider && (
-      (record.activation && !record.activation.scope.closed && [...record.activation.bindings].some(([bindingKey, binding]) =>
+      (record.activation && (!record.activation.scope.closed || record.state === "stopping") && [...record.activation.bindings].some(([bindingKey, binding]) =>
         binding?.provider === provider && binding.activation === activation && !binding.requirement.optional && (!key || key === bindingKey))) ||
       [...this.#starts.get(record) ?? []].some(selected => record.definition.manifest.requires.some(requirement =>
         !requirement.optional && (!key || key === requirementKey(requirement)) && selected.get(requirementKey(requirement)) === providerId))))
