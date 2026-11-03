@@ -1,0 +1,91 @@
+{
+  "reviewedCommit": "3698b21",
+  "node": "v26.13.0",
+  "platform": "win32/x64",
+  "results": [
+    {
+      "id": "F01",
+      "kind": "api",
+      "settledOperations": [
+        0
+      ],
+      "scheduledDeadlines": 0,
+      "states": [
+        {
+          "id": "followup.consumer",
+          "state": "stopped"
+        },
+        {
+          "id": "followup.provider",
+          "state": "stopping"
+        }
+      ]
+    },
+    {
+      "id": "F01",
+      "kind": "event",
+      "settledOperations": [
+        0
+      ],
+      "scheduledDeadlines": 0,
+      "states": [
+        {
+          "id": "followup.consumer",
+          "state": "stopped"
+        },
+        {
+          "id": "followup.provider",
+          "state": "stopping"
+        }
+      ]
+    },
+    {
+      "id": "F01",
+      "kind": "hook",
+      "settledOperations": [
+        0
+      ],
+      "scheduledDeadlines": 0,
+      "states": [
+        {
+          "id": "followup.consumer",
+          "state": "stopped"
+        },
+        {
+          "id": "followup.provider",
+          "state": "stopping"
+        }
+      ]
+    },
+    {
+      "id": "F02",
+      "consumers": 1,
+      "callsPerSample": 10000,
+      "samplesMs": [
+        11.639,
+        10.375,
+        9.765
+      ]
+    },
+    {
+      "id": "F02",
+      "consumers": 100,
+      "callsPerSample": 10000,
+      "samplesMs": [
+        298.226,
+        299.287,
+        308.945
+      ]
+    },
+    {
+      "id": "F02",
+      "consumers": 500,
+      "callsPerSample": 10000,
+      "samplesMs": [
+        1488.784,
+        1482.911,
+        1493.341
+      ]
+    }
+  ]
+}
