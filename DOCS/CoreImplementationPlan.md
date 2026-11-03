@@ -1,6 +1,6 @@
 # Core implementation plan
 
-Status: P0–P3 gates completed. Dependency-free transactional lifecycle, ownership and diagnostics are implemented. P4 capability resolution and scoped API handles are next.
+Status: P0–P6 gates completed. The kernel supports dependency resolution, scoped APIs, events/hooks and revocable host permissions. P7 test kit/reference plugins and P8 local host/CLI are next.
 Baseline date: 2026-11-03.
 Source: [architecture proposal](TechDoc.md) and [repository rules](../AGENTS.md).
 
@@ -199,11 +199,11 @@ Gate: targeted lifecycle tests cover success, rollback, teardown failure, cancel
 
 Dependencies: P3 and D05.
 
-- [ ] **K04.1** Register advertised capabilities and match semantic-version ranges. Acceptance: no-match and conflicting metadata errors explain requested and available versions.
-- [ ] **K04.2** Build required/optional dependency resolution and deterministic activation ordering. Acceptance: chains, diamonds, cycles, missing dependencies, and incompatible ranges behave as specified.
-- [ ] **K04.3** Implement explicit host provider selection and ambiguity errors. Acceptance: consumer source remains unchanged when the host selects another conforming provider.
-- [ ] **K04.4** Implement scoped API handles with activation and availability checks. Acceptance: handles retained after stop/restart cannot call an old provider.
-- [ ] **K04.5** Implement provider loss and reverse-order shutdown. Acceptance: required consumers stop before their provider; optional behavior matches the documented binding policy; replacement requires controlled restart.
+- [x] **K04.1** Register advertised capabilities and match semantic-version ranges. Acceptance: no-match and conflicting metadata errors explain requested and available versions.
+- [x] **K04.2** Build required/optional dependency resolution and deterministic activation ordering. Acceptance: chains, diamonds, cycles, missing dependencies, and incompatible ranges behave as specified.
+- [x] **K04.3** Implement explicit host provider selection and ambiguity errors. Acceptance: consumer source remains unchanged when the host selects another conforming provider.
+- [x] **K04.4** Implement scoped API handles with activation and availability checks. Acceptance: handles retained after stop/restart cannot call an old provider.
+- [x] **K04.5** Implement provider loss and reverse-order shutdown. Acceptance: required consumers stop before their provider; optional behavior matches the documented binding policy; replacement requires controlled restart.
 
 Gate: two interchangeable providers satisfy the same unchanged consumer, and dependency loss leaves no usable stale references through the SDK.
 
@@ -211,10 +211,10 @@ Gate: two interchangeable providers satisfy the same unchanged consumer, and dep
 
 Dependencies: P4 for contract identity, ownership, and scoped access.
 
-- [ ] **K05.1** Implement typed event subscription/emission with automatic disposal. Acceptance: deterministic dispatch, isolated listener failure, and mutation-during-dispatch tests pass.
-- [ ] **K05.2** Implement waterfall hooks with stable priorities and async handlers. Acceptance: exact ordering, no-handler identity, failure, and cancellation are tested.
-- [ ] **K05.3** Connect dispatch to lifecycle scopes and diagnostics. Acceptance: stopped plugins receive no new invocations; in-flight behavior and nested dispatch match the specification.
-- [ ] **K05.4** Add recipes explaining API versus event versus hook selection. Acceptance: compiled examples demonstrate each primitive without duplicating registry logic in plugin code.
+- [x] **K05.1** Implement typed event subscription/emission with automatic disposal. Acceptance: deterministic dispatch, isolated listener failure, and mutation-during-dispatch tests pass.
+- [x] **K05.2** Implement waterfall hooks with stable priorities and async handlers. Acceptance: exact ordering, no-handler identity, failure, and cancellation are tested.
+- [x] **K05.3** Connect dispatch to lifecycle scopes and diagnostics. Acceptance: stopped plugins receive no new invocations; in-flight behavior and nested dispatch match the specification.
+- [x] **K05.4** Add recipes explaining API versus event versus hook selection. Acceptance: compiled examples demonstrate each primitive without duplicating registry logic in plugin code.
 
 Gate: each primitive has distinct, documented semantics, including cleanup and async behavior.
 
@@ -222,10 +222,10 @@ Gate: each primitive has distinct, documented semantics, including cleanup and a
 
 Dependencies: P4/P5. Restricted operations must not be released before this gate.
 
-- [ ] **K06.1** Implement declaration/grant/effective-access separation and default denial. Acceptance: declaring a permission alone never enables the operation.
-- [ ] **K06.2** Add host-mediated optional permission requests and grant revocation. Acceptance: denial, grant, later revocation, and host callback failure have deterministic results.
-- [ ] **K06.3** Apply scoped authorization to API calls, event operations, and hook registration/invocation where contracts require it. Acceptance: cached handles and undeclared providers cannot bypass checks.
-- [ ] **K06.4** Add minimal and restricted test policies; document trusted-realm limitations and future isolation requirements. Acceptance: every sensitive fixture operation maps to a tested policy check; no claim of arbitrary-code containment.
+- [x] **K06.1** Implement declaration/grant/effective-access separation and default denial. Acceptance: declaring a permission alone never enables the operation.
+- [x] **K06.2** Add host-mediated optional permission requests and grant revocation. Acceptance: denial, grant, later revocation, and host callback failure have deterministic results.
+- [x] **K06.3** Apply scoped authorization to API calls, event operations, and hook registration/invocation where contracts require it. Acceptance: cached handles and undeclared providers cannot bypass checks.
+- [x] **K06.4** Add minimal and restricted test policies; document trusted-realm limitations and future isolation requirements. Acceptance: every sensitive fixture operation maps to a tested policy check; no claim of arbitrary-code containment.
 
 Gate: permissions are enforced at the public runtime boundary, with explicit limits for ambient globals and in-flight work.
 
@@ -346,7 +346,9 @@ Resume plugin work only after the SDK change is implemented and verified as its 
 
 ## 9. Immediate next slice
 
-P0/P1 foundation branch was renamed from `codex/core-foundation` to `feat/core-foundation` at the Owner's request; branch policy was committed as `9f72d1d`. P2 is complete on stacked branch `feat/core-sdk`, based on `feat/core-foundation` at `9f72d1d`. P3 is complete on `feat/core-lifecycle`, based on `feat/core-sdk` at `17e0fed`. Next implement P4 on `feat/core-capabilities`: contract matching, deterministic required/optional dependency resolution, explicit provider selection, scoped API handles and provider loss. Preserve existing scope/deadline behavior and default denial; do not merge without Owner approval. Earlier evidence entries retain their original branch names as historical records.
+P0/P1: `feat/core-foundation` (renamed under Owner policy). P2: `feat/core-sdk` at `17e0fed`. P3: `feat/core-lifecycle` at `3f22d59`. P4: `feat/core-capabilities`, stacked on P3 (`e5fa956`, SDK error refinement `37d2571`). P5: `feat/core-dispatch`, stacked on P4 (`858653c`). P6: `feat/core-permissions`, stacked on P5 (`f2af654`, including cross-gate hardening and integration).
+
+Next batch: P7 and P8 together (10 tasks), using meaningful isolated dependent branches. Build the public test kit/reference plugins, then local loader/CLI and measured quickstart. Reserve P9's five release tasks for a separate verification batch. Thirty-one of 46 tasks are complete. No branch is merged into main without Owner approval. Historical evidence retains original branch names where applicable.
 
 ## 10. Execution evidence
 
@@ -498,3 +500,132 @@ Changed files and public API impact: packages/kernel/src/diagnostics.ts and snap
 Verification command and outcome: npm run check -- kernel passed, including strict type fixtures and import boundaries; tests cover history capacity/order, original activation attribution, frozen snapshots, cleanup after arbitrary thrown objects and omission of private error/payload contents. git diff --check passed.
 Evidence commit / review: 64a5906
 Remaining limitations or blocking SDK specification: snapshot covers current activation and committed API metadata only; provider bindings/grants appear at P4/P6. Raw causes stay internal or on returned errors. No merge/publication performed.
+Task: K04.1
+Status: DONE
+Branch / responsible contributor: feat/core-capabilities (base feat/core-lifecycle at 3f22d59) / Codex
+Depends on: P3 and shared SDK/manifest contracts
+Required / existing / new responsibilities: Existing SDK/lifecycle reused; API matching uses the shared SemVer implementation, advertised versions and immutable token metadata. No-match errors include requested/available versions; all advertised APIs must publish before commit.
+Changed files and public API impact: packages/kernel/src and test; DOCS/concepts/{contracts,dispatch,permissions}.md and SDK/host references. Host provider selection and immutable binding inspection added.
+Verification command and outcome: npm run check -- kernel passed (58 kernel tests in final batch plus type/import checks); capabilities.test.mjs covers matching, compatible minors, missing/incompatible providers and metadata conflicts.
+Evidence commit / review: e5fa956; f2af654
+Remaining limitations or blocking SDK specification: Trusted local JavaScript realm; no forced termination/deep value isolation. P7 reference packages and P8 local CLI remain outstanding. No merge/publication performed.
+
+Task: K04.2
+Status: DONE
+Branch / responsible contributor: feat/core-capabilities (base feat/core-lifecycle at 3f22d59) / Codex
+Depends on: P3 and shared SDK/manifest contracts
+Required / existing / new responsibilities: Existing SDK/lifecycle reused; Added isolated metadata resolver with required/optional bindings, stable ready-node ordering, cycle paths and deterministic optional cycle-edge omission.
+Changed files and public API impact: packages/kernel/src and test; DOCS/concepts/{contracts,dispatch,permissions}.md and SDK/host references. Host provider selection and immutable binding inspection added.
+Verification command and outcome: npm run check -- kernel passed (58 kernel tests in final batch plus type/import checks); capabilities.test.mjs covers branching/diamond graphs, required/optional cycles, missing and failed optional dependencies, and concurrent shared startup.
+Evidence commit / review: e5fa956; f2af654
+Remaining limitations or blocking SDK specification: Trusted local JavaScript realm; no forced termination/deep value isolation. P7 reference packages and P8 local CLI remain outstanding. No merge/publication performed.
+
+Task: K04.3
+Status: DONE
+Branch / responsible contributor: feat/core-capabilities (base feat/core-lifecycle at 3f22d59) / Codex
+Depends on: P3 and shared SDK/manifest contracts
+Required / existing / new responsibilities: Existing SDK/lifecycle reused; Host selectProvider validates declared requirements/candidates and requires an inactive consumer. Consumer source remains unchanged across selected implementations.
+Changed files and public API impact: packages/kernel/src and test; DOCS/concepts/{contracts,dispatch,permissions}.md and SDK/host references. Host provider selection and immutable binding inspection added.
+Verification command and outcome: npm run check -- kernel passed (58 kernel tests in final batch plus type/import checks); capabilities.test.mjs substitutes two conforming providers and rejects ambiguity, incompatible selection and selection while active.
+Evidence commit / review: e5fa956
+Remaining limitations or blocking SDK specification: Trusted local JavaScript realm; no forced termination/deep value isolation. P7 reference packages and P8 local CLI remain outstanding. No merge/publication performed.
+
+Task: K04.4
+Status: DONE
+Branch / responsible contributor: feat/core-capabilities (base feat/core-lifecycle at 3f22d59) / Codex
+Depends on: P3 and shared SDK/manifest contracts
+Required / existing / new responsibilities: Existing SDK/lifecycle reused; API handles snapshot methods/token metadata, preserve receivers and sync/async shape, and recheck scope, bound activation, registration and authority on every call.
+Changed files and public API impact: packages/kernel/src and test; DOCS/concepts/{contracts,dispatch,permissions}.md and SDK/host references. Host provider selection and immutable binding inspection added.
+Verification command and outcome: npm run check -- kernel passed (58 kernel tests in final batch plus type/import checks); capabilities.test.mjs and permissions.test.mjs cover detached methods, preserved errors, cached calls, caller/provider loss and token mutation.
+Evidence commit / review: e5fa956; f2af654
+Remaining limitations or blocking SDK specification: Trusted local JavaScript realm; no forced termination/deep value isolation. P7 reference packages and P8 local CLI remain outstanding. No merge/publication performed.
+
+Task: K04.5
+Status: DONE
+Branch / responsible contributor: feat/core-capabilities (base feat/core-lifecycle at 3f22d59) / Codex
+Depends on: P3 and shared SDK/manifest contracts
+Required / existing / new responsibilities: Existing SDK/lifecycle reused; Explicit stop shuts down transitive required consumers first; optional bindings remain fixed and unavailable after provider loss. Individual API disposal and manual scope closure invalidate handles and schedule dependent shutdown.
+Changed files and public API impact: packages/kernel/src and test; DOCS/concepts/{contracts,dispatch,permissions}.md and SDK/host references. Host provider selection and immutable binding inspection added.
+Verification command and outcome: npm run check -- kernel passed (58 kernel tests in final batch plus type/import checks); capabilities.test.mjs and integration.test.mjs cover reverse dependency shutdown, optional provider loss, stale methods and controlled restart.
+Evidence commit / review: e5fa956; f2af654
+Remaining limitations or blocking SDK specification: Trusted local JavaScript realm; no forced termination/deep value isolation. P7 reference packages and P8 local CLI remain outstanding. No merge/publication performed.
+
+Task: K05.1
+Status: DONE
+Branch / responsible contributor: feat/core-dispatch (base feat/core-capabilities at e5fa956) / Codex
+Depends on: P4 scope-aware contracts/resolution
+Required / existing / new responsibilities: Existing SDK/lifecycle reused; Added owned event listeners with committed-consumer visibility, registration-order snapshots, awaited sequential settlement, isolated failures and immediate disposal.
+Changed files and public API impact: packages/kernel/src and test; DOCS/concepts/{contracts,dispatch,permissions}.md and SDK/host references. No plugin SDK escape hatches; public event/hook operations implemented.
+Verification command and outcome: npm run check -- kernel passed (58 kernel tests in final batch plus type/import checks); dispatch.test.mjs covers mutation during dispatch, nested emission, listener errors, input validation and staged rollback.
+Evidence commit / review: 858653c; f2af654
+Remaining limitations or blocking SDK specification: Trusted local JavaScript realm; no forced termination/deep value isolation. P7 reference packages and P8 local CLI remain outstanding. No merge/publication performed.
+
+Task: K05.2
+Status: DONE
+Branch / responsible contributor: feat/core-dispatch (base feat/core-capabilities at e5fa956) / Codex
+Depends on: P4 scope-aware contracts/resolution
+Required / existing / new responsibilities: Existing SDK/lifecycle reused; Added async waterfall hooks ordered by finite priority, plugin ID and registration order; owner/handler validators check input/output.
+Changed files and public API impact: packages/kernel/src and test; DOCS/concepts/{contracts,dispatch,permissions}.md and SDK/host references. No plugin SDK escape hatches; public event/hook operations implemented.
+Verification command and outcome: npm run check -- kernel passed (58 kernel tests in final batch plus type/import checks); dispatch.test.mjs covers identity without handlers, exact ordering, invalid priorities/output, thrown values and independent nested pipelines.
+Evidence commit / review: 858653c; f2af654
+Remaining limitations or blocking SDK specification: Trusted local JavaScript realm; no forced termination/deep value isolation. P7 reference packages and P8 local CLI remain outstanding. No merge/publication performed.
+
+Task: K05.3
+Status: DONE
+Branch / responsible contributor: feat/core-dispatch (base feat/core-capabilities at e5fa956) / Codex
+Depends on: P4 scope-aware contracts/resolution
+Required / existing / new responsibilities: Existing SDK/lifecycle reused; Dispatch checks owner/consumer scope, provider identity and authorization between handlers and after validation. Closed consumers cannot receive new callbacks/validators; existing work may settle.
+Changed files and public API impact: packages/kernel/src and test; DOCS/concepts/{contracts,dispatch,permissions}.md and SDK/host references. No plugin SDK escape hatches; public event/hook operations implemented.
+Verification command and outcome: npm run check -- kernel passed (58 kernel tests in final batch plus type/import checks); dispatch.test.mjs covers stop during event/hook dispatch, stopped handler validators, subscription rollback and ownership-slot release.
+Evidence commit / review: 858653c; f2af654
+Remaining limitations or blocking SDK specification: Trusted local JavaScript realm; no forced termination/deep value isolation. P7 reference packages and P8 local CLI remain outstanding. No merge/publication performed.
+
+Task: K05.4
+Status: DONE
+Branch / responsible contributor: feat/core-dispatch (base feat/core-capabilities at e5fa956) / Codex
+Depends on: P4 scope-aware contracts/resolution
+Required / existing / new responsibilities: Existing SDK/lifecycle reused; Documented API/event/hook selection, ownership, ordering, nested dispatch and cancellation. Existing SDK-only compiled scenarios demonstrate ordinary API-triggered dispatch.
+Changed files and public API impact: packages/kernel/src and test; DOCS/concepts/{contracts,dispatch,permissions}.md and SDK/host references. No plugin SDK escape hatches; public event/hook operations implemented.
+Verification command and outcome: npm run check -- kernel passed (58 kernel tests in final batch plus type/import checks); DOCS/concepts/dispatch.md reviewed against dispatch tests; SDK scenarios compiled against public exports during the SDK check.
+Evidence commit / review: 858653c; f2af654
+Remaining limitations or blocking SDK specification: Trusted local JavaScript realm; no forced termination/deep value isolation. P7 reference packages and P8 local CLI remain outstanding. No merge/publication performed.
+
+Task: K06.1
+Status: DONE
+Branch / responsible contributor: feat/core-permissions (base feat/core-dispatch at 858653c) / Codex
+Depends on: P4/P5 mediated operations
+Required / existing / new responsibilities: Existing SDK/lifecycle reused; Added host-owned policy with separate initial/effective grants and manifest declarations. Default/minimal hosts grant nothing; providers and consumers require declared effective authority.
+Changed files and public API impact: packages/kernel/src and test; DOCS/concepts/{contracts,dispatch,permissions}.md and SDK/host references. Host initialGrants/requestPermission/grant/revoke and effectivePermissions inspection added.
+Verification command and outcome: npm run check -- kernel passed (58 kernel tests in final batch plus type/import checks); permissions.test.mjs covers minimal/restricted profiles, no manifest self-grants, undeclared grants and denial before privileged callbacks.
+Evidence commit / review: f2af654
+Remaining limitations or blocking SDK specification: Trusted local JavaScript realm; no forced termination/deep value isolation. P7 reference packages and P8 local CLI remain outstanding. No merge/publication performed.
+
+Task: K06.2
+Status: DONE
+Branch / responsible contributor: feat/core-permissions (base feat/core-dispatch at 858653c) / Codex
+Depends on: P4/P5 mediated operations
+Required / existing / new responsibilities: Existing SDK/lifecycle reused; Added immutable host requests, coalescing, explicit grant/revoke, revocation generations and cancellation of requests belonging to closed activations.
+Changed files and public API impact: packages/kernel/src and test; DOCS/concepts/{contracts,dispatch,permissions}.md and SDK/host references. Host initialGrants/requestPermission/grant/revoke and effectivePermissions inspection added.
+Verification command and outcome: npm run check -- kernel passed (58 kernel tests in final batch plus type/import checks); permissions.test.mjs covers denial, approval, host callback failure, pending revocation, stale approval and activation timeout.
+Evidence commit / review: f2af654
+Remaining limitations or blocking SDK specification: Trusted local JavaScript realm; no forced termination/deep value isolation. P7 reference packages and P8 local CLI remain outstanding. No merge/publication performed.
+
+Task: K06.3
+Status: DONE
+Branch / responsible contributor: feat/core-permissions (base feat/core-dispatch at 858653c) / Codex
+Depends on: P4/P5 mediated operations
+Required / existing / new responsibilities: Existing SDK/lifecycle reused; Applied authority checks to API provision/acquisition/calls, event subscription/emission/delivery and hook registration/invocation. Captured methods and token copies retain checks after revocation.
+Changed files and public API impact: packages/kernel/src and test; DOCS/concepts/{contracts,dispatch,permissions}.md and SDK/host references. Host initialGrants/requestPermission/grant/revoke and effectivePermissions inspection added.
+Verification command and outcome: npm run check -- kernel passed (58 kernel tests in final batch plus type/import checks); permissions.test.mjs covers cached calls, separate provider/consumer revocation, dispatch revocation, validator-side revocation and mutable untyped tokens.
+Evidence commit / review: f2af654
+Remaining limitations or blocking SDK specification: Trusted local JavaScript realm; no forced termination/deep value isolation. P7 reference packages and P8 local CLI remain outstanding. No merge/publication performed.
+
+Task: K06.4
+Status: DONE
+Branch / responsible contributor: feat/core-permissions (base feat/core-dispatch at 858653c) / Codex
+Depends on: P4/P5 mediated operations
+Required / existing / new responsibilities: Existing SDK/lifecycle reused; Added named minimal/restricted test policies and documented logical-sandbox limits, grant lifecycle, mediated operations and in-flight limitations.
+Changed files and public API impact: packages/kernel/src and test; DOCS/concepts/{contracts,dispatch,permissions}.md and SDK/host references. Host initialGrants/requestPermission/grant/revoke and effectivePermissions inspection added.
+Verification command and outcome: npm run check -- kernel passed (58 kernel tests in final batch plus type/import checks); permissions.test.mjs and integration.test.mjs cover declared sensitive operations, in-flight completion and end-to-end stop/restart with zero cooperative owned resources.
+Evidence commit / review: f2af654
+Remaining limitations or blocking SDK specification: Trusted local JavaScript realm; no forced termination/deep value isolation. P7 reference packages and P8 local CLI remain outstanding. No merge/publication performed.
