@@ -18,7 +18,7 @@ The SDK currently exposes manifest and disposable types; kernel exposes the life
 
 ## Changes and review
 
-Before development inspect `git status` and the entire uncommitted diff, understand its context and commit that baseline. Use isolated `codex/` feature branches. If stacking dependent work before its base merges, record its parent branch and commit in the plan. Commit each completed change immediately with relevant task IDs. Keep machine-only scratch work in `.AI_DOCS/`; maintain human docs here in `DOCS/`.
+Before development inspect `git status` and the entire uncommitted diff, understand its context and commit that baseline. Use isolated branches with meaningful names, such as `feat/core-sdk` or `fix/manifest-validation`; do not use agent-specific prefixes such as `codex/`. If stacking dependent work before its base merges, record its parent branch and commit in the plan. Commit each completed change immediately with relevant task IDs. Keep machine-only scratch work in `.AI_DOCS/`; maintain human docs here in `DOCS/`.
 
 Package exports expose only their root. SDK may depend on manifest; kernel may depend on SDK/manifest. Platform imports, private package subpaths, dynamic loading and cross-package relative paths are forbidden in core sources. Strict compilation excludes DOM/Node ambient globals. Plugins import public SDK/shared contracts only. A missing SDK operation blocks affected plugin work: specify and implement the SDK change first, with tests.
 

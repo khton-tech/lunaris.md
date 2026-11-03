@@ -4,6 +4,7 @@
 - **Pre-development Check:** Before writing any code, inspect all uncommitted changes and determine their context. Commit them first.
 - **Commit Cadence:** Commit immediately after completing a feature, resolving a bug, or making even a minor change. Commits are considered part of the documentation.
 - **Branching Policy:** Develop new plugins, core modules, and major subsystems in isolated feature branches. Merging into the target branch is permitted only after explicit approval from the Owner.
+- **Branch Names:** Use meaningful names describing the change, such as `feat/core-foundation`, `feat/core-sdk`, or `fix/manifest-validation`. Do not use `codex/` or other agent-specific prefixes. Rename existing agent-prefixed working branches when continuing their work.
 
 ## 2. Project Structure
 - **Folder Placement:** Maintain strict directory separation by component type:
