@@ -15,7 +15,9 @@
   "scripts": {
     "environment": "node tools/scripts/environment.mjs",
     "build": "tsc -b",
-    "check": "node tools/scripts/check.mjs"
+    "check": "node tools/scripts/check.mjs",
+    "core": "node packages/cli/dist/bin.js",
+    "rehearse": "node tools/scripts/rehearse.mjs"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

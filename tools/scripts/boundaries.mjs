@@ -8,6 +8,7 @@ export const dependencies = {
   kernel: ['manifest', 'sdk'],
   test: ['sdk', 'kernel'],
   development: ['manifest', 'sdk', 'kernel'],
+  cli: ['manifest', 'sdk', 'kernel', 'test', 'development'],
 };
 
 export const packagePath = scope => scope === "development" ? "hosts/development" : `packages/${scope}`;
@@ -31,7 +32,7 @@ export function checkSource(source, filename, scope) {
       if (relative.startsWith('..') || path.isAbsolute(relative)) {
         errors.push(`${filename}: relative import escapes source root: ${value}`);
       }
-    } else if (!allowed.has(value) && !(scope === 'development' && value.startsWith('node:'))) {
+    } else if (!allowed.has(value) && !(['development', 'cli'].includes(scope) && value.startsWith('node:'))) {
       errors.push(`${filename}: forbidden dependency: ${value}`);
     }
   }

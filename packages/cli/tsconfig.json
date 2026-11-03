@@ -1,0 +1,6 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "types": ["node"], "rootDir": "src", "outDir": "dist" },
+  "include": ["src/**/*.ts"],
+  "references": [{ "path": "../manifest" }, { "path": "../sdk" }, { "path": "../kernel" }, { "path": "../test" }, { "path": "../../hosts/development" }]
+}

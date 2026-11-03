@@ -1,0 +1,8 @@
+{
+  "name": "@lunaris/cli", "version": "0.1.0", "private": true, "type": "module",
+  "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
+  "bin": { "lunaris-core": "./dist/bin.js" },
+  "files": ["dist"],
+  "dependencies": { "@lunaris/manifest": "0.1.0", "@lunaris/sdk": "0.1.0", "@lunaris/kernel": "0.1.0", "@lunaris/test": "0.1.0", "@lunaris/development": "0.1.0", "typescript": "6.0.3" },
+  "scripts": { "build": "tsc -b" }
+}
