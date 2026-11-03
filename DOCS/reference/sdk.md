@@ -71,7 +71,7 @@ API registrations return disposables and are automatically scoped. Event payload
 
 Undeclared contracts or incompatible versions throw `CONTRACT_UNDECLARED`. Missing permission declarations throw `PERMISSION_DENIED`. A declared permission passes this structural check even if it has not been granted: effective grants, scope liveness and provider availability must additionally be checked by the runtime. The helper does not publish capabilities or authorize operations by itself.
 
-`LunarisError` carries a stable `code`, copied/frozen safe `context`, message and optional native error `cause`. Context supports plugin ID, activation ID, contract ID and field path. See [error categories and behavior](core-boundary.md#dispatch-and-error-categories). Raw causes are for host diagnostics and must not be exposed through future inspection snapshots.
+`LunarisError` carries a stable `code`, copied/frozen safe `context`, message and optional native error `cause`. Context supports plugin ID, activation ID, contract ID and field path. `API_CALL_FAILED` diagnoses a provider method throw/rejection while the original thrown value still propagates to the caller. See [error categories and behavior](core-boundary.md#dispatch-and-error-categories). Raw causes are for host diagnostics and must not be exposed through inspection snapshots.
 
 ## Verification and examples
 
