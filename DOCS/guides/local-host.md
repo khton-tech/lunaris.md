@@ -6,4 +6,4 @@
 
 The host supplies real monotonic Node deadlines, including chunking long timeouts without native timer overflow. Node/DOM dependencies remain forbidden in SDK/kernel/test-kit sources. Filesystem checks and source conventions are for trusted local packages, not hostile-code containment or a race-proof package signature. Modules still have normal Node ambient access and module caching. Restart the process after changing/rebuilding a plugin; no cache-safe hot reload is claimed.
 
-Run `npm run check -- development` for containment, pre-evaluation validation, drift and session cleanup checks. File-symlink tests report a skip if Windows denies symlink creation; such a run cannot establish that particular filesystem scenario.
+Run `npm run check -- development` for containment, pre-evaluation validation, drift and session cleanup checks. The escape test uses a Windows directory junction (directory symlink on other hosts) and requires the check to execute; release checks reject skipped tests.

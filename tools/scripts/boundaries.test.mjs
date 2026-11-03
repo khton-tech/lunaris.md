@@ -18,3 +18,13 @@ for (const source of [
 ]) {
   test(`rejects ${source}`, () => assert.ok(checkSource(source, filename, 'sdk').length));
 }
+
+test('only host/tooling scopes allow Node imports; public test kit stays neutral', () => {
+  assert.ok(checkSource('import "node:fs";', path.resolve('packages/test/src/index.ts'), 'test').length);
+  assert.deepEqual(checkSource('import "node:fs";', path.resolve('hosts/development/src/index.ts'), 'development'), []);
+  assert.deepEqual(checkSource('import "node:fs";', path.resolve('packages/cli/src/index.ts'), 'cli'), []);
+});
+test('only the development loader can dynamically evaluate local entries', () => {
+  assert.deepEqual(checkSource('import(entry);', path.resolve('hosts/development/src/index.ts'), 'development'), []);
+  assert.ok(checkSource('import(entry);', path.resolve('packages/cli/src/index.ts'), 'cli').length);
+});

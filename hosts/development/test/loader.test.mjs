@@ -31,12 +31,11 @@ test('all roots are validated before evaluating even the first module', async t 
   const bad = await fixture(t, { id: 'test.bad', engine: '^9.0.0' });
   await assert.rejects(loadLocalPlugins([good, bad]), { code: 'VERSION_INCOMPATIBLE' });
 });
-test('real-path containment rejects a symlink escape', async t => {
+test('real-path containment rejects a directory link escape', async t => {
   const root = await fixture(t); const outside = await fixture(t, { id: 'test.outside' });
-  try { await symlink(path.join(outside, 'plugin.mjs'), path.join(root, 'escape.mjs'), 'file'); }
-  catch (error) { if (error.code === 'EPERM') { t.skip('File symlinks require Windows developer mode or privileges.'); return; } throw error; }
+  await symlink(outside, path.join(root, 'external'), process.platform === 'win32' ? 'junction' : 'dir');
   const manifest = JSON.parse(await (await import('node:fs/promises')).readFile(path.join(root, 'manifest.json'), 'utf8'));
-  manifest.entry = './escape.mjs'; await writeFile(path.join(root, 'manifest.json'), JSON.stringify(manifest));
+  manifest.entry = './external/plugin.mjs'; await writeFile(path.join(root, 'manifest.json'), JSON.stringify(manifest));
   await assert.rejects(validateLocalPlugin(root), { code: 'LOAD_PATH_INVALID' });
 });
 test('entry drift and malformed exports are readable load errors', async t => {

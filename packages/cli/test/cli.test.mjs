@@ -26,13 +26,13 @@ async function success(args, cwd) { const result = await command(args, cwd); ass
 
 test('generated TypeScript plugin installs offline, builds, validates, inspects, tests and shuts down dev', { timeout: 30000 }, async t => {
   const parent = await directory(t); const root = path.join(parent, 'generated plugin'); const started = performance.now();
-  await createPlugin(root, 'test.generated'); assert.ok(process.env.npm_execpath, 'Run through npm run check -- cli.');
+  await success([bin, 'create-plugin', root, '--id', 'test.generated'], parent); assert.ok(process.env.npm_execpath, 'Run through npm run check -- cli.');
   await success([process.env.npm_execpath, 'install', '--ignore-scripts', '--no-audit', '--no-fund', '--offline'], root);
   await success([process.env.npm_execpath, 'run', 'build'], root);
   assert.ok((await success([bin, 'validate', root], root)).includes('VALIDATED'));
   const view = JSON.parse((await success([bin, 'inspect', root], root)).trim());
   assert.equal(view.plugins[0].state, 'active'); assert.deepEqual(view.plugins[0].effectivePermissions, []);
-  await success([bin, 'test', root], root);
+  await success([process.env.npm_execpath, 'test'], root);
   assert.ok((await success([bin, 'dev', root, '--once'], root)).includes('DEV_STOPPED'));
   const result = await new Promise((resolve, reject) => {
     const child = spawn(process.execPath, [bin, 'dev', root], { stdio: ['pipe', 'pipe', 'pipe'], signal: t.signal });

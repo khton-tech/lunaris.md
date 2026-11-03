@@ -17,7 +17,7 @@ try {
   const commands = [
     [process.env.npm_execpath, 'install', '--ignore-scripts', '--no-audit', '--no-fund', '--offline'],
     [process.env.npm_execpath, 'run', 'build'],
-    [bin, 'validate', root], [bin, 'test', root], [bin, 'inspect', root], [bin, 'dev', root, '--once'],
+    [process.env.npm_execpath, 'run', 'validate'], [process.env.npm_execpath, 'test'], [process.env.npm_execpath, 'run', 'inspect'], [process.env.npm_execpath, 'run', 'dev', '--', '--once'],
   ];
   for (const args of commands) {
     const result = spawnSync(process.execPath, args, { cwd: root, encoding: 'utf8' });

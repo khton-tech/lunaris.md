@@ -29,7 +29,7 @@ export function checkSource(source, filename, scope) {
       const root = path.resolve(packagePath(scope), 'src');
       const resolved = path.resolve(path.dirname(filename), value);
       const relative = path.relative(root, resolved);
-      if (relative.startsWith('..') || path.isAbsolute(relative)) {
+      if (relative === '..' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
         errors.push(`${filename}: relative import escapes source root: ${value}`);
       }
     } else if (!allowed.has(value) && !(['development', 'cli'].includes(scope) && value.startsWith('node:'))) {

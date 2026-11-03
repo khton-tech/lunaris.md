@@ -17,7 +17,11 @@
     "build": "tsc -b",
     "check": "node tools/scripts/check.mjs",
     "core": "node packages/cli/dist/bin.js",
-    "rehearse": "node tools/scripts/rehearse.mjs"
+    "rehearse": "node tools/scripts/rehearse.mjs",
+    "ci": "node tools/scripts/ci.mjs",
+    "audit": "node tools/scripts/audit.mjs",
+    "benchmark": "node tools/scripts/benchmark.mjs",
+    "release:check": "node tools/scripts/release.mjs"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

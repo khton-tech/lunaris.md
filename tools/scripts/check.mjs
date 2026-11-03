@@ -8,6 +8,7 @@ function run(args, label) {
   if (result.error || result.status !== 0) {
     throw new Error(`${label}: ${result.error?.message ?? result.stdout + result.stderr}`);
   }
+  return result.stdout;
 }
 
 try {
@@ -26,13 +27,19 @@ try {
   // Project references build prerequisites; checks include affected consumers.
   run(['node_modules/typescript/bin/tsc', '-b', ...[...affected].map(scope => packagePath(scope))], 'Build');
   await checkBoundaries(Object.keys(dependencies));
-  run(['--test', '--test-reporter=dot', 'tools/scripts/boundaries.test.mjs'], 'Boundary checker tests');
+  let passed = 0; let skipped = 0;
+  const totals = output => {
+    passed += Number(output.match(/^# pass (\d+)$/m)?.[1] ?? 0);
+    skipped += Number(output.match(/^# skipped (\d+)$/m)?.[1] ?? 0);
+  };
+  totals(run(['--test', '--test-reporter=tap', 'tools/scripts/boundaries.test.mjs'], 'Boundary checker tests'));
   for (const scope of affected) {
     const tests = readdirSync(`${packagePath(scope)}/test`).filter(name => name.endsWith('.test.mjs'));
-    run(['--test', '--test-reporter=dot', ...tests.map(name => `${packagePath(scope)}/test/${name}`)], `${scope} tests`);
+    totals(run(['--test', '--test-reporter=tap', ...tests.map(name => `${packagePath(scope)}/test/${name}`)], `${scope} tests`));
     run(['node_modules/typescript/bin/tsc', '-p', `${packagePath(scope)}/test/tsconfig.json`], `${scope} type fixtures`);
   }
-  console.log(`Checks passed: ${[...affected].join(', ')}; build, boundaries, tests and type fixtures.`);
+  if (skipped) throw new Error(`${skipped} required test(s) were skipped.`);
+  console.log(`Checks passed: ${[...affected].join(', ')}; ${passed} tests, ${skipped} skipped; build, boundaries and type fixtures.`);
 } catch (error) {
   console.error(`Checks failed: ${error.message}`);
   process.exitCode = 1;
