@@ -22,6 +22,14 @@ Before development inspect `git status` and the entire uncommitted diff, underst
 
 Package exports expose only their root. SDK may depend on manifest; kernel may depend on SDK/manifest. Platform imports, private package subpaths, dynamic loading and cross-package relative paths are forbidden in core sources. Strict compilation excludes DOM/Node ambient globals. Plugins import public SDK/shared contracts only. A missing SDK operation blocks affected plugin work: specify and implement the SDK change first, with tests.
 
+Product plugins must implement [mandatory logging](../reference/logging.md#mandatory-plugin-logging):
+require the Logger API, use `ctx.pluginId` for attribution, and record readiness,
+meaningful operation/state changes, degradation and failures at the appropriate
+level. Include useful context and original errors. Review logging alongside the
+feature; direct console calls belong only to the output driver. Logger/sink
+infrastructure must remain free of recursive Logger dependencies. Do not use SDK
+handles after scope closure, including from cleanup disposers.
+
 Update the plan after acceptance checks pass and record the implementation hash in a subsequent tracking commit. Owner approval is required to merge into the target branch. Building and committing a feature do not authorize merging or publishing. No desktop automation is allowed; future OS/visual checks must be performed manually by the Owner.
 
 Use `npm run check -- test`, `npm run check -- development` or `npm run check -- cli` for these scopes; affected consumers are included automatically. `npm run audit`, `npm run benchmark`, `npm run rehearse` and `npm run release:check` provide repeatable final verification. See the first-plugin quickstart and compatibility policy for local-link delivery and actual support limits.

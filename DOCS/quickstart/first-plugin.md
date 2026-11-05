@@ -21,6 +21,15 @@ When `DEV_READY` appears, type `stop` and Enter (or Ctrl+C) for cleanup. `npm ru
 
 The generated package contains one authoritative `manifest.json`, `src/plugin.ts`, strict TypeScript configuration, a lifecycle test, `DOCS/README.md` and a small CLI launcher. JSON imports pass directly to SDK validation without casts. The plugin starts without APIs, events, hooks or permissions. Add one architectural responsibility and declare contracts/permissions as needed; use SDK scope ownership for cleanup.
 
+Before turning this empty scaffold into a product plugin, implement
+[mandatory plugin logging](../reference/logging.md#mandatory-plugin-logging).
+Declare the Logger API as a required dependency, import its token from
+`@lunaris/logging`, acquire it through `ctx.use(Logger)` and attribute records to
+`ctx.pluginId`. Record readiness and relevant operation outcomes, degradation and
+errors. The generated skeleton does not add these automatically; the application
+host must compose the Logger and a sink alongside the consumer. For local tests,
+provide a conforming Logger mock through the public test kit.
+
 Generation refuses an existing target directory. Local dependencies link back to this source checkout and its installed compiler: keep the checkout available. These are private development packages, not published registry dependencies. Distribution/installable archives are deferred. The plugin source imports only the public SDK; tests use the public test kit and tools use the local CLI.
 
 Reproduce the automated rehearsal from a built checkout with `npm run rehearse`. It generates into a temporary directory with a space in its path, installs offline links, builds, validates, runs a real plugin test, inspects and activates/stops, then removes only that temporary directory. Conditions/timings are recorded in [release evidence](../releases/0.1.0.md).

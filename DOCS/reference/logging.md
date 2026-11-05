@@ -14,6 +14,42 @@ owns console access and presentation; it works in the Tauri WebView and other
 browser consoles. A future mobile sink implements the same contract. An in-app
 viewer, persistence, buffering, multiple sinks and live sink switching are deferred.
 
+## Mandatory plugin logging
+
+Every product plugin must declare the Logger API as a required dependency and
+acquire it through `ctx.use(Logger)`. Use `ctx.pluginId` as the source. Logging is
+part of the plugin's implementation and review acceptance, not an optional
+development aid. This policy applies to new plugins and changes to existing ones.
+
+- Log activation progress at `debug` and successful readiness at `info`.
+- Log meaningful operation outcomes and state changes with enough context to
+  identify the operation and affected resource. Keep detailed traces at `debug`;
+  use `info` for useful milestones, avoiding per-frame, polling and routine-read noise.
+- Use `warn` when recovery or fallback changes behavior, and `error` when an
+  operation fails. Include a stable code where available, useful diagnostic context
+  and the original error object. Do not log secrets or document contents by default.
+- Report a failure once at the boundary responsible for handling or presenting it.
+  Preserve the original failure when rethrowing; do not silently swallow it or
+  duplicate the same error at every forwarding layer.
+- Log a shutdown request only while the plugin's SDK scope is still open. Do not
+  call a retained logger handle from a disposer after scope closure. The kernel's
+  independent diagnostics cover resolution, lifecycle and cleanup failures that
+  cannot be reported through a live Logger handle.
+
+Direct `console.*` calls are forbidden in ordinary plugins; console output belongs
+to the DevTools driver. Logger and sink implementations are the structural
+exception to the required Logger dependency: they must not depend on Logger,
+create cycles or recursively log their own output failures. The Logger's existing
+readiness record is emitted through its sink. Kernel/host recovery diagnostics
+remain independent and must work when logging is unavailable.
+
+Test fixtures and generated empty scaffolds are not product implementations. Before
+using a scaffold as a product plugin, add its Logger dependency and the relevant
+records. The CLI generator does not currently inject logging. During review,
+check that a real operation/failure can be traced to the plugin and that error
+records preserve context without flooding the console. This is a documented
+development requirement; no automatic source-level enforcement is installed.
+
 ## Consumer API
 
 Declare `{ "kind": "api", "id": "lunaris.logger", "range": "^1.0.0" }` in
