@@ -59,6 +59,56 @@ impl Drop for Fixture {
 }
 
 #[test]
+fn application_config_is_host_selected_scoped_and_persistent() {
+    let f = Fixture::new();
+    f.backend.lock().unwrap().config_directory = Some(f.path.join("app-config"));
+    let root = f.request(json!({ "operation": "openConfig" })).unwrap();
+    assert!(root.get("path").is_none());
+    let target = json!({ "vaultId": root["id"], "path": "config.toml" });
+    f.request(json!({ "operation": "writeText", "target": target, "text": "enabled = true\n", "options": { "mode": "create" } })).unwrap();
+    assert_eq!(f.read("config.toml").unwrap_err().code, "NOT_FOUND");
+    let outside = json!({ "vaultId": root["id"], "path": "../vault/note.md" });
+    assert_eq!(
+        f.request(json!({ "operation": "readText", "target": outside }))
+            .unwrap_err()
+            .code,
+        "INVALID_PATH"
+    );
+    f.request(json!({ "operation": "closeVault", "vaultId": root["id"] }))
+        .unwrap();
+    assert_eq!(
+        f.request(json!({ "operation": "readText", "target": target }))
+            .unwrap_err()
+            .code,
+        "VAULT_CLOSED"
+    );
+    let reopened = f.request(json!({ "operation": "openConfig" })).unwrap();
+    assert_ne!(reopened["id"], root["id"]);
+    assert_eq!(f.request(json!({ "operation": "readText", "target": { "vaultId": reopened["id"], "path": "config.toml" } })).unwrap()["text"], "enabled = true\n");
+    f.request(json!({ "operation": "end" })).unwrap();
+    assert_eq!(
+        f.request(json!({ "operation": "openConfig" }))
+            .unwrap_err()
+            .code,
+        "VAULT_CLOSED"
+    );
+}
+
+#[test]
+fn application_config_requires_host_support_and_reports_unwritable_locations() {
+    let f = Fixture::new();
+    assert_eq!(
+        f.request(json!({ "operation": "openConfig" }))
+            .unwrap_err()
+            .code,
+        "UNSUPPORTED"
+    );
+    f.write("file", "not a directory", "create", None).unwrap();
+    f.backend.lock().unwrap().config_directory = Some(f.path.join("vault/file/child"));
+    assert!(f.request(json!({ "operation": "openConfig" })).is_err());
+}
+
+#[test]
 fn text_binary_modes_and_optimistic_conflicts_preserve_originals() {
     let fixture = Fixture::new();
     assert_eq!(

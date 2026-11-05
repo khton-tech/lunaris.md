@@ -3,25 +3,26 @@ import assert from 'node:assert/strict';
 import { definePlugin } from '@lunaris/sdk';
 import { createTestKernel } from '@lunaris/test';
 import { Logger } from '@lunaris/logging';
-import { Filesystem, FilesystemDriver, DriverFileChanged, FileChanged, filesystemMethods } from '@lunaris/filesystem';
+import { Filesystem, FilesystemDriver, FilesystemRoots, ApplicationDirectory, ApplicationDirectoryDriver, DriverFileChanged, FileChanged, filesystemMethods } from '@lunaris/filesystem';
 import filesystem from '@lunaris/filesystem-provider';
 
 const manifest = (id, provides = [], requires = [], permissions = []) => ({ manifestVersion: 1, id, version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides, requires, permissions, optionalPermissions: [] });
-const requires = [{ kind: 'api', id: Filesystem.id, range: '^1.0.0' }, { kind: 'event', id: FileChanged.id, range: '^1.0.0' }];
+const requires = [Filesystem, FilesystemRoots, ApplicationDirectory, FileChanged].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' }));
 
 async function setup(implementation = {}, options = {}) {
-  const logs = []; const calls = []; const changes = []; let api; let driverContext;
-  const host = createTestKernel({ initialGrants: { 'lunaris.filesystem-provider': ['filesystem.access'], 'test.driver': ['filesystem.native'], 'test.consumer': options.denied ? [] : ['filesystem.access'] } });
+  const logs = []; const calls = []; const changes = []; let api; let ownedRoots; let directories; let consumerContext; let driverContext;
+  const host = createTestKernel({ initialGrants: { 'lunaris.filesystem-provider': ['filesystem.access', 'filesystem.app-config'], 'test.driver': ['filesystem.native'], 'test.consumer': options.denied ? [] : options.deniedConfig ? ['filesystem.access'] : ['filesystem.access', 'filesystem.app-config'] } });
+  host.installMock(ApplicationDirectoryDriver, { openConfig: async () => ({ ok: true, value: { id: 'config-root', name: 'App config' } }) }, { grants: ['filesystem.native'] });
   host.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push([level, ...args]); return true; }])));
   const methods = Object.fromEntries(filesystemMethods.map(name => [name, async (...args) => { calls.push([name, ...args]); return { ok: true, value: null }; }]));
   methods.capabilities = () => ({ watch: true, atomicReplace: true, versionCheck: 'optimistic', trash: false, maxFileBytes: 1024 });
   Object.assign(methods, implementation);
   host.register(definePlugin({ manifest: manifest('test.driver', [{ kind: 'api', id: FilesystemDriver.id, version: '1.0.0' }, { kind: 'event', id: DriverFileChanged.id, version: '1.0.0' }], [], ['filesystem.native']), activate(ctx) { driverContext = ctx; ctx.provide(FilesystemDriver, methods); } }));
   host.register(filesystem);
-  host.register(definePlugin({ manifest: manifest('test.consumer', [], requires, ['filesystem.access']), activate(ctx) { api = ctx.use(Filesystem); ctx.events.on(FileChanged, change => { changes.push(change); }); } }));
-  if (options.denied) return { host };
+  host.register(definePlugin({ manifest: manifest('test.consumer', [], requires, ['filesystem.access', 'filesystem.app-config']), activate(ctx) { consumerContext = ctx; api = ctx.use(Filesystem); ownedRoots = ctx.use(FilesystemRoots); directories = ctx.use(ApplicationDirectory); ctx.events.on(FileChanged, change => { changes.push(change); }); } }));
+  if (options.denied || options.deniedConfig) return { host };
   await host.start('test.consumer');
-  return { host, api, calls, logs, changes, emit: change => driverContext.events.emit(DriverFileChanged, change) };
+  return { host, api, ownedRoots, directories, consumerContext, calls, logs, changes, emit: change => driverContext.events.emit(DriverFileChanged, change) };
 }
 
 test('provider forwards explicit targets, write policy and binary snapshots through SDK', async () => {
@@ -71,4 +72,60 @@ test('consumer filesystem access is denied without the explicit SDK grant', asyn
   const { host } = await setup({}, { denied: true });
   await assert.rejects(host.start('test.consumer'), error => error.code === 'ACTIVATION_FAILED' && error.cause?.code === 'PERMISSION_DENIED');
   await host.stopAll(); host.assertNoResources();
+});
+
+const deferred = () => { let resolve; const promise = new Promise(yes => { resolve = yes; }); return { promise, resolve }; };
+
+test('application directory access requires its own explicit SDK grant', async () => {
+  const { host } = await setup({}, { deniedConfig: true });
+  await assert.rejects(host.start('test.consumer'), error => error.code === 'ACTIVATION_FAILED' && error.cause?.code === 'PERMISSION_DENIED');
+  await host.stopAll(); host.assertNoResources();
+});
+const flush = () => new Promise(resolve => setImmediate(resolve));
+
+test('closing blocks new operations and waits for all accepted operations before releasing a root', async () => {
+  const saved = deferred();
+  const { host, api, calls } = await setup({ writeText: () => saved.promise });
+  const target = { vaultId: 'v', path: 'note.md' };
+  const write = api.writeText(target, 'saved', { mode: 'upsert' });
+  const close = api.closeVault('v');
+  assert.equal((await api.readText(target)).error.code, 'VAULT_CLOSED');
+  await flush(); assert.ok(!calls.some(([name]) => name === 'closeVault'));
+  saved.resolve({ ok: true, value: { version: 'saved' } });
+  assert.equal((await write).value.version, 'saved');
+  assert.equal((await close).ok, true);
+  assert.equal(calls.filter(([name]) => name === 'closeVault').length, 1);
+  assert.equal((await api.stat(target)).error.code, 'VAULT_CLOSED');
+  await host.stopAll(); host.assertNoResources();
+});
+
+test('a failed close permits retry and operations against the still-open root', async () => {
+  let tries = 0;
+  const { host, api } = await setup({ closeVault: async () => ++tries === 1 ? { ok: false, error: { code: 'IO_ERROR', message: 'Busy' } } : { ok: true, value: null } });
+  assert.equal((await api.closeVault('v')).error.code, 'IO_ERROR');
+  assert.equal((await api.stat({ vaultId: 'v', path: '' })).ok, true);
+  assert.equal((await api.closeVault('v')).ok, true);
+  await host.stopAll(); host.assertNoResources();
+});
+
+test('application and selected roots are released when their owner stops', async () => {
+  const { host, directories, ownedRoots, consumerContext, api, calls } = await setup({ selectVault: async () => ({ ok: true, value: { id: 'selected', name: 'Notes' } }) });
+  assert.equal((await directories.openConfig(consumerContext.signal)).value.id, 'config-root');
+  assert.equal((await ownedRoots.selectVault(consumerContext.signal)).value.id, 'selected');
+  await host.stop('test.consumer'); await flush();
+  assert.deepEqual(calls.filter(([name]) => name === 'closeVault').map(([, id]) => id).sort(), ['config-root', 'selected']);
+  // The consumer's handles are closed independently of the provider's native lifetime.
+  assert.throws(() => api.list({ vaultId: 'selected', path: '' }), error => error.code === 'SCOPE_CLOSED');
+  await host.stopAll(); host.assertNoResources(); assert.deepEqual(host.diagnostics(), []);
+});
+
+test('late selection is released after owner shutdown and cannot revive it', async () => {
+  const selection = deferred();
+  const { host, ownedRoots, consumerContext, calls } = await setup({ selectVault: () => selection.promise });
+  const pending = ownedRoots.selectVault(consumerContext.signal);
+  await host.stop('test.consumer');
+  selection.resolve({ ok: true, value: { id: 'late', name: 'Late' } });
+  assert.equal((await pending).error.code, 'VAULT_CLOSED');
+  assert.ok(calls.some(([name, id]) => name === 'closeVault' && id === 'late'));
+  await host.stopAll(); host.assertNoResources(); assert.deepEqual(host.diagnostics(), []);
 });

@@ -82,6 +82,7 @@ pub enum Request {
     Begin,
     End,
     SelectVault,
+    OpenConfig,
     CloseVault {
         vault_id: String,
     },
@@ -162,6 +163,7 @@ pub(crate) struct Root {
 pub struct Backend {
     sessions: HashMap<String, HashMap<String, Root>>,
     ended: HashSet<String>,
+    config_directory: Option<PathBuf>,
 }
 pub type SharedBackend = Arc<Mutex<Backend>>;
 
@@ -195,6 +197,13 @@ pub(crate) fn valid_path(path: &str, allow_root: bool) -> Result<&Path> {
 }
 
 impl Backend {
+    /// Only the trusted host supplies a platform-resolved application directory.
+    pub fn with_config_directory(path: PathBuf) -> Self {
+        Self {
+            config_directory: Some(path),
+            ..Self::default()
+        }
+    }
     pub(crate) fn root(&mut self, session: &str, id: &str) -> Result<&mut Root> {
         self.sessions
             .get_mut(session)
@@ -206,7 +215,7 @@ impl Backend {
             .sessions
             .get_mut(session)
             .ok_or_else(|| fail("VAULT_CLOSED", "The filesystem session is closed."))?;
-        // Ambient authority is used only for a root explicitly selected by the user.
+        // Ambient authority is confined to user selections and the host's config root.
         let path = path.canonicalize()?;
         let dir = Dir::open_ambient_dir(&path, cap_std::ambient_authority())?;
         let id = next_id("vault");
@@ -246,6 +255,19 @@ impl Backend {
                 self.sessions.remove(session);
                 self.ended.insert(session.to_owned());
                 Ok(Value::Null)
+            }
+            Request::OpenConfig => {
+                if !self.sessions.contains_key(session) {
+                    return Err(fail("VAULT_CLOSED", "The filesystem session is closed."));
+                }
+                let path = self.config_directory.clone().ok_or_else(|| {
+                    fail(
+                        "UNSUPPORTED",
+                        "The host has no application config directory.",
+                    )
+                })?;
+                std::fs::create_dir_all(&path)?;
+                self.attach(session, path)
             }
             Request::CloseVault { vault_id } => {
                 self.root(session, &vault_id)?;

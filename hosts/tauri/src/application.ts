@@ -16,7 +16,7 @@ export function composeApplication(_target: HTMLElement): ApplicationDefinition 
     entrypoints: [filesystem.manifest.id],
     grants: {
       [tauriFilesystem.manifest.id]: ["filesystem.native"],
-      [filesystem.manifest.id]: ["filesystem.access"],
+      [filesystem.manifest.id]: ["filesystem.access", "filesystem.app-config"],
     },
   };
 }

@@ -1,4 +1,5 @@
 import { defineApi, defineEvent } from "@lunaris/sdk";
+import type { CancellationSignal } from "@lunaris/sdk";
 
 export type FsErrorCode = "INVALID_PATH" | "INVALID_ARGUMENT" | "VAULT_CLOSED" | "NOT_FOUND" | "ALREADY_EXISTS" | "NOT_FILE" | "NOT_DIRECTORY" | "DIRECTORY_NOT_EMPTY" | "ACCESS_DENIED" | "CONFLICT" | "UNSUPPORTED" | "TOO_LARGE" | "INVALID_ENCODING" | "IO_ERROR";
 export interface FsFailure {
@@ -62,6 +63,27 @@ const validateApi = (value: unknown): boolean => value !== null && typeof value 
   filesystemMethods.every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function");
 export const Filesystem = defineApi<FilesystemApi>({ id: "lunaris.filesystem", version: "1.0.0", consumePermission: "filesystem.access", validate: validateApi });
 export const FilesystemDriver = defineApi<FilesystemApi>({ id: "lunaris.filesystem-driver", version: "1.0.0", providePermission: "filesystem.native", consumePermission: "filesystem.access", validate: validateApi });
+
+/** Roots are opaque capabilities; FileTarget.vaultId also accepts an application root ID. */
+export interface FilesystemRootsApi {
+  selectVault(owner: CancellationSignal): Promise<FsResult<VaultRoot | null>>;
+}
+export const FilesystemRoots = defineApi<FilesystemRootsApi>({
+  id: "lunaris.filesystem-roots", version: "1.0.0", consumePermission: "filesystem.access",
+  validate: value => value !== null && typeof value === "object" &&
+    typeof Object.getOwnPropertyDescriptor(value, "selectVault")?.value === "function",
+});
+export const ApplicationDirectory = defineApi<{ openConfig(owner: CancellationSignal): Promise<FsResult<VaultRoot>> }>({
+  id: "lunaris.application-directory", version: "1.0.0", consumePermission: "filesystem.app-config",
+  validate: value => value !== null && typeof value === "object" &&
+    typeof Object.getOwnPropertyDescriptor(value, "openConfig")?.value === "function",
+});
+export const ApplicationDirectoryDriver = defineApi<{ openConfig(): Promise<FsResult<VaultRoot>> }>({
+  id: "lunaris.application-directory-driver", version: "1.0.0",
+  providePermission: "filesystem.native", consumePermission: "filesystem.app-config",
+  validate: value => value !== null && typeof value === "object" &&
+    typeof Object.getOwnPropertyDescriptor(value, "openConfig")?.value === "function",
+});
 function validChange(value: unknown): boolean {
   if (value === null || typeof value !== "object") return false;
   const change = value as Partial<FileChange>;

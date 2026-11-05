@@ -1,4 +1,6 @@
+import { ApplicationDirectory, FilesystemRoots } from "@lunaris/filesystem";
 import type { FilesystemApi, FsResult, TextFile } from "@lunaris/filesystem";
+import type { PluginContext } from "@lunaris/sdk";
 declare const fs: FilesystemApi;
 const read: Promise<FsResult<TextFile>> = fs.readText({ vaultId: "vault-1", path: "note.md" });
 void read;
@@ -10,3 +12,9 @@ fs.writeText({ vaultId: "vault-1", path: "note.md" }, "text");
 fs.writeText({ vaultId: "vault-1", path: "note.md" }, "text", { mode: "force" });
 // @ts-expect-error Creating a new file cannot compare an existing version.
 fs.writeText({ vaultId: "vault-1", path: "note.md" }, "text", { mode: "create", expectedVersion: "old" });
+
+declare const ctx: PluginContext;
+void ctx.use(ApplicationDirectory).openConfig(ctx.signal);
+void ctx.use(FilesystemRoots).selectVault(ctx.signal);
+// @ts-expect-error Application roots require lifecycle ownership.
+ctx.use(ApplicationDirectory).openConfig();

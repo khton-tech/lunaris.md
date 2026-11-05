@@ -1,13 +1,18 @@
 import { definePlugin } from "@lunaris/sdk";
-import { Filesystem, FilesystemDriver, FileChanged, DriverFileChanged, failure, validTarget } from "@lunaris/filesystem";
+import { Filesystem, FilesystemDriver, FilesystemRoots, ApplicationDirectory, ApplicationDirectoryDriver, FileChanged, DriverFileChanged, failure, validTarget } from "@lunaris/filesystem";
 import type { FileTarget, FsResult, WriteOptions } from "@lunaris/filesystem";
 import { Logger } from "@lunaris/logging";
 import manifest from "../manifest.json" with { type: "json" };
+import { createRootLifecycle } from "./roots.js";
 
 export default definePlugin({ manifest, activate(ctx) {
   const logger = ctx.use(Logger);
   logger.debug(ctx.pluginId, "Activating filesystem provider");
   const driver = ctx.use(FilesystemDriver);
+  const directories = ctx.use(ApplicationDirectoryDriver);
+  const roots = createRootLifecycle(ctx, id => call("closeVault", () => driver.closeVault(id)), error => {
+    if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot release an owned filesystem root", { code: "ROOT_RELEASE_FAILED", error });
+  });
   const snapshot = (target: FileTarget): FileTarget => Object.freeze({ vaultId: target.vaultId, path: target.path });
   async function call<T>(operation: string, work: () => Promise<FsResult<T>>, target?: FileTarget): Promise<FsResult<T>> {
     let result: FsResult<T>;
@@ -28,7 +33,7 @@ export default definePlugin({ manifest, activate(ctx) {
   function onTarget<T>(operation: string, target: FileTarget, allowRoot: boolean, work: (copy: FileTarget) => Promise<FsResult<T>>): Promise<FsResult<T>> {
     if (!validTarget(target, allowRoot)) return call(operation, async () => failure("INVALID_PATH", "A valid Vault-relative path is required."));
     const copy = snapshot(target);
-    return call(operation, () => work(copy), copy);
+    return call(operation, () => roots.run(copy.vaultId, () => work(copy)), copy);
   }
   function writeOptions(value: unknown): value is WriteOptions {
     if (value === null || typeof value !== "object") return false;
@@ -48,10 +53,10 @@ export default definePlugin({ manifest, activate(ctx) {
   ctx.provide(Filesystem, {
     capabilities: () => driver.capabilities(),
     selectVault: () => call("selectVault", () => driver.selectVault()),
-    closeVault: vaultId => call("closeVault", () => driver.closeVault(vaultId)),
-    pickFile: vaultId => call("pickFile", () => driver.pickFile(vaultId)),
-    pickDirectory: vaultId => call("pickDirectory", () => driver.pickDirectory(vaultId)),
-    pickSaveLocation: vaultId => call("pickSaveLocation", () => driver.pickSaveLocation(vaultId)),
+    closeVault: vaultId => roots.close(vaultId),
+    pickFile: vaultId => roots.run(vaultId, () => call("pickFile", () => driver.pickFile(vaultId))),
+    pickDirectory: vaultId => roots.run(vaultId, () => call("pickDirectory", () => driver.pickDirectory(vaultId))),
+    pickSaveLocation: vaultId => roots.run(vaultId, () => call("pickSaveLocation", () => driver.pickSaveLocation(vaultId))),
     readText: target => onTarget("readText", target, false, copy => driver.readText(copy)),
     readFile: target => onTarget("readFile", target, false, copy => driver.readFile(copy)),
     writeText: (target, text, options) => onTarget("writeText", target, false, copy => {
@@ -69,7 +74,9 @@ export default definePlugin({ manifest, activate(ctx) {
     move: (source, destination, overwrite = false) => transfer("move", source, destination, overwrite),
     copy: (source, destination, overwrite = false) => transfer("copy", source, destination, overwrite),
     watch: (target, recursive = true) => onTarget("watch", target, true, copy => driver.watch(copy, recursive)),
-    unwatch: (vaultId, watchId) => call("unwatch", () => driver.unwatch(vaultId, watchId)),
+    unwatch: (vaultId, watchId) => roots.run(vaultId, () => call("unwatch", () => driver.unwatch(vaultId, watchId))),
   });
+  ctx.provide(FilesystemRoots, { selectVault: owner => roots.acquire(owner, () => call("selectVault", () => driver.selectVault())) });
+  ctx.provide(ApplicationDirectory, { openConfig: owner => roots.acquire(owner, () => call("openConfig", () => directories.openConfig())) });
   logger.info(ctx.pluginId, "Filesystem provider ready", { code: "FILESYSTEM_READY" });
 } });

@@ -1,5 +1,5 @@
 import { definePlugin } from "@lunaris/sdk";
-import { FilesystemDriver, DriverFileChanged, failure } from "@lunaris/filesystem";
+import { FilesystemDriver, ApplicationDirectoryDriver, DriverFileChanged, failure } from "@lunaris/filesystem";
 import type { FileChange, FsResult, FsCapabilities } from "@lunaris/filesystem";
 import { Logger } from "@lunaris/logging";
 import { nativeFilesystem, createSessionId } from "./native.js";
@@ -44,6 +44,7 @@ export function createTauriFilesystemDriver(native: NativeFilesystem = nativeFil
     const opened = await request<null>("begin");
     ctx.signal.throwIfAborted();
     if (!opened.ok) throw new Error(`Cannot initialize native filesystem: ${opened.error.code}`);
+    ctx.provide(ApplicationDirectoryDriver, { openConfig: () => request("openConfig") });
     ctx.provide(FilesystemDriver, {
       capabilities: () => capabilities,
       selectVault: () => request("selectVault"),

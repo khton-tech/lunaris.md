@@ -9,6 +9,13 @@ The default definition uses the native bridge. `createTauriFilesystemDriver(nati
 accepts an injectable request transport for tests. The first verified target is
 Windows x64. No native dialog is opened during activation.
 
+Also provides `api:lunaris.application-directory-driver@1.0.0`, whose
+`openConfig()` attaches a fresh root at the trusted host's application config
+directory, creating it when needed. It returns only an opaque root ID/name and
+shares normal filesystem I/O, confinement and session cleanup. The host supplies
+`app.path().app_config_dir()` through `Backend::with_config_directory`;
+callers cannot provide absolute paths. Without host support it returns `UNSUPPORTED`.
+
 The callable API has the same methods as the provider: `capabilities`,
 `selectVault`, `closeVault`, `pickFile`, `pickDirectory`, `pickSaveLocation`,
 `readText`, `readFile`, `writeText`, `writeFile`, `stat`, `list`,

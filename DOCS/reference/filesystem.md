@@ -19,8 +19,8 @@ platform APIs. Both plugins require Logger. The driver logs native bridge failur
 with original errors; the provider logs operation failures with relative-resource
 context and structured error information. File contents are not logged.
 
-[Vault Manager](../Backlog.md#vault-manager) is a separate TODO, not implemented
-here. These plugins own low-level root attachments, not an active Vault, workspace
+[Vault Manager](../Backlog.md#vault-manager) is a separate product service.
+These plugins own low-level root attachments, not an active Vault, workspace
 selection policy, recent history or document state. Every target explicitly carries
 `{ vaultId, path }`, so switching future UI context cannot redirect pending work.
 

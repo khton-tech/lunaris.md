@@ -6,6 +6,7 @@
 - [Logging contracts and composition](reference/logging.md): replaceable Logger/DevTools sink, record format, failure behavior and verification.
 - [Product backlog](Backlog.md): deferred product components, including Vault Manager.
 - [Vault-scoped filesystem](reference/filesystem.md): provider/driver APIs, relative paths, dialogs, writes, permissions and native verification.
+- [Application configuration directory](reference/application-storage.md): global file storage, owned roots and coordinated closure.
 
 The implementation plan is the human-maintained delivery baseline. Update its task statuses and evidence as work lands. Agent-only scratch plans and machine-readable tracking belong in `.AI_DOCS/`, not here.
 
