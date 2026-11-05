@@ -43,7 +43,7 @@ test('selector action and submit buttons retain shared control layout when speci
     const style = s.dom.window.getComputedStyle(control);
     assert.equal(style.display, 'flex', 'Action icons and text must share the kit flex layout.');
     assert.equal(style.borderTopWidth, '0px', 'Actions must not fall back to native button borders.');
-    assert.equal(style.textAlign, 'start', 'Action text must align with the form rather than native centered buttons.');
+    assert.equal(style.alignItems, 'center', 'Icons and labels must use the kit vertical alignment.');
   }
   await s.kernel.stopAll(); s.dom.window.close();
 });
