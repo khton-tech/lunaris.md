@@ -3,6 +3,7 @@ import path from 'node:path';
 import ts from 'typescript';
 
 export const dependencies = {
+  'base-theme-engine': ['sdk', 'logging', 'themes'],
   themes: ['sdk'],
   'theme-provider': ['sdk', 'logging', 'themes'],
   slots: ['sdk'],
@@ -27,10 +28,11 @@ export const dependencies = {
   test: ['sdk', 'kernel'],
   development: ['manifest', 'sdk', 'kernel'],
   cli: ['manifest', 'sdk', 'kernel', 'test', 'development'],
-  tauri: ['theme-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'config-manager', 'localization-manager'],
+  tauri: ['base-theme-engine', 'theme-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'config-manager', 'localization-manager'],
 };
 
 export const packagePath = scope => {
+  if (scope === 'base-theme-engine') return 'plugins/UI/base-theme';
   if (scope === 'theme-provider') return 'plugins/UI/themes';
   if (scope === 'slot-provider') return 'plugins/UI/layout';
   if (scope === 'web-slot-driver') return 'plugins/systems/driver/web-slots';
@@ -62,7 +64,7 @@ export function checkSource(source, filename, scope) {
       return;
     }
     const value = node.text;
-    if (['theme-provider', 'slot-provider', 'web-slot-driver', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'config-manager', 'localization-manager'].includes(scope) &&
+    if (['base-theme-engine', 'theme-provider', 'slot-provider', 'web-slot-driver', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'config-manager', 'localization-manager'].includes(scope) &&
         path.resolve(filename) === path.resolve(packagePath(scope), 'src/index.ts') &&
         value === '../manifest.json') return;
     // The host owns startup artwork; plugins cannot reach outside their source roots.

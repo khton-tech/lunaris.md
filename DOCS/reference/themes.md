@@ -19,7 +19,8 @@ replacement of the registry itself.
 There are no built-in themes, automatic selection, required palette, required token
 set, CSS mappings, rendering callbacks or layout presets. Startup returns an empty
 registry and no current theme. Nothing is painted or mounted by this plugin.
-The product theme engine and application appearance await separate Owner input.
+The separate [base theme engine](base-theme.md) now supplies the project's approved
+palettes and measurements. Application components remain separate consumers.
 
 ## Description format
 
@@ -153,10 +154,11 @@ No registration, selection or update survives a provider restart.
 
 ## Composition and verification
 
-Tauri registers and starts the empty provider alongside the existing services.
-Recovery/System UI remains independent of themes. Persistence, installed theme
-discovery, engine implementation, theme compatibility negotiation, platform
-application and selection UI are outside this milestone. This plugin follows
+The provider itself starts empty. Tauri now also starts the separate
+[base theme engine](base-theme.md), which registers Lunaris Light and Lunaris Dark
+without selecting a default. Recovery/System UI remains independent of themes.
+Persistence, installed theme discovery, theme compatibility negotiation, platform
+application and selection UI remain outside the provider. This plugin follows
 [the UI guidelines](../UI_GUIDELINES.md) by adding no visible elements.
 
 Run `npm run themes:check` for contract/type fixtures, provider behavior, actual SDK

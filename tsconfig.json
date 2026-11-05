@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
+    { "path": "plugins/UI/base-theme" },
     { "path": "packages/themes" },
     { "path": "plugins/UI/themes" },
     { "path": "packages/slots" },

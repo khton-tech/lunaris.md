@@ -4,6 +4,13 @@ import path from 'node:path';
 import { checkSource } from './boundaries.mjs';
 
 const filename = path.resolve('packages/sdk/src/index.ts');
+test('base theme engine registers data through SDK contracts without renderer or provider implementation access', () => {
+  const file = path.resolve('plugins/UI/base-theme/src/index.ts');
+  assert.deepEqual(checkSource('import "@lunaris/sdk"; import "@lunaris/themes"; import "@lunaris/logging"; import "../manifest.json";', file, 'base-theme-engine'), []);
+  for (const name of ['@lunaris/theme-provider', '@lunaris/slot-dom', '@lunaris/kernel', '@lunaris/config', 'node:fs']) {
+    assert.ok(checkSource(`import "${name}";`, file, 'base-theme-engine').length);
+  }
+});
 test('theme provider depends only on SDK and data contracts, independently of rendering and storage', () => {
   const file = path.resolve('plugins/UI/themes/src/index.ts');
   assert.deepEqual(checkSource('import "@lunaris/sdk"; import "@lunaris/themes"; import "@lunaris/logging"; import "../manifest.json";', file, 'theme-provider'), []);

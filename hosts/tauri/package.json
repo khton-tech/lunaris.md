@@ -28,7 +28,8 @@
     "@lunaris/localization-manager": "0.1.0",
     "@lunaris/slot-provider": "0.1.0",
     "@lunaris/web-slot-driver": "0.1.0",
-    "@lunaris/theme-provider": "0.1.0"
+    "@lunaris/theme-provider": "0.1.0",
+    "@lunaris/base-theme-engine": "0.1.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.12.4",

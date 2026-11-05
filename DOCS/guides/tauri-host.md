@@ -14,9 +14,10 @@ Its view adapter mounts the isolated product surface only after successful plugi
 startup. The surface remains empty until product UI consumers are introduced;
 System/recovery controls remain host-owned and available independently.
 
-The [theme provider](../reference/themes.md) also starts as an empty registry.
-Theme engines register their own descriptions through SDK contracts. No theme or
-visual styling is supplied by the host composition or this registry.
+The [theme provider](../reference/themes.md) starts as an empty registry; the
+separate [base theme engine](../reference/base-theme.md) then registers Lunaris
+Light and Lunaris Dark through SDK contracts. Startup selects neither theme.
+No visual styling is supplied by the host composition or registry.
 
 ## Architecture and responsibilities
 

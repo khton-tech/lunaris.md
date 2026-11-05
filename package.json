@@ -34,7 +34,8 @@
     "tauri:build": "node tools/scripts/tauri.mjs build",
     "localization:check": "node tools/scripts/check.mjs localization localization-manager",
     "slots:check": "node tools/scripts/check.mjs slots slot-dom slot-provider web-slot-driver",
-    "themes:check": "node tools/scripts/check.mjs themes theme-provider"
+    "themes:check": "node tools/scripts/check.mjs themes theme-provider",
+    "base-theme:check": "node tools/scripts/check.mjs base-theme-engine"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

@@ -1,5 +1,15 @@
 # Product backlog
 
+## Base theme engine
+
+Status: IMPLEMENTED on 2026-11-05 with the Owner-approved Lunaris Light and
+Lunaris Dark palettes, shared geometry and typography. The engine registers
+descriptions through the replaceable theme provider, without default selection or
+rendering. See [the base theme reference](reference/base-theme.md).
+
+Next UI work: component manager and the standard component set. Those consumers
+will apply theme roles to actual components and undergo visual acceptance.
+
 ## Theme provider
 
 Status: IMPLEMENTED on 2026-11-05 as the base for a separately designed theme engine.
@@ -8,9 +18,8 @@ geometry/color/typography/custom data, selection, updates and owner-scoped remov
 It contains no built-in themes, palettes, required tokens or rendering behavior.
 See [the theme provider reference](reference/themes.md).
 
-Next: a separate theme engine, with application appearance to be specified by the
-Owner. Persistence and theme-selection UI are deferred. Component management and
-the standard component set follow the theme work.
+The separate base theme engine is now implemented. Persistence and theme-selection
+UI are deferred. Component management and the standard component set follow.
 
 ## UI slots
 
@@ -20,9 +29,9 @@ contracts. A separate DOM driver supplies resilient flex targets and a permissio
 browser rendering bridge. Tauri composes both with its independent recovery shell.
 See [the slot reference](reference/slots.md) for APIs, ownership and current limits.
 
-The theme provider is now implemented separately. Next UI responsibilities, in
-Owner-requested order: theme engine, component manager, then a standard component
-set. Slots do not own those services.
+The theme provider and base theme engine are now implemented separately. Next UI
+responsibilities: component manager and the standard component set. Slots do not
+own those services.
 
 ## Localization
 
