@@ -38,3 +38,31 @@ test('system control opens inspection and returns to a working application', asy
   system.click(); assert.equal(app.hidden, true); system.click(); assert.equal(app.hidden, false);
   await session.stop(); view.dispose(); dom.window.close();
 });
+
+test('healthy status hides retry and keeps optional diagnostics collapsed', async () => {
+  const { dom, root, session, view } = setup();
+  await session.start();
+  assert.equal(root.querySelector('.status-row button').hidden, true);
+  assert.equal(root.querySelector('.plugin-help').hidden, true);
+  const diagnostics = root.querySelector('.diagnostic-section');
+  assert.equal(diagnostics.open, false);
+  assert.match(diagnostics.querySelector('summary').textContent, /Диагностика \(0\)/);
+  await session.stop();
+  assert.equal(root.querySelector('.status-row button').hidden, false);
+  view.dispose(); dom.window.close();
+});
+
+test('new faults reveal diagnostics and retry without reopening dismissed details on refresh', async () => {
+  const { dom, root, session, view } = setup();
+  await session.start();
+  await session.reportFault('runtime', 'TEST_FAILURE');
+  const diagnostics = root.querySelector('.diagnostic-section');
+  assert.equal(diagnostics.open, true);
+  assert.match(diagnostics.textContent, /TEST_FAILURE/);
+  assert.equal(root.querySelector('.status-row button').hidden, false);
+  assert.equal(root.querySelector('.detail').hidden, false);
+  diagnostics.open = false;
+  session.refresh();
+  assert.equal(diagnostics.open, false);
+  await session.stop(); view.dispose(); dom.window.close();
+});

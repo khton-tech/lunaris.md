@@ -87,6 +87,15 @@ The shell stays visible during startup. A successfully mounted product view
 replaces its main panel; the host's System control remains available for inspection.
 Without a product view, the shell remains the normal visible interface.
 
+The system view follows [UI guidelines](../UI_GUIDELINES.md): a compact status
+heading, kernel/SDK versions and plugin counts precede the plugin list. Retry is
+shown for idle, stopped and recoverable failure states; successful operation has
+no recovery action. Plugin-control help is disclosed on demand when plugins exist.
+Diagnostics show an entry count and expand when new failures arrive; ordinary
+snapshot refreshes preserve the user's disclosure choice. Failed cleanup replaces
+retry with an explicit restart instruction. Layout uses shared spacing, wrapping
+controls and an adaptive metrics grid; wide plugin tables scroll locally.
+
 Startup/loading/registration/rendering failures enter recovery. During operation,
 the host checks snapshots every 250 ms. Failed plugins, unavailable root plugins
 and new API, listener, hook or lifecycle failure diagnostics enter recovery too.

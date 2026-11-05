@@ -5,7 +5,8 @@ const en = {
   fallback: "The application needs attention.", stopped: "The application is stopped.",
   description: "This independent system view stays available when application plugins fail.",
   empty: "No application plugins are configured yet. The host and kernel are ready for the first application module.",
-  restart: "Retry application", working: "Working…", plugins: "Plugins", active: "Active", disabled: "Disabled",
+  restart: "Retry", working: "Working…", plugins: "Plugins", active: "Active", disabled: "Disabled",
+  pluginHelp: "Plugin controls",
   restartRequired: "Cleanup did not finish successfully. Close and restart the application before starting plugins again.",
   kernel: "Kernel", sdk: "SDK", state: "State", version: "Version", resources: "Resources",
   plugin: "Plugin", actions: "Actions", disable: "Disable and retry", enable: "Enable and retry",
@@ -15,7 +16,7 @@ const en = {
   registered: "Registered", resolving: "Resolving", activeState: "Active", stopping: "Stopping", failed: "Failed",
   startingState: "Starting", stoppedState: "Stopped",
   language: "Language", status: "System status", safety: "Recovery handles cooperative failures. A frozen WebView or crashed process requires restarting the application.",
-  details: "A failure was detected. Review the plugin state and diagnostics below, then retry or exclude a plugin.",
+  details: "Review diagnostics, then retry or disable a plugin.",
 };
 export type MessageKey = keyof typeof en;
 export type Translator = (key: MessageKey) => string;
@@ -27,6 +28,7 @@ const ru: Record<MessageKey, string> = {
   description: "Этот независимый системный экран остаётся доступным при сбоях плагинов приложения.",
   empty: "Плагины приложения пока не подключены. Хост и ядро готовы к первому модулю приложения.",
   restart: "Повторить запуск", working: "Выполняется…", plugins: "Плагины", active: "Активны", disabled: "Отключены",
+  pluginHelp: "Управление плагинами",
   restartRequired: "Очистка завершилась с ошибкой. Закройте и перезапустите приложение перед повторным запуском плагинов.",
   kernel: "Ядро", sdk: "SDK", state: "Состояние", version: "Версия", resources: "Ресурсы",
   plugin: "Плагин", actions: "Действия", disable: "Отключить и повторить", enable: "Включить и повторить",
@@ -36,7 +38,7 @@ const ru: Record<MessageKey, string> = {
   registered: "Зарегистрирован", resolving: "Разрешение зависимостей", activeState: "Активен", stopping: "Остановка", failed: "Ошибка",
   startingState: "Запускается", stoppedState: "Остановлен",
   language: "Язык", status: "Состояние системы", safety: "Восстановление обрабатывает управляемые сбои. При зависании WebView или падении процесса потребуется перезапуск приложения.",
-  details: "Обнаружен сбой. Проверьте состояния плагинов и диагностику, затем повторите запуск или исключите плагин.",
+  details: "Проверьте диагностику, затем повторите запуск или отключите плагин.",
 };
 
 /** Built-in messages remain available even when a future localization plugin fails. */

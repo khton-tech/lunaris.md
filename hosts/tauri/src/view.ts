@@ -16,7 +16,7 @@ export function mountSystemView(root: HTMLElement, application: HTMLElement, ses
   };
   const header = el("header", undefined, "masthead");
   const brand = el("div", undefined, "brand");
-  brand.append(el("span", "L", "mark"), el("span", "LUNARIS", "wordmark"));
+  brand.textContent = "Lunaris";
   const controls = el("div", undefined, "controls");
   const language = el("select");
   for (const [code, label] of [["en", "English"], ["ru", "Русский"]]) {
@@ -27,24 +27,29 @@ export function mountSystemView(root: HTMLElement, application: HTMLElement, ses
   controls.append(language, system); header.append(brand, controls);
   const panel = el("main", undefined, "system-panel");
   const intro = el("section", undefined, "intro");
-  const eyebrow = el("p", undefined, "eyebrow");
   const heading = el("h1");
-  const description = el("p", undefined, "description");
   const detail = el("p", undefined, "detail");
-  const retry = el("button", undefined, "primary"); retry.type = "button";
-  intro.append(eyebrow, heading, description, detail, retry);
+  const retry = el("button"); retry.type = "button";
+  const statusRow = el("div", undefined, "status-row");
+  statusRow.append(heading, retry);
+  intro.append(statusRow, detail);
   const metrics = el("dl", undefined, "metrics");
   const plugins = el("section", undefined, "section");
   const pluginsHeading = el("h2");
+  const pluginHelp = el("details", undefined, "plugin-help");
+  const pluginHelpHeading = el("summary");
   const scope = el("p", undefined, "muted");
+  pluginHelp.append(pluginHelpHeading, scope);
   const pluginList = el("div", undefined, "table-scroll");
-  plugins.append(pluginsHeading, scope, pluginList);
-  const diagnostics = el("section", undefined, "section");
+  plugins.append(pluginsHeading, pluginList, pluginHelp);
+  const diagnostics = el("details", undefined, "section diagnostic-section");
+  const diagnosticsSummary = el("summary");
   const diagnosticsHeading = el("h2");
+  const diagnosticCount = el("span", undefined, "muted");
+  diagnosticsSummary.append(diagnosticsHeading, diagnosticCount);
   const diagnosticList = el("ol", undefined, "diagnostics");
-  diagnostics.append(diagnosticsHeading, diagnosticList);
-  const footer = el("footer", undefined, "muted");
-  panel.append(intro, metrics, plugins, diagnostics, footer);
+  diagnostics.append(diagnosticsSummary, diagnosticList);
+  panel.append(intro, metrics, plugins, diagnostics);
   root.replaceChildren(header, panel);
   root.dataset.hostShell = "true";
   let previousList = "";
@@ -73,16 +78,16 @@ export function mountSystemView(root: HTMLElement, application: HTMLElement, ses
     language.setAttribute("aria-label", t("language"));
     panel.setAttribute("aria-label", t("status"));
     root.dataset.phase = snapshot.phase;
-    const phaseKeys = { idle: "phaseIdle", starting: "phaseStarting", running: "phaseRunning", fallback: "phaseFallback", stopped: "phaseStopped" } as const;
-    eyebrow.textContent = `${t("host")} / ${t(phaseKeys[snapshot.phase])}`;
     heading.textContent = t(snapshot.phase);
     heading.setAttribute("role", snapshot.phase === "fallback" ? "alert" : "status");
-    description.textContent = t("description");
-    detail.textContent = t(snapshot.recoveryBlocked ? "restartRequired" : snapshot.phase === "fallback" ? "details" : "empty");
-    detail.hidden = snapshot.phase !== "fallback" && snapshot.kernel.plugins.length > 0;
+    detail.textContent = snapshot.recoveryBlocked ? t("restartRequired") : snapshot.phase === "fallback" ? t("details") : "";
+    detail.hidden = snapshot.phase !== "fallback" && !snapshot.recoveryBlocked;
     retry.textContent = t(snapshot.busy ? "working" : "restart"); retry.disabled = snapshot.busy || snapshot.recoveryBlocked;
+    retry.hidden = snapshot.phase === "running" || snapshot.phase === "starting" || snapshot.recoveryBlocked;
     pluginsHeading.textContent = t("plugins"); diagnosticsHeading.textContent = t("diagnostics");
-    scope.textContent = t("scope"); footer.textContent = t("safety");
+    scope.textContent = t("scope"); pluginHelpHeading.textContent = t("pluginHelp");
+    pluginHelp.hidden = snapshot.kernel.plugins.length + snapshot.disabled.length === 0;
+    diagnosticCount.textContent = ` (${snapshot.incidents.length + snapshot.kernel.diagnostics.length})`;
     metrics.replaceChildren();
     const stats: [MessageKey, string][] = [
       ["kernel", snapshot.kernelVersion], ["sdk", snapshot.sdkVersion],
@@ -129,6 +134,7 @@ export function mountSystemView(root: HTMLElement, application: HTMLElement, ses
         ...snapshot.incidents.map(item => `${t(item.origin)} / ${item.code}${item.pluginId ? ` / ${item.pluginId}` : ""}`),
         ...snapshot.kernel.diagnostics.map(item => `#${item.sequence} / ${item.code}${item.pluginId ? ` / ${item.pluginId}` : ""}${item.contractId ? ` / ${item.contractId}` : ""}`),
       ];
+      if (entries.length) diagnostics.open = true;
       for (const text of entries) diagnosticList.append(el("li", text, "mono"));
       if (!entries.length) diagnosticList.append(el("li", t("noDiagnostics"), "empty"));
     }
