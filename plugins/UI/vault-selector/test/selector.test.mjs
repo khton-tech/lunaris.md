@@ -90,12 +90,12 @@ test('host hands off runner to the two-panel selector only after loaded, without
 test('create card browses without opening, requires a name and submits once through SDK before displaying success/history', async () => {
   const pending = deferred(); const s = setup({ beforeOpen: () => pending.promise }); await s.ready();
   find(s, 'Create vault').click();
-  let form = [...s.surface.querySelectorAll('form')].find(form => !form.hidden);
+  let form = [...s.surface.querySelectorAll('form')].find(form => !form.hasAttribute('inert'));
   assert.equal(find(s, 'Create vault').getAttribute('aria-expanded'), 'true');
   assert.equal(form.querySelector('[type=submit]').disabled, true);
   assert.equal(form.querySelector('button[aria-label=Browse]'), s.dom.window.document.activeElement);
   form.querySelector('button[aria-label=Browse]').click(); await flush();
-  assert.deepEqual(s.calls.map(c => c.operation), ['select']); assert.equal(form.querySelector('input[readonly]').value, location.label);
+  assert.deepEqual(s.calls.map(c => c.operation), ['select']); assert.equal(form.querySelector('.ln-vault-path').textContent, location.label);
   const name = form.querySelector('input:not([readonly])'); name.value = 'My Notes'; name.dispatchEvent(new s.dom.window.Event('input', { bubbles: true }));
   assert.equal(form.querySelector('[type=submit]').disabled, false);
   form.dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true }));
@@ -103,21 +103,22 @@ test('create card browses without opening, requires a name and submits once thro
   assert.equal(s.calls.filter(c => c.operation === 'open').length, 1); assert.equal(name.disabled, true);
   pending.resolve(); await flush();
   assert.deepEqual(s.calls.at(-1).input, { name: 'My Notes' });
-  assert.match(s.surface.textContent, /Vault opened: My Notes/); assert.match(s.surface.querySelector('.ln-vault-recents').textContent, /My Notes/);
-  assert.equal(s.surface.querySelectorAll('form:not([hidden])').length, 0);
+  assert.equal(s.surface.querySelector('.ln-vault-status').textContent, 'My Notes'); assert.match(s.surface.querySelector('.ln-vault-recents').textContent, /My Notes/);
+  assert.equal(s.surface.querySelector('li button[aria-current=true]').textContent.includes('My Notes'), true);
+  assert.equal(s.surface.querySelectorAll('form:not([inert])').length, 0);
   await s.stop();
 });
 
 test('selection cancellation preserves the previous folder; failures preserve values and allow retry', async () => {
   const options = { openFailure: 'ACCESS_DENIED' }; const s = setup(options); await s.ready();
-  find(s, 'Select vault').click(); let form = [...s.surface.querySelectorAll('form')].find(f => !f.hidden);
+  find(s, 'Select vault').click(); let form = [...s.surface.querySelectorAll('form')].find(f => !f.hasAttribute('inert'));
   form.querySelector('button[aria-label=Browse]').click(); await flush();
   s.selections.push(ok(null)); form.querySelector('button[aria-label=Browse]').click(); await flush();
-  assert.equal(form.querySelector('input[readonly]').value, location.label);
+  assert.equal(form.querySelector('.ln-vault-path').textContent, location.label);
   form.dispatchEvent(new s.dom.window.Event('submit', { cancelable: true })); await flush();
   assert.match(form.textContent, /Access to this folder was denied/); assert.equal(form.querySelector('[type=submit]').disabled, false);
   options.openFailure = null; form.dispatchEvent(new s.dom.window.Event('submit', { cancelable: true })); await flush();
-  assert.match(s.surface.textContent, /Vault opened: Stored name/); assert.equal(s.calls.at(-1).input, undefined);
+  assert.equal(s.surface.querySelector('.ln-vault-status').textContent, 'Stored name'); assert.equal(s.calls.at(-1).input, undefined);
   await s.stop();
 });
 
@@ -128,6 +129,25 @@ test('recent entries reopen without browsing and unavailable folders display rec
   assert.equal(s.calls.some(c => c.operation === 'select'), false);
   assert.match(s.surface.textContent, /This folder is unavailable/);
   assert.equal(s.surface.querySelectorAll('.ln-vault-recents li').length, 1);
+  assert.equal(s.surface.querySelector('li [aria-current]'), null);
+  options.openFailure = null; s.surface.querySelector('.ln-vault-recents li button').click(); await flush();
+  assert.ok(s.surface.querySelector('li button[aria-current=true]'));
+  await s.stop();
+});
+
+test('pointer expansion leaves focus alone; closed forms immediately become inert while preserving drafts', async () => {
+  const s = setup(); await s.ready();
+  find(s, 'Create vault').dispatchEvent(new s.dom.window.MouseEvent('click', { bubbles: true, detail: 1 }));
+  let form = s.surface.querySelector('form:not([inert])'); const browse = form.querySelector('[aria-label=Browse]');
+  assert.notEqual(s.dom.window.document.activeElement, browse);
+  assert.equal(form.querySelector('input[readonly]'), null);
+  const name = form.querySelector('input'); name.value = 'Draft'; name.dispatchEvent(new s.dom.window.Event('input')); name.focus();
+  find(s, 'Create vault').click();
+  assert.equal(form.hasAttribute('inert'), true); assert.equal(form.closest('.ln-vault-disclosure').getAttribute('aria-hidden'), 'true');
+  assert.equal(name.disabled, true); assert.equal(s.dom.window.document.activeElement, find(s, 'Create vault'));
+  find(s, 'Select vault').click(); assert.equal(browse.disabled, true);
+  find(s, 'Create vault').click(); form = s.surface.querySelector('form:not([inert])');
+  assert.equal(form.querySelector('input').value, 'Draft'); assert.equal(s.dom.window.document.activeElement, browse);
   await s.stop();
 });
 
@@ -135,7 +155,7 @@ test('history errors are retryable; themes and locale updates retain typed form 
   const options = { historyFailure: true }; const s = setup(options); await s.ready();
   assert.match(s.surface.textContent, /Could not load recent vaults/); options.historyFailure = false; find(s, 'Retry').click(); await flush();
   assert.equal(find(s, 'Retry').hidden, true);
-  find(s, 'Create vault').click(); const name = s.surface.querySelector('form:not([hidden]) input:not([readonly])');
+  find(s, 'Create vault').click(); const name = s.surface.querySelector('form:not([inert]) input:not([readonly])');
   name.value = 'Draft'; name.dispatchEvent(new s.dom.window.Event('input'));
   s.tools.themes.select('lunaris.base-theme-engine.light');
   assert.equal(s.surface.querySelector('.ln-vault').style.getPropertyValue('--vault-background'), '#F5F7FA');
@@ -146,7 +166,7 @@ test('history errors are retryable; themes and locale updates retain typed form 
 
 test('shutdown during browsing never publishes a late selection or touches closed SDK handles', async () => {
   const pending = deferred(); const s = setup(); await s.ready(); s.selections.push(pending.promise);
-  find(s, 'Select vault').click(); s.surface.querySelector('form:not([hidden]) button[aria-label=Browse]').click();
+  find(s, 'Select vault').click(); s.surface.querySelector('form:not([inert]) button[aria-label=Browse]').click();
   await s.session.stop(); pending.resolve(ok(location)); await flush();
   assert.equal(s.surface.childElementCount, 0); assert.equal(s.calls.filter(c => c.operation === 'open').length, 0);
   s.dom.window.close();

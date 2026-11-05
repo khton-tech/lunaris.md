@@ -12,6 +12,10 @@ Recovery remains hidden during idle/start/retry and appears on actual failure;
 standalone host sessions without this boot surface retain their diagnostic UI.
 Native first-frame behavior remains a manual acceptance check.
 
+Recovery button, hover, focus, typography and diagnostic styles are scoped beneath
+`#system-root`. They must never style product controls mounted in application-root;
+product interaction states belong to the active theme and Components Kit.
+
 The first application target is Tauri 2 on Windows. The existing TypeScript kernel
 runs in its WebView; Rust supplies the native window and packaged assets. No Node
 sidecar or Rust rewrite of the kernel is added. Product services include the

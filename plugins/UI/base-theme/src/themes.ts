@@ -3,7 +3,7 @@ import type { ThemeDefinition, ThemeProperties } from "@lunaris/themes";
 const geometry: ThemeProperties = {
   unit: "px",
   spacing: { step: 4, scale: [4, 8, 12, 16, 24] },
-  radius: { small: 4, medium: 6 },
+  radius: { small: 4, medium: 8 },
   borderWidth: 1,
   focusWidth: 2,
   focusOffset: 2,
@@ -20,6 +20,7 @@ const typography: ThemeProperties = {
 const components: ThemeProperties = {
   startupScreen: { padding: 32, gap: 24, logoFontSize: 10, logoLineHeight: 1.2, statusFontWeight: 500 },
 };
+const motion: ThemeProperties = { fast: 120, normal: 200, easing: "cubic-bezier(0.2, 0, 0, 1)" };
 
 /** Engine-owned data schema; the generic registry does not interpret these roles. */
 export const baseThemes: readonly ThemeDefinition[] = [
@@ -48,6 +49,7 @@ export const baseThemes: readonly ThemeDefinition[] = [
       geometry,
       typography,
       components,
+      motion,
     },
   },
   {
@@ -75,6 +77,7 @@ export const baseThemes: readonly ThemeDefinition[] = [
       geometry,
       typography,
       components,
+      motion,
     },
   },
 ];

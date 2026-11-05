@@ -1,5 +1,11 @@
 # Base theme engine
 
+Shared interaction geometry uses an 8-unit medium radius. The optional `motion`
+domain supplies `fast: 120`, `normal: 200` (milliseconds) and
+`easing: "cubic-bezier(0.2, 0, 0, 1)"`. Component sets apply these through Themes
+and disable nonessential movement for reduced-motion preferences. Palette roles,
+meaningful control boundaries and text contrast remain unchanged.
+
 The Light and Dark descriptions also provide `components.startupScreen` tokens:
 padding 32, gap 24, logo font size 10, logo line height 1.2 and status weight 500.
 Dimensions use the existing geometry/font units. The shared component kit applies
@@ -76,7 +82,7 @@ and [non-text contrast](https://www.w3.org/WAI/WCAG22/Understanding/non-text-con
 ### Geometry and typography
 
 `properties.geometry.unit` is `px`. Spacing supplies a step of 4 and a scale of
-`[4, 8, 12, 16, 24]`. Small/medium radii are 4/6. Border width is 1, focus width is
+`[4, 8, 12, 16, 24]`. Small/medium radii are 4/8. Border width is 1, focus width is
 2 and focus offset is 2. These are reusable component measurements, not fixed
 panel dimensions. Consumers retain fluid layouts and respect
 [the UI guidelines](../UI_GUIDELINES.md).

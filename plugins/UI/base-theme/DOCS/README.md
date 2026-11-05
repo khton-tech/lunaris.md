@@ -1,5 +1,10 @@
 # Base theme engine
 
+Both descriptions include optional `motion.fast/normal/easing` tokens (120ms,
+200ms, and `cubic-bezier(0.2, 0, 0, 1)`) and an 8-unit medium radius. Component
+sets consume them through Themes and respect reduced-motion preferences; this
+plugin performs no animation itself. Existing semantic palette roles are preserved.
+
 Purpose: register Lunaris Light and Lunaris Dark, including the agreed colors,
 geometry and typography, in the replaceable theme provider. Requires Logger and
 `api:lunaris.themes@^1.0.0`; no permissions are needed. Activation uses

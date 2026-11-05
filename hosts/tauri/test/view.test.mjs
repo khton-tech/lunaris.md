@@ -7,6 +7,19 @@ import { mountSystemView } from '../dist/view.js';
 import { readFileSync } from 'node:fs';
 import viteConfig from '../vite.config.ts';
 
+test('recovery button and focus styling cannot leak into product controls', () => {
+  const dom = new JSDOM('<div id="system-root"><button>Recovery</button></div><div id="application-root"><button>Product</button></div>');
+  const document = dom.window.document; const style = document.createElement('style');
+  style.textContent = readFileSync(new URL('../assets/shell.css', import.meta.url), 'utf8'); document.head.append(style);
+  const recovery = document.querySelector('#system-root button'); const product = document.querySelector('#application-root button');
+  assert.equal(dom.window.getComputedStyle(recovery).borderTopColor, 'rgb(188, 188, 188)');
+  assert.notEqual(dom.window.getComputedStyle(product).borderTopColor, 'rgb(188, 188, 188)');
+  recovery.focus(); const recoveryFocus = dom.window.getComputedStyle(recovery).outline;
+  assert.ok(recoveryFocus.includes('2px')); product.focus();
+  assert.notEqual(dom.window.getComputedStyle(product).outline, recoveryFocus);
+  dom.window.close();
+});
+
 test('first HTML paint contains the runner artwork and hides recovery before JavaScript', () => {
   const source = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
   const transformed = viteConfig.plugins[0].transformIndexHtml(source);

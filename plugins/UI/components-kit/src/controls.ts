@@ -15,11 +15,13 @@ export function icon(document: Document, name: keyof typeof icons): SVGSVGElemen
 }
 export function button(document: Document, label: string, name?: keyof typeof icons): HTMLButtonElement {
   const node = document.createElement("button"); node.type = "button";
+  node.className = "ln-control-button";
   if (name) node.append(icon(document, name));
   const text = document.createElement("span"); text.textContent = label; node.append(text);
   return node;
 }
 export function textInput(document: Document): HTMLInputElement {
   const input = document.createElement("input"); input.type = "text"; input.autocomplete = "off"; input.spellcheck = false;
+  input.className = "ln-control-input";
   return input;
 }

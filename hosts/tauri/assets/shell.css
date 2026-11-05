@@ -23,7 +23,7 @@ input, textarea, [contenteditable]:not([contenteditable="false"]) { -webkit-user
 #application-root { position: relative; z-index: 1; }
 #system-root { position: relative; z-index: 2; flex: 1; background: #fff; color-scheme: light; }
 [hidden] { display: none !important; }
-button {
+#system-root button {
   max-width: 100%;
   font: inherit;
   color: inherit;
@@ -32,50 +32,50 @@ button {
   border-radius: 4px;
   padding: .4rem .65rem;
 }
-button { cursor: pointer; overflow-wrap: anywhere; }
-button:hover:enabled { background: #f5f5f5; border-color: var(--muted); }
-button:disabled { cursor: default; opacity: .5; }
-:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
-.system-panel, .boot-message {
+#system-root button { cursor: pointer; overflow-wrap: anywhere; }
+#system-root button:hover:enabled { background: #f5f5f5; border-color: var(--muted); }
+#system-root button:disabled { cursor: default; opacity: .5; }
+#system-root :focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+#system-root .system-panel, #system-root .boot-message {
   width: 100%;
   max-width: var(--content-width);
   margin-inline: auto;
   padding: clamp(1.5rem, 4vw, 3rem) var(--gutter);
 }
-.status-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space); }
-h1 { margin: 0; font-size: clamp(1.25rem, 3vw, 1.5rem); line-height: 1.35; font-weight: 600; overflow-wrap: anywhere; }
-.detail { margin: .75rem 0 0; max-width: 65ch; color: var(--muted); }
-.metrics {
+#system-root .status-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space); }
+#system-root h1 { margin: 0; font-size: clamp(1.25rem, 3vw, 1.5rem); line-height: 1.35; font-weight: 600; overflow-wrap: anywhere; }
+#system-root .detail { margin: .75rem 0 0; max-width: 65ch; color: var(--muted); }
+#system-root .metrics {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
   gap: var(--space);
   margin: 1.5rem 0 2rem;
 }
-.metrics > div { min-width: 0; }
-dt { color: var(--muted); font-size: .85rem; }
-dd { margin: .25rem 0 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
-h2 { margin: 0 0 .75rem; font-size: 1rem; font-weight: 600; overflow-wrap: anywhere; }
-.section { margin-bottom: 1.5rem; min-width: 0; }
-.muted, .empty { color: var(--muted); font-size: .9rem; }
-.muted { max-width: 70ch; }
-.empty { margin: 0; }
-.table-scroll { overflow-x: auto; }
-table { border-collapse: collapse; width: 100%; font-size: .9rem; text-align: start; }
-th { color: var(--muted); font-weight: 400; }
-th, td { border-bottom: 1px solid var(--line); padding: .65rem .75rem .65rem 0; vertical-align: top; }
-th:last-child, td:last-child { padding-inline-end: 0; text-align: end; }
-td button { font-size: inherit; }
-.mono { font-family: "Cascadia Code", Consolas, monospace; font-size: .85rem; overflow-wrap: anywhere; }
-summary { cursor: pointer; overflow-wrap: anywhere; }
-.plugin-help { margin-top: .75rem; font-size: .9rem; color: var(--muted); }
-.plugin-help p { margin-bottom: 0; }
-.diagnostic-section { border-top: 1px solid var(--line); padding-top: var(--space); }
-.diagnostic-section h2 { display: inline; margin: 0; }
-.diagnostic-section summary .muted { margin-inline-start: .5rem; font-variant-numeric: tabular-nums; }
-.diagnostics { list-style: none; padding: 0; margin: .75rem 0 0; max-height: 24rem; overflow: auto; }
-.diagnostics li:not(.empty) { border-bottom: 1px solid var(--line); padding-block: .65rem; }
-.boot-message p { color: var(--muted); max-width: 65ch; }
-.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+#system-root .metrics > div { min-width: 0; }
+#system-root dt { color: var(--muted); font-size: .85rem; }
+#system-root dd { margin: .25rem 0 0; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+#system-root h2 { margin: 0 0 .75rem; font-size: 1rem; font-weight: 600; overflow-wrap: anywhere; }
+#system-root .section { margin-bottom: 1.5rem; min-width: 0; }
+#system-root .muted, #system-root .empty { color: var(--muted); font-size: .9rem; }
+#system-root .muted { max-width: 70ch; }
+#system-root .empty { margin: 0; }
+#system-root .table-scroll { overflow-x: auto; }
+#system-root table { border-collapse: collapse; width: 100%; font-size: .9rem; text-align: start; }
+#system-root th { color: var(--muted); font-weight: 400; }
+#system-root th, #system-root td { border-bottom: 1px solid var(--line); padding: .65rem .75rem .65rem 0; vertical-align: top; }
+#system-root th:last-child, #system-root td:last-child { padding-inline-end: 0; text-align: end; }
+#system-root td button { font-size: inherit; }
+#system-root .mono { font-family: "Cascadia Code", Consolas, monospace; font-size: .85rem; overflow-wrap: anywhere; }
+#system-root summary { cursor: pointer; overflow-wrap: anywhere; }
+#system-root .plugin-help { margin-top: .75rem; font-size: .9rem; color: var(--muted); }
+#system-root .plugin-help p { margin-bottom: 0; }
+#system-root .diagnostic-section { border-top: 1px solid var(--line); padding-top: var(--space); }
+#system-root .diagnostic-section h2 { display: inline; margin: 0; }
+#system-root .diagnostic-section summary .muted { margin-inline-start: .5rem; font-variant-numeric: tabular-nums; }
+#system-root .diagnostics { list-style: none; padding: 0; margin: .75rem 0 0; max-height: 24rem; overflow: auto; }
+#system-root .diagnostics li:not(.empty) { border-bottom: 1px solid var(--line); padding-block: .65rem; }
+#system-root .boot-message p { color: var(--muted); max-width: 65ch; }
+#system-root .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 
 /* Structural sizing only; appearance belongs to product theme providers. */
 body { height: 100dvh; }

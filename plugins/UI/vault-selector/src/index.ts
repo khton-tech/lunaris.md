@@ -28,7 +28,7 @@ export function createVaultSelector(options: { readonly art: string }) {
       const startup = ctx.use(Startup); const vaults = ctx.use(Vault); const locations = ctx.use(VaultLocations); const history = ctx.use(VaultHistory);
       const forms: Record<Mode, { location: FolderLocation | null; name: string }> = { create: { location: null, name: "" }, select: { location: null, name: "" } };
       let mode: Mode | null = null; let busy = false; let operation = "working"; let errorKey = ""; let historyFailed = false;
-      let entries: readonly RecentVault[] = []; let historyVersion = 0; let current = vaults.current();
+      let entries: readonly RecentVault[] = []; let historyVersion = 0; let current = vaults.current(); let activeReference: string | null = null;
       let latest = startup.snapshot(); let mounted: MountedComponent | undefined; let allocated = false;
       const slotId = `${ctx.pluginId}.screen`;
       const text = (key: string) => localization.text(ctx.pluginId, key);
@@ -49,7 +49,7 @@ export function createVaultSelector(options: { readonly art: string }) {
           allocated = true;
         }
         const form = mode ? forms[mode] : null;
-        const props = { art, text: Object.fromEntries(Object.keys(catalogs.en).filter(key => key !== "opened").map(key => [key, text(key)])), mode,
+        const props = { art, text: Object.fromEntries(Object.keys(catalogs.en).filter(key => key !== "opened").map(key => [key, text(key)])), mode, activeReference,
           folder: form?.location?.label ?? "", name: form?.name ?? "", busy,
           canContinue: !!form?.location && (mode !== "create" || validVaultName(form.name.trim())),
           error: errorKey ? text(errorKey) : "", historyError: historyFailed ? text("historyError") : "",
@@ -114,7 +114,7 @@ export function createVaultSelector(options: { readonly art: string }) {
           const result = await locations.open(location, options);
           if (ctx.signal.aborted) return;
           if (!result.ok) { errorKey = failure(result.error); logger.error(ctx.pluginId, "Cannot open selected Vault", { code: result.error.code, error: result.error }); }
-          else { current = vaults.current(); mode = null; logger.info(ctx.pluginId, "Vault opened from selector", { code: "SELECTOR_VAULT_OPENED" }); }
+          else { current = vaults.current(); activeReference = current?.id === result.value.id ? location.reference : null; mode = null; logger.info(ctx.pluginId, "Vault opened from selector", { code: "SELECTOR_VAULT_OPENED" }); }
         });
       }
       function recent(reference: string): void {
@@ -123,12 +123,18 @@ export function createVaultSelector(options: { readonly art: string }) {
           const result = await history.open(reference);
           if (ctx.signal.aborted) return;
           if (!result.ok) { errorKey = failure(result.error); logger.warn(ctx.pluginId, "Cannot reopen recent Vault", { code: result.error.code, error: result.error }); }
-          else { current = vaults.current(); logger.info(ctx.pluginId, "Recent Vault opened", { code: "SELECTOR_RECENT_OPENED" }); }
+          else { current = vaults.current(); activeReference = current?.id === result.value.id ? reference : null; logger.info(ctx.pluginId, "Recent Vault opened", { code: "SELECTOR_RECENT_OPENED" }); }
         });
       }
       ctx.events.on(StartupChanged, snapshot => { if (snapshot.sequence <= latest.sequence) return; latest = snapshot; refresh(); });
       ctx.events.on(LocaleChanged, refresh);
-      ctx.events.on(VaultChanged, () => { current = vaults.current(); refresh(); });
+      ctx.events.on(VaultChanged, change => {
+        const previousId = current?.id;
+        current = vaults.current();
+        if (current?.id === change.current?.id) activeReference = change.location?.reference ?? null;
+        else if (current?.id !== previousId) activeReference = null;
+        refresh();
+      });
       ctx.events.on(VaultHistoryChanged, change => { historyVersion++; entries = change.entries; historyFailed = false; refresh(); });
       ctx.events.on(ComponentsChanged, change => {
         if (change.componentId !== role) return;

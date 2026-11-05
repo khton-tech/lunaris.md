@@ -44,6 +44,8 @@ Mount `lunaris.vault-selector` through Components. Its complete props are:
 - `mode`: `null`, `create`, or `select`; `folder`/`name`: strings;
   `busy`/`canContinue`: booleans; `error`/`historyError`/`status`: localized strings.
 - `entries`: `{ reference, name, label }[]`; references are opaque callback data.
+- Optional `activeReference`: current location reference or null; the matching
+  recent entry exposes `aria-current` independently of transient hover.
 - Callbacks: `onMode(mode)`, `onName(value)`, `onBrowse()`, `onNext()`,
   `onRecent(reference)`, `onRetry()`.
 
@@ -54,6 +56,20 @@ Browse, keyboard focus restoration, status/alert regions, and reduced motion.
 Non-editable chrome is non-selectable; inputs retain selection. All text uses
 `textContent`, including external folder names and ASCII art.
 
+Display-only folder labels are text, not read-only inputs; Browse is their only
+interactive control and has one boundary focus treatment. Pointer expansion does
+not move focus into the form; keyboard expansion does. Disclosure uses intrinsic
+grid-track transitions in both directions, with immediately inert/ARIA-hidden
+closed forms, retained input nodes/drafts and no animation timers. Its anchored
+layout keeps the logo stable as content expands.
+
+Shared `ln-control-button`/`ln-control-input` styles live in `controls-style.ts`.
+Surfaces map their semantic theme variables to `--control-*` tokens. Hover is a
+quiet fill, current selection is persistent, pressed feedback is separate, button
+focus is keyboard-only, and fields use a single focused boundary. Text selection
+uses the theme's selection/text roles. Host recovery styles are isolated under
+`#system-root`, so they cannot override product interactions.
+
 The initial icon pack is **Lucide**, pinned to `lucide@1.69.0`. Only required icon
 nodes are imported in `controls.ts` and rendered in the borrowed document; no
 global icon scan or document access occurs. Shared button/input/icon factories
@@ -62,10 +78,13 @@ live in the kit, not in the consumer.
 The left recent panel and right action panel use a 1:2 grid, stacking actions
 first below a 40rem container width. The frame uses container queries; all content
 can shrink/wrap, and ASCII type scales with its available width. Selector colors
-inherit `colors.background/panel/text/textSecondary/separator/controlBorder/hover/
+inherit `colors.background/panel/content/selection/text/textSecondary/separator/controlBorder/hover/
 focus/accent/onAccent/accentHover`; geometry inherits `unit`, `spacing.step`,
 `radius.medium`, `borderWidth`, `focusWidth` and `focusOffset`. Typography inherits
 the same generic properties as the startup screen. No theme engine is imported.
+Optional `motion.fast/normal` are nonnegative milliseconds (defaults 120/200),
+with `motion.easing` (default `cubic-bezier(0.2, 0, 0, 1)`). Theme changes reset
+missing tokens to defaults. Reduced-motion preferences disable transitions.
 
 ## Startup theme and layout
 

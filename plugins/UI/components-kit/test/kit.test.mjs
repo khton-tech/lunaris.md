@@ -39,14 +39,14 @@ const selectorProps = {
 test('selector supplies accessible Lucide controls, preserves form identity on updates and releases only owned DOM', async () => {
   const s = await setup();
   const mounted = s.components.mount('lunaris.vault-selector', s.target, selectorProps, s.owner); assert.equal(mounted.ok, true);
-  const form = s.target.querySelector('form:not([hidden])'); const name = form.querySelector('input:not([readonly])');
+  const form = s.target.querySelector('form:not([inert])'); const name = form.querySelector('input:not([readonly])');
   const toggle = s.target.querySelector('[aria-expanded=true]');
   assert.equal(toggle.getAttribute('aria-controls'), form.id);
   const browse = form.querySelector('button[aria-label=Browse]');
   assert.equal(browse.title, 'Browse'); assert.equal(browse.querySelector('svg').getAttribute('aria-hidden'), 'true');
   assert.equal(s.target.querySelector('img'), null); assert.match(s.target.textContent, /<img src=x>/);
   assert.equal(mounted.value.update({ ...selectorProps, name: 'Edited' }).ok, true);
-  assert.equal(s.target.querySelector('form:not([hidden]) input:not([readonly])'), name); assert.equal(name.value, 'Edited');
+  assert.equal(s.target.querySelector('form:not([inert]) input:not([readonly])'), name); assert.equal(name.value, 'Edited');
   assert.equal(mounted.value.update({ ...selectorProps, entries: [null] }).error.code, 'RENDER_FAILED'); assert.equal(name.value, 'Edited');
   mounted.value.dispose(); assert.equal(s.target.innerHTML, '<span>Sibling</span>');
   await s.kernel.stopAll(); s.dom.window.close();
@@ -57,15 +57,17 @@ test('selector follows arbitrary theme updates and resets; multiple instances ha
   const first = s.components.mount('lunaris.vault-selector', s.target, selectorProps, s.owner); assert.equal(first.ok, true);
   const second = s.components.mount('lunaris.vault-selector', s.target, selectorProps, s.owner); assert.equal(second.ok, true);
   assert.equal(new Set([...s.target.querySelectorAll('form')].map(f => f.id)).size, 4);
-  const theme = { id: 'test.any', name: 'Independent theme', properties: { colors: { background: '#123456', accent: '#abcdef', onAccent: '#101010' }, geometry: { unit: 'px', spacing: { step: 6 }, radius: { medium: 9 } }, typography: { fontFamily: ['serif'], fontSize: 18 } } };
+  const theme = { id: 'test.any', name: 'Independent theme', properties: { colors: { background: '#123456', accent: '#abcdef', onAccent: '#101010' }, geometry: { unit: 'px', spacing: { step: 6 }, radius: { medium: 9 } }, typography: { fontFamily: ['serif'], fontSize: 18 }, motion: { fast: 0, normal: 350, easing: 'linear' } } };
   s.themes.register(theme, s.owner); s.themes.select(theme.id);
   for (const screen of s.target.querySelectorAll('.ln-vault')) {
     assert.equal(screen.style.getPropertyValue('--vault-background'), '#123456'); assert.equal(screen.style.getPropertyValue('--vault-space'), '6px');
     assert.equal(screen.style.getPropertyValue('--vault-font'), 'serif'); assert.equal(screen.style.getPropertyValue('--vault-radius'), '9px');
+    assert.equal(screen.style.getPropertyValue('--vault-motion-fast'), '0ms'); assert.equal(screen.style.getPropertyValue('--vault-motion-normal'), '350ms');
   }
   s.themes.select(null);
   assert.equal(s.target.querySelector('.ln-vault').style.getPropertyValue('--vault-background'), 'transparent');
   assert.equal(s.target.querySelector('.ln-vault').style.getPropertyValue('--vault-font'), 'inherit');
+  assert.equal(s.target.querySelector('.ln-vault').style.getPropertyValue('--vault-motion-fast'), '120ms');
   await s.kernel.stopAll(); assert.equal(s.target.innerHTML, '<span>Sibling</span>'); s.dom.window.close();
 });
 

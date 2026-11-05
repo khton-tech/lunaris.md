@@ -29,6 +29,14 @@ does not issue a second request. Failures use localized, retryable messages,
 never raw diagnostic strings. History has a separate retry action when unavailable.
 Recent entries reopen without browsing; unavailable folders remain in the list.
 
+The current recent entry is distinct from hover and exposes `aria-current`.
+The controller tracks its reference only from a committed result or matching
+VaultChanged event, never by guessing from display names. The visible outcome is
+the Vault name, without a persistent operational/log-style prefix. Quiet action
+rows and intrinsically animated inline forms replace nested outlined cards;
+the logo stays anchored when forms expand. These rendering rules and all motion
+tokens belong to Components Kit and the active theme.
+
 After a successful open, show the active Vault name and keep the selector usable
 for switching. The editor/workspace screen is not implemented, so this plugin
 does not navigate to an empty surface or claim editor readiness.
