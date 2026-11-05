@@ -6,19 +6,18 @@ import { HostSession } from '@lunaris/tauri';
 import { mountSystemView } from '../dist/view.js';
 
 function setup(definition = { plugins: [], entrypoints: [] }) {
-  const dom = new JSDOM('<html><body><div id="system"></div><div id="app"></div></body></html>');
+  const dom = new JSDOM('<html lang="ru"><body><div id="system"></div><div id="app"></div></body></html>');
   const document = dom.window.document;
   const root = document.getElementById('system'); const app = document.getElementById('app');
   const session = new HostSession({ scheduler: new TestScheduler(), load: async () => definition });
-  const view = mountSystemView(root, app, session, 'ru');
+  const view = mountSystemView(root, app, session);
   return { dom, document, root, app, session, view };
 }
 
-test('system view exposes versions, empty state and independent localization', async () => {
-  const { dom, document, root, session, view } = setup(); await session.start();
-  assert.match(root.textContent, /Ядро работает/); assert.match(root.textContent, /0\.1\.0/);
-  const select = root.querySelector('select'); select.value = 'en'; select.dispatchEvent(new dom.window.Event('change'));
-  assert.equal(document.documentElement.lang, 'en'); assert.match(root.textContent, /The kernel is running/);
+test('system view stays English under a Russian document and exposes no language selector', async () => {
+  const { dom, root, session, view } = setup(); await session.start();
+  assert.equal(root.lang, 'en'); assert.match(root.textContent, /The kernel is running/);
+  assert.match(root.textContent, /0\.1\.0/); assert.equal(root.querySelector('select'), null);
   await session.stop(); view.dispose(); dom.window.close();
 });
 
@@ -46,7 +45,7 @@ test('healthy status hides retry and keeps optional diagnostics collapsed', asyn
   assert.equal(root.querySelector('.plugin-help').hidden, true);
   const diagnostics = root.querySelector('.diagnostic-section');
   assert.equal(diagnostics.open, false);
-  assert.match(diagnostics.querySelector('summary').textContent, /Диагностика \(0\)/);
+  assert.match(diagnostics.querySelector('summary').textContent, /Diagnostics \(0\)/);
   await session.stop();
   assert.equal(root.querySelector('.status-row button').hidden, false);
   view.dispose(); dom.window.close();

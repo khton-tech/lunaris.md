@@ -16,7 +16,7 @@ dependency resolution and SDK ownership. These operations are sufficient for the
 host's recovery responsibility; no SDK extension is required for this milestone.
 
 New: `hosts/tauri` contains the native host, browser scheduler, application-session
-controller, built-in message catalogs and monochrome system view. The fallback is
+controller, built-in English messages and monochrome system view. The fallback is
 host infrastructure, independent of product UI, themes and localization plugins.
 `packages/kernel` remains platform-neutral. Host management comes exclusively from
 the public kernel package; product plugins continue to use the public SDK.
@@ -93,9 +93,9 @@ loading. Restart the development process or reload the window after code changes
 The system screen displays host identity, kernel/SDK versions, plugin IDs/versions/states,
 owned-resource counts, disabled plugins and safe diagnostic codes with plugin and
 contract attribution. It uses text nodes rather than interpolated HTML. Raw error
-causes, arguments and payloads are not rendered. English and Russian catalogs are
-built in and remain usable without a localization plugin. The initial locale
-follows the browser language and can be changed in the shell.
+causes, arguments and payloads are not rendered. The system shell is English-only,
+with built-in messages independent of product localization. It does not follow
+browser language and has no language selector. Its root declares `lang="en"`.
 
 The shell stays visible during startup. A successfully mounted product view
 replaces its main panel; the host's System control remains available for inspection.
@@ -155,7 +155,7 @@ behavior. Manually run `npm run tauri:dev` and check:
    record. Retry does not repeat the artwork; reloading the window does.
    Confirm `FILESYSTEM_DRIVER_READY`, `FILESYSTEM_READY`, `VAULT_READY` and `CONFIG_READY` too. Native dialog
    selection/cancellation requires a consumer action; its UI is outside this milestone.
-2. Switching English/Russian updates labels and keyboard focus remains visible.
+2. Labels remain English regardless of browser language; keyboard focus remains visible.
    Resize to the minimum window width and check table scrolling when plugins exist.
 3. After product composition is introduced, verify normal mounting, System/back,
    a failing activation/API/render, retry, plugin exclusion and dependency failure.

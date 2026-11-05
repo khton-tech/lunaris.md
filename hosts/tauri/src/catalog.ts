@@ -1,4 +1,4 @@
-const en = {
+const messages = {
   system: "System", back: "Back to application", title: "Lunaris", host: "Tauri host",
   phaseIdle: "Idle", phaseStarting: "Starting", phaseRunning: "Running", phaseFallback: "Recovery", phaseStopped: "Stopped",
   idle: "Ready to start.", starting: "Starting the application.", running: "The kernel is running.",
@@ -15,34 +15,12 @@ const en = {
   origin: "Source", code: "Code", startup: "Startup", runtime: "Runtime", view: "Interface", cleanup: "Cleanup",
   registered: "Registered", resolving: "Resolving", activeState: "Active", stopping: "Stopping", failed: "Failed",
   startingState: "Starting", stoppedState: "Stopped",
-  language: "Language", status: "System status", safety: "Recovery handles cooperative failures. A frozen WebView or crashed process requires restarting the application.",
+  status: "System status", safety: "Recovery handles cooperative failures. A frozen WebView or crashed process requires restarting the application.",
   details: "Review diagnostics, then retry or disable a plugin.",
 };
-export type MessageKey = keyof typeof en;
-export type Translator = (key: MessageKey) => string;
-const ru: Record<MessageKey, string> = {
-  system: "Система", back: "Вернуться в приложение", title: "Lunaris", host: "Хост Tauri",
-  phaseIdle: "Ожидание", phaseStarting: "Запуск", phaseRunning: "Работает", phaseFallback: "Восстановление", phaseStopped: "Остановлено",
-  idle: "Готово к запуску.", starting: "Запуск приложения.", running: "Ядро работает.",
-  fallback: "Приложению требуется внимание.", stopped: "Приложение остановлено.",
-  description: "Этот независимый системный экран остаётся доступным при сбоях плагинов приложения.",
-  empty: "Плагины приложения пока не подключены. Хост и ядро готовы к первому модулю приложения.",
-  restart: "Повторить запуск", working: "Выполняется…", plugins: "Плагины", active: "Активны", disabled: "Отключены",
-  pluginHelp: "Управление плагинами",
-  restartRequired: "Очистка завершилась с ошибкой. Закройте и перезапустите приложение перед повторным запуском плагинов.",
-  kernel: "Ядро", sdk: "SDK", state: "Состояние", version: "Версия", resources: "Ресурсы",
-  plugin: "Плагин", actions: "Действия", disable: "Отключить и повторить", enable: "Включить и повторить",
-  noPlugins: "Нет зарегистрированных плагинов", diagnostics: "Диагностика", noDiagnostics: "Ошибок не зафиксировано",
-  scope: "Отключённый плагин исключается из следующего экземпляра ядра, в том числе из автоматического запуска зависимостей. Выбор действует до перезагрузки окна.",
-  origin: "Источник", code: "Код", startup: "Запуск", runtime: "Выполнение", view: "Интерфейс", cleanup: "Очистка",
-  registered: "Зарегистрирован", resolving: "Разрешение зависимостей", activeState: "Активен", stopping: "Остановка", failed: "Ошибка",
-  startingState: "Запускается", stoppedState: "Остановлен",
-  language: "Язык", status: "Состояние системы", safety: "Восстановление обрабатывает управляемые сбои. При зависании WebView или падении процесса потребуется перезапуск приложения.",
-  details: "Проверьте диагностику, затем повторите запуск или отключите плагин.",
-};
+export type MessageKey = keyof typeof messages;
 
-/** Built-in messages remain available even when a future localization plugin fails. */
-export function translator(locale: string): Translator {
-  const messages = locale.toLowerCase().startsWith("ru") ? ru : en;
-  return key => messages[key];
+/** Built-in English remains available independently of product localization. */
+export function message(key: MessageKey): string {
+  return messages[key];
 }
