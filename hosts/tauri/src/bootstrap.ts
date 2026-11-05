@@ -18,8 +18,8 @@ const session = new HostSession({
     return module.composeApplication(target);
   },
 });
-document.documentElement.lang = navigator.language.startsWith("ru") ? "ru" : "en";
-mountSystemView(root, application, session, document.documentElement.lang);
+document.documentElement.lang = "en";
+mountSystemView(root, application, session);
 
 window.addEventListener("error", event => {
   void session.reportFault("runtime", event.target instanceof HTMLElement ? "RESOURCE_LOAD_FAILED" : "UNHANDLED_APPLICATION_ERROR");

@@ -4,6 +4,19 @@ import path from 'node:path';
 import { checkSource } from './boundaries.mjs';
 
 const filename = path.resolve('packages/sdk/src/index.ts');
+test('localization stays SDK-only without configuration, native or host dependencies', () => {
+  const file = path.resolve('plugins/systems/localization/src/index.ts');
+  assert.deepEqual(checkSource('import "@lunaris/sdk"; import "@lunaris/logging"; import "@lunaris/localization"; import "../manifest.json";', file, 'localization-manager'), []);
+  for (const dependency of ['@lunaris/config', '@lunaris/kernel', '@lunaris/tauri', '@tauri-apps/api/core', 'node:fs']) {
+    assert.ok(checkSource(`import "${dependency}";`, file, 'localization-manager').length);
+  }
+});
+test('config manager uses SDK contracts and confines its TOML dependency to the codec', () => {
+  const file = path.resolve('plugins/systems/config/src/index.ts');
+  assert.deepEqual(checkSource('import "@lunaris/config"; import "@lunaris/vault"; import "@lunaris/filesystem"; import "@lunaris/logging"; import "@lunaris/sdk"; import "../manifest.json";', file, 'config-manager'), []);
+  assert.deepEqual(checkSource('import "smol-toml";', path.resolve('plugins/systems/config/src/codec.ts'), 'config-manager'), []);
+  for (const dependency of ['node:fs', '@lunaris/kernel', '@lunaris/tauri-filesystem', 'smol-toml']) assert.ok(checkSource(`import "${dependency}";`, file, 'config-manager').length);
+});
 test('filesystem provider stays neutral and only the native driver bridge imports Tauri IPC', () => {
   const provider = path.resolve('plugins/systems/filesystem/src/index.ts');
   const driver = path.resolve('plugins/systems/driver/tauri-filesystem/src/index.ts');
@@ -22,6 +35,14 @@ test('product plugins use only the SDK, shared logging contracts and local modul
     for (const source of ['import "@lunaris/kernel";', 'import "@lunaris/tauri";', 'import "node:fs";', 'import "@tauri-apps/api/core";', 'import "../../../../packages/sdk/src/index.js";']) {
       assert.ok(checkSource(source, file, scope).length);
     }
+  }
+});
+
+test('Vault Manager imports contracts through SDK without filesystem driver or host dependencies', () => {
+  const file = path.resolve('plugins/systems/vault/src/index.ts');
+  assert.deepEqual(checkSource('import "@lunaris/sdk"; import "@lunaris/vault"; import "@lunaris/filesystem"; import "@lunaris/logging"; import "../manifest.json";', file, 'vault-manager'), []);
+  for (const dependency of ['@lunaris/kernel', '@lunaris/tauri-filesystem', '@lunaris/filesystem-provider', 'node:fs', '@tauri-apps/api/core']) {
+    assert.ok(checkSource(`import "${dependency}";`, file, 'vault-manager').length);
   }
 });
 

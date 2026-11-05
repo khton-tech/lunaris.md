@@ -1,0 +1,29 @@
+{
+  "manifestVersion": 1,
+  "id": "lunaris.localization-manager",
+  "version": "0.1.0",
+  "engine": "^0.1.0",
+  "sdk": "^0.1.0",
+  "entry": "./dist/src/index.js",
+  "provides": [
+    {
+      "kind": "api",
+      "id": "lunaris.localization",
+      "version": "1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.locale-changed",
+      "version": "1.0.0"
+    }
+  ],
+  "requires": [
+    {
+      "kind": "api",
+      "id": "lunaris.logger",
+      "range": "^1.0.0"
+    }
+  ],
+  "permissions": [],
+  "optionalPermissions": []
+}

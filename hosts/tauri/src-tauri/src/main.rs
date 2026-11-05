@@ -2,6 +2,7 @@
 
 use lunaris_filesystem_native::{Backend, Change, ChangeCallback, Request, SharedBackend};
 use std::sync::{Arc, Mutex};
+use tauri::Manager;
 
 #[tauri::command]
 async fn filesystem_request(
@@ -31,7 +32,12 @@ async fn filesystem_request(
 
 fn main() {
     tauri::Builder::default()
-        .manage(Arc::new(Mutex::new(Backend::default())))
+        .setup(|app| {
+            app.manage(Arc::new(Mutex::new(Backend::with_config_directory(
+                app.path().app_config_dir()?,
+            ))));
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![filesystem_request])
         .run(tauri::generate_context!())
         .expect("Failed to run the Lunaris desktop host");

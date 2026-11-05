@@ -860,3 +860,67 @@ for APIs and limits: optimistic external conflict checking, nontransactional
 directory copies, Windows-first native no-replacement rename, 64 MiB transfers,
 manual dismissal of already open native dialogs, and unsupported link transfers,
 directory replacement/trash/streaming. No Vault Manager, merge or push.
+
+## Application storage and Vault Manager — 2026-11-05
+
+Owner scope: defer config-manager implementation and first resolve its filesystem
+and Vault-lifecycle prerequisites. Existing SDK APIs, cancellation signals,
+permissions, events and hooks are sufficient; the SDK/kernel runtime is unchanged.
+
+| Task | Status | Delivered behavior / acceptance |
+|---|---|---|
+| K12.1 Application directory | DONE | Host-resolved config root, separate SDK permission, lazy directory creation, persistent files and capability-confined portable filesystem I/O. |
+| K12.2 Owned roots and closure | DONE | Owner cancellation, native cleanup without SDK handles, accepted-I/O draining, stale-ID rejection, late-selection retirement and independent cleanup diagnostics. |
+| K12.3 Vault Manager | DONE | One active Vault, selection/open/switch/close, awaited preparation hook, immutable context, lifecycle events, cancellation/failure preservation and BUSY protection. |
+| K12.4 Composition and verification | DONE | Tauri entrypoint/grants, plugin-local docs, 74 targeted TypeScript/host/boundary tests, type fixtures, CI selection, public-export/docs audit and frontend bundle. Native storage prerequisite passed 9 tests and locked host compilation. |
+
+Branch: `feat/application-storage-vault-manager`. Verification: `npm run vault:check`,
+`npm run filesystem:check` for native prerequisites, frontend build and docs/export
+audit. See [application storage](reference/application-storage.md) and
+[Vault Manager](reference/vault.md) for APIs, lifecycle guarantees and limits.
+Native dialog visuals remain manual. Config parsing/storage policy, `.lunaris`
+initialization, product UI, history and restoration remain deferred. No merge/push.
+
+## Config manager — 2026-11-05
+
+Owner scope: implement the deferred config manager using the completed storage
+and Vault prerequisites. Existing SDK APIs, permissions, hooks and lifecycle
+ownership suffice; no SDK/kernel/native changes are required.
+
+| Task | Status | Delivered behavior / acceptance |
+|---|---|---|
+| K13.1 Contracts and namespaces | DONE | SDK read/get/set/remove API, explicit write layers, arbitrary plugin namespaces, config.access and value-free mutation events. |
+| K13.2 TOML and precedence | DONE | Global application config plus .lunaris/config.toml, recursive table merging with local precedence, literal keys, detached values and strict TOML-compatible input snapshots. |
+| K13.3 Persistence and lifecycle | DONE | Preparation hook before Vault readiness, existing-file validation, serialized per-file mutations, optimistic version checks, captured Vault IDs, restart/stop handling and no config payloads in logs. |
+| K13.4 Composition and verification | DONE | Tauri entrypoint/grants, plugin docs, 67 targeted contract/manager/host/boundary tests, type fixtures, CI selection, exports/docs audit and frontend bundle. |
+
+Branch: `feat/config-manager`. Verification: `npm run config:check`,
+`npm run build --workspace @lunaris/tauri`, CI scope tests and documentation/export
+audit. See [config manager](reference/config.md). The TOML codec dependency is
+pinned and confined to its codec module. Source comments/formatting are not retained
+by mutations. External edits are reread on demand; no watch/cache service or UI is
+added. No merge or push.
+
+## Localization service — 2026-11-05
+
+Owner scope: implement language support before product UI; ship English first and
+let plugins own their user-facing catalogs. Keep logs and diagnostic errors in
+English. Existing SDK APIs/events and cancellation signals suffice.
+
+| Task | Status | Delivered behavior / acceptance |
+|---|---|---|
+| K14.1 Contracts and catalogs | DONE | Replaceable SDK language API, per-plugin English catalogs, copied dictionaries, explicit locale selection and locale-change events. |
+| K14.2 Lookup and lifecycle | DONE | English fallback, plain-text parameters, visible missing keys, deduplicated warnings, owner cancellation and restart without SDK calls during cleanup. |
+| K14.3 Existing text audit | DONE | Existing system plugins contain only technical logs/errors. Host recovery copy extracted to an independent English catalog; no unnecessary localization dependencies or cycles. |
+| K14.4 Composition and verification | DONE | Tauri startup, consumer/recovery integration, plugin docs, 53 targeted tests, types, boundaries, CI scope selection and frontend bundle. |
+
+Branch: `feat/localization`, based on `fix/english-system-screen` at
+`44a1c08280ffefba93d297df68a13212e86d8990`. Verification:
+`npm run localization:check`, `npm run build --workspace @lunaris/tauri`,
+`node --test --test-reporter=dot tools/scripts/ci.test.mjs`, export/docs audit and
+`git diff --check`. See [localization](reference/localization.md) for the API and
+limits. Only English is shipped; locale persistence, language packs, ICU and
+product UI remain deferred. No SDK/kernel/native changes, merge or push.
+
+Implementation commit: `7cbd1c1` (`feat(localization): add English-first plugin
+language service (K14)`).

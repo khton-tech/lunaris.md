@@ -1,6 +1,12 @@
 {
   "files": [],
   "references": [
+    { "path": "packages/localization" },
+    { "path": "plugins/systems/localization" },
+    { "path": "packages/config" },
+    { "path": "plugins/systems/config" },
+    { "path": "packages/vault" },
+    { "path": "plugins/systems/vault" },
     { "path": "packages/filesystem" },
     { "path": "plugins/systems/filesystem" },
     { "path": "plugins/systems/driver/tauri-filesystem" },

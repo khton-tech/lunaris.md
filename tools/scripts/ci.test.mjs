@@ -11,6 +11,12 @@ test('CI selects touched packages and the caller check expands their consumers',
   assert.deepEqual(selectScopes(['plugins/systems/logger/src/index.ts']), ['logger']);
   assert.deepEqual(selectScopes(['plugins/systems/driver/dev-tools-logger/src/index.ts']), ['dev-tools-logger']);
   assert.deepEqual(selectScopes(['packages/filesystem/src/index.ts']), ['filesystem']);
+  assert.deepEqual(selectScopes(['packages/vault/src/index.ts']), ['vault']);
+  assert.deepEqual(selectScopes(['packages/config/src/index.ts']), ['config']);
+  assert.deepEqual(selectScopes(['packages/localization/src/index.ts']), ['localization']);
+  assert.deepEqual(selectScopes(['plugins/systems/localization/src/index.ts']), ['localization-manager']);
+  assert.deepEqual(selectScopes(['plugins/systems/config/src/index.ts']), ['config-manager']);
+  assert.deepEqual(selectScopes(['plugins/systems/vault/src/index.ts']), ['vault-manager']);
   assert.deepEqual(selectScopes(['plugins/systems/filesystem/src/index.ts']), ['filesystem-provider']);
   assert.deepEqual(selectScopes(['plugins/systems/driver/tauri-filesystem/native/src/lib.rs']), ['tauri-filesystem']);
   assert.equal(selectScopes(['tools/scripts/check.mjs']).length, Object.keys(dependencies).length);

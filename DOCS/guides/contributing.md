@@ -30,6 +30,12 @@ feature; direct console calls belong only to the output driver. Logger/sink
 infrastructure must remain free of recursive Logger dependencies. Do not use SDK
 handles after scope closure, including from cleanup disposers.
 
+Product plugins with user-facing text use the [localization service](../reference/localization.md).
+Keep English messages in `src/locales/en.ts`, register the catalog through the
+SDK with `ctx.pluginId` and `ctx.signal`, and render text by key. Additional locales
+must preserve English fallback. Technical logs, diagnostic errors, user content
+and the independent host recovery shell remain outside product localization.
+
 Update the plan after acceptance checks pass and record the implementation hash in a subsequent tracking commit. Owner approval is required to merge into the target branch. Building and committing a feature do not authorize merging or publishing. No desktop automation is allowed; future OS/visual checks must be performed manually by the Owner.
 
 Use `npm run check -- test`, `npm run check -- development` or `npm run check -- cli` for these scopes; affected consumers are included automatically. `npm run audit`, `npm run benchmark`, `npm run rehearse` and `npm run release:check` provide repeatable final verification. See the first-plugin quickstart and compatibility policy for local-link delivery and actual support limits.

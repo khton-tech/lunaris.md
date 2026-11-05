@@ -26,7 +26,7 @@ test('host grants compose a real provider/driver chain; expected filesystem erro
   const consumer = definePlugin({ manifest: manifest('test.app', [], [{ kind: 'api', id: Filesystem.id, range: '^1.0.0' }], ['filesystem.access']), activate(ctx) { fs = ctx.use(Filesystem); } });
   const session = new HostSession({ scheduler: new TestScheduler(), load: async () => ({
     plugins: [logger, driver, filesystem, consumer], entrypoints: ['test.app'],
-    grants: { 'lunaris.tauri-filesystem': ['filesystem.native'], 'lunaris.filesystem-provider': ['filesystem.access'], 'test.app': ['filesystem.access'] },
+    grants: { 'lunaris.tauri-filesystem': ['filesystem.native'], 'lunaris.filesystem-provider': ['filesystem.access', 'filesystem.app-config'], 'test.app': ['filesystem.access'] },
   }) });
   for (let i = 0; i < 3; i++) {
     await session.start(); assert.equal(session.snapshot().phase, 'running');

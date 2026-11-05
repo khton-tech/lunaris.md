@@ -1,12 +1,12 @@
 import type { Disposable } from "@lunaris/sdk";
 import type { HostSession, HostSnapshot } from "./session.js";
-import { translator } from "./catalog.js";
+import { message as t } from "./catalog.js";
 import type { MessageKey } from "./catalog.js";
 
 /** Host-owned DOM. No plugin is given this system root or the session object. */
-export function mountSystemView(root: HTMLElement, application: HTMLElement, session: HostSession, locale = "en"): Disposable {
+export function mountSystemView(root: HTMLElement, application: HTMLElement, session: HostSession): Disposable {
   const document = root.ownerDocument;
-  let t = translator(locale);
+  root.lang = "en";
   let inspect = false;
   const el = <K extends keyof HTMLElementTagNameMap>(tag: K, text?: string, className?: string) => {
     const node = document.createElement(tag);
@@ -18,13 +18,8 @@ export function mountSystemView(root: HTMLElement, application: HTMLElement, ses
   const brand = el("div", undefined, "brand");
   brand.textContent = "Lunaris";
   const controls = el("div", undefined, "controls");
-  const language = el("select");
-  for (const [code, label] of [["en", "English"], ["ru", "Русский"]]) {
-    const option = el("option", label!); option.value = code!; language.append(option);
-  }
-  language.value = locale.startsWith("ru") ? "ru" : "en";
   const system = el("button"); system.type = "button";
-  controls.append(language, system); header.append(brand, controls);
+  controls.append(system); header.append(brand, controls);
   const panel = el("main", undefined, "system-panel");
   const intro = el("section", undefined, "intro");
   const heading = el("h1");
@@ -61,13 +56,9 @@ export function mountSystemView(root: HTMLElement, application: HTMLElement, ses
   }
   retry.onclick = () => action(session.start);
   system.onclick = () => { inspect = !inspect; render(session.snapshot()); };
-  language.onchange = () => {
-    t = translator(language.value); previousList = ""; previousDiagnostics = "";
-    document.documentElement.lang = language.value; render(session.snapshot());
-  };
 
   function render(snapshot: HostSnapshot): void {
-    const renderKey = JSON.stringify([snapshot, inspect, language.value]);
+    const renderKey = JSON.stringify([snapshot, inspect]);
     if (renderKey === previousRender) return;
     previousRender = renderKey;
     const showSystem = !snapshot.applicationVisible || inspect;
@@ -75,7 +66,6 @@ export function mountSystemView(root: HTMLElement, application: HTMLElement, ses
     application.hidden = showSystem;
     system.hidden = !snapshot.applicationVisible;
     system.textContent = t(inspect ? "back" : "system");
-    language.setAttribute("aria-label", t("language"));
     panel.setAttribute("aria-label", t("status"));
     root.dataset.phase = snapshot.phase;
     heading.textContent = t(snapshot.phase);

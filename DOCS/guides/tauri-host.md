@@ -5,6 +5,9 @@ runs in its WebView; Rust supplies the native window and packaged assets. No Nod
 sidecar or Rust rewrite of the kernel is added. Product services include the
 [Logger and DevTools sink](../reference/logging.md) and the
 [Vault-scoped filesystem provider/driver](../reference/filesystem.md).
+The host also starts the [localization service](../reference/localization.md)
+alongside Config Manager. Recovery copy remains in a standalone English catalog
+and works when product localization is unavailable.
 
 ## Architecture and responsibilities
 
@@ -16,7 +19,7 @@ dependency resolution and SDK ownership. These operations are sufficient for the
 host's recovery responsibility; no SDK extension is required for this milestone.
 
 New: `hosts/tauri` contains the native host, browser scheduler, application-session
-controller, built-in message catalogs and monochrome system view. The fallback is
+controller, built-in English messages and monochrome system view. The fallback is
 host infrastructure, independent of product UI, themes and localization plugins.
 `packages/kernel` remains platform-neutral. Host management comes exclusively from
 the public kernel package; product plugins continue to use the public SDK.
@@ -24,9 +27,11 @@ the public kernel package; product plugins continue to use the public SDK.
 The application composition point is
 `hosts/tauri/src/application.ts`. It installs `lunaris.logger` and
 `lunaris.dev-tools-logger`, `lunaris.filesystem-provider` and
-`lunaris.tauri-filesystem`. The filesystem provider is the root; its required
-driver and logging dependencies start automatically. No product view is installed.
-A fresh desktop launch shows these four plugins in the system screen; the console
+`lunaris.tauri-filesystem`, `lunaris.vault-manager` and `lunaris.config-manager`.
+Config manager is the entrypoint; its Vault/filesystem/logging chain starts
+automatically. See [Vault Manager](../reference/vault.md) and
+[config manager](../reference/config.md). No product view is installed.
+A fresh desktop launch shows these six plugins in the system screen; the console
 displays the artwork and service readiness records. The sink definition survives
 retries, so the artwork prints once per page load. A window reload starts a new
 banner lifetime. No Vault is selected or native dialog opened automatically.
@@ -68,7 +73,8 @@ an `ApplicationDefinition`:
 - Optional `grants`: trusted plugin-ID-to-permission-list map, applied after
   registration and before starting plugins. Undeclared grants fail; excluded
   plugins are skipped. Filesystem composition grants native authority to its
-  driver and filesystem access to its provider. Consumers require separate grants.
+  driver, filesystem/application-directory access to its provider, and filesystem
+  access to Vault Manager. Consumers require separate grants.
 - Optional `view.mount(signal)`: a trusted renderer adapter that captures the
   supplied target and returns a disposable. It must cooperate with cancellation
   and release its rendering resources.
@@ -90,9 +96,9 @@ loading. Restart the development process or reload the window after code changes
 The system screen displays host identity, kernel/SDK versions, plugin IDs/versions/states,
 owned-resource counts, disabled plugins and safe diagnostic codes with plugin and
 contract attribution. It uses text nodes rather than interpolated HTML. Raw error
-causes, arguments and payloads are not rendered. English and Russian catalogs are
-built in and remain usable without a localization plugin. The initial locale
-follows the browser language and can be changed in the shell.
+causes, arguments and payloads are not rendered. The system shell is English-only,
+with built-in messages independent of product localization. It does not follow
+browser language and has no language selector. Its root declares `lang="en"`.
 
 The shell stays visible during startup. A successfully mounted product view
 replaces its main panel; the host's System control remains available for inspection.
@@ -146,13 +152,13 @@ DOM tests run in Node with JSDOM, not desktop automation. Native compilation and
 mocked close callbacks do not establish actual WebView rendering or OS event
 behavior. Manually run `npm run tauri:dev` and check:
 
-1. The monochrome system view fits the window, versions are visible, and all four
+1. The monochrome system view fits the window, versions are visible, and all six
    service plugins are active without a blank application screen. Open DevTools:
    the supplied artwork appears once, followed by the readable `LOGGER_READY`
    record. Retry does not repeat the artwork; reloading the window does.
-   Confirm `FILESYSTEM_DRIVER_READY` and `FILESYSTEM_READY` too. Native dialog
+   Confirm `FILESYSTEM_DRIVER_READY`, `FILESYSTEM_READY`, `VAULT_READY` and `CONFIG_READY` too. Native dialog
    selection/cancellation requires a consumer action; its UI is outside this milestone.
-2. Switching English/Russian updates labels and keyboard focus remains visible.
+2. Labels remain English regardless of browser language; keyboard focus remains visible.
    Resize to the minimum window width and check table scrolling when plugins exist.
 3. After product composition is introduced, verify normal mounting, System/back,
    a failing activation/API/render, retry, plugin exclusion and dependency failure.
