@@ -19,6 +19,9 @@ debug executable, and manually run `npm run tauri:dev` to open the application.
 The host installs the [Logger and DevTools sink](DOCS/reference/logging.md) and the
 [filesystem provider/Tauri driver](DOCS/reference/filesystem.md), prints the project
 artwork once per page load, and retains its system diagnostics and
-retry/plugin-exclusion controls. Vault Manager remains in the [backlog](DOCS/Backlog.md).
+retry/plugin-exclusion controls. Vault Manager and Config Manager are implemented;
+the [localization service](DOCS/reference/localization.md) now supplies English-first
+catalogs for future product plugins. Recovery text keeps its independent English
+catalog. Run `npm run localization:check` for targeted service/host verification.
 No product editor view is installed yet. Run `npm run filesystem:check` for targeted
 file-service and native verification without opening windows.

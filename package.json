@@ -30,7 +30,8 @@
     "filesystem:check": "node tools/scripts/filesystem.mjs",
     "vault:check": "node tools/scripts/check.mjs vault vault-manager filesystem-provider tauri-filesystem",
     "config:check": "node tools/scripts/check.mjs config config-manager",
-    "tauri:build": "node tools/scripts/tauri.mjs build"
+    "tauri:build": "node tools/scripts/tauri.mjs build",
+    "localization:check": "node tools/scripts/check.mjs localization localization-manager"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

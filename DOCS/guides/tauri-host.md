@@ -5,6 +5,9 @@ runs in its WebView; Rust supplies the native window and packaged assets. No Nod
 sidecar or Rust rewrite of the kernel is added. Product services include the
 [Logger and DevTools sink](../reference/logging.md) and the
 [Vault-scoped filesystem provider/driver](../reference/filesystem.md).
+The host also starts the [localization service](../reference/localization.md)
+alongside Config Manager. Recovery copy remains in a standalone English catalog
+and works when product localization is unavailable.
 
 ## Architecture and responsibilities
 

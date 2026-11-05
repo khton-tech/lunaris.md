@@ -24,7 +24,8 @@
     "@lunaris/sdk": "0.1.0",
     "@tauri-apps/api": "2.12.4",
     "@lunaris/vault-manager": "0.1.0",
-    "@lunaris/config-manager": "0.1.0"
+    "@lunaris/config-manager": "0.1.0",
+    "@lunaris/localization-manager": "0.1.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.12.4",

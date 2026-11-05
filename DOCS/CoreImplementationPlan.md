@@ -900,3 +900,24 @@ audit. See [config manager](reference/config.md). The TOML codec dependency is
 pinned and confined to its codec module. Source comments/formatting are not retained
 by mutations. External edits are reread on demand; no watch/cache service or UI is
 added. No merge or push.
+
+## Localization service — 2026-11-05
+
+Owner scope: implement language support before product UI; ship English first and
+let plugins own their user-facing catalogs. Keep logs and diagnostic errors in
+English. Existing SDK APIs/events and cancellation signals suffice.
+
+| Task | Status | Delivered behavior / acceptance |
+|---|---|---|
+| K14.1 Contracts and catalogs | DONE | Replaceable SDK language API, per-plugin English catalogs, copied dictionaries, explicit locale selection and locale-change events. |
+| K14.2 Lookup and lifecycle | DONE | English fallback, plain-text parameters, visible missing keys, deduplicated warnings, owner cancellation and restart without SDK calls during cleanup. |
+| K14.3 Existing text audit | DONE | Existing system plugins contain only technical logs/errors. Host recovery copy extracted to an independent English catalog; no unnecessary localization dependencies or cycles. |
+| K14.4 Composition and verification | DONE | Tauri startup, consumer/recovery integration, plugin docs, 53 targeted tests, types, boundaries, CI scope selection and frontend bundle. |
+
+Branch: `feat/localization`, based on `fix/english-system-screen` at
+`44a1c08280ffefba93d297df68a13212e86d8990`. Verification:
+`npm run localization:check`, `npm run build --workspace @lunaris/tauri`,
+`node --test --test-reporter=dot tools/scripts/ci.test.mjs`, export/docs audit and
+`git diff --check`. See [localization](reference/localization.md) for the API and
+limits. Only English is shipped; locale persistence, language packs, ICU and
+product UI remain deferred. No SDK/kernel/native changes, merge or push.

@@ -1,26 +1,8 @@
-const messages = {
-  system: "System", back: "Back to application", title: "Lunaris", host: "Tauri host",
-  phaseIdle: "Idle", phaseStarting: "Starting", phaseRunning: "Running", phaseFallback: "Recovery", phaseStopped: "Stopped",
-  idle: "Ready to start.", starting: "Starting the application.", running: "The kernel is running.",
-  fallback: "The application needs attention.", stopped: "The application is stopped.",
-  description: "This independent system view stays available when application plugins fail.",
-  empty: "No application plugins are configured yet. The host and kernel are ready for the first application module.",
-  restart: "Retry", working: "Working…", plugins: "Plugins", active: "Active", disabled: "Disabled",
-  pluginHelp: "Plugin controls",
-  restartRequired: "Cleanup did not finish successfully. Close and restart the application before starting plugins again.",
-  kernel: "Kernel", sdk: "SDK", state: "State", version: "Version", resources: "Resources",
-  plugin: "Plugin", actions: "Actions", disable: "Disable and retry", enable: "Enable and retry",
-  noPlugins: "No plugins registered", diagnostics: "Diagnostics", noDiagnostics: "No failures recorded",
-  scope: "Disabling a plugin excludes it from the next kernel instance, including automatic dependency startup. Choices last until this window reloads.",
-  origin: "Source", code: "Code", startup: "Startup", runtime: "Runtime", view: "Interface", cleanup: "Cleanup",
-  registered: "Registered", resolving: "Resolving", activeState: "Active", stopping: "Stopping", failed: "Failed",
-  startingState: "Starting", stoppedState: "Stopped",
-  status: "System status", safety: "Recovery handles cooperative failures. A frozen WebView or crashed process requires restarting the application.",
-  details: "Review diagnostics, then retry or disable a plugin.",
-};
-export type MessageKey = keyof typeof messages;
+import { english } from "./locales/en.js";
 
-/** Built-in English remains available independently of product localization. */
+export type MessageKey = keyof typeof english;
+
+/** Recovery text remains available even if the localization plugin fails. */
 export function message(key: MessageKey): string {
-  return messages[key];
+  return english[key];
 }

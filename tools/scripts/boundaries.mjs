@@ -6,6 +6,8 @@ export const dependencies = {
   manifest: [],
   sdk: ['manifest'],
   logging: ['sdk'],
+  localization: ['sdk'],
+  'localization-manager': ['sdk', 'logging', 'localization'],
   logger: ['sdk', 'logging'],
   'dev-tools-logger': ['sdk', 'logging'],
   filesystem: ['sdk'],
@@ -19,10 +21,11 @@ export const dependencies = {
   test: ['sdk', 'kernel'],
   development: ['manifest', 'sdk', 'kernel'],
   cli: ['manifest', 'sdk', 'kernel', 'test', 'development'],
-  tauri: ['sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'config-manager'],
+  tauri: ['sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'config-manager', 'localization-manager'],
 };
 
 export const packagePath = scope => {
+  if (scope === 'localization-manager') return 'plugins/systems/localization';
   if (scope === 'logger') return 'plugins/systems/logger';
   if (scope === 'filesystem-provider') return 'plugins/systems/filesystem';
   if (scope === 'vault-manager') return 'plugins/systems/vault';
@@ -50,7 +53,7 @@ export function checkSource(source, filename, scope) {
       return;
     }
     const value = node.text;
-    if (['logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'config-manager'].includes(scope) &&
+    if (['logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'config-manager', 'localization-manager'].includes(scope) &&
         path.resolve(filename) === path.resolve(packagePath(scope), 'src/index.ts') &&
         value === '../manifest.json') return;
     // The host owns startup artwork; plugins cannot reach outside their source roots.

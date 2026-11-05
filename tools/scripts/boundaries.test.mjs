@@ -4,6 +4,13 @@ import path from 'node:path';
 import { checkSource } from './boundaries.mjs';
 
 const filename = path.resolve('packages/sdk/src/index.ts');
+test('localization stays SDK-only without configuration, native or host dependencies', () => {
+  const file = path.resolve('plugins/systems/localization/src/index.ts');
+  assert.deepEqual(checkSource('import "@lunaris/sdk"; import "@lunaris/logging"; import "@lunaris/localization"; import "../manifest.json";', file, 'localization-manager'), []);
+  for (const dependency of ['@lunaris/config', '@lunaris/kernel', '@lunaris/tauri', '@tauri-apps/api/core', 'node:fs']) {
+    assert.ok(checkSource(`import "${dependency}";`, file, 'localization-manager').length);
+  }
+});
 test('config manager uses SDK contracts and confines its TOML dependency to the codec', () => {
   const file = path.resolve('plugins/systems/config/src/index.ts');
   assert.deepEqual(checkSource('import "@lunaris/config"; import "@lunaris/vault"; import "@lunaris/filesystem"; import "@lunaris/logging"; import "@lunaris/sdk"; import "../manifest.json";', file, 'config-manager'), []);

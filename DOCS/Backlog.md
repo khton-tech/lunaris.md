@@ -1,5 +1,16 @@
 # Product backlog
 
+## Localization
+
+Status: IMPLEMENTED on 2026-11-05 before product UI development.
+The replaceable service provides English-first, per-plugin catalogs with scoped
+ownership, interpolation, English fallback and locale-change events through SDK
+contracts. Only English is shipped; language selection UI, persistence, ICU and
+language-pack distribution are deferred. Existing system plugins have only
+technical logs/errors, which stay English and independent of localization.
+The host recovery shell retains its standalone English dictionary.
+See [the localization reference](reference/localization.md).
+
 ## Vault Manager
 
 Status: IMPLEMENTED on 2026-11-05, following separate Owner authorization after
