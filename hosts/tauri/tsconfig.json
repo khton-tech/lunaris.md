@@ -63,6 +63,9 @@
     },
     {
       "path": "../../plugins/systems/startup"
+    },
+    {
+      "path": "../../plugins/UI/components-kit"
     }
   ]
 }

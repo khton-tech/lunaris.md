@@ -8,8 +8,23 @@ provider registers components from component set plugins under shared role IDs
 tracks instance ownership and publishes registration changes. It ships no
 components or styles. See [the component provider reference](reference/components.md).
 
-Next UI work: `LunarisComponentsKit`, the standard component set, which registers
-its components through this provider and applies the active theme via `Themes`.
+The initial `LunarisComponentsKit` is implemented with `lunaris.startup-screen`,
+registered through this provider and following the active theme via `Themes`.
+
+## Startup presentation prerequisites
+
+Status: IMPLEMENTED on 2026-11-05. The SDK Startup API/event and replaceable
+provider expose host milestones. Tauri mounts its isolated surface before product
+activation, with fallback, retry and shutdown cleanup. The initial Components Kit
+supplies a themed ASCII-art/status screen through the component registry.
+See [startup progress](reference/startup.md) and
+[the kit](../plugins/UI/components-kit/DOCS/README.md).
+
+Next: implement `lunaris-runner` as a consumer of Config, Localization, Slots,
+Components and Startup, with required Logger. Read configuration before rendering,
+show the supplied ASCII artwork and actual milestones, then retain System Loaded.
+No runner is implemented by the prerequisite work; physical WebView presentation
+remains subject to manual acceptance after its integration.
 
 ## Base theme engine
 

@@ -32,7 +32,8 @@
     "@lunaris/component-provider": "0.1.0",
     "@lunaris/base-theme-engine": "0.1.0",
     "@lunaris/startup": "0.1.0",
-    "@lunaris/startup-provider": "0.1.0"
+    "@lunaris/startup-provider": "0.1.0",
+    "@lunaris/components-kit": "0.1.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.12.4",

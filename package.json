@@ -37,7 +37,8 @@
     "themes:check": "node tools/scripts/check.mjs themes theme-provider",
     "components:check": "node tools/scripts/check.mjs components component-provider",
     "base-theme:check": "node tools/scripts/check.mjs base-theme-engine",
-    "startup:check": "node tools/scripts/check.mjs startup startup-provider"
+    "startup:check": "node tools/scripts/check.mjs startup startup-provider",
+    "components-kit:check": "node tools/scripts/check.mjs components-kit"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

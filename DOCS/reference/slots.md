@@ -12,8 +12,8 @@ No SDK or kernel extension is required.
 
 The provider owns slot identity, parentage, metadata and ownership. The driver
 owns actual DOM targets and structural flex layout. Host composition supplies an
-isolated surface to the driver and attaches it through the host view adapter after
-early surface mounting, before product entrypoints start. Product plugins never import the host or driver.
+isolated surface to the driver and attaches it through the host view adapter
+before product entrypoints start. Product plugins never import the host or driver.
 Replacing a provider or driver uses standard SDK provider selection.
 
 Slots contain no visible labels, borders, padding, colors or default components.

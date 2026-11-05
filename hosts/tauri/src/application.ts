@@ -1,3 +1,4 @@
+import componentsKit from "@lunaris/components-kit";
 import { createStartupProvider } from "@lunaris/startup-provider";
 import baseThemeEngine from "@lunaris/base-theme-engine";
 import themeProvider from "@lunaris/theme-provider";
@@ -24,11 +25,12 @@ export function composeApplication(target: HTMLElement): ApplicationDefinition {
   return {
     ...layout,
     startup,
-    plugins: [startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, configManager, localizationManager],
-    entrypoints: [startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, ...layout.entrypoints, configManager.manifest.id, localizationManager.manifest.id],
+    plugins: [componentsKit, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, configManager, localizationManager],
+    entrypoints: [startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, componentsKit.manifest.id, ...layout.entrypoints, configManager.manifest.id, localizationManager.manifest.id],
     grants: {
       ...layout.grants,
       [componentProvider.manifest.id]: ["ui.dom"],
+      [componentsKit.manifest.id]: ["ui.dom"],
       [tauriFilesystem.manifest.id]: ["filesystem.native"],
       [filesystem.manifest.id]: ["filesystem.access", "filesystem.app-config"],
       [vaultManager.manifest.id]: ["filesystem.access"],

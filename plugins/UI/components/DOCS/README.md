@@ -12,6 +12,6 @@ Component sets import `Components` from `@lunaris/components` and register
 Removing a component or stopping the provider disposes its live instances.
 
 No components, styles or theme logic are included; those belong to component sets
-such as the planned `LunarisComponentsKit`.
+such as the initial [LunarisComponentsKit](../../components-kit/DOCS/README.md).
 See [the full contract and lifecycle rules](../../../../DOCS/reference/components.md).
 Run `npm run components:check` from the repository root.

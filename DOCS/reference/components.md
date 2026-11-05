@@ -3,7 +3,7 @@
 ## Responsibilities
 
 Required: shared UI components are supplied by component set plugins (the
-planned `LunarisComponentsKit` and any replacement or extension) and are used by
+initial `LunarisComponentsKit` and any replacement or extension) and are used by
 product plugins without importing a particular set. This keeps the interface
 consistent: a plugin asks for `lunaris.button`, not for a private button.
 Existing: SDK typed APIs/events, owner signals, permissions, Logger, slot DOM
@@ -138,8 +138,10 @@ Logs contain component IDs, never props.
 ## Composition, limits and verification
 
 Tauri registers the provider as an entrypoint and grants it `ui.dom`. It starts
-empty, so there is no visible change until a component set is added. Component
-sets, the standard component catalog, non-DOM renderers, prop schemas, multiple
+empty, so there is no visible change until a component set and consumer are added.
+Tauri now also starts [LunarisComponentsKit](../../plugins/UI/components-kit/DOCS/README.md),
+which registers `lunaris.startup-screen` without mounting it. The remaining
+standard component catalog, non-DOM renderers, prop schemas, multiple
 simultaneous implementations per role and set priority are out of scope.
 
 Run `npm run components:check` for contracts, provider lifecycle, a real component
