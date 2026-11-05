@@ -1,5 +1,11 @@
 # Filesystem provider
 
+Also provides `api:lunaris.filesystem-locations@1.0.0`: `select(ownerSignal)`
+and `attach(location, ownerSignal)`, delegating through
+`api:lunaris.filesystem-locations-driver@1.0.0`. Selection does not attach/prepare
+a Vault; attachment retains driver-owned cancellation. See
+[durable locations](../../../../DOCS/reference/application-storage.md#durable-folder-locations).
+
 Provides `api:lunaris.filesystem@1.0.0` and
 `event:lunaris.filesystem-changed@1.0.0`. Requires the corresponding driver
 API/event and Logger through SDK contracts. The host must grant

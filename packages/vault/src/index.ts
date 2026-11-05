@@ -1,5 +1,20 @@
 import { defineApi, defineEvent, defineHook } from "@lunaris/sdk";
-import type { FsFailure, VaultRoot } from "@lunaris/filesystem";
+import { validFolderLocation } from "@lunaris/filesystem";
+import type { FolderLocation, FsFailure, VaultRoot } from "@lunaris/filesystem";
+import type { CancellationSignal } from "@lunaris/sdk";
+
+export function validVaultName(value: unknown): value is string {
+  return typeof value === "string" && value.length > 0 && value.length <= 200 && value === value.trim() && !/[\u0000-\u001f\u007f]/.test(value);
+}
+export interface VaultLocationsApi {
+  select(owner: CancellationSignal): Promise<VaultResult<FolderLocation | null>>;
+  open(location: FolderLocation, options?: { readonly name?: string }): Promise<VaultResult<VaultRoot>>;
+}
+export const VaultLocations = defineApi<VaultLocationsApi>({
+  id: "lunaris.vault-locations", version: "1.0.0", consumePermission: "vault.access",
+  validate: value => value !== null && typeof value === "object" &&
+    ["select", "open"].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function"),
+});
 
 export type VaultFailure = FsFailure | {
   readonly code: "BUSY" | "PREPARATION_FAILED" | "STOPPED";
@@ -16,11 +31,17 @@ export interface VaultChange {
   readonly kind: "opened" | "switched" | "closed";
   readonly previous: VaultRoot | null;
   readonly current: VaultRoot | null;
+  /** Present for opens through VaultLocations; safe to persist, never log. */
+  readonly location?: FolderLocation;
 }
 export interface VaultPreparation {
   readonly vault: VaultRoot;
   /** Return an error to reject preparation; preserve a preceding handler's error. */
   readonly error: string | null;
+  /** Explicit display name requested by a creation form. */
+  readonly requestedName?: string;
+  /** Resolved by configuration preparation without substituting root identity. */
+  readonly displayName?: string;
 }
 const validRoot = (value: unknown): value is VaultRoot => {
   if (value === null || typeof value !== "object") return false;
@@ -33,20 +54,23 @@ export const Vault = defineApi<VaultApi>({
     ["current", "open", "close"].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function"),
 });
 export const VaultChanged = defineEvent<VaultChange>({
-  id: "lunaris.vault-changed", version: "1.0.0", consumePermission: "vault.access",
+  id: "lunaris.vault-changed", version: "1.1.0", consumePermission: "vault.access",
   validate(value) {
     if (value === null || typeof value !== "object") return false;
     const change = value as Partial<VaultChange>;
+    if (change.location !== undefined && (!validFolderLocation(change.location) || change.kind === "closed")) return false;
     if (change.kind === "opened") return change.previous === null && validRoot(change.current);
     if (change.kind === "closed") return validRoot(change.previous) && change.current === null;
     return change.kind === "switched" && validRoot(change.previous) && validRoot(change.current);
   },
 });
 export const PrepareVault = defineHook<VaultPreparation>({
-  id: "lunaris.prepare-vault", version: "1.0.0", consumePermission: "vault.access",
+  id: "lunaris.prepare-vault", version: "1.1.0", consumePermission: "vault.access",
   validate: value => {
     if (value === null || typeof value !== "object") return false;
     const preparation = value as Partial<VaultPreparation>;
-    return validRoot(preparation.vault) && (preparation.error === null || typeof preparation.error === "string");
+    return validRoot(preparation.vault) && (preparation.error === null || typeof preparation.error === "string") &&
+      (preparation.requestedName === undefined || validVaultName(preparation.requestedName)) &&
+      (preparation.displayName === undefined || validVaultName(preparation.displayName));
   },
 });

@@ -5,7 +5,7 @@ import { definePlugin } from '@lunaris/sdk';
 import { createTestKernel } from '@lunaris/test';
 import { Logger } from '@lunaris/logging';
 import { Config, ConfigChanged } from '@lunaris/config';
-import { Vault, PrepareVault } from '@lunaris/vault';
+import { Vault, VaultLocations, PrepareVault } from '@lunaris/vault';
 import filesystem from '@lunaris/filesystem-provider';
 import vaultManager from '@lunaris/vault-manager';
 import configManager from '@lunaris/config-manager';
@@ -23,7 +23,7 @@ const manifest = (id, requires) => ({ manifestVersion: 1, id, version: '0.1.0', 
 async function setup(options = {}) {
   const files = new Map(options.files ?? []); const dirs = new Set(options.dirs ?? []);
   const sessions = new Map(); const selections = []; const calls = []; const logs = []; const changes = [];
-  let config; let vaults; let context; let configRoots = 0;
+  let config; let vaults; let locations; let context; let configRoots = 0; let attachments = 0;
   const host = createTestKernel({ initialGrants: {
     'lunaris.tauri-filesystem': ['filesystem.native'],
     'lunaris.filesystem-provider': ['filesystem.access', 'filesystem.app-config'],
@@ -38,6 +38,11 @@ async function setup(options = {}) {
     if (operation === 'end') { sessions.delete(session); return ok(null); }
     const roots = sessions.get(session); if (!roots) return fail('VAULT_CLOSED');
     if (operation === 'openConfig') { const id = `global-root-${++configRoots}`; roots.set(id, '@global'); return ok({ id, name: 'Settings' }); }
+    if (operation === 'selectLocation') return selections.shift() ?? ok(null);
+    if (operation === 'attachLocation') {
+      if (options.attachFailure) return fail(options.attachFailure);
+      const id = `attached-${++attachments}`; roots.set(id, args.reference); return ok({ id, name: 'Folder' });
+    }
     if (operation === 'selectVault') {
       const next = selections.shift(); if (!next) return ok(null);
       roots.set(next.id, next.location); return ok({ id: next.id, name: next.id });
@@ -69,16 +74,49 @@ async function setup(options = {}) {
     return fail('UNSUPPORTED');
   } }));
   host.register(filesystem); host.register(vaultManager); host.register(configManager);
-  host.register(definePlugin({ manifest: manifest('test.consumer', [Config, ConfigChanged, Vault, PrepareVault].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' }))), activate(ctx) {
-    context = ctx; config = ctx.use(Config); vaults = ctx.use(Vault);
+  host.register(definePlugin({ manifest: manifest('test.consumer', [Config, ConfigChanged, Vault, VaultLocations, PrepareVault].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' }))), activate(ctx) {
+    context = ctx; config = ctx.use(Config); vaults = ctx.use(Vault); locations = ctx.use(VaultLocations);
     ctx.events.on(ConfigChanged, change => { changes.push(change); });
     if (options.prepare) ctx.hooks.register(PrepareVault, preparation => options.prepare(preparation, config));
   } }));
   const result = { host, files, dirs, calls, logs, changes, selections, select: (id, location = id) => selections.push({ id, location }) };
   if (options.autoStart === false || options.denied) return result;
   await host.start('test.consumer');
-  return { ...result, get config() { return config; }, get vaults() { return vaults; }, get context() { return context; } };
+  return { ...result, get config() { return config; }, get vaults() { return vaults; }, get locations() { return locations; }, get context() { return context; } };
 }
+
+test('location selection has no Vault side effects; Next opens once and persists the display name across restarts', async () => {
+  const s = await setup({ files: [['notes/existing.md', 'Keep me']] });
+  const location = { reference: 'notes', label: 'Folder' };
+  s.selections.push(ok(location));
+  assert.deepEqual(await s.locations.select(s.context.signal), ok(location));
+  assert.equal(s.vaults.current(), null); assert.equal(s.dirs.size, 0);
+  assert.equal(s.files.has('notes/.lunaris/config.toml'), false);
+  assert.equal((await s.locations.open(location, { name: 'My Notes' })).value.name, 'My Notes');
+  assert.equal(s.files.get('notes/existing.md'), 'Keep me');
+  assert.equal(parse(s.files.get('notes/.lunaris/config.toml')).plugins['lunaris.vault-manager'].name, 'My Notes');
+  assert.equal(s.calls.filter(c => c.operation === 'selectLocation').length, 1);
+  assert.equal(s.calls.filter(c => c.operation === 'attachLocation').length, 1);
+  const restored = await setup({ files: [...s.files], dirs: [...s.dirs] });
+  assert.equal((await restored.locations.open(location)).value.name, 'My Notes');
+  await s.host.stopAll(); await restored.host.stopAll(); s.host.assertNoResources(); restored.host.assertNoResources();
+});
+
+test('invalid names, inaccessible locations, and metadata save failure preserve the active Vault', async () => {
+  const s = await setup({ writeFailure: (path, args) => path === 'bad/.lunaris/config.toml' && args.options.mode === 'replace' ? 'ACCESS_DENIED' : undefined });
+  s.select('old'); await s.vaults.open();
+  for (const name of ['', '  ', ' padded', 'line\nbreak', 'x'.repeat(201)]) {
+    assert.equal((await s.locations.open({ reference: 'bad', label: 'Bad' }, { name })).error.code, 'INVALID_ARGUMENT');
+  }
+  assert.equal(s.calls.some(c => c.operation === 'attachLocation'), false);
+  assert.equal((await s.locations.open({ reference: 'bad', label: 'Bad' }, { name: 'New' })).error.code, 'PREPARATION_FAILED');
+  assert.equal(s.vaults.current().id, 'old');
+  const missing = await setup({ attachFailure: 'NOT_FOUND' });
+  missing.select('old'); await missing.vaults.open();
+  assert.equal((await missing.locations.open({ reference: 'gone', label: 'Gone' })).error.code, 'NOT_FOUND');
+  assert.equal(missing.vaults.current().id, 'old');
+  await s.host.stopAll(); await missing.host.stopAll(); s.host.assertNoResources(); missing.host.assertNoResources();
+});
 
 test('startup initializes global config without a Vault/dialog; selecting a Vault creates its working folder and config', async () => {
   const s = await setup();

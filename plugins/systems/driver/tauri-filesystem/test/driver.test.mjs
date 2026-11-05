@@ -3,19 +3,19 @@ import assert from 'node:assert/strict';
 import { definePlugin } from '@lunaris/sdk';
 import { createTestKernel } from '@lunaris/test';
 import { Logger } from '@lunaris/logging';
-import { FilesystemDriver, FilesystemRootsDriver, ApplicationDirectoryDriver, DriverFileChanged } from '@lunaris/filesystem';
+import { FilesystemDriver, FilesystemRootsDriver, FilesystemLocationsDriver, ApplicationDirectoryDriver, DriverFileChanged } from '@lunaris/filesystem';
 import { createTauriFilesystemDriver } from '@lunaris/tauri-filesystem';
 
 async function setup(native) {
   const host = createTestKernel({ initialGrants: { 'lunaris.tauri-filesystem': ['filesystem.native'], 'test.consumer': ['filesystem.access', 'filesystem.app-config'] } });
-  const logs = []; const changes = []; let api; let roots; let directories; let context;
+  const logs = []; const changes = []; let api; let roots; let locations; let directories; let context;
   host.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push([level, ...args]); return true; }])));
   host.register(createTauriFilesystemDriver(native));
   host.register(definePlugin({ manifest: { manifestVersion: 1, id: 'test.consumer', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js',
-    provides: [], requires: [FilesystemDriver, FilesystemRootsDriver, ApplicationDirectoryDriver, DriverFileChanged].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' })), permissions: ['filesystem.access', 'filesystem.app-config'], optionalPermissions: [] },
-  activate(ctx) { context = ctx; api = ctx.use(FilesystemDriver); roots = ctx.use(FilesystemRootsDriver); directories = ctx.use(ApplicationDirectoryDriver); ctx.events.on(DriverFileChanged, change => { changes.push(change); }); } }));
+    provides: [], requires: [FilesystemDriver, FilesystemRootsDriver, FilesystemLocationsDriver, ApplicationDirectoryDriver, DriverFileChanged].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' })), permissions: ['filesystem.access', 'filesystem.app-config'], optionalPermissions: [] },
+  activate(ctx) { context = ctx; api = ctx.use(FilesystemDriver); roots = ctx.use(FilesystemRootsDriver); locations = ctx.use(FilesystemLocationsDriver); directories = ctx.use(ApplicationDirectoryDriver); ctx.events.on(DriverFileChanged, change => { changes.push(change); }); } }));
   await host.start('test.consumer');
-  return { host, api, roots, directories, context, logs, changes };
+  return { host, api, roots, locations, directories, context, logs, changes };
 }
 
 test('driver contains transport errors, uses native session ownership and releases it on stop', async () => {
@@ -49,6 +49,30 @@ test('watch callbacks are scoped to registered watches and ignored after unwatch
 
 const deferred = () => { let resolve; const promise = new Promise(yes => { resolve = yes; }); return { promise, resolve }; };
 const flush = () => new Promise(resolve => setImmediate(resolve));
+
+test('location selection cancellation has no attachment; late attachments are released on owner stop', async () => {
+  const selected = deferred(); const attached = deferred(); const calls = [];
+  const s = await setup({ async request(session, operation, args) {
+    calls.push([operation, args]);
+    if (operation === 'selectLocation') return selected.promise;
+    if (operation === 'attachLocation') return attached.promise;
+    return { ok: true, value: null };
+  } });
+  const selectionOwner = s.context.scope.child();
+  const selection = s.locations.select(selectionOwner.signal);
+  await selectionOwner.dispose();
+  selected.resolve({ ok: true, value: { reference: 'saved', label: 'Notes' } });
+  assert.equal((await selection).error.code, 'VAULT_CLOSED');
+  assert.equal((await s.locations.select(selectionOwner.signal)).error.code, 'VAULT_CLOSED');
+  assert.equal(calls.filter(([op]) => op === 'selectLocation').length, 1);
+  const owner = s.context.scope.child();
+  const opening = s.locations.attach({ reference: 'saved', label: 'Notes' }, owner.signal);
+  await owner.dispose();
+  attached.resolve({ ok: true, value: { id: 'late', name: 'Notes' } });
+  assert.equal((await opening).error.code, 'VAULT_CLOSED');
+  assert.ok(calls.some(([op, args]) => op === 'closeVault' && args.vaultId === 'late'));
+  await s.host.stopAll(); s.host.assertNoResources(); assert.deepEqual(s.host.diagnostics(), []);
+});
 
 test('owned native roots close on owner stop without calling any SDK handle during whole-app shutdown', async () => {
   const calls = [];

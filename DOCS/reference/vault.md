@@ -12,8 +12,8 @@ The manager owns product context; the filesystem provider owns portable I/O and
 the driver owns native roots/watchers. Global application storage is independent
 of the active Vault; see [application storage](application-storage.md).
 TOML parsing and `.lunaris` creation belong to the separate [config manager](config.md).
-Recent history, restoration, document state, unsaved-change prompts and product UI
-are not implemented here.
+Document state, unsaved-change prompts and product UI are not implemented here.
+Durable location selection/restoration is exposed separately through `VaultLocations`.
 
 ## Consumer API
 
@@ -53,6 +53,36 @@ if (opened.ok && opened.value) {
 Filesystem use separately requires its API declaration and `filesystem.access`.
 Files always receive explicit Vault IDs. Snapshot that ID when work begins;
 never look up `current()` again to retarget a pending save after switching.
+
+## Explicit folder selection and opening
+
+Require `api:lunaris.vault-locations@^1.0.0`, declare `vault.access`, and acquire
+`ctx.use(VaultLocations)`. `select(ownerSignal)` returns
+`VaultResult<FolderLocation | null>` without attaching or preparing a Vault.
+The selected `{ reference, label }` is serializable; persist it for recent history.
+The reference belongs to the driver and must never be parsed, used as a path, or
+logged. The label is presentation text, not authority.
+
+`open(location, { name? })` returns `VaultResult<VaultRoot>` and uses the selected
+location without another dialog. Both methods share the existing transition lock;
+concurrent selection/open/close returns `BUSY`. Opening attaches a manager-owned
+root, prepares it, and replaces the old Vault only on success. Expired locations
+return filesystem errors; no implicit fallback or folder creation occurs.
+
+An explicit name is a trimmed, nonempty string of at most 200 UTF-16 code units,
+without control characters. It is a display name; no subdirectory is created.
+Config Manager persists it in the `lunaris.vault-manager` namespace before
+readiness. Without that metadata provider, explicitly named opening fails rather
+than claiming to save the name. Omitting the name restores stored metadata or
+uses the native folder name. Invalid stored metadata rejects preparation.
+
+`PrepareVault` and `VaultChanged` are now version `1.1.0` (compatible requirement
+ranges remain `^1.0.0`). Preparation accepts optional `requestedName` and
+`displayName`; handlers must preserve root identity and preceding errors.
+Configuration preparation resolves/persists `displayName`; the manager applies it
+after hooks complete. Successful `VaultLocations.open` change events include the
+immutable location. Legacy `Vault.open()` remains available, but its events have
+no persistent location and cannot populate durable recent history.
 
 ## Preparation and publication
 

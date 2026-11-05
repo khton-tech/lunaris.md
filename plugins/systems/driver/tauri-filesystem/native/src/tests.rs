@@ -2,6 +2,106 @@ use super::*;
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
+#[test]
+fn folder_locations_survive_backend_restart_without_preparing_or_attaching() {
+    let f = Fixture::new();
+    let config = f.path.join("app-config");
+    let vault_path = f.path.join("vault");
+    std::fs::write(vault_path.join("existing.md"), "preserved").unwrap();
+    let location = {
+        let mut backend = f.backend.lock().unwrap();
+        backend.config_directory = Some(config.clone());
+        let before = backend.sessions["test"].len();
+        let selected = backend.register_location(vault_path.clone()).unwrap();
+        assert_eq!(
+            selected,
+            backend.register_location(vault_path.clone()).unwrap()
+        );
+        assert_eq!(backend.sessions["test"].len(), before);
+        assert!(selected.get("path").is_none());
+        assert!(!vault_path.join(".lunaris").exists());
+        selected
+    };
+    let mut restarted = Backend::with_config_directory(config);
+    restarted.execute("restored", Request::Begin, None).unwrap();
+    let attached = restarted
+        .execute(
+            "restored",
+            Request::AttachLocation {
+                reference: location["reference"].as_str().unwrap().into(),
+            },
+            None,
+        )
+        .unwrap();
+    assert_eq!(attached["name"], "vault");
+    assert_eq!(
+        restarted
+            .root("restored", attached["id"].as_str().unwrap())
+            .unwrap()
+            .read("existing.md")
+            .unwrap(),
+        b"preserved"
+    );
+    assert!(!vault_path.join(".lunaris").exists());
+    restarted.sessions.clear();
+}
+
+#[test]
+fn folder_locations_reject_unknown_corrupt_missing_and_closed_requests() {
+    let f = Fixture::new();
+    let mut backend = f.backend.lock().unwrap();
+    backend.config_directory = Some(f.path.join("app-config"));
+    assert_eq!(
+        backend.resolve_location("../../vault").unwrap_err().code,
+        "INVALID_ARGUMENT"
+    );
+    assert_eq!(
+        backend
+            .resolve_location(&format!("tauri-folder-v1-{}", "0".repeat(64)))
+            .unwrap_err()
+            .code,
+        "NOT_FOUND"
+    );
+    let location = backend.register_location(f.path.join("vault")).unwrap();
+    let reference = location["reference"].as_str().unwrap();
+    assert_eq!(
+        backend
+            .execute(
+                "closed",
+                Request::AttachLocation {
+                    reference: reference.into()
+                },
+                None
+            )
+            .unwrap_err()
+            .code,
+        "VAULT_CLOSED"
+    );
+    backend.sessions.clear();
+    f.parent
+        .rename(
+            Path::new(&f.name).join("vault"),
+            &f.parent,
+            Path::new(&f.name).join("moved"),
+        )
+        .unwrap();
+    assert_eq!(
+        backend.resolve_location(reference).unwrap_err().code,
+        "NOT_FOUND"
+    );
+    std::fs::write(
+        f.path
+            .join("app-config/folder-locations-v1")
+            .join(format!("{reference}.json")),
+        b"{}",
+    )
+    .unwrap();
+    assert_eq!(
+        backend.resolve_location(reference).unwrap_err().code,
+        "CONFLICT"
+    );
+}
+
 struct Fixture {
     backend: SharedBackend,
     parent: Dir,

@@ -6,8 +6,16 @@
   "sdk": "^0.1.0",
   "entry": "./dist/src/index.js",
   "provides": [
-    { "kind": "api", "id": "lunaris.filesystem-roots-driver", "version": "1.0.0" },
-    { "kind": "api", "id": "lunaris.application-directory-driver", "version": "1.0.0" },
+    {
+      "kind": "api",
+      "id": "lunaris.filesystem-roots-driver",
+      "version": "1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.application-directory-driver",
+      "version": "1.0.0"
+    },
     {
       "kind": "api",
       "id": "lunaris.filesystem-driver",
@@ -16,6 +24,11 @@
     {
       "kind": "event",
       "id": "lunaris.filesystem-driver-changed",
+      "version": "1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.filesystem-locations-driver",
       "version": "1.0.0"
     }
   ],

@@ -12,6 +12,27 @@ export interface FsFailure {
 export type FsResult<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: FsFailure };
 export interface FileTarget { readonly vaultId: string; readonly path: string }
 export interface VaultRoot { readonly id: string; readonly name: string }
+/** Durable driver-owned reference, not a path or an attached root ID. */
+export interface FolderLocation { readonly reference: string; readonly label: string }
+export function validFolderLocation(value: unknown): value is FolderLocation {
+  if (value === null || typeof value !== "object") return false;
+  const item = value as Partial<FolderLocation>;
+  return typeof item.reference === "string" && item.reference.length > 0 && item.reference.length <= 512 &&
+    typeof item.label === "string" && item.label.length > 0 && item.label.length <= 4096;
+}
+export interface FilesystemLocationsApi {
+  /** Select without attaching a root or preparing Vault files. Cancellation is successful null. */
+  select(owner: CancellationSignal): Promise<FsResult<FolderLocation | null>>;
+  attach(location: FolderLocation, owner: CancellationSignal): Promise<FsResult<VaultRoot>>;
+}
+const validLocationsApi = (value: unknown): boolean => value !== null && typeof value === "object" &&
+  ["select", "attach"].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function");
+export const FilesystemLocations = defineApi<FilesystemLocationsApi>({
+  id: "lunaris.filesystem-locations", version: "1.0.0", consumePermission: "filesystem.access", validate: validLocationsApi,
+});
+export const FilesystemLocationsDriver = defineApi<FilesystemLocationsApi>({
+  id: "lunaris.filesystem-locations-driver", version: "1.0.0", providePermission: "filesystem.native", consumePermission: "filesystem.access", validate: validLocationsApi,
+});
 export interface FileInfo { readonly path: string; readonly kind: "file" | "directory" | "symlink" | "other"; readonly size: number; readonly modifiedAt: number | null }
 export interface TextFile { readonly text: string; readonly version: string }
 export interface BinaryFile { readonly data: readonly number[]; readonly version: string }

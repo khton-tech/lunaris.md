@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { definePlugin } from '@lunaris/sdk';
 import { createTestKernel } from '@lunaris/test';
 import { Logger } from '@lunaris/logging';
-import { Filesystem, FilesystemDriver, FilesystemRoots, FilesystemRootsDriver, ApplicationDirectory, ApplicationDirectoryDriver, DriverFileChanged, FileChanged, filesystemMethods } from '@lunaris/filesystem';
+import { Filesystem, FilesystemDriver, FilesystemRoots, FilesystemRootsDriver, FilesystemLocationsDriver, ApplicationDirectory, ApplicationDirectoryDriver, DriverFileChanged, FileChanged, filesystemMethods } from '@lunaris/filesystem';
 import filesystem from '@lunaris/filesystem-provider';
 
 const manifest = (id, provides = [], requires = [], permissions = []) => ({ manifestVersion: 1, id, version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides, requires, permissions, optionalPermissions: [] });
@@ -18,6 +18,7 @@ async function setup(implementation = {}, options = {}) {
   methods.capabilities = () => ({ watch: true, atomicReplace: true, versionCheck: 'optimistic', trash: false, maxFileBytes: 1024 });
   Object.assign(methods, implementation);
   host.installMock(FilesystemRootsDriver, { selectVault: owner => methods.selectVault(owner) }, { grants: ['filesystem.native'] });
+  host.installMock(FilesystemLocationsDriver, { select: async () => ({ ok: true, value: null }), attach: async () => ({ ok: false, error: { code: 'NOT_FOUND', message: 'Missing location' } }) }, { grants: ['filesystem.native'] });
   host.register(definePlugin({ manifest: manifest('test.driver', [{ kind: 'api', id: FilesystemDriver.id, version: '1.0.0' }, { kind: 'event', id: DriverFileChanged.id, version: '1.0.0' }], [], ['filesystem.native']), activate(ctx) { driverContext = ctx; ctx.provide(FilesystemDriver, methods); } }));
   host.register(filesystem);
   host.register(definePlugin({ manifest: manifest('test.consumer', [], requires, ['filesystem.access', 'filesystem.app-config']), activate(ctx) { consumerContext = ctx; api = ctx.use(Filesystem); ownedRoots = ctx.use(FilesystemRoots); directories = ctx.use(ApplicationDirectory); ctx.events.on(FileChanged, change => { changes.push(change); }); } }));

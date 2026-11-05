@@ -6,8 +6,16 @@
   "sdk": "^0.1.0",
   "entry": "./dist/src/index.js",
   "provides": [
-    { "kind": "api", "id": "lunaris.application-directory", "version": "1.0.0" },
-    { "kind": "api", "id": "lunaris.filesystem-roots", "version": "1.0.0" },
+    {
+      "kind": "api",
+      "id": "lunaris.application-directory",
+      "version": "1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.filesystem-roots",
+      "version": "1.0.0"
+    },
     {
       "kind": "api",
       "id": "lunaris.filesystem",
@@ -17,11 +25,24 @@
       "kind": "event",
       "id": "lunaris.filesystem-changed",
       "version": "1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.filesystem-locations",
+      "version": "1.0.0"
     }
   ],
   "requires": [
-    { "kind": "api", "id": "lunaris.filesystem-roots-driver", "range": "^1.0.0" },
-    { "kind": "api", "id": "lunaris.application-directory-driver", "range": "^1.0.0" },
+    {
+      "kind": "api",
+      "id": "lunaris.filesystem-roots-driver",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.application-directory-driver",
+      "range": "^1.0.0"
+    },
     {
       "kind": "api",
       "id": "lunaris.filesystem-driver",
@@ -35,6 +56,11 @@
     {
       "kind": "api",
       "id": "lunaris.logger",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.filesystem-locations-driver",
       "range": "^1.0.0"
     }
   ],

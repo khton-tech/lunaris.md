@@ -18,6 +18,14 @@ Existing files are validated without being rewritten. Invalid global config fail
 activation. Failed local preparation preserves the previous active Vault.
 Creation uses `create` mode; an external creation race reads/validates the winner.
 
+Vault preparation also resolves display names from
+`[plugins."lunaris.vault-manager"].name`. An explicit `requestedName` is persisted
+with version checking before readiness; otherwise a valid saved name is restored.
+Invalid saved names reject preparation. Unrelated namespaces and root metadata
+remain preserved. Display names do not rename folders or create subdirectories.
+Metadata saves during preparation do not emit `ConfigChanged`; consumers observe
+the committed `VaultChanged` instead.
+
 ```toml
 [plugins."example.editor"]
 theme = "dark"

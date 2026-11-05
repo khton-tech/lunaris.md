@@ -1,8 +1,8 @@
 import { definePlugin } from "@lunaris/sdk";
 import type { ResourceScope } from "@lunaris/sdk";
-import { Filesystem, FilesystemRoots } from "@lunaris/filesystem";
-import type { VaultRoot } from "@lunaris/filesystem";
-import { Vault, VaultChanged, PrepareVault } from "@lunaris/vault";
+import { Filesystem, FilesystemRoots, FilesystemLocations, validFolderLocation } from "@lunaris/filesystem";
+import type { FolderLocation, VaultRoot } from "@lunaris/filesystem";
+import { Vault, VaultLocations, VaultChanged, PrepareVault, validVaultName } from "@lunaris/vault";
 import type { VaultChange, VaultResult } from "@lunaris/vault";
 import { Logger } from "@lunaris/logging";
 import manifest from "../manifest.json" with { type: "json" };
@@ -15,6 +15,7 @@ export default definePlugin({ manifest, activate(ctx) {
   logger.debug(ctx.pluginId, "Activating Vault Manager");
   const fs = ctx.use(Filesystem);
   const roots = ctx.use(FilesystemRoots);
+  const locations = ctx.use(FilesystemLocations);
   let active: Attachment | null = null;
   let busy = false;
   ctx.scope.own({ dispose() { active = null; } });
@@ -51,58 +52,80 @@ export default definePlugin({ manifest, activate(ctx) {
     } finally { await candidate.scope.dispose(); }
   }
 
+  async function open(location?: FolderLocation, name?: string): Promise<VaultResult<VaultRoot | null>> {
+    let change: VaultChange | undefined;
+    const result = await transition<VaultRoot | null>("open", async () => {
+      const scope = ctx.scope.child();
+      let candidate: Attachment | null = null;
+      let committed = false;
+      try {
+        const selected = location ? await locations.attach(location, scope.signal) : await roots.selectVault(scope.signal);
+        if (ctx.signal.aborted) return failed("STOPPED", "The Vault Manager is stopped.");
+        if (!selected.ok || selected.value === null) {
+          if (selected.ok) logger.debug(ctx.pluginId, "Vault selection cancelled");
+          return selected;
+        }
+        candidate = { vault: Object.freeze({ ...selected.value }), scope };
+        try {
+          const prepared = await ctx.hooks.run(PrepareVault, Object.freeze({ vault: candidate.vault, error: null, ...(name === undefined ? {} : { requestedName: name }) }));
+          if (ctx.signal.aborted) return failed("STOPPED", "The Vault Manager is stopped.");
+          if (prepared.error !== null || prepared.vault.id !== candidate.vault.id || prepared.vault.name !== candidate.vault.name) {
+            const message = prepared.error ?? "Vault preparation changed the selected identity.";
+            logger.error(ctx.pluginId, "Vault preparation declined", { code: "PREPARATION_FAILED", error: prepared.error, data: { vaultId: candidate.vault.id } });
+            return failed("PREPARATION_FAILED", message);
+          }
+          if (name !== undefined && prepared.displayName !== name) {
+            return failed("PREPARATION_FAILED", "No metadata provider persisted the requested Vault name.");
+          }
+          if (prepared.displayName !== undefined) candidate = { ...candidate, vault: Object.freeze({ ...candidate.vault, name: prepared.displayName }) };
+        } catch (error) {
+          if (ctx.signal.aborted) return failed("STOPPED", "The Vault Manager is stopped.");
+          logger.error(ctx.pluginId, "Vault preparation failed", { code: "PREPARATION_FAILED", error, data: { vaultId: candidate.vault.id } });
+          return failed("PREPARATION_FAILED", "Vault preparation failed.");
+        }
+        const previous = active;
+        if (previous) {
+          const closed = await fs.closeVault(previous.vault.id);
+          if (ctx.signal.aborted) return failed("STOPPED", "The Vault Manager is stopped.");
+          if (!closed.ok && closed.error.code !== "VAULT_CLOSED") return closed;
+          await previous.scope.dispose();
+        }
+        if (ctx.signal.aborted) return failed("STOPPED", "The Vault Manager is stopped.");
+        active = candidate;
+        committed = true;
+        change = { kind: previous ? "switched" : "opened", previous: previous?.vault ?? null, current: candidate.vault, ...(location ? { location } : {}) };
+        return { ok: true, value: candidate.vault };
+      } finally {
+        if (!committed) {
+          if (candidate) await discard(candidate);
+          else await scope.dispose();
+        }
+      }
+    });
+    // The transition lock is released before invoking event listeners.
+    if (change && !ctx.signal.aborted) changed(change);
+    return result;
+  }
+  ctx.provide(VaultLocations, {
+    async select(owner) {
+      return transition("selectLocation", async () => {
+        const result = await locations.select(owner);
+        return ctx.signal.aborted ? failed("STOPPED", "The Vault Manager is stopped.") : result;
+      });
+    },
+    async open(location, options) {
+      if (!validFolderLocation(location) || (options !== undefined && (options === null || typeof options !== "object" ||
+        Object.keys(options).some(key => key !== "name") || (options.name !== undefined && !validVaultName(options.name))))) {
+        return { ok: false, error: { code: "INVALID_ARGUMENT", message: "A valid location and optional display name are required." } };
+      }
+      const result = await open(Object.freeze({ reference: location.reference, label: location.label }), options?.name);
+      if (!result.ok) return result;
+      return result.value === null ? failed("PREPARATION_FAILED", "The selected location could not be attached.") : { ok: true, value: result.value };
+    },
+  });
   ctx.provide(Vault, {
     current: () => active?.vault ?? null,
-    open: async () => {
-      let change: VaultChange | undefined;
-      const result = await transition<VaultRoot | null>("open", async () => {
-        const scope = ctx.scope.child();
-        let candidate: Attachment | null = null;
-        let committed = false;
-        try {
-          const selected = await roots.selectVault(scope.signal);
-          if (ctx.signal.aborted) return failed("STOPPED", "The Vault Manager is stopped.");
-          if (!selected.ok || selected.value === null) {
-            if (selected.ok) logger.debug(ctx.pluginId, "Vault selection cancelled");
-            return selected;
-          }
-          candidate = { vault: Object.freeze({ ...selected.value }), scope };
-          try {
-            const prepared = await ctx.hooks.run(PrepareVault, Object.freeze({ vault: candidate.vault, error: null }));
-            if (ctx.signal.aborted) return failed("STOPPED", "The Vault Manager is stopped.");
-            if (prepared.error !== null || prepared.vault.id !== candidate.vault.id || prepared.vault.name !== candidate.vault.name) {
-              const message = prepared.error ?? "Vault preparation changed the selected identity.";
-              logger.error(ctx.pluginId, "Vault preparation declined", { code: "PREPARATION_FAILED", error: prepared.error, data: { vaultId: candidate.vault.id } });
-              return failed("PREPARATION_FAILED", message);
-            }
-          } catch (error) {
-            if (ctx.signal.aborted) return failed("STOPPED", "The Vault Manager is stopped.");
-            logger.error(ctx.pluginId, "Vault preparation failed", { code: "PREPARATION_FAILED", error, data: { vaultId: candidate.vault.id } });
-            return failed("PREPARATION_FAILED", "Vault preparation failed.");
-          }
-          const previous = active;
-          if (previous) {
-            const closed = await fs.closeVault(previous.vault.id);
-            if (ctx.signal.aborted) return failed("STOPPED", "The Vault Manager is stopped.");
-            if (!closed.ok && closed.error.code !== "VAULT_CLOSED") return closed;
-            await previous.scope.dispose();
-          }
-          if (ctx.signal.aborted) return failed("STOPPED", "The Vault Manager is stopped.");
-          active = candidate;
-          committed = true;
-          change = { kind: previous ? "switched" : "opened", previous: previous?.vault ?? null, current: candidate.vault };
-          return { ok: true, value: candidate.vault };
-        } finally {
-          if (!committed) {
-            if (candidate) await discard(candidate);
-            else await scope.dispose();
-          }
-        }
-      });
-      // The transition lock is released before invoking event listeners.
-      if (change && !ctx.signal.aborted) changed(change);
-      return result;
-    },
+    open: () => open(),
     close: async () => {
       let change: VaultChange | undefined;
       const result = await transition<null>("close", async () => {

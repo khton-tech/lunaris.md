@@ -1,5 +1,10 @@
 # Config manager plugin
 
+Vault preparation resolves/persists the optional display name in
+`plugins."lunaris.vault-manager".name` before activation. This uses the public
+`PrepareVault@1.1.0` metadata fields and versioned writes, preserves other config
+values, and rejects invalid stored names. See [display-name preparation](../../../../DOCS/reference/config.md).
+
 Purpose: persist plugin TOML settings in the application config directory and
 `.lunaris/config.toml` per Vault. Local values override global values; tables merge
 recursively and arrays/scalars replace global values.

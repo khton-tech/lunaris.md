@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Vault, VaultChanged, PrepareVault } from '@lunaris/vault';
+import { Vault, VaultLocations, VaultChanged, PrepareVault, validVaultName } from '@lunaris/vault';
 
 test('Vault contracts validate methods, lifecycle transitions and preparation payloads', () => {
   const first = { id: 'a', name: 'Notes' }; const second = { id: 'b', name: 'Work' };
@@ -18,4 +18,11 @@ test('Vault contracts validate methods, lifecycle transitions and preparation pa
   assert.equal(PrepareVault.validate({ vault: first, error: null }), true);
   assert.equal(PrepareVault.validate({ vault: first, error: 'Cannot initialize' }), true);
   assert.equal(PrepareVault.validate({ vault: first }), false);
+  assert.equal(PrepareVault.validate({ vault: first, error: null, requestedName: 'Notes', displayName: 'Saved' }), true);
+  assert.equal(PrepareVault.validate({ vault: first, error: null, displayName: '' }), false);
+  assert.equal(VaultLocations.validate({ select() {}, open() {} }), true);
+  assert.equal(VaultLocations.validate({ open() {} }), false);
+  assert.equal(VaultChanged.validate({ kind: 'opened', previous: null, current: first, location: { reference: 'saved', label: 'Notes' } }), true);
+  assert.equal(VaultChanged.validate({ kind: 'closed', previous: first, current: null, location: { reference: 'saved', label: 'Notes' } }), false);
+  for (const name of ['', ' padded ', '\u0000', 'x'.repeat(201)]) assert.equal(validVaultName(name), false);
 });

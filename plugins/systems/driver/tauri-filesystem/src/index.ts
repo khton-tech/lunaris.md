@@ -1,6 +1,7 @@
 import { definePlugin } from "@lunaris/sdk";
-import { FilesystemDriver, FilesystemRootsDriver, ApplicationDirectoryDriver, DriverFileChanged, failure } from "@lunaris/filesystem";
-import type { FileChange, FsResult, FsCapabilities } from "@lunaris/filesystem";
+import { FilesystemDriver, FilesystemRootsDriver, FilesystemLocationsDriver, ApplicationDirectoryDriver, DriverFileChanged, failure, validFolderLocation } from "@lunaris/filesystem";
+import type { CancellationSignal } from "@lunaris/sdk";
+import type { FileChange, FolderLocation, FsResult, FsCapabilities } from "@lunaris/filesystem";
 import { Logger } from "@lunaris/logging";
 import { nativeFilesystem, createSessionId } from "./native.js";
 import type { NativeFilesystem } from "./native.js";
@@ -57,6 +58,23 @@ export function createTauriFilesystemDriver(native: NativeFilesystem = nativeFil
     if (!opened.ok) throw new Error(`Cannot initialize native filesystem: ${opened.error.code}`);
     ctx.provide(ApplicationDirectoryDriver, { openConfig: owner => roots.acquire(owner, () => request("openConfig")) });
     ctx.provide(FilesystemRootsDriver, { selectVault: owner => roots.acquire(owner, () => request("selectVault")) });
+    function liveOwner(owner: CancellationSignal): boolean {
+      return !!owner && typeof owner.aborted === "boolean" && typeof owner.addEventListener === "function" && typeof owner.removeEventListener === "function";
+    }
+    ctx.provide(FilesystemLocationsDriver, {
+      async select(owner) {
+        if (!liveOwner(owner)) return failure("INVALID_ARGUMENT", "A cancellation signal is required.");
+        if (owner.aborted || ctx.signal.aborted) return failure("VAULT_CLOSED", "The location owner is stopped.");
+        const selected = await request<FolderLocation | null>("selectLocation");
+        if (owner.aborted || ctx.signal.aborted) return failure("VAULT_CLOSED", "The location owner stopped during selection.");
+        if (selected.ok && selected.value !== null && !validFolderLocation(selected.value)) return failure("IO_ERROR", "The driver returned an invalid location.");
+        return selected;
+      },
+      attach(location, owner) {
+        if (!validFolderLocation(location)) return Promise.resolve(failure("INVALID_ARGUMENT", "A valid folder location is required."));
+        return roots.acquire(owner, () => request("attachLocation", { reference: location.reference }));
+      },
+    });
     ctx.provide(FilesystemDriver, {
       capabilities: () => capabilities,
       selectVault: () => request("selectVault"),

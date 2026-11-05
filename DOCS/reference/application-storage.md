@@ -42,6 +42,31 @@ releases resources, not stored files. No selection dialog is needed.
 requires `filesystem.access`. Use `ctx.signal` or a child scope signal. The legacy
 `Filesystem.selectVault()` remains available for low-level driver-session ownership.
 
+## Durable folder locations
+
+`FilesystemLocations` (`api:lunaris.filesystem-locations@1.0.0`) delegates to
+`FilesystemLocationsDriver` and requires `filesystem.access`. Product UI should
+use the higher-level `VaultLocations` API instead.
+
+- `select(ownerSignal)` returns `FsResult<FolderLocation | null>` after a user
+  selection. It does not attach a root or create Vault files. Cancellation is null.
+- `attach(location, ownerSignal)` returns a new owned `VaultRoot` for ordinary
+  filesystem operations. Late attachment after cancellation is released.
+- `FolderLocation` contains an opaque serializable `reference` and a display
+  `label`. A session root ID is never a persistent reference. Providers snapshot
+  inputs and log only operation/error classifications.
+
+The Tauri driver records canonical selected paths in individual atomic JSON files
+under the host's application directory, `folder-locations-v1/`. A versioned hash
+reference identifies each record. Re-selecting the same canonical path deduplicates
+it; restarting the host does not invalidate it. Attach validates the reference,
+record digest and canonical target, then opens a fresh capability. Unknown or moved
+locations return `NOT_FOUND`; changed/corrupt records return `CONFLICT`; an
+unsupported host returns `UNSUPPORTED`. Native paths do not cross the plugin API.
+These are cooperative local capabilities, not isolation against hostile plugins
+with application-config access. OS bookmark/permission restoration for other
+targets belongs in their replacement drivers; no unsupported target is emulated.
+
 ## Closing and errors
 
 `Filesystem.closeVault(id)` immediately blocks new operations, waits for all

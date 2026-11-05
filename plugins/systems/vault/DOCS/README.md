@@ -18,7 +18,14 @@ consumers; the manager runs the hook through its advertised SDK contract.
 
 Owned-root cancellation is implemented in the native driver; the manager never
 calls SDK handles from cleanup. Startup opens no selection dialog. UI, config
-creation, recent history and restoration are separate responsibilities.
+creation and recent history are separate responsibilities.
+
+`api:lunaris.vault-locations@1.0.0` supplies `select(ownerSignal)` and
+`open(location, { name? })` through the filesystem location provider/driver.
+Selection has no Vault side effects; opening reuses preparation and coordinated
+closure. Config Manager persists display names through preparation metadata.
+`PrepareVault` and `VaultChanged` are provided at `1.1.0`; named opens fail if no
+metadata handler confirms persistence. See [the public reference](../../../../DOCS/reference/vault.md#explicit-folder-selection-and-opening).
 
 See the [complete API/lifecycle reference](../../../../DOCS/reference/vault.md).
 Run `npm run vault:check` from the repository root.

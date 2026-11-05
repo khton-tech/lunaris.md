@@ -1,5 +1,12 @@
 # Tauri filesystem driver
 
+Also provides `api:lunaris.filesystem-locations-driver@1.0.0` with `select(owner)`
+and `attach(location, owner)`. Native `selectLocation` persists an opaque reference
+without attaching/preparing a Vault; `attachLocation` restores a registered folder
+without a dialog. The native registry lives in the application config directory;
+paths remain native. Owner cancellation releases late attachments. See
+[location persistence and errors](../../../../../DOCS/reference/application-storage.md#durable-folder-locations).
+
 Provides `api:lunaris.filesystem-driver@1.0.0` and
 `event:lunaris.filesystem-driver-changed@1.0.0`; requires Logger and the host grant
 `filesystem.native`. All inter-plugin communication uses SDK contracts. Tauri IPC

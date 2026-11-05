@@ -1,5 +1,5 @@
 import { definePlugin } from "@lunaris/sdk";
-import { Filesystem, FilesystemDriver, FilesystemRoots, FilesystemRootsDriver, ApplicationDirectory, ApplicationDirectoryDriver, FileChanged, DriverFileChanged, failure, validTarget } from "@lunaris/filesystem";
+import { Filesystem, FilesystemDriver, FilesystemRoots, FilesystemRootsDriver, FilesystemLocations, FilesystemLocationsDriver, ApplicationDirectory, ApplicationDirectoryDriver, FileChanged, DriverFileChanged, failure, validTarget, validFolderLocation } from "@lunaris/filesystem";
 import type { FileTarget, FsResult, WriteOptions } from "@lunaris/filesystem";
 import { Logger } from "@lunaris/logging";
 import manifest from "../manifest.json" with { type: "json" };
@@ -11,6 +11,7 @@ export default definePlugin({ manifest, activate(ctx) {
   const driver = ctx.use(FilesystemDriver);
   const directories = ctx.use(ApplicationDirectoryDriver);
   const ownedRoots = ctx.use(FilesystemRootsDriver);
+  const locations = ctx.use(FilesystemLocationsDriver);
   const roots = createRootLifecycle(ctx, id => call("closeVault", () => driver.closeVault(id)));
   const snapshot = (target: FileTarget): FileTarget => Object.freeze({ vaultId: target.vaultId, path: target.path });
   async function call<T>(operation: string, work: () => Promise<FsResult<T>>, target?: FileTarget): Promise<FsResult<T>> {
@@ -76,6 +77,14 @@ export default definePlugin({ manifest, activate(ctx) {
     unwatch: (vaultId, watchId) => roots.run(vaultId, () => call("unwatch", () => driver.unwatch(vaultId, watchId))),
   });
   ctx.provide(FilesystemRoots, { selectVault: owner => call("selectVault", () => ownedRoots.selectVault(owner)) });
+  ctx.provide(FilesystemLocations, {
+    select: owner => call("selectLocation", () => locations.select(owner)),
+    attach(location, owner) {
+      if (!validFolderLocation(location)) return Promise.resolve(failure("INVALID_ARGUMENT", "A valid folder location is required."));
+      const copy = Object.freeze({ reference: location.reference, label: location.label });
+      return call("attachLocation", () => locations.attach(copy, owner));
+    },
+  });
   ctx.provide(ApplicationDirectory, { openConfig: owner => call("openConfig", () => directories.openConfig(owner)) });
   logger.info(ctx.pluginId, "Filesystem provider ready", { code: "FILESYSTEM_READY" });
 } });

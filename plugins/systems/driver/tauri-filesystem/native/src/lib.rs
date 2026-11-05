@@ -1,3 +1,4 @@
+mod locations;
 mod no_replace;
 mod operations;
 #[cfg(test)]
@@ -82,6 +83,10 @@ pub enum Request {
     Begin,
     End,
     SelectVault,
+    SelectLocation,
+    AttachLocation {
+        reference: String,
+    },
     OpenConfig,
     CloseVault {
         vault_id: String,
@@ -269,6 +274,13 @@ impl Backend {
                 std::fs::create_dir_all(&path)?;
                 self.attach(session, path)
             }
+            Request::AttachLocation { reference } => {
+                if !self.sessions.contains_key(session) {
+                    return Err(fail("VAULT_CLOSED", "The filesystem session is closed."));
+                }
+                let path = self.resolve_location(&reference)?;
+                self.attach(session, path)
+            }
             Request::CloseVault { vault_id } => {
                 self.root(session, &vault_id)?;
                 self.sessions.get_mut(session).unwrap().remove(&vault_id);
@@ -430,6 +442,21 @@ pub fn dispatch(
             }
             match rfd::FileDialog::new().pick_folder() {
                 Some(path) => lock(&state)?.attach(&session, path),
+                None => Ok(Value::Null),
+            }
+        }
+        Request::SelectLocation => {
+            if !lock(&state)?.sessions.contains_key(&session) {
+                return Err(fail("VAULT_CLOSED", "The filesystem session is closed."));
+            }
+            match rfd::FileDialog::new().pick_folder() {
+                Some(path) => {
+                    let backend = lock(&state)?;
+                    if !backend.sessions.contains_key(&session) {
+                        return Err(fail("VAULT_CLOSED", "The filesystem session is closed."));
+                    }
+                    backend.register_location(path)
+                }
                 None => Ok(Value::Null),
             }
         }
