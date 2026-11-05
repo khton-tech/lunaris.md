@@ -5,10 +5,17 @@ This document does not introduce executable APIs. Follow [UI guidelines](../UI_G
 
 ## Interface
 
-Use two panels: actions on the left (two thirds), recent Vaults on the right
-(one third). This placement interprets the requested actions as the left panel.
+Use two panels: recent Vaults on the left (one third), actions on the right
+(two thirds).
 On narrow surfaces, stack actions before recents; permit wrapping and scrolling
 without clipping controls or long folder labels.
+
+Place the existing ASCII logo from `resources/ascii_art.txt` above the actions
+in the right panel. Supply the artwork through trusted host composition, as
+with Lunaris Runner; the selector must not read repository files directly.
+Preserve whitespace and monospace rendering, inherit the active theme, provide
+a localized accessible name, and keep the logo non-selectable. Adapt its size
+to the available width without distorting it or forcing page-wide overflow.
 
 Initially show two actions: Create Vault and Select Vault. Each expands a card
 directly below its action; only one card is expanded at a time.
