@@ -1,19 +1,17 @@
-import type { CancellationSignal, PluginContext } from "@lunaris/sdk";
+import type { PluginContext } from "@lunaris/sdk";
 import { failure } from "@lunaris/filesystem";
-import type { FsResult, VaultRoot } from "@lunaris/filesystem";
+import type { FsResult } from "@lunaris/filesystem";
 
 interface RootState {
   pending: Set<Promise<unknown>>;
   closed: boolean;
   closing?: Promise<FsResult<null>>;
-  detach?: () => void;
 }
 
 /** Provider-local coordination; native resources still belong to the driver session. */
 export function createRootLifecycle(
   ctx: PluginContext,
   release: (id: string) => Promise<FsResult<null>>,
-  report: (error: unknown) => void,
 ) {
   const roots = new Map<string, RootState>();
   const state = (id: string): RootState => {
@@ -44,45 +42,15 @@ export function createRootLifecycle(
         const result = await release(id);
         if (result.ok || result.error.code === "VAULT_CLOSED") {
           root.closed = true;
-          root.detach?.();
-          delete root.detach;
         }
         return result;
       } finally { delete root.closing; }
     });
     return root.closing;
   }
-  async function acquire<T extends VaultRoot | null>(
-    owner: CancellationSignal,
-    open: () => Promise<FsResult<T>>,
-  ): Promise<FsResult<T>> {
-    if (!owner || typeof owner.aborted !== "boolean" || typeof owner.addEventListener !== "function" || typeof owner.removeEventListener !== "function") {
-      return failure("INVALID_ARGUMENT", "A cancellation signal is required to own a root.");
-    }
-    if (owner.aborted) return failure("VAULT_CLOSED", "The root owner is stopped.");
-    const result = await open();
-    if (!result.ok || result.value === null) return result;
-    const root = result.value;
-    if (ctx.signal.aborted) return failure("VAULT_CLOSED", "The filesystem provider is stopped.");
-    const onAbort = () => {
-      if (!ctx.signal.aborted) void close(root.id).then(closed => {
-        if (!closed.ok && closed.error.code !== "VAULT_CLOSED") report(closed.error);
-      }).catch(report);
-    };
-    if (owner.aborted) {
-      const closed = await close(root.id);
-      if (!closed.ok && closed.error.code !== "VAULT_CLOSED") report(closed.error);
-      return failure("VAULT_CLOSED", "The root owner stopped during selection.");
-    }
-    state(root.id).detach = () => owner.removeEventListener("abort", onAbort);
-    owner.addEventListener("abort", onAbort, { once: true });
-    Object.freeze(root);
-    return result;
-  }
   ctx.scope.own({ dispose() {
-    for (const root of roots.values()) root.detach?.();
     roots.clear();
     // The driver disposes its native session; closed SDK handles are never called.
   } });
-  return { run, close, acquire };
+  return { run, close };
 }

@@ -1,10 +1,11 @@
 import { definePlugin } from "@lunaris/sdk";
-import { FilesystemDriver, ApplicationDirectoryDriver, DriverFileChanged, failure } from "@lunaris/filesystem";
+import { FilesystemDriver, FilesystemRootsDriver, ApplicationDirectoryDriver, DriverFileChanged, failure } from "@lunaris/filesystem";
 import type { FileChange, FsResult, FsCapabilities } from "@lunaris/filesystem";
 import { Logger } from "@lunaris/logging";
 import { nativeFilesystem, createSessionId } from "./native.js";
 import type { NativeFilesystem } from "./native.js";
 import manifest from "../manifest.json" with { type: "json" };
+import { createNativeRoots } from "./roots.js";
 
 const capabilities: FsCapabilities = Object.freeze({ watch: true, atomicReplace: true, versionCheck: "optimistic", trash: false, maxFileBytes: 64 * 1024 * 1024 });
 
@@ -22,7 +23,10 @@ export function createTauriFilesystemDriver(native: NativeFilesystem = nativeFil
     };
     async function request<T>(operation: string, args: Readonly<Record<string, unknown>> = {}): Promise<FsResult<T>> {
       try {
-        const result = await native.request<T>(sessionId, operation, args, operation === "watch" ? events : undefined);
+        const target = (args.target ?? args.source) as { vaultId: string } | undefined;
+        const id = target?.vaultId ?? args.vaultId as string | undefined;
+        const result = await (operation === "closeVault" ? roots.close(id!) as Promise<FsResult<T>> :
+          roots.run(id, () => native.request<T>(sessionId, operation, args, operation === "watch" ? events : undefined)));
         if (result.ok && !ctx.signal.aborted) {
           if (operation === "watch" && typeof result.value === "string") watches.set(result.value, (args.target as { vaultId: string }).vaultId);
           if (operation === "unwatch") watches.delete(args.watchId as string);
@@ -41,10 +45,18 @@ export function createTauriFilesystemDriver(native: NativeFilesystem = nativeFil
       const result = await native.request<null>(sessionId, "end", {});
       if (!result.ok) throw new Error(`Native filesystem cleanup failed: ${result.error.code}`);
     } });
+    const roots = createNativeRoots(ctx, async vaultId => {
+      const result = await native.request<null>(sessionId, "closeVault", { vaultId });
+      if (result.ok || result.error.code === "VAULT_CLOSED") {
+        for (const [id, vault] of watches) if (vault === vaultId) watches.delete(id);
+      }
+      return result;
+    });
     const opened = await request<null>("begin");
     ctx.signal.throwIfAborted();
     if (!opened.ok) throw new Error(`Cannot initialize native filesystem: ${opened.error.code}`);
-    ctx.provide(ApplicationDirectoryDriver, { openConfig: () => request("openConfig") });
+    ctx.provide(ApplicationDirectoryDriver, { openConfig: owner => roots.acquire(owner, () => request("openConfig")) });
+    ctx.provide(FilesystemRootsDriver, { selectVault: owner => roots.acquire(owner, () => request("selectVault")) });
     ctx.provide(FilesystemDriver, {
       capabilities: () => capabilities,
       selectVault: () => request("selectVault"),

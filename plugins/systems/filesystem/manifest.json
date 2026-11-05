@@ -20,6 +20,7 @@
     }
   ],
   "requires": [
+    { "kind": "api", "id": "lunaris.filesystem-roots-driver", "range": "^1.0.0" },
     { "kind": "api", "id": "lunaris.application-directory-driver", "range": "^1.0.0" },
     {
       "kind": "api",

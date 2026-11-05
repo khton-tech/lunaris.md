@@ -50,11 +50,13 @@ root. Explicit IDs prevent context switches from redirecting writes. Concurrent
 closes share a release. Failed releases permit retry and resume operations;
 closed IDs return `VAULT_CLOSED`.
 
-Owner cancellation requests the same close. Late selection results are closed
-before returning `VAULT_CLOSED`. Provider shutdown removes signal subscriptions;
-driver session shutdown releases native roots/watches independently. No closed SDK
+Owner cancellation requests a coordinated close inside the driver. Late selection results are closed
+before returning `VAULT_CLOSED`. The driver owns signal subscriptions and waits for
+automatic releases before ending its native session. Session shutdown releases
+remaining native roots/watches independently. No closed SDK
 handles are invoked from cleanup. Native dialogs may require manual dismissal.
-Release failures are logged.
+Automatic release failures are retained for independent kernel cleanup diagnostics,
+so cleanup never depends on a Logger that may already be stopping.
 
 The separate application-directory SDK permission authorizes root acquisition;
 ordinary filesystem access authorizes later I/O using that ID. This does not isolate

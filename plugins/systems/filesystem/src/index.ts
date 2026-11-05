@@ -1,5 +1,5 @@
 import { definePlugin } from "@lunaris/sdk";
-import { Filesystem, FilesystemDriver, FilesystemRoots, ApplicationDirectory, ApplicationDirectoryDriver, FileChanged, DriverFileChanged, failure, validTarget } from "@lunaris/filesystem";
+import { Filesystem, FilesystemDriver, FilesystemRoots, FilesystemRootsDriver, ApplicationDirectory, ApplicationDirectoryDriver, FileChanged, DriverFileChanged, failure, validTarget } from "@lunaris/filesystem";
 import type { FileTarget, FsResult, WriteOptions } from "@lunaris/filesystem";
 import { Logger } from "@lunaris/logging";
 import manifest from "../manifest.json" with { type: "json" };
@@ -10,9 +10,8 @@ export default definePlugin({ manifest, activate(ctx) {
   logger.debug(ctx.pluginId, "Activating filesystem provider");
   const driver = ctx.use(FilesystemDriver);
   const directories = ctx.use(ApplicationDirectoryDriver);
-  const roots = createRootLifecycle(ctx, id => call("closeVault", () => driver.closeVault(id)), error => {
-    if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot release an owned filesystem root", { code: "ROOT_RELEASE_FAILED", error });
-  });
+  const ownedRoots = ctx.use(FilesystemRootsDriver);
+  const roots = createRootLifecycle(ctx, id => call("closeVault", () => driver.closeVault(id)));
   const snapshot = (target: FileTarget): FileTarget => Object.freeze({ vaultId: target.vaultId, path: target.path });
   async function call<T>(operation: string, work: () => Promise<FsResult<T>>, target?: FileTarget): Promise<FsResult<T>> {
     let result: FsResult<T>;
@@ -76,7 +75,7 @@ export default definePlugin({ manifest, activate(ctx) {
     watch: (target, recursive = true) => onTarget("watch", target, true, copy => driver.watch(copy, recursive)),
     unwatch: (vaultId, watchId) => roots.run(vaultId, () => call("unwatch", () => driver.unwatch(vaultId, watchId))),
   });
-  ctx.provide(FilesystemRoots, { selectVault: owner => roots.acquire(owner, () => call("selectVault", () => driver.selectVault())) });
-  ctx.provide(ApplicationDirectory, { openConfig: owner => roots.acquire(owner, () => call("openConfig", () => directories.openConfig())) });
+  ctx.provide(FilesystemRoots, { selectVault: owner => call("selectVault", () => ownedRoots.selectVault(owner)) });
+  ctx.provide(ApplicationDirectory, { openConfig: owner => call("openConfig", () => directories.openConfig(owner)) });
   logger.info(ctx.pluginId, "Filesystem provider ready", { code: "FILESYSTEM_READY" });
 } });

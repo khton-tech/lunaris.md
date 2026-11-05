@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { definePlugin } from '@lunaris/sdk';
 import { createTestKernel } from '@lunaris/test';
 import { Logger } from '@lunaris/logging';
-import { Filesystem, FilesystemDriver, FilesystemRoots, ApplicationDirectory, ApplicationDirectoryDriver, DriverFileChanged, FileChanged, filesystemMethods } from '@lunaris/filesystem';
+import { Filesystem, FilesystemDriver, FilesystemRoots, FilesystemRootsDriver, ApplicationDirectory, ApplicationDirectoryDriver, DriverFileChanged, FileChanged, filesystemMethods } from '@lunaris/filesystem';
 import filesystem from '@lunaris/filesystem-provider';
 
 const manifest = (id, provides = [], requires = [], permissions = []) => ({ manifestVersion: 1, id, version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides, requires, permissions, optionalPermissions: [] });
@@ -17,6 +17,7 @@ async function setup(implementation = {}, options = {}) {
   const methods = Object.fromEntries(filesystemMethods.map(name => [name, async (...args) => { calls.push([name, ...args]); return { ok: true, value: null }; }]));
   methods.capabilities = () => ({ watch: true, atomicReplace: true, versionCheck: 'optimistic', trash: false, maxFileBytes: 1024 });
   Object.assign(methods, implementation);
+  host.installMock(FilesystemRootsDriver, { selectVault: owner => methods.selectVault(owner) }, { grants: ['filesystem.native'] });
   host.register(definePlugin({ manifest: manifest('test.driver', [{ kind: 'api', id: FilesystemDriver.id, version: '1.0.0' }, { kind: 'event', id: DriverFileChanged.id, version: '1.0.0' }], [], ['filesystem.native']), activate(ctx) { driverContext = ctx; ctx.provide(FilesystemDriver, methods); } }));
   host.register(filesystem);
   host.register(definePlugin({ manifest: manifest('test.consumer', [], requires, ['filesystem.access', 'filesystem.app-config']), activate(ctx) { consumerContext = ctx; api = ctx.use(Filesystem); ownedRoots = ctx.use(FilesystemRoots); directories = ctx.use(ApplicationDirectory); ctx.events.on(FileChanged, change => { changes.push(change); }); } }));
@@ -108,24 +109,25 @@ test('a failed close permits retry and operations against the still-open root', 
   await host.stopAll(); host.assertNoResources();
 });
 
-test('application and selected roots are released when their owner stops', async () => {
+test('provider forwards owned-root acquisition and leaves native lifetime ownership to the driver', async () => {
   const { host, directories, ownedRoots, consumerContext, api, calls } = await setup({ selectVault: async () => ({ ok: true, value: { id: 'selected', name: 'Notes' } }) });
   assert.equal((await directories.openConfig(consumerContext.signal)).value.id, 'config-root');
   assert.equal((await ownedRoots.selectVault(consumerContext.signal)).value.id, 'selected');
+  await api.closeVault('selected');
+  assert.deepEqual(calls.filter(([name]) => name === 'closeVault'), [['closeVault', 'selected']]);
   await host.stop('test.consumer'); await flush();
-  assert.deepEqual(calls.filter(([name]) => name === 'closeVault').map(([, id]) => id).sort(), ['config-root', 'selected']);
   // The consumer's handles are closed independently of the provider's native lifetime.
   assert.throws(() => api.list({ vaultId: 'selected', path: '' }), error => error.code === 'SCOPE_CLOSED');
   await host.stopAll(); host.assertNoResources(); assert.deepEqual(host.diagnostics(), []);
 });
 
-test('late selection is released after owner shutdown and cannot revive it', async () => {
+test('provider passes the owner signal through the root driver', async () => {
   const selection = deferred();
-  const { host, ownedRoots, consumerContext, calls } = await setup({ selectVault: () => selection.promise });
+  let passed;
+  const { host, ownedRoots, consumerContext } = await setup({ selectVault: owner => { passed = owner; return selection.promise; } });
   const pending = ownedRoots.selectVault(consumerContext.signal);
-  await host.stop('test.consumer');
+  assert.equal(passed, consumerContext.signal);
   selection.resolve({ ok: true, value: { id: 'late', name: 'Late' } });
-  assert.equal((await pending).error.code, 'VAULT_CLOSED');
-  assert.ok(calls.some(([name, id]) => name === 'closeVault' && id === 'late'));
+  assert.equal((await pending).value.id, 'late');
   await host.stopAll(); host.assertNoResources(); assert.deepEqual(host.diagnostics(), []);
 });

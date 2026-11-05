@@ -10,11 +10,18 @@ accepts an injectable request transport for tests. The first verified target is
 Windows x64. No native dialog is opened during activation.
 
 Also provides `api:lunaris.application-directory-driver@1.0.0`, whose
-`openConfig()` attaches a fresh root at the trusted host's application config
+`openConfig(ownerSignal)` attaches a fresh root at the trusted host's application config
 directory, creating it when needed. It returns only an opaque root ID/name and
 shares normal filesystem I/O, confinement and session cleanup. The host supplies
 `app.path().app_config_dir()` through `Backend::with_config_directory`;
 callers cannot provide absolute paths. Without host support it returns `UNSUPPORTED`.
+
+`api:lunaris.filesystem-roots-driver@1.0.0` exposes `selectVault(ownerSignal)`.
+Owned selection/config roots close through the raw native transport when their
+owner aborts, after accepted driver operations finish. This remains safe while
+SDK dependencies stop. Automatic cleanup failures are retained and reported through
+independent kernel cleanup diagnostics; cleanup never uses Logger. Late selections
+are retired, and explicit close detaches the owner's subscription.
 
 The callable API has the same methods as the provider: `capabilities`,
 `selectVault`, `closeVault`, `pickFile`, `pickDirectory`, `pickSaveLocation`,

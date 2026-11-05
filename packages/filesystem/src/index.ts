@@ -78,7 +78,13 @@ export const ApplicationDirectory = defineApi<{ openConfig(owner: CancellationSi
   validate: value => value !== null && typeof value === "object" &&
     typeof Object.getOwnPropertyDescriptor(value, "openConfig")?.value === "function",
 });
-export const ApplicationDirectoryDriver = defineApi<{ openConfig(): Promise<FsResult<VaultRoot>> }>({
+export const FilesystemRootsDriver = defineApi<FilesystemRootsApi>({
+  id: "lunaris.filesystem-roots-driver", version: "1.0.0",
+  providePermission: "filesystem.native", consumePermission: "filesystem.access",
+  validate: value => value !== null && typeof value === "object" &&
+    typeof Object.getOwnPropertyDescriptor(value, "selectVault")?.value === "function",
+});
+export const ApplicationDirectoryDriver = defineApi<{ openConfig(owner: CancellationSignal): Promise<FsResult<VaultRoot>> }>({
   id: "lunaris.application-directory-driver", version: "1.0.0",
   providePermission: "filesystem.native", consumePermission: "filesystem.app-config",
   validate: value => value !== null && typeof value === "object" &&
