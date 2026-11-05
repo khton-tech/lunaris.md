@@ -806,3 +806,28 @@ Verification commands: `npm run tauri:check`, `npm run tauri:build`,
 `npm run release:check` — passed locally on the documented Windows environment.
 No kernel or SDK public API change was required. No product/reference plugins,
 native capability drivers, merge, push, installer or publication were added.
+
+## First product plugins: Logger and DevTools sink — 2026-11-05
+
+The Owner authorized implementation of the previously discussed logging service,
+separate replaceable DevTools output and startup artwork. This is product work;
+the original deferred reference-plugin milestone retains its historical scope.
+
+Required / existing / new responsibilities: reuse SDK contracts, dependency
+resolution and lifecycle; add the shared `@lunaris/logging` contract package,
+`plugins/systems/logger` service and `plugins/systems/driver/dev-tools-logger`
+console adapter. The host supplies artwork and selects the sole installed sink
+through normal dependency resolution. Neither plugin imports kernel/host internals.
+
+Implemented: structured records, level filtering, native console severity,
+single-line readable headers, preserved error/data objects, failure containment,
+recursion guards, activation readiness record and once-per-page-load banner.
+Tauri composes both plugins and retains its independent system view. No SDK,
+kernel or Rust changes are required. See the [logging reference](reference/logging.md).
+
+Branch: `feat/logger-devtools`. Automated verification: `npm run logger:check`
+(logging contracts, both plugins and affected host tests, types and boundaries),
+`npm run build --workspace @lunaris/tauri`, CI scope-selection tests and export/docs
+audit. Actual DevTools visuals remain manual acceptance per repository policy.
+An in-app viewer, persistence, multiple sinks, runtime switching and automatic
+forwarding of core diagnostics are outside this implementation. No merge or push.

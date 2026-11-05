@@ -5,7 +5,9 @@
   "type": "module",
   "workspaces": [
     "packages/*",
-    "hosts/*"
+    "hosts/*",
+    "plugins/systems/*",
+    "plugins/systems/driver/*"
   ],
   "engines": {
     "node": ">=26.13.0 <27",
@@ -24,6 +26,7 @@
     "release:check": "node tools/scripts/release.mjs",
     "tauri:dev": "npm run desktop:dev --workspace @lunaris/tauri",
     "tauri:check": "node tools/scripts/tauri.mjs check",
+    "logger:check": "node tools/scripts/check.mjs logging logger dev-tools-logger",
     "tauri:build": "node tools/scripts/tauri.mjs build"
   },
   "devDependencies": {

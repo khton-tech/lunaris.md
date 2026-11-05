@@ -1,0 +1,12 @@
+{
+  "manifestVersion": 1,
+  "id": "lunaris.dev-tools-logger",
+  "version": "0.1.0",
+  "engine": "^0.1.0",
+  "sdk": "^0.1.0",
+  "entry": "./dist/src/index.js",
+  "provides": [{ "kind": "api", "id": "lunaris.log-sink", "version": "1.0.0" }],
+  "requires": [],
+  "permissions": [],
+  "optionalPermissions": []
+}

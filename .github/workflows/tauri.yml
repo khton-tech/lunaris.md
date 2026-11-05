@@ -7,6 +7,9 @@ on:
       - 'packages/sdk/**'
       - 'packages/manifest/**'
       - 'packages/test/**'
+      - 'packages/logging/**'
+      - 'plugins/**'
+      - 'resources/ascii_art.txt'
       - 'tools/scripts/**'
       - 'package*.json'
       - 'tsconfig*.json'
@@ -16,6 +19,8 @@ on:
     paths:
       - 'hosts/tauri/**'
       - 'packages/**'
+      - 'plugins/**'
+      - 'resources/ascii_art.txt'
       - 'tools/scripts/**'
       - 'package*.json'
       - 'tsconfig*.json'

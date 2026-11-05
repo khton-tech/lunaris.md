@@ -2,7 +2,9 @@
 
 The first application target is Tauri 2 on Windows. The existing TypeScript kernel
 runs in its WebView; Rust supplies the native window and packaged assets. No Node
-sidecar, Rust rewrite of the kernel, filesystem access or product plugin is added.
+sidecar, Rust rewrite of the kernel or filesystem access is added. The first product
+services are the SDK-based Logger and DevTools sink described in the
+[logging reference](../reference/logging.md).
 
 ## Architecture and responsibilities
 
@@ -20,9 +22,12 @@ host infrastructure, independent of product UI, themes and localization plugins.
 the public kernel package; product plugins continue to use the public SDK.
 
 The application composition point is
-`hosts/tauri/src/application.ts`. It currently installs **no plugins** and no product
-view. A fresh desktop launch therefore shows the real system screen with an empty
-plugin list, not a demonstration application.
+`hosts/tauri/src/application.ts`. It installs `lunaris.logger` and
+`lunaris.dev-tools-logger`, starting the Logger as a root and the sink as its required
+dependency. No product view is installed. A fresh desktop launch shows the system
+screen with these two plugins; the console displays the project artwork followed
+by `LOGGER_READY`. The sink definition survives retries, so the artwork prints once
+per page load. A window reload starts a new banner lifetime.
 
 ## Commands
 
@@ -133,8 +138,10 @@ DOM tests run in Node with JSDOM, not desktop automation. Native compilation and
 mocked close callbacks do not establish actual WebView rendering or OS event
 behavior. Manually run `npm run tauri:dev` and check:
 
-1. The monochrome system view fits the window, versions are visible, and an empty
-   plugin list is explained without a blank application screen.
+1. The monochrome system view fits the window, versions are visible, and both
+   logging plugins are active without a blank application screen. Open DevTools:
+   the supplied artwork appears once, followed by the readable `LOGGER_READY`
+   record. Retry does not repeat the artwork; reloading the window does.
 2. Switching English/Russian updates labels and keyboard focus remains visible.
    Resize to the minimum window width and check table scrolling when plugins exist.
 3. After product composition is introduced, verify normal mounting, System/back,

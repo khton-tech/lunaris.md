@@ -16,6 +16,8 @@
     "desktop:build": "tauri build --no-bundle"
   },
   "dependencies": {
+    "@lunaris/logger": "0.1.0",
+    "@lunaris/dev-tools-logger": "0.1.0",
     "@lunaris/kernel": "0.1.0",
     "@lunaris/sdk": "0.1.0",
     "@tauri-apps/api": "2.12.4"

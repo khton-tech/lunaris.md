@@ -1,0 +1,6 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": { "rootDir": ".", "outDir": "dist", "resolveJsonModule": true, "lib": ["ES2022", "DOM"] },
+  "include": ["src/**/*.ts", "manifest.json"],
+  "references": [{ "path": "../../../../packages/sdk" }, { "path": "../../../../packages/logging" }]
+}

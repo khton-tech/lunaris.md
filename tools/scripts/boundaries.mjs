@@ -5,14 +5,21 @@ import ts from 'typescript';
 export const dependencies = {
   manifest: [],
   sdk: ['manifest'],
+  logging: ['sdk'],
+  logger: ['sdk', 'logging'],
+  'dev-tools-logger': ['sdk', 'logging'],
   kernel: ['manifest', 'sdk'],
   test: ['sdk', 'kernel'],
   development: ['manifest', 'sdk', 'kernel'],
   cli: ['manifest', 'sdk', 'kernel', 'test', 'development'],
-  tauri: ['sdk', 'kernel'],
+  tauri: ['sdk', 'kernel', 'logger', 'dev-tools-logger'],
 };
 
-export const packagePath = scope => ['development', 'tauri'].includes(scope) ? `hosts/${scope}` : `packages/${scope}`;
+export const packagePath = scope => {
+  if (scope === 'logger') return 'plugins/systems/logger';
+  if (scope === 'dev-tools-logger') return 'plugins/systems/driver/dev-tools-logger';
+  return ['development', 'tauri'].includes(scope) ? `hosts/${scope}` : `packages/${scope}`;
+};
 
 export function checkSource(source, filename, scope) {
   const errors = [];
@@ -30,6 +37,12 @@ export function checkSource(source, filename, scope) {
       return;
     }
     const value = node.text;
+    if (['logger', 'dev-tools-logger'].includes(scope) &&
+        path.resolve(filename) === path.resolve(packagePath(scope), 'src/index.ts') &&
+        value === '../manifest.json') return;
+    // The host owns startup artwork; plugins cannot reach outside their source roots.
+    if (scope === 'tauri' && path.resolve(filename) === path.resolve('hosts/tauri/src/application.ts') &&
+        value === '../../../resources/ascii_art.txt?raw') return;
     if (value.startsWith('./') || value.startsWith('../')) {
       const root = path.resolve(packagePath(scope), 'src');
       const resolved = path.resolve(path.dirname(filename), value);

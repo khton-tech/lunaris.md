@@ -4,6 +4,23 @@ import path from 'node:path';
 import { checkSource } from './boundaries.mjs';
 
 const filename = path.resolve('packages/sdk/src/index.ts');
+test('product plugins use only the SDK, shared logging contracts and local modules', () => {
+  for (const [scope, root] of [['logger', 'plugins/systems/logger'], ['dev-tools-logger', 'plugins/systems/driver/dev-tools-logger']]) {
+    const file = path.resolve(root, 'src/index.ts');
+    assert.deepEqual(checkSource('import "@lunaris/sdk"; import "@lunaris/logging"; import "./format.js";', file, scope), []);
+    assert.deepEqual(checkSource('import manifest from "../manifest.json";', file, scope), []);
+    assert.ok(checkSource('import "../manifest.json";', path.resolve(root, 'src/other.ts'), scope).length);
+    for (const source of ['import "@lunaris/kernel";', 'import "@lunaris/tauri";', 'import "node:fs";', 'import "@tauri-apps/api/core";', 'import "../../../../packages/sdk/src/index.js";']) {
+      assert.ok(checkSource(source, file, scope).length);
+    }
+  }
+});
+
+test('only application composition may import the startup artwork', () => {
+  const source = 'import art from "../../../resources/ascii_art.txt?raw";';
+  assert.deepEqual(checkSource(source, path.resolve('hosts/tauri/src/application.ts'), 'tauri'), []);
+  assert.ok(checkSource(source, path.resolve('hosts/tauri/src/session.ts'), 'tauri').length);
+});
 test('SDK allows public manifest and local imports', () => {
   assert.deepEqual(checkSource('export type { PluginManifest } from "@lunaris/manifest"; import "./local.js";', filename, 'sdk'), []);
 });

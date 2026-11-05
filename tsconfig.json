@@ -21,6 +21,15 @@
     },
     {
       "path": "hosts/tauri"
+    },
+    {
+      "path": "packages/logging"
+    },
+    {
+      "path": "plugins/systems/logger"
+    },
+    {
+      "path": "plugins/systems/driver/dev-tools-logger"
     }
   ]
 }
