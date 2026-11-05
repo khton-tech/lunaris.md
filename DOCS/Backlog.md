@@ -1,5 +1,17 @@
 # Product backlog
 
+## UI slots
+
+Status: IMPLEMENTED on 2026-11-05 before the first visible product UI plugins.
+The replaceable provider allocates scoped, nested, ordered regions through SDK
+contracts. A separate DOM driver supplies resilient flex targets and a permissioned
+browser rendering bridge. Tauri composes both with its independent recovery shell.
+See [the slot reference](reference/slots.md) for APIs, ownership and current limits.
+
+Next UI responsibilities, in Owner-requested order: theme manager and theme engine,
+component manager, then a standard component set. Determine their individual
+contracts and boundaries before implementation. Slots do not own those services.
+
 ## Localization
 
 Status: IMPLEMENTED on 2026-11-05 before product UI development.

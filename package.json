@@ -7,7 +7,8 @@
     "packages/*",
     "hosts/*",
     "plugins/systems/*",
-    "plugins/systems/driver/*"
+    "plugins/systems/driver/*",
+    "plugins/UI/*"
   ],
   "engines": {
     "node": ">=26.13.0 <27",
@@ -31,7 +32,8 @@
     "vault:check": "node tools/scripts/check.mjs vault vault-manager filesystem-provider tauri-filesystem",
     "config:check": "node tools/scripts/check.mjs config config-manager",
     "tauri:build": "node tools/scripts/tauri.mjs build",
-    "localization:check": "node tools/scripts/check.mjs localization localization-manager"
+    "localization:check": "node tools/scripts/check.mjs localization localization-manager",
+    "slots:check": "node tools/scripts/check.mjs slots slot-dom slot-provider web-slot-driver"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

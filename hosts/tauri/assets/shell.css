@@ -12,8 +12,8 @@
   --content-width: 64rem;
 }
 * { box-sizing: border-box; }
-body { margin: 0; min-height: 100dvh; display: flex; flex-direction: column; }
-#application-root { flex: 1; }
+body { margin: 0; min-height: 100dvh; height: 100dvh; display: flex; flex-direction: column; }
+#application-root { flex: 1; display: flex; min-width: 0; min-height: 0; }
 [hidden] { display: none !important; }
 button {
   max-width: 100%;
@@ -79,3 +79,7 @@ summary { cursor: pointer; overflow-wrap: anywhere; }
 .diagnostics li:not(.empty) { border-bottom: 1px solid var(--line); padding-block: .65rem; }
 .boot-message p { color: var(--muted); max-width: 65ch; }
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+
+/* Structural sizing only; appearance belongs to product theme providers. */
+body { height: 100dvh; }
+.application-surface { display: flex; flex: 1; min-width: 0; min-height: 0; }

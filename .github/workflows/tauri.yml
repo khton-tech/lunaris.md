@@ -8,6 +8,8 @@ on:
       - 'packages/manifest/**'
       - 'packages/test/**'
       - 'packages/logging/**'
+      - 'packages/slots/**'
+      - 'packages/slot-dom/**'
       - 'packages/filesystem/**'
       - 'plugins/**'
       - 'resources/ascii_art.txt'

@@ -1,6 +1,10 @@
 {
   "files": [],
   "references": [
+    { "path": "packages/slots" },
+    { "path": "packages/slot-dom" },
+    { "path": "plugins/UI/layout" },
+    { "path": "plugins/systems/driver/web-slots" },
     { "path": "packages/localization" },
     { "path": "plugins/systems/localization" },
     { "path": "packages/config" },

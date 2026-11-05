@@ -4,6 +4,14 @@ import path from 'node:path';
 import { checkSource } from './boundaries.mjs';
 
 const filename = path.resolve('packages/sdk/src/index.ts');
+test('slot allocation stays portable and cannot reach the DOM driver or host', () => {
+  const file = path.resolve('plugins/UI/layout/src/index.ts');
+  assert.deepEqual(checkSource('import "@lunaris/sdk"; import "@lunaris/slots"; import "@lunaris/logging"; import "../manifest.json";', file, 'slot-provider'), []);
+  for (const name of ['@lunaris/slot-dom', '@lunaris/web-slot-driver', '@lunaris/kernel', '@lunaris/tauri', '@tauri-apps/api/core', 'node:fs']) {
+    assert.ok(checkSource(`import "${name}";`, file, 'slot-provider').length);
+  }
+  assert.ok(checkSource('import "@lunaris/slot-dom";', path.resolve('packages/slots/src/index.ts'), 'slots').length);
+});
 test('localization stays SDK-only without configuration, native or host dependencies', () => {
   const file = path.resolve('plugins/systems/localization/src/index.ts');
   assert.deepEqual(checkSource('import "@lunaris/sdk"; import "@lunaris/logging"; import "@lunaris/localization"; import "../manifest.json";', file, 'localization-manager'), []);

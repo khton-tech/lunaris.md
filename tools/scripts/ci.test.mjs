@@ -14,6 +14,10 @@ test('CI selects touched packages and the caller check expands their consumers',
   assert.deepEqual(selectScopes(['packages/vault/src/index.ts']), ['vault']);
   assert.deepEqual(selectScopes(['packages/config/src/index.ts']), ['config']);
   assert.deepEqual(selectScopes(['packages/localization/src/index.ts']), ['localization']);
+  assert.deepEqual(selectScopes(['packages/slots/src/index.ts']), ['slots']);
+  assert.deepEqual(selectScopes(['packages/slot-dom/src/index.ts']), ['slot-dom']);
+  assert.deepEqual(selectScopes(['plugins/UI/layout/src/index.ts']), ['slot-provider']);
+  assert.deepEqual(selectScopes(['plugins/systems/driver/web-slots/src/index.ts']), ['web-slot-driver']);
   assert.deepEqual(selectScopes(['plugins/systems/localization/src/index.ts']), ['localization-manager']);
   assert.deepEqual(selectScopes(['plugins/systems/config/src/index.ts']), ['config-manager']);
   assert.deepEqual(selectScopes(['plugins/systems/vault/src/index.ts']), ['vault-manager']);

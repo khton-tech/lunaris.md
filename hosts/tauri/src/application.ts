@@ -1,3 +1,4 @@
+import { composeSlotSurface } from "./slots.js";
 import type { ApplicationDefinition } from "./session.js";
 import { createLogger } from "@lunaris/logger";
 import { createDevToolsLogger } from "@lunaris/dev-tools-logger";
@@ -13,11 +14,14 @@ const devTools = createDevToolsLogger({ banner: { art, caption: "Lunaris.md · v
 const logger = createLogger();
 
 /** Host composition point. Product plugins import only the public SDK. */
-export function composeApplication(_target: HTMLElement): ApplicationDefinition {
+export function composeApplication(target: HTMLElement): ApplicationDefinition {
+  const layout = composeSlotSurface(target);
   return {
-    plugins: [devTools, logger, tauriFilesystem, filesystem, vaultManager, configManager, localizationManager],
-    entrypoints: [configManager.manifest.id, localizationManager.manifest.id],
+    ...layout,
+    plugins: [...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, configManager, localizationManager],
+    entrypoints: [...layout.entrypoints, configManager.manifest.id, localizationManager.manifest.id],
     grants: {
+      ...layout.grants,
       [tauriFilesystem.manifest.id]: ["filesystem.native"],
       [filesystem.manifest.id]: ["filesystem.access", "filesystem.app-config"],
       [vaultManager.manifest.id]: ["filesystem.access"],

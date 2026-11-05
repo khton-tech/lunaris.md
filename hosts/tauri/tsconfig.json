@@ -6,6 +6,8 @@
   },
   "include": ["src/**/*.ts"],
   "references": [
+    { "path": "../../plugins/UI/layout" },
+    { "path": "../../plugins/systems/driver/web-slots" },
     { "path": "../../plugins/systems/localization" },
     { "path": "../../plugins/systems/config" },
     { "path": "../../plugins/systems/vault" },

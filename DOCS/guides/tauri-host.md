@@ -9,6 +9,11 @@ The host also starts the [localization service](../reference/localization.md)
 alongside Config Manager. Recovery copy remains in a standalone English catalog
 and works when product localization is unavailable.
 
+The host also starts the [slot provider and DOM driver](../reference/slots.md).
+Its view adapter mounts the isolated product surface only after successful plugin
+startup. The surface remains empty until product UI consumers are introduced;
+System/recovery controls remain host-owned and available independently.
+
 ## Architecture and responsibilities
 
 Required: launch the kernel in Tauri, retain a minimal diagnostic interface when
