@@ -29,6 +29,8 @@
 - **Abstraction Layers:** Abstract cross-platform specifics (Web, Capacitor, Tauri). Plugins must call intermediate Providers (e.g., "write data"), and the Provider delegates the call to the corresponding target Driver.
 - **Developer Experience (DX) & Anti-Overengineering:** Keep the system, SDK, and plugin development straightforward with a low barrier to entry. Strictly avoid overengineering, excessive boilerplate, and unnecessary abstraction layers. Ensure plugin developers do not face high cognitive load: SDK interfaces and workflows must remain simple, intuitive, and ergonomic without sacrificing extensibility.
 
+
+
 ## 4. Documentation & Communication Standards
 - **Artifact Language:** Write all code documentation, comments, and AI-internal files (`.AI_DOCS/`) strictly in **English**.
 - **User Interface (UI):** Build UI elements to be fully adaptable for localization (a dedicated localization plugin will handle translations).
@@ -43,3 +45,4 @@
 
 # Additional Rules
 > Reserved for supplemental rules identified during development. Keep additions concise and direct.
+- When designing, modifying, or implementing any user interface elements, layouts, or frontend components, you must strictly adhere to the principles defined in [`DOCS/UI_GUIDELINES.md`](DOCS/UI_GUIDELINES.md). Treat this file as the single source of truth for all visual standards—specifically regarding radical minimalism, content-first hierarchy, and structural layout resilience.
