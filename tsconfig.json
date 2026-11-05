@@ -1,24 +1,60 @@
 {
   "files": [],
   "references": [
-    { "path": "plugins/UI/base-theme" },
-    { "path": "packages/themes" },
-    { "path": "plugins/UI/themes" },
-    { "path": "packages/components" },
-    { "path": "plugins/UI/components" },
-    { "path": "packages/slots" },
-    { "path": "packages/slot-dom" },
-    { "path": "plugins/UI/layout" },
-    { "path": "plugins/systems/driver/web-slots" },
-    { "path": "packages/localization" },
-    { "path": "plugins/systems/localization" },
-    { "path": "packages/config" },
-    { "path": "plugins/systems/config" },
-    { "path": "packages/vault" },
-    { "path": "plugins/systems/vault" },
-    { "path": "packages/filesystem" },
-    { "path": "plugins/systems/filesystem" },
-    { "path": "plugins/systems/driver/tauri-filesystem" },
+    {
+      "path": "plugins/UI/base-theme"
+    },
+    {
+      "path": "packages/themes"
+    },
+    {
+      "path": "plugins/UI/themes"
+    },
+    {
+      "path": "packages/components"
+    },
+    {
+      "path": "plugins/UI/components"
+    },
+    {
+      "path": "packages/slots"
+    },
+    {
+      "path": "packages/slot-dom"
+    },
+    {
+      "path": "plugins/UI/layout"
+    },
+    {
+      "path": "plugins/systems/driver/web-slots"
+    },
+    {
+      "path": "packages/localization"
+    },
+    {
+      "path": "plugins/systems/localization"
+    },
+    {
+      "path": "packages/config"
+    },
+    {
+      "path": "plugins/systems/config"
+    },
+    {
+      "path": "packages/vault"
+    },
+    {
+      "path": "plugins/systems/vault"
+    },
+    {
+      "path": "packages/filesystem"
+    },
+    {
+      "path": "plugins/systems/filesystem"
+    },
+    {
+      "path": "plugins/systems/driver/tauri-filesystem"
+    },
     {
       "path": "packages/manifest"
     },
@@ -48,6 +84,12 @@
     },
     {
       "path": "plugins/systems/driver/dev-tools-logger"
+    },
+    {
+      "path": "packages/startup"
+    },
+    {
+      "path": "plugins/systems/startup"
     }
   ]
 }

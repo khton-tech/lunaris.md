@@ -1,3 +1,4 @@
+import type { StartupSnapshot, StartupStage, StartupState } from "@lunaris/startup";
 import { createKernel } from "@lunaris/kernel";
 import type { Kernel, KernelOptions, KernelSnapshot, Scheduler } from "@lunaris/kernel";
 import type { Disposable, MaybePromise, PluginDefinition } from "@lunaris/sdk";
@@ -9,7 +10,9 @@ export interface ApplicationDefinition {
   readonly entrypoints: readonly string[];
   /** Trusted composition grants, applied after registration and before activation. */
   readonly grants?: Readonly<Record<string, readonly string[]>>;
-  readonly view?: { mount(signal: AbortSignal): MaybePromise<Disposable> };
+  readonly view?: { readonly duringStartup?: boolean; mount(signal: AbortSignal): MaybePromise<Disposable> };
+  /** Trusted ingress to a replaceable SDK startup provider. */
+  readonly startup?: { update(snapshot: StartupSnapshot): boolean };
 }
 
 export type HostPhase = "idle" | "starting" | "running" | "fallback" | "stopped";
@@ -22,6 +25,7 @@ export interface HostIncident {
 }
 export interface HostSnapshot {
   readonly phase: HostPhase;
+  readonly startup: StartupSnapshot;
   readonly busy: boolean;
   readonly applicationVisible: boolean;
   readonly recoveryBlocked: boolean;
@@ -45,6 +49,7 @@ export class HostSession {
   #kernel: Kernel | undefined;
   #definition: ApplicationDefinition | undefined;
   #phase: HostPhase = "idle";
+  #startup: StartupSnapshot = Object.freeze({ sequence: 0, state: "stopped", stage: "stopped" });
   #busy = false;
   #view: Disposable | undefined;
   #abort: AbortController | undefined;
@@ -64,8 +69,9 @@ export class HostSession {
   }
 
   snapshot = (): HostSnapshot => Object.freeze({
-    phase: this.#phase, busy: this.#busy,
-    applicationVisible: this.#phase === "running" && this.#definition?.view !== undefined,
+    phase: this.#phase, startup: this.#startup, busy: this.#busy,
+    applicationVisible: this.#view !== undefined && (this.#phase === "running" ||
+      this.#phase === "starting" && this.#definition?.view?.duringStartup === true),
     recoveryBlocked: this.#cleanupUnsafe,
     kernelVersion: "0.1.0", sdkVersion: "0.1.0",
     kernel: this.#kernel?.inspect() ?? emptyKernel,
@@ -83,6 +89,14 @@ export class HostSession {
     for (const listener of this.#listeners) {
       try { listener(snapshot); } catch { this.#listeners.delete(listener); }
     }
+  }
+
+  #progress(state: StartupState, stage: StartupStage, pluginId?: string, errorCode?: string): void {
+    this.#startup = Object.freeze({ sequence: this.#startup.sequence + 1, state, stage,
+      ...(pluginId === undefined ? {} : { pluginId }), ...(errorCode === undefined ? {} : { errorCode }),
+    });
+    this.#definition?.startup?.update(this.#startup);
+    this.#publish();
   }
 
   #incident(origin: FaultOrigin, code: string, pluginId?: string): void {
@@ -140,10 +154,12 @@ export class HostSession {
       this.#kernel = createKernel({ ...this.options.kernelOptions, scheduler: this.options.scheduler });
       this.#diagnosticSequence = 0;
       const abort = this.#abort = new AbortController();
+      this.#progress("loading", "composition");
       stage = "APPLICATION_LOAD_FAILED";
       const definition = await this.#deadline(Promise.resolve().then(() => this.options.load(abort.signal)), "APPLICATION_LOAD_TIMEOUT", () => abort.abort());
       if (generation !== this.#generation) return;
       this.#definition = definition;
+      this.#progress("loading", "registration");
       stage = "PLUGIN_REGISTRATION_FAILED";
       for (const plugin of definition.plugins) if (!this.#disabled.has(plugin.manifest.id)) {
         pluginId = plugin.manifest.id; this.#kernel.register(plugin);
@@ -153,46 +169,66 @@ export class HostSession {
         pluginId = id;
         for (const permission of permissions) this.#kernel.grant(id, permission);
       }
+      const mountView = async (): Promise<void> => {
+        if (definition.view) {
+          this.#progress("loading", "mounting");
+          if (generation !== this.#generation) return;
+          stage = "APPLICATION_MOUNT_FAILED"; pluginId = undefined;
+          let accepted = false;
+          let released = false;
+          let resolvedView: Disposable | undefined;
+          const mounting = Promise.resolve().then(() => definition.view!.mount(abort.signal));
+          // A timed-out renderer may finish later; its detached target must be cleaned.
+          const releaseLate = () => {
+            if (resolvedView && abort.signal.aborted && !accepted && !released) {
+              released = true;
+              void Promise.resolve().then(() => resolvedView!.dispose()).catch(() => {
+                this.#cleanupUnsafe = true;
+                this.#incident("cleanup", "LATE_VIEW_CLEANUP_FAILED");
+                void this.reportFault("cleanup", "RECOVERY_REQUIRES_RESTART"); this.#publish();
+              });
+            }
+          };
+          abort.signal.addEventListener("abort", releaseLate, { once: true });
+          void mounting.then(view => { resolvedView = view; releaseLate(); }, () => {});
+          const view = await this.#deadline(mounting, "APPLICATION_MOUNT_TIMEOUT", () => abort.abort());
+          if (!view || typeof view.dispose !== "function") throw new Error("The host renderer must return a disposable.");
+          if (generation !== this.#generation) return;
+          accepted = true; this.#view = view; this.#publish();
+          abort.signal.removeEventListener("abort", releaseLate);
+        }
+      };
+      // Opt-in boot surfaces are visible before product entrypoints activate.
+      // Preflight exclusions before exposing even an empty early surface.
       stage = "APPLICATION_START_FAILED";
+      for (const id of definition.entrypoints) {
+        if (this.#disabled.has(id)) { pluginId = id; throw new Error("Application entrypoint is disabled."); }
+      }
+      if (definition.view?.duringStartup) await mountView();
+      if (generation !== this.#generation) return;
       for (const id of definition.entrypoints) {
         if (generation !== this.#generation) return;
         if (this.#disabled.has(id)) throw new Error("Application entrypoint is disabled.");
         pluginId = id;
+        stage = "APPLICATION_START_FAILED";
+        this.#progress("loading", "activation", id);
+        if (generation !== this.#generation) return;
         await this.#kernel.start(id);
       }
       if (generation !== this.#generation) return;
-      if (definition.view) {
-        stage = "APPLICATION_MOUNT_FAILED"; pluginId = undefined;
-        let accepted = false;
-        let released = false;
-        let resolvedView: Disposable | undefined;
-        const mounting = Promise.resolve().then(() => definition.view!.mount(abort.signal));
-        // A timed-out renderer may finish later; its detached target must be cleaned.
-        const releaseLate = () => {
-          if (resolvedView && abort.signal.aborted && !accepted && !released) {
-            released = true;
-            void Promise.resolve().then(() => resolvedView!.dispose()).catch(() => {
-              this.#cleanupUnsafe = true;
-              this.#incident("cleanup", "LATE_VIEW_CLEANUP_FAILED");
-              void this.reportFault("cleanup", "RECOVERY_REQUIRES_RESTART"); this.#publish();
-            });
-          }
-        };
-        abort.signal.addEventListener("abort", releaseLate, { once: true });
-        void mounting.then(view => { resolvedView = view; releaseLate(); }, () => {});
-        const view = await this.#deadline(mounting, "APPLICATION_MOUNT_TIMEOUT", () => abort.abort());
-        if (!view || typeof view.dispose !== "function") throw new Error("The host renderer must return a disposable.");
-        if (generation !== this.#generation) return;
-        accepted = true; this.#view = view;
-        abort.signal.removeEventListener("abort", releaseLate);
-      }
+      if (!definition.view?.duringStartup) await mountView();
+      if (generation !== this.#generation) return;
       if (generation === this.#generation) {
+        this.#progress("loaded", "ready");
+        if (generation !== this.#generation) return;
         this.#phase = "running";
         this.refresh();
       }
     } catch (cause) {
       if (generation === this.#generation) {
         this.#phase = "fallback";
+        this.#progress("failed", "failed", cause instanceof LunarisError ? cause.context.pluginId ?? pluginId : pluginId,
+          cause instanceof LunarisError ? cause.code : stage);
         this.#incident(stage === "APPLICATION_MOUNT_FAILED" ? "view" : "startup",
           cause instanceof LunarisError ? cause.code : stage,
           cause instanceof LunarisError ? cause.context.pluginId ?? pluginId : pluginId);
@@ -231,6 +267,7 @@ export class HostSession {
     if (this.#phase === "fallback" || this.#phase === "stopped") return this.#tail;
     ++this.#generation;
     this.#phase = "fallback";
+    this.#progress("failed", "failed", pluginId, code);
     this.#incident(origin, code, pluginId);
     this.#abort?.abort();
     this.#publish();
@@ -259,6 +296,7 @@ export class HostSession {
   stop = (): Promise<void> => {
     ++this.#generation;
     this.#phase = "stopped";
+    this.#progress("stopped", "stopped");
     this.#abort?.abort(); this.#publish();
     return this.#enqueue(async () => {
       try { await this.#shutdown(); } catch { /* Incidents describe unsuccessful cleanup. */ }

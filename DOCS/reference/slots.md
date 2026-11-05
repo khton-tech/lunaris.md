@@ -13,7 +13,7 @@ No SDK or kernel extension is required.
 The provider owns slot identity, parentage, metadata and ownership. The driver
 owns actual DOM targets and structural flex layout. Host composition supplies an
 isolated surface to the driver and attaches it through the host view adapter after
-successful application startup. Product plugins never import the host or driver.
+early surface mounting, before product entrypoints start. Product plugins never import the host or driver.
 Replacing a provider or driver uses standard SDK provider selection.
 
 Slots contain no visible labels, borders, padding, colors or default components.
@@ -130,7 +130,8 @@ advertising readiness. The browser driver separately provides `SlotDom` with
 Tauri registers the provider and a fresh driver for each composition attempt,
 grants the provider `ui.surface`, grants the driver `ui.surface`/`ui.dom`, and starts
 the provider alongside Config and Localization. The host keeps its independent
-System/recovery controls. A successful startup currently shows an empty product
+System/recovery controls. The isolated surface is mounted during startup so a
+loading plugin can present [SDK startup milestones](startup.md). It currently shows an empty product
 surface; the first visible product UI plugins are separate work.
 
 Targets use shrinkable flex layouts, zero automatic minimum sizes and overflow

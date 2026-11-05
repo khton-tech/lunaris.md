@@ -1,3 +1,4 @@
+import { createStartupProvider } from "@lunaris/startup-provider";
 import baseThemeEngine from "@lunaris/base-theme-engine";
 import themeProvider from "@lunaris/theme-provider";
 import componentProvider from "@lunaris/component-provider";
@@ -18,11 +19,13 @@ const logger = createLogger();
 
 /** Host composition point. Product plugins import only the public SDK. */
 export function composeApplication(target: HTMLElement): ApplicationDefinition {
+  const startup = createStartupProvider();
   const layout = composeSlotSurface(target);
   return {
     ...layout,
-    plugins: [baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, configManager, localizationManager],
-    entrypoints: [baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, ...layout.entrypoints, configManager.manifest.id, localizationManager.manifest.id],
+    startup,
+    plugins: [startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, configManager, localizationManager],
+    entrypoints: [startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, ...layout.entrypoints, configManager.manifest.id, localizationManager.manifest.id],
     grants: {
       ...layout.grants,
       [componentProvider.manifest.id]: ["ui.dom"],

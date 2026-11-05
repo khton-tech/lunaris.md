@@ -6,6 +6,7 @@
 - [Logging contracts and composition](reference/logging.md): replaceable Logger/DevTools sink, record format, failure behavior and verification.
 - [Product backlog](Backlog.md): product component status and deferred scope.
 - [UI slots](reference/slots.md): portable regions, scoped ownership, DOM targets and host composition.
+- [Startup progress](reference/startup.md): read-only SDK milestones, host bridge and early loading surfaces.
 - [Theme provider](reference/themes.md): engine-owned descriptions, registration, selection, updates and lifecycle notifications.
 - [Base theme engine](reference/base-theme.md): Lunaris Light/Dark palettes, semantic roles, geometry, typography and lifecycle.
 - [Component provider](reference/components.md): shared component registration by role ID, mounting, instance ownership and change events.

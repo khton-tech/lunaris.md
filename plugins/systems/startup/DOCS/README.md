@@ -1,0 +1,14 @@
+# Startup provider
+
+Purpose: expose host startup milestones to product plugins through SDK contracts.
+Create a fresh `{ plugin, update }` controller with `createStartupProvider()` per
+composition attempt; register/start `plugin`, and pass the trusted controller to
+the host's startup ingress. Product consumers never receive the controller.
+
+Provides `api:lunaris.startup@1.0.0` with `snapshot()` and
+`event:lunaris.startup-changed@1.0.0` with immutable milestones. Requires Logger,
+needs no permissions and subscribes to no events. It does not render, read config,
+control plugin startup or inspect the kernel.
+
+See [the contract, lifecycle and integration](../../../../DOCS/reference/startup.md).
+Run `npm run startup:check` from the repository root.

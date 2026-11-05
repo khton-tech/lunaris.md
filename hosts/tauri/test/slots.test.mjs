@@ -22,7 +22,7 @@ test('real SDK chain mounts content, recovers after exclusion and never retains 
     slots = ctx.use(Slots); targets = ctx.use(SlotDom);
     assert.equal(slots.create({ id: 'test.content', grow: 1 }, owner.signal).ok, true);
     targets.get('test.content').textContent = `Content ${++activations}`;
-    assert.equal(targets.get('test.content').isConnected, false, 'stage plugin content before successful host mount');
+    assert.equal(targets.get('test.content').isConnected, true, 'show slot content during activation');
   } });
   const session = new HostSession({ scheduler: new TestScheduler(), load: async () => {
     const layout = composeSlotSurface(surface);

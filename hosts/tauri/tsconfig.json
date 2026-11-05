@@ -1,23 +1,68 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "module": "ESNext", "moduleResolution": "Bundler",
-    "lib": ["ES2022", "ESNext.Disposable", "DOM", "DOM.Iterable"], "rootDir": "src", "outDir": "dist"
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": [
+      "ES2022",
+      "ESNext.Disposable",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "rootDir": "src",
+    "outDir": "dist"
   },
-  "include": ["src/**/*.ts"],
+  "include": [
+    "src/**/*.ts"
+  ],
   "references": [
-    { "path": "../../plugins/UI/base-theme" },
-    { "path": "../../plugins/UI/themes" },
-    { "path": "../../plugins/UI/components" },
-    { "path": "../../plugins/UI/layout" },
-    { "path": "../../plugins/systems/driver/web-slots" },
-    { "path": "../../plugins/systems/localization" },
-    { "path": "../../plugins/systems/config" },
-    { "path": "../../plugins/systems/vault" },
-    { "path": "../../plugins/systems/filesystem" },
-    { "path": "../../plugins/systems/driver/tauri-filesystem" },
-    { "path": "../../packages/sdk" }, { "path": "../../packages/kernel" },
-    { "path": "../../plugins/systems/logger" },
-    { "path": "../../plugins/systems/driver/dev-tools-logger" }
+    {
+      "path": "../../plugins/UI/base-theme"
+    },
+    {
+      "path": "../../plugins/UI/themes"
+    },
+    {
+      "path": "../../plugins/UI/components"
+    },
+    {
+      "path": "../../plugins/UI/layout"
+    },
+    {
+      "path": "../../plugins/systems/driver/web-slots"
+    },
+    {
+      "path": "../../plugins/systems/localization"
+    },
+    {
+      "path": "../../plugins/systems/config"
+    },
+    {
+      "path": "../../plugins/systems/vault"
+    },
+    {
+      "path": "../../plugins/systems/filesystem"
+    },
+    {
+      "path": "../../plugins/systems/driver/tauri-filesystem"
+    },
+    {
+      "path": "../../packages/sdk"
+    },
+    {
+      "path": "../../packages/kernel"
+    },
+    {
+      "path": "../../plugins/systems/logger"
+    },
+    {
+      "path": "../../plugins/systems/driver/dev-tools-logger"
+    },
+    {
+      "path": "../../packages/startup"
+    },
+    {
+      "path": "../../plugins/systems/startup"
+    }
   ]
 }
