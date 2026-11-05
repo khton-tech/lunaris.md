@@ -4,6 +4,7 @@
 - [Core implementation plan](CoreImplementationPlan.md): delivery scope, architecture decisions, ordered backlog, verification, and release gates.
 - [Tauri host and recovery shell](guides/tauri-host.md): first desktop target, diagnostic UI, recovery behavior, commands and manual acceptance.
 - [Logging contracts and composition](reference/logging.md): replaceable Logger/DevTools sink, record format, failure behavior and verification.
+- [Product backlog](Backlog.md): deferred product components, including Vault Manager.
 
 The implementation plan is the human-maintained delivery baseline. Update its task statuses and evidence as work lands. Agent-only scratch plans and machine-readable tracking belong in `.AI_DOCS/`, not here.
 
