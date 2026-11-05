@@ -26,6 +26,7 @@ test('CI selects touched packages and the caller check expands their consumers',
   assert.deepEqual(selectScopes(['plugins/systems/localization/src/index.ts']), ['localization-manager']);
   assert.deepEqual(selectScopes(['plugins/systems/config/src/index.ts']), ['config-manager']);
   assert.deepEqual(selectScopes(['plugins/systems/vault/src/index.ts']), ['vault-manager']);
+  assert.deepEqual(selectScopes(['plugins/systems/vault-history/src/index.ts']), ['vault-history']);
   assert.deepEqual(selectScopes(['plugins/systems/filesystem/src/index.ts']), ['filesystem-provider']);
   assert.deepEqual(selectScopes(['plugins/systems/driver/tauri-filesystem/native/src/lib.rs']), ['tauri-filesystem']);
   assert.equal(selectScopes(['tools/scripts/check.mjs']).length, Object.keys(dependencies).length);

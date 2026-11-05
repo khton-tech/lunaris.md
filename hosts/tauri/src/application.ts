@@ -13,6 +13,7 @@ import art from "../../../resources/ascii_art.txt?raw";
 import filesystem from "@lunaris/filesystem-provider";
 import tauriFilesystem from "@lunaris/tauri-filesystem";
 import vaultManager from "@lunaris/vault-manager";
+import vaultHistory from "@lunaris/vault-history";
 import configManager from "@lunaris/config-manager";
 import localizationManager from "@lunaris/localization-manager";
 
@@ -29,8 +30,8 @@ export function composeApplication(target: HTMLElement): ApplicationDefinition {
   return {
     ...layout,
     startup,
-    plugins: [runner, themeSettings, componentsKit, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, configManager, localizationManager],
-    entrypoints: [startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, componentsKit.manifest.id, ...layout.entrypoints, configManager.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id],
+    plugins: [runner, themeSettings, componentsKit, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
+    entrypoints: [startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, componentsKit.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id],
     grants: {
       ...layout.grants,
       [runner.manifest.id]: ["config.access", "ui.dom"],
@@ -40,6 +41,7 @@ export function composeApplication(target: HTMLElement): ApplicationDefinition {
       [tauriFilesystem.manifest.id]: ["filesystem.native"],
       [filesystem.manifest.id]: ["filesystem.access", "filesystem.app-config"],
       [vaultManager.manifest.id]: ["filesystem.access"],
+      [vaultHistory.manifest.id]: ["config.access", "vault.access"],
       [configManager.manifest.id]: ["filesystem.access", "filesystem.app-config", "vault.access"],
     },
   };

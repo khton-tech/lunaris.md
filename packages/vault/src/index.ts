@@ -15,6 +15,30 @@ export const VaultLocations = defineApi<VaultLocationsApi>({
   validate: value => value !== null && typeof value === "object" &&
     ["select", "open"].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function"),
 });
+export interface RecentVault { readonly location: FolderLocation; readonly name: string }
+export type VaultHistoryResult<T> = { readonly ok: true; readonly value: T } | {
+  readonly ok: false; readonly error: VaultFailure | { readonly code: "HISTORY_UNAVAILABLE"; readonly message: string };
+};
+export interface VaultHistoryApi {
+  list(): Promise<VaultHistoryResult<readonly RecentVault[]>>;
+  open(reference: string): Promise<VaultHistoryResult<VaultRoot>>;
+}
+export function validRecentVault(value: unknown): value is RecentVault {
+  if (value === null || typeof value !== "object") return false;
+  const entry = value as Partial<RecentVault>;
+  return validFolderLocation(entry.location) && typeof entry.name === "string" && entry.name.length > 0 && entry.name.length <= 4096;
+}
+export const VaultHistory = defineApi<VaultHistoryApi>({
+  id: "lunaris.vault-history", version: "1.0.0", consumePermission: "vault.access",
+  validate: value => value !== null && typeof value === "object" &&
+    ["list", "open"].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function"),
+});
+/** Most-recent-first immutable snapshot, emitted after successful persistence. */
+export const VaultHistoryChanged = defineEvent<{ readonly entries: readonly RecentVault[] }>({
+  id: "lunaris.vault-history-changed", version: "1.0.0", consumePermission: "vault.access",
+  validate: value => value !== null && typeof value === "object" &&
+    Array.isArray((value as { entries?: unknown }).entries) && (value as { entries: unknown[] }).entries.every(validRecentVault),
+});
 
 export type VaultFailure = FsFailure | {
   readonly code: "BUSY" | "PREPARATION_FAILED" | "STOPPED";

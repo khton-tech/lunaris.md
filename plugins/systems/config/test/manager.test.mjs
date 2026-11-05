@@ -5,10 +5,11 @@ import { definePlugin } from '@lunaris/sdk';
 import { createTestKernel } from '@lunaris/test';
 import { Logger } from '@lunaris/logging';
 import { Config, ConfigChanged } from '@lunaris/config';
-import { Vault, VaultLocations, PrepareVault } from '@lunaris/vault';
+import { Vault, VaultLocations, VaultHistory, PrepareVault } from '@lunaris/vault';
 import filesystem from '@lunaris/filesystem-provider';
 import vaultManager from '@lunaris/vault-manager';
 import configManager from '@lunaris/config-manager';
+import historyProvider from '@lunaris/vault-history';
 import { createTauriFilesystemDriver } from '@lunaris/tauri-filesystem';
 import { parse } from 'smol-toml';
 
@@ -23,12 +24,13 @@ const manifest = (id, requires) => ({ manifestVersion: 1, id, version: '0.1.0', 
 async function setup(options = {}) {
   const files = new Map(options.files ?? []); const dirs = new Set(options.dirs ?? []);
   const sessions = new Map(); const selections = []; const calls = []; const logs = []; const changes = [];
-  let config; let vaults; let locations; let context; let configRoots = 0; let attachments = 0;
+  let config; let vaults; let locations; let history; let context; let configRoots = 0; let attachments = 0;
   const host = createTestKernel({ initialGrants: {
     'lunaris.tauri-filesystem': ['filesystem.native'],
     'lunaris.filesystem-provider': ['filesystem.access', 'filesystem.app-config'],
     'lunaris.vault-manager': ['filesystem.access'],
     'lunaris.config-manager': ['filesystem.access', 'filesystem.app-config', 'vault.access'],
+    'lunaris.vault-history': ['config.access', 'vault.access'],
     'test.consumer': options.denied ? ['vault.access'] : ['config.access', 'vault.access'],
   } });
   host.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push([level, ...args]); return true; }])));
@@ -74,16 +76,42 @@ async function setup(options = {}) {
     return fail('UNSUPPORTED');
   } }));
   host.register(filesystem); host.register(vaultManager); host.register(configManager);
-  host.register(definePlugin({ manifest: manifest('test.consumer', [Config, ConfigChanged, Vault, VaultLocations, PrepareVault].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' }))), activate(ctx) {
+  if (options.history) host.register(historyProvider);
+  host.register(definePlugin({ manifest: manifest('test.consumer', [Config, ConfigChanged, Vault, VaultLocations, PrepareVault, ...(options.history ? [VaultHistory] : [])].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' }))), activate(ctx) {
     context = ctx; config = ctx.use(Config); vaults = ctx.use(Vault); locations = ctx.use(VaultLocations);
+    if (options.history) history = ctx.use(VaultHistory);
     ctx.events.on(ConfigChanged, change => { changes.push(change); });
     if (options.prepare) ctx.hooks.register(PrepareVault, preparation => options.prepare(preparation, config));
   } }));
   const result = { host, files, dirs, calls, logs, changes, selections, select: (id, location = id) => selections.push({ id, location }) };
   if (options.autoStart === false || options.denied) return result;
   await host.start('test.consumer');
-  return { ...result, get config() { return config; }, get vaults() { return vaults; }, get locations() { return locations; }, get context() { return context; } };
+  return { ...result, get config() { return config; }, get vaults() { return vaults; }, get locations() { return locations; }, get history() { return history; }, get context() { return context; } };
 }
+
+test('real Config, Vault and history providers persist recent locations and restore names after restart', async () => {
+  const location = { reference: 'notes', label: 'Notes' };
+  const s = await setup({ history: true });
+  assert.equal((await s.locations.open(location, { name: 'My Notes' })).ok, true);
+  assert.deepEqual((await s.history.list()).value, [{ name: 'My Notes', location }]);
+  const restarted = await setup({ history: true, files: [...s.files], dirs: [...s.dirs] });
+  assert.equal((await restarted.history.open('notes')).value.name, 'My Notes');
+  assert.equal(restarted.calls.some(call => call.operation === 'selectLocation' || call.operation === 'selectVault'), false);
+  await restarted.history.list();
+  await s.host.stopAll(); await restarted.host.stopAll();
+  s.host.assertNoResources(); restarted.host.assertNoResources();
+  assert.deepEqual(s.host.diagnostics(), []); assert.deepEqual(restarted.host.diagnostics(), []);
+});
+
+test('history persistence failure cannot turn a committed Vault open into failure', async () => {
+  const s = await setup({ history: true, writeFailure: path => path === '@global/config.toml' ? 'ACCESS_DENIED' : undefined,
+    files: [['@global/config.toml', '# Existing global config\n']] });
+  const opened = await s.locations.open({ reference: 'notes', label: 'Notes' }, { name: 'My Notes' });
+  assert.equal(opened.ok, true); await s.history.list();
+  assert.equal(s.vaults.current().id, opened.value.id);
+  assert.ok(s.logs.some(([level, source, , detail]) => level === 'warn' && source === 'lunaris.vault-history' && detail?.code === 'ACCESS_DENIED'));
+  await s.host.stopAll(); s.host.assertNoResources(); assert.deepEqual(s.host.diagnostics(), []);
+});
 
 test('location selection has no Vault side effects; Next opens once and persists the display name across restarts', async () => {
   const s = await setup({ files: [['notes/existing.md', 'Keep me']] });
@@ -116,6 +144,29 @@ test('invalid names, inaccessible locations, and metadata save failure preserve 
   assert.equal((await missing.locations.open({ reference: 'gone', label: 'Gone' })).error.code, 'NOT_FOUND');
   assert.equal(missing.vaults.current().id, 'old');
   await s.host.stopAll(); await missing.host.stopAll(); s.host.assertNoResources(); missing.host.assertNoResources();
+});
+
+test('pending location selection blocks duplicate transitions and cancellation leaves the active Vault intact', async () => {
+  const s = await setup(); s.select('old'); await s.vaults.open();
+  const pending = deferred(); s.selections.push(pending.promise);
+  const selection = s.locations.select(s.context.signal);
+  assert.equal((await s.locations.select(s.context.signal)).error.code, 'BUSY');
+  assert.equal((await s.locations.open({ reference: 'new', label: 'New' })).error.code, 'BUSY');
+  assert.equal((await s.vaults.close()).error.code, 'BUSY');
+  pending.resolve(ok(null)); assert.deepEqual(await selection, ok(null));
+  assert.equal(s.vaults.current().id, 'old');
+  assert.equal(s.calls.filter(c => c.operation === 'selectLocation').length, 1);
+  await s.host.stopAll(); s.host.assertNoResources();
+});
+
+test('invalid stored display names reject preparation without rewriting existing configuration', async () => {
+  const original = '[plugins."lunaris.vault-manager"]\nname = 42\n';
+  const s = await setup({ files: [['bad/.lunaris/config.toml', original]], dirs: ['bad/.lunaris'] });
+  s.select('old'); await s.vaults.open();
+  assert.equal((await s.locations.open({ reference: 'bad', label: 'Bad' })).error.code, 'PREPARATION_FAILED');
+  assert.equal(s.files.get('bad/.lunaris/config.toml'), original);
+  assert.equal(s.vaults.current().id, 'old');
+  await s.host.stopAll(); s.host.assertNoResources();
 });
 
 test('startup initializes global config without a Vault/dialog; selecting a Vault creates its working folder and config', async () => {

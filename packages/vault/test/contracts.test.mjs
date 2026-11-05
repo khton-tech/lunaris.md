@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Vault, VaultLocations, VaultChanged, PrepareVault, validVaultName } from '@lunaris/vault';
+import { Vault, VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged, PrepareVault, validVaultName } from '@lunaris/vault';
 
 test('Vault contracts validate methods, lifecycle transitions and preparation payloads', () => {
   const first = { id: 'a', name: 'Notes' }; const second = { id: 'b', name: 'Work' };
@@ -25,4 +25,7 @@ test('Vault contracts validate methods, lifecycle transitions and preparation pa
   assert.equal(VaultChanged.validate({ kind: 'opened', previous: null, current: first, location: { reference: 'saved', label: 'Notes' } }), true);
   assert.equal(VaultChanged.validate({ kind: 'closed', previous: first, current: null, location: { reference: 'saved', label: 'Notes' } }), false);
   for (const name of ['', ' padded ', '\u0000', 'x'.repeat(201)]) assert.equal(validVaultName(name), false);
+  assert.equal(VaultHistory.validate({ list() {}, open() {} }), true);
+  assert.equal(VaultHistoryChanged.validate({ entries: [{ name: 'Notes', location: { reference: 'saved', label: 'Notes' } }] }), true);
+  assert.equal(VaultHistoryChanged.validate({ entries: [{ name: 'Notes', location: { reference: '' } }] }), false);
 });

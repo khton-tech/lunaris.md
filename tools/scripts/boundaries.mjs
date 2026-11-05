@@ -29,13 +29,14 @@ export const dependencies = {
   'tauri-filesystem': ['sdk', 'filesystem', 'logging'],
   vault: ['sdk', 'filesystem'],
   'vault-manager': ['sdk', 'filesystem', 'vault', 'logging'],
+  'vault-history': ['sdk', 'logging', 'config', 'vault'],
   config: ['sdk', 'filesystem'],
   'config-manager': ['sdk', 'filesystem', 'vault', 'logging', 'config'],
   kernel: ['manifest', 'sdk'],
   test: ['sdk', 'kernel'],
   development: ['manifest', 'sdk', 'kernel'],
   cli: ['manifest', 'sdk', 'kernel', 'test', 'development'],
-  tauri: ['runner', 'theme-settings', 'components-kit', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'config-manager', 'localization-manager'],
+  tauri: ['runner', 'theme-settings', 'components-kit', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'],
 };
 
 export const packagePath = scope => {
@@ -52,6 +53,7 @@ export const packagePath = scope => {
   if (scope === 'logger') return 'plugins/systems/logger';
   if (scope === 'filesystem-provider') return 'plugins/systems/filesystem';
   if (scope === 'vault-manager') return 'plugins/systems/vault';
+  if (scope === 'vault-history') return 'plugins/systems/vault-history';
   if (scope === 'config-manager') return 'plugins/systems/config';
   if (scope === 'tauri-filesystem') return 'plugins/systems/driver/tauri-filesystem';
   if (scope === 'dev-tools-logger') return 'plugins/systems/driver/dev-tools-logger';
@@ -76,7 +78,7 @@ export function checkSource(source, filename, scope) {
       return;
     }
     const value = node.text;
-    if (['runner', 'theme-settings', 'components-kit', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'config-manager', 'localization-manager'].includes(scope) &&
+    if (['runner', 'theme-settings', 'components-kit', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'].includes(scope) &&
         path.resolve(filename) === path.resolve(packagePath(scope), 'src/index.ts') &&
         value === '../manifest.json') return;
     // The host owns startup artwork; plugins cannot reach outside their source roots.

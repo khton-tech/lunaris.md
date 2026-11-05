@@ -40,7 +40,8 @@
     "startup:check": "node tools/scripts/check.mjs startup startup-provider",
     "components-kit:check": "node tools/scripts/check.mjs components-kit",
     "theme-settings:check": "node tools/scripts/check.mjs theme-settings base-theme-engine components-kit",
-    "runner:check": "node tools/scripts/check.mjs runner"
+    "runner:check": "node tools/scripts/check.mjs runner",
+    "vault-history:check": "node tools/scripts/check.mjs vault-history"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

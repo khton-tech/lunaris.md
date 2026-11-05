@@ -72,6 +72,9 @@
     },
     {
       "path": "../../plugins/UI/lunaris-runner"
+    },
+    {
+      "path": "../../plugins/systems/vault-history"
     }
   ]
 }

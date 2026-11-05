@@ -1,7 +1,10 @@
 # Vault selector: interface and contract requirements
 
-Status: proposed; product implementation is blocked by missing public contracts.
-This document does not introduce executable APIs. Follow [UI guidelines](../UI_GUIDELINES.md).
+Status: interface proposed; public contract blockers resolved. The implementation
+now supplies `VaultLocations`, `FilesystemLocations`, preparation metadata, and
+the dedicated [history provider](../../plugins/systems/vault-history/DOCS/README.md),
+including Tauri integration. The UI itself is not implemented yet.
+Follow [UI guidelines](../UI_GUIDELINES.md).
 
 ## Interface
 
@@ -25,7 +28,7 @@ directly below its action; only one card is expanded at a time.
 - Select: select a folder using the same Browse control, then press Next.
 - Proposed create semantics: the selected folder is the Vault root; the entered
   name is its display name, not a request to create a nested directory. This
-  interpretation still needs Owner clarification before implementation.
+  is the current backend behavior; confirm before changing it to nested creation.
 - Accept empty and populated folders. Existing unrelated content is preserved.
   Config Manager creates missing `.lunaris/config.toml` during preparation and
   validates existing configuration without overwriting it.
@@ -44,14 +47,14 @@ theme geometry. Keep keyboard navigation, visible focus, labelled inputs,
 expanded-state announcements, and reduced-motion behavior. Avoid decorative
 panels, explanatory filler, and selectable interface chrome.
 
-## Existing capabilities and missing contracts
+## Original contract gap (resolved)
 
 Existing services cover Logger, localization, slot allocation/DOM targets,
 component roles, active themes, global Config persistence, and Vault preparation.
 `LunarisComponentsKit` currently supplies only the startup-screen role; add
 the selector and its reusable controls there, consumed through `Components`.
 
-The current `Vault` API provides only `current()`, `open()`, and `close()`.
+The original `Vault` API provides only `current()`, `open()`, and `close()`.
 `open()` combines folder selection, preparation, and activation. `FilesystemRoots`
 can select a temporary owned root but Vault Manager cannot accept that candidate.
 `VaultRoot` exposes only a session ID and name. Neither is a persistent location
@@ -62,10 +65,18 @@ Calling native dialogs from the UI, persisting temporary root IDs, or closing
 and reselecting a folder on Next would bypass the intended public boundary or
 fail the requested behavior. Do not implement those workarounds.
 
-## Required public contract extension
+## Contract extension specification and delivered mapping
 
-Extend domain contracts and their provider/driver chain; the SDK/kernel runtime
-does not currently require changes. Method names below are proposed, not shipped.
+Delivered mapping: `VaultLocations.select/open` implement items 1–2 below;
+`FilesystemLocations.select/attach` and its driver implement item 3. Versioned
+`PrepareVault`/`VaultChanged@1.1.0`, validation, scoped native attachments and
+targeted regression tests cover items 4–5. Tauri stores durable references in its
+native application-directory registry. See [Vault APIs](vault.md#explicit-folder-selection-and-opening)
+and [filesystem locations](application-storage.md#durable-folder-locations).
+
+The original specification below concerns domain contracts and their provider/driver
+chain; no SDK/kernel runtime changes were necessary. Use the delivered public names
+above when implementing consumers.
 
 1. Add `Vault.selectLocation(owner)` returning a result containing a nullable
    candidate: opaque location reference plus a safe folder display label. Selection
@@ -101,9 +112,9 @@ paths, names, or config payloads. Logger calls use the plugin ID as source.
 
 ## Integration and verification required before delivery
 
-Integration remains outstanding across Vault Manager, filesystem provider,
-target driver, Config Manager, recent-history provider, Components Kit,
-selector controller, and Tauri composition. The selector lives under
+Integration is complete across Vault Manager, filesystem provider, Tauri driver,
+Config Manager, recent-history provider, and Tauri service composition. Components
+Kit, selector controller, and startup-screen handoff remain outstanding. The planned selector lives under
 `plugins/UI/vault-selector`; it acquires all services through declared SDK
 contracts. Themes flow through the kit, localized text through props, and
 rendering through component roles and allocated slots. Coordinate the runner's
