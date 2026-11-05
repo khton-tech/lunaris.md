@@ -19,7 +19,7 @@ const session = new HostSession({
   },
 });
 document.documentElement.lang = "en";
-mountSystemView(root, application, session);
+mountSystemView(root, application, session, { startup: document.getElementById("startup-root")! });
 
 window.addEventListener("error", event => {
   void session.reportFault("runtime", event.target instanceof HTMLElement ? "RESOURCE_LOAD_FAILED" : "UNHANDLED_APPLICATION_ERROR");

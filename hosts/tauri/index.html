@@ -3,12 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="light" />
+    <meta name="color-scheme" content="dark" />
     <title>Lunaris</title>
     <link rel="stylesheet" href="/assets/shell.css" />
   </head>
   <body>
-    <div id="system-root">
+    <div id="startup-root" class="boot-screen">
+      <pre role="img" aria-label="Lunaris.md"><!-- lunaris:startup-art --></pre>
+      <p role="status">Loading system</p>
+    </div>
+    <div id="system-root" hidden>
       <main class="boot-message">
         <p>Lunaris</p>
         <h1>Starting the system.</h1>

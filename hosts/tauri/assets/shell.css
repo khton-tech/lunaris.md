@@ -1,7 +1,7 @@
 :root {
   font-family: "Segoe UI", system-ui, sans-serif;
   color: #202020;
-  background: #fff;
+  background: #11151C;
   font-size: 14px;
   line-height: 1.5;
   font-synthesis: none;
@@ -15,6 +15,13 @@
 body { margin: 0; min-height: 100dvh; height: 100dvh; display: flex; flex-direction: column; -webkit-user-select: none; user-select: none; }
 input, textarea, [contenteditable]:not([contenteditable="false"]) { -webkit-user-select: text; user-select: text; }
 #application-root { flex: 1; display: flex; min-width: 0; min-height: 0; }
+/* Native/HTML first paint matches the default runner before theme services exist. */
+.boot-screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: safe center; gap: 24px; padding: 32px; overflow: auto; color: #E6EBF2; background: #11151C; }
+.boot-screen pre { margin: 0; max-width: 100%; overflow: auto; font: 10px/1.2 ui-monospace, Consolas, monospace; white-space: pre; flex-shrink: 0; }
+.boot-screen p { margin: 0; font-weight: 500; }
+/* Keep the boot artwork behind the early, initially empty application surface. */
+#application-root { position: relative; z-index: 1; }
+#system-root { position: relative; z-index: 2; flex: 1; background: #fff; color-scheme: light; }
 [hidden] { display: none !important; }
 button {
   max-width: 100%;

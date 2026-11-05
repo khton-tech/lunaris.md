@@ -1,5 +1,17 @@
 # Tauri host and independent recovery shell
 
+Normal desktop startup presents the runner (ASCII logo/loading) followed by the
+Vault selector. Before plugin services are available, a host-owned static surface
+uses the same `resources/ascii_art.txt` artwork and default dark runner appearance.
+Vite injects the current resource into both dev and packaged HTML; the native
+window and HTML background use `#11151C` to avoid an initial white paint. This
+fixed boot appearance is replaced by the configured theme once services are ready.
+The boot surface stays behind the early application surface until startup finishes,
+so an initially empty slot surface does not expose diagnostics or a blank page.
+Recovery remains hidden during idle/start/retry and appears on actual failure;
+standalone host sessions without this boot surface retain their diagnostic UI.
+Native first-frame behavior remains a manual acceptance check.
+
 The first application target is Tauri 2 on Windows. The existing TypeScript kernel
 runs in its WebView; Rust supplies the native window and packaged assets. No Node
 sidecar or Rust rewrite of the kernel is added. Product services include the

@@ -4,7 +4,7 @@ import { message as t } from "./catalog.js";
 import type { MessageKey } from "./catalog.js";
 
 /** Host-owned DOM. No plugin is given this system root or the session object. */
-export function mountSystemView(root: HTMLElement, application: HTMLElement, session: HostSession): Disposable {
+export function mountSystemView(root: HTMLElement, application: HTMLElement, session: HostSession, options: { readonly startup?: HTMLElement } = {}): Disposable {
   const document = root.ownerDocument;
   root.lang = "en";
   const el = <K extends keyof HTMLElementTagNameMap>(tag: K, text?: string, className?: string) => {
@@ -53,10 +53,13 @@ export function mountSystemView(root: HTMLElement, application: HTMLElement, ses
     const renderKey = JSON.stringify(snapshot);
     if (renderKey === previousRender) return;
     previousRender = renderKey;
-    const showSystem = !snapshot.applicationVisible;
+    const showStartup = !!options.startup && (snapshot.phase === "idle" || snapshot.phase === "starting");
+    const showSystem = !snapshot.applicationVisible && !showStartup &&
+      (!options.startup || snapshot.phase === "fallback" || snapshot.phase === "running");
+    if (options.startup) options.startup.hidden = !showStartup;
     root.hidden = !showSystem;
     panel.hidden = !showSystem;
-    application.hidden = showSystem;
+    application.hidden = !snapshot.applicationVisible;
     panel.setAttribute("aria-label", t("status"));
     root.dataset.phase = snapshot.phase;
     heading.textContent = t(snapshot.phase);
@@ -121,5 +124,5 @@ export function mountSystemView(root: HTMLElement, application: HTMLElement, ses
     }
   }
   const subscription = session.subscribe(render);
-  return { dispose() { subscription.dispose(); root.replaceChildren(); application.hidden = true; } };
+  return { dispose() { subscription.dispose(); root.replaceChildren(); application.hidden = true; if (options.startup) options.startup.hidden = true; } };
 }

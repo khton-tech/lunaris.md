@@ -1,5 +1,10 @@
 # Lunaris Runner
 
+Before this plugin activates, Tauri presents a matching host-owned boot surface
+using the same artwork resource. Recovery diagnostics remain hidden during normal
+startup and retries. The boot surface is behind the early product surface and
+disappears when startup completes; it does not introduce a separate normal screen.
+
 Purpose: present startup progress using the supplied ASCII artwork. Standalone
 composition retains `System Loaded`; Tauri releases it for the Vault selector.
 The plugin has no navigation, timers, artificial progress,

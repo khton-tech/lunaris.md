@@ -4,6 +4,50 @@ import { JSDOM } from 'jsdom';
 import { TestScheduler } from '@lunaris/test';
 import { HostSession } from '@lunaris/tauri';
 import { mountSystemView } from '../dist/view.js';
+import { readFileSync } from 'node:fs';
+import viteConfig from '../vite.config.ts';
+
+test('first HTML paint contains the runner artwork and hides recovery before JavaScript', () => {
+  const source = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+  const transformed = viteConfig.plugins[0].transformIndexHtml(source);
+  const dom = new JSDOM(transformed); const document = dom.window.document;
+  assert.equal(document.getElementById('system-root').hidden, true);
+  assert.equal(document.getElementById('application-root').hidden, true);
+  assert.equal(document.getElementById('startup-root').hidden, false);
+  assert.equal(document.querySelector('#startup-root pre').textContent, readFileSync(new URL('../../../resources/ascii_art.txt', import.meta.url), 'utf8').replaceAll('\r\n', '\n'));
+  assert.equal(document.querySelector('#startup-root [role=status]').textContent, 'Loading system');
+  const native = JSON.parse(readFileSync(new URL('../src-tauri/tauri.conf.json', import.meta.url), 'utf8'));
+  assert.equal(native.app.windows[0].backgroundColor, '#11151C');
+  const style = document.createElement('style'); style.textContent = readFileSync(new URL('../assets/shell.css', import.meta.url), 'utf8'); document.head.append(style);
+  assert.equal(dom.window.getComputedStyle(document.documentElement).backgroundColor, 'rgb(17, 21, 28)');
+  assert.equal(dom.window.getComputedStyle(document.getElementById('startup-root')).backgroundColor, 'rgb(17, 21, 28)');
+  dom.window.close();
+});
+
+test('product startup never exposes recovery during delayed composition, activation or retry; real errors still reveal it', async () => {
+  const dom = new JSDOM('<div id="boot">Logo</div><div id="system" hidden></div><div id="app" hidden></div>');
+  const document = dom.window.document; const root = document.getElementById('system'); const app = document.getElementById('app'); const boot = document.getElementById('boot');
+  let release; let entered; let calls = 0;
+  const session = new HostSession({ scheduler: new TestScheduler(), load: async () => {
+    calls++; entered?.(); await new Promise(resolve => { release = resolve; });
+    return { plugins: [], entrypoints: [], view: { duringStartup: true, mount() { return { dispose() {} }; } } };
+  } });
+  const view = mountSystemView(root, app, session, { startup: boot });
+  assert.equal(boot.hidden, false); assert.equal(root.hidden, true);
+  const exposure = [];
+  const subscription = session.subscribe(snapshot => { if (snapshot.phase === 'idle' || snapshot.phase === 'starting') exposure.push(root.hidden); });
+  const loading = new Promise(resolve => { entered = resolve; }); const starting = session.start(); await loading;
+  assert.equal(calls, 1); assert.equal(root.hidden, true); assert.equal(boot.hidden, false); assert.equal(app.hidden, true);
+  release(); await starting;
+  assert.equal(app.hidden, false); assert.equal(boot.hidden, true); assert.equal(root.hidden, true);
+  await session.reportFault('startup', 'TEST_FAILURE');
+  assert.equal(root.hidden, false); assert.equal(boot.hidden, true); assert.equal(app.hidden, true);
+  const reloading = new Promise(resolve => { entered = resolve; }); const retry = session.start(); await reloading;
+  assert.equal(root.hidden, true); assert.equal(boot.hidden, false); release(); await retry;
+  assert.ok(exposure.length > 0 && exposure.every(Boolean));
+  await session.stop(); assert.equal(root.hidden, true); assert.equal(boot.hidden, true);
+  subscription.dispose(); view.dispose(); dom.window.close();
+});
 
 function setup(definition = { plugins: [], entrypoints: [] }) {
   const dom = new JSDOM('<html lang="ru"><body><div id="system"></div><div id="app"></div></body></html>');
