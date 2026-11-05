@@ -2,12 +2,12 @@
 
 ## Vault Manager
 
-Status: TODO. Requested by the Owner on 2026-11-05. Implement after the filesystem
-provider and its first platform driver. This task does not authorize implementation
-as part of the filesystem milestone.
+Status: IMPLEMENTED on 2026-11-05, following separate Owner authorization after
+the filesystem milestone. See the [Vault Manager reference](reference/vault.md).
 
 Filesystem dependency: [provider and Tauri driver](reference/filesystem.md) are
-implemented; Vault Manager itself remains TODO.
+implemented, including owned roots and coordinated closure. Application configuration
+directory access is also available through [SDK storage contracts](reference/application-storage.md).
 
 Own Vault context and lifecycle: open, expose the active Vault, switch and close;
 publish SDK events for these changes. Start with one open Vault. Delegate root

@@ -1,6 +1,8 @@
 {
   "files": [],
   "references": [
+    { "path": "packages/vault" },
+    { "path": "plugins/systems/vault" },
     { "path": "packages/filesystem" },
     { "path": "plugins/systems/filesystem" },
     { "path": "plugins/systems/driver/tauri-filesystem" },

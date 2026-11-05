@@ -24,9 +24,10 @@ the public kernel package; product plugins continue to use the public SDK.
 The application composition point is
 `hosts/tauri/src/application.ts`. It installs `lunaris.logger` and
 `lunaris.dev-tools-logger`, `lunaris.filesystem-provider` and
-`lunaris.tauri-filesystem`. The filesystem provider is the root; its required
-driver and logging dependencies start automatically. No product view is installed.
-A fresh desktop launch shows these four plugins in the system screen; the console
+`lunaris.tauri-filesystem`, and `lunaris.vault-manager`. The Vault Manager is the
+entrypoint; its required filesystem and logging chain starts automatically.
+See [Vault Manager](../reference/vault.md). No product view is installed.
+A fresh desktop launch shows these five plugins in the system screen; the console
 displays the artwork and service readiness records. The sink definition survives
 retries, so the artwork prints once per page load. A window reload starts a new
 banner lifetime. No Vault is selected or native dialog opened automatically.
@@ -68,7 +69,8 @@ an `ApplicationDefinition`:
 - Optional `grants`: trusted plugin-ID-to-permission-list map, applied after
   registration and before starting plugins. Undeclared grants fail; excluded
   plugins are skipped. Filesystem composition grants native authority to its
-  driver and filesystem access to its provider. Consumers require separate grants.
+  driver, filesystem/application-directory access to its provider, and filesystem
+  access to Vault Manager. Consumers require separate grants.
 - Optional `view.mount(signal)`: a trusted renderer adapter that captures the
   supplied target and returns a disposable. It must cooperate with cancellation
   and release its rendering resources.
@@ -146,11 +148,11 @@ DOM tests run in Node with JSDOM, not desktop automation. Native compilation and
 mocked close callbacks do not establish actual WebView rendering or OS event
 behavior. Manually run `npm run tauri:dev` and check:
 
-1. The monochrome system view fits the window, versions are visible, and all four
+1. The monochrome system view fits the window, versions are visible, and all five
    service plugins are active without a blank application screen. Open DevTools:
    the supplied artwork appears once, followed by the readable `LOGGER_READY`
    record. Retry does not repeat the artwork; reloading the window does.
-   Confirm `FILESYSTEM_DRIVER_READY` and `FILESYSTEM_READY` too. Native dialog
+   Confirm `FILESYSTEM_DRIVER_READY`, `FILESYSTEM_READY` and `VAULT_READY` too. Native dialog
    selection/cancellation requires a consumer action; its UI is outside this milestone.
 2. Switching English/Russian updates labels and keyboard focus remains visible.
    Resize to the minimum window width and check table scrolling when plugins exist.

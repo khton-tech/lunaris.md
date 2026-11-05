@@ -11,16 +11,19 @@ export const dependencies = {
   filesystem: ['sdk'],
   'filesystem-provider': ['sdk', 'filesystem', 'logging'],
   'tauri-filesystem': ['sdk', 'filesystem', 'logging'],
+  vault: ['sdk', 'filesystem'],
+  'vault-manager': ['sdk', 'filesystem', 'vault', 'logging'],
   kernel: ['manifest', 'sdk'],
   test: ['sdk', 'kernel'],
   development: ['manifest', 'sdk', 'kernel'],
   cli: ['manifest', 'sdk', 'kernel', 'test', 'development'],
-  tauri: ['sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem'],
+  tauri: ['sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager'],
 };
 
 export const packagePath = scope => {
   if (scope === 'logger') return 'plugins/systems/logger';
   if (scope === 'filesystem-provider') return 'plugins/systems/filesystem';
+  if (scope === 'vault-manager') return 'plugins/systems/vault';
   if (scope === 'tauri-filesystem') return 'plugins/systems/driver/tauri-filesystem';
   if (scope === 'dev-tools-logger') return 'plugins/systems/driver/dev-tools-logger';
   return ['development', 'tauri'].includes(scope) ? `hosts/${scope}` : `packages/${scope}`;
@@ -43,7 +46,7 @@ export function checkSource(source, filename, scope) {
       return;
     }
     const value = node.text;
-    if (['logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem'].includes(scope) &&
+    if (['logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager'].includes(scope) &&
         path.resolve(filename) === path.resolve(packagePath(scope), 'src/index.ts') &&
         value === '../manifest.json') return;
     // The host owns startup artwork; plugins cannot reach outside their source roots.

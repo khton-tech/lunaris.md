@@ -169,14 +169,17 @@ are deferred. Unsupported operations must fail explicitly, without unsafe fallba
 
 ## Host composition and verification
 
-Tauri registers Logger, DevTools sink, filesystem provider and native driver, and
-starts the filesystem provider as the root. Composition grants `filesystem.native`
-to the driver and `filesystem.access` to the provider. Consumers need their own
+Tauri registers Logger, DevTools sink, filesystem provider, native driver and
+[Vault Manager](vault.md), which starts as the product entrypoint. Composition grants
+`filesystem.native` to the driver, `filesystem.access` and `filesystem.app-config`
+to the provider, and `filesystem.access` to Vault Manager. Consumers need their own
 explicit grants. `ApplicationDefinition.grants` is a trusted host composition map;
 the host applies it after registration, before activation, skipping excluded
 plugins. It does not allow undeclared grants or expose grant management to plugins.
 Multiple drivers require host selection for both the driver API and its change
-event before starting the provider. No active-Vault singleton is introduced.
+event before starting the provider, along with selections for the owned-root and
+application-directory driver APIs when multiple implementations are registered.
+Active-Vault context belongs to Vault Manager, not to this filesystem service.
 
 Run `npm run filesystem:check`: targeted TypeScript/provider/driver/host tests,
 native filesystem tests, boundary/type/CI selection checks, Rust formatting,
@@ -184,9 +187,9 @@ locked host compilation and the frontend bundle. The tests perform real temporar
 file operations and native watching without opening windows or selection dialogs.
 `npm run tauri:check` / `npm run tauri:build` also run native filesystem tests.
 
-Manual acceptance: run `npm run tauri:dev` and confirm all four plugins activate.
-Native selection/cancellation visuals require a consumer user action; Vault
-Manager/product file UI is not implemented yet. No desktop automation is used.
+Manual acceptance: run `npm run tauri:dev` and confirm all five plugins activate.
+Native selection/cancellation visuals require a consumer user action; product
+file/Vault-selection UI is not implemented yet. No desktop automation is used.
 
 Implementation references: [cap-std directory API](https://docs.rs/cap-std/4.0.3/cap_std/fs/struct.Dir.html),
 [native notifications](https://docs.rs/notify/8.2.1/notify/),

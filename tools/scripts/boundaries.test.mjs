@@ -25,6 +25,14 @@ test('product plugins use only the SDK, shared logging contracts and local modul
   }
 });
 
+test('Vault Manager imports contracts through SDK without filesystem driver or host dependencies', () => {
+  const file = path.resolve('plugins/systems/vault/src/index.ts');
+  assert.deepEqual(checkSource('import "@lunaris/sdk"; import "@lunaris/vault"; import "@lunaris/filesystem"; import "@lunaris/logging"; import "../manifest.json";', file, 'vault-manager'), []);
+  for (const dependency of ['@lunaris/kernel', '@lunaris/tauri-filesystem', '@lunaris/filesystem-provider', 'node:fs', '@tauri-apps/api/core']) {
+    assert.ok(checkSource(`import "${dependency}";`, file, 'vault-manager').length);
+  }
+});
+
 test('only application composition may import the startup artwork', () => {
   const source = 'import art from "../../../resources/ascii_art.txt?raw";';
   assert.deepEqual(checkSource(source, path.resolve('hosts/tauri/src/application.ts'), 'tauri'), []);

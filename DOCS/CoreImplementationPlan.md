@@ -860,3 +860,23 @@ for APIs and limits: optimistic external conflict checking, nontransactional
 directory copies, Windows-first native no-replacement rename, 64 MiB transfers,
 manual dismissal of already open native dialogs, and unsupported link transfers,
 directory replacement/trash/streaming. No Vault Manager, merge or push.
+
+## Application storage and Vault Manager — 2026-11-05
+
+Owner scope: defer config-manager implementation and first resolve its filesystem
+and Vault-lifecycle prerequisites. Existing SDK APIs, cancellation signals,
+permissions, events and hooks are sufficient; the SDK/kernel runtime is unchanged.
+
+| Task | Status | Delivered behavior / acceptance |
+|---|---|---|
+| K12.1 Application directory | DONE | Host-resolved config root, separate SDK permission, lazy directory creation, persistent files and capability-confined portable filesystem I/O. |
+| K12.2 Owned roots and closure | DONE | Owner cancellation, native cleanup without SDK handles, accepted-I/O draining, stale-ID rejection, late-selection retirement and independent cleanup diagnostics. |
+| K12.3 Vault Manager | DONE | One active Vault, selection/open/switch/close, awaited preparation hook, immutable context, lifecycle events, cancellation/failure preservation and BUSY protection. |
+| K12.4 Composition and verification | DONE | Tauri entrypoint/grants, plugin-local docs, 74 targeted TypeScript/host/boundary tests, type fixtures, CI selection, public-export/docs audit and frontend bundle. Native storage prerequisite passed 9 tests and locked host compilation. |
+
+Branch: `feat/application-storage-vault-manager`. Verification: `npm run vault:check`,
+`npm run filesystem:check` for native prerequisites, frontend build and docs/export
+audit. See [application storage](reference/application-storage.md) and
+[Vault Manager](reference/vault.md) for APIs, lifecycle guarantees and limits.
+Native dialog visuals remain manual. Config parsing/storage policy, `.lunaris`
+initialization, product UI, history and restoration remain deferred. No merge/push.
