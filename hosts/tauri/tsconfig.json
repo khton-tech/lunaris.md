@@ -6,6 +6,7 @@
   },
   "include": ["src/**/*.ts"],
   "references": [
+    { "path": "../../plugins/systems/config" },
     { "path": "../../plugins/systems/vault" },
     { "path": "../../plugins/systems/filesystem" },
     { "path": "../../plugins/systems/driver/tauri-filesystem" },

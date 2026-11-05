@@ -18,8 +18,17 @@ implicitly resolve the active Vault or expose native absolute paths.
 Coordinate closure by rejecting new work and awaiting in-flight operations before
 releasing the root and watchers. Unsaved-document decisions belong to the future
 document layer. Recent-Vault history, session restoration, tabs and per-Vault
-settings are deferred. Use mandatory structured logging and SDK scope ownership.
+settings were initially deferred. Per-Vault settings are now implemented by the
+separate [config manager](reference/config.md). Use mandatory logging and SDK ownership.
 
 Acceptance: opening/closing emits documented events; switching cannot redirect an
 in-flight save; closed IDs reject new operations; consumers access context through
 SDK contracts without depending on driver or host internals.
+
+## Config Manager
+
+Status: IMPLEMENTED on 2026-11-05 after completing the storage/Vault prerequisites.
+Global application config and `.lunaris/config.toml` expose per-plugin namespaces
+through SDK read/get/set/remove methods. Effective reads prioritize local values;
+explicit writes, version checks and serialized mutations preserve unrelated data.
+See [the config reference](reference/config.md) for format, errors and limits.

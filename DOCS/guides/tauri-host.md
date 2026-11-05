@@ -24,10 +24,11 @@ the public kernel package; product plugins continue to use the public SDK.
 The application composition point is
 `hosts/tauri/src/application.ts`. It installs `lunaris.logger` and
 `lunaris.dev-tools-logger`, `lunaris.filesystem-provider` and
-`lunaris.tauri-filesystem`, and `lunaris.vault-manager`. The Vault Manager is the
-entrypoint; its required filesystem and logging chain starts automatically.
-See [Vault Manager](../reference/vault.md). No product view is installed.
-A fresh desktop launch shows these five plugins in the system screen; the console
+`lunaris.tauri-filesystem`, `lunaris.vault-manager` and `lunaris.config-manager`.
+Config manager is the entrypoint; its Vault/filesystem/logging chain starts
+automatically. See [Vault Manager](../reference/vault.md) and
+[config manager](../reference/config.md). No product view is installed.
+A fresh desktop launch shows these six plugins in the system screen; the console
 displays the artwork and service readiness records. The sink definition survives
 retries, so the artwork prints once per page load. A window reload starts a new
 banner lifetime. No Vault is selected or native dialog opened automatically.
@@ -148,11 +149,11 @@ DOM tests run in Node with JSDOM, not desktop automation. Native compilation and
 mocked close callbacks do not establish actual WebView rendering or OS event
 behavior. Manually run `npm run tauri:dev` and check:
 
-1. The monochrome system view fits the window, versions are visible, and all five
+1. The monochrome system view fits the window, versions are visible, and all six
    service plugins are active without a blank application screen. Open DevTools:
    the supplied artwork appears once, followed by the readable `LOGGER_READY`
    record. Retry does not repeat the artwork; reloading the window does.
-   Confirm `FILESYSTEM_DRIVER_READY`, `FILESYSTEM_READY` and `VAULT_READY` too. Native dialog
+   Confirm `FILESYSTEM_DRIVER_READY`, `FILESYSTEM_READY`, `VAULT_READY` and `CONFIG_READY` too. Native dialog
    selection/cancellation requires a consumer action; its UI is outside this milestone.
 2. Switching English/Russian updates labels and keyboard focus remains visible.
    Resize to the minimum window width and check table scrolling when plugins exist.

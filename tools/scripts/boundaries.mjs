@@ -13,17 +13,20 @@ export const dependencies = {
   'tauri-filesystem': ['sdk', 'filesystem', 'logging'],
   vault: ['sdk', 'filesystem'],
   'vault-manager': ['sdk', 'filesystem', 'vault', 'logging'],
+  config: ['sdk', 'filesystem'],
+  'config-manager': ['sdk', 'filesystem', 'vault', 'logging', 'config'],
   kernel: ['manifest', 'sdk'],
   test: ['sdk', 'kernel'],
   development: ['manifest', 'sdk', 'kernel'],
   cli: ['manifest', 'sdk', 'kernel', 'test', 'development'],
-  tauri: ['sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager'],
+  tauri: ['sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'config-manager'],
 };
 
 export const packagePath = scope => {
   if (scope === 'logger') return 'plugins/systems/logger';
   if (scope === 'filesystem-provider') return 'plugins/systems/filesystem';
   if (scope === 'vault-manager') return 'plugins/systems/vault';
+  if (scope === 'config-manager') return 'plugins/systems/config';
   if (scope === 'tauri-filesystem') return 'plugins/systems/driver/tauri-filesystem';
   if (scope === 'dev-tools-logger') return 'plugins/systems/driver/dev-tools-logger';
   return ['development', 'tauri'].includes(scope) ? `hosts/${scope}` : `packages/${scope}`;
@@ -40,13 +43,14 @@ export function checkSource(source, filename, scope) {
   }
   // The shared validator owns the reviewed, platform-neutral SemVer dependency.
   if (scope === 'manifest') allowed.add('semver');
+  if (scope === 'config-manager' && path.resolve(filename) === path.resolve('plugins/systems/config/src/codec.ts')) allowed.add('smol-toml');
   function specifier(node) {
     if (!ts.isStringLiteral(node)) {
       errors.push(`${filename}: nonliteral imports are forbidden in core packages`);
       return;
     }
     const value = node.text;
-    if (['logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager'].includes(scope) &&
+    if (['logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'config-manager'].includes(scope) &&
         path.resolve(filename) === path.resolve(packagePath(scope), 'src/index.ts') &&
         value === '../manifest.json') return;
     // The host owns startup artwork; plugins cannot reach outside their source roots.

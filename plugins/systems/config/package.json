@@ -1,0 +1,23 @@
+{
+  "name": "@lunaris/config-manager",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    }
+  },
+  "dependencies": {
+    "@lunaris/sdk": "0.1.0",
+    "@lunaris/filesystem": "0.1.0",
+    "@lunaris/logging": "0.1.0",
+    "@lunaris/vault": "0.1.0",
+    "@lunaris/config": "0.1.0",
+    "smol-toml": "1.9.1"
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
+}

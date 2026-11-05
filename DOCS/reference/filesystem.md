@@ -170,7 +170,8 @@ are deferred. Unsupported operations must fail explicitly, without unsafe fallba
 ## Host composition and verification
 
 Tauri registers Logger, DevTools sink, filesystem provider, native driver and
-[Vault Manager](vault.md), which starts as the product entrypoint. Composition grants
+[Vault Manager](vault.md) and [config manager](config.md), the product entrypoint.
+Composition grants
 `filesystem.native` to the driver, `filesystem.access` and `filesystem.app-config`
 to the provider, and `filesystem.access` to Vault Manager. Consumers need their own
 explicit grants. `ApplicationDefinition.grants` is a trusted host composition map;
@@ -187,7 +188,7 @@ locked host compilation and the frontend bundle. The tests perform real temporar
 file operations and native watching without opening windows or selection dialogs.
 `npm run tauri:check` / `npm run tauri:build` also run native filesystem tests.
 
-Manual acceptance: run `npm run tauri:dev` and confirm all five plugins activate.
+Manual acceptance: run `npm run tauri:dev` and confirm all six plugins activate.
 Native selection/cancellation visuals require a consumer user action; product
 file/Vault-selection UI is not implemented yet. No desktop automation is used.
 

@@ -880,3 +880,23 @@ audit. See [application storage](reference/application-storage.md) and
 [Vault Manager](reference/vault.md) for APIs, lifecycle guarantees and limits.
 Native dialog visuals remain manual. Config parsing/storage policy, `.lunaris`
 initialization, product UI, history and restoration remain deferred. No merge/push.
+
+## Config manager — 2026-11-05
+
+Owner scope: implement the deferred config manager using the completed storage
+and Vault prerequisites. Existing SDK APIs, permissions, hooks and lifecycle
+ownership suffice; no SDK/kernel/native changes are required.
+
+| Task | Status | Delivered behavior / acceptance |
+|---|---|---|
+| K13.1 Contracts and namespaces | DONE | SDK read/get/set/remove API, explicit write layers, arbitrary plugin namespaces, config.access and value-free mutation events. |
+| K13.2 TOML and precedence | DONE | Global application config plus .lunaris/config.toml, recursive table merging with local precedence, literal keys, detached values and strict TOML-compatible input snapshots. |
+| K13.3 Persistence and lifecycle | DONE | Preparation hook before Vault readiness, existing-file validation, serialized per-file mutations, optimistic version checks, captured Vault IDs, restart/stop handling and no config payloads in logs. |
+| K13.4 Composition and verification | DONE | Tauri entrypoint/grants, plugin docs, 67 targeted contract/manager/host/boundary tests, type fixtures, CI selection, exports/docs audit and frontend bundle. |
+
+Branch: `feat/config-manager`. Verification: `npm run config:check`,
+`npm run build --workspace @lunaris/tauri`, CI scope tests and documentation/export
+audit. See [config manager](reference/config.md). The TOML codec dependency is
+pinned and confined to its codec module. Source comments/formatting are not retained
+by mutations. External edits are reread on demand; no watch/cache service or UI is
+added. No merge or push.

@@ -1,6 +1,8 @@
 {
   "files": [],
   "references": [
+    { "path": "packages/config" },
+    { "path": "plugins/systems/config" },
     { "path": "packages/vault" },
     { "path": "plugins/systems/vault" },
     { "path": "packages/filesystem" },

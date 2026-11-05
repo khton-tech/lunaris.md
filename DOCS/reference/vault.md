@@ -11,8 +11,9 @@ New: `@lunaris/vault` contracts and `@lunaris/vault-manager`, implemented in
 The manager owns product context; the filesystem provider owns portable I/O and
 the driver owns native roots/watchers. Global application storage is independent
 of the active Vault; see [application storage](application-storage.md).
-No config manager, TOML parsing, `.lunaris` creation, recent history, restoration,
-document state, unsaved-change prompts or product UI is implemented here.
+TOML parsing and `.lunaris` creation belong to the separate [config manager](config.md).
+Recent history, restoration, document state, unsaved-change prompts and product UI
+are not implemented here.
 
 ## Consumer API
 
@@ -61,7 +62,7 @@ with `{ vault, error: null }` after selecting the candidate, before closing the 
 Vault. It waits for all handlers before publishing the candidate as active.
 
 Handlers may use filesystem APIs with the candidate's explicit ID to prepare
-resources. A future config plugin can create `.lunaris/config.toml` here. Return
+resources. The config manager creates `.lunaris/config.toml` here. Return
 the payload unchanged on success, or a new payload with `error: "reason"` to veto.
 Preserve a preceding handler's error and never replace the candidate identity.
 Handler ordering follows the SDK's priority/plugin-ID rules.
@@ -114,8 +115,9 @@ already-closed root on its next close/switch but cannot infer such external clos
 
 ## Composition and verification
 
-The Tauri host registers the manager as the entrypoint, grants it filesystem access,
-and starts its required provider/driver/Logger chain. Startup opens no dialogs.
+The Tauri entrypoint is config manager; Vault Manager starts as its dependency,
+receives filesystem access and starts its provider/driver/Logger chain.
+Startup opens no dialogs.
 Services and platform drivers remain replaceable through SDK host selection.
 
 Run `npm run vault:check` for manager/contracts, affected filesystem/driver/host tests,

@@ -29,6 +29,7 @@
     "logger:check": "node tools/scripts/check.mjs logging logger dev-tools-logger",
     "filesystem:check": "node tools/scripts/filesystem.mjs",
     "vault:check": "node tools/scripts/check.mjs vault vault-manager filesystem-provider tauri-filesystem",
+    "config:check": "node tools/scripts/check.mjs config config-manager",
     "tauri:build": "node tools/scripts/tauri.mjs build"
   },
   "devDependencies": {

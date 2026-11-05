@@ -4,6 +4,12 @@ import path from 'node:path';
 import { checkSource } from './boundaries.mjs';
 
 const filename = path.resolve('packages/sdk/src/index.ts');
+test('config manager uses SDK contracts and confines its TOML dependency to the codec', () => {
+  const file = path.resolve('plugins/systems/config/src/index.ts');
+  assert.deepEqual(checkSource('import "@lunaris/config"; import "@lunaris/vault"; import "@lunaris/filesystem"; import "@lunaris/logging"; import "@lunaris/sdk"; import "../manifest.json";', file, 'config-manager'), []);
+  assert.deepEqual(checkSource('import "smol-toml";', path.resolve('plugins/systems/config/src/codec.ts'), 'config-manager'), []);
+  for (const dependency of ['node:fs', '@lunaris/kernel', '@lunaris/tauri-filesystem', 'smol-toml']) assert.ok(checkSource(`import "${dependency}";`, file, 'config-manager').length);
+});
 test('filesystem provider stays neutral and only the native driver bridge imports Tauri IPC', () => {
   const provider = path.resolve('plugins/systems/filesystem/src/index.ts');
   const driver = path.resolve('plugins/systems/driver/tauri-filesystem/src/index.ts');
