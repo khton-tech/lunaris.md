@@ -14,3 +14,4 @@
   CI selection test; Tauri frontend bundle; exports/docs audit; diff whitespace.
 - Deferred: product UI, persistence, language-pack loading, ICU/plural formatting.
 - No merge, push, native window launch or desktop automation.
+- Implementation commit: `7cbd1c1`.

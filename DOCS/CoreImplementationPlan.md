@@ -921,3 +921,6 @@ Branch: `feat/localization`, based on `fix/english-system-screen` at
 `git diff --check`. See [localization](reference/localization.md) for the API and
 limits. Only English is shipped; locale persistence, language packs, ICU and
 product UI remain deferred. No SDK/kernel/native changes, merge or push.
+
+Implementation commit: `7cbd1c1` (`feat(localization): add English-first plugin
+language service (K14)`).
