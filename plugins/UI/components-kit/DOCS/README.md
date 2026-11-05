@@ -66,8 +66,9 @@ use Logger; cleanup makes no SDK calls.
 
 Tauri starts the kit after the component provider and grants `ui.dom`. Theme
 changes are integrated through the public contract. Nothing is mounted until a
-consumer requests the role; the runner will supply artwork, localized milestone
-text and a slot after reading its startup configuration. The rest of the standard
+consumer requests the role; the [runner](../../lunaris-runner/DOCS/README.md)
+supplies artwork, localized milestone text and a slot after reading its startup
+configuration. The rest of the standard
 component catalog is outside this initial kit.
 
 Run `npm run components-kit:check`. Tests use the real SDK/kernel, Components,

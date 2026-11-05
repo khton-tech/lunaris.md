@@ -96,6 +96,9 @@
     },
     {
       "path": "plugins/UI/theme-settings"
+    },
+    {
+      "path": "plugins/UI/lunaris-runner"
     }
   ]
 }

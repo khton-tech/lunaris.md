@@ -117,7 +117,10 @@ mutation event; observe `VaultChanged` for context changes.
 
 ## Composition and verification
 
-Tauri starts config manager as its entrypoint. Dependencies start Vault Manager,
+Tauri starts config manager before theme-settings and the loading runner. Both
+consumers read their own namespaces through Config; theme-settings selects the
+theme before runner rendering. See [runner configuration](../../plugins/UI/lunaris-runner/DOCS/README.md).
+Dependencies start Vault Manager,
 filesystem provider/driver and logging first. The manager receives
 `filesystem.access`, `filesystem.app-config`, and `vault.access`. Startup opens no
 selection dialog. Replacement uses standard SDK provider selection.

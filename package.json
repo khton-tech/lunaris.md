@@ -39,7 +39,8 @@
     "base-theme:check": "node tools/scripts/check.mjs base-theme-engine",
     "startup:check": "node tools/scripts/check.mjs startup startup-provider",
     "components-kit:check": "node tools/scripts/check.mjs components-kit",
-    "theme-settings:check": "node tools/scripts/check.mjs theme-settings base-theme-engine components-kit"
+    "theme-settings:check": "node tools/scripts/check.mjs theme-settings base-theme-engine components-kit",
+    "runner:check": "node tools/scripts/check.mjs runner"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

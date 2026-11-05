@@ -7,6 +7,8 @@
 - [Product backlog](Backlog.md): product component status and deferred scope.
 - [UI slots](reference/slots.md): portable regions, scoped ownership, DOM targets and host composition.
 - [Startup progress](reference/startup.md): read-only SDK milestones, host bridge and early loading surfaces.
+- [Lunaris Runner](../plugins/UI/lunaris-runner/DOCS/README.md): configured ASCII startup screen, milestones and retained loaded status.
+- [Theme settings](../plugins/UI/theme-settings/DOCS/README.md): startup theme preference, default selection and failure behavior.
 - [Theme provider](reference/themes.md): engine-owned descriptions, registration, selection, updates and lifecycle notifications.
 - [Base theme engine](reference/base-theme.md): Lunaris Light/Dark palettes, semantic roles, geometry, typography and lifecycle.
 - [Component provider](reference/components.md): shared component registration by role ID, mounting, instance ownership and change events.

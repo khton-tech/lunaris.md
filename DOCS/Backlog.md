@@ -20,11 +20,20 @@ supplies a themed ASCII-art/status screen through the component registry.
 See [startup progress](reference/startup.md) and
 [the kit](../plugins/UI/components-kit/DOCS/README.md).
 
-Next: implement `lunaris-runner` as a consumer of Config, Localization, Slots,
-Components and Startup, with required Logger. Read configuration before rendering,
-show the supplied ASCII artwork and actual milestones, then retain System Loaded.
-No runner is implemented by the prerequisite work; physical WebView presentation
-remains subject to manual acceptance after its integration.
+## Lunaris Runner
+
+Status: IMPLEMENTED on 2026-11-05. The runner reads startup configuration before
+rendering, displays the existing ASCII artwork and actual host milestones through
+the shared component role, then retains System Loaded without timers/actions.
+Config, Localization, Slots, Components, Startup and required Logger are integrated.
+Separate theme-settings selects the configured theme (Dark by default); Light and
+Dark provide dedicated startup-screen component tokens. See
+[runner usage, configuration and manual acceptance](../plugins/UI/lunaris-runner/DOCS/README.md).
+
+Local evidence: runner checks passed 66 targeted tests; theme/settings/component
+checks passed 69 targeted tests, including overlapping host regressions. These
+are separate runs, not a combined unique-test count. Native WebView appearance,
+scrolling and sizing remain subject to manual acceptance.
 
 ## Base theme engine
 

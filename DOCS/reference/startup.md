@@ -73,10 +73,12 @@ authoritative presenter when product scopes are unavailable.
 
 Integrated: Tauri host -> startup provider -> public SDK API/event; early slot
 surface -> system visibility/recovery controls. No driver-specific calls or
-kernel imports are added to product plugins. The loading runner and
-its Config/Localization/Slots integration remain separate work. The initial
+kernel imports are added to product plugins. The
+[loading runner](../../plugins/UI/lunaris-runner/DOCS/README.md) now integrates
+Config/Localization/Slots and the component role. The initial
 [Components Kit](../../plugins/UI/components-kit/DOCS/README.md) now supplies the
-`lunaris.startup-screen` role. These changes alone add no visible content.
+`lunaris.startup-screen` role. Tauri starts theme-settings and the runner after
+foundational providers; the runner mounts this role and retains System Loaded.
 
 Run `npm run startup:check` for payload validation, type fixtures, real SDK
 provider ownership and host loading/failure/retry/shutdown tests. Run
