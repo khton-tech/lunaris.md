@@ -1,3 +1,4 @@
+import themeProvider from "@lunaris/theme-provider";
 import { composeSlotSurface } from "./slots.js";
 import type { ApplicationDefinition } from "./session.js";
 import { createLogger } from "@lunaris/logger";
@@ -18,8 +19,8 @@ export function composeApplication(target: HTMLElement): ApplicationDefinition {
   const layout = composeSlotSurface(target);
   return {
     ...layout,
-    plugins: [...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, configManager, localizationManager],
-    entrypoints: [...layout.entrypoints, configManager.manifest.id, localizationManager.manifest.id],
+    plugins: [themeProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, configManager, localizationManager],
+    entrypoints: [themeProvider.manifest.id, ...layout.entrypoints, configManager.manifest.id, localizationManager.manifest.id],
     grants: {
       ...layout.grants,
       [tauriFilesystem.manifest.id]: ["filesystem.native"],

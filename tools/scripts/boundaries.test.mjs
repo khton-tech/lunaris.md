@@ -4,6 +4,13 @@ import path from 'node:path';
 import { checkSource } from './boundaries.mjs';
 
 const filename = path.resolve('packages/sdk/src/index.ts');
+test('theme provider depends only on SDK and data contracts, independently of rendering and storage', () => {
+  const file = path.resolve('plugins/UI/themes/src/index.ts');
+  assert.deepEqual(checkSource('import "@lunaris/sdk"; import "@lunaris/themes"; import "@lunaris/logging"; import "../manifest.json";', file, 'theme-provider'), []);
+  for (const name of ['@lunaris/slot-dom', '@lunaris/slot-provider', '@lunaris/config', '@lunaris/kernel', '@lunaris/tauri', 'node:fs']) {
+    assert.ok(checkSource(`import "${name}";`, file, 'theme-provider').length);
+  }
+});
 test('slot allocation stays portable and cannot reach the DOM driver or host', () => {
   const file = path.resolve('plugins/UI/layout/src/index.ts');
   assert.deepEqual(checkSource('import "@lunaris/sdk"; import "@lunaris/slots"; import "@lunaris/logging"; import "../manifest.json";', file, 'slot-provider'), []);

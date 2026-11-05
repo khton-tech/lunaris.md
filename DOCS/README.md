@@ -6,6 +6,7 @@
 - [Logging contracts and composition](reference/logging.md): replaceable Logger/DevTools sink, record format, failure behavior and verification.
 - [Product backlog](Backlog.md): product component status and deferred scope.
 - [UI slots](reference/slots.md): portable regions, scoped ownership, DOM targets and host composition.
+- [Theme provider](reference/themes.md): engine-owned descriptions, registration, selection, updates and lifecycle notifications.
 - [Vault-scoped filesystem](reference/filesystem.md): provider/driver APIs, relative paths, dialogs, writes, permissions and native verification.
 - [Application configuration directory](reference/application-storage.md): global file storage, owned roots and coordinated closure.
 - [Vault Manager](reference/vault.md): active context, opening/switching/closing, preparation hooks and events.

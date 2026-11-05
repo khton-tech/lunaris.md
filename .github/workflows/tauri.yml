@@ -8,6 +8,7 @@ on:
       - 'packages/manifest/**'
       - 'packages/test/**'
       - 'packages/logging/**'
+      - 'packages/themes/**'
       - 'packages/slots/**'
       - 'packages/slot-dom/**'
       - 'packages/filesystem/**'

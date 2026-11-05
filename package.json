@@ -33,7 +33,8 @@
     "config:check": "node tools/scripts/check.mjs config config-manager",
     "tauri:build": "node tools/scripts/tauri.mjs build",
     "localization:check": "node tools/scripts/check.mjs localization localization-manager",
-    "slots:check": "node tools/scripts/check.mjs slots slot-dom slot-provider web-slot-driver"
+    "slots:check": "node tools/scripts/check.mjs slots slot-dom slot-provider web-slot-driver",
+    "themes:check": "node tools/scripts/check.mjs themes theme-provider"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

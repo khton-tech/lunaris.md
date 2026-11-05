@@ -14,6 +14,10 @@ Its view adapter mounts the isolated product surface only after successful plugi
 startup. The surface remains empty until product UI consumers are introduced;
 System/recovery controls remain host-owned and available independently.
 
+The [theme provider](../reference/themes.md) also starts as an empty registry.
+Theme engines register their own descriptions through SDK contracts. No theme or
+visual styling is supplied by the host composition or this registry.
+
 ## Architecture and responsibilities
 
 Required: launch the kernel in Tauri, retain a minimal diagnostic interface when

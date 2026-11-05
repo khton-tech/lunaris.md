@@ -1,5 +1,17 @@
 # Product backlog
 
+## Theme provider
+
+Status: IMPLEMENTED on 2026-11-05 as the base for a separately designed theme engine.
+The replaceable SDK provider accepts engine-owned descriptions, exposes immutable
+geometry/color/typography/custom data, selection, updates and owner-scoped removal.
+It contains no built-in themes, palettes, required tokens or rendering behavior.
+See [the theme provider reference](reference/themes.md).
+
+Next: a separate theme engine, with application appearance to be specified by the
+Owner. Persistence and theme-selection UI are deferred. Component management and
+the standard component set follow the theme work.
+
 ## UI slots
 
 Status: IMPLEMENTED on 2026-11-05 before the first visible product UI plugins.
@@ -8,9 +20,9 @@ contracts. A separate DOM driver supplies resilient flex targets and a permissio
 browser rendering bridge. Tauri composes both with its independent recovery shell.
 See [the slot reference](reference/slots.md) for APIs, ownership and current limits.
 
-Next UI responsibilities, in Owner-requested order: theme manager and theme engine,
-component manager, then a standard component set. Determine their individual
-contracts and boundaries before implementation. Slots do not own those services.
+The theme provider is now implemented separately. Next UI responsibilities, in
+Owner-requested order: theme engine, component manager, then a standard component
+set. Slots do not own those services.
 
 ## Localization
 
