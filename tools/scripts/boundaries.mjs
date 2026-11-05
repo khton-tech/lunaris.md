@@ -8,15 +8,20 @@ export const dependencies = {
   logging: ['sdk'],
   logger: ['sdk', 'logging'],
   'dev-tools-logger': ['sdk', 'logging'],
+  filesystem: ['sdk'],
+  'filesystem-provider': ['sdk', 'filesystem', 'logging'],
+  'tauri-filesystem': ['sdk', 'filesystem', 'logging'],
   kernel: ['manifest', 'sdk'],
   test: ['sdk', 'kernel'],
   development: ['manifest', 'sdk', 'kernel'],
   cli: ['manifest', 'sdk', 'kernel', 'test', 'development'],
-  tauri: ['sdk', 'kernel', 'logger', 'dev-tools-logger'],
+  tauri: ['sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem'],
 };
 
 export const packagePath = scope => {
   if (scope === 'logger') return 'plugins/systems/logger';
+  if (scope === 'filesystem-provider') return 'plugins/systems/filesystem';
+  if (scope === 'tauri-filesystem') return 'plugins/systems/driver/tauri-filesystem';
   if (scope === 'dev-tools-logger') return 'plugins/systems/driver/dev-tools-logger';
   return ['development', 'tauri'].includes(scope) ? `hosts/${scope}` : `packages/${scope}`;
 };
@@ -25,6 +30,7 @@ export function checkSource(source, filename, scope) {
   const errors = [];
   const tree = ts.createSourceFile(filename, source, ts.ScriptTarget.Latest, true);
   const allowed = new Set(dependencies[scope].map(name => `@lunaris/${name}`));
+  if (scope === 'tauri-filesystem' && path.resolve(filename) === path.resolve('plugins/systems/driver/tauri-filesystem/src/native.ts')) allowed.add('@tauri-apps/api/core');
   if (scope === 'tauri' && path.resolve(filename) === path.resolve('hosts/tauri/src/desktop.ts')) {
     allowed.add('@tauri-apps/api/core');
     allowed.add('@tauri-apps/api/window');
@@ -37,7 +43,7 @@ export function checkSource(source, filename, scope) {
       return;
     }
     const value = node.text;
-    if (['logger', 'dev-tools-logger'].includes(scope) &&
+    if (['logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem'].includes(scope) &&
         path.resolve(filename) === path.resolve(packagePath(scope), 'src/index.ts') &&
         value === '../manifest.json') return;
     // The host owns startup artwork; plugins cannot reach outside their source roots.

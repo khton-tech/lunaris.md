@@ -831,3 +831,32 @@ Branch: `feat/logger-devtools`. Automated verification: `npm run logger:check`
 audit. Actual DevTools visuals remain manual acceptance per repository policy.
 An in-app viewer, persistence, multiple sinks, runtime switching and automatic
 forwarding of core diagnostics are outside this implementation. No merge or push.
+
+## Filesystem provider and first native driver — 2026-11-05
+
+Owner scope: implement file-service infrastructure after discussing functions;
+record Vault Manager separately in the [product backlog](Backlog.md). Do not add
+active-Vault management or a product file UI to this milestone.
+
+Required: Vault-relative text/binary operations, explicit write modes, conflict
+detection, directories/transfers/deletion, native selection and watching. Existing:
+SDK contracts, dependency resolution, scoped events/resources, permissions and
+mandatory Logger. New: `@lunaris/filesystem` contracts, filesystem provider,
+Tauri driver with a component-local Rust backend and the host IPC/permission
+composition. The SDK and kernel public interfaces are unchanged.
+
+| Task | Status | Delivered behavior / acceptance |
+|---|---|---|
+| K11.1 Contracts/provider | DONE | Explicit Vault ID and portable relative paths, typed results, mandatory logging, SDK-only driver API/event forwarding. |
+| K11.2 Native driver | DONE | User-selected directory capabilities, UTF-8/binary reads, bounded transfers, flushed temporary writes, version fingerprints, native dialogs and watchers. |
+| K11.3 Lifecycle/composition | DONE | Native session UUIDs, scope-owned cleanup, stale-root rejection, host composition grants and command permission for the main local window. |
+| K11.4 Targeted verification | DONE | 50 TypeScript/provider/driver/host/boundary tests, 7 real native filesystem tests, types, CI selection, formatting, locked native compilation and frontend bundle. |
+| K11.5 Native dialog acceptance | TODO | Owner tests dialog selection/cancellation through a future consumer action. No desktop automation or dialog visual acceptance claim. |
+
+Branch: `feat/filesystem-provider`, based on unmerged `feat/logger-devtools` at
+`5528b68`. Backlog evidence: `b91c90c`. Verification: `npm run filesystem:check`
+and export/documentation audit. See [the filesystem reference](reference/filesystem.md)
+for APIs and limits: optimistic external conflict checking, nontransactional
+directory copies, Windows-first native no-replacement rename, 64 MiB transfers,
+manual dismissal of already open native dialogs, and unsupported link transfers,
+directory replacement/trash/streaming. No Vault Manager, merge or push.

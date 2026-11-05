@@ -8,6 +8,7 @@ on:
       - 'packages/manifest/**'
       - 'packages/test/**'
       - 'packages/logging/**'
+      - 'packages/filesystem/**'
       - 'plugins/**'
       - 'resources/ascii_art.txt'
       - 'tools/scripts/**'

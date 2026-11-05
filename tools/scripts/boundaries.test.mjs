@@ -4,6 +4,15 @@ import path from 'node:path';
 import { checkSource } from './boundaries.mjs';
 
 const filename = path.resolve('packages/sdk/src/index.ts');
+test('filesystem provider stays neutral and only the native driver bridge imports Tauri IPC', () => {
+  const provider = path.resolve('plugins/systems/filesystem/src/index.ts');
+  const driver = path.resolve('plugins/systems/driver/tauri-filesystem/src/index.ts');
+  const native = path.resolve('plugins/systems/driver/tauri-filesystem/src/native.ts');
+  assert.deepEqual(checkSource('import "@lunaris/sdk"; import "@lunaris/filesystem"; import "@lunaris/logging";', provider, 'filesystem-provider'), []);
+  for (const source of ['import "@tauri-apps/api/core";', 'import "node:fs";', 'import "@lunaris/kernel";', 'import "@lunaris/tauri-filesystem";']) assert.ok(checkSource(source, provider, 'filesystem-provider').length);
+  assert.deepEqual(checkSource('import "@tauri-apps/api/core";', native, 'tauri-filesystem'), []);
+  assert.ok(checkSource('import "@tauri-apps/api/core";', driver, 'tauri-filesystem').length);
+});
 test('product plugins use only the SDK, shared logging contracts and local modules', () => {
   for (const [scope, root] of [['logger', 'plugins/systems/logger'], ['dev-tools-logger', 'plugins/systems/driver/dev-tools-logger']]) {
     const file = path.resolve(root, 'src/index.ts');

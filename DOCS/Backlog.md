@@ -6,6 +6,9 @@ Status: TODO. Requested by the Owner on 2026-11-05. Implement after the filesyst
 provider and its first platform driver. This task does not authorize implementation
 as part of the filesystem milestone.
 
+Filesystem dependency: [provider and Tauri driver](reference/filesystem.md) are
+implemented; Vault Manager itself remains TODO.
+
 Own Vault context and lifecycle: open, expose the active Vault, switch and close;
 publish SDK events for these changes. Start with one open Vault. Delegate root
 selection/attachment and file operations to the filesystem provider. File APIs

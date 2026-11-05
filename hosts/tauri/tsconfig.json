@@ -6,6 +6,8 @@
   },
   "include": ["src/**/*.ts"],
   "references": [
+    { "path": "../../plugins/systems/filesystem" },
+    { "path": "../../plugins/systems/driver/tauri-filesystem" },
     { "path": "../../packages/sdk" }, { "path": "../../packages/kernel" },
     { "path": "../../plugins/systems/logger" },
     { "path": "../../plugins/systems/driver/dev-tools-logger" }

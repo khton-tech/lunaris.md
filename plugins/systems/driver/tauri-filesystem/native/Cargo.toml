@@ -1,0 +1,17 @@
+[package]
+name = "lunaris-filesystem-native"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[dependencies]
+cap-std = "=4.0.3"
+notify = "=8.2.1"
+rfd = "=0.17.2"
+serde = { version = "=1.0.229", features = ["derive"] }
+serde_json = "=1.0.154"
+sha2 = "=0.10.9"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "=0.61.2", features = ["Win32_Storage_FileSystem"] }
+

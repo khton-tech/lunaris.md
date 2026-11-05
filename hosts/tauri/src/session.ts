@@ -7,6 +7,8 @@ import { LunarisError } from "@lunaris/sdk";
 export interface ApplicationDefinition {
   readonly plugins: readonly PluginDefinition[];
   readonly entrypoints: readonly string[];
+  /** Trusted composition grants, applied after registration and before activation. */
+  readonly grants?: Readonly<Record<string, readonly string[]>>;
   readonly view?: { mount(signal: AbortSignal): MaybePromise<Disposable> };
 }
 
@@ -145,6 +147,11 @@ export class HostSession {
       stage = "PLUGIN_REGISTRATION_FAILED";
       for (const plugin of definition.plugins) if (!this.#disabled.has(plugin.manifest.id)) {
         pluginId = plugin.manifest.id; this.#kernel.register(plugin);
+      }
+      for (const [id, permissions] of Object.entries(definition.grants ?? {})) {
+        if (this.#disabled.has(id)) continue;
+        pluginId = id;
+        for (const permission of permissions) this.#kernel.grant(id, permission);
       }
       stage = "APPLICATION_START_FAILED";
       for (const id of definition.entrypoints) {

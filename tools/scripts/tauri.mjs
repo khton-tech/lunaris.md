@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const host = path.join(root, 'hosts/tauri');
 const manifest = path.join(host, 'src-tauri/Cargo.toml');
+const filesystem = path.join(root, 'plugins/systems/driver/tauri-filesystem/native/Cargo.toml');
 const mode = process.argv[2] ?? 'check';
 function run(command, args, cwd, label) {
   const result = spawnSync(command, args, { cwd, encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, windowsHide: true });
@@ -17,6 +18,8 @@ try {
   if (!process.env.npm_execpath) throw new Error('Use npm run tauri:check or npm run tauri:build.');
   run(process.execPath, ['tools/scripts/check.mjs', 'tauri'], root, 'Host tests');
   run('cargo', ['fmt', '--manifest-path', manifest, '--', '--check'], path.dirname(manifest), 'Rust formatting');
+  run('cargo', ['fmt', '--manifest-path', filesystem, '--', '--check'], path.dirname(manifest), 'Filesystem driver formatting');
+  run('cargo', ['test', '--locked', '--manifest-path', manifest, '-p', 'lunaris-filesystem-native', '--', '--test-threads=1'], path.dirname(manifest), 'Native filesystem tests');
   if (mode === 'check') {
     run(process.execPath, [process.env.npm_execpath, 'run', 'build', '--workspace', '@lunaris/tauri'], root, 'Frontend build');
     run('cargo', ['check', '--locked', '--manifest-path', manifest], path.dirname(manifest), 'Native check');

@@ -27,6 +27,7 @@
     "tauri:dev": "npm run desktop:dev --workspace @lunaris/tauri",
     "tauri:check": "node tools/scripts/tauri.mjs check",
     "logger:check": "node tools/scripts/check.mjs logging logger dev-tools-logger",
+    "filesystem:check": "node tools/scripts/filesystem.mjs",
     "tauri:build": "node tools/scripts/tauri.mjs build"
   },
   "devDependencies": {

@@ -16,6 +16,8 @@
     "desktop:build": "tauri build --no-bundle"
   },
   "dependencies": {
+    "@lunaris/filesystem-provider": "0.1.0",
+    "@lunaris/tauri-filesystem": "0.1.0",
     "@lunaris/logger": "0.1.0",
     "@lunaris/dev-tools-logger": "0.1.0",
     "@lunaris/kernel": "0.1.0",

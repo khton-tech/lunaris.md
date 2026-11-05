@@ -16,6 +16,9 @@ Verified locally on Windows x64, Node 26.13.0/npm 11.20.0. Product UI/editor fea
 The first desktop host is now [Tauri with an independent recovery shell](DOCS/guides/tauri-host.md).
 Run `npm run tauri:check` for frontend/native checks, `npm run tauri:build` for a
 debug executable, and manually run `npm run tauri:dev` to open the application.
-The host installs the [Logger and DevTools sink](DOCS/reference/logging.md), prints
-the project artwork once per page load, and retains its system diagnostics and
-retry/plugin-exclusion controls. No product editor view is installed yet.
+The host installs the [Logger and DevTools sink](DOCS/reference/logging.md) and the
+[filesystem provider/Tauri driver](DOCS/reference/filesystem.md), prints the project
+artwork once per page load, and retains its system diagnostics and
+retry/plugin-exclusion controls. Vault Manager remains in the [backlog](DOCS/Backlog.md).
+No product editor view is installed yet. Run `npm run filesystem:check` for targeted
+file-service and native verification without opening windows.

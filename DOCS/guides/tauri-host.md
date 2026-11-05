@@ -2,9 +2,9 @@
 
 The first application target is Tauri 2 on Windows. The existing TypeScript kernel
 runs in its WebView; Rust supplies the native window and packaged assets. No Node
-sidecar, Rust rewrite of the kernel or filesystem access is added. The first product
-services are the SDK-based Logger and DevTools sink described in the
-[logging reference](../reference/logging.md).
+sidecar or Rust rewrite of the kernel is added. Product services include the
+[Logger and DevTools sink](../reference/logging.md) and the
+[Vault-scoped filesystem provider/driver](../reference/filesystem.md).
 
 ## Architecture and responsibilities
 
@@ -23,11 +23,13 @@ the public kernel package; product plugins continue to use the public SDK.
 
 The application composition point is
 `hosts/tauri/src/application.ts`. It installs `lunaris.logger` and
-`lunaris.dev-tools-logger`, starting the Logger as a root and the sink as its required
-dependency. No product view is installed. A fresh desktop launch shows the system
-screen with these two plugins; the console displays the project artwork followed
-by `LOGGER_READY`. The sink definition survives retries, so the artwork prints once
-per page load. A window reload starts a new banner lifetime.
+`lunaris.dev-tools-logger`, `lunaris.filesystem-provider` and
+`lunaris.tauri-filesystem`. The filesystem provider is the root; its required
+driver and logging dependencies start automatically. No product view is installed.
+A fresh desktop launch shows these four plugins in the system screen; the console
+displays the artwork and service readiness records. The sink definition survives
+retries, so the artwork prints once per page load. A window reload starts a new
+banner lifetime. No Vault is selected or native dialog opened automatically.
 
 ## Commands
 
@@ -63,6 +65,10 @@ an `ApplicationDefinition`:
 
 - `plugins`: SDK-created definitions to register.
 - `entrypoints`: root plugin IDs to start; dependencies start through the kernel.
+- Optional `grants`: trusted plugin-ID-to-permission-list map, applied after
+  registration and before starting plugins. Undeclared grants fail; excluded
+  plugins are skipped. Filesystem composition grants native authority to its
+  driver and filesystem access to its provider. Consumers require separate grants.
 - Optional `view.mount(signal)`: a trusted renderer adapter that captures the
   supplied target and returns a disposable. It must cooperate with cancellation
   and release its rendering resources.
@@ -121,8 +127,10 @@ If cleanup fails or times out, the shell records the failure and blocks addition
 in-process recovery; close and restart the application. This avoids claiming safe
 recovery while external resources might still be live. Native close requests await
 session cleanup, and repeated close requests do not bypass that wait. Native
-permissions are restricted to event listen/unlisten and window destruction for
-the main window; no filesystem, process or network driver is installed. See
+permissions include event listen/unlisten, window destruction and the explicit
+`filesystem_request` permission for the main local window. The native file service
+exposes user-selected Vault roots through opaque IDs and relative paths; process
+and network drivers are not installed. See
 [Tauri close-request semantics](https://v2.tauri.app/reference/javascript/api/namespacewindow/#oncloserequested).
 
 ## Limits and manual acceptance
@@ -138,10 +146,12 @@ DOM tests run in Node with JSDOM, not desktop automation. Native compilation and
 mocked close callbacks do not establish actual WebView rendering or OS event
 behavior. Manually run `npm run tauri:dev` and check:
 
-1. The monochrome system view fits the window, versions are visible, and both
-   logging plugins are active without a blank application screen. Open DevTools:
+1. The monochrome system view fits the window, versions are visible, and all four
+   service plugins are active without a blank application screen. Open DevTools:
    the supplied artwork appears once, followed by the readable `LOGGER_READY`
    record. Retry does not repeat the artwork; reloading the window does.
+   Confirm `FILESYSTEM_DRIVER_READY` and `FILESYSTEM_READY` too. Native dialog
+   selection/cancellation requires a consumer action; its UI is outside this milestone.
 2. Switching English/Russian updates labels and keyboard focus remains visible.
    Resize to the minimum window width and check table scrolling when plugins exist.
 3. After product composition is introduced, verify normal mounting, System/back,
