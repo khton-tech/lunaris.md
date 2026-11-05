@@ -55,7 +55,7 @@ export function mountVaultSelector(target: HTMLElement, input: ComponentProps, s
   const cards = new Map<Mode, { card: HTMLElement; toggle: HTMLButtonElement; form: HTMLFormElement; disclosure: HTMLElement; folderLabel: HTMLElement; path: HTMLElement; browse: HTMLButtonElement; nameLabel: Text; name: HTMLInputElement; next: HTMLButtonElement; error: HTMLParagraphElement }>();
   for (const mode of ["create", "select"] as const) {
     const card = document.createElement("div"); card.className = "ln-vault-action";
-    const toggle = button(document, "", mode === "create" ? "create" : "browse"); toggle.className = "ln-vault-toggle"; toggle.append(icon(document, "expand"));
+    const toggle = button(document, "", mode === "create" ? "create" : "browse"); toggle.classList.add("ln-vault-toggle"); toggle.append(icon(document, "expand"));
     const form = document.createElement("form");
     form.id = `${id}-${mode}`; toggle.setAttribute("aria-controls", form.id);
     const disclosure = document.createElement("div"); disclosure.className = "ln-vault-disclosure";
@@ -71,7 +71,7 @@ export function mountVaultSelector(target: HTMLElement, input: ComponentProps, s
     const nameLabel = document.createElement("label"); const nameText = document.createTextNode(""); const name = textInput(document); name.maxLength = 200; name.required = mode === "create";
     name.addEventListener("input", () => props.onName(name.value)); nameLabel.append(nameText, name); nameLabel.hidden = mode !== "create";
     const error = document.createElement("p"); error.setAttribute("role", "alert");
-    const next = button(document, "", "next"); next.className = "ln-vault-next"; next.type = "submit";
+    const next = button(document, "", "next"); next.classList.add("ln-vault-next"); next.type = "submit";
     form.append(folderLabel, nameLabel, error, next);
     toggle.addEventListener("click", event => {
       props.onMode(mode);

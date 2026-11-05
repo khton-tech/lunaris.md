@@ -36,6 +36,18 @@ const selectorProps = {
   onMode() {}, onName() {}, onBrowse() {}, onNext() {}, onRecent() {}, onRetry() {},
 };
 
+test('selector action and submit buttons retain shared control layout when specialized', async () => {
+  const s = await setup();
+  const mounted = s.components.mount('lunaris.vault-selector', s.target, selectorProps, s.owner); assert.equal(mounted.ok, true);
+  for (const control of s.target.querySelectorAll('.ln-vault-toggle, .ln-vault-next')) {
+    const style = s.dom.window.getComputedStyle(control);
+    assert.equal(style.display, 'flex', 'Action icons and text must share the kit flex layout.');
+    assert.equal(style.borderTopWidth, '0px', 'Actions must not fall back to native button borders.');
+    assert.equal(style.textAlign, 'start', 'Action text must align with the form rather than native centered buttons.');
+  }
+  await s.kernel.stopAll(); s.dom.window.close();
+});
+
 test('selector supplies accessible Lucide controls, preserves form identity on updates and releases only owned DOM', async () => {
   const s = await setup();
   const mounted = s.components.mount('lunaris.vault-selector', s.target, selectorProps, s.owner); assert.equal(mounted.ok, true);
