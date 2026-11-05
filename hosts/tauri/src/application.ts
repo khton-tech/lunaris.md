@@ -1,3 +1,4 @@
+import { createThemeSettings } from "@lunaris/theme-settings";
 import componentsKit from "@lunaris/components-kit";
 import { createStartupProvider } from "@lunaris/startup-provider";
 import baseThemeEngine from "@lunaris/base-theme-engine";
@@ -20,15 +21,17 @@ const logger = createLogger();
 
 /** Host composition point. Product plugins import only the public SDK. */
 export function composeApplication(target: HTMLElement): ApplicationDefinition {
+  const themeSettings = createThemeSettings({ defaultThemeId: "lunaris.base-theme-engine.dark" });
   const startup = createStartupProvider();
   const layout = composeSlotSurface(target);
   return {
     ...layout,
     startup,
-    plugins: [componentsKit, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, configManager, localizationManager],
-    entrypoints: [startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, componentsKit.manifest.id, ...layout.entrypoints, configManager.manifest.id, localizationManager.manifest.id],
+    plugins: [themeSettings, componentsKit, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, configManager, localizationManager],
+    entrypoints: [startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, componentsKit.manifest.id, ...layout.entrypoints, configManager.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id],
     grants: {
       ...layout.grants,
+      [themeSettings.manifest.id]: ["config.access"],
       [componentProvider.manifest.id]: ["ui.dom"],
       [componentsKit.manifest.id]: ["ui.dom"],
       [tauriFilesystem.manifest.id]: ["filesystem.native"],

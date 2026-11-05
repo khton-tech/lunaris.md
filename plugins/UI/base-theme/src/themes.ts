@@ -17,6 +17,10 @@ const typography: ThemeProperties = {
   weight: { regular: 400, medium: 500, semibold: 600 },
 };
 
+const components: ThemeProperties = {
+  startupScreen: { padding: 32, gap: 24, logoFontSize: 10, logoLineHeight: 1.2, statusFontWeight: 500 },
+};
+
 /** Engine-owned data schema; the generic registry does not interpret these roles. */
 export const baseThemes: readonly ThemeDefinition[] = [
   {
@@ -43,6 +47,7 @@ export const baseThemes: readonly ThemeDefinition[] = [
       },
       geometry,
       typography,
+      components,
     },
   },
   {
@@ -69,6 +74,7 @@ export const baseThemes: readonly ThemeDefinition[] = [
       },
       geometry,
       typography,
+      components,
     },
   },
 ];

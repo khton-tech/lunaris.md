@@ -49,18 +49,24 @@ export function mountStartupScreen(target: HTMLElement, props: ComponentProps, s
     if (disposed) return;
     const theme = currentTheme()?.properties;
     const colors = theme?.colors; const geometry = theme?.geometry; const typography = theme?.typography;
+    const tokens = field(theme?.components, "startupScreen");
     const unit = text(field(geometry, "unit"), "px");
     const spacing = field(field(geometry, "spacing"), "step");
     screen.style.backgroundColor = text(field(colors, "background"), "transparent");
     screen.style.color = text(field(colors, "text"), "inherit");
     detail.style.color = text(field(colors, "textSecondary"), "inherit");
-    screen.style.padding = size(typeof spacing === "number" ? spacing * 4 : undefined, unit, "0");
-    screen.style.gap = size(typeof spacing === "number" ? spacing * 3 : undefined, unit, "0");
+    screen.style.padding = size(field(tokens, "padding"), unit, size(typeof spacing === "number" ? spacing * 4 : undefined, unit, "0"));
+    screen.style.gap = size(field(tokens, "gap"), unit, size(typeof spacing === "number" ? spacing * 3 : undefined, unit, "0"));
     screen.style.fontFamily = family(field(typography, "fontFamily"), "inherit");
     screen.style.fontSize = size(field(typography, "fontSize"), text(field(typography, "fontSizeUnit"), "px"), "inherit");
     const lineHeight = field(typography, "lineHeight");
     screen.style.lineHeight = typeof lineHeight === "number" && lineHeight > 0 ? String(lineHeight) : "normal";
     logo.style.fontFamily = family(field(typography, "monoFontFamily"), "monospace");
+    logo.style.fontSize = size(field(tokens, "logoFontSize"), text(field(typography, "fontSizeUnit"), "px"), "inherit");
+    const logoLineHeight = field(tokens, "logoLineHeight");
+    logo.style.lineHeight = typeof logoLineHeight === "number" && logoLineHeight > 0 ? String(logoLineHeight) : "inherit";
+    const weight = field(tokens, "statusFontWeight");
+    status.style.fontWeight = typeof weight === "number" && weight >= 1 && weight <= 1000 ? String(weight) : "inherit";
   }
   function dispose(): void {
     if (disposed) return;

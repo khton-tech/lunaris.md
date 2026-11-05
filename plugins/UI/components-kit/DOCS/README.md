@@ -45,6 +45,9 @@ ThemeChanged. Compatible engines supply these optional properties:
   Padding uses four steps and gap uses three steps.
 - `typography.fontFamily`, `typography.monoFontFamily`: strings or string arrays;
   `fontSize`, `fontSizeUnit`, and numeric `lineHeight`.
+- `components.startupScreen`: optional `padding`, `gap` (geometry units),
+  `logoFontSize` (font-size units), `logoLineHeight`, and `statusFontWeight`.
+  These override the generic spacing/typography where present.
 
 No specific engine or palette is imported. Missing properties inherit the surface
 or browser typography, with transparent background, zero theme spacing and

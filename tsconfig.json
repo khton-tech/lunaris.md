@@ -93,6 +93,9 @@
     },
     {
       "path": "plugins/UI/components-kit"
+    },
+    {
+      "path": "plugins/UI/theme-settings"
     }
   ]
 }

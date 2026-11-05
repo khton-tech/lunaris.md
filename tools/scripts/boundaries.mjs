@@ -4,6 +4,7 @@ import ts from 'typescript';
 
 export const dependencies = {
   'base-theme-engine': ['sdk', 'logging', 'themes'],
+  'theme-settings': ['sdk', 'logging', 'themes', 'config'],
   themes: ['sdk'],
   'theme-provider': ['sdk', 'logging', 'themes'],
   startup: ['sdk'],
@@ -33,12 +34,13 @@ export const dependencies = {
   test: ['sdk', 'kernel'],
   development: ['manifest', 'sdk', 'kernel'],
   cli: ['manifest', 'sdk', 'kernel', 'test', 'development'],
-  tauri: ['components-kit', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'config-manager', 'localization-manager'],
+  tauri: ['theme-settings', 'components-kit', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'config-manager', 'localization-manager'],
 };
 
 export const packagePath = scope => {
   if (scope === 'startup-provider') return 'plugins/systems/startup';
   if (scope === 'base-theme-engine') return 'plugins/UI/base-theme';
+  if (scope === 'theme-settings') return 'plugins/UI/theme-settings';
   if (scope === 'theme-provider') return 'plugins/UI/themes';
   if (scope === 'components-kit') return 'plugins/UI/components-kit';
   if (scope === 'component-provider') return 'plugins/UI/components';
@@ -72,7 +74,7 @@ export function checkSource(source, filename, scope) {
       return;
     }
     const value = node.text;
-    if (['components-kit', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'config-manager', 'localization-manager'].includes(scope) &&
+    if (['theme-settings', 'components-kit', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'config-manager', 'localization-manager'].includes(scope) &&
         path.resolve(filename) === path.resolve(packagePath(scope), 'src/index.ts') &&
         value === '../manifest.json') return;
     // The host owns startup artwork; plugins cannot reach outside their source roots.

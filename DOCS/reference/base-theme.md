@@ -1,5 +1,12 @@
 # Base theme engine
 
+The Light and Dark descriptions also provide `components.startupScreen` tokens:
+padding 32, gap 24, logo font size 10, logo line height 1.2 and status weight 500.
+Dimensions use the existing geometry/font units. The shared component kit applies
+these without importing the engine. Tauri's separate
+[theme-settings plugin](../../plugins/UI/theme-settings/DOCS/README.md) reads the
+startup preference and selects Dark by default; the engine itself never selects.
+
 ## Responsibilities
 
 Required: supply Lunaris Light and Lunaris Dark with the Owner-approved palettes,

@@ -55,8 +55,15 @@ test('selection, theme updates and clearing restyle live instances without a spe
   const screen = target.querySelector('section');
   assert.equal(screen.style.backgroundColor, 'rgb(17, 17, 17)'); assert.equal(screen.style.fontSize, '18px');
   assert.equal(screen.style.padding, '20px'); assert.equal(screen.style.fontFamily, 'serif');
+  themes.update({ ...theme, properties: { ...theme.properties, components: { startupScreen: {
+    padding: 28, gap: 20, logoFontSize: 11, logoLineHeight: 1.2, statusFontWeight: 600,
+  } } } });
+  assert.equal(screen.style.padding, '28px'); assert.equal(screen.style.gap, '20px');
+  assert.equal(target.querySelector('pre').style.fontSize, '11px');
+  assert.equal(target.querySelector('[role=status]').style.fontWeight, '600');
   themes.update({ ...theme, properties: { colors: { text: '#123456' } } });
   assert.equal(screen.style.color, 'rgb(18, 52, 86)'); assert.equal(screen.style.fontSize, 'inherit');
+  assert.equal(target.querySelector('pre').style.fontSize, 'inherit');
   themes.select(null); assert.equal(screen.style.color, 'inherit'); assert.equal(screen.style.backgroundColor, 'transparent');
   await kernel.stopAll(); dom.window.close();
 });
