@@ -29,6 +29,7 @@
     "@lunaris/slot-provider": "0.1.0",
     "@lunaris/web-slot-driver": "0.1.0",
     "@lunaris/theme-provider": "0.1.0",
+    "@lunaris/component-provider": "0.1.0",
     "@lunaris/base-theme-engine": "0.1.0"
   },
   "devDependencies": {

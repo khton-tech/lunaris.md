@@ -1,5 +1,16 @@
 # Product backlog
 
+## Component provider
+
+Status: IMPLEMENTED (pending local verification run) on 2026-11-05. The replaceable
+provider registers components from component set plugins under shared role IDs
+(for example `lunaris.button`), mounts them into consumer-supplied DOM targets,
+tracks instance ownership and publishes registration changes. It ships no
+components or styles. See [the component provider reference](reference/components.md).
+
+Next UI work: `LunarisComponentsKit`, the standard component set, which registers
+its components through this provider and applies the active theme via `Themes`.
+
 ## Base theme engine
 
 Status: IMPLEMENTED on 2026-11-05 with the Owner-approved Lunaris Light and

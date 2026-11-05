@@ -35,6 +35,7 @@
     "localization:check": "node tools/scripts/check.mjs localization localization-manager",
     "slots:check": "node tools/scripts/check.mjs slots slot-dom slot-provider web-slot-driver",
     "themes:check": "node tools/scripts/check.mjs themes theme-provider",
+    "components:check": "node tools/scripts/check.mjs components component-provider",
     "base-theme:check": "node tools/scripts/check.mjs base-theme-engine"
   },
   "devDependencies": {

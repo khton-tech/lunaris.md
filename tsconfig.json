@@ -4,6 +4,8 @@
     { "path": "plugins/UI/base-theme" },
     { "path": "packages/themes" },
     { "path": "plugins/UI/themes" },
+    { "path": "packages/components" },
+    { "path": "plugins/UI/components" },
     { "path": "packages/slots" },
     { "path": "packages/slot-dom" },
     { "path": "plugins/UI/layout" },

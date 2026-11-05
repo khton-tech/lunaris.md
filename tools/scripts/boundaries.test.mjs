@@ -18,6 +18,13 @@ test('theme provider depends only on SDK and data contracts, independently of re
     assert.ok(checkSource(`import "${name}";`, file, 'theme-provider').length);
   }
 });
+test('component provider is a registry independent of themes, slots, component kits and the host', () => {
+  const file = path.resolve('plugins/UI/components/src/index.ts');
+  assert.deepEqual(checkSource('import "@lunaris/sdk"; import "@lunaris/components"; import "@lunaris/logging"; import "../manifest.json"; import "./input.js";', file, 'component-provider'), []);
+  for (const name of ['@lunaris/themes', '@lunaris/slot-dom', '@lunaris/slot-provider', '@lunaris/kernel', '@lunaris/tauri', 'node:fs']) {
+    assert.ok(checkSource(`import "${name}";`, file, 'component-provider').length);
+  }
+});
 test('slot allocation stays portable and cannot reach the DOM driver or host', () => {
   const file = path.resolve('plugins/UI/layout/src/index.ts');
   assert.deepEqual(checkSource('import "@lunaris/sdk"; import "@lunaris/slots"; import "@lunaris/logging"; import "../manifest.json";', file, 'slot-provider'), []);
