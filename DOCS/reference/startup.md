@@ -60,8 +60,8 @@ uses the same public consumer contracts and a compatible trusted ingress.
 
 `ApplicationDefinition.view.duringStartup: true` mounts the isolated surface
 before entrypoint activation. Tauri slot composition opts in; existing custom
-views without this flag still mount after activation. System inspection remains
-accessible during startup. Failures immediately hide product content, dispose
+views without this flag still mount after activation. The host shell is hidden
+while product content is visible, with no persistent header or inspection toggle. Failures immediately hide product content, dispose
 the surface and stop plugins; existing mount deadlines and late-result cleanup
 also cover early mounts. An excluded entrypoint is rejected before mounting.
 `loaded` means entrypoints and the host view completed successfully, not that a

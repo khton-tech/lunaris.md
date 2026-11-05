@@ -31,10 +31,13 @@ test('mounted application is hidden immediately on failure and diagnostic text c
   await session.stop(); view.dispose(); dom.window.close();
 });
 
-test('system control opens inspection and returns to a working application', async () => {
+test('product view has no host header or reserved shell area; failures reveal recovery automatically', async () => {
   const { dom, root, app, session, view } = setup({ plugins: [], entrypoints: [], view: { mount() { return { dispose() {} }; } } });
-  await session.start(); const system = root.querySelector('header button');
-  system.click(); assert.equal(app.hidden, true); system.click(); assert.equal(app.hidden, false);
+  await session.start();
+  assert.equal(root.querySelector('header'), null); assert.equal(root.hidden, true); assert.equal(app.hidden, false);
+  await session.reportFault('runtime', 'TEST_FAILURE');
+  assert.equal(root.hidden, false); assert.equal(app.hidden, true);
+  await session.start(); assert.equal(root.hidden, true); assert.equal(app.hidden, false);
   await session.stop(); view.dispose(); dom.window.close();
 });
 

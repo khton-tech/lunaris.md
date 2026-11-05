@@ -1,5 +1,5 @@
 export const english = Object.freeze({
-  system: "System", back: "Back to application", title: "Lunaris", host: "Tauri host",
+  title: "Lunaris", host: "Tauri host",
   phaseIdle: "Idle", phaseStarting: "Starting", phaseRunning: "Running", phaseFallback: "Recovery", phaseStopped: "Stopped",
   idle: "Ready to start.", starting: "Starting the application.", running: "The kernel is running.",
   fallback: "The application needs attention.", stopped: "The application is stopped.",

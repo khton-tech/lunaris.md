@@ -147,7 +147,7 @@ ownership, permission/type fixtures and import boundaries. Run
 `npm run build --workspace @lunaris/tauri` for the frontend bundle.
 DOM tests use JSDOM; no desktop automation is used. Actual layout, scrolling and
 keyboard behavior in a WebView still require manual acceptance: run
-`npm run tauri:dev`, check System/back and retry/exclusion recovery, and check
+`npm run tauri:dev`, check full-window product rendering and retry/exclusion recovery, and check
 viewport resizing after mounting the first visible UI consumers.
 
 Local evidence, 2026-11-05: `npm run slots:check` passed 61 targeted tests with

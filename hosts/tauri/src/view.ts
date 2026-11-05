@@ -7,19 +7,12 @@ import type { MessageKey } from "./catalog.js";
 export function mountSystemView(root: HTMLElement, application: HTMLElement, session: HostSession): Disposable {
   const document = root.ownerDocument;
   root.lang = "en";
-  let inspect = false;
   const el = <K extends keyof HTMLElementTagNameMap>(tag: K, text?: string, className?: string) => {
     const node = document.createElement(tag);
     if (text !== undefined) node.textContent = text;
     if (className) node.className = className;
     return node;
   };
-  const header = el("header", undefined, "masthead");
-  const brand = el("div", undefined, "brand");
-  brand.textContent = "Lunaris";
-  const controls = el("div", undefined, "controls");
-  const system = el("button"); system.type = "button";
-  controls.append(system); header.append(brand, controls);
   const panel = el("main", undefined, "system-panel");
   const intro = el("section", undefined, "intro");
   const heading = el("h1");
@@ -45,7 +38,7 @@ export function mountSystemView(root: HTMLElement, application: HTMLElement, ses
   const diagnosticList = el("ol", undefined, "diagnostics");
   diagnostics.append(diagnosticsSummary, diagnosticList);
   panel.append(intro, metrics, plugins, diagnostics);
-  root.replaceChildren(header, panel);
+  root.replaceChildren(panel);
   root.dataset.hostShell = "true";
   let previousList = "";
   let previousDiagnostics = "";
@@ -55,17 +48,15 @@ export function mountSystemView(root: HTMLElement, application: HTMLElement, ses
     void work().catch(() => session.reportFault("view", "RECOVERY_ACTION_FAILED"));
   }
   retry.onclick = () => action(session.start);
-  system.onclick = () => { inspect = !inspect; render(session.snapshot()); };
 
   function render(snapshot: HostSnapshot): void {
-    const renderKey = JSON.stringify([snapshot, inspect]);
+    const renderKey = JSON.stringify(snapshot);
     if (renderKey === previousRender) return;
     previousRender = renderKey;
-    const showSystem = !snapshot.applicationVisible || inspect;
+    const showSystem = !snapshot.applicationVisible;
+    root.hidden = !showSystem;
     panel.hidden = !showSystem;
     application.hidden = showSystem;
-    system.hidden = !snapshot.applicationVisible;
-    system.textContent = t(inspect ? "back" : "system");
     panel.setAttribute("aria-label", t("status"));
     root.dataset.phase = snapshot.phase;
     heading.textContent = t(snapshot.phase);

@@ -110,8 +110,9 @@ causes, arguments and payloads are not rendered. The system shell is English-onl
 with built-in messages independent of product localization. It does not follow
 browser language and has no language selector. Its root declares `lang="en"`.
 
-The shell stays visible during startup. A successfully mounted product view
-replaces its main panel; the host's System control remains available for inspection.
+The shell stays visible until a product surface mounts, including an early startup
+surface. While product content is visible, the entire host shell is hidden: no
+header, branding or System toggle reserves space. Failures reveal recovery automatically.
 Without a product view, the shell remains the normal visible interface.
 
 The system view follows [UI guidelines](../UI_GUIDELINES.md): a compact status
@@ -170,7 +171,7 @@ behavior. Manually run `npm run tauri:dev` and check:
    selection/cancellation requires a consumer action; its UI is outside this milestone.
 2. Labels remain English regardless of browser language; keyboard focus remains visible.
    Resize to the minimum window width and check table scrolling when plugins exist.
-3. After product composition is introduced, verify normal mounting, System/back,
+3. After product composition is introduced, verify full-window mounting without a host header,
    a failing activation/API/render, retry, plugin exclusion and dependency failure.
 4. Close the native window while cleanup is pending and verify it waits, then
    closes. Check development-server shutdown separately after ending Tauri dev.

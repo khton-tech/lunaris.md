@@ -91,5 +91,5 @@ coverage, and `npm run build --workspace @lunaris/tauri` for the frontend bundle
 Native WebView appearance is not verified by JSDOM. Manual acceptance: run
 `npm run tauri:dev`; confirm the logo and System Loaded, switch between Light/Dark
 through startup config and restart, resize to a narrow/short window, and check
-System/back plus recovery after disabling/re-enabling the kit. Desktop automation
+full-window product rendering without a host header, plus recovery after a failure. Desktop automation
 is prohibited by repository policy and is not used.

@@ -28,17 +28,6 @@ button { cursor: pointer; overflow-wrap: anywhere; }
 button:hover:enabled { background: #f5f5f5; border-color: var(--muted); }
 button:disabled { cursor: default; opacity: .5; }
 :focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
-.masthead {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space);
-  padding: var(--space) var(--gutter);
-  border-bottom: 1px solid var(--line);
-}
-.brand { font-weight: 600; }
-.controls { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; min-width: 0; }
 .system-panel, .boot-message {
   width: 100%;
   max-width: var(--content-width);
