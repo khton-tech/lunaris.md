@@ -5,6 +5,7 @@ Apply the following core principles to all interface design and frontend code ge
 ### 1. Ruthless Minimalism
 - **Rule:** Question every visual element before adding it. If it doesn't serve a critical function, omit it.
 - **Microcopy:** Avoid conversational filler, wordy tooltips, and redundant helper text. Minimize cognitive load and visual noise.
+- **Text Selection:** Interface chrome, loading artwork and status labels are not selectable. Text inputs and editable content retain text selection.
 
 ### 2. Content-First Approach
 - **Priority Hierarchy:** Core Content & Readability > Context > Aesthetic Decoration.
