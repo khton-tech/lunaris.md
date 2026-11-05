@@ -1,0 +1,214 @@
+<div id="lunaris-design-study">
+  <style>
+    #lunaris-design-study { color-scheme: light dark; --lm-bg:light-dark(#F5F7FA,#11151C); --lm-panel:light-dark(#EDF1F6,#181E28); --lm-input:light-dark(#FFFFFF,#202938); --lm-text:light-dark(#182536,#E6EBF2); --lm-muted:light-dark(#53657D,#A7B4C6); --lm-line:light-dark(#D5DEE8,#303C4D); --lm-border:light-dark(#73859B,#8295AF); --lm-hover:light-dark(#E5ECF4,#29374A); --lm-selected:light-dark(#DCE8F3,#223B52); --lm-accent:light-dark(#244A73,#C4E5FF); --lm-on-accent:light-dark(#FFFFFF,#152536); --lm-accent-hover:light-dark(#1C3B5C,#D7EDFF); --lm-radius:4px; --lm-row:68px; font:14px/1.5 'Segoe UI',system-ui,sans-serif; color:var(--lm-text); }
+    #lunaris-design-study * { box-sizing:border-box; min-width:0; }
+    #lunaris-design-study [hidden] { display:none!important; }
+    #lunaris-design-study .lm-window { background:var(--lm-bg); min-height:650px; container-type:inline-size; user-select:none; }
+    #lunaris-design-study .lm-brand { padding:20px 24px; color:var(--lm-muted); font-weight:500; display:flex; align-items:center; gap:8px; }
+    #lunaris-design-study .lm-body { padding:32px clamp(16px,4cqw,32px) 48px; }
+    #lunaris-design-study .lm-column { max-width:40rem; margin-inline:auto; }
+    #lunaris-design-study h1 { font-size:24px; line-height:1.3; font-weight:500; margin:0; }
+    #lunaris-design-study h2 { font-size:14px; line-height:1.5; font-weight:500; margin:0; }
+    #lunaris-design-study p { margin:0; }
+    #lunaris-design-study .lm-subtitle { color:var(--lm-muted); margin-top:8px; }
+    #lunaris-design-study .lm-actions { display:flex; flex-wrap:wrap; gap:8px; margin-top:24px; }
+    #lunaris-design-study .lm-button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:36px; max-width:100%; padding:8px 12px; border:0; border-radius:var(--lm-radius); background:transparent; color:var(--lm-text); font:inherit; text-align:start; overflow-wrap:anywhere; transition:background-color 120ms,color 120ms; }
+    #lunaris-design-study .lm-button:hover:enabled { background:var(--lm-hover); }
+    #lunaris-design-study .lm-button:active:enabled { background:var(--lm-selected); }
+    #lunaris-design-study .lm-button:focus-visible,#lunaris-design-study input:focus-visible { outline:2px solid var(--lm-accent); outline-offset:2px; }
+    #lunaris-design-study .lm-button:disabled { color:var(--lm-muted); background:var(--lm-panel); cursor:default; }
+    #lunaris-design-study .lm-primary { background:var(--lm-accent); color:var(--lm-on-accent); }
+    #lunaris-design-study .lm-primary:hover:enabled,#lunaris-design-study .lm-primary:active:enabled { background:var(--lm-accent-hover); }
+    #lunaris-design-study .lm-button svg { width:16px; height:16px; flex-shrink:0; }
+    #lunaris-design-study .lm-recents { margin-top:32px; }
+    #lunaris-design-study .lm-recents h2 { color:var(--lm-muted); margin-bottom:12px; }
+    #lunaris-design-study .lm-list { list-style:none; margin:0; padding:0; display:grid; gap:4px; }
+    #lunaris-design-study .lm-recent { width:100%; min-height:var(--lm-row); justify-content:start; gap:12px; }
+    #lunaris-design-study .lm-recent > svg { color:var(--lm-muted); }
+    #lunaris-design-study .lm-label { flex:1; display:grid; gap:4px; }
+    #lunaris-design-study .lm-label small { color:var(--lm-muted); font:12px/1.5 'Segoe UI',system-ui,sans-serif; overflow-wrap:anywhere; }
+    #lunaris-design-study .lm-current { font-size:12px; color:var(--lm-muted); }
+    #lunaris-design-study .lm-recent[aria-current=true] { background:var(--lm-selected); }
+    #lunaris-design-study .lm-message { margin-top:16px; overflow-wrap:anywhere; }
+    #lunaris-design-study .lm-empty { padding-block:16px; color:var(--lm-muted); }
+    #lunaris-design-study .lm-form-view { max-width:40rem; margin-inline:auto; }
+    #lunaris-design-study .lm-back { margin-bottom:24px; padding-inline:0; }
+    #lunaris-design-study form { margin-top:24px; display:grid; gap:24px; }
+    #lunaris-design-study label { display:grid; gap:8px; }
+    #lunaris-design-study input { width:100%; min-height:36px; padding:8px 12px; color:var(--lm-text); background:var(--lm-input); border:1px solid var(--lm-border); border-radius:var(--lm-radius); font:inherit; user-select:text; }
+    #lunaris-design-study input::selection { background:var(--lm-selected); color:var(--lm-text); }
+    #lunaris-design-study .lm-folder { display:flex; align-items:center; gap:12px; flex-wrap:wrap; margin-top:8px; }
+    #lunaris-design-study .lm-path { flex:1 1 200px; overflow-wrap:anywhere; color:var(--lm-muted); }
+    #lunaris-design-study .lm-choose { border:1px solid var(--lm-border); }
+    #lunaris-design-study .lm-help { margin-top:8px; font-size:12px; color:var(--lm-muted); }
+    #lunaris-design-study .lm-submit { justify-self:start; }
+    #lunaris-design-study .lm-feedback:empty { display:none; }
+    #lunaris-design-study .lm-split { display:grid; grid-template-columns:minmax(200px,16rem) minmax(0,1fr); min-height:580px; }
+    #lunaris-design-study .lm-sidebar { background:var(--lm-panel); padding:24px 16px; }
+    #lunaris-design-study .lm-sidebar .lm-recents { margin-top:0; }
+    #lunaris-design-study .lm-sidebar .lm-recent { padding-inline:8px; }
+    #lunaris-design-study .lm-split-main { padding:32px; }
+    #lunaris-design-study .lm-split-main .lm-column { max-width:28rem; }
+    #lunaris-design-study .lm-split-main .lm-form-view { max-width:28rem; }
+    @container(max-width:44rem) { #lunaris-design-study .lm-split { grid-template-columns:minmax(0,1fr); } #lunaris-design-study .lm-sidebar { order:1; } #lunaris-design-study .lm-split-main { padding:24px 16px; } }
+    @media(pointer:coarse) { #lunaris-design-study .lm-button,#lunaris-design-study input { min-height:44px; } }
+    @media(prefers-reduced-motion:reduce) { #lunaris-design-study .lm-button { transition:none; } }
+  </style>
+  <div class="viz-carousel" aria-label="Vault manager design alternatives" data-previous-label="Назад" data-next-label="Далее">
+    <section data-variant="Vault manager" aria-label="Compact vault manager">
+      <div class="lm-window" data-design="compact">
+        <header class="lm-brand">Lunaris.md</header>
+        <main class="lm-body">
+          <div class="lm-column" data-home>
+            <h1>Vaults</h1>
+            <div class="lm-recents" data-recents></div>
+            <div class="lm-actions">
+              <button type="button" class="lm-button lm-primary cursor-interaction" data-mode="open"><i data-lucide="folder-open" aria-hidden="true"></i>Open vault</button>
+              <button type="button" class="lm-button cursor-interaction" data-mode="create"><i data-lucide="plus" aria-hidden="true"></i>Create vault</button>
+            </div>
+            <p class="lm-message" data-result role="status" aria-live="polite"></p>
+          </div>
+          <div data-form-host></div>
+        </main>
+      </div>
+    </section>
+    <section data-variant="Split manager" aria-label="Split vault manager" hidden>
+      <div class="lm-window" data-design="split">
+        <header class="lm-brand">Lunaris.md</header>
+        <div class="lm-split">
+          <aside class="lm-sidebar" aria-label="Recent vaults"><div class="lm-recents" data-recents></div></aside>
+          <main class="lm-split-main">
+            <div class="lm-column" data-home>
+              <h1>Open a vault</h1>
+              <p class="lm-subtitle">Choose a folder for your notes.</p>
+              <div class="lm-actions">
+                <button type="button" class="lm-button lm-primary cursor-interaction" data-mode="open"><i data-lucide="folder-open" aria-hidden="true"></i>Open vault</button>
+                <button type="button" class="lm-button cursor-interaction" data-mode="create"><i data-lucide="plus" aria-hidden="true"></i>Create vault</button>
+              </div>
+              <p class="lm-message" data-result role="status" aria-live="polite"></p>
+            </div>
+            <div data-form-host></div>
+          </main>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+    (() => {
+      const root = document.getElementById('lunaris-design-study');
+      const options = { appearance:'System', scenario:'Recent vaults', rowHeight:68 };
+      const records = [
+        { name:'Personal', path:'C:\\Notes\\Personal' },
+        { name:'Lunaris', path:'C:\\Projects\\Lunaris' },
+        { name:'Research', path:'D:\\Documents\\Research' }
+      ];
+      const views = [];
+      const icons = () => { if (globalThis.lucide) globalThis.lucide.createIcons({ attrs:{ width:16,height:16 } }); };
+      function makeButton(label, action, primary=false) {
+        const node = document.createElement('button'); node.type='button';
+        node.className='lm-button cursor-interaction' + (primary?' lm-primary':'');
+        node.textContent=label; node.addEventListener('click',action); return node;
+      }
+      function renderRecents(view) {
+        const area = view.element.querySelector('[data-recents]'); area.replaceChildren();
+        const heading = document.createElement('h2'); heading.textContent='Recent vaults'; area.append(heading);
+        if (options.scenario === 'History unavailable' && !view.historyRecovered) {
+          const message=document.createElement('p'); message.className='lm-empty'; message.setAttribute('role','status');
+          message.textContent='Recent vaults could not be loaded.'; area.append(message);
+          area.append(makeButton('Retry',()=>{view.historyRecovered=true;renderRecents(view);icons();}));
+          return;
+        }
+        const items=options.scenario==='First run'?view.added:[...view.added,...records];
+        if (!items.length) {
+          const empty=document.createElement('p'); empty.className='lm-empty'; empty.textContent='No recent vaults.'; area.append(empty); return;
+        }
+        const list=document.createElement('ul'); list.className='lm-list';
+        items.forEach(item=>{
+          const li=document.createElement('li');
+          const button=makeButton('',()=>openRecent(view,item)); button.classList.add('lm-recent');
+          const icon=document.createElement('i'); icon.setAttribute('data-lucide','folder'); icon.setAttribute('aria-hidden','true');
+          const labels=document.createElement('span'); labels.className='lm-label';
+          const name=document.createElement('span'); name.textContent=item.name;
+          const path=document.createElement('small'); path.textContent=item.path; labels.append(name,path); button.append(icon,labels);
+          if(view.active===item.name) { button.setAttribute('aria-current','true'); const active=document.createElement('span'); active.className='lm-current'; active.textContent='Active'; button.append(active); }
+          li.append(button); list.append(li);
+        }); area.append(list);
+      }
+      function result(view,message) { view.element.querySelector('[data-result]').textContent=message; }
+      function openRecent(view,item) {
+        if(options.scenario==='Open failure') {
+          const message='This folder is unavailable. Choose another folder or try again.';
+          if(view.mode)view.element.querySelector('[data-error]').textContent=message;else result(view,message);
+          return;
+        }
+        if(view.mode)view.home(false);
+        view.active=item.name; result(view,item.name+' is active.'); renderRecents(view); icons();
+        view.element.querySelector('[aria-current=true]').focus();
+      }
+      root.querySelectorAll('[data-design]').forEach((element,index)=>{
+        const view={element, mode:null, active:null, added:[], historyRecovered:false, drafts:{open:{name:'',folder:''},create:{name:'',folder:''}}, trigger:null}; views.push(view);
+        const host=element.querySelector('[data-form-host]');
+        host.innerHTML=`<section class="lm-form-view" hidden aria-label="Vault form">
+          <button type="button" class="lm-button lm-back cursor-interaction" data-back><i data-lucide="arrow-left" aria-hidden="true"></i>Back</button>
+          <h1 data-title></h1>
+          <form>
+            <label data-name-label>Vault name<input id="lm-name-${index}" name="name" maxlength="200" autocomplete="off" required></label>
+            <div role="group" aria-labelledby="lm-folder-label-${index}" aria-describedby="lm-help-${index}">
+              <span id="lm-folder-label-${index}">Folder</span>
+              <div class="lm-folder"><span class="lm-path" data-path>No folder selected</span><button type="button" class="lm-button lm-choose cursor-interaction" data-choose><i data-lucide="folder-open" aria-hidden="true"></i>Choose folder</button></div>
+              <p class="lm-help" id="lm-help-${index}">This folder becomes the vault root.</p>
+            </div>
+            <p class="lm-feedback" role="alert" data-error></p>
+            <button class="lm-button lm-primary lm-submit cursor-interaction" type="submit" disabled data-submit></button>
+          </form>
+        </section>`;
+        const section=host.querySelector('section'); const input=host.querySelector('input'); const form=host.querySelector('form');
+        const submit=host.querySelector('[data-submit]'); const error=host.querySelector('[data-error]');
+        function sync() {
+          const draft=view.drafts[view.mode];
+          host.querySelector('[data-path]').textContent=draft.folder||'No folder selected';
+          submit.disabled=!draft.folder||(view.mode==='create'&&!draft.name.trim());
+        }
+        function home(restore=true) { section.hidden=true; element.querySelector('[data-home]').hidden=false; view.mode=null; if(restore&&view.trigger)view.trigger.focus(); }
+        view.home=home;
+        element.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>{
+          view.mode=button.dataset.mode; view.trigger=button;
+          element.querySelector('[data-home]').hidden=true; section.hidden=false; error.textContent='';
+          const create=view.mode==='create'; host.querySelector('[data-title]').textContent=create?'Create vault':'Open vault';
+          host.querySelector('[data-name-label]').hidden=!create; input.disabled=!create;
+          input.value=view.drafts[view.mode].name; submit.textContent=create?'Create vault':'Open vault'; sync();
+          if(create)input.focus(); else host.querySelector('[data-choose]').focus();
+        }));
+        host.querySelector('[data-back]').addEventListener('click',()=>home());
+        input.addEventListener('input',()=>{view.drafts[view.mode].name=input.value;error.textContent='';sync();});
+        host.querySelector('[data-choose]').addEventListener('click',()=>{
+          view.drafts[view.mode].folder='C:\\Notes\\'+(view.mode==='create'?'New vault':'Personal'); error.textContent=''; sync();
+        });
+        form.addEventListener('submit',event=>{
+          event.preventDefault(); if(submit.disabled)return;
+          if(options.scenario==='Open failure') { error.textContent='This folder is unavailable. Choose another folder and try again.';return; }
+          const draft=view.drafts[view.mode]; const name=view.mode==='create'?draft.name.trim():'Personal';
+          view.active=name;
+          if(!view.added.some(item=>item.name===name)&&(options.scenario==='First run'||!records.some(item=>item.name===name)))view.added.unshift({name,path:draft.folder});
+          home(); result(view,name+' is active.'); renderRecents(view); icons();
+        });
+        renderRecents(view);
+      });
+      let previousScenario=options.scenario;
+      function applyOptions() {
+        root.style.colorScheme=options.appearance==='System'?'light dark':options.appearance.toLowerCase();
+        root.style.setProperty('--lm-row',options.rowHeight+'px');
+        views.forEach(view=>{
+          if(options.scenario==='First run'&&previousScenario!==options.scenario){view.added=[];view.active=null;}
+          view.historyRecovered=false;renderRecents(view);result(view,view.active?view.active+' is active.':'');
+        }); previousScenario=options.scenario; icons();
+      }
+      if(globalThis.Tweak) {
+        const tweak=new globalThis.Tweak({container:root,onChange:applyOptions});
+        tweak.addSelect(options,'appearance',{label:'Appearance',options:['System','Light','Dark']});
+        tweak.addSelect(options,'scenario',{label:'State',options:['Recent vaults','First run','History unavailable','Open failure']});
+        tweak.addSlider(options,'rowHeight',{label:'Row height',min:64,max:80,step:4,unit:'px'});
+      }
+    })();
+  </script>
+</div>

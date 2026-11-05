@@ -5,6 +5,7 @@
 - [Tauri host and recovery shell](guides/tauri-host.md): first desktop target, diagnostic UI, recovery behavior, commands and manual acceptance.
 - [Logging contracts and composition](reference/logging.md): replaceable Logger/DevTools sink, record format, failure behavior and verification.
 - [Product backlog](Backlog.md): product component status and deferred scope.
+- [Interface foundation proposal](design/interface-foundation.md): code-based design review, researched direction, interactive study and approval/implementation criteria (proposed, not yet adopted).
 - [UI slots](reference/slots.md): portable regions, scoped ownership, DOM targets and host composition.
 - [Startup progress](reference/startup.md): read-only SDK milestones, host bridge and early loading surfaces.
 - [Lunaris Runner](../plugins/UI/lunaris-runner/DOCS/README.md): configured ASCII startup screen, milestones and retained loaded status.
