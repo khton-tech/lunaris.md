@@ -14,8 +14,9 @@ import manifest from "../manifest.json" with { type: "json" };
 const role = "lunaris.startup-screen";
 
 /** Artwork is supplied by trusted composition, with no filesystem/host imports. */
-export function createRunner(options: { readonly art: string }) {
+export function createRunner(options: { readonly art: string; readonly hideWhenLoaded?: boolean }) {
   const art = options.art;
+  const hideWhenLoaded = options.hideWhenLoaded === true;
   if (typeof art !== "string" || art.trim().length === 0) throw new TypeError("Runner artwork is required.");
   return definePlugin({ manifest, async activate(ctx) {
     const logger = ctx.use(Logger);
@@ -34,8 +35,9 @@ export function createRunner(options: { readonly art: string }) {
       const targets = ctx.use(SlotDom);
       const components = ctx.use(Components);
       const startup = ctx.use(Startup);
+      const screenScope = ctx.scope.child();
       const slotId = `${ctx.pluginId}.screen`;
-      const allocated = slots.create({ id: slotId, grow: 1 }, ctx.signal);
+      const allocated = slots.create({ id: slotId, grow: 1 }, screenScope.signal);
       if (!allocated.ok) throw new Error("Cannot allocate runner slot.", { cause: allocated.error });
       if (!targets.get(slotId)) throw new Error("Runner rendering target is unavailable.");
 
@@ -55,6 +57,14 @@ export function createRunner(options: { readonly art: string }) {
       }
       function render(): void {
         if (!latest || ctx.signal.aborted) return;
+        if (hideWhenLoaded && latest.state === "loaded") {
+          mounted = undefined;
+          // Abort the owned rendering surface, without touching another plugin's DOM.
+          void screenScope.dispose().catch(error => {
+            if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot release loading surface", { code: "RUNNER_RELEASE_FAILED", error });
+          });
+          return;
+        }
         const next = props();
         if (mounted) {
           const updated = mounted.update(next);
@@ -65,7 +75,7 @@ export function createRunner(options: { readonly art: string }) {
         if (!components.has(role)) return;
         const target = targets.get(slotId);
         if (!target) throw new Error("Runner rendering target was removed.");
-        const result = components.mount(role, target, next, ctx.signal);
+        const result = components.mount(role, target, next, screenScope.signal);
         if (!result.ok) throw new Error("Cannot mount runner screen.", { cause: result.error });
         mounted = result.value;
         logger.debug(ctx.pluginId, "Runner screen mounted");

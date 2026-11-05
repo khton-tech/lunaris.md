@@ -3,6 +3,7 @@ import { Logger } from "@lunaris/logging";
 import { Components } from "@lunaris/components";
 import { Themes, ThemeChanged } from "@lunaris/themes";
 import { mountStartupScreen } from "./startup-screen.js";
+import { mountVaultSelector } from "./vault-selector.js";
 import manifest from "../manifest.json" with { type: "json" };
 
 export default definePlugin({ manifest, activate(ctx) {
@@ -14,24 +15,26 @@ export default definePlugin({ manifest, activate(ctx) {
     try { for (const instance of instances) instance.applyTheme(); }
     catch (error) { logger.error(ctx.pluginId, "Cannot apply active theme", { code: "SCREEN_THEME_FAILED", error }); throw error; }
   });
-  const result = components.register({ id: "lunaris.startup-screen", mount(target, props, signal) {
-    try {
-      let instance: ReturnType<typeof mountStartupScreen> | undefined;
-      instance = mountStartupScreen(target, props, signal, () => themes.current(), () => { if (instance) instances.delete(instance); });
-      instances.add(instance);
-      if (themes.current() === null) logger.warn(ctx.pluginId, "No active theme; inheriting the product surface", { code: "THEME_UNSELECTED" });
-      logger.debug(ctx.pluginId, "Startup screen mounted");
-      return { update(next) {
-        try { instance!.update(next); }
-        catch (error) { logger.error(ctx.pluginId, "Cannot update startup screen", { code: "SCREEN_UPDATE_FAILED", error }); throw error; }
-      }, dispose: () => instance!.dispose() };
-    } catch (error) {
-      logger.error(ctx.pluginId, "Cannot mount startup screen", { code: "SCREEN_MOUNT_FAILED", error }); throw error;
+  for (const [id, mount] of [["lunaris.startup-screen", mountStartupScreen], ["lunaris.vault-selector", mountVaultSelector]] as const) {
+    const result = components.register({ id, mount(target, props, signal) {
+      try {
+        let instance: ReturnType<typeof mountStartupScreen> | undefined;
+        instance = mount(target, props, signal, () => themes.current(), () => { if (instance) instances.delete(instance); });
+        instances.add(instance);
+        if (themes.current() === null) logger.warn(ctx.pluginId, "No active theme; inheriting the product surface", { code: "THEME_UNSELECTED" });
+        logger.debug(ctx.pluginId, "Component mounted", { data: { componentId: id } });
+        return { update(next) {
+          try { instance!.update(next); }
+          catch (error) { logger.error(ctx.pluginId, "Cannot update component", { code: "SCREEN_UPDATE_FAILED", data: { componentId: id }, error }); throw error; }
+        }, dispose: () => instance!.dispose() };
+      } catch (error) {
+        logger.error(ctx.pluginId, "Cannot mount component", { code: "SCREEN_MOUNT_FAILED", data: { componentId: id }, error }); throw error;
+      }
+    } }, ctx.signal);
+    if (!result.ok) {
+      logger.error(ctx.pluginId, "Cannot register component", { code: result.error.code, data: { componentId: id } });
+      throw new Error("Components Kit registration failed.", { cause: result.error });
     }
-  } }, ctx.signal);
-  if (!result.ok) {
-    logger.error(ctx.pluginId, "Cannot register startup screen", { code: result.error.code });
-    throw new Error("Components Kit registration failed.", { cause: result.error });
   }
   logger.info(ctx.pluginId, "Components Kit ready", { code: "COMPONENTS_KIT_READY" });
 } });

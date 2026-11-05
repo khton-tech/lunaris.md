@@ -1,9 +1,10 @@
 # Vault selector: interface and contract requirements
 
-Status: interface proposed; public contract blockers resolved. The implementation
-now supplies `VaultLocations`, `FilesystemLocations`, preparation metadata, and
+Status: implemented; native WebView visual acceptance remains manual. The implementation
+supplies `VaultLocations`, `FilesystemLocations`, preparation metadata, and
 the dedicated [history provider](../../plugins/systems/vault-history/DOCS/README.md),
-including Tauri integration. The UI itself is not implemented yet.
+including Tauri integration. The [UI controller](../../plugins/UI/vault-selector/DOCS/README.md)
+mounts a themed Components Kit role after the runner releases its loading surface.
 Follow [UI guidelines](../UI_GUIDELINES.md).
 
 ## Interface
@@ -113,12 +114,13 @@ paths, names, or config payloads. Logger calls use the plugin ID as source.
 ## Integration and verification required before delivery
 
 Integration is complete across Vault Manager, filesystem provider, Tauri driver,
-Config Manager, recent-history provider, and Tauri service composition. Components
-Kit, selector controller, and startup-screen handoff remain outstanding. The planned selector lives under
+Config Manager, recent-history provider, Components Kit, selector controller,
+startup-screen handoff, and Tauri composition. The selector lives under
 `plugins/UI/vault-selector`; it acquires all services through declared SDK
 contracts. Themes flow through the kit, localized text through props, and
-rendering through component roles and allocated slots. Coordinate the runner's
-loaded state with showing the selector so both do not retain competing screens.
+rendering through component roles and allocated slots. The runner's `hideWhenLoaded`
+option releases its child scope; the selector mounts on the loaded milestone.
+Successful opening displays the active Vault name; an editor/workspace is deferred.
 
 Targeted checks must cover selection without writes/activation, cancel/retry,
 Next using the chosen location without a second dialog, duplicate submissions,

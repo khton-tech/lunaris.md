@@ -1,12 +1,17 @@
 # Lunaris Runner
 
-Purpose: present startup progress using the supplied ASCII artwork, then retain
-`System Loaded`. The plugin has no navigation, timers, artificial progress,
+Purpose: present startup progress using the supplied ASCII artwork. Standalone
+composition retains `System Loaded`; Tauri releases it for the Vault selector.
+The plugin has no navigation, timers, artificial progress,
 minimum display duration or post-start actions. It does not start other plugins.
 
 ## Composition and configuration
 
-Create the plugin with `createRunner({ art })` from `@lunaris/runner`. Tauri
+Create the plugin with `createRunner({ art, hideWhenLoaded? })` from `@lunaris/runner`.
+`hideWhenLoaded` defaults to false. Tauri sets it to true and starts the
+[Vault selector](../../vault-selector/DOCS/README.md) as the post-startup surface.
+On loaded, the runner releases its owned child scope, removing both the loading
+component and its layout slot; it never manipulates the selector's DOM. Tauri
 supplies the existing `resources/ascii_art.txt` contents at its composition
 boundary; the runner neither imports host files nor performs filesystem I/O.
 The plugin ID is `lunaris.runner` and its slot is `lunaris.runner.screen`.

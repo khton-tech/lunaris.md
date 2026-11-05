@@ -16,7 +16,7 @@
 - [Vault-scoped filesystem](reference/filesystem.md): provider/driver APIs, relative paths, dialogs, writes, permissions and native verification.
 - [Application configuration directory](reference/application-storage.md): global file storage, owned roots and coordinated closure.
 - [Vault Manager](reference/vault.md): active context, opening/switching/closing, preparation hooks and events.
-- [Vault selector proposal](reference/vault-selector.md): requested interface, SDK contract blockers, integration and acceptance requirements.
+- [Vault selector](reference/vault-selector.md): implemented interface, resolved contract gaps, integration and manual visual acceptance.
 - [Recent Vault history](../plugins/systems/vault-history/DOCS/README.md): persistent recent locations, reopening, notifications and degraded storage behavior.
 - [Config manager](reference/config.md): global/per-Vault TOML files, plugin namespaces, precedence and safe persistence.
 - [Localization service](reference/localization.md): English-first per-plugin catalogs, text lookup, parameter substitution and locale events.

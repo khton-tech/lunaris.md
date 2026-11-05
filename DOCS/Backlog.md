@@ -1,5 +1,17 @@
 # Product backlog
 
+## Vault selector
+
+Status: IMPLEMENTED on 2026-11-05; native visual acceptance remains manual.
+The runner now hands off to a dedicated selector after loaded. Recent Vaults
+occupy the left third; create/select cards and ASCII art occupy the right two
+thirds. Components Kit supplies themed controls with Lucide icons; the consumer
+uses public Slots, Components, Localization, VaultLocations and VaultHistory APIs.
+Browse/Next, name validation, cancellation, retry, duplicate-submit protection,
+history reopening and shutdown are integrated. A successful open displays the
+active Vault name; an editor/workspace shell remains deferred. See
+[selector usage and manual acceptance](../plugins/UI/vault-selector/DOCS/README.md).
+
 ## Component provider
 
 Status: IMPLEMENTED (pending local verification run) on 2026-11-05. The replaceable

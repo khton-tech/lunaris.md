@@ -36,7 +36,8 @@
     "@lunaris/components-kit": "0.1.0",
     "@lunaris/theme-settings": "0.1.0",
     "@lunaris/runner": "0.1.0",
-    "@lunaris/vault-history": "0.1.0"
+    "@lunaris/vault-history": "0.1.0",
+    "@lunaris/vault-selector": "0.1.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.12.4",

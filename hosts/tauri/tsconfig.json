@@ -75,6 +75,9 @@
     },
     {
       "path": "../../plugins/systems/vault-history"
+    },
+    {
+      "path": "../../plugins/UI/vault-selector"
     }
   ]
 }

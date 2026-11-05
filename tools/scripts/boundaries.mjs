@@ -6,6 +6,7 @@ export const dependencies = {
   'base-theme-engine': ['sdk', 'logging', 'themes'],
   'theme-settings': ['sdk', 'logging', 'themes', 'config'],
   runner: ['sdk', 'logging', 'config', 'localization', 'slots', 'slot-dom', 'components', 'startup'],
+  'vault-selector': ['sdk', 'logging', 'localization', 'slots', 'slot-dom', 'components', 'startup', 'vault', 'filesystem'],
   themes: ['sdk'],
   'theme-provider': ['sdk', 'logging', 'themes'],
   startup: ['sdk'],
@@ -36,7 +37,7 @@ export const dependencies = {
   test: ['sdk', 'kernel'],
   development: ['manifest', 'sdk', 'kernel'],
   cli: ['manifest', 'sdk', 'kernel', 'test', 'development'],
-  tauri: ['runner', 'theme-settings', 'components-kit', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'],
+  tauri: ['runner', 'vault-selector', 'theme-settings', 'components-kit', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'],
 };
 
 export const packagePath = scope => {
@@ -44,6 +45,7 @@ export const packagePath = scope => {
   if (scope === 'base-theme-engine') return 'plugins/UI/base-theme';
   if (scope === 'theme-settings') return 'plugins/UI/theme-settings';
   if (scope === 'runner') return 'plugins/UI/lunaris-runner';
+  if (scope === 'vault-selector') return 'plugins/UI/vault-selector';
   if (scope === 'theme-provider') return 'plugins/UI/themes';
   if (scope === 'components-kit') return 'plugins/UI/components-kit';
   if (scope === 'component-provider') return 'plugins/UI/components';
@@ -72,13 +74,14 @@ export function checkSource(source, filename, scope) {
   // The shared validator owns the reviewed, platform-neutral SemVer dependency.
   if (scope === 'manifest') allowed.add('semver');
   if (scope === 'config-manager' && path.resolve(filename) === path.resolve('plugins/systems/config/src/codec.ts')) allowed.add('smol-toml');
+  if (scope === 'components-kit' && path.resolve(filename) === path.resolve('plugins/UI/components-kit/src/controls.ts')) allowed.add('lucide');
   function specifier(node) {
     if (!ts.isStringLiteral(node)) {
       errors.push(`${filename}: nonliteral imports are forbidden in core packages`);
       return;
     }
     const value = node.text;
-    if (['runner', 'theme-settings', 'components-kit', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'].includes(scope) &&
+    if (['runner', 'vault-selector', 'theme-settings', 'components-kit', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'].includes(scope) &&
         path.resolve(filename) === path.resolve(packagePath(scope), 'src/index.ts') &&
         value === '../manifest.json') return;
     // The host owns startup artwork; plugins cannot reach outside their source roots.

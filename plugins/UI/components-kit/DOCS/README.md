@@ -1,14 +1,14 @@
 # LunarisComponentsKit
 
 Purpose: supply shared product UI components through the replaceable Components
-registry. The initial role is `lunaris.startup-screen`. The kit does not allocate
+registry. Roles are `lunaris.startup-screen` and `lunaris.vault-selector`. The kit does not allocate
 slots, select themes, read configuration, load artwork, translate consumer copy,
 or decide whether startup is complete.
 
 Requires Logger, `api:lunaris.components@^1.0.0`,
 `api:lunaris.themes@^1.0.0`, `event:lunaris.theme-changed@^1.0.0`, and `ui.dom`.
 It provides no direct API or SDK events. On activation it registers its component
-role through Components; on scope closure that registration and live instances
+roles through Components; on scope closure those registrations and live instances
 are released. It subscribes to ThemeChanged and reapplies the current theme.
 
 ## Consumer usage
@@ -35,7 +35,39 @@ modified/removed; sibling content and slot structural styles are preserved.
 Consumers must handle missing/replaced roles through ComponentsChanged as
 specified by [the component contract](../../../../DOCS/reference/components.md).
 
-## Theme and layout
+## Vault selector role
+
+Mount `lunaris.vault-selector` through Components. Its complete props are:
+
+- `art`: ASCII text; `text`: localized string map with `logo`, `recent`, `empty`,
+  `create`, `select`, `folder`, `folderPlaceholder`, `browse`, `name`, `next`, `retry`.
+- `mode`: `null`, `create`, or `select`; `folder`/`name`: strings;
+  `busy`/`canContinue`: booleans; `error`/`historyError`/`status`: localized strings.
+- `entries`: `{ reference, name, label }[]`; references are opaque callback data.
+- Callbacks: `onMode(mode)`, `onName(value)`, `onBrowse()`, `onNext()`,
+  `onRecent(reference)`, `onRetry()`.
+
+The component renders only; selection, names, validation policy and history belong
+to the consuming controller. Updates preserve input DOM/caret where possible.
+Controls provide labels, expanded-state/form associations, accessible icon-only
+Browse, keyboard focus restoration, status/alert regions, and reduced motion.
+Non-editable chrome is non-selectable; inputs retain selection. All text uses
+`textContent`, including external folder names and ASCII art.
+
+The initial icon pack is **Lucide**, pinned to `lucide@1.69.0`. Only required icon
+nodes are imported in `controls.ts` and rendered in the borrowed document; no
+global icon scan or document access occurs. Shared button/input/icon factories
+live in the kit, not in the consumer.
+
+The left recent panel and right action panel use a 1:2 grid, stacking actions
+first below a 40rem container width. The frame uses container queries; all content
+can shrink/wrap, and ASCII type scales with its available width. Selector colors
+inherit `colors.background/panel/text/textSecondary/separator/controlBorder/hover/
+focus/accent/onAccent/accentHover`; geometry inherits `unit`, `spacing.step`,
+`radius.medium`, `borderWidth`, `focusWidth` and `focusOffset`. Typography inherits
+the same generic properties as the startup screen. No theme engine is imported.
+
+## Startup theme and layout
 
 Reads `Themes.current()` through the public SDK contract and follows
 ThemeChanged. Compatible engines supply these optional properties:
@@ -68,10 +100,12 @@ Tauri starts the kit after the component provider and grants `ui.dom`. Theme
 changes are integrated through the public contract. Nothing is mounted until a
 consumer requests the role; the [runner](../../lunaris-runner/DOCS/README.md)
 supplies artwork, localized milestone text and a slot after reading its startup
-configuration. The rest of the standard
-component catalog is outside this initial kit.
+configuration. The [Vault selector](../../vault-selector/DOCS/README.md) consumes
+the selector role after loading and owns all actions/state. The rest of the
+standard component catalog is outside this initial kit.
 
 Run `npm run components-kit:check`. Tests use the real SDK/kernel, Components,
 Themes and JSDOM to verify role mounting, safe text, theme selection/update/reset,
-invalid props, owner cancellation, shutdown and restart. A native WebView visual
-check at narrow window sizes remains manual after the runner is connected.
+invalid props, accessible Lucide controls, input identity, multiple selector
+instances, owner cancellation, shutdown and restart. Native WebView appearance
+and narrow-window layout remain manual acceptance checks.

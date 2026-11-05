@@ -1,5 +1,18 @@
 # Core implementation plan
 
+## Vault selector delivery — 2026-11-05
+
+Delivered on `feat/vault-selector`: durable folder locations and native restoration,
+persisted Vault display names, a dedicated recent-history provider, a themed
+Components Kit selector role with Lucide controls, and an SDK-only UI controller.
+Tauri releases the runner after loading and mounts the selector with recent Vaults
+on the left third and actions on the right two thirds. Cancellation, retry,
+duplicate-submit prevention, history reopening and late-result shutdown are
+covered by targeted DOM/service tests. Native layout/dialog acceptance remains
+manual. Editor/workspace navigation remains deferred; successful opening displays
+the active Vault name without navigating to an empty surface. See
+[selector integration and acceptance](../plugins/UI/vault-selector/DOCS/README.md).
+
 Status: adjusted local 0.1 implementation complete. 43 tasks DONE; K07.2/K07.3/K07.5 DEFERRED by Owner. Local release checks pass; merge/publishing require separate authorization.
 Baseline date: 2026-11-03.
 Source: [architecture proposal](TechDoc.md) and [repository rules](../AGENTS.md).
