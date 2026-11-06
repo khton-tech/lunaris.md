@@ -86,6 +86,12 @@ names and paths share one line; each truncates independently and the full values
 remain in the accessible name and native title. Current vaults retain aria-current
 and a persistent theme selection treatment. Both existing SDK roles and their
 consumer callbacks remain unchanged; no additional public role is needed.
+Both action disclosures use a Mantine Paper form with the same 22% boundary and
+radius as CardRow, an 8px gap below the header and 12px inner padding at default
+spacing. Fields and the primary button share the row's 40px control height;
+labels use a compact 4px gap. Shared CSS tokens keep these dimensions and borders
+aligned when the active SDK theme changes. Intrinsic disclosure animation, inert
+closure, draft preservation and keyboard focus behavior remain unchanged.
 
 The adapter in src/theme.ts translates the shared engine's colors, geometry,
 spacing, typography, startup tokens and motion into Mantine theme/owned CSS

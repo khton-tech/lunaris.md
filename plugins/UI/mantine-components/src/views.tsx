@@ -30,7 +30,7 @@ function ActionForm({ mode, props }: { mode: "create" | "select"; props: Selecto
       onClick={event => { props.onMode(mode); if (!expanded && event.detail === 0) browse.current?.focus({ preventScroll: true }); }} />
     <Box className="ln-vault-disclosure" aria-hidden={!expanded}>
       <Box className="ln-vault-disclosure-body">
-        <Box component="form" ref={form} id={id} inert={!expanded} onSubmit={event => { event.preventDefault(); if (expanded && !props.busy && props.canContinue) props.onNext(); }}>
+        <Paper component="form" className="ln-vault-form" ref={form} id={id} inert={!expanded} onSubmit={event => { event.preventDefault(); if (expanded && !props.busy && props.canContinue) props.onNext(); }}>
           <Stack gap="sm">
             <Input.Wrapper label={props.text.folder} id={`${id}-folder`}>
               <Input component="button" type="button" pointer ref={browse} id={`${id}-folder`}
@@ -47,7 +47,7 @@ function ActionForm({ mode, props }: { mode: "create" | "select"; props: Selecto
             <Text role="alert" hidden={!expanded || !props.error}>{expanded ? props.error : ""}</Text>
             <Button ref={next} type="submit" variant="filled" className="ln-vault-next" rightSection={<Icon name="next" />} disabled={props.busy || !props.canContinue || !expanded}>{props.text.next}</Button>
           </Stack>
-        </Box>
+        </Paper>
       </Box>
     </Box>
   </Box>;
