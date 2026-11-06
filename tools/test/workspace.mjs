@@ -7,7 +7,7 @@ import { Logger } from '@lunaris/logging';
 import { Components } from '@lunaris/components';
 import { Themes } from '@lunaris/themes';
 import { Localization } from '@lunaris/localization';
-import { Vault, VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged } from '@lunaris/vault';
+import { Vault, VaultCreation, VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged } from '@lunaris/vault';
 import { Workspace } from '@lunaris/workspace';
 import { Sidebar } from "@lunaris/sidebar";
 import sidebarPlugin from "@lunaris/sidebar-plugin";
@@ -36,7 +36,7 @@ export async function setupWorkspace(options = {}) {
   const logger = definePlugin({ manifest: manifest('test.logger', [Logger]), activate(context) {
     context.provide(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push([level, ...args]); return true; }])));
   } });
-  const vaults = definePlugin({ manifest: manifest('test.vaults', [Vault, VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged]), activate(context) {
+  const vaults = definePlugin({ manifest: manifest('test.vaults', [Vault, VaultCreation, VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged]), activate(context) {
     async function open(location, input) {
       const previous = current; current = { id: `vault-${++serial}`, name: input?.name ?? 'Notes' };
       await context.events.emit(VaultChanged, { kind: previous ? 'switched' : 'opened', previous, current, location });
@@ -50,6 +50,7 @@ export async function setupWorkspace(options = {}) {
       await context.events.emit(VaultChanged, { kind: 'closed', previous, current }); return ok(null);
     } };
     context.provide(Vault, service);
+    context.provide(VaultCreation, { create: (parent, name) => open({ reference: parent.reference + "/" + name, label: parent.label + "/" + name }, { name }) });
     context.provide(VaultLocations, { describe: async reference => ok({ reference, label: 'Folder' }), select: async () => ok({ reference: 'saved', label: 'Folder' }), open });
     context.provide(VaultHistory, { list: async () => ok([{ location: { reference: 'saved', label: 'Folder' }, name: 'Notes' }]), open: () => service.open() });
   } });
