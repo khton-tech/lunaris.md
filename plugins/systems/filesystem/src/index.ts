@@ -78,6 +78,10 @@ export default definePlugin({ manifest, activate(ctx) {
   });
   ctx.provide(FilesystemRoots, { selectVault: owner => call("selectVault", () => ownedRoots.selectVault(owner)) });
   ctx.provide(FilesystemLocations, {
+    describe(reference) {
+      if (typeof reference !== "string" || !reference.length || reference.length > 512) return Promise.resolve(failure("INVALID_ARGUMENT", "A valid location reference is required."));
+      return call("describeLocation", () => locations.describe(reference));
+    },
     select: owner => call("selectLocation", () => locations.select(owner)),
     attach(location, owner) {
       if (!validFolderLocation(location)) return Promise.resolve(failure("INVALID_ARGUMENT", "A valid folder location is required."));

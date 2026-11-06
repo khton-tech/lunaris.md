@@ -45,7 +45,7 @@
     {
       "kind": "api",
       "id": "lunaris.vault-locations",
-      "range": "^1.0.0"
+      "range": "^1.1.0"
     },
     {
       "kind": "api",

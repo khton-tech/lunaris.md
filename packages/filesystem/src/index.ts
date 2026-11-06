@@ -21,17 +21,19 @@ export function validFolderLocation(value: unknown): value is FolderLocation {
     typeof item.label === "string" && item.label.length > 0 && item.label.length <= 4096;
 }
 export interface FilesystemLocationsApi {
+  /** Refresh display location without attaching or preparing a Vault. */
+  describe(reference: string): Promise<FsResult<FolderLocation>>;
   /** Select without attaching a root or preparing Vault files. Cancellation is successful null. */
   select(owner: CancellationSignal): Promise<FsResult<FolderLocation | null>>;
   attach(location: FolderLocation, owner: CancellationSignal): Promise<FsResult<VaultRoot>>;
 }
 const validLocationsApi = (value: unknown): boolean => value !== null && typeof value === "object" &&
-  ["select", "attach"].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function");
+  ["select", "attach", "describe"].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function");
 export const FilesystemLocations = defineApi<FilesystemLocationsApi>({
-  id: "lunaris.filesystem-locations", version: "1.0.0", consumePermission: "filesystem.access", validate: validLocationsApi,
+  id: "lunaris.filesystem-locations", version: "1.1.0", consumePermission: "filesystem.access", validate: validLocationsApi,
 });
 export const FilesystemLocationsDriver = defineApi<FilesystemLocationsApi>({
-  id: "lunaris.filesystem-locations-driver", version: "1.0.0", providePermission: "filesystem.native", consumePermission: "filesystem.access", validate: validLocationsApi,
+  id: "lunaris.filesystem-locations-driver", version: "1.1.0", providePermission: "filesystem.native", consumePermission: "filesystem.access", validate: validLocationsApi,
 });
 export interface FileInfo { readonly path: string; readonly kind: "file" | "directory" | "symlink" | "other"; readonly size: number; readonly modifiedAt: number | null }
 export interface TextFile { readonly text: string; readonly version: string }

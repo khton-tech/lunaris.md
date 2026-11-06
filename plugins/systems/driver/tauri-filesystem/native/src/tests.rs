@@ -24,6 +24,20 @@ fn folder_locations_survive_backend_restart_without_preparing_or_attaching() {
     };
     let mut restarted = Backend::with_config_directory(config);
     restarted.execute("restored", Request::Begin, None).unwrap();
+    let described = restarted
+        .execute(
+            "restored",
+            Request::DescribeLocation {
+                reference: location["reference"].as_str().unwrap().into(),
+            },
+            None,
+        )
+        .unwrap();
+    assert_eq!(
+        described["label"],
+        vault_path.canonicalize().unwrap().display().to_string()
+    );
+    assert_eq!(restarted.sessions["restored"].len(), 0);
     let attached = restarted
         .execute(
             "restored",

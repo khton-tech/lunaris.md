@@ -44,7 +44,7 @@ impl Backend {
             }
             Err(error) => return Err(error),
         }
-        let label = path.file_name().and_then(|s| s.to_str()).unwrap_or("Vault");
+        let label = path.display().to_string();
         Ok(json!({ "reference": reference, "label": label }))
     }
 

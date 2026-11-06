@@ -44,7 +44,7 @@ requires `filesystem.access`. Use `ctx.signal` or a child scope signal. The lega
 
 ## Durable folder locations
 
-`FilesystemLocations` (`api:lunaris.filesystem-locations@1.0.0`) delegates to
+`FilesystemLocations` (`api:lunaris.filesystem-locations@1.1.0`) delegates to
 `FilesystemLocationsDriver` and requires `filesystem.access`. Product UI should
 use the higher-level `VaultLocations` API instead.
 
@@ -62,7 +62,10 @@ reference identifies each record. Re-selecting the same canonical path deduplica
 it; restarting the host does not invalidate it. Attach validates the reference,
 record digest and canonical target, then opens a fresh capability. Unknown or moved
 locations return `NOT_FOUND`; changed/corrupt records return `CONFLICT`; an
-unsupported host returns `UNSUPPORTED`. Native paths do not cross the plugin API.
+unsupported host returns `UNSUPPORTED`. Native paths never serve as plugin authority. Selection and `describe(reference)`
+return the complete absolute display path in `label`; this presentation value
+must not be logged or used as a filesystem target. `describe` neither attaches a
+root nor prepares Vault data and supports existing persisted references.
 These are cooperative local capabilities, not isolation against hostile plugins
 with application-config access. OS bookmark/permission restoration for other
 targets belongs in their replacement drivers; no unsupported target is emulated.

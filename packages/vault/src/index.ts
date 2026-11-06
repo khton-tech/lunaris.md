@@ -7,13 +7,15 @@ export function validVaultName(value: unknown): value is string {
   return typeof value === "string" && value.length > 0 && value.length <= 200 && value === value.trim() && !/[\u0000-\u001f\u007f]/.test(value);
 }
 export interface VaultLocationsApi {
+  /** Refresh the driver-owned display location without opening it. */
+  describe(reference: string): Promise<VaultResult<FolderLocation>>;
   select(owner: CancellationSignal): Promise<VaultResult<FolderLocation | null>>;
   open(location: FolderLocation, options?: { readonly name?: string }): Promise<VaultResult<VaultRoot>>;
 }
 export const VaultLocations = defineApi<VaultLocationsApi>({
-  id: "lunaris.vault-locations", version: "1.0.0", consumePermission: "vault.access",
+  id: "lunaris.vault-locations", version: "1.1.0", consumePermission: "vault.access",
   validate: value => value !== null && typeof value === "object" &&
-    ["select", "open"].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function"),
+    ["select", "open", "describe"].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function"),
 });
 export interface RecentVault { readonly location: FolderLocation; readonly name: string }
 export type VaultHistoryResult<T> = { readonly ok: true; readonly value: T } | {

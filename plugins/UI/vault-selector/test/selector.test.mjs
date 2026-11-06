@@ -47,7 +47,7 @@ function setup(options = {}) {
       return ok(current);
     }
     ctx.provide(Vault, { current: () => current, open: () => open(location), async close() { current = null; return ok(null); } });
-    ctx.provide(VaultLocations, { async select() { calls.push({ operation: 'select' }); return selections.length ? await selections.shift() : ok(location); }, open });
+    ctx.provide(VaultLocations, { async describe(reference) { return ok({ reference, label: reference }); }, async select() { calls.push({ operation: 'select' }); return selections.length ? await selections.shift() : ok(location); }, open });
     ctx.provide(VaultHistory, { async list() { return options.historyFailure ? fail('HISTORY_UNAVAILABLE') : ok(entries); }, async open(reference) {
       calls.push({ operation: 'recent', reference }); const entry = entries.find(e => e.location.reference === reference);
       return entry ? open(entry.location) : fail('NOT_FOUND');

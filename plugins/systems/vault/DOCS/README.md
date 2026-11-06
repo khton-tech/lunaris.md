@@ -20,7 +20,7 @@ Owned-root cancellation is implemented in the native driver; the manager never
 calls SDK handles from cleanup. Startup opens no selection dialog. UI, config
 creation and recent history are separate responsibilities.
 
-`api:lunaris.vault-locations@1.0.0` supplies `select(ownerSignal)` and
+`api:lunaris.vault-locations@1.1.0` supplies `select(ownerSignal)` and
 `open(location, { name? })` through the filesystem location provider/driver.
 Selection has no Vault side effects; opening reuses preparation and coordinated
 closure. Config Manager persists display names through preparation metadata.
@@ -29,3 +29,10 @@ metadata handler confirms persistence. See [the public reference](../../../../DO
 
 See the [complete API/lifecycle reference](../../../../DOCS/reference/vault.md).
 Run `npm run vault:check` from the repository root.
+
+
+Location APIs (1.1.0) expose `describe(reference)` to refresh a durable location
+without attaching a root or preparing Vault data. The native driver returns the
+full absolute display path in `label`; `reference` remains opaque authority.
+Recent history refreshes legacy labels on listing and recording, retaining saved
+labels on recoverable failures. Display paths must never be logged.

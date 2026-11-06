@@ -42,3 +42,10 @@ Tauri registers this provider as an entrypoint after Config Manager. UI integrat
 remains part of the selector plugin. Run `npm run vault-history:check` for scoped
 provider/host tests, type fixtures and dependency checks; Config Manager tests
 additionally exercise the real Vault/Config/history chain.
+
+
+Location APIs (1.1.0) expose `describe(reference)` to refresh a durable location
+without attaching a root or preparing Vault data. The native driver returns the
+full absolute display path in `label`; `reference` remains opaque authority.
+Recent history refreshes legacy labels on listing and recording, retaining saved
+labels on recoverable failures. Display paths must never be logged.

@@ -62,6 +62,14 @@ export function createTauriFilesystemDriver(native: NativeFilesystem = nativeFil
       return !!owner && typeof owner.aborted === "boolean" && typeof owner.addEventListener === "function" && typeof owner.removeEventListener === "function";
     }
     ctx.provide(FilesystemLocationsDriver, {
+      async describe(reference) {
+        if (typeof reference !== "string" || !reference.length || reference.length > 512) return failure("INVALID_ARGUMENT", "A valid location reference is required.");
+        if (ctx.signal.aborted) return failure("VAULT_CLOSED", "The driver is stopped.");
+        const result = await request<FolderLocation>("describeLocation", { reference });
+        if (ctx.signal.aborted) return failure("VAULT_CLOSED", "The driver is stopped.");
+        if (result.ok && (!validFolderLocation(result.value) || result.value.reference !== reference)) return failure("IO_ERROR", "The driver returned an invalid location.");
+        return result;
+      },
       async select(owner) {
         if (!liveOwner(owner)) return failure("INVALID_ARGUMENT", "A cancellation signal is required.");
         if (owner.aborted || ctx.signal.aborted) return failure("VAULT_CLOSED", "The location owner is stopped.");

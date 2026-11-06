@@ -107,6 +107,11 @@ export default definePlugin({ manifest, activate(ctx) {
     return result;
   }
   ctx.provide(VaultLocations, {
+    async describe(reference) {
+      if (ctx.signal.aborted) return failed("STOPPED", "The Vault Manager is stopped.");
+      const result = await locations.describe(reference);
+      return ctx.signal.aborted ? failed("STOPPED", "The Vault Manager is stopped.") : result;
+    },
     async select(owner) {
       return transition("selectLocation", async () => {
         const result = await locations.select(owner);

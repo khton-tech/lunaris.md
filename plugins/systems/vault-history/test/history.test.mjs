@@ -27,7 +27,7 @@ async function setup(options = {}) {
   });
   host.register(definePlugin({ manifest: { manifestVersion: 1, id: 'test.vault', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js',
     provides: [VaultLocations, VaultChanged].map(token => ({ kind: token.kind, id: token.id, version: token.version })), requires: [], permissions: [], optionalPermissions: [] },
-  activate(ctx) { vaultContext = ctx; ctx.provide(VaultLocations, { async select() { return ok(null); }, async open(location) {
+  activate(ctx) { vaultContext = ctx; ctx.provide(VaultLocations, { async describe(reference) { return options.describeFailure ? fail("NOT_FOUND") : ok({ reference, label: options.fullLabel ?? reference }); }, async select() { return ok(null); }, async open(location) {
     opened.push(location); if (options.openFailure) return fail('NOT_FOUND');
     const vault = { id: `attached-${opened.length}`, name: 'Current metadata' };
     await ctx.events.emit(VaultChanged, { kind: 'opened', previous: null, current: vault, location });
@@ -94,4 +94,17 @@ test('history API requires an explicit Vault access grant', async () => {
   const s = await setup({ denied: true });
   await assert.rejects(s.host.start('test.consumer'), error => error.cause?.code === 'PERMISSION_DENIED');
   await s.host.stopAll(); s.host.assertNoResources();
+});
+
+
+test('legacy saved labels refresh without opening and unavailable locations retain their saved label', async () => {
+  for (const describeFailure of [false, true]) {
+    const store = { entries: [entry('saved')] };
+    const s = await setup({ store, fullLabel: 'C:/Users/owner/Documents/Notes', describeFailure });
+    const result = await s.history.list();
+    assert.equal(result.value[0].location.label, describeFailure ? 'saved' : 'C:/Users/owner/Documents/Notes');
+    assert.deepEqual(s.opened, []);
+    assert.deepEqual(store.entries, [entry('saved')]);
+    await s.host.stopAll(); s.host.assertNoResources();
+  }
 });

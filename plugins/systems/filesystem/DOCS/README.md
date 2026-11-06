@@ -1,8 +1,8 @@
 # Filesystem provider
 
-Also provides `api:lunaris.filesystem-locations@1.0.0`: `select(ownerSignal)`
+Also provides `api:lunaris.filesystem-locations@1.1.0`: `select(ownerSignal)`
 and `attach(location, ownerSignal)`, delegating through
-`api:lunaris.filesystem-locations-driver@1.0.0`. Selection does not attach/prepare
+`api:lunaris.filesystem-locations-driver@1.1.0`. Selection does not attach/prepare
 a Vault; attachment retains driver-owned cancellation. See
 [durable locations](../../../../DOCS/reference/application-storage.md#durable-folder-locations).
 
@@ -37,3 +37,10 @@ Application directory consumers require `filesystem.app-config` in addition to
 
 See the [complete API and lifecycle reference](../../../../DOCS/reference/filesystem.md).
 Run `npm run filesystem:check` from the repository root.
+
+
+Location APIs (1.1.0) expose `describe(reference)` to refresh a durable location
+without attaching a root or preparing Vault data. The native driver returns the
+full absolute display path in `label`; `reference` remains opaque authority.
+Recent history refreshes legacy labels on listing and recording, retaining saved
+labels on recoverable failures. Display paths must never be logged.

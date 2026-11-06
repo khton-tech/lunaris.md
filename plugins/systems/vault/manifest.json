@@ -24,7 +24,7 @@
     {
       "kind": "api",
       "id": "lunaris.vault-locations",
-      "version": "1.0.0"
+      "version": "1.1.0"
     }
   ],
   "requires": [
@@ -46,7 +46,7 @@
     {
       "kind": "api",
       "id": "lunaris.filesystem-locations",
-      "range": "^1.0.0"
+      "range": "^1.1.0"
     }
   ],
   "permissions": [

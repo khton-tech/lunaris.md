@@ -155,3 +155,10 @@ type fixtures and dependency boundaries. Run `npm run build --workspace
 @lunaris/tauri` for the frontend bundle. `npm run filesystem:check` additionally
 checks native storage, formatting and locked Rust compilation. Tests use injected
 transports/temp directories and never automate desktop control.
+
+
+Location APIs (1.1.0) expose `describe(reference)` to refresh a durable location
+without attaching a root or preparing Vault data. The native driver returns the
+full absolute display path in `label`; `reference` remains opaque authority.
+Recent history refreshes legacy labels on listing and recording, retaining saved
+labels on recoverable failures. Display paths must never be logged.

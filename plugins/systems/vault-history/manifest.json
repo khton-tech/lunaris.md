@@ -12,7 +12,7 @@
   "requires": [
     { "kind": "api", "id": "lunaris.logger", "range": "^1.0.0" },
     { "kind": "api", "id": "lunaris.config", "range": "^1.0.0" },
-    { "kind": "api", "id": "lunaris.vault-locations", "range": "^1.0.0" },
+    { "kind": "api", "id": "lunaris.vault-locations", "range": "^1.1.0" },
     { "kind": "event", "id": "lunaris.vault-changed", "range": "^1.1.0" }
   ],
   "permissions": ["config.access", "vault.access"],

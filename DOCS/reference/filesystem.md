@@ -197,3 +197,10 @@ Implementation references: [cap-std directory API](https://docs.rs/cap-std/4.0.3
 [native dialogs](https://docs.rs/rfd/0.17.2/rfd/struct.FileDialog.html),
 [Tauri command permissions](https://docs.rs/tauri-build/2.7.4/tauri_build/struct.AppManifest.html),
 [Windows rename flags](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-movefileexw).
+
+
+Location APIs (1.1.0) expose `describe(reference)` to refresh a durable location
+without attaching a root or preparing Vault data. The native driver returns the
+full absolute display path in `label`; `reference` remains opaque authority.
+Recent history refreshes legacy labels on listing and recording, retaining saved
+labels on recoverable failures. Display paths must never be logged.

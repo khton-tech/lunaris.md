@@ -84,6 +84,9 @@ pub enum Request {
     End,
     SelectVault,
     SelectLocation,
+    DescribeLocation {
+        reference: String,
+    },
     AttachLocation {
         reference: String,
     },
@@ -273,6 +276,13 @@ impl Backend {
                 })?;
                 std::fs::create_dir_all(&path)?;
                 self.attach(session, path)
+            }
+            Request::DescribeLocation { reference } => {
+                if !self.sessions.contains_key(session) {
+                    return Err(fail("VAULT_CLOSED", "The filesystem session is closed."));
+                }
+                let path = self.resolve_location(&reference)?;
+                Ok(json!({ "reference": reference, "label": path.display().to_string() }))
             }
             Request::AttachLocation { reference } => {
                 if !self.sessions.contains_key(session) {

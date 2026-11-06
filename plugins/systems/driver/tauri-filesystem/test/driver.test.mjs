@@ -137,3 +137,18 @@ test('automatic root release failures are retained in independent cleanup diagno
   assert.ok(s.host.diagnostics().some(item => item.code === 'CLEANUP_FAILED'));
   s.host.assertNoResources();
 });
+
+
+test('location descriptions validate references and bridge results without attaching a root', async () => {
+  const calls = []; let value = { reference: 'saved', label: 'C:/Users/owner/Documents/Notes' };
+  const s = await setup({ async request(session, operation, args) {
+    calls.push({ operation, args }); return { ok: true, value: operation === 'describeLocation' ? value : null };
+  } });
+  assert.equal((await s.locations.describe('')).error.code, 'INVALID_ARGUMENT');
+  assert.equal(calls.filter(c => c.operation === 'describeLocation').length, 0);
+  assert.deepEqual(await s.locations.describe('saved'), { ok: true, value });
+  value = { reference: 'other', label: 'Wrong location' };
+  assert.equal((await s.locations.describe('saved')).error.code, 'IO_ERROR');
+  assert.equal(calls.some(c => c.operation === 'attachLocation'), false);
+  await s.host.stopAll(); s.host.assertNoResources();
+});

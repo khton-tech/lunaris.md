@@ -37,6 +37,10 @@ export default definePlugin({ manifest, activate(ctx) {
   }
   async function record(entry: RecentVault): Promise<void> {
     if (ctx.signal.aborted) return;
+    const described = await locations.describe(entry.location.reference);
+    if (ctx.signal.aborted) return;
+    if (described.ok) entry = { name: entry.name, location: described.value };
+    else logger.warn(ctx.pluginId, "Cannot refresh recorded Vault location; retaining saved label", { code: described.error.code, error: described.error });
     const previous = await read();
     if (!previous.ok || ctx.signal.aborted) return;
     const entries = snapshot([entry, ...previous.value.filter(item => item.location.reference !== entry.location.reference)].slice(0, limit));
@@ -60,7 +64,20 @@ export default definePlugin({ manifest, activate(ctx) {
     // Do not await observers from the serialized queue: they may call list/open.
   });
   ctx.provide(VaultHistory, {
-    async list() { await queue; return read(); },
+    async list() {
+      await queue;
+      const result = await read();
+      if (!result.ok) return result;
+      const entries: RecentVault[] = [];
+      for (const entry of result.value) {
+        if (ctx.signal.aborted) return { ok: false, error: { code: "STOPPED", message: "The history provider is stopped." } };
+        const described = await locations.describe(entry.location.reference);
+        if (ctx.signal.aborted) return { ok: false, error: { code: "STOPPED", message: "The history provider is stopped." } };
+        if (!described.ok) logger.warn(ctx.pluginId, "Cannot refresh recent Vault location; retaining saved label", { code: described.error.code, error: described.error });
+        entries.push({ name: entry.name, location: described.ok ? described.value : entry.location });
+      }
+      return { ok: true, value: snapshot(entries) };
+    },
     async open(reference) {
       if (typeof reference !== "string" || reference.length === 0) return { ok: false, error: { code: "INVALID_ARGUMENT", message: "A recent location reference is required." } };
       await queue;

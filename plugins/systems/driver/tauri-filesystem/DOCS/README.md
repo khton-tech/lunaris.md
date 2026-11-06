@@ -1,10 +1,10 @@
 # Tauri filesystem driver
 
-Also provides `api:lunaris.filesystem-locations-driver@1.0.0` with `select(owner)`
+Also provides `api:lunaris.filesystem-locations-driver@1.1.0` with `select(owner)`
 and `attach(location, owner)`. Native `selectLocation` persists an opaque reference
 without attaching/preparing a Vault; `attachLocation` restores a registered folder
 without a dialog. The native registry lives in the application config directory;
-paths remain native. Owner cancellation releases late attachments. See
+Authority-bearing paths remain native; labels expose display paths only. Owner cancellation releases late attachments. See
 [location persistence and errors](../../../../../DOCS/reference/application-storage.md#durable-folder-locations).
 
 Provides `api:lunaris.filesystem-driver@1.0.0` and
@@ -47,3 +47,10 @@ does not isolate hostile JavaScript running in that trusted window.
 See the [API, guarantees, limits and manual acceptance](../../../../../DOCS/reference/filesystem.md).
 Run `npm run filesystem:check` from the repository root. Native dialogs and their
 visual behavior require manual acceptance; tests never open them.
+
+
+Location APIs (1.1.0) expose `describe(reference)` to refresh a durable location
+without attaching a root or preparing Vault data. The native driver returns the
+full absolute display path in `label`; `reference` remains opaque authority.
+Recent history refreshes legacy labels on listing and recording, retaining saved
+labels on recoverable failures. Display paths must never be logged.

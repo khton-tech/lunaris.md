@@ -20,7 +20,7 @@ test('Vault contracts validate methods, lifecycle transitions and preparation pa
   assert.equal(PrepareVault.validate({ vault: first }), false);
   assert.equal(PrepareVault.validate({ vault: first, error: null, requestedName: 'Notes', displayName: 'Saved' }), true);
   assert.equal(PrepareVault.validate({ vault: first, error: null, displayName: '' }), false);
-  assert.equal(VaultLocations.validate({ select() {}, open() {} }), true);
+  assert.equal(VaultLocations.validate({ select() {}, open() {}, describe() {} }), true);
   assert.equal(VaultLocations.validate({ open() {} }), false);
   assert.equal(VaultChanged.validate({ kind: 'opened', previous: null, current: first, location: { reference: 'saved', label: 'Notes' } }), true);
   assert.equal(VaultChanged.validate({ kind: 'closed', previous: first, current: null, location: { reference: 'saved', label: 'Notes' } }), false);
