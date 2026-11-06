@@ -170,6 +170,13 @@ recent rows, bright artwork and reduced-motion settings.
 
 ## File explorer role
 
+Creation uses a protected, view-local draft row inside the destination folder.
+The row mounts a Mantine TextInput, opens ancestors and scrolls into view. Enter
+submits once, Escape cancels, and errors retain name/focus for retry. Its synthetic
+identity never reaches selection, drag, mutation or context contracts. The
+controller retains the existing draft shape across view remounts. Only permanent
+deletion keeps an explicit confirmation form outside the tree.
+
 The shared `lunaris.context-menu` role renders frozen `items` with viewport
 `x`/`y`, an accessible localized `label`, `onAction(id)` and `onClose()`.
 The context-menu provider mounts it in an owned document overlay; Mantine Menu

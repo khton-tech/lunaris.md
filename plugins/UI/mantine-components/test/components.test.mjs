@@ -219,15 +219,16 @@ test('Arborist renders a virtualized, escaped tree and preserves owned roots acr
   await owner.dispose(); assert.equal(s.target.querySelector('[role=tree]'), null); await s.stop();
 });
 
-test('explorer create form uses Mantine, preserves drafts and confirms permanent deletion before calling controller', async () => {
+test('explorer creates in a tree row, preserves drafts and confirms permanent deletion before calling controller', async () => {
   const s = await setup(); await s.start(); const calls = [];
   const props = explorerFixture({ onCreate: async (...args) => { calls.push(['create', ...args]); return true; }, onRemove: async paths => { calls.push(['remove', paths]); return true; } });
   const result = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); assert.equal(result.ok, true, s.logs.map(log => log[3]?.error?.stack).filter(Boolean).join('\n'));
   s.target.querySelector('[role=tree]').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'n', ctrlKey: true, bubbles: true, cancelable: true })); await settle();
   const input = s.target.querySelector('input'); assert.ok(input.classList.contains('mantine-TextInput-input'));
+  assert.ok(input.closest('[role=treeitem]')); assert.equal(s.target.querySelector('form'), null);
   typeInput(input, 'draft.md'); await settle();
   result.value.update({ ...props, degraded: 'Watch unavailable' }); await settle(); assert.equal(s.target.querySelector('input').value, 'draft.md');
-  s.target.querySelector('form').dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true })); await settle();
+  input.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); await settle();
   assert.deepEqual(calls[0], ['create', '', 'draft.md', false]);
   result.value.update({ ...props, selection: ['a.md'] }); await settle();
   s.target.querySelector('[role=tree]').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Delete', bubbles: true, cancelable: true })); await settle();
@@ -248,6 +249,27 @@ test('explorer drafts and pending selection survive view replacement without fee
   assert.equal(second.ok, true); await settle();
   assert.equal(s.target.querySelector('input').value, 'pending folder'); assert.deepEqual(selections, []);
   second.value.dispose(); await s.stop();
+});
+
+test('inline creation opens its destination, guards repeated Enter, retains failed names and cancels with Escape', async () => {
+  const s = await setup(); await s.start(); const calls = []; const selections = []; let finish;
+  s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 320);
+  const props = explorerFixture({ expanded: [], selection: ['folder'], onSelection: paths => selections.push(paths),
+    onContextMenu: request => { request.entries.find(entry => entry.id.endsWith('.newFile')).run({}); },
+    onCreate: (...args) => { calls.push(args); return calls.length === 1 ? new Promise(resolve => { finish = resolve; }) : Promise.resolve(true); } });
+  s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); await settle();
+  s.target.querySelector('[title=folder]').dispatchEvent(new s.dom.window.MouseEvent('contextmenu', { bubbles: true, cancelable: true })); await settle();
+  const input = s.target.querySelector('.lm-explorer-create input'); assert.ok(input);
+  assert.equal(input.closest('[role=treeitem]').getAttribute('aria-level'), '3'); assert.equal(s.target.querySelector('form'), null);
+  typeInput(input, 'pending.md'); await settle();
+  const enter = () => input.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  enter(); enter(); await settle(); assert.equal(calls.length, 1); assert.equal(input.disabled, true);
+  finish(false); await settle(); assert.equal(input.value, 'pending.md'); assert.equal(input.disabled, false); assert.equal(s.dom.window.document.activeElement, input);
+  enter(); await settle(); assert.deepEqual(calls, [['folder', 'pending.md', false], ['folder', 'pending.md', false]]); assert.equal(s.target.querySelector('input'), null);
+  s.target.querySelector('[role=tree]').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'n', ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true })); await settle();
+  s.target.querySelector('.lm-explorer-create input').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); await settle();
+  assert.equal(s.target.querySelector('input'), null); assert.equal(calls.length, 2); assert.ok(selections.every(paths => !paths.some(path => path.startsWith('/'))));
+  await s.stop();
 });
 
 

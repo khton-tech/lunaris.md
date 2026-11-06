@@ -10,7 +10,8 @@ import { Icon } from "./icons.js";
 
 // Absolute paths never occur in the Vault-relative controller tree.
 const ROOT_ID = "/";
-interface Entry { id: string; name: string; kind: string; children?: Entry[] }
+const DRAFT_ID = "//create";
+interface Entry { id: string; name: string; kind: string; children?: Entry[]; draft?: boolean }
 type Form = { kind: "file" | "folder"; parent: string } | { kind: "delete"; paths: string[] };
 interface Draft { form: Form | null; name: string }
 interface ExplorerProps {
@@ -40,14 +41,32 @@ export function explorerProps(value: ComponentProps): ExplorerProps {
       !["file", "folder"].includes(draft.form.kind) || typeof draft.form.parent !== "string")))) throw new TypeError("Invalid explorer draft.");
   return value as unknown as ExplorerProps;
 }
-const ExplorerContext = createContext<{ props: ExplorerProps; surface(): HTMLElement | null; context(path: string, x: number, y: number): void } | null>(null);
+interface Creation { name: string; kind: "file" | "folder"; pending: boolean; onName(name: string): void; submit(): Promise<void>; cancel(): void }
+const ExplorerContext = createContext<{ props: ExplorerProps; creation: Creation | null; surface(): HTMLElement | null; context(path: string, x: number, y: number): void } | null>(null);
 function ExplorerRow({ node, attrs, innerRef, children }: RowRendererProps<Entry>) {
   return <div {...attrs} ref={innerRef} style={{ ...attrs.style, minWidth: 0 }} onFocus={event => event.stopPropagation()}
     onClick={event => {
+      if (node.data.draft) return;
       // A plain click selects without changing the geometry under a drag source.
       if (event.ctrlKey || event.metaKey || event.shiftKey) node.handleClick(event);
       else node.select();
     }} onDoubleClick={event => { if (!event.ctrlKey && !event.metaKey && !event.shiftKey) node.activate(); }}>{children}</div>;
+}
+function CreateInput() {
+  const { props, creation } = useContext(ExplorerContext)!; const input = useRef<HTMLInputElement>(null); const wasPending = useRef(false);
+  useLayoutEffect(() => { input.current?.focus(); }, []);
+  useLayoutEffect(() => {
+    if (wasPending.current && !creation?.pending && !props.busy) { input.current?.focus(); wasPending.current = false; }
+    if (creation?.pending) wasPending.current = true;
+  }, [creation?.pending, props.busy]);
+  if (!creation) return null;
+  return <TextInput ref={input} className="lm-explorer-rename lm-explorer-create" aria-label={creation.kind === "folder" ? props.text.newFolder : props.text.newFile}
+    value={creation.name} disabled={props.busy || creation.pending} onChange={event => creation.onName(event.currentTarget.value)}
+    onClick={event => event.stopPropagation()} onKeyDown={event => {
+      event.stopPropagation();
+      if (event.key === "Escape") { event.preventDefault(); if (!props.busy && !creation.pending) creation.cancel(); }
+      if (event.key === "Enter") { event.preventDefault(); void creation.submit(); }
+    }} />;
 }
 function ExplorerCursor({ top, left, indent }: CursorProps) {
   return <Box className="lm-explorer-cursor" style={{ top, left, right: indent }} />;
@@ -82,8 +101,8 @@ function ExplorerNode(payload: NodeRendererProps<Entry>) {
     {node.isInternal ? <ActionIcon className="lm-explorer-disclosure" variant="subtle" size="xs" tabIndex={-1} aria-label={node.data.name} aria-expanded={node.isOpen}
       disabled={props.busy} onClick={event => { event.stopPropagation(); node.toggle(); }}><span data-open={node.isOpen || undefined}><Icon name="expand" /></span></ActionIcon>
       : <span className="lm-explorer-spacer" />}
-    <Icon name={node.isInternal ? node.isOpen ? "browse" : "folder" : "file"} />
-    {node.isEditing ? <RenameInput {...payload} /> : <Text component="span" className="lm-explorer-filename">{node.data.name}</Text>}
+    <Icon name={node.data.draft ? node.data.kind === "directory" ? "folder" : "file" : node.isInternal ? node.isOpen ? "browse" : "folder" : "file"} />
+    {node.data.draft ? <CreateInput /> : node.isEditing ? <RenameInput {...payload} /> : <Text component="span" className="lm-explorer-filename">{node.data.name}</Text>}
   </Box>;
 }
 export function FileExplorer({ props, theme }: { props: ExplorerProps; theme: ReturnType<typeof resolveTheme> }) {
@@ -100,9 +119,17 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
   const menu = useRef<MenuSession | undefined>(undefined);
   useEffect(() => () => { const previous = menu.current; void Promise.resolve().then(() => previous?.dispose()); }, []);
   const [form, setForm] = useState<Form | null>(() => props.initialDraft.form); const [name, setName] = useState(() => props.initialDraft.name);
-  const field = useRef<HTMLInputElement>(null); const confirm = useRef<HTMLButtonElement>(null);
+  const confirm = useRef<HTMLButtonElement>(null); const submitting = useRef(false); const [pending, setPending] = useState(false);
   const t = props.text;
-  const data = useMemo<Entry[]>(() => [{ id: ROOT_ID, name: props.workspace?.vaultName || t.root!, kind: "directory", children: props.data }], [props.data, props.workspace?.vaultName, t.root]);
+  const data = useMemo<Entry[]>(() => {
+    const creation = form && form.kind !== "delete" ? form : null;
+    const placeholder: Entry = { id: DRAFT_ID, name: "", kind: creation?.kind === "folder" ? "directory" : "file", draft: true };
+    const insert = (items: Entry[], parent: string): Entry[] => {
+      const children = items.map(item => item.children ? { ...item, children: insert(item.children, item.id) } : item);
+      return creation?.parent === parent ? [placeholder, ...children] : children;
+    };
+    return [{ id: ROOT_ID, name: props.workspace?.vaultName || t.root!, kind: "directory", children: insert(props.data, "") }];
+  }, [props.data, props.workspace?.vaultName, t.root, form]);
   useLayoutEffect(() => { props.onDraft({ form, name }); }, [form, name, props.onDraft]);
   useLayoutEffect(() => {
     alive.current = true;
@@ -131,7 +158,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     try { tree.current?.setSelection({ ids: props.selection, anchor: props.selection[0] ?? null, mostRecent: props.selection.at(-1) ?? null }); }
     finally { synchronizing.current = false; initializing.current = false; }
   }, []);
-  function selected(): string[] { return (tree.current ? [...tree.current.selectedIds] : props.selection).filter(path => path !== ROOT_ID); }
+  function selected(): string[] { return (tree.current ? [...tree.current.selectedIds] : props.selection).filter(path => path !== ROOT_ID && path !== DRAFT_ID); }
   function destination(): string {
     const api = tree.current; const paths = selected(); const node = paths.length === 1 ? api?.get(paths[0]!) : null;
     const path = node?.isInternal ? node.id : node?.parent?.isRoot ? "" : node?.parent?.id ?? "";
@@ -196,11 +223,18 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     }
   }
   async function submit(): Promise<void> {
-    if (!form || props.busy) return;
-    const success = form.kind === "delete" ? await props.onRemove(form.paths) : await props.onCreate(form.parent, name, form.kind === "folder");
-    if ((success || form.kind === "delete") && alive.current) closeForm();
+    if (!form || props.busy || submitting.current || (form.kind !== "delete" && !name.trim())) return;
+    submitting.current = true; setPending(true);
+    try {
+      const success = form.kind === "delete" ? await props.onRemove(form.paths) : await props.onCreate(form.parent, name, form.kind === "folder");
+      if ((success || form.kind === "delete") && alive.current) closeForm();
+    } finally { submitting.current = false; if (alive.current) setPending(false); }
   }
-  useLayoutEffect(() => { if (form?.kind === "delete") confirm.current?.focus(); else if (form) field.current?.focus(); }, [form]);
+  useLayoutEffect(() => {
+    if (form?.kind === "delete") confirm.current?.focus();
+    else if (form) { tree.current?.openParents(DRAFT_ID); void tree.current?.scrollTo(DRAFT_ID); }
+  }, [form, props.data]);
+  const empty = !props.data.length && (!form || form.kind === "delete");
   return <Box className="lm-explorer" style={{ ...theme.style, backgroundColor: "transparent" }} onKeyDownCapture={keyboard} aria-label={t.title} aria-busy={props.busy || props.loading}>
     <Group className="lm-explorer-toolbar" gap={0} wrap="nowrap">
       <Menu withinPortal={false} position="bottom-start" width="target" offset={6} transitionProps={{ transition: "fade" }} returnFocus>
@@ -210,28 +244,28 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     </Group>
     {props.error && <Group className="lm-explorer-message" gap="xs"><Text role="alert">{props.error}</Text><Button disabled={props.busy} onClick={props.onRefresh}>{t.retry}</Button></Group>}
     {props.degraded && <Text role="status" className="lm-explorer-message">{props.degraded}</Text>}
-    {form && <Paper className="lm-explorer-form" component="form" onSubmit={event => { event.preventDefault(); void submit(); }} onKeyDown={event => {
+    {form?.kind === "delete" && <Paper className="lm-explorer-form" component="form" onSubmit={event => { event.preventDefault(); void submit(); }} onKeyDown={event => {
       if (event.key === "Escape") { event.stopPropagation(); event.preventDefault(); if (!props.busy) closeForm(); }
     }}>
       <Stack gap="xs">
-        {form.kind === "delete" ? <><Text fw={500}>{t.confirmDelete}</Text><Text>{t.deleteWarning}</Text><Box component="ul">{form.paths.map(path => <li key={path}>{path}</li>)}</Box></>
-          : <><Text size="sm" title={form.parent || t.root}>{form.parent || t.root}</Text><TextInput ref={field} label={t.name} value={name} disabled={props.busy} onChange={event => setName(event.currentTarget.value)} /></>}
-        <Group gap="xs"><Button ref={confirm} type="submit" disabled={props.busy || (form.kind !== "delete" && !name)}>{form.kind === "delete" ? t.remove : t.create}</Button><Button disabled={props.busy} onClick={closeForm}>{t.cancel}</Button></Group>
+        <Text fw={500}>{t.confirmDelete}</Text><Text>{t.deleteWarning}</Text><Box component="ul">{form.paths.map(path => <li key={path}>{path}</li>)}</Box>
+        <Group gap="xs"><Button ref={confirm} type="submit" disabled={props.busy || pending}>{t.remove}</Button><Button disabled={props.busy || pending} onClick={closeForm}>{t.cancel}</Button></Group>
       </Stack>
     </Paper>}
     <Box ref={host} className="lm-explorer-tree" onClick={event => {
       if (!(event.target as HTMLElement).closest("[role=treeitem]") && !form) { tree.current?.deselectAll(); props.onSelection([]); }
     }} onContextMenu={event => { event.preventDefault(); event.stopPropagation(); openMenu(null, event.clientX, event.clientY); }}>
-      {!props.data.length && <Text role="status" className="lm-explorer-message">{props.loading ? t.loading : t.empty}</Text>}
-      <ExplorerContext.Provider value={{ props, surface: () => host.current?.closest<HTMLElement>(".lm-explorer") ?? null,
+      {empty && <Text role="status" className="lm-explorer-message">{props.loading ? t.loading : t.empty}</Text>}
+      <ExplorerContext.Provider value={{ props, creation: form && form.kind !== "delete" ? { name, kind: form.kind, pending, onName: setName, submit, cancel: closeForm } : null, surface: () => host.current?.closest<HTMLElement>(".lm-explorer") ?? null,
         context: openMenu }}>
-        <Tree<Entry> ref={tree} data={data} width="100%" height={Math.max(1, size.height - (!props.data.length ? size.row : 0))} rowHeight={size.row} indent={size.row * 0.6}
+        <Tree<Entry> ref={tree} data={data} width="100%" height={Math.max(1, size.height - (empty ? size.row : 0))} rowHeight={size.row} indent={size.row * 0.6}
           openByDefault={false} selectionFollowsFocus initialOpenState={Object.fromEntries([ROOT_ID, ...props.expanded].map(path => [path, true]))} aria-label={t.title!} rowClassName="lm-explorer-row"
           renderRow={ExplorerRow} renderCursor={ExplorerCursor} renderDragPreview={ExplorerDragPreview}
-          disableEdit={node => props.busy || node.id === ROOT_ID} disableDrag={node => props.busy || node.id === ROOT_ID || !["file", "directory"].includes(node.kind)}
+          disableSelect={node => node.draft === true}
+          disableEdit={node => props.busy || node.id === ROOT_ID || node.draft === true} disableDrag={node => props.busy || node.id === ROOT_ID || node.draft === true || !["file", "directory"].includes(node.kind)}
           disableDrop={({ parentNode, dragNodes }) => props.busy || (!parentNode.isRoot && !parentNode.isInternal) || dragNodes.some(node => parentNode.id === node.id || parentNode.id.startsWith(`${node.id}/`))}
           onToggle={path => { if (!synchronizing.current && path !== ROOT_ID) props.onToggle(path, tree.current?.isOpen(path) ?? false); }}
-          onSelect={nodes => { if (!synchronizing.current && !initializing.current) props.onSelection(nodes.map(node => node.id).filter(path => path !== ROOT_ID)); }}
+          onSelect={nodes => { if (!synchronizing.current && !initializing.current) props.onSelection(nodes.map(node => node.id).filter(path => path !== ROOT_ID && path !== DRAFT_ID)); }}
           onActivate={node => { if (node.isInternal && !props.busy) node.toggle(); }}
           onRename={async ({ id, name }) => { if (id !== ROOT_ID) await props.onRename(id, name); }}
           onMove={async ({ dragIds, parentId }) => { if (!dragIds.includes(ROOT_ID)) await props.onMove(dragIds, parentId === ROOT_ID ? "" : parentId ?? ""); }}>{ExplorerNode}</Tree>

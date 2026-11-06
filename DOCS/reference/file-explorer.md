@@ -41,6 +41,10 @@ the root or background. Multi-selection offers only selection operations.
 - Expand folders on demand; folders sort before files, followed by name sorting.
 - Ctrl/Shift selection and Ctrl+A use Arborist's tree navigation/selection.
 - Create an empty file or folder through the context menu, Ctrl+N or Ctrl+Shift+N.
+  A protected draft row appears inside the destination directory; ancestors open
+  and the row scrolls into view. Enter submits, Escape cancels. There is no separate
+  creation form or action toolbar. A failed operation retains the entered name
+  for correction/retry; repeated Enter cannot submit parallel creations.
 - F2 renames in place; Enter submits and Escape cancels. Enter on a folder toggles
   it; file activation has no document-opening action yet.
 - Drag selected items into a folder or the root to move them. Tree order is always
