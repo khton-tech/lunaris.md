@@ -76,7 +76,7 @@ surface -> system visibility/recovery controls. No driver-specific calls or
 kernel imports are added to product plugins. The
 [loading runner](../../plugins/UI/lunaris-runner/DOCS/README.md) now integrates
 Config/Localization/Slots and the component role. The initial
-[Components Kit](../../plugins/UI/components-kit/DOCS/README.md) now supplies the
+[Mantine components](../../plugins/UI/mantine-components/DOCS/README.md) now supplies the
 `lunaris.startup-screen` role. Tauri starts theme-settings and the runner after
 foundational providers; the runner mounts this role and retains System Loaded.
 

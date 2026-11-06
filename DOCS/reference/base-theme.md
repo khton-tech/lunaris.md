@@ -13,7 +13,7 @@ stopping releases the owned description. Other engines and providers remain repl
 
 ID: `lunaris.base-theme-engine.monochrome`; display name: Monochrome;
 appearance: dark. The existing `lunaris.base-theme` schema version 1 remains
-compatible with Components Kit. Colors are transcribed from the Owner's reference.
+compatible with Mantine components. Colors are transcribed from the Owner's reference.
 
 | Reference role | Hex | Shared component mapping |
 |---|---|---|
@@ -48,14 +48,14 @@ The palette change does not change layout or typography.
 Tauri starts the engine before theme-settings and supplies the Monochrome ID as
 the default. Saved retired Light/Dark IDs follow the settings plugin's existing
 unavailable-theme fallback with a warning; saved configuration is not rewritten.
-Themes/ThemeChanged carry selected data to Components Kit. Runner and Vault
+Themes/ThemeChanged carry selected data to Mantine components. Runner and Vault
 selector continue mounting roles through Components without importing the engine.
 Native window and HTML first-paint backgrounds match #0F0F0F; the boot text matches
 #E7E7E7. Host recovery UI remains independent.
 
 ## Verification
 
-Run `npm run base-theme:check` and `npm run components-kit:check` for palette,
+Run `npm run base-theme:check` and `npm run mantine-components:check` for palette,
 contrast, lifecycle and component checks. Settings, runner and selector tests
 cover startup fallback and live replacement with an independent theme fixture.
 Native WebView visual acceptance is manual; desktop automation is prohibited.

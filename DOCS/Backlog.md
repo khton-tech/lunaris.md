@@ -5,7 +5,7 @@
 Status: IMPLEMENTED on 2026-11-05; native visual acceptance remains manual.
 The runner now hands off to a dedicated selector after loaded. Recent Vaults
 occupy the left third; create/select cards and ASCII art occupy the right two
-thirds. Components Kit supplies themed controls with Lucide icons; the consumer
+thirds. Mantine components supplies themed controls with Lucide icons; the consumer
 uses public Slots, Components, Localization, VaultLocations and VaultHistory APIs.
 Browse/Next, name validation, cancellation, retry, duplicate-submit protection,
 history reopening and shutdown are integrated. A successful open displays the
@@ -20,17 +20,18 @@ provider registers components from component set plugins under shared role IDs
 tracks instance ownership and publishes registration changes. It ships no
 components or styles. See [the component provider reference](reference/components.md).
 
-The initial `LunarisComponentsKit` is implemented with `lunaris.startup-screen`,
-registered through this provider and following the active theme via `Themes`.
+On 2026-11-06 the Mantine component plugin replaced the default LunarisComponentsKit.
+It supplies `lunaris.startup-screen` and `lunaris.vault-selector` through this provider,
+following the active theme via Themes. The legacy implementation remains disabled.
 
 ## Startup presentation prerequisites
 
 Status: IMPLEMENTED on 2026-11-05. The SDK Startup API/event and replaceable
 provider expose host milestones. Tauri mounts its isolated surface before product
-activation, with fallback, retry and shutdown cleanup. The initial Components Kit
+activation, with fallback, retry and shutdown cleanup. The initial Mantine components
 supplies a themed ASCII-art/status screen through the component registry.
 See [startup progress](reference/startup.md) and
-[the kit](../plugins/UI/components-kit/DOCS/README.md).
+[the kit](../plugins/UI/mantine-components/DOCS/README.md).
 
 ## Lunaris Runner
 

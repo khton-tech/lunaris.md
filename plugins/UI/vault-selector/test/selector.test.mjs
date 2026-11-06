@@ -1,3 +1,4 @@
+import { useBrowser, typeInput } from '../../../../tools/test/browser.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
@@ -14,7 +15,7 @@ import { createRunner } from '@lunaris/runner';
 import { createStartupProvider } from '@lunaris/startup-provider';
 import localization from '@lunaris/localization-manager';
 import componentProvider from '@lunaris/component-provider';
-import kit from '@lunaris/components-kit';
+import kit from '@lunaris/mantine-components';
 import themes from '@lunaris/theme-provider';
 import baseTheme from '@lunaris/base-theme-engine';
 import { HostSession } from '@lunaris/tauri';
@@ -29,7 +30,7 @@ const manifest = (id, tokens = [], required = [], permissions = []) => ({ manife
 const location = { reference: 'saved-folder', label: 'Selected folder' };
 
 function setup(options = {}) {
-  const dom = new JSDOM('<div id="app"></div>'); const surface = dom.window.document.getElementById('app');
+  const dom = useBrowser(new JSDOM('<div id="app"></div>')); const surface = dom.window.document.getElementById('app');
   const finish = deferred(); const entered = deferred(); const logs = []; const selections = []; const calls = [];
   let current = null; let entries = options.entries ?? []; let tools; let context;
   const logger = definePlugin({ manifest: manifest('test.logger', [Logger]), activate(ctx) {
@@ -72,7 +73,7 @@ function setup(options = {}) {
     async stop() { await session.stop(); assert.equal(surface.childElementCount, 0); dom.window.close(); },
   };
 }
-const find = (s, label) => [...s.surface.querySelectorAll('button')].find(button => button.textContent.trim() === label || button.getAttribute('aria-label') === label);
+const find = (s, label) => [...s.surface.querySelectorAll('button')].find(button => button.querySelector('.mantine-Button-label')?.textContent.trim() === label || button.getAttribute('aria-label') === label);
 
 test('host hands off runner to the two-panel selector only after loaded, without opening dialogs', async () => {
   const s = setup(); await s.entered.promise;
@@ -86,7 +87,7 @@ test('host hands off runner to the two-panel selector only after loaded, without
   assert.equal(palette.getPropertyValue('--vault-panel'), '#1A1A1A');
   assert.equal(palette.getPropertyValue('--vault-caret'), '#F5F5F5');
   assert.equal(palette.getPropertyValue('--vault-error'), '#AC8C8C');
-  assert.equal(palette.getPropertyValue('--vault-sub'), '#4C4C4C');
+  assert.equal(palette.getPropertyValue('--vault-accent'), '#E7E7E7');
   assert.equal(find(s, 'Create vault').getAttribute('aria-expanded'), 'false'); assert.ok(find(s, 'Select vault'));
   assert.match(s.surface.textContent, /No recent vaults/); assert.deepEqual(s.calls, []);
   assert.equal(s.logs.some(log => log[3]?.code === 'PARAMETER_MISSING'), false);
@@ -102,7 +103,7 @@ test('create card browses without opening, requires a name and submits once thro
   assert.equal(form.querySelector('button[aria-label=Browse]'), s.dom.window.document.activeElement);
   form.querySelector('button[aria-label=Browse]').click(); await flush();
   assert.deepEqual(s.calls.map(c => c.operation), ['select']); assert.equal(form.querySelector('.ln-vault-path').textContent, location.label);
-  const name = form.querySelector('input:not([readonly])'); name.value = 'My Notes'; name.dispatchEvent(new s.dom.window.Event('input', { bubbles: true }));
+  const name = form.querySelector('input:not([readonly])'); typeInput(name, 'My Notes');
   assert.equal(form.querySelector('[type=submit]').disabled, false);
   form.dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true }));
   form.dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true }));
@@ -121,9 +122,9 @@ test('selection cancellation preserves the previous folder; failures preserve va
   form.querySelector('button[aria-label=Browse]').click(); await flush();
   s.selections.push(ok(null)); form.querySelector('button[aria-label=Browse]').click(); await flush();
   assert.equal(form.querySelector('.ln-vault-path').textContent, location.label);
-  form.dispatchEvent(new s.dom.window.Event('submit', { cancelable: true })); await flush();
+  form.dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true })); await flush();
   assert.match(form.textContent, /Access to this folder was denied/); assert.equal(form.querySelector('[type=submit]').disabled, false);
-  options.openFailure = null; form.dispatchEvent(new s.dom.window.Event('submit', { cancelable: true })); await flush();
+  options.openFailure = null; form.dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true })); await flush();
   assert.equal(s.surface.querySelector('.ln-vault-status').textContent, 'Stored name'); assert.equal(s.calls.at(-1).input, undefined);
   await s.stop();
 });
@@ -147,7 +148,7 @@ test('pointer expansion leaves focus alone; closed forms immediately become iner
   let form = s.surface.querySelector('form:not([inert])'); const browse = form.querySelector('[aria-label=Browse]');
   assert.notEqual(s.dom.window.document.activeElement, browse);
   assert.equal(form.querySelector('input[readonly]'), null);
-  const name = form.querySelector('input'); name.value = 'Draft'; name.dispatchEvent(new s.dom.window.Event('input')); name.focus();
+  const name = form.querySelector('input'); typeInput(name, 'Draft'); name.focus();
   find(s, 'Create vault').click();
   assert.equal(form.hasAttribute('inert'), true); assert.equal(form.closest('.ln-vault-disclosure').getAttribute('aria-hidden'), 'true');
   assert.equal(name.disabled, true); assert.equal(s.dom.window.document.activeElement, find(s, 'Create vault'));
@@ -162,7 +163,7 @@ test('history errors are retryable; themes and locale updates retain typed form 
   assert.match(s.surface.textContent, /Could not load recent vaults/); options.historyFailure = false; find(s, 'Retry').click(); await flush();
   assert.equal(find(s, 'Retry').hidden, true);
   find(s, 'Create vault').click(); const name = s.surface.querySelector('form:not([inert]) input:not([readonly])');
-  name.value = 'Draft'; name.dispatchEvent(new s.dom.window.Event('input'));
+  typeInput(name, 'Draft');
   assert.equal(s.tools.themes.register({ id: 'test.alternate', name: 'Alternate', properties: { colors: { background: '#FFFFFF' } } }, s.context.signal).ok, true);
   s.tools.themes.select('test.alternate');
   assert.equal(s.surface.querySelector('.ln-vault').style.getPropertyValue('--vault-background'), '#FFFFFF');

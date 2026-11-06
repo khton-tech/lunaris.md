@@ -1,4 +1,9 @@
-# LunarisComponentsKit
+# LunarisComponentsKit (retired default)
+
+This implementation is retained for reference and optional legacy checks. Tauri
+no longer registers or starts it. New UI belongs in the
+[Mantine component plugin](../../mantine-components/DOCS/README.md). Do not activate
+both plugins for the same component roles.
 
 Purpose: supply shared product UI components through the replaceable Components
 registry. Roles are `lunaris.startup-screen` and `lunaris.vault-selector`. The kit does not allocate

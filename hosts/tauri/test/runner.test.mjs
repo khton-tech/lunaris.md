@@ -1,3 +1,4 @@
+import { useBrowser } from '../../../tools/test/browser.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
@@ -15,12 +16,12 @@ import localizationManager from '@lunaris/localization-manager';
 import themeProvider from '@lunaris/theme-provider';
 import baseTheme from '@lunaris/base-theme-engine';
 import componentProvider from '@lunaris/component-provider';
-import kit from '@lunaris/components-kit';
+import kit from '@lunaris/mantine-components';
 import { HostSession } from '@lunaris/tauri';
 import { composeSlotSurface } from '../dist/slots.js';
 
 test('runner and theme settings use persisted TOML via the real config/filesystem chain and recover after exclusion', async () => {
-  const dom = new JSDOM('<div id="app"></div>'); const surface = dom.window.document.getElementById('app');
+  const dom = useBrowser(new JSDOM('<div id="app"></div>')); const surface = dom.window.document.getElementById('app');
   const toml = '[plugins."lunaris.theme-settings"]\ntheme = "lunaris.base-theme-engine.monochrome"\n[plugins."lunaris.runner"]\nshowDetails = false\n';
   const calls = []; let configText = toml;
   const ok = value => ({ ok: true, value }); const fail = code => ({ ok: false, error: { code, message: code } });

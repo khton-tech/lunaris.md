@@ -11,6 +11,7 @@ export const dependencies = {
   'theme-provider': ['sdk', 'logging', 'themes'],
   startup: ['sdk'],
   'startup-provider': ['sdk', 'logging', 'startup'],
+  'mantine-components': ['sdk', 'logging', 'components', 'themes'],
   'components-kit': ['sdk', 'logging', 'components', 'themes'],
   components: ['sdk'],
   'component-provider': ['sdk', 'logging', 'components'],
@@ -37,7 +38,7 @@ export const dependencies = {
   test: ['sdk', 'kernel'],
   development: ['manifest', 'sdk', 'kernel'],
   cli: ['manifest', 'sdk', 'kernel', 'test', 'development'],
-  tauri: ['runner', 'vault-selector', 'theme-settings', 'components-kit', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'],
+  tauri: ['runner', 'vault-selector', 'theme-settings', 'mantine-components', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'],
 };
 
 export const packagePath = scope => {
@@ -47,6 +48,7 @@ export const packagePath = scope => {
   if (scope === 'runner') return 'plugins/UI/lunaris-runner';
   if (scope === 'vault-selector') return 'plugins/UI/vault-selector';
   if (scope === 'theme-provider') return 'plugins/UI/themes';
+  if (scope === 'mantine-components') return 'plugins/UI/mantine-components';
   if (scope === 'components-kit') return 'plugins/UI/components-kit';
   if (scope === 'component-provider') return 'plugins/UI/components';
   if (scope === 'slot-provider') return 'plugins/UI/layout';
@@ -75,13 +77,17 @@ export function checkSource(source, filename, scope) {
   if (scope === 'manifest') allowed.add('semver');
   if (scope === 'config-manager' && path.resolve(filename) === path.resolve('plugins/systems/config/src/codec.ts')) allowed.add('smol-toml');
   if (scope === 'components-kit' && path.resolve(filename) === path.resolve('plugins/UI/components-kit/src/controls.ts')) allowed.add('lucide');
+  if (scope === 'mantine-components') {
+    for (const name of ['react', 'react/jsx-runtime', 'react-dom', 'react-dom/client', '@mantine/core', 'lucide']) allowed.add(name);
+  }
+  if (scope === 'tauri' && path.resolve(filename) === path.resolve('hosts/tauri/src/application.ts')) allowed.add('@lunaris/mantine-components/styles.css');
   function specifier(node) {
     if (!ts.isStringLiteral(node)) {
       errors.push(`${filename}: nonliteral imports are forbidden in core packages`);
       return;
     }
     const value = node.text;
-    if (['runner', 'vault-selector', 'theme-settings', 'components-kit', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'].includes(scope) &&
+    if (['runner', 'vault-selector', 'theme-settings', 'components-kit', 'mantine-components', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'].includes(scope) &&
         path.resolve(filename) === path.resolve(packagePath(scope), 'src/index.ts') &&
         value === '../manifest.json') return;
     // The host owns startup artwork; plugins cannot reach outside their source roots.
@@ -127,7 +133,7 @@ export async function checkBoundaries(scopes) {
     for (const entry of await readdir(root, { recursive: true, withFileTypes: true })) {
       if (!entry.isFile()) continue;
       const filename = path.join(entry.parentPath, entry.name);
-      if (!filename.endsWith('.ts')) {
+      if (!filename.endsWith('.ts') && !(scope === 'mantine-components' && filename.endsWith('.tsx'))) {
         errors.push(`${filename}: core sources must be TypeScript`);
         continue;
       }

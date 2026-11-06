@@ -13,7 +13,7 @@ Tauri starts the selector after the runner and grants `ui.dom`/`vault.access`.
 The screen mounts only after `Startup` reports `loaded`. Recent Vaults occupy
 the left third; actions occupy the right two thirds, with the ASCII logo above.
 Narrow surfaces stack actions before recents. The `lunaris.vault-selector` role
-is supplied by Components Kit; a compatible set may replace it.
+is supplied by Mantine components; a compatible set may replace it.
 
 Create/Select each expand a card below their action. Only one card is open.
 Browse is an icon-only Lucide control with localized accessible name and tooltip.
@@ -35,7 +35,7 @@ VaultChanged event, never by guessing from display names. The visible outcome is
 the Vault name, without a persistent operational/log-style prefix. Quiet action
 rows and intrinsically animated inline forms replace nested outlined cards;
 the logo stays anchored when forms expand. These rendering rules and all motion
-tokens belong to Components Kit and the active theme.
+tokens belong to Mantine components and the active theme.
 
 After a successful open, show the active Vault name and keep the selector usable
 for switching. The editor/workspace screen is not implemented, so this plugin

@@ -48,3 +48,5 @@
 # Additional Rules
 > Reserved for supplemental rules identified during development. Keep additions concise and direct.
 - When designing, modifying, or implementing any user interface elements, layouts, or frontend components, you must strictly adhere to the principles defined in [`DOCS/UI_GUIDELINES.md`](DOCS/UI_GUIDELINES.md). Treat this file as the single source of truth for all visual standards—specifically regarding radical minimalism, content-first hierarchy, and structural layout resilience.
+
+- Product UI must use the Mantine component plugin (`plugins/UI/mantine-components`) through public SDK component roles. Reuse Mantine Core controls and consult [Mantine UI](https://ui.mantine.dev/) for compositions. Extend that plugin when a role is missing; do not add new UI to the retired LunarisComponentsKit or import React/Mantine in consuming plugins. Follow [the plugin guide](plugins/UI/mantine-components/DOCS/README.md).

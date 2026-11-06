@@ -4,6 +4,17 @@ import path from 'node:path';
 import { checkSource } from './boundaries.mjs';
 
 const filename = path.resolve('packages/sdk/src/index.ts');
+test('Mantine and React stay inside the replaceable component set', () => {
+  const file = path.resolve('plugins/UI/mantine-components/src/views.tsx');
+  assert.deepEqual(checkSource('import "react"; import "react/jsx-runtime"; import "@mantine/core"; import "@lunaris/components";', file, 'mantine-components'), []);
+  for (const dependency of ['@lunaris/components-kit', '@lunaris/theme-provider', '@lunaris/kernel', 'node:fs']) {
+    assert.ok(checkSource(`import "${dependency}";`, file, 'mantine-components').length);
+  }
+  for (const dependency of ['react', '@mantine/core', '@lunaris/mantine-components']) {
+    assert.ok(checkSource(`import "${dependency}";`, path.resolve('plugins/UI/vault-selector/src/index.ts'), 'vault-selector').length);
+  }
+});
+
 test('base theme engine registers data through SDK contracts without renderer or provider implementation access', () => {
   const file = path.resolve('plugins/UI/base-theme/src/index.ts');
   assert.deepEqual(checkSource('import "@lunaris/sdk"; import "@lunaris/themes"; import "@lunaris/logging"; import "../manifest.json";', file, 'base-theme-engine'), []);

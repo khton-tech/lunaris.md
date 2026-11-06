@@ -13,7 +13,7 @@
 - [Theme provider](reference/themes.md): engine-owned descriptions, registration, selection, updates and lifecycle notifications.
 - [Base theme engine](reference/base-theme.md): Monochrome palette, semantic roles, geometry, typography and lifecycle.
 - [Component provider](reference/components.md): shared component registration by role ID, mounting, instance ownership and change events.
-- [LunarisComponentsKit](../plugins/UI/components-kit/DOCS/README.md): initial themed startup-screen role for product consumers.
+- [Mantine components](../plugins/UI/mantine-components/DOCS/README.md): Mantine startup/selector roles, theme adapter, lifecycle and future UI development.
 - [Vault-scoped filesystem](reference/filesystem.md): provider/driver APIs, relative paths, dialogs, writes, permissions and native verification.
 - [Application configuration directory](reference/application-storage.md): global file storage, owned roots and coordinated closure.
 - [Vault Manager](reference/vault.md): active context, opening/switching/closing, preparation hooks and events.

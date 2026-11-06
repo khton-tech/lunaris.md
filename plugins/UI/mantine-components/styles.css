@@ -1,0 +1,77 @@
+/* Only required Mantine component styles; omit the global body/root baseline. */
+@import '@mantine/core/styles/UnstyledButton.css';
+@import '@mantine/core/styles/Button.css';
+@import '@mantine/core/styles/Input.css';
+@import '@mantine/core/styles/Paper.css';
+@import '@mantine/core/styles/Stack.css';
+@import '@mantine/core/styles/Group.css';
+@import '@mantine/core/styles/Text.css';
+@import '@mantine/core/styles/Title.css';
+
+.lm-root { isolation:isolate; }
+.lm-root,.lm-root *,.lm-root *::before,.lm-root *::after { box-sizing:border-box;scrollbar-width:none;min-width:0 }
+.lm-root *::-webkit-scrollbar { display:none;width:0;height:0 }
+.lm-root [hidden] { display:none!important }
+.lm-root section { user-select:none }
+.lm-root input { user-select:text }
+.lm-root button,.lm-root input { font:inherit }
+.lm-root p { margin:0;overflow-wrap:anywhere }
+.lm-root .lm-button { height:auto;min-height:2.5rem;padding:calc(var(--vault-space)*2) calc(var(--vault-space)*3);color:var(--vault-text);background:transparent;border:0;white-space:normal;border-radius:var(--vault-radius);transition:background-color var(--vault-motion-fast) var(--vault-motion-easing) }
+.lm-root .mantine-Button-inner { min-width:0;height:auto }
+.lm-root .mantine-Button-label { height:auto;overflow:visible;white-space:normal;overflow-wrap:anywhere }
+.lm-root .lm-button:enabled:active { background:var(--vault-selection) }
+.lm-root .lm-focus:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset) }
+.lm-root .lm-button:disabled { color:var(--vault-secondary);opacity:.5;cursor:default;background:transparent }
+.lm-root .lm-input { color:var(--vault-text);background:var(--vault-content);caret-color:var(--vault-caret);border:var(--vault-border) solid var(--vault-control-border);border-radius:var(--vault-radius) }
+.lm-root .lm-input:focus { outline:none;border-color:var(--vault-focus) }
+.lm-root .lm-input::selection { background:var(--vault-selection);color:var(--vault-text) }
+.lm-root .lm-label { color:var(--vault-secondary);font:inherit;display:block;margin-bottom:var(--vault-space) }
+.lm-root [role=alert] { color:var(--vault-error) }
+.lm-startup { display:flex;flex:1 1 0%;flex-direction:column;align-items:center;justify-content:safe center;min-height:0;overflow:auto }
+.lm-startup pre { margin:0;max-width:100%;flex-shrink:0;overflow:auto;white-space:pre;font-family:var(--vault-mono) }
+.lm-startup p { text-align:center;max-width:100% }
+.ln-vault { display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);grid-template-rows:minmax(0,1fr);gap:calc(var(--vault-space)*3);padding:calc(var(--vault-space)*3);flex:1 1 0%;min-height:0;overflow:auto }
+.lm-root .ln-vault-recents,.lm-root .ln-vault-main { color:var(--vault-text);background:var(--vault-panel);border-radius:var(--vault-radius);box-shadow:none;border:0;min-height:0;overflow:auto }
+.ln-vault-recents { padding:calc(var(--vault-space)*3);overflow-wrap:anywhere }
+.ln-vault h2 { font:inherit;font-weight:500;margin:0 0 calc(var(--vault-space)*3) }
+.ln-vault ul { list-style:none;padding:0;margin:0 }
+.lm-root .lm-recent { justify-content:start;text-align:start }
+.lm-recent .mantine-Button-inner { justify-content:start }
+.lm-root .lm-recent[aria-current=true] { box-shadow:inset 0 0 0 var(--vault-border) var(--vault-accent) }
+.ln-vault small { font:inherit;color:var(--vault-secondary);overflow-wrap:anywhere }
+.ln-vault-main { display:flex;flex-direction:column;align-items:center;padding:clamp(1rem,5cqw,4rem) }
+.ln-vault-main::before { content:"";flex:0 0 var(--vault-center-offset,0px) }
+.ln-vault-content { flex-shrink:0;width:100%;max-width:32rem;container-type:inline-size;display:flow-root }
+.ln-vault pre { color:var(--vault-text);font: min(9px,1.7cqw)/1.2 var(--vault-mono);white-space:pre;margin:0 0 calc(var(--vault-space)*8);text-align:center;max-width:100%;overflow:auto }
+.lm-root .ln-vault-toggle { width:100%;padding:calc(var(--vault-space)*4) }
+.ln-vault-toggle .mantine-Button-inner { width:100%;justify-content:space-between;gap:calc(var(--vault-space)*3) }
+.ln-vault-toggle .mantine-Button-label { flex:1;text-align:start }
+.ln-vault-disclosure { display:grid;grid-template-rows:0fr;opacity:0;visibility:hidden;transition:grid-template-rows var(--vault-motion-normal) var(--vault-motion-easing),opacity var(--vault-motion-normal) var(--vault-motion-easing),visibility var(--vault-motion-normal) }
+.ln-vault-action[data-open=true] .ln-vault-disclosure { grid-template-rows:1fr;opacity:1;visibility:visible }
+.ln-vault-disclosure-body { overflow:hidden;min-height:0 }
+.ln-vault form { padding:calc(var(--vault-space)*2) calc(var(--vault-space)*4) calc(var(--vault-space)*4) }
+.ln-vault-folder { background:var(--vault-content);border:var(--vault-border) solid var(--vault-control-border);border-radius:var(--vault-radius);padding:var(--vault-space) }
+.ln-vault-folder:focus-within { border-color:var(--vault-focus) }
+.ln-vault-folder .lm-focus:focus-visible { outline:none }
+.ln-vault-path { flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
+.lm-root .ln-vault-next { align-self:flex-end;background:var(--vault-accent);color:var(--vault-on-accent) }
+.lm-root .ln-vault-next:enabled:active { background:var(--vault-accent-hover) }
+.ln-vault-status { min-height:1.5em;margin-bottom:calc(var(--vault-space)*4)!important }
+.ln-vault-status:empty { visibility:hidden }
+@media(hover:hover) {
+ .lm-root .lm-button:enabled:hover:not(:active) { background:var(--vault-hover) }
+ .lm-root .ln-vault-next:enabled:hover:not(:active) { background:var(--vault-accent-hover) }
+}
+@media(prefers-reduced-motion:reduce) { .lm-root .lm-button,.lm-root .ln-vault-disclosure { transition:none } }
+@container(max-height:44rem) {
+ .lm-root .ln-vault-main { padding:calc(var(--vault-space)*4) }
+ .ln-vault pre { margin-bottom:calc(var(--vault-space)*3) }
+ .ln-vault-status:empty { min-height:0;margin-bottom:0!important }
+ .lm-root .ln-vault-toggle { padding-block:calc(var(--vault-space)*3) }
+}
+@container(max-width:40rem) {
+ .ln-vault { grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto;align-content:start }
+ .lm-root .ln-vault-main { grid-row:1;overflow:visible;padding:calc(var(--vault-space)*4) }
+ .lm-root .ln-vault-recents { overflow:visible }
+ .ln-vault-main::before { display:none }
+}

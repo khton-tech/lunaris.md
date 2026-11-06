@@ -39,10 +39,11 @@
     "base-theme:check": "node tools/scripts/check.mjs base-theme-engine",
     "startup:check": "node tools/scripts/check.mjs startup startup-provider",
     "components-kit:check": "node tools/scripts/check.mjs components-kit",
-    "theme-settings:check": "node tools/scripts/check.mjs theme-settings base-theme-engine components-kit",
+    "theme-settings:check": "node tools/scripts/check.mjs theme-settings base-theme-engine mantine-components",
     "runner:check": "node tools/scripts/check.mjs runner",
     "vault-history:check": "node tools/scripts/check.mjs vault-history",
-    "vault-selector:check": "node tools/scripts/check.mjs vault-selector components-kit runner"
+    "vault-selector:check": "node tools/scripts/check.mjs vault-selector mantine-components runner",
+    "mantine-components:check": "node tools/scripts/check.mjs mantine-components runner vault-selector"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

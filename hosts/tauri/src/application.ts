@@ -1,7 +1,8 @@
 import { createRunner } from "@lunaris/runner";
 import { createVaultSelector } from "@lunaris/vault-selector";
 import { createThemeSettings } from "@lunaris/theme-settings";
-import componentsKit from "@lunaris/components-kit";
+import mantineComponents from "@lunaris/mantine-components";
+import "@lunaris/mantine-components/styles.css";
 import { createStartupProvider } from "@lunaris/startup-provider";
 import baseThemeEngine from "@lunaris/base-theme-engine";
 import themeProvider from "@lunaris/theme-provider";
@@ -32,15 +33,15 @@ export function composeApplication(target: HTMLElement): ApplicationDefinition {
   return {
     ...layout,
     startup,
-    plugins: [runner, selector, themeSettings, componentsKit, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
-    entrypoints: [startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, componentsKit.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, selector.manifest.id],
+    plugins: [runner, selector, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
+    entrypoints: [startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, selector.manifest.id],
     grants: {
       ...layout.grants,
       [runner.manifest.id]: ["config.access", "ui.dom"],
       [selector.manifest.id]: ["vault.access", "ui.dom"],
       [themeSettings.manifest.id]: ["config.access"],
       [componentProvider.manifest.id]: ["ui.dom"],
-      [componentsKit.manifest.id]: ["ui.dom"],
+      [mantineComponents.manifest.id]: ["ui.dom"],
       [tauriFilesystem.manifest.id]: ["filesystem.native"],
       [filesystem.manifest.id]: ["filesystem.access", "filesystem.app-config"],
       [vaultManager.manifest.id]: ["filesystem.access"],

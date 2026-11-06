@@ -65,7 +65,7 @@
       "path": "../../plugins/systems/startup"
     },
     {
-      "path": "../../plugins/UI/components-kit"
+      "path": "../../plugins/UI/mantine-components"
     },
     {
       "path": "../../plugins/UI/theme-settings"

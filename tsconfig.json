@@ -105,6 +105,9 @@
     },
     {
       "path": "plugins/UI/vault-selector"
+    },
+    {
+      "path": "plugins/UI/mantine-components"
     }
   ]
 }

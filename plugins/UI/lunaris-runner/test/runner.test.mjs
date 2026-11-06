@@ -1,3 +1,4 @@
+import { useBrowser } from '../../../../tools/test/browser.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
@@ -11,7 +12,7 @@ import { Localization } from '@lunaris/localization';
 import { Components } from '@lunaris/components';
 import localizationManager from '@lunaris/localization-manager';
 import componentsProvider from '@lunaris/component-provider';
-import kit from '@lunaris/components-kit';
+import kit from '@lunaris/mantine-components';
 import themeProvider from '@lunaris/theme-provider';
 import baseTheme from '@lunaris/base-theme-engine';
 import { createThemeSettings } from '@lunaris/theme-settings';
@@ -25,7 +26,7 @@ const manifest = (id, provides = [], requires = [], permissions = []) => ({ mani
 const flush = () => new Promise(resolve => setImmediate(resolve));
 
 function setup(options = {}) {
-  const dom = new JSDOM('<div id="app"></div>'); const surface = dom.window.document.getElementById('app');
+  const dom = useBrowser(new JSDOM('<div id="app"></div>')); const surface = dom.window.document.getElementById('app');
   const logs = []; const reads = []; const slowEntered = Promise.withResolvers(); const finish = Promise.withResolvers();
   let tools; let controller; let context;
   const logger = definePlugin({ manifest: manifest('test.logger', [{ kind: 'api', id: Logger.id, version: Logger.version }]), activate(ctx) {

@@ -20,11 +20,11 @@ An absent key uses the host default. An unavailable theme logs a warning and
 tries that default. A non-string/empty preference, config read failure or unavailable
 default fails activation and leaves recovery to the host. Stored preferences are
 never rewritten. No config contents are logged. Restart to apply external edits.
-Live theme changes still work through Themes and update mounted Components Kit
+Live theme changes still work through Themes and update mounted Mantine components
 instances. Stopping this settings consumer does not undo the user's selection;
 the theme registry/engine owns selected descriptions and their lifetime.
 
-Integration: Config -> theme-settings -> Themes -> Components Kit via ThemeChanged.
+Integration: Config -> theme-settings -> Themes -> Mantine components via ThemeChanged.
 Tauri starts settings before the runner. Neither runner nor kit selects themes.
 Run `npm run theme-settings:check` for selection, fallback, failures, grants,
 component theme tokens, base engine and host regressions.
