@@ -234,3 +234,5 @@ and starts the controller with ui.dom. Its required SDK contracts resolve the
 provider. It contributes left-rail and left-panel through Workspace 1.1; no tool
 tabs are registered by default, so empty Sidebar adds no width or demo UI.
 See [Sidebar](../reference/sidebar.md) for tool registration and manual acceptance.
+
+The main WebView sets `dragDropEnabled: false` so Windows delivers HTML5 drag/drop to React Arborist. Tauri's default native file-drop handler intercepts those events. This host-level setting does not grant plugins native access or add OS-file import. Restart `tauri:dev` after changing native window configuration. See [Tauri WindowConfig](https://v2.tauri.app/reference/config/#windowconfig).
