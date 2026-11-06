@@ -10,6 +10,7 @@
 @import '@mantine/core/styles/Title.css';
 @import '@mantine/core/styles/Popover.css';
 @import '@mantine/core/styles/Menu.css';
+@import '@mantine/core/styles/Splitter.css';
 
 .lm-context-surface { position:fixed;inset:0;pointer-events:none;user-select:none }
 .lm-context-anchor { position:fixed;width:0;height:0;pointer-events:none }
@@ -37,24 +38,30 @@
 .lm-workspace-empty-icon svg { width:1em;height:1em }
 .lm-workspace-empty h2 { font:inherit;font-size:1.125em;font-weight:500;margin:0 }
 .lm-workspace-empty p { color:var(--vault-secondary);max-width:40ch }
-.lm-workspace-layout { --workspace-gap:calc(var(--vault-space)*2);--workspace-rail-width:calc(var(--vault-space)*18);display:grid;grid-template-columns:0 0 minmax(0,1fr);position:relative;flex:1;min-height:0;overflow:hidden }
-.lm-workspace-layout[data-rail] { grid-template-columns:var(--workspace-rail-width) 0 minmax(0,1fr) }
-.lm-workspace-layout[data-panel] { grid-template-columns:0 minmax(0,min(20rem,35%)) minmax(0,1fr) }
-.lm-workspace-layout[data-rail][data-panel] { grid-template-columns:var(--workspace-rail-width) minmax(0,min(20rem,35%)) minmax(0,1fr) }
+.lm-workspace-layout { --workspace-gap:calc(var(--vault-space)*2);--workspace-rail-width:calc(var(--vault-space)*18);display:grid;grid-template-columns:0 minmax(0,1fr);position:relative;flex:1;min-height:0;overflow:hidden }
+.lm-workspace-layout[data-rail] { grid-template-columns:var(--workspace-rail-width) minmax(0,1fr) }
+.lm-workspace-content { grid-column:2;min-width:0;min-height:0;overflow:visible }
+.lm-workspace-panel-pane,.lm-workspace-main-pane { display:flex;min-width:0;min-height:0 }
+.lm-workspace-layout:not([data-panel]) .lm-workspace-panel-pane,.lm-workspace-layout:not([data-panel]) .mantine-Splitter-handle { display:none }
 .lm-workspace-rail,.lm-workspace-panel,.lm-workspace-main { display:flex;flex-direction:column;min-height:0;overflow:auto }
 .lm-root .lm-workspace-card { background:var(--vault-panel);border-radius:var(--vault-radius);border:0;box-shadow:none }
 .lm-workspace-rail { grid-column:1;grid-row:1;margin:var(--workspace-gap) }
-.lm-workspace-panel { grid-column:2;grid-row:1;margin-block:var(--workspace-gap);margin-inline-end:var(--workspace-gap) }
+.lm-workspace-panel { flex:1;margin-block:var(--workspace-gap) }
 .lm-workspace-layout:not([data-rail]) .lm-workspace-panel { margin-inline-start:var(--workspace-gap) }
-.lm-workspace-main { grid-column:3;grid-row:1 }
+.lm-workspace-main { flex:1 }
+.lm-workspace-content>.mantine-Splitter-handle { background:transparent;flex-shrink:0 }
+.lm-workspace-content>.mantine-Splitter-handle::after { content:"";width:var(--vault-border);height:calc(100% - var(--workspace-gap)*2);background:transparent;transition:background-color var(--vault-motion-fast) var(--vault-motion-easing) }
+.lm-workspace-content>.mantine-Splitter-handle:hover::after,.lm-workspace-content>.mantine-Splitter-handle[data-active]::after { background:var(--vault-control-border) }
+.lm-workspace-content>.mantine-Splitter-handle:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
 .lm-sidebar-rail { flex:1;min-height:0;overflow:auto;padding:calc(var(--vault-space)*2);user-select:none }
 .lm-root .lm-sidebar-tab { flex-shrink:0;color:var(--vault-secondary);background:transparent;--ai-hover:var(--vault-hover);--ai-hover-color:var(--vault-text);border-radius:var(--vault-radius) }
 .lm-root .lm-sidebar-tab[aria-pressed=true] { color:var(--vault-accent);background:var(--vault-selection) }
 .lm-root .lm-sidebar-tab:enabled:active { color:var(--vault-text);background:var(--vault-selection) }
 @container(max-width:40rem) {
- .lm-workspace-layout[data-panel],.lm-workspace-layout[data-rail][data-panel] { grid-template-columns:var(--workspace-rail-width) 0 minmax(0,1fr) }
+ .lm-workspace-layout[data-panel] .lm-workspace-panel-pane { flex:0 0 0!important;overflow:visible }
+ .lm-workspace-layout .mantine-Splitter-handle { display:none }
  .lm-workspace-layout[data-panel]:not([data-rail]) { --workspace-rail-width:0px }
- .lm-workspace-layout[data-panel] .lm-workspace-panel { position:absolute;inset-block:var(--workspace-gap);inset-inline-start:max(var(--workspace-gap),var(--workspace-rail-width));width:min(20rem,calc(100% - max(var(--workspace-gap),var(--workspace-rail-width)) - var(--workspace-gap)));margin:0;z-index:2 }
+ .lm-workspace-layout[data-panel] .lm-workspace-panel { position:absolute;inset-block:var(--workspace-gap);inset-inline-start:max(var(--workspace-gap),var(--workspace-rail-width));width:min(var(--workspace-panel-width),calc(100% - max(var(--workspace-gap),var(--workspace-rail-width)) - var(--workspace-gap)));margin:0;z-index:2 }
 }
 .lm-root button,.lm-root input { font:inherit }
 .lm-root p { margin:0;overflow-wrap:anywhere }
@@ -171,3 +178,5 @@
 }
 
 @media(prefers-reduced-motion:reduce) { .lm-context-menu [role=menuitem] { transition:none } }
+
+@media(prefers-reduced-motion:reduce) { .lm-workspace-content>.mantine-Splitter-handle::after { transition:none } }

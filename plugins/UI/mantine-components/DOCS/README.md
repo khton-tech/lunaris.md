@@ -85,6 +85,15 @@ operations and follow the same registration/instance lifecycle as the existing r
 
 ## Workspace regions and Sidebar roles
 
+WorkspaceLayout uses Mantine Splitter between stable left-panel/main targets.
+Optional `panelWidth`, `resizeLabel` and `onPanelWidth(width)` props keep preference
+ownership in the SDK consumer. Resizing changes view geometry only; pointer drag,
+keyboard arrows/Home/End, double-click reset and focus indicators reuse Mantine.
+The separator is a quiet 8px hit area without a grip. Collapsing the panel hides it;
+narrow layouts retain the bounded overlay. Viewport fitting reserves main content
+without overwriting the preferred size. The workspace controller persists committed
+changes through Config; the renderer never accesses browser storage.
+
 `lunaris.workspace-layout` takes booleans railVisible/panelVisible, localized
 mainLabel/panelLabel and onDismiss(). Its onTargets callback receives stable
 `{ main, "left-rail", "left-panel" }` HTMLElements after mount and null on release.

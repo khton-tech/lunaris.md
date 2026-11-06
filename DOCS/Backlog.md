@@ -17,7 +17,9 @@ SDK controller registers in Sidebar and supports lazy browsing, multi-selection,
 creation, F2 rename, drag moves, copy/cut/paste, explicit permanent deletion and
 external-change refresh. Consumer/provider-owned observations are implemented.
 Panel remount preserves tree state and drafts. Document/editor opening remains
-outstanding. See [File explorer](reference/file-explorer.md).
+outstanding. Creation now uses an inline tree row with Enter/Escape and retry;
+dot directories are hidden, and context commands/selection follow the invocation
+target. See [File explorer](reference/file-explorer.md).
 
 ## Sidebar
 
@@ -28,7 +30,8 @@ Lucide controls; Workspace 1.1 supplies left-rail/left-panel regions without own
 tab logic. Active icons toggle collapse, keyboard/Escape and owner removal are
 supported, and missing/failing content has explanatory placeholders. Without tabs
 both side regions are absent. The default file explorer now registers a tab;
-other tools, persistent sessions and resizing remain future work. See [Sidebar](reference/sidebar.md).
+Workspace now supplies resizing with a persisted width; other tools and persistent
+tab sessions remain future work. See [Sidebar](reference/sidebar.md).
 
 ## Workspace
 
@@ -39,8 +42,9 @@ portable provider owns content registrations through the public Workspace API/ev
 The screen remounts content for each Vault, handles missing/replacement/failing roles,
 and restores the selector on close. Mantine components owns both visible roles.
 Workspace 1.1 now adds left regions for the independent Sidebar while retaining
-the main content column. The file explorer now uses Sidebar; documents, editor, document tabs and
-resize/session persistence remain future work. See [Workspace](reference/workspace.md).
+the main content column. The file explorer uses Sidebar; panel width persists
+through Config. Documents, editor, document tabs and full workspace-session
+persistence remain future work. See [Workspace](reference/workspace.md).
 
 ## Vault selector
 

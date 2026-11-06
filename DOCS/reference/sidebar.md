@@ -108,7 +108,9 @@ Switching Vaults cancels mounted views and provides fresh Vault context; tab
 registrations/selection persist for the plugin activation. Collapse/switch/removal
 unmounts content: tools must retain logical drafts/state outside their view and
 honor its cancellation signal. No file reads, document persistence, tab session
-persistence, panel resizing or plugin-specific tools are added here.
+persistence or plugin-specific tools are added here. Shared panel resizing and its
+Config preference are owned by the Workspace layout/controller, independently of
+tab registration and selected-tool state.
 
 ## Integration and verification
 

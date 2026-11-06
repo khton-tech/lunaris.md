@@ -115,3 +115,49 @@ test('replacing a layout role releases content mounted in its old borrowed targe
   failUpdate = true; s.tools.workspace.update('test.main', { label: 'Failed' }); await flush(); assert.equal(s.surface.querySelector('article'), null);
   failUpdate = false; s.tools.workspace.update('test.main', { label: 'Recovered' }); await flush(); assert.match(s.surface.querySelector('article').textContent, /Recovered/); await s.stop();
 });
+
+test('side panel resizes with pointer and keyboard, keeps targets stable and restores its global preference', async () => {
+  const preferences = new Map([['sidePanelWidth', 360]]); const s = await setup({ preferences });
+  let viewport = 1200;
+  s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, viewport, 720);
+  panel(s, 'test.files'); const owner = s.ctx.scope.child();
+  s.tools.workspace.register({ id: 'test.files', componentId: 'test.files', region: 'left-panel' }, owner.signal); await s.open();
+  const layout = s.surface.querySelector('.lm-workspace-layout'); const target = s.surface.querySelector('.lm-workspace-panel'); const article = target.querySelector('article');
+  const handle = layout.querySelector('[role=separator]'); assert.equal(handle.getAttribute('aria-label'), 'Resize side panel');
+  assert.equal(layout.style.getPropertyValue('--workspace-panel-width'), '360px');
+  handle.dispatchEvent(new s.dom.window.MouseEvent('pointerdown', { button: 0, clientX: 360, bubbles: true }));
+  s.dom.window.document.dispatchEvent(new s.dom.window.MouseEvent('pointerup', { clientX: 420, bubbles: true })); await flush();
+  assert.equal(preferences.get('sidePanelWidth'), 420); assert.equal(s.preferenceWrites.length, 1);
+  handle.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })); await flush();
+  handle.dispatchEvent(new s.dom.window.KeyboardEvent('keyup', { key: 'ArrowRight', bubbles: true })); await flush();
+  assert.equal(preferences.get('sidePanelWidth'), 428); assert.equal(s.preferenceWrites.length, 2);
+  assert.equal(s.surface.querySelector('.lm-workspace-panel'), target); assert.equal(target.querySelector('article'), article);
+  handle.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true })); await flush();
+  assert.equal(layout.querySelector('.lm-workspace-panel-pane').style.flexBasis, '192px');
+  // Key repeats update the view; persistence waits for key release.
+  assert.equal(preferences.get('sidePanelWidth'), 428);
+  await owner.dispose(); await flush(); assert.equal(layout.hasAttribute('data-panel'), false);
+  s.tools.workspace.register({ id: 'test.files', componentId: 'test.files', region: 'left-panel' }, s.ctx.signal); await flush();
+  assert.equal(layout.style.getPropertyValue('--workspace-panel-width'), '428px');
+  viewport = 500; await s.open();
+  assert.equal(s.surface.querySelector('.lm-workspace-panel-pane').style.flexBasis, '236px');
+  assert.equal(s.surface.querySelector('.lm-workspace-layout').style.getPropertyValue('--workspace-panel-width'), '428px');
+  assert.equal(preferences.get('sidePanelWidth'), 428); assert.equal(s.preferenceWrites.length, 2);
+  viewport = 1200; await s.open(); assert.equal(s.surface.querySelector('.lm-workspace-panel-pane').style.flexBasis, '428px');
+  await s.stop();
+  const reopened = await setup({ preferences }); await reopened.open();
+  assert.equal(reopened.surface.querySelector('.lm-workspace-layout').style.getPropertyValue('--workspace-panel-width'), '428px'); await reopened.stop();
+});
+
+test('failed width preference reads/writes retain an adjustable panel and report recoverable degradation', async () => {
+  const s = await setup({ configReadFailure: true, configWriteFailure: true });
+  s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 1200, 720);
+  panel(s, 'test.files'); s.tools.workspace.register({ id: 'test.files', componentId: 'test.files', region: 'left-panel' }, s.ctx.signal); await s.open();
+  const handle = s.surface.querySelector('[role=separator]');
+  handle.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })); await flush();
+  handle.dispatchEvent(new s.dom.window.KeyboardEvent('keyup', { key: 'ArrowRight', bubbles: true })); await flush();
+  assert.equal(s.surface.querySelector('.lm-workspace-layout').style.getPropertyValue('--workspace-panel-width'), '296px');
+  assert.ok(s.logs.some(log => log[0] === 'warn' && log[2] === 'Cannot restore side panel width'));
+  assert.ok(s.logs.some(log => log[0] === 'warn' && log[2] === 'Cannot save side panel width'));
+  await s.open(); assert.equal(s.surface.querySelector('.lm-workspace-layout').style.getPropertyValue('--workspace-panel-width'), '296px'); await s.stop();
+});

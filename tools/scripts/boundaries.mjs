@@ -11,7 +11,7 @@ export const dependencies = {
   'sidebar-plugin': ['sdk', 'logging', 'sidebar', 'workspace', 'components', 'localization'],
   workspace: ['sdk'],
   'workspace-provider': ['sdk', 'logging', 'workspace'],
-  'workspace-plugin': ['sdk', 'logging', 'localization', 'slots', 'slot-dom', 'components', 'startup', 'vault', 'workspace'],
+  'workspace-plugin': ['sdk', 'logging', 'localization', 'slots', 'slot-dom', 'components', 'startup', 'vault', 'workspace', 'config'],
   'base-theme-engine': ['sdk', 'logging', 'themes'],
   'theme-settings': ['sdk', 'logging', 'themes', 'config'],
   runner: ['sdk', 'logging', 'config', 'localization', 'slots', 'slot-dom', 'components', 'startup'],

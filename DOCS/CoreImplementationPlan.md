@@ -991,3 +991,21 @@ nested folders and invocation metadata, then integrate it into File Explorer.
 
 Branch: `feat/context-menu`. Run `npm run context-menu:check` and the Tauri
 frontend build. See [Context menu](reference/context-menu.md). No merge or push.
+
+## File Explorer workflow refinement — 2026-11-06
+
+Owner scope: retain the Files selector; hide dot directories, create items inline,
+resize the side panel and align context actions with selection. File-type icons
+and document opening remain deferred.
+
+| Task | Status | Delivered behavior / acceptance |
+|---|---|---|
+| Visibility and context | DONE | Dot directories/subtrees hidden; dot files retained. Root/background clear selection. File and multi-selection menus omit directory-only actions. |
+| Inline creation | DONE | Protected draft row in the destination, automatic disclosure/scroll, Enter/Escape, name/focus retained on failure, duplicate-submit guard and remount persistence. |
+| Shared panel sizing | DONE | Mantine Splitter pointer/keyboard sizing without remounting targets; Workspace restores/serializes global Config width. Viewport fitting preserves the preference; narrow overlays remain bounded. |
+| Public integration | DONE | File Explorer/ContextMenu/Sidebar/Workspace/Mantine remain connected through SDK APIs/roles. Tauri grants Workspace config.access; no kernel/SDK extension. |
+
+Branch: `fix/file-explorer-workflow`. Targeted checks cover provider/controller,
+real Arborist/Mantine, Sidebar/Workspace, Config degradation and host behavior.
+Native row geometry, physical pointer traversal and resizing require manual
+acceptance. No merge or push.

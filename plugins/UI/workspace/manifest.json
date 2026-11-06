@@ -71,11 +71,17 @@
       "kind": "event",
       "id": "lunaris.workspace-changed",
       "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.config",
+      "range": "^1.0.0"
     }
   ],
   "permissions": [
     "ui.dom",
-    "vault.access"
+    "vault.access",
+    "config.access"
   ],
   "optionalPermissions": []
 }

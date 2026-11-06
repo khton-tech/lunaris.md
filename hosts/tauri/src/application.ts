@@ -45,7 +45,7 @@ export function composeApplication(target: HTMLElement): ApplicationDefinition {
       ...layout.grants,
       [runner.manifest.id]: ["config.access", "ui.dom"],
       [selector.manifest.id]: ["vault.access", "ui.dom"],
-      [workspace.manifest.id]: ["vault.access", "ui.dom"],
+      [workspace.manifest.id]: ["vault.access", "ui.dom", "config.access"],
       [fileExplorer.manifest.id]: ["filesystem.access", "vault.access"],
       [sidebar.manifest.id]: ["ui.dom"],
       [contextMenu.manifest.id]: ["ui.dom"],

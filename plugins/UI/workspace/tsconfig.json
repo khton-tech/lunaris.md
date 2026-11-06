@@ -42,6 +42,9 @@
     },
     {
       "path": "../../../packages/workspace"
+    },
+    {
+      "path": "../../../packages/config"
     }
   ]
 }
