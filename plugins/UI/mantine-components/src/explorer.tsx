@@ -169,9 +169,9 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
   const count = props.selection.filter(path => path !== ROOT_ID).length;
   return <Box className="lm-explorer" style={{ ...theme.style, backgroundColor: "transparent" }} onKeyDownCapture={keyboard} aria-label={t.title} aria-busy={props.busy || props.loading}>
     <Group className="lm-explorer-toolbar" gap={0} wrap="nowrap">
-      <Menu withinPortal={false} position="bottom-start" width="target" offset={0} transitionProps={{ transition: "fade" }} returnFocus>
-        <Menu.Target><Button variant="default" fullWidth justify="space-between" className="lm-explorer-tabs" aria-label={t.tabs} title={t.title} rightSection={<Icon name="expand" />}>{t.title}</Button></Menu.Target>
-        <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu"><Menu.Item aria-current="page" title={t.title}>{t.title}</Menu.Item></Menu.Dropdown>
+      <Menu withinPortal={false} position="bottom-start" width="target" offset={6} transitionProps={{ transition: "fade" }} returnFocus>
+        <Menu.Target><Button variant="subtle" fullWidth justify="space-between" className="lm-explorer-tabs" aria-label={t.tabs} title={t.title} rightSection={<Icon name="expand" />}>{t.title}</Button></Menu.Target>
+        <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu"><Menu.Item aria-current="page" title={t.title} rightSection={<Icon name="check" />}>{t.title}</Menu.Item></Menu.Dropdown>
       </Menu>
       <Menu opened={menu} onChange={setMenu} withinPortal={false} position="bottom-start" returnFocus={false} onClose={focusTree}>
         <Menu.Target><Box className="lm-explorer-menu-anchor" aria-hidden="true" tabIndex={-1} /></Menu.Target>

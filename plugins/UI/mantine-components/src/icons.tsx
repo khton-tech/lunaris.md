@@ -1,8 +1,8 @@
 import { createElement } from "react";
-import { FolderOpen, Plus, ChevronRight, Folder, ArrowRight, PackageOpen, Search, ListTree, Settings, Files, File, Ellipsis } from "lucide";
+import { FolderOpen, Plus, ChevronRight, Folder, ArrowRight, PackageOpen, Search, ListTree, Settings, Files, File, Ellipsis, Check } from "lucide";
 import type { IconNode } from "lucide";
 
-const icons = { file: File, actions: Ellipsis, browse: FolderOpen, create: Plus, expand: ChevronRight, folder: Folder, next: ArrowRight, package: PackageOpen, search: Search, outline: ListTree, settings: Settings, files: Files };
+const icons = { check: Check, file: File, actions: Ellipsis, browse: FolderOpen, create: Plus, expand: ChevronRight, folder: Folder, next: ArrowRight, package: PackageOpen, search: Search, outline: ListTree, settings: Settings, files: Files };
 /** Preserve the shared Lucide pack while Mantine owns the controls. */
 export function Icon({ name }: { name: string }) {
   const node = Object.hasOwn(icons, name) ? icons[name as keyof typeof icons] : PackageOpen;

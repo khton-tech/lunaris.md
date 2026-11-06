@@ -176,17 +176,17 @@ It uses React Arborist 4.0.1 with react-dnd/HTML5 backend 16.0.1, Mantine menus,
 ActionIcon, TextInput, Paper and Button. The renderer owns only view mechanics;
 file operations, localization, drafts and logical tree state belong to the SDK
 controller. A localized Tabs dropdown currently offers only Files. Its single-line
-trigger spans the available panel width, with a theme-derived control boundary,
-content surface and radius. The dropdown joins the trigger without a gap, sharing
-its width, background and outer boundary. Joined edges have no double border or
-rounded inner corners; the outer corners follow the actual Mantine placement,
-including an upward flip. Opening uses a fade without detached scaling/movement;
-the current entry uses a subdued mix of the theme selection and content colors.
-Regular-weight labels, a compact 36px minimum trigger at default spacing, a 22%
-control boundary (35% on hover/open) and lightly mixed interaction surfaces keep
-the picker secondary to the file tree. Pressed feedback remains distinct and
-keyboard focus retains the shared focus indicator. Long localized names truncate
-with full native titles, and the chevron stays at the trailing edge. The Workspace
+trigger spans the available panel width and reads as a medium-weight panel
+heading: transparent at rest, without a persistent border, with a 32px minimum
+height at default spacing. A quiet hover/open surface and distinct pressed
+feedback use the active theme; keyboard focus retains the shared focus indicator.
+The dropdown stays available with the single Files entry for interaction testing.
+It shares the trigger width but is detached by a 6px gap, with a restrained
+theme-derived border and shadow. Menu corners remain rounded in either placement;
+item corners use half the menu radius. The current entry is marked by a trailing
+Lucide check rather than a permanent selection fill. Opening uses a fade without
+scaling/movement. Long localized names truncate with full native titles, and the
+chevron stays at the trailing edge. The Workspace
 Vault name is rendered as an initially expanded, protected root row above the
 controller entries; header titles and operation buttons are absent. Root disclosure
 is view-local and resets on remount. Root identities are excluded from controller
