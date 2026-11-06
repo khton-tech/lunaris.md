@@ -36,6 +36,36 @@ const selectorProps = {
   onMode() {}, onName() {}, onBrowse() {}, onNext() {}, onRecent() {}, onRetry() {},
 };
 
+test('selector centers its resting content without moving the anchor during disclosure and releases observation', async () => {
+  const s = await setup(); let notify; let disconnected = false; const observed = [];
+  s.dom.window.ResizeObserver = class {
+    constructor(callback) { notify = callback; }
+    observe(node) { observed.push(node); }
+    disconnect() { disconnected = true; }
+  };
+  const mounted = s.components.mount('lunaris.vault-selector', s.target, selectorProps, s.owner);
+  assert.equal(mounted.ok, true);
+  const main = s.target.querySelector('.ln-vault-main'); const content = s.target.querySelector('.ln-vault-content');
+  const disclosures = [...s.target.querySelectorAll('.ln-vault-disclosure')];
+  let panelHeight = 800; let contentHeight = 240; let disclosureHeight = 0;
+  Object.defineProperty(main, 'clientHeight', { get: () => panelHeight });
+  Object.defineProperty(content, 'offsetHeight', { get: () => contentHeight });
+  for (const [index, node] of disclosures.entries()) Object.defineProperty(node, 'offsetHeight', { get: () => index === 0 ? disclosureHeight : 0 });
+  const getStyle = s.dom.window.getComputedStyle.bind(s.dom.window);
+  s.dom.window.getComputedStyle = node => node === main ? { paddingTop: '32px', paddingBottom: '32px' } : getStyle(node);
+  assert.deepEqual(observed, [main, content]);
+  notify(); assert.equal(main.style.getPropertyValue('--vault-center-offset'), '248px');
+  for (const height of [120, 240, 90, 0]) {
+    disclosureHeight = height; contentHeight = 240 + height; notify();
+    assert.equal(main.style.getPropertyValue('--vault-center-offset'), '248px', 'Opening, interrupted motion and closing must preserve the logo anchor.');
+  }
+  panelHeight = 600; notify(); assert.equal(main.style.getPropertyValue('--vault-center-offset'), '148px');
+  contentHeight = 700; notify(); assert.equal(main.style.getPropertyValue('--vault-center-offset'), '0px', 'Long content must remain reachable from the top.');
+  mounted.value.dispose(); assert.equal(disconnected, true);
+  panelHeight = 1000; notify(); assert.equal(main.style.getPropertyValue('--vault-center-offset'), '0px');
+  await s.kernel.stopAll(); s.dom.window.close();
+});
+
 test('selector action and submit buttons retain shared control layout when specialized', async () => {
   const s = await setup();
   const mounted = s.components.mount('lunaris.vault-selector', s.target, selectorProps, s.owner); assert.equal(mounted.ok, true);

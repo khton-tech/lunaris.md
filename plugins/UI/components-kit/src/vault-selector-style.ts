@@ -7,7 +7,8 @@ export const selectorStyle = `${controlStyle}${panelStyle}
  background:var(--vault-background);color:var(--vault-text);font-family:var(--vault-font);font-size:var(--vault-font-size);line-height:var(--vault-line-height);user-select:none;
  --panel-background:var(--vault-panel);--panel-radius:var(--vault-radius);
  --control-radius:var(--vault-radius);--control-gap:calc(var(--vault-space)*3);--control-padding:calc(var(--vault-space)*3);
- --control-background:var(--vault-content);--control-text:var(--vault-text);--control-secondary:var(--vault-secondary);
+ --control-background:color-mix(in srgb,var(--vault-content) 65%,var(--vault-panel));--control-text:var(--vault-text);--control-secondary:var(--vault-secondary);
+ --control-field-border:color-mix(in srgb,var(--vault-control-border) 65%,var(--vault-panel));
  --control-border:var(--vault-control-border);--control-border-width:var(--vault-border);--control-focus:var(--vault-focus);
  --control-focus-width:var(--vault-focus-width);--control-focus-offset:var(--vault-focus-offset);--control-selection:var(--vault-selection);
  --control-hover:color-mix(in srgb,var(--vault-hover) 45%,transparent);--control-pressed:color-mix(in srgb,var(--vault-selection) 65%,transparent);
@@ -25,8 +26,9 @@ export const selectorStyle = `${controlStyle}${panelStyle}
 .ln-vault li button[aria-current=true] > svg { color:var(--vault-accent) }
 .ln-vault .ln-vault-recent-text { display:grid;gap:0;flex:1 }
 .ln-vault small { font:inherit;font-size:.85em;color:var(--vault-secondary);overflow-wrap:anywhere }
-.ln-vault .ln-vault-main { display:flex;flex-direction:column;align-items:center;padding:clamp(1rem,5cqw,4rem);padding-block-start:clamp(3rem,14vh,8rem) }
-.ln-vault .ln-vault-content { width:100%;max-width:32rem;container-type:inline-size }
+.ln-vault .ln-vault-main { display:flex;flex-direction:column;align-items:center;min-height:0;overflow:auto;padding:clamp(1rem,5cqw,4rem) }
+.ln-vault .ln-vault-main::before { content:"";flex:0 0 var(--vault-center-offset,0px) }
+.ln-vault .ln-vault-content { flex-shrink:0;width:100%;max-width:32rem;container-type:inline-size;display:flow-root }
 .ln-vault pre { color:var(--vault-secondary);font-family:var(--vault-mono);font-size:min(9px,1.7cqw);line-height:1.2;white-space:pre;margin:0 0 calc(var(--vault-space)*8);text-align:center;max-width:100%;overflow:hidden }
 .ln-vault .ln-vault-actions { display:grid;gap:calc(var(--vault-space)*2) }
 .ln-vault .ln-vault-action { border-radius:var(--vault-radius) }
@@ -42,7 +44,7 @@ export const selectorStyle = `${controlStyle}${panelStyle}
 .ln-vault form { display:grid;gap:calc(var(--vault-space)*4);padding:calc(var(--vault-space)*2) calc(var(--vault-space)*4) calc(var(--vault-space)*4) }
 .ln-vault label,.ln-vault .ln-vault-field { display:grid;gap:calc(var(--vault-space)*2);color:var(--vault-secondary);font-size:.9em }
 .ln-vault input { padding:calc(var(--vault-space)*2.5) calc(var(--vault-space)*3);color:var(--vault-text) }
-.ln-vault .ln-vault-folder { display:flex;align-items:center;gap:var(--vault-space);padding:var(--vault-space);background:var(--vault-content);border:var(--vault-border) solid var(--vault-control-border);border-radius:var(--vault-radius);
+.ln-vault .ln-vault-folder { display:flex;align-items:center;gap:var(--vault-space);padding:var(--vault-space);background:var(--control-background);border:var(--vault-border) solid var(--control-field-border);border-radius:var(--control-radius);
  transition:border-color var(--vault-motion-fast) var(--vault-motion-easing) }
 .ln-vault .ln-vault-folder:focus-within { border-color:var(--vault-focus) }
 .ln-vault .ln-vault-path { padding-inline:calc(var(--vault-space)*2);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--vault-text) }
@@ -63,5 +65,5 @@ export const selectorStyle = `${controlStyle}${panelStyle}
  .ln-vault li button[aria-current=true]:enabled:hover:not(:active) { box-shadow:inset 0 0 0 var(--vault-border) color-mix(in srgb,var(--vault-accent) 60%,transparent) }
 }
 @media(prefers-reduced-motion:reduce) { .ln-vault .ln-vault-disclosure,.ln-vault .ln-vault-toggle > svg:last-child,.ln-vault .ln-vault-folder { transition:none } }
-@container(max-width:40rem) { .ln-vault { grid-template-columns:minmax(0,1fr) } .ln-vault .ln-vault-main { grid-row:1;padding-block:calc(var(--vault-space)*8) } }
+@container(max-width:40rem) { .ln-vault { grid-template-columns:minmax(0,1fr) } .ln-vault .ln-vault-main { grid-row:1;overflow:visible;padding-block:calc(var(--vault-space)*8) } .ln-vault .ln-vault-main::before { display:none } }
 `;

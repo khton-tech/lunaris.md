@@ -61,12 +61,22 @@ interactive control and has one boundary focus treatment. Pointer expansion does
 not move focus into the form; keyboard expansion does. Disclosure uses intrinsic
 grid-track transitions in both directions, with immediately inert/ARIA-hidden
 closed forms, retained input nodes/drafts and no animation timers. Its anchored
-layout keeps the logo stable as content expands.
+layout centers the resting logo/action composition vertically in the wide panel.
+A document-local ResizeObserver measures available space and content minus live
+disclosure heights, keeping the logo stable during expansion without fixed form
+heights or timers. The panel scrolls when expanded content exceeds its height.
+Narrow layouts use normal document flow; environments without ResizeObserver
+retain the padded flow layout. The observer disconnects on disposal.
 
 Shared `ln-control-button`/`ln-control-input` styles live in `controls-style.ts`.
 Surfaces map their semantic theme variables to `--control-*` tokens. Hover is a
 a light translucent inset outline without a fill; current selection is persistent, pressed feedback is separate, button
-focus is keyboard-only, and fields use a single focused boundary. Text selection
+focus is keyboard-only, and fields use a single focused boundary. Optional
+`--control-field-border` specializes field boundaries without changing button
+feedback. The selector mixes content at 65% with panel for field fills and
+controlBorder at 65% with panel for resting boundaries; name and folder controls
+share these tokens and the theme radius. Focus retains the full semantic focus
+color, and text contrast is unchanged. Text selection
 uses the theme's selection/text roles. Host recovery styles are isolated under
 `#system-root`, so they cannot override product interactions.
 
@@ -85,7 +95,7 @@ live in `panel-style.ts`; owners map `--panel-background` and `--panel-radius`
 to active theme tokens. The selector uses `colors.panel` and `geometry.radius.medium`,
 with three spacing steps for outer padding, the card gap and recent-panel padding.
 Cards have no decorative border or shadow. Recent rows and action disclosures
-remain flat inside their parent card. Inputs retain their existing styling.
+remain flat inside their parent card.
 The frame uses container queries; all content
 can shrink/wrap, and ASCII type scales with its available width. Selector colors
 inherit `colors.background/panel/content/selection/text/textSecondary/separator/controlBorder/hover/

@@ -7,7 +7,7 @@ export const controlStyle = `
 .ln-control-button:focus-visible { outline:var(--control-focus-width) solid var(--control-focus);outline-offset:var(--control-focus-offset); }
 .ln-control-button:disabled { cursor:default;color:var(--control-secondary);opacity:.55; }
 .ln-control-button:enabled:active { background:var(--control-pressed); }
-.ln-control-input { width:100%;padding:var(--control-padding);border:var(--control-border-width) solid var(--control-border);background:var(--control-background);user-select:text;outline:none;
+.ln-control-input { width:100%;padding:var(--control-padding);border:var(--control-border-width) solid var(--control-field-border,var(--control-border));background:var(--control-background);user-select:text;outline:none;
  transition:border-color var(--control-fast) var(--control-easing),background-color var(--control-fast) var(--control-easing); }
 .ln-control-input:focus { border-color:var(--control-focus); }
 .ln-control-input::selection { background:var(--control-selection);color:var(--control-text); }

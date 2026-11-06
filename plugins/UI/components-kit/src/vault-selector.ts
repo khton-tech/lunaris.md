@@ -33,7 +33,7 @@ const text = (value: ThemeValue | undefined, fallback: string): string => typeof
 
 export function mountVaultSelector(target: HTMLElement, input: ComponentProps, signal: CancellationSignal,
   currentTheme: () => ThemeDefinition | null, released: () => void): ComponentInstance & { applyTheme(): void } {
-  let props = readProps(input); let disposed = false;
+  let props = readProps(input); let disposed = false; let centering: ResizeObserver | undefined;
   const document = target.ownerDocument;
   const id = `ln-vault-${++instanceId}`;
   const frame = document.createElement("div");
@@ -157,8 +157,24 @@ export function mountVaultSelector(target: HTMLElement, input: ComponentProps, s
     }
     screen.style.setProperty("--vault-motion-easing", text(field(motion, "easing"), "cubic-bezier(0.2, 0, 0, 1)"));
   }
-  function dispose(): void { if (disposed) return; disposed = true; signal.removeEventListener("abort", dispose); frame.remove(); released(); }
-  try { update(props); applyTheme(); signal.addEventListener("abort", dispose, { once: true }); target.append(frame); }
+  function dispose(): void { if (disposed) return; disposed = true; centering?.disconnect(); signal.removeEventListener("abort", dispose); frame.remove(); released(); }
+  try {
+    update(props); applyTheme(); signal.addEventListener("abort", dispose, { once: true }); target.append(frame);
+    const view = document.defaultView;
+    if (view?.ResizeObserver) {
+      // Center the resting composition; disclosure height must never move its anchor.
+      centering = new view.ResizeObserver(() => {
+        if (disposed) return;
+        const padding = view.getComputedStyle(main);
+        const available = main.clientHeight - parseFloat(padding.paddingTop) - parseFloat(padding.paddingBottom);
+        const disclosed = [...cards.values()].reduce((height, card) => height + card.disclosure.offsetHeight, 0);
+        const resting = content.offsetHeight - disclosed;
+        const offset = `${Math.max(0, (available - resting) / 2)}px`;
+        if (main.style.getPropertyValue("--vault-center-offset") !== offset) main.style.setProperty("--vault-center-offset", offset);
+      });
+      centering.observe(main); centering.observe(content);
+    }
+  }
   catch (error) { dispose(); throw error; }
   return { update(next) { if (!disposed) update(readProps(next)); }, applyTheme, dispose };
 }
