@@ -83,7 +83,7 @@ function ExplorerNode(payload: NodeRendererProps<Entry>) {
 export function FileExplorer({ props, theme }: { props: ExplorerProps; theme: ReturnType<typeof resolveTheme> }) {
   // Workspace can mount the new Vault before Sidebar receives fresh controller
   // props. Never show the previous Vault's tree or callbacks in that interval.
-  if (props.workspace && props.workspace.vaultId !== props.vaultId) return <Box className="lm-explorer" style={theme.style}><Text role="status" className="lm-explorer-message">{props.text.loading}</Text></Box>;
+  if (props.workspace && props.workspace.vaultId !== props.vaultId) return <Box className="lm-explorer" style={{ ...theme.style, backgroundColor: "transparent" }}><Text role="status" className="lm-explorer-message">{props.text.loading}</Text></Box>;
   return <ExplorerView key={props.vaultId} props={props} theme={theme} />;
 }
 function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnType<typeof resolveTheme> }) {
@@ -162,7 +162,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
   }
   useLayoutEffect(() => { if (form?.kind === "delete") confirm.current?.focus(); else if (form) field.current?.focus(); }, [form]);
   const count = props.selection.length;
-  return <Box className="lm-explorer" style={theme.style} onKeyDownCapture={keyboard} aria-label={t.title} aria-busy={props.busy || props.loading}>
+  return <Box className="lm-explorer" style={{ ...theme.style, backgroundColor: "transparent" }} onKeyDownCapture={keyboard} aria-label={t.title} aria-busy={props.busy || props.loading}>
     <Group className="lm-explorer-toolbar" gap="xs" wrap="wrap">
       <Text className="lm-explorer-heading" title={props.workspace?.vaultName || t.title}>{props.workspace?.vaultName || t.title}</Text>
       <ActionIcon variant="subtle" aria-label={t.newFile} title={t.newFile} disabled={props.busy} onClick={() => command("newFile")}><Icon name="create" /></ActionIcon>

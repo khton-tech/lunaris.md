@@ -15,7 +15,7 @@ export function WorkspaceHeader({ props, theme }: { props: WorkspaceHeaderProps;
   </Box>;
 }
 export function WorkspaceEmpty({ props, theme }: { props: WorkspaceEmptyProps; theme: ReturnType<typeof resolveTheme> }) {
-  return <Box component="section" className="lm-workspace-empty" style={theme.style} aria-label={props.title}>
+  return <Box component="section" className="lm-workspace-empty" style={{ ...theme.style, backgroundColor: "transparent" }} aria-label={props.title}>
     <Stack align="center" gap="md">
       <Box className="lm-workspace-empty-icon"><Icon name="package" /></Box>
       <Stack align="center" gap="xs">

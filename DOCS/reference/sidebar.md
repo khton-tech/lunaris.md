@@ -134,3 +134,10 @@ For a real tool consumer (or an explicitly composed development fixture), verify
 icon-only rail, accessible tooltips, active state, collapse/reopen, keyboard/Escape,
 long translated titles, short/narrow windows, nonmodal overlay, theme changes,
 consumer removal and Vault switching. Native WebView geometry remains manual.
+
+The supporting navigation rail and selected tool panel now have separate
+card-like Mantine Paper surfaces owned by WorkspaceLayout. Theme-derived margins
+and radii separate them from the open main workspace. Tool views inherit the
+card surface; the main area has no card shell or decorative inset. On narrow
+containers the overlay retains its card corners and outer spacing. The SDK
+regions/targets, registration and selection contracts are unchanged.

@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from "react";
 import type { KeyboardEvent } from "react";
-import { ActionIcon, Box, Stack } from "@mantine/core";
+import { ActionIcon, Box, Paper, Stack } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
@@ -25,8 +25,8 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
     onKeyDown={event => { if (event.key === "Escape" && props.panelVisible) {
       event.preventDefault(); rail.current?.querySelector<HTMLButtonElement>("button[aria-pressed=true]")?.focus({ preventScroll: true }); props.onDismiss();
     } }}>
-    <Box ref={rail} className="lm-workspace-rail" hidden={!props.railVisible} />
-    <Box component="aside" ref={panel} className="lm-workspace-panel" aria-label={props.panelLabel} hidden={!props.panelVisible} />
+    <Paper ref={rail} className="lm-workspace-rail lm-workspace-card" shadow="none" hidden={!props.railVisible} />
+    <Paper component="aside" ref={panel} className="lm-workspace-panel lm-workspace-card" shadow="none" aria-label={props.panelLabel} hidden={!props.panelVisible} />
     <Box component="main" ref={main} className="lm-workspace-main" aria-label={props.mainLabel} />
   </Box>;
 }
@@ -56,7 +56,7 @@ export function SidebarRail({ props, theme }: { props: RailProps; theme: ReturnT
     else return;
     event.preventDefault(); buttons.current.get(props.tabs[next]!.id)?.focus();
   }
-  return <Box component="nav" className="lm-sidebar-rail" aria-label={props.label} style={theme.style}>
+  return <Box component="nav" className="lm-sidebar-rail" aria-label={props.label} style={{ ...theme.style, backgroundColor: "transparent" }}>
     <Stack gap="xs" align="center">
       {props.tabs.map((tab, index) => <ActionIcon key={tab.id} ref={node => { if (node) buttons.current.set(tab.id, node); else buttons.current.delete(tab.id); }}
           className="lm-sidebar-tab lm-focus" variant="subtle" size="lg" aria-label={tab.title} title={tab.title}

@@ -65,7 +65,8 @@ test('Vault transitions remount active content; localized title updates and them
   s.tools.sidebar.update('test.files', { title: '<img src=x>', icon: 'outline', props: { label: 'Updated' } }); await flush();
   assert.ok(button(s, '<img src=x>')); assert.equal(s.surface.querySelector('img'), null); assert.equal(s.tools.sidebar.snapshot().activeId, 'test.files');
   s.tools.themes.register({ id: 'test.light', name: 'Light', properties: { colors: { background: '#ffffff', text: '#202020' } } }, s.ctx.signal); s.tools.themes.select('test.light');
-  assert.equal(s.surface.querySelector('.lm-sidebar-rail').style.backgroundColor, 'rgb(255, 255, 255)');
+  assert.equal(s.surface.querySelector('.lm-sidebar-rail').style.backgroundColor, 'transparent');
+  assert.equal(s.surface.querySelector('.lm-workspace-layout').style.backgroundColor, 'rgb(255, 255, 255)');
   await s.open(); assert.equal(old.isConnected, false); assert.notEqual(view.seen.at(-1).workspace.vaultId, vaultId);
   assert.equal(s.tools.sidebar.snapshot().activeId, 'test.files'); await s.service.close(); await flush(); assert.equal(s.surface.querySelector('.lm-sidebar-rail'), null);
   await s.open(); assert.ok(s.surface.querySelector('.lm-sidebar-rail')); await s.stop();

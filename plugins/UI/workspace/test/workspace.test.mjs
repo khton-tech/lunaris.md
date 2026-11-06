@@ -75,7 +75,8 @@ test('existing Vault appears after startup; localized messages and theme changes
   assert.equal(s.surface.querySelector('.ln-vault'), null); assert.ok(s.surface.querySelector('.lm-workspace-empty')); assert.equal(s.surface.querySelector('img'), null);
   assert.equal(s.surface.querySelector('h1'), null);
   s.tools.themes.register({ id: 'test.light', name: 'Light', properties: { appearance: 'light', colors: { background: '#ffffff', text: '#202020' } } }, s.ctx.signal);
-  s.tools.themes.select('test.light'); assert.equal(s.surface.querySelector('.lm-workspace-empty').style.backgroundColor, 'rgb(255, 255, 255)');
+  s.tools.themes.select('test.light'); assert.equal(s.surface.querySelector('.lm-workspace-empty').style.backgroundColor, 'transparent');
+  assert.equal(s.surface.querySelector('.lm-workspace-layout').style.backgroundColor, 'rgb(255, 255, 255)');
   s.tools.localization.register('test.languages', { en: { title: 'Language' }, fr: { title: 'Langue' } }, s.ctx.signal); s.tools.localization.setLocale('fr'); await flush();
   assert.ok(s.surface.querySelector('.lm-workspace-empty')); assert.equal(s.surface.querySelector('.lm-workspace-header'), null);
   assert.equal(s.dom.window.localStorage.length, 0); await s.stop();

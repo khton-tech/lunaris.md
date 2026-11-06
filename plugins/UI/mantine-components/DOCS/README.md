@@ -178,3 +178,14 @@ file operations, localization, drafts and logical tree state belong to the SDK
 controller. Popover/Menu styles are included in styles.css. Menus and themed
 drag previews remain inside the owned root. Custom public row/cursor renderers
 keep names truncatable and drop feedback on the SDK palette.
+
+## Global region surfaces
+
+WorkspaceLayout owns one Mantine Paper card per supporting region (navigation
+rail and selected tool panel), using the active theme panel surface, radius and
+spacing. Main remains an open workspace with no card or outer inset. Rail,
+explorer and empty-state views use transparent backgrounds so they inherit the
+region surface without adding nested cards. Narrow overlays retain external
+spacing and rounded corners; region scrolling, stable SDK targets and Escape
+behavior are preserved. Individual tab buttons remain controls inside the rail
+card. No SDK contracts or controller integrations change.
