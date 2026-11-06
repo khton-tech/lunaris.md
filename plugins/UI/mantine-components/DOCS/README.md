@@ -200,7 +200,11 @@ default font size. Row spacing stays inside the virtualized row allocation so
 selection, scrolling and drag/drop geometry retain their controller behavior.
 Rows have small theme-derived corners and no resting boundaries; the protected
 Vault root uses medium-weight text. Disclosure controls and file placeholders
-share a width to align labels at each depth. Hover uses the same quiet surface
+share a width to align labels at each depth. Thin vertical guides in the indent
+area align with ancestor disclosure centers and use a subdued theme secondary
+color. Their spacing follows Arborist's public indent and node level, so they
+track nested folders and font-size changes without affecting row geometry.
+Guides are decorative, hidden from assistive technology and ignore pointer input. Hover uses the same quiet surface
 as the header, selection retains a stronger theme-derived fill, and press/drop/
 keyboard focus remain distinct. Busy trees suppress row hover/press feedback.
 Context menus reuse the detached dropdown geometry and interaction palette;

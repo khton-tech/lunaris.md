@@ -72,9 +72,11 @@ function RenameInput({ node }: NodeRendererProps<Entry>) {
     }} />;
 }
 function ExplorerNode(payload: NodeRendererProps<Entry>) {
-  const { node, style, dragHandle } = payload; const { props, context } = useContext(ExplorerContext)!;
+  const { node, tree, style, dragHandle } = payload; const { props, context } = useContext(ExplorerContext)!;
   return <Box ref={dragHandle} style={style} className="lm-explorer-node" data-root={node.id === ROOT_ID || undefined} data-selected={node.isSelected || undefined} data-drop={node.willReceiveDrop || undefined}
     title={node.id === ROOT_ID ? node.data.name : node.id} onContextMenu={event => { event.preventDefault(); event.stopPropagation(); if (node.id !== ROOT_ID) context(node.id); }}>
+    {node.level > 0 && <span className="lm-explorer-indent-guides" aria-hidden="true"
+      style={{ width: node.level * tree.indent, backgroundSize: `${tree.indent}px 100%` }} />}
     {node.isInternal ? <ActionIcon className="lm-explorer-disclosure" variant="subtle" size="xs" tabIndex={-1} aria-label={node.data.name} aria-expanded={node.isOpen}
       disabled={props.busy} onClick={event => { event.stopPropagation(); node.toggle(); }}><span data-open={node.isOpen || undefined}><Icon name="expand" /></span></ActionIcon>
       : <span className="lm-explorer-spacer" />}
