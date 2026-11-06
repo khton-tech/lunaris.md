@@ -51,9 +51,14 @@ external effects. Actions may return void or a promise. Contributors remain
 responsible for checking their business preconditions when commands execute.
 
 Entries have `kind: action|group`, globally unique `id`, localized `label`, optional
-numeric `order` (default 0) and `disabled` (default false). Actions require
+numeric `order` (default 0), `icon` (a public Lucide role name) and `disabled` (default false). Actions require
 `run(context)`; groups require `children` and may contain nested groups. Empty
-groups are hidden. Disabled groups disable descendants. Each level sorts by
+groups are hidden. Unavailable actions and disabled groups are omitted from the
+resolved presentation, and groups whose children are all unavailable disappear.
+Hidden actions remain guarded against programmatic execution. Icons default to
+`actions` for actions and `folder` for groups. File Explorer uses `file-plus`,
+`folder-plus`, `rename`, `copy`, `cut`, `paste`, `trash` and `refresh`.
+Each level sorts by
 ascending order, preserving insertion order for ties. Maximum nesting is 32;
 cycles, duplicate IDs and malformed trees fail the opening without executing any
 action. Group trees belong to their contribution; cross-contribution insertion
@@ -109,9 +114,13 @@ The explorer publishes `source: lunaris.file-explorer`; `target` is `file`,
 | `selection` | Frozen paths of the invocation selection; empty for root/background |
 | `destination` | Vault-relative directory for creation/paste |
 
+Menus use compact regular-weight rows with leading Lucide icons, a subdued
+boundary, no shadow, and the Files dropdown's quiet hover/pressed palette.
 Right-clicking a selected row preserves multi-selection. An unselected row is
 selected first. Root/background menus offer root creation/paste/refresh without
-exposing the synthetic root ID to mutations. Menu actions retain their invocation
+exposing the synthetic root ID to mutations. With an empty clipboard, root and
+background show only New file, New folder and Refresh; Paste appears when
+available. File operations appear only for a matching selection. Menu actions retain their invocation
 selection, including while focus moves to the overlay. Controller updates, Vault
 replacement and view disposal close obsolete menus. Keyboard shortcuts retain
 their existing behavior; ContextMenu/Shift+F10 open at the focused row.

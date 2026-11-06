@@ -178,6 +178,11 @@ the active theme, collision handling, scrollable menus and instant closure.
 The role's root disables size containment so fixed-position submenus escape
 parent menu scrolling. No portal leaves the borrowed target. Explorer context
 menus now use the provider, while the Files tab selector remains local.
+Items accept the public optional `icon` role, with Lucide action/folder fallbacks.
+File commands have dedicated creation/rename/copy/cut/paste/delete/refresh icons.
+Unavailable entries and groups without available descendants are omitted by the
+provider. Compact regular-weight rows, a subdued border, no shadow and quiet
+theme-derived hover/pressed fills keep the menu flat like the Files dropdown.
 See the [context menu reference](../../../../DOCS/reference/context-menu.md).
 
 `lunaris.file-explorer` renders the public controller props documented in the

@@ -14,6 +14,7 @@ export function contextMenuProps(value: ComponentProps): ContextMenuProps {
   function valid(items: unknown, depth = 0): boolean {
     return depth <= 32 && Array.isArray(items) && items.every(item => {
       if (!item || typeof item.id !== "string" || !item.id || ids.has(item.id) || typeof item.label !== "string" ||
+        (item.icon !== undefined && (typeof item.icon !== "string" || !item.icon.trim())) ||
         (item.disabled !== undefined && typeof item.disabled !== "boolean")) return false;
       ids.add(item.id);
       return item.kind === "action" || (item.kind === "group" && valid(item.children, depth + 1));
@@ -27,11 +28,11 @@ export function ContextMenuView({ props, theme }: { props: ContextMenuProps; the
   // Defer provider disposal beyond React's event/effect work; cleanup owns no SDK calls.
   const close = () => { void Promise.resolve().then(props.onClose); };
   function render(items: readonly MenuItem[]): React.ReactNode {
-    return items.map(item => item.kind === "group" ? <Menu.Sub key={item.id} floatingStrategy="fixed" offset={4} safeAreaPolygon
+    return items.filter(item => !item.disabled).map(item => item.kind === "group" ? <Menu.Sub key={item.id} floatingStrategy="fixed" offset={4} safeAreaPolygon
       transitionProps={{ duration: 0 }}>
-      <Menu.Sub.Target><Menu.Sub.Item disabled={item.disabled === true} title={item.label} rightSection={<Icon name="expand" />}>{item.label}</Menu.Sub.Item></Menu.Sub.Target>
+      <Menu.Sub.Target><Menu.Sub.Item title={item.label} leftSection={<Icon name={item.icon ?? "folder"} />} rightSection={<Icon name="expand" />}>{item.label}</Menu.Sub.Item></Menu.Sub.Target>
       <Menu.Sub.Dropdown className="lm-context-menu">{render(item.children)}</Menu.Sub.Dropdown>
-    </Menu.Sub> : <Menu.Item key={item.id} disabled={item.disabled === true} title={item.label} onClick={() => {
+    </Menu.Sub> : <Menu.Item key={item.id} title={item.label} leftSection={<Icon name={item.icon ?? "actions"} />} onClick={() => {
       void Promise.resolve().then(() => props.onAction(item.id));
     }}>{item.label}</Menu.Item>);
   }

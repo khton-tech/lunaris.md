@@ -161,6 +161,7 @@ test('shared context menu opens nested folders by keyboard, executes once and re
   const opened = s.menus.open({ target: source, x: 15, y: 25, label: 'File actions', context }, s.ctx.signal); assert.equal(opened.ok, true); await settle();
   const doc = s.dom.window.document;
   assert.equal(doc.querySelector('.lm-context-surface').style.backgroundColor, 'transparent');
+  assert.ok(doc.querySelector('[role=menuitem] .mantine-Menu-itemSection[data-position=left] svg[aria-hidden=true]'));
   const item = label => [...doc.querySelectorAll('[role=menuitem]')].find(node => node.textContent === label);
   item('Tools').focus(); item('Tools').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })); await settle();
   assert.ok(item('Nested'));
@@ -189,12 +190,16 @@ test('right-click preserves invocation multi-selection, coordinates and safe roo
   rightClick(s.target.querySelector('[title="a.md"]')); await settle();
   assert.deepEqual(contexts[0].selection, ['folder', 'a.md']); assert.equal(contexts[0].path, 'a.md'); assert.equal(contexts[0].kind, 'file');
   assert.equal(contexts[0].x, 75); assert.equal(contexts[0].y, 95);
+  const resolve = request => s.menus.resolve({ source: 'lunaris.file-explorer', target: request.kind, data: {} }, s.ctx.signal, request.entries).value.items;
+  assert.deepEqual(resolve(contexts[0]).map(item => item.icon), ['file-plus', 'folder-plus', 'copy', 'cut', 'trash', 'refresh']);
   contexts[0].entries.find(item => item.id.endsWith('.copy')).run({}); assert.deepEqual(buffered, [[['folder', 'a.md'], false]]);
   rightClick(s.target.querySelector('[data-root]')); await settle();
   assert.equal(contexts[1].kind, 'root'); assert.equal(contexts[1].path, ''); assert.deepEqual(contexts[1].selection, []);
   assert.equal(contexts[1].entries.find(item => item.id.endsWith('.remove')).disabled, true);
+  assert.deepEqual(resolve(contexts[1]).map(item => item.id.split('.').at(-1)), ['newFile', 'newFolder', 'refresh']);
   rightClick(s.target.querySelector('.lm-explorer-tree')); await settle();
   assert.equal(contexts[2].kind, 'background'); assert.equal(contexts[2].path, null); assert.equal(contexts[2].destination, '');
+  assert.deepEqual(resolve(contexts[2]).map(item => item.id.split('.').at(-1)), ['newFile', 'newFolder', 'refresh']);
   await s.stop();
 });
 test('Arborist renders a virtualized, escaped tree and preserves owned roots across theme/props updates', async () => {

@@ -47,14 +47,14 @@ export default definePlugin({ manifest, activate(ctx) {
         if (!Array.isArray(entries) || depth > 32) throw new TypeError("Invalid or excessively deep context menu tree.");
         const items = entries.map(entry => {
           if (!entry || !idValid(entry.id) || ids.has(entry.id) || typeof entry.label !== "string" || !entry.label.trim() ||
-            (entry.order !== undefined && !Number.isFinite(entry.order)) || (entry.disabled !== undefined && typeof entry.disabled !== "boolean")) throw new TypeError("Invalid or duplicate context menu entry.");
+            (entry.icon !== undefined && !idValid(entry.icon)) || (entry.order !== undefined && !Number.isFinite(entry.order)) || (entry.disabled !== undefined && typeof entry.disabled !== "boolean")) throw new TypeError("Invalid or duplicate context menu entry.");
           ids.add(entry.id);
-          const base = { id: entry.id, label: entry.label, order: entry.order ?? 0, disabled: disabled || entry.disabled === true };
+          const base = { id: entry.id, label: entry.label, icon: entry.icon ?? (entry.kind === "group" ? "folder" : "actions"), order: entry.order ?? 0, disabled: disabled || entry.disabled === true };
           if (entry.kind === "group") return Object.freeze({ ...base, kind: "group" as const, children: capture(entry.children, available, base.disabled, depth + 1) });
           if (entry.kind !== "action" || typeof entry.run !== "function") throw new TypeError("Invalid context menu action.");
           actions.set(entry.id, { run: entry.run, available: () => !base.disabled && available() });
           return Object.freeze({ ...base, kind: "action" as const });
-        }).filter(item => item.kind !== "group" || item.children.length > 0);
+        }).filter(item => !item.disabled && (item.kind !== "group" || item.children.length > 0));
         return Object.freeze(items.sort((a, b) => a.order - b.order));
       }
       let items: readonly MenuItem[];

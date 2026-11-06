@@ -12,7 +12,10 @@ interface MenuEntryBase {
   readonly id: string;
   /** Already localized; build contributions again after locale changes. */
   readonly label: string;
+  /** Public Lucide role name; renderers use a generic action/folder fallback. */
+  readonly icon?: string;
   readonly order?: number;
+  /** Unavailable entries are omitted from the resolved menu. */
   readonly disabled?: boolean;
 }
 export type MenuEntry = MenuEntryBase & (

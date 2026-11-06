@@ -163,6 +163,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
         kind: path === null ? "background" : path === ROOT_ID ? "root" : node?.data.kind ?? "background", selection: paths, destination: parent,
         entries: ["newFile", "newFolder", "rename", "copy", "cut", "paste", "remove", "refresh"].map((action, order) => ({
           kind: "action", id: `lunaris.file-explorer.${action}`, label: t[action]!, order,
+          icon: ({ newFile: "file-plus", newFolder: "folder-plus", rename: "rename", copy: "copy", cut: "cut", paste: "paste", remove: "trash", refresh: "refresh" } as Record<string, string>)[action]!,
           disabled: (action === "paste" && !props.canPaste) || (action === "rename" && paths.length !== 1) || (["copy", "cut", "remove"].includes(action) && paths.length === 0),
           run: () => command(action, paths, parent),
         })),

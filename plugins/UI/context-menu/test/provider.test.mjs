@@ -38,10 +38,23 @@ test('one-shot execution retains invocation context and rejects disabled, remove
   const s = await setup(); const owner=s.ctx.scope.child(); let calls=0;
   const registration=s.api.register({id:'test.actions',build:()=>[action('test.run',ctx=>{assert.equal(ctx.data.path,'note.md');calls++}),{kind:'group',id:'test.disabled',label:'Disabled',disabled:true,children:[action('test.child',()=>calls++)]}]},owner.signal);
   let menu=s.api.resolve(context,s.ctx.signal).value;
+  assert.deepEqual(menu.items.map(item => item.id), ['test.run']);
   assert.equal((await menu.execute('test.child')).error.code,'UNAVAILABLE'); assert.equal(calls,0);
   assert.equal((await menu.execute('test.run')).ok,true); assert.equal((await menu.execute('test.run')).error.code,'UNAVAILABLE'); assert.equal(calls,1);
   menu=s.api.resolve(context,s.ctx.signal).value;registration.value.dispose();assert.equal((await menu.execute('test.run')).error.code,'UNAVAILABLE');
   const local=s.api.resolve(context,owner.signal,[action('test.local',()=>calls++)]).value;await owner.dispose();assert.equal((await local.execute('test.local')).error.code,'UNAVAILABLE');
+  await s.stop();
+});
+
+test('unavailable actions and empty resulting groups disappear; public icon roles survive resolution', async () => {
+  const s = await setup();
+  const menu = s.api.resolve(context, s.ctx.signal, [
+    action('test.copy', undefined, { icon: 'copy' }), action('test.paste', undefined, { disabled: true }),
+    { kind: 'group', id: 'test.empty-tools', label: 'Tools', children: [action('test.unavailable', undefined, { disabled: true })] },
+  ]).value;
+  assert.deepEqual(menu.items.map(item => [item.id, item.icon]), [['test.copy', 'copy']]);
+  assert.equal((await menu.execute('test.paste')).error.code, 'UNAVAILABLE');
+  assert.equal(s.api.resolve(context, s.ctx.signal, [action('test.bad-icon', undefined, { icon: 42 })]).error.code, 'BUILD_FAILED');
   await s.stop();
 });
 
