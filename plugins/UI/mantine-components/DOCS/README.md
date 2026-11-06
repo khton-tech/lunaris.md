@@ -67,7 +67,11 @@ and hidden scrollbar chrome. The logo uses the theme text color.
 Workspace header props: strings `name`, `closeLabel`, `error`; boolean `busy`;
 callback `onClose()`. It renders a wrapping Mantine Text/Button header with a
 semantic h1 and an alert only on failure. Empty-state props: strings `title` and
-`detail`. It renders a centered, scrollable Mantine Stack/Title/Text composition.
+`detail`. It renders a centered, scrollable Mantine Stack/Title/Text composition
+with a Lucide PackageOpen illustration above the copy. The decorative icon is
+hidden from assistive technology, inherits the theme's secondary text color and
+scales down in short regions; no new props, translations or consumer integration
+are required.
 Both roles use the current theme and localized consumer text. The header adapts
 the restrained [Mantine UI header compositions](https://ui.mantine.dev/category/headers/);
 no fixed-position AppShell or unused navigation is added. These roles own no Vault

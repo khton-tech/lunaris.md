@@ -16,9 +16,12 @@ export function WorkspaceHeader({ props, theme }: { props: WorkspaceHeaderProps;
 }
 export function WorkspaceEmpty({ props, theme }: { props: WorkspaceEmptyProps; theme: ReturnType<typeof resolveTheme> }) {
   return <Box component="section" className="lm-workspace-empty" style={theme.style} aria-label={props.title}>
-    <Stack gap="xs">
-      <Title order={2}>{props.title}</Title>
-      <Text>{props.detail}</Text>
+    <Stack align="center" gap="md">
+      <Box className="lm-workspace-empty-icon"><Icon name="package" /></Box>
+      <Stack align="center" gap="xs">
+        <Title order={2}>{props.title}</Title>
+        <Text>{props.detail}</Text>
+      </Stack>
     </Stack>
   </Box>;
 }

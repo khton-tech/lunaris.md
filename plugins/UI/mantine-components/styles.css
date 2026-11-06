@@ -19,7 +19,9 @@
 .lm-root .lm-workspace-name { flex:1;font:inherit;font-weight:500;margin:0;overflow-wrap:anywhere }
 .lm-workspace-toolbar button { flex-shrink:0 }
 .lm-workspace-empty { display:flex;flex:1;min-height:0;overflow:auto;align-items:safe center;justify-content:safe center;padding:calc(var(--vault-space)*4);text-align:center }
-.lm-workspace-empty h2 { font:inherit;font-weight:500;margin:0 }
+.lm-workspace-empty-icon { color:var(--vault-secondary);font-size:clamp(2rem,12cqh,3.5rem);line-height:0;flex-shrink:0 }
+.lm-workspace-empty-icon svg { width:1em;height:1em }
+.lm-workspace-empty h2 { font:inherit;font-size:1.125em;font-weight:500;margin:0 }
 .lm-workspace-empty p { color:var(--vault-secondary);max-width:40ch }
 .lm-root button,.lm-root input { font:inherit }
 .lm-root p { margin:0;overflow-wrap:anywhere }
