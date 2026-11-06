@@ -1,7 +1,7 @@
 # File explorer: implementation proposal and SDK prerequisite
 
-Status: blocked before implementation by filesystem watch ownership. No explorer
-is registered in the host yet. React Arborist is the selected UI candidate.
+Status: the owned-observation prerequisite is implemented. Explorer implementation
+is in progress. React Arborist is the selected UI implementation.
 
 ## Existing contracts and required work
 

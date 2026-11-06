@@ -1,4 +1,4 @@
-import { ApplicationDirectory, FilesystemRoots } from "@lunaris/filesystem";
+import { ApplicationDirectory, FilesystemRoots, FilesystemObservation } from "@lunaris/filesystem";
 import type { FilesystemApi, FsResult, TextFile } from "@lunaris/filesystem";
 import type { PluginContext } from "@lunaris/sdk";
 declare const fs: FilesystemApi;
@@ -18,3 +18,7 @@ void ctx.use(ApplicationDirectory).openConfig(ctx.signal);
 void ctx.use(FilesystemRoots).selectVault(ctx.signal);
 // @ts-expect-error Application roots require lifecycle ownership.
 ctx.use(ApplicationDirectory).openConfig();
+
+void ctx.use(FilesystemObservation).watch({ vaultId: "v", path: "" }, ctx.signal);
+// @ts-expect-error Observations require an owner.
+ctx.use(FilesystemObservation).watch({ vaultId: "v", path: "" });

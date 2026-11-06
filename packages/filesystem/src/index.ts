@@ -1,7 +1,7 @@
 import { defineApi, defineEvent } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
 
-export type FsErrorCode = "INVALID_PATH" | "INVALID_ARGUMENT" | "VAULT_CLOSED" | "NOT_FOUND" | "ALREADY_EXISTS" | "NOT_FILE" | "NOT_DIRECTORY" | "DIRECTORY_NOT_EMPTY" | "ACCESS_DENIED" | "CONFLICT" | "UNSUPPORTED" | "TOO_LARGE" | "INVALID_ENCODING" | "IO_ERROR";
+export type FsErrorCode = "CANCELLED" | "INVALID_PATH" | "INVALID_ARGUMENT" | "VAULT_CLOSED" | "NOT_FOUND" | "ALREADY_EXISTS" | "NOT_FILE" | "NOT_DIRECTORY" | "DIRECTORY_NOT_EMPTY" | "ACCESS_DENIED" | "CONFLICT" | "UNSUPPORTED" | "TOO_LARGE" | "INVALID_ENCODING" | "IO_ERROR";
 export interface FsFailure {
   readonly code: FsErrorCode;
   readonly message: string;
@@ -85,6 +85,15 @@ export const filesystemMethods = Object.freeze([
 const validateApi = (value: unknown): boolean => value !== null && typeof value === "object" &&
   filesystemMethods.every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function");
 export const Filesystem = defineApi<FilesystemApi>({ id: "lunaris.filesystem", version: "1.0.0", consumePermission: "filesystem.access", validate: validateApi });
+/** Provider-owned observation: cancellation releases the watch using the provider's live scope. */
+export interface FilesystemObservationApi {
+  watch(target: FileTarget, owner: CancellationSignal, recursive?: boolean): Promise<FsResult<string>>;
+}
+export const FilesystemObservation = defineApi<FilesystemObservationApi>({
+  id: "lunaris.filesystem-observation", version: "1.0.0", consumePermission: "filesystem.access",
+  validate: value => value !== null && typeof value === "object" &&
+    typeof Object.getOwnPropertyDescriptor(value, "watch")?.value === "function",
+});
 export const FilesystemDriver = defineApi<FilesystemApi>({ id: "lunaris.filesystem-driver", version: "1.0.0", providePermission: "filesystem.native", consumePermission: "filesystem.access", validate: validateApi });
 
 /** Roots are opaque capabilities; FileTarget.vaultId also accepts an application root ID. */

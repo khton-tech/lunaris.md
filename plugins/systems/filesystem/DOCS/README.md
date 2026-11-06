@@ -44,3 +44,5 @@ without attaching a root or preparing Vault data. The native driver returns the
 full absolute display path in `label`; `reference` remains opaque authority.
 Recent history refreshes legacy labels on listing and recording, retaining saved
 labels on recoverable failures. Display paths must never be logged.
+
+Provides `api:lunaris.filesystem-observation@1.0.0` for consumer-owned watches. See [owned observations](../../../../DOCS/reference/filesystem.md#owned-observations).
