@@ -1009,3 +1009,18 @@ Branch: `fix/file-explorer-workflow`. Targeted checks cover provider/controller,
 real Arborist/Mantine, Sidebar/Workspace, Config degradation and host behavior.
 Native row geometry, physical pointer traversal and resizing require manual
 acceptance. No merge or push.
+
+### Editor focus and provisional keyboard policy — 2026-11-06
+
+Context-menu overlays now close and restore source focus before command dispatch;
+owner liveness is rechecked after that boundary. File Explorer drafts receive
+localized collision-aware Unnamed defaults, sort folder-first by a stable initial
+name, focus/select the input basename, and finish/cancel on blur without letting
+Escape accidentally submit. Regression tests use the real menu/provider/Arborist
+flow and verify focus, order, blur, cancellation and known-name collisions.
+
+By explicit Owner instruction, Workspace temporarily suspends Tab/Shift+Tab
+traversal until the final keyboard focus design. Listener cleanup restores normal
+behavior outside Workspace. Targeted checks passed 121 tests, zero skipped,
+strict types and dependency boundaries. Native WebView focus/geometry acceptance
+remains manual.

@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import type { KeyboardEvent } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { ActionIcon, Box, Paper, Splitter, Stack } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
@@ -32,6 +32,13 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
   const fittedWidth = available > 0 ? Math.max(0, Math.min(width, available * 0.6, available - 264)) : width;
   const commitWidth = () => { if (props.panelVisible) props.onPanelWidth?.(Math.round(latestWidth.current)); };
   const publish = props.onTargets;
+  useLayoutEffect(() => {
+    const document = main.current!.ownerDocument;
+    // Temporary product policy: suspend Tab traversal while Workspace is mounted.
+    const suppressTab = (event: KeyboardEvent) => { if (event.key === "Tab") { event.preventDefault(); event.stopImmediatePropagation(); } };
+    document.addEventListener("keydown", suppressTab, true);
+    return () => document.removeEventListener("keydown", suppressTab, true);
+  }, []);
   useLayoutEffect(() => {
     publish(Object.freeze({ main: main.current!, "left-rail": rail.current!, "left-panel": panel.current! }));
     return () => publish(null);
@@ -72,7 +79,7 @@ export function SidebarRail({ props, theme }: { props: RailProps; theme: ReturnT
     const document = buttons.current.values().next().value?.ownerDocument;
     if (old && !props.activeId && document?.activeElement === document?.body) buttons.current.get(old)?.focus({ preventScroll: true });
   }, [props.activeId]);
-  function navigate(event: KeyboardEvent, index: number): void {
+  function navigate(event: ReactKeyboardEvent, index: number): void {
     let next: number;
     if (event.key === "ArrowDown") next = (index + 1) % props.tabs.length;
     else if (event.key === "ArrowUp") next = (index + props.tabs.length - 1) % props.tabs.length;

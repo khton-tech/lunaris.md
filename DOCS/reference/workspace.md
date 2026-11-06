@@ -112,6 +112,13 @@ restores the default size. Width is constrained to available space while reservi
 main content; narrow containers keep a bounded overlay and hide the separator.
 Viewport fitting does not overwrite the user's preferred width.
 
+Temporary Owner-directed interaction policy: Workspace suspends Tab/Shift+Tab
+traversal while its layout is mounted, including events starting on the document
+body or a context-menu overlay. Pointer controls, arrow navigation and explicit
+editor focus still work. The owned document listener is removed when Workspace
+closes, leaving selector/recovery navigation unchanged. This is an explicit
+temporary policy until the final focus traversal design is implemented.
+
 The screen requires Config/`config.access`, restores `sidePanelWidth` from its
 global plugin namespace, and writes only committed drag/keyboard changes. This
 preserves width across collapse, Vault changes and application restart. Invalid

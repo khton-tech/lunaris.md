@@ -86,6 +86,11 @@ operations and follow the same registration/instance lifecycle as the existing r
 ## Workspace regions and Sidebar roles
 
 WorkspaceLayout uses Mantine Splitter between stable left-panel/main targets.
+
+By temporary Owner instruction, WorkspaceLayout prevents Tab/Shift+Tab traversal
+through an owned document-capture listener. It covers body and overlay events,
+retains pointer/arrow/editor interactions, and is removed on layout disposal.
+Selector/recovery outside Workspace retain their existing keyboard behavior.
 Optional `panelWidth`, `resizeLabel` and `onPanelWidth(width)` props keep preference
 ownership in the SDK consumer. Resizing changes view geometry only; pointer drag,
 keyboard arrows/Home/End, double-click reset and focus indicators reuse Mantine.
