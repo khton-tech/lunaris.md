@@ -17,9 +17,11 @@ is supplied by Mantine components; a compatible set may replace it.
 
 Create/Select each expand a card below their action. Only one card is open.
 Browse is an icon-only Lucide control with localized accessible name and tooltip.
-It selects a candidate without activation or Vault writes. Create also requires
-a display name. Next opens the selected folder itself, without a second dialog;
-it does not create a named subfolder. Config Manager creates missing `.lunaris`
+It selects a candidate without activation or Vault writes. Create labels this
+field Parent folder and requires a portable directory name. Next invokes
+VaultCreation.create(parent, name), which exclusively creates and opens that
+child. Select invokes VaultLocations.open(selected) without a name, opening the
+selected folder itself. Existing named children produce a recoverable error. Config Manager creates missing `.lunaris`
 configuration and validates existing configuration through Vault preparation.
 Existing unrelated content is preserved.
 
@@ -55,7 +57,8 @@ Provides no callable API or SDK events. Requires:
 | Components / ComponentsChanged | Mount/update/reacquire a replaceable selector role. |
 | Startup / StartupChanged | Wait for loaded, ignore obsolete milestone sequences. |
 | Vault / VaultChanged | Current committed context, including externally initiated changes. |
-| VaultLocations | Candidate selection and explicit opening with optional display name. |
+| VaultLocations | Candidate selection and explicit opening of existing folders. |
+| VaultCreation | Exclusive named child creation, preparation and activation. |
 | VaultHistory / VaultHistoryChanged | Initial/retried history read, live snapshots and recent reopening. |
 
 Consumers use `^1.0.0` contracts, with `VaultChanged@^1.1.0`. All services are
