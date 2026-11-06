@@ -165,6 +165,9 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     return path === ROOT_ID ? "" : path;
   }
   function focusTree(): void { host.current?.querySelector<HTMLElement>("[role=tree]")?.focus({ preventScroll: true }); }
+  function clearSelection(): void {
+    tree.current?.focus(ROOT_ID, { scroll: false }); tree.current?.deselectAll(); props.onSelection([]);
+  }
   function closeForm(): void { setForm(null); focusTree(); }
   function command(command: string, paths = selected(), parent = destination()): void {
     if (props.busy || !alive.current) return;
@@ -178,7 +181,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
   function openMenu(path: string | null, x: number, y: number): void {
     if (form || props.busy) return;
     const node = path === null ? undefined : tree.current?.get(path);
-    if (path === null || path === ROOT_ID) { tree.current?.focus(ROOT_ID, { scroll: false }); tree.current?.deselectAll(); props.onSelection([]); }
+    if (path === null || path === ROOT_ID) clearSelection();
     if (node && path !== ROOT_ID && !node.isSelected) node.select();
     const paths = path === null || path === ROOT_ID ? [] : selected();
     const parent = path === null || path === ROOT_ID ? "" : node?.isInternal ? node.id : node?.parent?.id === ROOT_ID ? "" : node?.parent?.id ?? "";
@@ -253,7 +256,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
       </Stack>
     </Paper>}
     <Box ref={host} className="lm-explorer-tree" onClick={event => {
-      if (!(event.target as HTMLElement).closest("[role=treeitem]") && !form) { tree.current?.deselectAll(); props.onSelection([]); }
+      if (!(event.target as HTMLElement).closest("[role=treeitem]") && !form) clearSelection();
     }} onContextMenu={event => { event.preventDefault(); event.stopPropagation(); openMenu(null, event.clientX, event.clientY); }}>
       {empty && <Text role="status" className="lm-explorer-message">{props.loading ? t.loading : t.empty}</Text>}
       <ExplorerContext.Provider value={{ props, creation: form && form.kind !== "delete" ? { name, kind: form.kind, pending, onName: setName, submit, cancel: closeForm } : null, surface: () => host.current?.closest<HTMLElement>(".lm-explorer") ?? null,

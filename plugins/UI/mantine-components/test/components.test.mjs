@@ -185,7 +185,7 @@ test('right-click preserves invocation multi-selection, coordinates and safe roo
   const s = await setup(); await s.start(); const contexts = []; const buffered = [];
   s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 320);
   const props = explorerFixture({ selection: ['folder', 'a.md'], onContextMenu: request => { contexts.push(request); }, onBuffer: (...args) => buffered.push(args) });
-  s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); await settle();
+  const mounted = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); await settle();
   const rightClick = node => node.dispatchEvent(new s.dom.window.MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 75, clientY: 95 }));
   rightClick(s.target.querySelector('[title="a.md"]')); await settle();
   assert.deepEqual(contexts[0].selection, ['folder', 'a.md']); assert.equal(contexts[0].path, 'a.md'); assert.equal(contexts[0].kind, 'file');
@@ -201,6 +201,11 @@ test('right-click preserves invocation multi-selection, coordinates and safe roo
   rightClick(s.target.querySelector('.lm-explorer-tree')); await settle();
   assert.equal(contexts[2].kind, 'background'); assert.equal(contexts[2].path, null); assert.equal(contexts[2].destination, '');
   assert.deepEqual(resolve(contexts[2]).map(item => item.id.split('.').at(-1)), ['newFile', 'newFolder', 'refresh']);
+  mounted.value.update({ ...props, selection: ['a.md'] }); await settle();
+  s.target.querySelector('.lm-explorer-tree').click(); await settle();
+  assert.equal(s.target.querySelectorAll('[role=treeitem][aria-selected=true]').length, 0);
+  s.target.querySelector('[role=tree]').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'ContextMenu', bubbles: true, cancelable: true })); await settle();
+  assert.equal(contexts[3].kind, 'root'); assert.deepEqual(contexts[3].selection, []);
   await s.stop();
 });
 test('Arborist renders a virtualized, escaped tree and preserves owned roots across theme/props updates', async () => {
