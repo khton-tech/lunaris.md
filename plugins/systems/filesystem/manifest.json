@@ -67,6 +67,11 @@
       "kind": "api",
       "id": "lunaris.filesystem-locations-driver",
       "range": "^1.1.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.filesystem-observation-driver",
+      "range": "^1.0.0"
     }
   ],
   "permissions": [

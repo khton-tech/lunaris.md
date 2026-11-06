@@ -1,5 +1,5 @@
 import { definePlugin } from "@lunaris/sdk";
-import { Filesystem, FilesystemObservation, FilesystemDriver, FilesystemRoots, FilesystemRootsDriver, FilesystemLocations, FilesystemLocationsDriver, ApplicationDirectory, ApplicationDirectoryDriver, FileChanged, DriverFileChanged, failure, validTarget, validFolderLocation } from "@lunaris/filesystem";
+import { Filesystem, FilesystemObservation, FilesystemObservationDriver, FilesystemDriver, FilesystemRoots, FilesystemRootsDriver, FilesystemLocations, FilesystemLocationsDriver, ApplicationDirectory, ApplicationDirectoryDriver, FileChanged, DriverFileChanged, failure, validTarget, validFolderLocation } from "@lunaris/filesystem";
 import type { FileTarget, FsResult, WriteOptions } from "@lunaris/filesystem";
 import { Logger } from "@lunaris/logging";
 import manifest from "../manifest.json" with { type: "json" };
@@ -10,6 +10,7 @@ export default definePlugin({ manifest, activate(ctx) {
   const logger = ctx.use(Logger);
   logger.debug(ctx.pluginId, "Activating filesystem provider");
   const driver = ctx.use(FilesystemDriver);
+  const observationDriver = ctx.use(FilesystemObservationDriver);
   const directories = ctx.use(ApplicationDirectoryDriver);
   const ownedRoots = ctx.use(FilesystemRootsDriver);
   const locations = ctx.use(FilesystemLocationsDriver);
@@ -47,7 +48,7 @@ export default definePlugin({ manifest, activate(ctx) {
       if (!validTarget(destination) || destination.vaultId !== copy.vaultId) return Promise.resolve(failure("INVALID_PATH", "Transfers must stay within one Vault."));
       return driver[operation](copy, snapshot(destination), overwrite);
     });
-  const observation = createObservation(ctx, (target, recursive) => onTarget("watch", target, true, copy => driver.watch(copy, recursive)),
+  const observation = createObservation(ctx, (target, recursive) => onTarget("watch", target, true, copy => observationDriver.watch(copy, ctx.signal, recursive)),
     (vaultId, watchId) => roots.run(vaultId, () => call("unwatch", () => driver.unwatch(vaultId, watchId))),
     error => logger.error(ctx.pluginId, "Cannot release filesystem observation", { code: "OBSERVATION_RELEASE_FAILED", error }));
   ctx.provide(FilesystemObservation, { watch: (target, owner, recursive) => observation.watch({ ...target }, owner, recursive) });

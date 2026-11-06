@@ -94,6 +94,12 @@ export const FilesystemObservation = defineApi<FilesystemObservationApi>({
   validate: value => value !== null && typeof value === "object" &&
     typeof Object.getOwnPropertyDescriptor(value, "watch")?.value === "function",
 });
+/** Bind native observations to the provider activation, including provider-only restarts. */
+export const FilesystemObservationDriver = defineApi<FilesystemObservationApi>({
+  id: "lunaris.filesystem-observation-driver", version: "1.0.0", providePermission: "filesystem.native", consumePermission: "filesystem.access",
+  validate: value => value !== null && typeof value === "object" &&
+    typeof Object.getOwnPropertyDescriptor(value, "watch")?.value === "function",
+});
 export const FilesystemDriver = defineApi<FilesystemApi>({ id: "lunaris.filesystem-driver", version: "1.0.0", providePermission: "filesystem.native", consumePermission: "filesystem.access", validate: validateApi });
 
 /** Roots are opaque capabilities; FileTarget.vaultId also accepts an application root ID. */

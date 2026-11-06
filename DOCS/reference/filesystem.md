@@ -219,3 +219,5 @@ Vault close detaches ownership listeners. Provider shutdown detaches local liste
 and relies on the driver's owned native session cleanup, never closed SDK handles.
 Native unwatch failures are diagnosed by the live provider; session/Vault cleanup
 remains the safety net. The original unowned watch API remains compatible.
+
+The provider requires `api:lunaris.filesystem-observation-driver@1.0.0` and passes its own activation signal to it. The Tauri driver releases native watches on provider-only shutdown, including late watch creation, and suppresses callbacks immediately on cancellation. Explicit unwatch and Vault closure detach driver ownership listeners. Driver shutdown uses its native session cleanup. Replacement filesystem drivers must implement this additive contract.

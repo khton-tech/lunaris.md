@@ -19,6 +19,7 @@ export function createObservation(ctx: PluginContext, create: (target: FileTarge
     return remove(vaultId, watchId);
   }
   async function watch(target: FileTarget, owner: CancellationSignal, recursive = true): Promise<FsResult<string>> {
+    if (!owner || typeof owner.aborted !== "boolean" || typeof owner.addEventListener !== "function" || typeof owner.removeEventListener !== "function") return failure("INVALID_ARGUMENT", "A cancellation signal is required.");
     if (owner.aborted || ctx.signal.aborted) return cancelled();
     let ended = false; let watchId: string | undefined;
     const detach = () => { owner.removeEventListener("abort", abort); pending.delete(detach); };
