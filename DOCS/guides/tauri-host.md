@@ -1,5 +1,11 @@
 # Tauri host and independent recovery shell
 
+The host bootstrap prevents the default `contextmenu` action throughout the
+document, suppressing the built-in WebView menu. It does not stop event
+propagation: SDK component renderers retain their own contextual actions,
+including the file explorer menu. The policy also applies to the recovery shell
+and editable fields; product editing actions remain component-owned.
+
 Normal desktop startup presents the runner (ASCII logo/loading) followed by the
 Vault selector. Before plugin services are available, a host-owned static surface
 uses the same `resources/ascii_art.txt` artwork and default dark runner appearance.
