@@ -45,7 +45,7 @@ function setup(options = {}) {
     context = ctx; tools = { components: ctx.use(Components), themes: ctx.use(Themes), localization: ctx.use(Localization) };
   } });
   const slow = definePlugin({ manifest: manifest('test.slow'), async activate() { slowEntered.resolve(); await finish.promise; if (options.fail) throw Error('private failure'); } });
-  const runner = createRunner({ art }); const settings = createThemeSettings({ defaultThemeId: 'lunaris.base-theme-engine.dark' });
+  const runner = createRunner({ art }); const settings = createThemeSettings({ defaultThemeId: 'lunaris.base-theme-engine.monochrome' });
   const scheduler = new TestScheduler();
   const session = new HostSession({ scheduler, load: async () => {
     controller = createStartupProvider(); const layout = composeSlotSurface(surface);
@@ -62,11 +62,11 @@ function setup(options = {}) {
 }
 
 test('runner renders supplied ASCII art, real milestones and configured theme, then stays at System Loaded', async () => {
-  const s = setup({ theme: 'lunaris.base-theme-engine.light' }); await s.slowEntered.promise;
+  const s = setup({ theme: 'lunaris.base-theme-engine.monochrome' }); await s.slowEntered.promise;
   assert.equal(s.session.snapshot().phase, 'starting'); assert.equal(s.session.snapshot().applicationVisible, true);
   assert.equal(s.surface.querySelector('pre').textContent, art);
   assert.equal(s.surface.querySelector('[role=status]').textContent, 'Loading system'); assert.match(s.surface.textContent, /Starting test.slow/);
-  assert.equal(s.surface.querySelector('section').style.backgroundColor, 'rgb(245, 247, 250)');
+  assert.equal(s.surface.querySelector('section').style.backgroundColor, 'rgb(15, 15, 15)');
   assert.equal(s.surface.querySelector('pre').style.fontSize, '10px');
   assert.deepEqual(s.reads, ['lunaris.theme-settings','lunaris.runner']);
   s.finish.resolve(); await s.starting;
@@ -83,7 +83,7 @@ test('no runner content is mounted before its settings read completes; details c
   await entered.promise; assert.equal(s.surface.querySelector('section'), null);
   release.resolve(); await s.slowEntered.promise;
   assert.equal(s.surface.querySelector('section').lastElementChild.hidden, true);
-  assert.equal(s.surface.querySelector('section').style.backgroundColor, 'rgb(17, 21, 28)');
+  assert.equal(s.surface.querySelector('section').style.backgroundColor, 'rgb(15, 15, 15)');
   s.finish.resolve(); await s.starting; await s.session.stop(); s.dom.window.close();
 });
 
@@ -115,8 +115,9 @@ test('missing component can register later, be replaced, and render the latest l
 
 test('theme and locale changes refresh the loaded screen, and older milestones are ignored', async () => {
   const s = setup(); await s.slowEntered.promise; s.finish.resolve(); await s.starting;
-  s.tools.themes.select('lunaris.base-theme-engine.light');
-  assert.equal(s.surface.querySelector('section').style.backgroundColor, 'rgb(245, 247, 250)');
+  assert.equal(s.tools.themes.register({ id: 'test.alternate', name: 'Alternate', properties: { colors: { background: '#FFFFFF' } } }, s.context.signal).ok, true);
+  s.tools.themes.select('test.alternate');
+  assert.equal(s.surface.querySelector('section').style.backgroundColor, 'rgb(255, 255, 255)');
   // Replace the English-first catalog through its public registration contract.
   // A separate catalog adds locale availability; absent runner translations fall back to English.
   s.tools.localization.register('test.languages', { en: { name: 'Language' }, fr: { name: 'Langue' } }, s.context.signal);

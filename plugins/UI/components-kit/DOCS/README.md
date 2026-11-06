@@ -163,3 +163,8 @@ Themes and JSDOM to verify role mounting, safe text, theme selection/update/rese
 invalid props, accessible Lucide controls, input identity, multiple selector
 instances, owner cancellation, shutdown and restart. Native WebView appearance
 and narrow-window layout remain manual acceptance checks.
+
+Palette integration: selector artwork consumes optional colors.sub, input carets
+consume colors.caret, and alert text consumes colors.error. Missing roles fall
+back to currentColor. Reference sub is decorative; labels use textSecondary.
+Extra error/colorful roles are currently data only, with no mode selection UI.

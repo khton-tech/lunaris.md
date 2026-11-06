@@ -21,7 +21,7 @@ async function setup(result, grant = true) {
     ctx.provide(Config, { read: async id => { reads.push(id); return result; }, get() {}, set() {}, remove() {} });
   } });
   const reader = definePlugin({ manifest: manifest('test.reader', [], [{ kind: 'api', id: Themes.id, range: '^1.0.0' }]), activate(ctx) { themes = ctx.use(Themes); } });
-  const settings = createThemeSettings({ defaultThemeId: 'lunaris.base-theme-engine.dark' });
+  const settings = createThemeSettings({ defaultThemeId: 'lunaris.base-theme-engine.monochrome' });
   const kernel = createKernel({ scheduler: new TestScheduler() });
   for (const plugin of [logger, config, reader, settings, themesProvider, baseTheme]) kernel.register(plugin);
   if (grant) kernel.grant(settings.manifest.id, 'config.access');
@@ -29,21 +29,23 @@ async function setup(result, grant = true) {
   return { kernel, settings, themes, logs, reads };
 }
 
-test('startup default and configured Light select through public Themes after reading config', async () => {
-  for (const theme of [undefined, 'lunaris.base-theme-engine.light']) {
+test('startup default and configured preset select through public Themes after reading config', async () => {
+  for (const theme of [undefined, 'lunaris.base-theme-engine.monochrome']) {
     const { kernel, settings, themes, reads } = await setup({ ok: true, value: theme ? { theme } : {} });
     assert.equal(themes.current(), null); await kernel.start(settings.manifest.id);
-    assert.equal(themes.current().id, theme ?? 'lunaris.base-theme-engine.dark');
+    assert.equal(themes.current().id, theme ?? 'lunaris.base-theme-engine.monochrome');
     assert.deepEqual(reads, ['lunaris.theme-settings']);
     await kernel.stopAll();
   }
 });
 
 test('unavailable theme degrades to default; invalid config and read failures preserve selection', async () => {
-  const missing = await setup({ ok: true, value: { theme: 'missing.theme' } });
-  await missing.kernel.start(missing.settings.manifest.id);
-  assert.equal(missing.themes.current().id, 'lunaris.base-theme-engine.dark');
-  assert.ok(missing.logs.some(args => args[2]?.code === 'THEME_NOT_FOUND')); await missing.kernel.stopAll();
+  for (const theme of ['missing.theme', 'lunaris.base-theme-engine.light', 'lunaris.base-theme-engine.dark']) {
+    const missing = await setup({ ok: true, value: { theme } });
+    await missing.kernel.start(missing.settings.manifest.id);
+    assert.equal(missing.themes.current().id, 'lunaris.base-theme-engine.monochrome');
+    assert.ok(missing.logs.some(args => args[2]?.code === 'THEME_NOT_FOUND')); await missing.kernel.stopAll();
+  }
   for (const result of [{ ok: true, value: { theme: 2 } }, { ok: false, error: { code: 'INVALID_TOML', message: 'Invalid config' } }]) {
     const { kernel, settings, themes, logs } = await setup(result);
     await assert.rejects(kernel.start(settings.manifest.id)); assert.equal(themes.current(), null);

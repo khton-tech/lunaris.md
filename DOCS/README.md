@@ -11,7 +11,7 @@
 - [Lunaris Runner](../plugins/UI/lunaris-runner/DOCS/README.md): configured ASCII startup screen, milestones and retained loaded status.
 - [Theme settings](../plugins/UI/theme-settings/DOCS/README.md): startup theme preference, default selection and failure behavior.
 - [Theme provider](reference/themes.md): engine-owned descriptions, registration, selection, updates and lifecycle notifications.
-- [Base theme engine](reference/base-theme.md): Lunaris Light/Dark palettes, semantic roles, geometry, typography and lifecycle.
+- [Base theme engine](reference/base-theme.md): Monochrome palette, semantic roles, geometry, typography and lifecycle.
 - [Component provider](reference/components.md): shared component registration by role ID, mounting, instance ownership and change events.
 - [LunarisComponentsKit](../plugins/UI/components-kit/DOCS/README.md): initial themed startup-screen role for product consumers.
 - [Vault-scoped filesystem](reference/filesystem.md): provider/driver APIs, relative paths, dialogs, writes, permissions and native verification.

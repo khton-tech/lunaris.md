@@ -49,8 +49,8 @@ scrolling and sizing remain subject to manual acceptance.
 
 ## Base theme engine
 
-Status: IMPLEMENTED on 2026-11-05 with the Owner-approved Lunaris Light and
-Lunaris Dark palettes, shared geometry and typography. The engine registers
+Status: IMPLEMENTED on 2026-11-05; on 2026-11-06 the Owner replaced the original
+Lunaris Light/Dark palettes with Monochrome. Shared geometry and typography remain. The engine registers
 descriptions through the replaceable theme provider, without default selection or
 rendering. See [the base theme reference](reference/base-theme.md).
 

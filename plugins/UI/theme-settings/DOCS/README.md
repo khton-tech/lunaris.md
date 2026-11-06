@@ -7,13 +7,13 @@ screen. Provides no API/events and subscribes to no events.
 `createThemeSettings({ defaultThemeId })` accepts host policy, never imports a
 specific engine. Requires Logger, Config, Themes and the `config.access` grant.
 Start the selected theme engine before this plugin. Tauri starts the base engine
-first and supplies `lunaris.base-theme-engine.dark` as its default.
+first and supplies `lunaris.base-theme-engine.monochrome` as its default.
 
 The plugin reads its effective namespace once during activation:
 
 ```toml
 [plugins."lunaris.theme-settings"]
-theme = "lunaris.base-theme-engine.light"
+theme = "lunaris.base-theme-engine.monochrome"
 ```
 
 An absent key uses the host default. An unavailable theme logs a warning and

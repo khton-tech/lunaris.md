@@ -55,7 +55,7 @@ function setup(options = {}) {
   } });
   const toolPlugin = definePlugin({ manifest: manifest('test.tools', [], [Components, Themes, Localization], ['ui.dom']), activate(ctx) {
     context = ctx; tools = { components: ctx.use(Components), themes: ctx.use(Themes), localization: ctx.use(Localization) };
-    tools.themes.select('lunaris.base-theme-engine.dark');
+    tools.themes.select('lunaris.base-theme-engine.monochrome');
   } });
   const slow = definePlugin({ manifest: manifest('test.slow'), async activate() { entered.resolve(); await finish.promise; } });
   const startup = createStartupProvider(); const runner = createRunner({ art: 'ASCII LOGO', hideWhenLoaded: true }); const selector = createVaultSelector({ art: 'ASCII LOGO' });
@@ -80,7 +80,13 @@ test('host hands off runner to the two-panel selector only after loaded, without
   s.finish.resolve(); await s.starting; await flush();
   assert.equal(s.surface.querySelectorAll('section').length, 1); assert.ok(s.surface.querySelector('.ln-vault'));
   assert.equal(s.surface.querySelector('pre').textContent, 'ASCII LOGO'); assert.equal(s.surface.querySelector('[data-slot-id="lunaris.runner.screen"]'), null);
-  assert.equal(s.surface.querySelector('.ln-vault-recents').nextElementSibling.className, 'ln-vault-main');
+  assert.ok(s.surface.querySelector('.ln-vault-recents').nextElementSibling.classList.contains('ln-vault-main'));
+  const palette = s.surface.querySelector('.ln-vault').style;
+  assert.equal(palette.getPropertyValue('--vault-background'), '#0F0F0F');
+  assert.equal(palette.getPropertyValue('--vault-panel'), '#1A1A1A');
+  assert.equal(palette.getPropertyValue('--vault-caret'), '#F5F5F5');
+  assert.equal(palette.getPropertyValue('--vault-error'), '#AC8C8C');
+  assert.equal(palette.getPropertyValue('--vault-sub'), '#4C4C4C');
   assert.equal(find(s, 'Create vault').getAttribute('aria-expanded'), 'false'); assert.ok(find(s, 'Select vault'));
   assert.match(s.surface.textContent, /No recent vaults/); assert.deepEqual(s.calls, []);
   assert.equal(s.logs.some(log => log[3]?.code === 'PARAMETER_MISSING'), false);
@@ -157,8 +163,11 @@ test('history errors are retryable; themes and locale updates retain typed form 
   assert.equal(find(s, 'Retry').hidden, true);
   find(s, 'Create vault').click(); const name = s.surface.querySelector('form:not([inert]) input:not([readonly])');
   name.value = 'Draft'; name.dispatchEvent(new s.dom.window.Event('input'));
-  s.tools.themes.select('lunaris.base-theme-engine.light');
-  assert.equal(s.surface.querySelector('.ln-vault').style.getPropertyValue('--vault-background'), '#F5F7FA');
+  assert.equal(s.tools.themes.register({ id: 'test.alternate', name: 'Alternate', properties: { colors: { background: '#FFFFFF' } } }, s.context.signal).ok, true);
+  s.tools.themes.select('test.alternate');
+  assert.equal(s.surface.querySelector('.ln-vault').style.getPropertyValue('--vault-background'), '#FFFFFF');
+  assert.equal(s.surface.querySelector('.ln-vault').style.getPropertyValue('--vault-caret'), 'currentColor');
+  assert.equal(s.surface.querySelector('.ln-vault').style.getPropertyValue('--vault-error'), 'currentColor');
   s.tools.localization.register('test.languages', { en: { label: 'Language' }, fr: { label: 'Langue' } }, s.context.signal); s.tools.localization.setLocale('fr'); await flush();
   assert.equal(name.value, 'Draft'); assert.ok(find(s, 'Create vault'));
   await s.stop();

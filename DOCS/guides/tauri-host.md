@@ -4,7 +4,7 @@ Normal desktop startup presents the runner (ASCII logo/loading) followed by the
 Vault selector. Before plugin services are available, a host-owned static surface
 uses the same `resources/ascii_art.txt` artwork and default dark runner appearance.
 Vite injects the current resource into both dev and packaged HTML; the native
-window and HTML background use `#11151C` to avoid an initial white paint. This
+window and HTML background use `#0F0F0F` to avoid an initial white paint. This
 fixed boot appearance is replaced by the configured theme once services are ready.
 The boot surface stays behind the early application surface until startup finishes,
 so an initially empty slot surface does not expose diagnostics or a blank page.
@@ -31,8 +31,8 @@ startup. The surface remains empty until product UI consumers are introduced;
 System/recovery controls remain host-owned and available independently.
 
 The [theme provider](../reference/themes.md) starts as an empty registry; the
-separate [base theme engine](../reference/base-theme.md) then registers Lunaris
-Light and Lunaris Dark through SDK contracts. Startup selects neither theme.
+separate [base theme engine](../reference/base-theme.md) then registers
+Monochrome through SDK contracts. Theme-settings selects it as the startup default.
 No visual styling is supplied by the host composition or registry.
 
 ## Architecture and responsibilities

@@ -24,7 +24,7 @@ const logger = createLogger();
 
 /** Host composition point. Product plugins import only the public SDK. */
 export function composeApplication(target: HTMLElement): ApplicationDefinition {
-  const themeSettings = createThemeSettings({ defaultThemeId: "lunaris.base-theme-engine.dark" });
+  const themeSettings = createThemeSettings({ defaultThemeId: "lunaris.base-theme-engine.monochrome" });
   const runner = createRunner({ art, hideWhenLoaded: true });
   const selector = createVaultSelector({ art });
   const startup = createStartupProvider();

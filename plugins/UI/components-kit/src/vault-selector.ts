@@ -140,8 +140,8 @@ export function mountVaultSelector(target: HTMLElement, input: ComponentProps, s
     const properties = currentTheme()?.properties; const colors = properties?.colors; const geometry = properties?.geometry; const typography = properties?.typography;
     const unit = text(field(geometry, "unit"), "px");
     const dimension = (value: ThemeValue | undefined, fallback: string) => typeof value === "number" && value >= 0 ? `${value}${unit}` : fallback;
-    const palette: Record<string, string> = { background: "background", panel: "panel", content: "content", selection: "selection", text: "text", secondary: "textSecondary", separator: "separator", "control-border": "controlBorder", hover: "hover", focus: "focus", accent: "accent", "on-accent": "onAccent", "accent-hover": "accentHover" };
-    for (const [variable, key] of Object.entries(palette)) screen.style.setProperty(`--vault-${variable}`, text(field(colors, key), ["text", "secondary", "focus", "on-accent"].includes(variable) ? "currentColor" : "transparent"));
+    const palette: Record<string, string> = { background: "background", panel: "panel", content: "content", selection: "selection", text: "text", secondary: "textSecondary", separator: "separator", "control-border": "controlBorder", hover: "hover", focus: "focus", caret: "caret", error: "error", sub: "sub", accent: "accent", "on-accent": "onAccent", "accent-hover": "accentHover" };
+    for (const [variable, key] of Object.entries(palette)) screen.style.setProperty(`--vault-${variable}`, text(field(colors, key), ["text", "secondary", "focus", "on-accent", "caret", "error", "sub"].includes(variable) ? "currentColor" : "transparent"));
     for (const [name, value, fallback] of [
       ["space", field(field(geometry, "spacing"), "step"), ".25rem"], ["radius", field(field(geometry, "radius"), "medium"), "0"],
       ["border", field(geometry, "borderWidth"), "1px"], ["focus-width", field(geometry, "focusWidth"), "2px"], ["focus-offset", field(geometry, "focusOffset"), "2px"],

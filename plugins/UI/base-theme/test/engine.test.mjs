@@ -7,7 +7,7 @@ import { Themes } from '@lunaris/themes';
 import provider from '@lunaris/theme-provider';
 import engine from '@lunaris/base-theme-engine';
 
-const lightId = 'lunaris.base-theme-engine.light'; const darkId = 'lunaris.base-theme-engine.dark';
+const presetId = 'lunaris.base-theme-engine.monochrome';
 async function setup() {
   const host = createTestKernel(); const logs = []; let themes; let ctx;
   host.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push([level, ...args]); return true; }])));
@@ -20,17 +20,20 @@ async function setup() {
   } };
 }
 
-test('engine supplies both named themes with a shared schema and independent immutable palettes', async () => {
+test('engine supplies the immutable Monochrome preset without selecting it', async () => {
   const s = await setup(); assert.deepEqual(s.themes.list(), []);
   await s.host.start(engine.manifest.id);
-  const light = s.themes.get(lightId); const dark = s.themes.get(darkId);
-  assert.equal(light.name, 'Lunaris Light'); assert.equal(dark.name, 'Lunaris Dark'); assert.equal(s.themes.list().length, 2);
-  assert.equal(light.properties.appearance, 'light'); assert.equal(dark.properties.appearance, 'dark');
-  assert.equal(light.properties.schema, 'lunaris.base-theme'); assert.equal(dark.properties.schemaVersion, 1);
-  assert.deepEqual(Object.keys(light.properties.colors), Object.keys(dark.properties.colors));
-  assert.deepEqual(light.properties.geometry, dark.properties.geometry); assert.deepEqual(light.properties.typography, dark.properties.typography);
-  assert.notStrictEqual(light.properties.geometry, dark.properties.geometry);
-  assert.ok(Object.isFrozen(light.properties.colors)); assert.ok(Object.isFrozen(dark.properties.typography.fontFamily));
+  const theme = s.themes.get(presetId);
+  assert.equal(theme.name, 'Monochrome'); assert.equal(s.themes.list().length, 1);
+  assert.equal(theme.properties.appearance, 'dark');
+  assert.equal(theme.properties.schema, 'lunaris.base-theme'); assert.equal(theme.properties.schemaVersion, 1);
+  assert.ok(Object.isFrozen(theme.properties.colors)); assert.ok(Object.isFrozen(theme.properties.typography.fontFamily));
+  assert.equal(theme.properties.colors.sub, '#4C4C4C');
+  assert.equal(theme.properties.colors.caret, '#F5F5F5');
+  assert.equal(theme.properties.colors.error, '#AC8C8C');
+  assert.equal(theme.properties.colors.extraError, '#C49EA0');
+  assert.equal(theme.properties.colors.colorfulError, '#ACA98A');
+  assert.equal(theme.properties.colors.colorfulExtraError, '#C4C19E');
   assert.equal(s.themes.current(), null);
   assert.ok(s.logs.some(([level, source, , details]) => level === 'info' && source === engine.manifest.id && details.code === 'BASE_THEMES_READY'));
   await s.stop();
@@ -43,7 +46,7 @@ function luminance(hex) {
   return r * 0.2126 + g * 0.7152 + b * 0.0722;
 }
 const contrast = (a, b) => (Math.max(luminance(a), luminance(b)) + 0.05) / (Math.min(luminance(a), luminance(b)) + 0.05);
-test('both palettes meet text and meaningful control contrast thresholds across their intended states', async () => {
+test('text and meaningful controls meet contrast thresholds across their intended states', async () => {
   const s = await setup(); await s.host.start(engine.manifest.id);
   for (const theme of s.themes.list()) {
     const colors = theme.properties.colors;
@@ -60,20 +63,20 @@ test('registration and restart preserve an existing selection and remove only en
   const s = await setup(); const foreign = { id: 'test.other.theme', name: 'Other engine', properties: {} };
   s.themes.register(foreign, s.ctx.signal); s.themes.select(foreign.id);
   await s.host.start(engine.manifest.id); assert.equal(s.themes.current().id, foreign.id);
-  s.themes.select(darkId); await s.host.stop(engine.manifest.id);
+  s.themes.select(presetId); await s.host.stop(engine.manifest.id);
   assert.equal(s.themes.current(), null); assert.deepEqual(s.themes.list().map(theme => theme.id), [foreign.id]);
-  await s.host.start(engine.manifest.id); assert.equal(s.themes.list().length, 3); assert.equal(s.themes.current(), null);
-  s.themes.select(lightId); assert.equal(s.themes.current().name, 'Lunaris Light');
+  await s.host.start(engine.manifest.id); assert.equal(s.themes.list().length, 2); assert.equal(s.themes.current(), null);
+  s.themes.select(presetId); assert.equal(s.themes.current().name, 'Monochrome');
   await s.stop();
 });
 
-test('a collision on the second registration rolls back the first and preserves another owner; retry succeeds', async () => {
+test('a registration collision preserves another owner; retry succeeds', async () => {
   const s = await setup(); const owner = s.ctx.scope.child();
-  s.themes.register({ id: darkId, name: 'Existing owner', properties: {} }, owner.signal); s.themes.select(darkId);
+  s.themes.register({ id: presetId, name: 'Existing owner', properties: {} }, owner.signal); s.themes.select(presetId);
   await assert.rejects(s.host.start(engine.manifest.id));
-  assert.equal(s.themes.get(lightId), undefined); assert.equal(s.themes.get(darkId).name, 'Existing owner'); assert.equal(s.themes.current().id, darkId);
+  assert.equal(s.themes.get(presetId).name, 'Existing owner'); assert.equal(s.themes.current().id, presetId);
   assert.ok(s.logs.some(([level, source, , details]) => level === 'error' && source === engine.manifest.id && details.error.cause.code === 'ALREADY_REGISTERED'));
-  await owner.dispose(); await s.host.start(engine.manifest.id); assert.equal(s.themes.list().length, 2);
+  await owner.dispose(); await s.host.start(engine.manifest.id); assert.equal(s.themes.list().length, 1);
   await s.host.stopAll(); s.host.assertNoResources();
   assert.ok(!s.host.diagnostics().some(item => ['CLEANUP_FAILED', 'API_CALL_FAILED'].includes(item.code)));
 });
@@ -83,5 +86,5 @@ test('provider shutdown stops its dependent engine; a new provider generation ge
   await s.host.stop(provider.manifest.id); s.host.assertState(engine.manifest.id, 'stopped');
   assert.throws(() => stale.list());
   await s.host.start(engine.manifest.id); await s.host.start('test.observer');
-  assert.equal(s.themes.list().length, 2); assert.equal(s.themes.current(), null); await s.stop();
+  assert.equal(s.themes.list().length, 1); assert.equal(s.themes.current(), null); await s.stop();
 });

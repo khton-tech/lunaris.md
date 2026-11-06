@@ -30,7 +30,7 @@ export const selectorStyle = `${controlStyle}${panelStyle}${surfaceStyle}
 .ln-vault .ln-vault-main { display:flex;flex-direction:column;align-items:center;min-height:0;overflow:auto;padding:clamp(1rem,5cqw,4rem) }
 .ln-vault .ln-vault-main::before { content:"";flex:0 0 var(--vault-center-offset,0px) }
 .ln-vault .ln-vault-content { flex-shrink:0;width:100%;max-width:32rem;container-type:inline-size;display:flow-root }
-.ln-vault pre { color:var(--vault-secondary);font-family:var(--vault-mono);font-size:min(9px,1.7cqw);line-height:1.2;white-space:pre;margin:0 0 calc(var(--vault-space)*8);text-align:center;max-width:100%;overflow:hidden }
+.ln-vault pre { color:var(--vault-sub);font-family:var(--vault-mono);font-size:min(9px,1.7cqw);line-height:1.2;white-space:pre;margin:0 0 calc(var(--vault-space)*8);text-align:center;max-width:100%;overflow:hidden }
 .ln-vault .ln-vault-actions { display:grid;gap:calc(var(--vault-space)*2) }
 .ln-vault .ln-vault-action { border-radius:var(--vault-radius) }
 .ln-vault .ln-vault-toggle { width:100%;padding:calc(var(--vault-space)*4) }
@@ -44,7 +44,7 @@ export const selectorStyle = `${controlStyle}${panelStyle}${surfaceStyle}
 .ln-vault .ln-vault-disclosure-body { overflow:hidden;min-height:0 }
 .ln-vault form { display:grid;gap:calc(var(--vault-space)*4);padding:calc(var(--vault-space)*2) calc(var(--vault-space)*4) calc(var(--vault-space)*4) }
 .ln-vault label,.ln-vault .ln-vault-field { display:grid;gap:calc(var(--vault-space)*2);color:var(--vault-secondary);font-size:.9em }
-.ln-vault input { padding:calc(var(--vault-space)*2.5) calc(var(--vault-space)*3);color:var(--vault-text) }
+.ln-vault input { padding:calc(var(--vault-space)*2.5) calc(var(--vault-space)*3);color:var(--vault-text);caret-color:var(--vault-caret) }
 .ln-vault .ln-vault-folder { display:flex;align-items:center;gap:var(--vault-space);padding:var(--vault-space);background:var(--control-background);border:var(--vault-border) solid var(--control-field-border);border-radius:var(--control-radius);
  transition:border-color var(--vault-motion-fast) var(--vault-motion-easing) }
 .ln-vault .ln-vault-folder:focus-within { border-color:var(--vault-focus) }
@@ -56,6 +56,7 @@ export const selectorStyle = `${controlStyle}${panelStyle}${surfaceStyle}
 .ln-vault .ln-vault-next { justify-self:end;background:var(--vault-accent);color:var(--vault-on-accent);padding:calc(var(--vault-space)*2) calc(var(--vault-space)*4) }
 .ln-vault .ln-vault-next:disabled { background:var(--control-hover);color:var(--vault-secondary);opacity:1 }
 .ln-vault .ln-vault-next svg { order:1 }
+.ln-vault [role=alert] { color:var(--vault-error) }
 .ln-vault .ln-vault-message { margin-top:calc(var(--vault-space)*4) }
 .ln-vault .ln-vault-status { min-height:1.5em;margin-bottom:calc(var(--vault-space)*4);font-size:.9em;overflow-wrap:anywhere }
 .ln-vault .ln-vault-status:empty { visibility:hidden }

@@ -31,7 +31,7 @@ desktop startup opens no Vault selection dialog and uses the global config.
 showDetails = true
 
 [plugins."lunaris.theme-settings"]
-theme = "lunaris.base-theme-engine.dark"
+theme = "lunaris.base-theme-engine.monochrome"
 ```
 
 `showDetails` is optional and defaults to `true`. False hides the milestone detail

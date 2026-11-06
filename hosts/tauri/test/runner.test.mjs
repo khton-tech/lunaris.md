@@ -21,7 +21,7 @@ import { composeSlotSurface } from '../dist/slots.js';
 
 test('runner and theme settings use persisted TOML via the real config/filesystem chain and recover after exclusion', async () => {
   const dom = new JSDOM('<div id="app"></div>'); const surface = dom.window.document.getElementById('app');
-  const toml = '[plugins."lunaris.theme-settings"]\ntheme = "lunaris.base-theme-engine.light"\n[plugins."lunaris.runner"]\nshowDetails = false\n';
+  const toml = '[plugins."lunaris.theme-settings"]\ntheme = "lunaris.base-theme-engine.monochrome"\n[plugins."lunaris.runner"]\nshowDetails = false\n';
   const calls = []; let configText = toml;
   const ok = value => ({ ok: true, value }); const fail = code => ({ ok: false, error: { code, message: code } });
   const driver = createTauriFilesystemDriver({ async request(sessionId, operation, args) {
@@ -36,7 +36,7 @@ test('runner and theme settings use persisted TOML via the real config/filesyste
     provides: [{ kind: 'api', id: Logger.id, version: Logger.version }], requires: [], permissions: [], optionalPermissions: [] }, activate(ctx) {
     ctx.provide(Logger, Object.fromEntries(['log','debug','info','warn','error'].map(level => [level, () => true])));
   } });
-  const runner = createRunner({ art: 'LUNARIS' }); const settings = createThemeSettings({ defaultThemeId: 'lunaris.base-theme-engine.dark' });
+  const runner = createRunner({ art: 'LUNARIS' }); const settings = createThemeSettings({ defaultThemeId: 'lunaris.base-theme-engine.monochrome' });
   const session = new HostSession({ scheduler: new TestScheduler(), load: async () => {
     const startup = createStartupProvider(); const layout = composeSlotSurface(surface);
     return { ...layout, startup,
@@ -49,7 +49,7 @@ test('runner and theme settings use persisted TOML via the real config/filesyste
   } });
   await session.start(); assert.equal(session.snapshot().phase, 'running');
   assert.equal(surface.querySelector('[role=status]').textContent, 'System Loaded');
-  assert.equal(surface.querySelector('section').style.backgroundColor, 'rgb(245, 247, 250)');
+  assert.equal(surface.querySelector('section').style.backgroundColor, 'rgb(15, 15, 15)');
   assert.equal(configText, toml); assert.equal(calls.includes('writeText'), false); assert.equal(calls.includes('selectVault'), false);
   const old = surface.querySelector('section'); await session.disable(kit.manifest.id);
   assert.equal(session.snapshot().phase, 'fallback'); assert.equal(surface.childElementCount, 0); assert.equal(old.isConnected, false);
