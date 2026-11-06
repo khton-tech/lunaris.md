@@ -11,6 +11,15 @@
 @import '@mantine/core/styles/Popover.css';
 @import '@mantine/core/styles/Menu.css';
 
+.lm-context-surface { position:fixed;inset:0;pointer-events:none;user-select:none }
+.lm-context-anchor { position:fixed;width:0;height:0;pointer-events:none }
+.lm-root .lm-context-menu { pointer-events:auto;max-width:calc(100vw - 8px);max-height:calc(100dvh - 8px);overflow:auto;width:max-content;min-width:min(12rem,calc(100vw - 8px));padding:var(--vault-space);background:var(--vault-panel);color:var(--vault-text);border:var(--vault-border) solid color-mix(in srgb,var(--vault-control-border) 22%,transparent);border-radius:var(--vault-radius);box-shadow:0 var(--vault-space) calc(var(--vault-space)*3) color-mix(in srgb,var(--vault-background) 35%,transparent) }
+.lm-context-menu [role=menuitem] { min-height:calc(var(--vault-space)*8);padding:var(--vault-space) calc(var(--vault-space)*2);border-radius:calc(var(--vault-radius)*0.5);font:inherit;color:var(--vault-text);white-space:normal;overflow-wrap:anywhere }
+.lm-context-menu [role=menuitem][data-hovered]:not([data-disabled]) { background:var(--vault-hover) }
+.lm-context-menu [role=menuitem]:not([data-disabled]):active { background:var(--vault-selection) }
+.lm-context-menu [role=menuitem][data-disabled] { color:var(--vault-secondary) }
+.lm-context-menu [role=menuitem]:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
+
 .lm-root { isolation:isolate;font-family:var(--mantine-font-family);font-size:var(--mantine-font-size-md);line-height:var(--mantine-line-height);color-scheme:var(--mantine-color-scheme) }
 .lm-root,.lm-root *,.lm-root *::before,.lm-root *::after { box-sizing:border-box;scrollbar-width:none;min-width:0 }
 .lm-root *::-webkit-scrollbar { display:none;width:0;height:0 }

@@ -3,7 +3,11 @@
   "compilerOptions": {
     "rootDir": ".",
     "outDir": "dist",
-    "resolveJsonModule": true
+    "resolveJsonModule": true,
+    "lib": [
+      "ES2022",
+      "DOM"
+    ]
   },
   "include": [
     "src/**/*.ts",
@@ -27,6 +31,9 @@
     },
     {
       "path": "../../../packages/localization"
+    },
+    {
+      "path": "../../../packages/context-menu"
     }
   ]
 }

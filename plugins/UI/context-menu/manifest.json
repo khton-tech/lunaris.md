@@ -1,0 +1,36 @@
+{
+  "manifestVersion": 1,
+  "id": "lunaris.context-menu-provider",
+  "version": "0.1.0",
+  "engine": "^0.1.0",
+  "sdk": "^0.1.0",
+  "entry": "./dist/src/index.js",
+  "provides": [
+    {
+      "kind": "api",
+      "id": "lunaris.context-menu",
+      "version": "1.0.0"
+    }
+  ],
+  "requires": [
+    {
+      "kind": "api",
+      "id": "lunaris.logger",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.components",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.components-changed",
+      "range": "^1.0.0"
+    }
+  ],
+  "permissions": [
+    "ui.dom"
+  ],
+  "optionalPermissions": []
+}

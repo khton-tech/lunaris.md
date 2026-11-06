@@ -1,4 +1,5 @@
 import fileExplorer from "@lunaris/file-explorer";
+import contextMenu from "@lunaris/context-menu-provider";
 import { createRunner } from "@lunaris/runner";
 import workspaceProvider from "@lunaris/workspace-provider";
 import sidebar from "@lunaris/sidebar-plugin";
@@ -38,7 +39,7 @@ export function composeApplication(target: HTMLElement): ApplicationDefinition {
   return {
     ...layout,
     startup,
-    plugins: [fileExplorer, sidebar, sidebarProvider, runner, selector, workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
+    plugins: [contextMenu, fileExplorer, sidebar, sidebarProvider, runner, selector, workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
     entrypoints: [startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, selector.manifest.id, workspace.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id],
     grants: {
       ...layout.grants,
@@ -47,6 +48,7 @@ export function composeApplication(target: HTMLElement): ApplicationDefinition {
       [workspace.manifest.id]: ["vault.access", "ui.dom"],
       [fileExplorer.manifest.id]: ["filesystem.access", "vault.access"],
       [sidebar.manifest.id]: ["ui.dom"],
+      [contextMenu.manifest.id]: ["ui.dom"],
       [themeSettings.manifest.id]: ["config.access"],
       [componentProvider.manifest.id]: ["ui.dom"],
       [mantineComponents.manifest.id]: ["ui.dom"],

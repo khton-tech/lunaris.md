@@ -10,6 +10,11 @@ VaultChanged and LocaleChanged. Registers its localized tab using ctx.signal.
 Calls filesystem list/createDirectory/writeText/move/copy/remove and the owned
 observation watch method. All native access remains behind providers/drivers.
 
+Consumes ContextMenu for shared command registration/rendering. Built-in actions
+join external contributions with explicit File Explorer/Vault/path/selection
+context. The protected Vault root and panel background expose root operations
+without root mutation actions. See the [context menu API](../../../../DOCS/reference/context-menu.md).
+
 The UI uses `lunaris.file-explorer` from Mantine components through Sidebar; the
 controller never imports React/Mantine/Arborist. English/Russian catalogs cover
 all visible copy, including the Tabs dropdown with the current Files entry. The

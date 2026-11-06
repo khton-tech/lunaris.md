@@ -9,6 +9,14 @@ Sidebar, Filesystem, FilesystemObservation, Vault/VaultChanged,
 Localization/LocaleChanged and FileChanged. Permissions: `filesystem.access` and
 `vault.access`. It provides no API/events and needs no DOM permission.
 
+Context menus require the [ContextMenu API](context-menu.md). The controller
+supplies invocation metadata and built-in actions, while the shared provider
+adds contributions from other plugins and mounts the Mantine role in its owned
+overlay. `onContextMenu(request)` in renderer props returns an optional disposable
+menu session. The request carries target element, viewport position, localized
+label, entries, logical path/kind, selection and destination; the controller adds
+the source and Vault identity. All mutation callbacks remain controller-owned.
+
 Existing providers supply filesystem policy, native operations, active Vault,
 Sidebar geometry, localization, logging and themes. The explorer adds a portable
 tree/operation model and controller. The Mantine component plugin adds the
@@ -98,8 +106,8 @@ controller. Props:
   by the controller, not interpreted by the renderer.
 
 Workspace injects its reserved context. SDK updates occur outside React effects.
-Theme and locale updates preserve input nodes/drafts. Mantine menus stay inside
-the owned root. Row truncation retains full paths in native tooltips; focus,
+Theme and locale updates preserve input nodes/drafts. The tab selector stays inside the explorer root; shared context menus stay inside
+the provider-owned overlay. Row truncation retains full paths in native tooltips; focus,
 selection, drop cursors and drag previews use semantic theme colors. Native
 scrollbar chrome stays hidden while scroll/keyboard access remains available.
 
@@ -133,4 +141,4 @@ collision/partial failure, explicit permanent-delete confirmation, external
 filesystem changes, panel collapse/reopen and Vault switching. Desktop automation
 is prohibited; JSDOM cannot verify physical drag/drop or WebView geometry.
 
-Folder rows select on a single click and toggle on double click or disclosure/Enter. Selection does not change folder geometry before dragging. The header contains a localized Tabs dropdown with Files as its sole current item, without a title or operation buttons. The Workspace Vault name appears in an initially expanded root directory row containing the controller tree. This renderer-owned row cannot be renamed, dragged, copied, cut or deleted and has no pointer context menu. Its synthetic identity never reaches controller selection, buffer or mutation callbacks; drop destinations map to the public empty root path. Root disclosure is local view state and resets to expanded on remount. A transient mismatch between Workspace context and controller Vault props shows loading without mounting the old tree or its operations.
+Folder rows select on a single click and toggle on double click or disclosure/Enter. Selection does not change folder geometry before dragging. The header contains a localized Tabs dropdown with Files as its sole current item, without a title or operation buttons. The Workspace Vault name appears in an initially expanded root directory row containing the controller tree. This renderer-owned row cannot be renamed, dragged, copied, cut or deleted and exposes only root-appropriate context-menu operations. Its synthetic identity never reaches controller selection, buffer or mutation callbacks; drop destinations map to the public empty root path. Root disclosure is local view state and resets to expanded on remount. A transient mismatch between Workspace context and controller Vault props shows loading without mounting the old tree or its operations.

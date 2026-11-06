@@ -976,3 +976,18 @@ Local checks passed 95 targeted tests with zero skipped, type fixtures, import
 boundaries, the frontend build, CI scope selection and the export/docs audit.
 Native WebView geometry remains subject to manual acceptance. No actual tool
 plugins, document tabs, resizing, session persistence, merge or push are included.
+
+## Shared context menu and File Explorer integration — 2026-11-06
+
+Owner scope: implement an independent context-menu microplugin with actions,
+nested folders and invocation metadata, then integrate it into File Explorer.
+
+| Task | Status | Delivered behavior / acceptance |
+|---|---|---|
+| Public contract/provider | DONE | SDK-owned contribution registration, per-context trees, immutable sessions, sorting/disabled groups, one-shot dispatch and original-error logging. |
+| Shared Mantine role | DONE | Recursive Menu/Sub controls, hover and keyboard disclosure, viewport coordinates/collision handling, theme inheritance, focus restoration and owned overlay cleanup. |
+| File Explorer/Tauri integration | DONE | Built-in commands join external contributions; explicit source/target/Vault/path/selection/destination, protected root/background actions, Vault/view invalidation and host permission wiring. |
+| Verification | DONE | Targeted provider/controller/Mantine/host tests, strict types and import boundaries; production frontend build and export/documentation audit. Native hover/placement remains manual. |
+
+Branch: `feat/context-menu`. Run `npm run context-menu:check` and the Tauri
+frontend build. See [Context menu](reference/context-menu.md). No merge or push.

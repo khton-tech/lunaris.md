@@ -1,6 +1,8 @@
 import { definePlugin } from "@lunaris/sdk";
 import type { ResourceScope } from "@lunaris/sdk";
 import { Logger } from "@lunaris/logging";
+import { ContextMenu } from "@lunaris/context-menu";
+import type { MenuOpenRequest, MenuSession } from "@lunaris/context-menu";
 import { Sidebar } from "@lunaris/sidebar";
 import { Filesystem, FilesystemObservation, FileChanged } from "@lunaris/filesystem";
 import { Vault, VaultChanged } from "@lunaris/vault";
@@ -12,6 +14,7 @@ import manifest from "../manifest.json" with { type: "json" };
 
 export default definePlugin({ manifest, activate(ctx) {
   const logger = ctx.use(Logger); const sidebar = ctx.use(Sidebar); const fs = ctx.use(Filesystem);
+  const menus = ctx.use(ContextMenu); let menu: MenuSession | undefined;
   const observation = ctx.use(FilesystemObservation); const vaults = ctx.use(Vault); const localization = ctx.use(Localization);
   const messages = localization.register(ctx.pluginId, catalogs, ctx.signal);
   if (!messages.ok) throw new Error("Cannot register explorer localization.", { cause: messages.error });
@@ -21,6 +24,7 @@ export default definePlugin({ manifest, activate(ctx) {
   const text = (key: string) => localization.text(ctx.pluginId, key);
   function publish(): void {
     if (ctx.signal.aborted) return;
+    menu?.dispose(); menu = undefined;
     const current = model;
     const props = { vaultId: current?.vaultId ?? "", data: current?.tree() ?? [], expanded: [...(current?.expanded ?? [])], selection: current?.selection ?? [],
       busy: current?.busy ?? false, loading: (current?.loading ?? 0) > 0, error: current?.error ? text(current.error) : "",
@@ -37,6 +41,16 @@ export default definePlugin({ manifest, activate(ctx) {
       onPaste: (destination: string) => current?.paste(destination) ?? Promise.resolve(false),
       onRemove: (paths: string[]) => current?.remove(paths) ?? Promise.resolve(false),
       onRefresh: () => { if (current?.active) { current.error = ""; requestRefresh(); } },
+      onContextMenu: (request: Omit<MenuOpenRequest, "context"> & { readonly path: string | null; readonly kind: string; readonly selection: readonly string[]; readonly destination: string }) => {
+        if (!current?.active || current !== model || !session) return;
+        const selection = Object.freeze([...request.selection]);
+        const result = menus.open({ target: request.target, x: request.x, y: request.y, label: text("title"), entries: request.entries ?? [],
+          context: { source: ctx.pluginId, target: request.kind,
+            data: { vaultId: current.vaultId, path: request.path, selection, destination: request.destination } },
+        }, session.signal);
+        if (result.ok) { menu = result.value; return menu; }
+        else logger.warn(ctx.pluginId, "Cannot open explorer context menu", { code: result.error.code });
+      },
     };
     const result = registered ? sidebar.update(tabId, { title: text("title"), icon: "files", props })
       : sidebar.register({ id: tabId, title: text("title"), icon: "files", componentId: "lunaris.file-explorer", order: 10, props }, ctx.signal);

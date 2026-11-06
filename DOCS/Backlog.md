@@ -1,5 +1,14 @@
 # Product backlog
 
+## Context menu
+
+Status: IMPLEMENTED on 2026-11-06; native hover/placement acceptance remains manual.
+The public SDK contract and independent provider support owned contributions,
+context-based action/group trees, localized labels, disabled states and one-shot
+sessions. Mantine supplies recursive submenus; File Explorer now opens the shared
+provider with explicit source, target, Vault, path and selection. Tauri composition
+and required integrations are complete. See [Context menu](reference/context-menu.md).
+
 ## File explorer
 
 Status: IMPLEMENTED on 2026-11-06; native visual/drag-and-drop acceptance remains manual.

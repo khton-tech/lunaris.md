@@ -123,6 +123,12 @@
     },
     {
       "path": "plugins/UI/file-explorer"
+    },
+    {
+      "path": "packages/context-menu"
+    },
+    {
+      "path": "plugins/UI/context-menu"
     }
   ]
 }

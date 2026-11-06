@@ -42,7 +42,8 @@
     "@lunaris/workspace-provider": "0.1.0",
     "@lunaris/sidebar-plugin": "0.1.0",
     "@lunaris/sidebar-provider": "0.1.0",
-    "@lunaris/file-explorer": "0.1.0"
+    "@lunaris/file-explorer": "0.1.0",
+    "@lunaris/context-menu-provider": "0.1.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.12.4",

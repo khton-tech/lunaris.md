@@ -93,6 +93,9 @@
     },
     {
       "path": "../../plugins/UI/file-explorer"
+    },
+    {
+      "path": "../../plugins/UI/context-menu"
     }
   ]
 }

@@ -170,6 +170,16 @@ recent rows, bright artwork and reduced-motion settings.
 
 ## File explorer role
 
+The shared `lunaris.context-menu` role renders frozen `items` with viewport
+`x`/`y`, an accessible localized `label`, `onAction(id)` and `onClose()`.
+The context-menu provider mounts it in an owned document overlay; Mantine Menu
+and recursive Menu.Sub provide focus/navigation and hover disclosure. It uses
+the active theme, collision handling, scrollable menus and instant closure.
+The role's root disables size containment so fixed-position submenus escape
+parent menu scrolling. No portal leaves the borrowed target. Explorer context
+menus now use the provider, while the Files tab selector remains local.
+See the [context menu reference](../../../../DOCS/reference/context-menu.md).
+
 `lunaris.file-explorer` renders the public controller props documented in the
 [file explorer reference](../../../../DOCS/reference/file-explorer.md#renderer-contract).
 It uses React Arborist 4.0.1 with react-dnd/HTML5 backend 16.0.1, Mantine menus,
@@ -191,8 +201,8 @@ Vault name is rendered as an initially expanded, protected root row above the
 controller entries; header titles and operation buttons are absent. Root disclosure
 is view-local and resets on remount. Root identities are excluded from controller
 selection and mutation sources; root drop targets map to the public empty path.
-Existing file commands remain available through context menus and shortcuts. Popover/Menu styles are included in styles.css. Menus and themed
-drag previews remain inside the owned root. Custom public row/cursor renderers
+Existing file commands remain available through context menus and shortcuts. Popover/Menu styles are included in styles.css. The tab selector and themed
+drag previews remain inside the owned root; shared context menus use the provider-owned overlay. Custom public row/cursor renderers
 keep names truncatable and drop feedback on the SDK palette.
 
 The tree shares the toolbar's horizontal inset, with compact 28px rows at the
