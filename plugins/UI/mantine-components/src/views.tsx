@@ -3,6 +3,7 @@ import { Box, Button, Input, Paper, Stack, Text, TextInput, Title } from "@manti
 import type { SelectorProps, StartupProps } from "./props.js";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
+import { CardRow } from "./card-row.js";
 
 export function StartupScreen({ props, theme }: { props: StartupProps; theme: ReturnType<typeof resolveTheme> }) {
   return <Box component="section" className="lm-startup" style={{ ...theme.style, padding: theme.startup.padding, gap: theme.startup.gap }}>
@@ -24,11 +25,9 @@ function ActionForm({ mode, props }: { mode: "create" | "select"; props: Selecto
     wasBusy.current = props.busy;
   });
   return <Box className="ln-vault-action" data-open={String(expanded)}>
-    <Button ref={toggle} className="ln-vault-toggle" title={props.text[mode]} disabled={props.busy} aria-expanded={expanded} aria-controls={id}
-      leftSection={<Icon name={mode === "create" ? "create" : "browse"} />} rightSection={<Icon name="expand" />}
-      onClick={event => { props.onMode(mode); if (!expanded && event.detail === 0) browse.current?.focus({ preventScroll: true }); }}>
-      {props.text[mode]}
-    </Button>
+    <CardRow ref={toggle} className="ln-vault-toggle" label={props.text[mode]!} disabled={props.busy} aria-expanded={expanded} aria-controls={id}
+      icon={<Icon name={mode === "create" ? "create" : "browse"} />}
+      onClick={event => { props.onMode(mode); if (!expanded && event.detail === 0) browse.current?.focus({ preventScroll: true }); }} />
     <Box className="ln-vault-disclosure" aria-hidden={!expanded}>
       <Box className="ln-vault-disclosure-body">
         <Box component="form" ref={form} id={id} inert={!expanded} onSubmit={event => { event.preventDefault(); if (expanded && !props.busy && props.canContinue) props.onNext(); }}>
@@ -76,9 +75,9 @@ export function VaultSelector({ props, theme }: { props: SelectorProps; theme: R
       <Title order={2}>{props.text.recent}</Title>
       <Stack component="ul" gap="xs">
         {props.entries.map(entry => <Box component="li" key={entry.reference}>
-          <Button className="lm-recent" fullWidth leftSection={<Icon name="folder" />} disabled={props.busy} data-reference={entry.reference} aria-current={entry.reference === props.activeReference ? "true" : undefined} onClick={() => props.onRecent(entry.reference)}>
-            <Stack gap={0} align="start"><Text component="span">{entry.name}</Text><Text component="small">{entry.label}</Text></Stack>
-          </Button>
+          <CardRow className="lm-recent" label={entry.name} detail={entry.label} icon={<Icon name="folder" />}
+            disabled={props.busy} data-reference={entry.reference} aria-current={entry.reference === props.activeReference ? "true" : undefined}
+            onClick={() => props.onRecent(entry.reference)} />
         </Box>)}
       </Stack>
       <Text hidden={props.entries.length > 0 || !!props.historyError}>{props.text.empty}</Text>
