@@ -191,11 +191,12 @@ test('right-click preserves invocation multi-selection, coordinates and safe roo
   assert.deepEqual(contexts[0].selection, ['folder', 'a.md']); assert.equal(contexts[0].path, 'a.md'); assert.equal(contexts[0].kind, 'file');
   assert.equal(contexts[0].x, 75); assert.equal(contexts[0].y, 95);
   const resolve = request => s.menus.resolve({ source: 'lunaris.file-explorer', target: request.kind, data: {} }, s.ctx.signal, request.entries).value.items;
-  assert.deepEqual(resolve(contexts[0]).map(item => item.icon), ['file-plus', 'folder-plus', 'copy', 'cut', 'trash', 'refresh']);
+  assert.deepEqual(resolve(contexts[0]).map(item => item.icon), ['copy', 'cut', 'trash']);
   contexts[0].entries.find(item => item.id.endsWith('.copy')).run({}); assert.deepEqual(buffered, [[['folder', 'a.md'], false]]);
   rightClick(s.target.querySelector('[data-root]')); await settle();
   assert.equal(contexts[1].kind, 'root'); assert.equal(contexts[1].path, ''); assert.deepEqual(contexts[1].selection, []);
-  assert.equal(contexts[1].entries.find(item => item.id.endsWith('.remove')).disabled, true);
+  assert.equal(contexts[1].entries.find(item => item.id.endsWith('.remove')), undefined);
+  assert.equal(s.target.querySelectorAll('[role=treeitem][aria-selected=true]').length, 0);
   assert.deepEqual(resolve(contexts[1]).map(item => item.id.split('.').at(-1)), ['newFile', 'newFolder', 'refresh']);
   rightClick(s.target.querySelector('.lm-explorer-tree')); await settle();
   assert.equal(contexts[2].kind, 'background'); assert.equal(contexts[2].path, null); assert.equal(contexts[2].destination, '');

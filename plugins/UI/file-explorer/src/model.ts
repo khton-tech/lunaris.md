@@ -24,7 +24,8 @@ export class ExplorerModel {
   tree(path = "", ancestors = new Set<string>()): Entry[] {
     if (ancestors.has(path)) return [];
     const next = new Set(ancestors).add(path);
-    return [...(this.directories.get(path) ?? [])].sort((a, b) => Number(b.kind === "directory") - Number(a.kind === "directory") || basename(a.path).localeCompare(basename(b.path)))
+    return [...(this.directories.get(path) ?? [])].filter(item => item.kind !== "directory" || !basename(item.path).startsWith("."))
+      .sort((a, b) => Number(b.kind === "directory") - Number(a.kind === "directory") || basename(a.path).localeCompare(basename(b.path)))
       .map(item => ({ id: item.path, name: basename(item.path), kind: item.kind, ...(item.kind === "directory" ? { children: this.tree(item.path, next) } : {}) }));
   }
   private target(path: string) { return { vaultId: this.vaultId, path }; }

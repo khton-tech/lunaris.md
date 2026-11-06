@@ -38,6 +38,15 @@ test('lazy directories, folder-first sorting and portable create policy', async 
   assert.equal(await model.create('', '../bad', false), false); assert.equal(model.error, 'INVALID_PATH');
   assert.equal(await model.create('', 'a.md', false), false); assert.equal(model.error, 'ALREADY_EXISTS');
 });
+
+test('dot directories and their subtrees are hidden while dot files remain ordinary files', async () => {
+  const s = setup(); s.entries.set('.lunaris', info('.lunaris', 'directory')); s.entries.set('.env', info('.env'));
+  s.entries.set('folder/.git', info('folder/.git', 'directory')); s.entries.set('folder/.git/config', info('folder/.git/config'));
+  await s.model.refresh(); await s.model.load('folder');
+  assert.deepEqual(s.model.tree().map(entry => entry.id), ['folder', '.env', 'a.md']);
+  assert.deepEqual(s.model.tree()[0].children.map(entry => entry.id), ['folder/note.md']);
+  assert.equal(s.calls.some(call => call[0] === 'list' && call[1].path.startsWith('.lunaris')), false);
+});
 test('rename preserves expanded state and remaps selection after confirmed filesystem success', async () => {
   const { model, calls } = setup(); await model.refresh(); model.toggle('folder', true); await model.load('folder'); model.select(['folder/note.md']);
   assert.equal(await model.rename('folder', 'renamed'), true);

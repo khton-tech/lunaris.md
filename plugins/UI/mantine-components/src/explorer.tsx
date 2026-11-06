@@ -151,9 +151,12 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
   function openMenu(path: string | null, x: number, y: number): void {
     if (form || props.busy) return;
     const node = path === null ? undefined : tree.current?.get(path);
+    if (path === null || path === ROOT_ID) { tree.current?.focus(ROOT_ID, { scroll: false }); tree.current?.deselectAll(); props.onSelection([]); }
     if (node && path !== ROOT_ID && !node.isSelected) node.select();
     const paths = path === null || path === ROOT_ID ? [] : selected();
     const parent = path === null || path === ROOT_ID ? "" : node?.isInternal ? node.id : node?.parent?.id === ROOT_ID ? "" : node?.parent?.id ?? "";
+    const container = (path === null || path === ROOT_ID || node?.isInternal) && paths.length <= 1;
+    const actions = [...(container ? ["newFile", "newFolder", "paste", "refresh"] : []), ...(paths.length ? ["rename", "copy", "cut", "remove"] : [])];
     const target = host.current?.querySelector<HTMLElement>("[role=tree]");
     if (!target) return;
     // Selection publishes first; the menu then receives the new controller state.
@@ -161,7 +164,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
       if (!alive.current) return;
       menu.current = props.onContextMenu({ target, x, y, label: t.title!, path: path === ROOT_ID ? "" : path,
         kind: path === null ? "background" : path === ROOT_ID ? "root" : node?.data.kind ?? "background", selection: paths, destination: parent,
-        entries: ["newFile", "newFolder", "rename", "copy", "cut", "paste", "remove", "refresh"].map((action, order) => ({
+        entries: actions.map((action, order) => ({
           kind: "action", id: `lunaris.file-explorer.${action}`, label: t[action]!, order,
           icon: ({ newFile: "file-plus", newFolder: "folder-plus", rename: "rename", copy: "copy", cut: "cut", paste: "paste", remove: "trash", refresh: "refresh" } as Record<string, string>)[action]!,
           disabled: (action === "paste" && !props.canPaste) || (action === "rename" && paths.length !== 1) || (["copy", "cut", "remove"].includes(action) && paths.length === 0),
@@ -216,7 +219,9 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
         <Group gap="xs"><Button ref={confirm} type="submit" disabled={props.busy || (form.kind !== "delete" && !name)}>{form.kind === "delete" ? t.remove : t.create}</Button><Button disabled={props.busy} onClick={closeForm}>{t.cancel}</Button></Group>
       </Stack>
     </Paper>}
-    <Box ref={host} className="lm-explorer-tree" onContextMenu={event => { event.preventDefault(); event.stopPropagation(); openMenu(null, event.clientX, event.clientY); }}>
+    <Box ref={host} className="lm-explorer-tree" onClick={event => {
+      if (!(event.target as HTMLElement).closest("[role=treeitem]") && !form) { tree.current?.deselectAll(); props.onSelection([]); }
+    }} onContextMenu={event => { event.preventDefault(); event.stopPropagation(); openMenu(null, event.clientX, event.clientY); }}>
       {!props.data.length && <Text role="status" className="lm-explorer-message">{props.loading ? t.loading : t.empty}</Text>}
       <ExplorerContext.Provider value={{ props, surface: () => host.current?.closest<HTMLElement>(".lm-explorer") ?? null,
         context: openMenu }}>

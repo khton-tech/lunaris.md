@@ -31,6 +31,13 @@ contract. No kernel runtime change was necessary.
 
 ## User operations
 
+Dot-prefixed directories (including `.lunaris` and `.git`) and their subtrees
+are excluded from the displayed tree. Dot-prefixed files remain visible.
+Right-clicking the root/background clears the old file selection before opening
+root commands. Clicking the background also clears selection. File targets show
+selection operations; creation/paste/refresh are offered only on a single folder,
+the root or background. Multi-selection offers only selection operations.
+
 - Expand folders on demand; folders sort before files, followed by name sorting.
 - Ctrl/Shift selection and Ctrl+A use Arborist's tree navigation/selection.
 - Create an empty file or folder through the context menu, Ctrl+N or Ctrl+Shift+N.

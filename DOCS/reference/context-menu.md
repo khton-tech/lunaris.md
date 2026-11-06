@@ -120,7 +120,9 @@ Right-clicking a selected row preserves multi-selection. An unselected row is
 selected first. Root/background menus offer root creation/paste/refresh without
 exposing the synthetic root ID to mutations. With an empty clipboard, root and
 background show only New file, New folder and Refresh; Paste appears when
-available. File operations appear only for a matching selection. Menu actions retain their invocation
+available. File targets and multi-selection omit creation, paste and refresh;
+single-folder targets retain these directory operations. Root/background invocation
+clears previous file selection. Menu actions retain their invocation
 selection, including while focus moves to the overlay. Controller updates, Vault
 replacement and view disposal close obsolete menus. Keyboard shortcuts retain
 their existing behavior; ContextMenu/Shift+F10 open at the focused row.
