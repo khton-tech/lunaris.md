@@ -43,13 +43,14 @@
 .ln-vault-main::before { content:"";flex:0 0 var(--vault-center-offset,0px) }
 .ln-vault-content { flex-shrink:0;width:100%;max-width:28rem;container-type:inline-size;display:flow-root }
 .ln-vault pre { color:var(--vault-text);font: min(8px,1.7cqw)/1.2 var(--vault-mono);white-space:pre;margin:0 0 calc(var(--vault-space)*6);text-align:center;max-width:100%;overflow:auto }
-.lm-root .ln-vault-toggle { width:100%;padding:calc(var(--vault-space)*4) }
+.lm-root .ln-vault-toggle { width:100%;min-height:calc(var(--vault-space)*10);padding:calc(var(--vault-space)*2) calc(var(--vault-space)*3);border:var(--vault-border) solid color-mix(in srgb,var(--vault-control-border) 22%,transparent);transition:background-color var(--vault-motion-fast) var(--vault-motion-easing),border-color var(--vault-motion-fast) var(--vault-motion-easing) }
 .ln-vault-toggle .mantine-Button-inner { width:100%;justify-content:space-between;gap:calc(var(--vault-space)*3) }
-.ln-vault-toggle .mantine-Button-label { flex:1;text-align:start }
+.lm-root .ln-vault-toggle .mantine-Button-label { flex:1;text-align:start;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block }
+.ln-vault-toggle .mantine-Button-section { flex-shrink:0 }
 .ln-vault-disclosure { display:grid;grid-template-rows:0fr;opacity:0;visibility:hidden;transition:grid-template-rows var(--vault-motion-normal) var(--vault-motion-easing),opacity var(--vault-motion-normal) var(--vault-motion-easing),visibility var(--vault-motion-normal) }
 .ln-vault-action[data-open=true] .ln-vault-disclosure { grid-template-rows:1fr;opacity:1;visibility:visible }
 .ln-vault-disclosure-body { overflow:hidden;min-height:0 }
-.ln-vault form { padding:calc(var(--vault-space)*2) calc(var(--vault-space)*4) calc(var(--vault-space)*4) }
+.ln-vault form { padding:calc(var(--vault-space)*3) calc(var(--vault-space)*3) calc(var(--vault-space)*4) }
 .lm-root .ln-vault-folder { text-align:start }
 .ln-vault-path { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
 .ln-vault-path[data-placeholder] { color:var(--mantine-color-placeholder) }
@@ -60,6 +61,7 @@
 @media(hover:hover) {
  .lm-root .lm-button:enabled:hover:not(:active) { background:var(--vault-hover) }
  .lm-root .ln-vault-next:enabled:hover:not(:active) { background:var(--vault-accent-hover) }
+ .lm-root .ln-vault-toggle:enabled:hover { border-color:color-mix(in srgb,var(--vault-control-border) 45%,transparent) }
  .lm-root .lm-input:enabled:hover:not(:focus):not(:focus-visible) { border-color:var(--vault-control-border) }
 }
 @media(prefers-reduced-motion:reduce) { .lm-root .lm-button,.lm-root .lm-input,.lm-root .ln-vault-disclosure { transition:none } }
@@ -67,7 +69,6 @@
  .lm-root .ln-vault-main { padding:calc(var(--vault-space)*4) }
  .ln-vault pre { margin-bottom:calc(var(--vault-space)*3) }
  .ln-vault-status:empty { min-height:0;margin-bottom:0!important }
- .lm-root .ln-vault-toggle { padding-block:calc(var(--vault-space)*3) }
 }
 @container(max-width:40rem) {
  .ln-vault { grid-template-columns:minmax(0,1fr);grid-template-rows:auto auto;align-content:start }

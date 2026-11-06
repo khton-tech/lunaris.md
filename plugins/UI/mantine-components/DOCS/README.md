@@ -76,6 +76,11 @@ come from the SDK theme. Input boundaries blend controlBorder into content at re
 and expose the full controlBorder on hover and focus on the focused boundary.
 The scoped root supplies typography and color scheme without global baseline CSS.
 Branding and form width are restrained to keep controls primary.
+Create/select action headers are compact single-line rows (40px minimum with the
+default spacing token). Their theme-derived 22% border remains visible at rest
+and strengthens to 45% on hover. Long labels truncate visually while retaining
+their full accessible name and native title; icons do not shrink. Disclosure
+content expands below the row without increasing the header's padding.
 
 The adapter in src/theme.ts translates the shared engine's colors, geometry,
 spacing, typography, startup tokens and motion into Mantine theme/owned CSS

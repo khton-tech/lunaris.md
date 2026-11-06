@@ -24,7 +24,7 @@ function ActionForm({ mode, props }: { mode: "create" | "select"; props: Selecto
     wasBusy.current = props.busy;
   });
   return <Box className="ln-vault-action" data-open={String(expanded)}>
-    <Button ref={toggle} className="ln-vault-toggle" disabled={props.busy} aria-expanded={expanded} aria-controls={id}
+    <Button ref={toggle} className="ln-vault-toggle" title={props.text[mode]} disabled={props.busy} aria-expanded={expanded} aria-controls={id}
       leftSection={<Icon name={mode === "create" ? "create" : "browse"} />} rightSection={<Icon name="expand" />}
       onClick={event => { props.onMode(mode); if (!expanded && event.detail === 0) browse.current?.focus({ preventScroll: true }); }}>
       {props.text[mode]}
