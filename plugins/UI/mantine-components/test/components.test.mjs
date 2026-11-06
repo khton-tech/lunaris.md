@@ -218,3 +218,49 @@ test('explorer restores visible selection, submits F2 rename, handles copy and k
   assert.ok(s.target.querySelector('.lm-root [role=menu]')); assert.equal(s.dom.window.document.querySelector('[data-portal]'), null);
   result.value.dispose(); await s.stop();
 });
+
+
+test('folder row selection does not toggle layout; double click and disclosure open exactly once', async () => {
+  const s = await setup(); await s.start(); const toggles = [];
+  s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 320);
+  const props = explorerFixture({ expanded: [], onToggle: (...args) => toggles.push(args) });
+  const mounted = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true); await settle();
+  const row = s.target.querySelector('[role=treeitem]');
+  row.click(); await settle(); assert.deepEqual(toggles, []);
+  row.dispatchEvent(new s.dom.window.MouseEvent('dblclick', { bubbles: true })); await settle(); assert.deepEqual(toggles, [['folder', true]]);
+  row.querySelector('button').click(); await settle(); assert.deepEqual(toggles, [['folder', true], ['folder', false]]);
+  await s.stop();
+});
+
+test('new Workspace context cannot display or operate the previous Vault tree', async () => {
+  const s = await setup(); await s.start();
+  const old = explorerFixture({ workspace: { vaultId: 'b', vaultName: 'Second Vault' } });
+  const mounted = s.components.mount('lunaris.file-explorer', s.target, old, s.ctx.signal); assert.equal(mounted.ok, true);
+  assert.equal(s.target.querySelector('[role=tree]'), null); assert.equal(s.target.querySelector('[role=status]').textContent, 'Loading');
+  assert.equal(s.target.querySelector('[aria-label="New file"]'), null);
+  mounted.value.update({ ...old, vaultId: 'b', data: [{ id: 'second.md', name: 'second.md', kind: 'file' }] }); await settle();
+  assert.equal(s.target.querySelector('.lm-explorer-heading').textContent, 'Second Vault');
+  assert.equal(s.target.querySelector('[title="a.md"]'), null); assert.ok(s.target.querySelector('[title="second.md"]'));
+  await s.stop();
+});
+
+
+test('HTML5 drag/drop passes the hovered folder to the controller without toggling the source', async () => {
+  const s = await setup(); await s.start(); const moves = [];
+  s.dom.window.HTMLElement.prototype.getBoundingClientRect = function () {
+    const row = this.closest('[role=treeitem]');
+    return new s.dom.window.DOMRect(0, row ? parseFloat(row.style.top) || 0 : 0, 320, row ? 28 : 320);
+  };
+  const props = explorerFixture({ expanded: [], onMove: async (...args) => { moves.push(args); return true; } });
+  const mounted = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true); await settle();
+  const source = s.target.querySelector('[title="a.md"]'); const target = s.target.querySelector('[title="folder"]');
+  const transfer = { types: [], files: [], setData() {}, getData() { return ''; }, setDragImage() {}, effectAllowed: 'all', dropEffect: 'move' };
+  function drag(element, type, y) {
+    const event = new s.dom.window.MouseEvent(type, { bubbles: true, cancelable: true, clientX: 80, clientY: y });
+    Object.defineProperty(event, 'dataTransfer', { value: transfer }); element.dispatchEvent(event);
+  }
+  drag(source, 'dragstart', 42); await settle();
+  drag(target, 'dragenter', 14); drag(target, 'dragover', 14); await settle();
+  drag(target, 'drop', 14); drag(source, 'dragend', 14); await settle();
+  assert.deepEqual(moves, [[['a.md'], 'folder']]); await s.stop();
+});

@@ -12,7 +12,7 @@ type Form = { kind: "file" | "folder"; parent: string } | { kind: "delete"; path
 interface Draft { form: Form | null; name: string }
 interface ExplorerProps {
   vaultId: string; data: Entry[]; expanded: string[]; selection: string[]; busy: boolean; loading: boolean; error: string; degraded: string; canPaste: boolean;
-  workspace?: { vaultId: string }; text: Record<string, string>;
+  workspace?: { vaultId: string; vaultName?: string }; text: Record<string, string>;
   onToggle(path: string, open: boolean): void; onSelection(paths: string[]): void; onBuffer(paths: string[], cut: boolean): void;
   onCreate(parent: string, name: string, directory: boolean): Promise<boolean>; onRename(path: string, name: string): Promise<boolean>;
   onMove(paths: string[], destination: string): Promise<boolean>; onPaste(destination: string): Promise<boolean>;
@@ -38,7 +38,12 @@ export function explorerProps(value: ComponentProps): ExplorerProps {
 }
 const ExplorerContext = createContext<{ props: ExplorerProps; surface(): HTMLElement | null; context(path: string): void } | null>(null);
 function ExplorerRow({ node, attrs, innerRef, children }: RowRendererProps<Entry>) {
-  return <div {...attrs} ref={innerRef} style={{ ...attrs.style, minWidth: 0 }} onFocus={event => event.stopPropagation()} onClick={node.handleClick}>{children}</div>;
+  return <div {...attrs} ref={innerRef} style={{ ...attrs.style, minWidth: 0 }} onFocus={event => event.stopPropagation()}
+    onClick={event => {
+      // A plain click selects without changing the geometry under a drag source.
+      if (event.ctrlKey || event.metaKey || event.shiftKey) node.handleClick(event);
+      else node.select();
+    }} onDoubleClick={event => { if (!event.ctrlKey && !event.metaKey && !event.shiftKey) node.activate(); }}>{children}</div>;
 }
 function ExplorerCursor({ top, left, indent }: CursorProps) {
   return <Box className="lm-explorer-cursor" style={{ top, left, right: indent }} />;
@@ -76,6 +81,12 @@ function ExplorerNode(payload: NodeRendererProps<Entry>) {
   </Box>;
 }
 export function FileExplorer({ props, theme }: { props: ExplorerProps; theme: ReturnType<typeof resolveTheme> }) {
+  // Workspace can mount the new Vault before Sidebar receives fresh controller
+  // props. Never show the previous Vault's tree or callbacks in that interval.
+  if (props.workspace && props.workspace.vaultId !== props.vaultId) return <Box className="lm-explorer" style={theme.style}><Text role="status" className="lm-explorer-message">{props.text.loading}</Text></Box>;
+  return <ExplorerView key={props.vaultId} props={props} theme={theme} />;
+}
+function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnType<typeof resolveTheme> }) {
   const host = useRef<HTMLDivElement>(null); const tree = useRef<TreeApi<Entry>>(null); const alive = useRef(true);
   const synchronizing = useRef(false);
   const initializing = useRef(true);
@@ -153,7 +164,7 @@ export function FileExplorer({ props, theme }: { props: ExplorerProps; theme: Re
   const count = props.selection.length;
   return <Box className="lm-explorer" style={theme.style} onKeyDownCapture={keyboard} aria-label={t.title} aria-busy={props.busy || props.loading}>
     <Group className="lm-explorer-toolbar" gap="xs" wrap="wrap">
-      <Text className="lm-explorer-heading">{t.title}</Text>
+      <Text className="lm-explorer-heading" title={props.workspace?.vaultName || t.title}>{props.workspace?.vaultName || t.title}</Text>
       <ActionIcon variant="subtle" aria-label={t.newFile} title={t.newFile} disabled={props.busy} onClick={() => command("newFile")}><Icon name="create" /></ActionIcon>
       <ActionIcon variant="subtle" aria-label={t.newFolder} title={t.newFolder} disabled={props.busy} onClick={() => command("newFolder")}><Icon name="folder" /></ActionIcon>
       <Menu opened={menu} onChange={setMenu} withinPortal={false} position="bottom-end" returnFocus>

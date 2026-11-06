@@ -19,7 +19,7 @@ async function setup() {
   let side; let locales;
   kernel.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push(args); return true; }])));
   kernel.installMock(Filesystem, { ...Object.fromEntries(filesystemMethods.map(method => [method, async () => ({ ok: true, value: null })])),
-    list: async target => { lists.push(target); return { ok: true, value: [{ path: 'folder', kind: 'directory', size: 0, modifiedAt: null }] }; },
+    list: async target => { lists.push(target); return { ok: true, value: target.path === '' ? [{ path: 'folder', kind: 'directory', size: 0, modifiedAt: null }, { path: 'file-' + target.vaultId + '.md', kind: 'file', size: 0, modifiedAt: null }] : [{ path: target.path + '/note-' + target.vaultId + '.md', kind: 'file', size: 0, modifiedAt: null }] }; },
   });
   kernel.installMock(FilesystemObservation, { watch: async (target, owner) => { watches.push({ target, owner }); return { ok: true, value: `watch-${target.vaultId}` }; } });
   kernel.installMock(Vault, { current: () => current, open: async () => ({ ok: true, value: null }), close: async () => ({ ok: true, value: null }) });
@@ -33,6 +33,7 @@ test('SDK controller registers a localized sidebar tool, preserves collapsed sta
   const s = await setup();
   assert.equal(s.tab().componentId, 'lunaris.file-explorer'); assert.equal(s.tab().props.vaultId, 'a');
   assert.equal(s.tab().props.data[0].id, 'folder');
+  assert.deepEqual(s.lists[0], { vaultId: 'a', path: '' });
   s.side.select(null); s.tab().props.onSelection(['folder']); s.tab().props.onToggle('folder', true); await flush();
   assert.equal(s.side.snapshot().activeId, null); assert.deepEqual(s.tab().props.expanded, ['folder']);
   const before = s.lists.length;
@@ -45,6 +46,9 @@ test('Vault switching cancels the old watch and stale view callbacks; restart re
   const s = await setup(); const stale = s.tab().props;
   await s.switch({ id: 'b', name: 'B' });
   assert.equal(s.watches[0].owner.aborted, true); assert.equal(s.tab().props.vaultId, 'b');
+  assert.deepEqual(s.watches[1].target, { vaultId: 'b', path: '' });
+  assert.ok(s.tab().props.data.some(item => item.id === 'file-b.md'));
+  assert.ok(!s.tab().props.data.some(item => item.id === 'file-a.md'));
   assert.equal(await stale.onCreate('', 'stale.md', false), false); stale.onSelection(['old']); await flush();
   assert.deepEqual(s.tab().props.selection, []);
   await s.kernel.stop(explorer.manifest.id); await flush(); assert.equal(s.watches[1].owner.aborted, true); assert.equal(s.side.snapshot().tabs.length, 0);

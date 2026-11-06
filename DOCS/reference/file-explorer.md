@@ -132,3 +132,5 @@ Ctrl/Shift selection, F2, creation, drag/drop to root/folders, copy/cut/paste,
 collision/partial failure, explicit permanent-delete confirmation, external
 filesystem changes, panel collapse/reopen and Vault switching. Desktop automation
 is prohibited; JSDOM cannot verify physical drag/drop or WebView geometry.
+
+Folder rows select on a single click and toggle on double click or disclosure/Enter. Selection does not change folder geometry before dragging. The header shows the Workspace Vault name. A transient mismatch between Workspace context and controller Vault props shows loading without mounting the old tree or its operations.
