@@ -101,7 +101,10 @@
 @media(prefers-reduced-motion:reduce) { .lm-root .lm-button,.lm-root .lm-input,.lm-root .ln-vault-disclosure { transition:none } }
 .lm-explorer { position:relative;display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;overflow:auto;user-select:none }
 .lm-explorer-toolbar { flex-shrink:0;padding:calc(var(--vault-space)*2);position:relative }
-.lm-explorer-heading { flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500 }
+.lm-explorer-tabs { max-width:100%;min-width:0 }
+.lm-explorer-tabs .mantine-Button-label { overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
+.lm-explorer-tabs .mantine-Button-section { transform:rotate(90deg);flex-shrink:0 }
+.lm-explorer-menu-anchor { position:absolute;inset-inline-start:0;bottom:0;width:1px;height:1px }
 .lm-explorer-tree { flex:1;min-height:3em;min-width:0;overflow:hidden }
 .lm-explorer-row { min-width:0;outline:none }
 .lm-explorer-cursor { position:absolute;pointer-events:none;height:var(--vault-focus-width);background:var(--vault-focus);z-index:1 }

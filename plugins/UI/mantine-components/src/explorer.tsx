@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { ActionIcon, Box, Button, Group, Menu, Paper, Stack, Text, TextInput } from "@mantine/core";
 import { Tree } from "react-arborist";
@@ -7,6 +7,8 @@ import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
 
+// Absolute paths never occur in the Vault-relative controller tree.
+const ROOT_ID = "/";
 interface Entry { id: string; name: string; kind: string; children?: Entry[] }
 type Form = { kind: "file" | "folder"; parent: string } | { kind: "delete"; paths: string[] };
 interface Draft { form: Form | null; name: string }
@@ -72,7 +74,7 @@ function RenameInput({ node }: NodeRendererProps<Entry>) {
 function ExplorerNode(payload: NodeRendererProps<Entry>) {
   const { node, style, dragHandle } = payload; const { props, context } = useContext(ExplorerContext)!;
   return <Box ref={dragHandle} style={style} className="lm-explorer-node" data-selected={node.isSelected || undefined} data-drop={node.willReceiveDrop || undefined}
-    title={node.id} onContextMenu={event => { event.preventDefault(); event.stopPropagation(); context(node.id); }}>
+    title={node.id === ROOT_ID ? node.data.name : node.id} onContextMenu={event => { event.preventDefault(); event.stopPropagation(); if (node.id !== ROOT_ID) context(node.id); }}>
     {node.isInternal ? <ActionIcon className="lm-explorer-disclosure" variant="subtle" size="xs" tabIndex={-1} aria-label={node.data.name} aria-expanded={node.isOpen}
       disabled={props.busy} onClick={event => { event.stopPropagation(); node.toggle(); }}><span data-open={node.isOpen || undefined}><Icon name="expand" /></span></ActionIcon>
       : <span className="lm-explorer-spacer" />}
@@ -92,8 +94,9 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
   const initializing = useRef(true);
   const [size, setSize] = useState({ height: 1, row: 28 }); const [menu, setMenu] = useState(false);
   const [form, setForm] = useState<Form | null>(() => props.initialDraft.form); const [name, setName] = useState(() => props.initialDraft.name);
-  const actions = useRef<HTMLButtonElement>(null); const field = useRef<HTMLInputElement>(null); const confirm = useRef<HTMLButtonElement>(null);
+  const field = useRef<HTMLInputElement>(null); const confirm = useRef<HTMLButtonElement>(null);
   const t = props.text;
+  const data = useMemo<Entry[]>(() => [{ id: ROOT_ID, name: props.workspace?.vaultName || t.root!, kind: "directory", children: props.data }], [props.data, props.workspace?.vaultName, t.root]);
   useLayoutEffect(() => { props.onDraft({ form, name }); }, [form, name, props.onDraft]);
   useLayoutEffect(() => {
     alive.current = true;
@@ -122,18 +125,20 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     try { tree.current?.setSelection({ ids: props.selection, anchor: props.selection[0] ?? null, mostRecent: props.selection.at(-1) ?? null }); }
     finally { synchronizing.current = false; initializing.current = false; }
   }, []);
-  function selected(): string[] { return tree.current ? [...tree.current.selectedIds] : props.selection; }
+  function selected(): string[] { return (tree.current ? [...tree.current.selectedIds] : props.selection).filter(path => path !== ROOT_ID); }
   function destination(): string {
     const api = tree.current; const paths = selected(); const node = paths.length === 1 ? api?.get(paths[0]!) : null;
-    return node?.isInternal ? node.id : node?.parent?.isRoot ? "" : node?.parent?.id ?? "";
+    const path = node?.isInternal ? node.id : node?.parent?.isRoot ? "" : node?.parent?.id ?? "";
+    return path === ROOT_ID ? "" : path;
   }
-  function closeForm(): void { setForm(null); actions.current?.focus({ preventScroll: true }); }
+  function focusTree(): void { host.current?.querySelector<HTMLElement>("[role=tree]")?.focus({ preventScroll: true }); }
+  function closeForm(): void { setForm(null); focusTree(); }
   function command(command: string): void {
     setMenu(false); if (props.busy) return;
     const paths = selected();
     if (command === "newFile" || command === "newFolder") { setName(""); setForm({ kind: command === "newFolder" ? "folder" : "file", parent: destination() }); }
     else if (command === "rename" && paths.length === 1) void tree.current?.edit(paths[0]!);
-    else if (command === "copy" || command === "cut") props.onBuffer(paths, command === "cut");
+    else if ((command === "copy" || command === "cut") && paths.length) props.onBuffer(paths, command === "cut");
     else if (command === "paste") void props.onPaste(destination());
     else if (command === "remove" && paths.length) setForm({ kind: "delete", paths });
     else if (command === "refresh") props.onRefresh();
@@ -161,14 +166,15 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     if ((success || form.kind === "delete") && alive.current) closeForm();
   }
   useLayoutEffect(() => { if (form?.kind === "delete") confirm.current?.focus(); else if (form) field.current?.focus(); }, [form]);
-  const count = props.selection.length;
+  const count = props.selection.filter(path => path !== ROOT_ID).length;
   return <Box className="lm-explorer" style={{ ...theme.style, backgroundColor: "transparent" }} onKeyDownCapture={keyboard} aria-label={t.title} aria-busy={props.busy || props.loading}>
     <Group className="lm-explorer-toolbar" gap="xs" wrap="wrap">
-      <Text className="lm-explorer-heading" title={props.workspace?.vaultName || t.title}>{props.workspace?.vaultName || t.title}</Text>
-      <ActionIcon variant="subtle" aria-label={t.newFile} title={t.newFile} disabled={props.busy} onClick={() => command("newFile")}><Icon name="create" /></ActionIcon>
-      <ActionIcon variant="subtle" aria-label={t.newFolder} title={t.newFolder} disabled={props.busy} onClick={() => command("newFolder")}><Icon name="folder" /></ActionIcon>
-      <Menu opened={menu} onChange={setMenu} withinPortal={false} position="bottom-end" returnFocus>
-        <Menu.Target><ActionIcon ref={actions} variant="subtle" aria-label={t.actions} title={t.actions} disabled={props.busy}><Icon name="actions" /></ActionIcon></Menu.Target>
+      <Menu withinPortal={false} position="bottom-start" returnFocus>
+        <Menu.Target><Button variant="subtle" className="lm-explorer-tabs" aria-label={t.tabs} rightSection={<Icon name="expand" />}>{t.title}</Button></Menu.Target>
+        <Menu.Dropdown className="lm-explorer-menu"><Menu.Item aria-current="page">{t.title}</Menu.Item></Menu.Dropdown>
+      </Menu>
+      <Menu opened={menu} onChange={setMenu} withinPortal={false} position="bottom-start" returnFocus={false} onClose={focusTree}>
+        <Menu.Target><Box className="lm-explorer-menu-anchor" aria-hidden="true" tabIndex={-1} /></Menu.Target>
         <Menu.Dropdown className="lm-explorer-menu">
           {["newFile", "newFolder", "rename", "copy", "cut", "paste", "remove", "refresh"].map(action => <Menu.Item key={action}
             disabled={props.busy || (action === "paste" && !props.canPaste) || (action === "rename" && count !== 1) || (["copy", "cut", "remove"].includes(action) && count === 0)}
@@ -191,16 +197,16 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
       {!props.data.length && <Text role="status" className="lm-explorer-message">{props.loading ? t.loading : t.empty}</Text>}
       <ExplorerContext.Provider value={{ props, surface: () => host.current?.closest<HTMLElement>(".lm-explorer") ?? null,
         context(path) { const node = tree.current?.get(path); if (node && !node.isSelected) node.select(); setMenu(true); } }}>
-        <Tree<Entry> ref={tree} data={props.data} width="100%" height={Math.max(1, size.height - (!props.data.length ? size.row : 0))} rowHeight={size.row} indent={size.row * 0.6}
-          openByDefault={false} selectionFollowsFocus initialOpenState={Object.fromEntries(props.expanded.map(path => [path, true]))} aria-label={t.title!} rowClassName="lm-explorer-row"
+        <Tree<Entry> ref={tree} data={data} width="100%" height={Math.max(1, size.height - (!props.data.length ? size.row : 0))} rowHeight={size.row} indent={size.row * 0.6}
+          openByDefault={false} selectionFollowsFocus initialOpenState={Object.fromEntries([ROOT_ID, ...props.expanded].map(path => [path, true]))} aria-label={t.title!} rowClassName="lm-explorer-row"
           renderRow={ExplorerRow} renderCursor={ExplorerCursor} renderDragPreview={ExplorerDragPreview}
-          disableEdit={props.busy} disableDrag={node => props.busy || !["file", "directory"].includes(node.kind)}
+          disableEdit={node => props.busy || node.id === ROOT_ID} disableDrag={node => props.busy || node.id === ROOT_ID || !["file", "directory"].includes(node.kind)}
           disableDrop={({ parentNode, dragNodes }) => props.busy || (!parentNode.isRoot && !parentNode.isInternal) || dragNodes.some(node => parentNode.id === node.id || parentNode.id.startsWith(`${node.id}/`))}
-          onToggle={path => { if (!synchronizing.current) props.onToggle(path, tree.current?.isOpen(path) ?? false); }}
-          onSelect={nodes => { if (!synchronizing.current && !initializing.current) props.onSelection(nodes.map(node => node.id)); }}
+          onToggle={path => { if (!synchronizing.current && path !== ROOT_ID) props.onToggle(path, tree.current?.isOpen(path) ?? false); }}
+          onSelect={nodes => { if (!synchronizing.current && !initializing.current) props.onSelection(nodes.map(node => node.id).filter(path => path !== ROOT_ID)); }}
           onActivate={node => { if (node.isInternal && !props.busy) node.toggle(); }}
-          onRename={async ({ id, name }) => { await props.onRename(id, name); }}
-          onMove={async ({ dragIds, parentId }) => { await props.onMove(dragIds, parentId ?? ""); }}
+          onRename={async ({ id, name }) => { if (id !== ROOT_ID) await props.onRename(id, name); }}
+          onMove={async ({ dragIds, parentId }) => { if (!dragIds.includes(ROOT_ID)) await props.onMove(dragIds, parentId === ROOT_ID ? "" : parentId ?? ""); }}
           onContextMenu={event => { event.preventDefault(); setMenu(true); }}>{ExplorerNode}</Tree>
       </ExplorerContext.Provider>
     </Box>

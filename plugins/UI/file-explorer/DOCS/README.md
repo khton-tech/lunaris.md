@@ -12,7 +12,9 @@ observation watch method. All native access remains behind providers/drivers.
 
 The UI uses `lunaris.file-explorer` from Mantine components through Sidebar; the
 controller never imports React/Mantine/Arborist. English/Russian catalogs cover
-all visible copy. Tree state, operation policy, drafts and an in-memory per-Vault
+all visible copy, including the Tabs dropdown with the current Files entry. The
+renderer displays the Workspace Vault name as a protected tree root; operations
+remain available for ordinary entries through context menus and keyboard shortcuts. Tree state, operation policy, drafts and an in-memory per-Vault
 copy/cut buffer belong to the controller, independent of a mounted view.
 
 See the [full reference](../../../../DOCS/reference/file-explorer.md) for keyboard

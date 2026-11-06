@@ -150,7 +150,7 @@ const settle = () => new Promise(resolve => setTimeout(resolve, 25));
 function explorerFixture(overrides = {}) {
   return { vaultId: 'a', workspace: { vaultId: 'a' }, data: [{ id: 'folder', name: 'Folder', kind: 'directory', children: [{ id: 'folder/note.md', name: 'note.md', kind: 'file' }] }, { id: 'a.md', name: '<img src=x>.md', kind: 'file' }],
     expanded: ['folder'], selection: [], busy: false, loading: false, error: '', degraded: '', canPaste: false,
-    text: { title: 'Files', newFile: 'New file', newFolder: 'New folder', rename: 'Rename', copy: 'Copy', cut: 'Cut', paste: 'Paste', remove: 'Delete', refresh: 'Refresh', actions: 'Actions', name: 'Name', create: 'Create', cancel: 'Cancel', empty: 'No files', loading: 'Loading', root: 'Vault root', retry: 'Retry', confirmDelete: 'Delete permanently?', deleteWarning: 'No trash or undo' },
+    text: { tabs: 'Tabs', title: 'Files', newFile: 'New file', newFolder: 'New folder', rename: 'Rename', copy: 'Copy', cut: 'Cut', paste: 'Paste', remove: 'Delete', refresh: 'Refresh', actions: 'Actions', name: 'Name', create: 'Create', cancel: 'Cancel', empty: 'No files', loading: 'Loading', root: 'Vault root', retry: 'Retry', confirmDelete: 'Delete permanently?', deleteWarning: 'No trash or undo' },
     initialDraft: { form: null, name: '' }, onDraft() {}, onToggle() {}, onSelection() {}, onBuffer() {}, onCreate: async () => true, onRename: async () => true, onMove: async () => true, onPaste: async () => true, onRemove: async () => true, onRefresh() {}, ...overrides };
 }
 test('Arborist renders a virtualized, escaped tree and preserves owned roots across theme/props updates', async () => {
@@ -173,7 +173,7 @@ test('explorer create form uses Mantine, preserves drafts and confirms permanent
   const s = await setup(); await s.start(); const calls = [];
   const props = explorerFixture({ onCreate: async (...args) => { calls.push(['create', ...args]); return true; }, onRemove: async paths => { calls.push(['remove', paths]); return true; } });
   const result = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); assert.equal(result.ok, true, s.logs.map(log => log[3]?.error?.stack).filter(Boolean).join('\n'));
-  s.target.querySelector('[aria-label="New file"]').click(); await settle();
+  s.target.querySelector('[role=tree]').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'n', ctrlKey: true, bubbles: true, cancelable: true })); await settle();
   const input = s.target.querySelector('input'); assert.ok(input.classList.contains('mantine-TextInput-input'));
   typeInput(input, 'draft.md'); await settle();
   result.value.update({ ...props, degraded: 'Watch unavailable' }); await settle(); assert.equal(s.target.querySelector('input').value, 'draft.md');
@@ -191,7 +191,7 @@ test('explorer drafts and pending selection survive view replacement without fee
   const s = await setup(); await s.start(); let draft = { form: null, name: '' }; const selections = [];
   const props = explorerFixture({ onDraft: value => { draft = value; }, onSelection: value => selections.push(value) });
   const first = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); assert.equal(first.ok, true);
-  s.target.querySelector('[aria-label="New folder"]').click(); await settle();
+  s.target.querySelector('[role=tree]').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'n', ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true })); await settle();
   typeInput(s.target.querySelector('input'), 'pending folder'); await settle();
   assert.equal(draft.name, 'pending folder'); first.value.dispose();
   const second = s.components.mount('lunaris.file-explorer', s.target, { ...props, initialDraft: draft, selection: ['not-loaded-yet'] }, s.ctx.signal);
@@ -214,7 +214,7 @@ test('explorer restores visible selection, submits F2 rename, handles copy and k
   const input = s.target.querySelector('input'); assert.ok(input); typeInput(input, 'renamed.md');
   input.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); await settle();
   assert.deepEqual(renamed, [['a.md', 'renamed.md']]);
-  s.target.querySelector('[aria-label=Actions]').click(); await settle();
+  tree.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'ContextMenu', bubbles: true, cancelable: true })); await settle();
   assert.ok(s.target.querySelector('.lm-root [role=menu]')); assert.equal(s.dom.window.document.querySelector('[data-portal]'), null);
   result.value.dispose(); await s.stop();
 });
@@ -225,7 +225,7 @@ test('folder row selection does not toggle layout; double click and disclosure o
   s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 320);
   const props = explorerFixture({ expanded: [], onToggle: (...args) => toggles.push(args) });
   const mounted = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true); await settle();
-  const row = s.target.querySelector('[role=treeitem]');
+  const row = s.target.querySelector('[title=folder]').closest('[role=treeitem]');
   row.click(); await settle(); assert.deepEqual(toggles, []);
   row.dispatchEvent(new s.dom.window.MouseEvent('dblclick', { bubbles: true })); await settle(); assert.deepEqual(toggles, [['folder', true]]);
   row.querySelector('button').click(); await settle(); assert.deepEqual(toggles, [['folder', true], ['folder', false]]);
@@ -239,7 +239,7 @@ test('new Workspace context cannot display or operate the previous Vault tree', 
   assert.equal(s.target.querySelector('[role=tree]'), null); assert.equal(s.target.querySelector('[role=status]').textContent, 'Loading');
   assert.equal(s.target.querySelector('[aria-label="New file"]'), null);
   mounted.value.update({ ...old, vaultId: 'b', data: [{ id: 'second.md', name: 'second.md', kind: 'file' }] }); await settle();
-  assert.equal(s.target.querySelector('.lm-explorer-heading').textContent, 'Second Vault');
+  assert.equal(s.target.querySelector('[title="Second Vault"] .lm-explorer-filename').textContent, 'Second Vault');
   assert.equal(s.target.querySelector('[title="a.md"]'), null); assert.ok(s.target.querySelector('[title="second.md"]'));
   await s.stop();
 });
@@ -259,8 +259,42 @@ test('HTML5 drag/drop passes the hovered folder to the controller without toggli
     const event = new s.dom.window.MouseEvent(type, { bubbles: true, cancelable: true, clientX: 80, clientY: y });
     Object.defineProperty(event, 'dataTransfer', { value: transfer }); element.dispatchEvent(event);
   }
-  drag(source, 'dragstart', 42); await settle();
-  drag(target, 'dragenter', 14); drag(target, 'dragover', 14); await settle();
-  drag(target, 'drop', 14); drag(source, 'dragend', 14); await settle();
+  drag(source, 'dragstart', 70); await settle();
+  drag(target, 'dragenter', 42); drag(target, 'dragover', 42); await settle();
+  drag(target, 'drop', 42); drag(source, 'dragend', 42); await settle();
   assert.deepEqual(moves, [[['a.md'], 'folder']]); await s.stop();
+});
+
+
+test('explorer replaces header actions with a Files dropdown and protects the visible Vault root', async () => {
+  const s = await setup(); await s.start(); const calls = [];
+  s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 320);
+  const props = explorerFixture({ workspace: { vaultId: 'a', vaultName: 'My Vault' },
+    onRename: async (...args) => { calls.push(['rename', ...args]); return true; },
+    onRemove: async (...args) => { calls.push(['remove', ...args]); return true; },
+    onBuffer: (...args) => calls.push(['buffer', ...args]), onToggle: (...args) => calls.push(['toggle', ...args]) });
+  const mounted = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true); await settle();
+  const toolbar = s.target.querySelector('.lm-explorer-toolbar');
+  assert.equal(toolbar.textContent, 'Files'); assert.equal(toolbar.querySelectorAll('button').length, 1);
+  assert.equal(toolbar.querySelector('[aria-label="New file"]'), null);
+  assert.equal(toolbar.querySelector('[aria-label="New folder"]'), null);
+  assert.equal(toolbar.querySelector('[aria-label=Actions]'), null);
+  toolbar.querySelector('[aria-label=Tabs]').click(); await settle();
+  assert.equal(toolbar.querySelector('[role=menuitem]').textContent, 'Files');
+  assert.equal(toolbar.querySelector('[role=menuitem]').getAttribute('aria-current'), 'page');
+  toolbar.querySelector('[role=menuitem]').click(); await new Promise(resolve => setTimeout(resolve, 250));
+  const root = s.target.querySelector('[title="My Vault"]');
+  assert.equal(root.closest('[role=treeitem]').getAttribute('aria-level'), '1');
+  assert.equal(s.target.querySelector('[title=folder]').closest('[role=treeitem]').getAttribute('aria-level'), '2');
+  root.closest('[role=treeitem]').click(); await settle();
+  const tree = s.target.querySelector('[role=tree]');
+  for (const key of ['F2', 'Delete', 'c', 'x']) tree.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key, ctrlKey: ['c', 'x'].includes(key), bubbles: true, cancelable: true }));
+  root.dispatchEvent(new s.dom.window.MouseEvent('contextmenu', { bubbles: true, cancelable: true })); await settle();
+  assert.equal(s.target.querySelector('input'), null); assert.equal(s.target.querySelector('form'), null);
+  assert.equal(!!s.target.querySelector('[role=menu]'), false); assert.deepEqual(calls, []);
+  root.querySelector('button').click(); await settle();
+  assert.equal(s.target.querySelector('[title="a.md"]'), null); assert.deepEqual(calls, []);
+  root.querySelector('button').click(); await settle(); assert.ok(s.target.querySelector('[title="a.md"]'));
+  mounted.value.update({ ...props, data: [] }); await settle(); assert.ok(s.target.querySelector('[title="My Vault"]'));
+  await s.stop();
 });

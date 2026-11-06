@@ -175,7 +175,12 @@ recent rows, bright artwork and reduced-motion settings.
 It uses React Arborist 4.0.1 with react-dnd/HTML5 backend 16.0.1, Mantine menus,
 ActionIcon, TextInput, Paper and Button. The renderer owns only view mechanics;
 file operations, localization, drafts and logical tree state belong to the SDK
-controller. Popover/Menu styles are included in styles.css. Menus and themed
+controller. A localized Tabs dropdown currently offers only Files. The Workspace
+Vault name is rendered as an initially expanded, protected root row above the
+controller entries; header titles and operation buttons are absent. Root disclosure
+is view-local and resets on remount. Root identities are excluded from controller
+selection and mutation sources; root drop targets map to the public empty path.
+Existing file commands remain available through context menus and shortcuts. Popover/Menu styles are included in styles.css. Menus and themed
 drag previews remain inside the owned root. Custom public row/cursor renderers
 keep names truncatable and drop feedback on the SDK palette.
 

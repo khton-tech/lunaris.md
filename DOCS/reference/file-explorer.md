@@ -25,7 +25,7 @@ contract. No kernel runtime change was necessary.
 
 - Expand folders on demand; folders sort before files, followed by name sorting.
 - Ctrl/Shift selection and Ctrl+A use Arborist's tree navigation/selection.
-- Create an empty file or folder through the toolbar, menu, Ctrl+N or Ctrl+Shift+N.
+- Create an empty file or folder through the context menu, Ctrl+N or Ctrl+Shift+N.
 - F2 renames in place; Enter submits and Escape cancels. Enter on a folder toggles
   it; file activation has no document-opening action yet.
 - Drag selected items into a folder or the root to move them. Tree order is always
@@ -33,7 +33,7 @@ contract. No kernel runtime change was necessary.
 - Ctrl+C/X/V copy, cut and paste inside the current Vault. The buffer is private
   to the explorer, not the OS clipboard. A single selected directory is the paste
   destination; a selected file uses its parent; multiple/no selection uses root.
-- Right-click a row or use Actions/ContextMenu/Shift+F10 for commands. Right-click
+- Right-click an ordinary row or use ContextMenu/Shift+F10 for commands. Right-click
   preserves an existing multi-selection when the target is already selected.
 - Delete opens a confirmation naming all selected paths and warning explicitly
   that there is no trash or undo. There is no implicit deletion on cut or drag.
@@ -133,4 +133,4 @@ collision/partial failure, explicit permanent-delete confirmation, external
 filesystem changes, panel collapse/reopen and Vault switching. Desktop automation
 is prohibited; JSDOM cannot verify physical drag/drop or WebView geometry.
 
-Folder rows select on a single click and toggle on double click or disclosure/Enter. Selection does not change folder geometry before dragging. The header shows the Workspace Vault name. A transient mismatch between Workspace context and controller Vault props shows loading without mounting the old tree or its operations.
+Folder rows select on a single click and toggle on double click or disclosure/Enter. Selection does not change folder geometry before dragging. The header contains a localized Tabs dropdown with Files as its sole current item, without a title or operation buttons. The Workspace Vault name appears in an initially expanded root directory row containing the controller tree. This renderer-owned row cannot be renamed, dragged, copied, cut or deleted and has no pointer context menu. Its synthetic identity never reaches controller selection, buffer or mutation callbacks; drop destinations map to the public empty root path. Root disclosure is local view state and resets to expanded on remount. A transient mismatch between Workspace context and controller Vault props shows loading without mounting the old tree or its operations.

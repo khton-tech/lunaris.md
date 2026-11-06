@@ -1,7 +1,7 @@
 export const catalogs = {
   en: {
     PARTIAL_FAILURE: "Some items failed. Completed operations were retained.",
-    title: "Files", newFile: "New file", newFolder: "New folder", rename: "Rename", copy: "Copy", cut: "Cut", paste: "Paste", remove: "Delete",
+    tabs: "Tabs", title: "Files", newFile: "New file", newFolder: "New folder", rename: "Rename", copy: "Copy", cut: "Cut", paste: "Paste", remove: "Delete",
     refresh: "Refresh", actions: "Actions", name: "Name", create: "Create", cancel: "Cancel", empty: "No files", loading: "Loading", root: "Vault root",
     confirmDelete: "Delete permanently?", deleteWarning: "These items and their contents will be permanently deleted. There is no trash or undo.",
     unwatched: "Automatic refresh unavailable", retry: "Retry", INVALID_PATH: "Invalid file name or destination", ALREADY_EXISTS: "An item with this name already exists",
@@ -12,7 +12,7 @@ export const catalogs = {
   },
   ru: {
     PARTIAL_FAILURE: "Часть операций не выполнена. Успешные изменения сохранены.",
-    title: "Файлы", newFile: "Новый файл", newFolder: "Новая папка", rename: "Переименовать", copy: "Копировать", cut: "Вырезать", paste: "Вставить", remove: "Удалить",
+    tabs: "Вкладки", title: "Файлы", newFile: "Новый файл", newFolder: "Новая папка", rename: "Переименовать", copy: "Копировать", cut: "Вырезать", paste: "Вставить", remove: "Удалить",
     refresh: "Обновить", actions: "Действия", name: "Имя", create: "Создать", cancel: "Отмена", empty: "Нет файлов", loading: "Загрузка", root: "Корень хранилища",
     confirmDelete: "Удалить навсегда?", deleteWarning: "Эти элементы и их содержимое будут удалены безвозвратно. Корзины и отмены нет.",
     unwatched: "Автоматическое обновление недоступно", retry: "Повторить", INVALID_PATH: "Недопустимое имя или назначение", ALREADY_EXISTS: "Элемент с таким именем уже существует",
