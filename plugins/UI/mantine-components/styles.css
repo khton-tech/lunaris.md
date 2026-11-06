@@ -8,6 +8,8 @@
 @import '@mantine/core/styles/Group.css';
 @import '@mantine/core/styles/Text.css';
 @import '@mantine/core/styles/Title.css';
+@import '@mantine/core/styles/Popover.css';
+@import '@mantine/core/styles/Menu.css';
 
 .lm-root { isolation:isolate;font-family:var(--mantine-font-family);font-size:var(--mantine-font-size-md);line-height:var(--mantine-line-height);color-scheme:var(--mantine-color-scheme) }
 .lm-root,.lm-root *,.lm-root *::before,.lm-root *::after { box-sizing:border-box;scrollbar-width:none;min-width:0 }
@@ -95,6 +97,36 @@
  .lm-root .lm-input:enabled:hover:not(:focus):not(:focus-visible) { border-color:var(--vault-control-border) }
 }
 @media(prefers-reduced-motion:reduce) { .lm-root .lm-button,.lm-root .lm-input,.lm-root .ln-vault-disclosure { transition:none } }
+.lm-explorer { position:relative;display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;overflow:auto;user-select:none }
+.lm-explorer-toolbar { flex-shrink:0;padding:calc(var(--vault-space)*2);position:relative }
+.lm-explorer-heading { flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500 }
+.lm-explorer-tree { flex:1;min-height:3em;min-width:0;overflow:hidden }
+.lm-explorer-row { min-width:0;outline:none }
+.lm-explorer-cursor { position:absolute;pointer-events:none;height:var(--vault-focus-width);background:var(--vault-focus);z-index:1 }
+.lm-explorer-drag-preview { position:absolute;display:flex;align-items:center;gap:var(--vault-space);max-width:50%;padding:var(--vault-space);overflow:hidden;pointer-events:none;z-index:2;background:var(--vault-selection);color:var(--vault-text);border:var(--vault-border) solid var(--vault-control-border);border-radius:var(--vault-radius) }
+.lm-explorer-drag-preview span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
+.lm-explorer-node { display:flex;align-items:center;gap:var(--vault-space);height:100%;padding-inline-end:calc(var(--vault-space)*2);min-width:0;cursor:default;color:var(--vault-text) }
+.lm-explorer-node>svg { flex-shrink:0;color:var(--vault-secondary) }
+.lm-explorer-node[data-selected] { background:var(--vault-selection) }
+.lm-explorer-node[data-drop] { outline:var(--vault-border) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-border)) }
+.lm-explorer-row:focus-visible .lm-explorer-node { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
+.lm-explorer-tree [role=tree]:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
+.lm-explorer-spacer { width:1rem;flex-shrink:0 }
+.lm-explorer .lm-explorer-disclosure { flex-shrink:0;color:var(--vault-secondary) }
+.lm-explorer-disclosure span { display:flex }
+.lm-explorer-disclosure span[data-open] { transform:rotate(90deg) }
+.lm-root .lm-explorer-filename { font:inherit;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0 }
+.lm-explorer-rename { flex:1;min-width:0;user-select:text }
+.lm-explorer-rename input { min-height:0;height:1.8em;padding-inline:var(--vault-space) }
+.lm-root .lm-explorer-form { flex-shrink:0;padding:calc(var(--vault-space)*2);margin:var(--vault-space);background:var(--vault-content);color:var(--vault-text);border:var(--vault-border) solid var(--vault-control-border) }
+.lm-explorer-form ul { margin:0;padding-inline-start:1.5em;max-height:8em;overflow:auto;overflow-wrap:anywhere }
+.lm-explorer-form input { user-select:text }
+.lm-explorer-message { padding:calc(var(--vault-space)*2);font-size:inherit;overflow-wrap:anywhere;flex-shrink:0 }
+.lm-root .lm-explorer-menu { max-width:calc(100cqw - var(--vault-space)*2);max-height:70cqh;overflow:auto;background:var(--vault-panel);color:var(--vault-text);border-color:var(--vault-control-border) }
+.lm-explorer-menu [role=menuitem] { color:var(--vault-text);white-space:normal }
+.lm-explorer-menu [role=menuitem][data-hovered] { background:var(--vault-hover) }
+.lm-explorer-menu [role=menuitem][data-disabled] { color:var(--vault-secondary) }
+@media(hover:hover) { .lm-explorer-node:not([data-selected]):hover { background:var(--vault-hover) } }
 @container(max-height:44rem) {
  .lm-root .ln-vault-main { padding:calc(var(--vault-space)*4) }
  .ln-vault pre { margin-bottom:calc(var(--vault-space)*3) }

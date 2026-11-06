@@ -90,6 +90,9 @@
     },
     {
       "path": "../../plugins/UI/sidebar-tabs"
+    },
+    {
+      "path": "../../plugins/UI/file-explorer"
     }
   ]
 }

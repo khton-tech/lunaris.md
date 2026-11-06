@@ -167,3 +167,14 @@ theme changes, focus/drafts and host/controller regressions. Run
 Desktop automation is forbidden. Manually run `npm run tauri:dev` and check both
 screens, short/narrow windows, keyboard focus, create/select/cancel/error flows,
 recent rows, bright artwork and reduced-motion settings.
+
+## File explorer role
+
+`lunaris.file-explorer` renders the public controller props documented in the
+[file explorer reference](../../../../DOCS/reference/file-explorer.md#renderer-contract).
+It uses React Arborist 4.0.1 with react-dnd/HTML5 backend 16.0.1, Mantine menus,
+ActionIcon, TextInput, Paper and Button. The renderer owns only view mechanics;
+file operations, localization, drafts and logical tree state belong to the SDK
+controller. Popover/Menu styles are included in styles.css. Menus and themed
+drag previews remain inside the owned root. Custom public row/cursor renderers
+keep names truncatable and drop feedback on the SDK palette.

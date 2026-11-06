@@ -3,6 +3,7 @@ import path from 'node:path';
 import ts from 'typescript';
 
 export const dependencies = {
+  'file-explorer': ['sdk', 'logging', 'sidebar', 'filesystem', 'vault', 'localization'],
   sidebar: ['sdk'],
   'sidebar-provider': ['sdk', 'logging', 'sidebar'],
   'sidebar-plugin': ['sdk', 'logging', 'sidebar', 'workspace', 'components', 'localization'],
@@ -44,10 +45,11 @@ export const dependencies = {
   test: ['sdk', 'kernel'],
   development: ['manifest', 'sdk', 'kernel'],
   cli: ['manifest', 'sdk', 'kernel', 'test', 'development'],
-  tauri: ['sidebar-plugin', 'sidebar-provider', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'mantine-components', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'],
+  tauri: ['file-explorer', 'sidebar-plugin', 'sidebar-provider', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'mantine-components', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'],
 };
 
 export const packagePath = scope => {
+  if (scope === 'file-explorer') return 'plugins/UI/file-explorer';
   if (scope === 'sidebar-plugin') return 'plugins/UI/sidebar';
   if (scope === 'sidebar-provider') return 'plugins/UI/sidebar-tabs';
   if (scope === 'workspace-provider') return 'plugins/UI/workspace-content';
@@ -88,7 +90,7 @@ export function checkSource(source, filename, scope) {
   if (scope === 'config-manager' && path.resolve(filename) === path.resolve('plugins/systems/config/src/codec.ts')) allowed.add('smol-toml');
   if (scope === 'components-kit' && path.resolve(filename) === path.resolve('plugins/UI/components-kit/src/controls.ts')) allowed.add('lucide');
   if (scope === 'mantine-components') {
-    for (const name of ['react', 'react/jsx-runtime', 'react-dom', 'react-dom/client', '@mantine/core', 'lucide']) allowed.add(name);
+    for (const name of ['react', 'react/jsx-runtime', 'react-dom', 'react-dom/client', '@mantine/core', 'lucide', 'react-arborist']) allowed.add(name);
   }
   if (scope === 'tauri' && path.resolve(filename) === path.resolve('hosts/tauri/src/application.ts')) allowed.add('@lunaris/mantine-components/styles.css');
   function specifier(node) {
@@ -97,7 +99,7 @@ export function checkSource(source, filename, scope) {
       return;
     }
     const value = node.text;
-    if (['sidebar-provider', 'sidebar-plugin', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'components-kit', 'mantine-components', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'].includes(scope) &&
+    if (['file-explorer', 'sidebar-provider', 'sidebar-plugin', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'components-kit', 'mantine-components', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'].includes(scope) &&
         path.resolve(filename) === path.resolve(packagePath(scope), 'src/index.ts') &&
         value === '../manifest.json') return;
     // The host owns startup artwork; plugins cannot reach outside their source roots.

@@ -32,7 +32,7 @@ Registration itself requires no DOM or filesystem permission.
 const workspace = ctx.use(Workspace);
 const registered = workspace.register({
   id: `${ctx.pluginId}.files`,
-  componentId: "lunaris.file-explorer",
+  componentId: "example.main-content",
   order: 10,
   props: { title: localization.text(ctx.pluginId, "files") },
 }, ctx.signal);
@@ -44,7 +44,8 @@ if (!registered.ok) {
 }
 ```
 
-The example role is illustrative: no file explorer ships in this milestone.
+The example main-content role is illustrative. The implemented file explorer
+registers through Sidebar instead; see [its reference](file-explorer.md).
 New product renderers must be added to Mantine components through shared roles,
 following [its guide](../../plugins/UI/mantine-components/DOCS/README.md).
 Consumer plugins never import React/Mantine or another plugin's implementation.
@@ -131,7 +132,8 @@ Workspace uses Mantine roles `lunaris.workspace-empty` and `lunaris.workspace-la
 The reusable `lunaris.workspace-header` role remains available for other consumers
 but is not mounted by the default Workspace. The independent Sidebar uses the new side regions.
 Selector hides while a Vault is open and returns after closing. No editor/document
-or explorer integration is claimed; these plugins do not exist yet. Future content
+integration is claimed; those plugins do not exist yet. The file explorer is now
+connected through Sidebar and does not occupy main. Future content
 plugins connect through Workspace registration and public component roles.
 
 Run `npm run workspace:check` for contracts, registry ownership/restart,

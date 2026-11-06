@@ -39,7 +39,10 @@ if (!result.ok) {
 }
 ```
 
-The explorer role is illustrative and is not implemented. Supply a real role
+The default file-explorer controller now registers this role with its full props.
+The snippet above illustrates tab registration only; use the
+[file explorer contract](file-explorer.md#renderer-contract) for actual renderer props.
+Supply a real role
 through the Mantine component plugin, following [its guide](../../plugins/UI/mantine-components/DOCS/README.md).
 Neither a tool plugin nor Sidebar imports React/Mantine or another plugin's
 implementation. Content roles receive their props plus Workspace's frozen
@@ -114,8 +117,8 @@ SDK and grants only `ui.dom` to the controller. Sidebar consumes Workspace 1.1,
 Components/ComponentsChanged and Localization/LocaleChanged. Workspace contains
 no Sidebar imports, tab registry or active-tab state. Mantine supplies
 `lunaris.sidebar-rail` and `lunaris.workspace-layout`, scoped to the selected theme.
-Existing default-main Workspace consumers remain compatible. Actual tool plugins
-remain future work and must register through Sidebar, not private layout targets.
+Existing default-main Workspace consumers remain compatible. The file-explorer tool is now composed by Tauri and registers through this public
+Sidebar contract, without private layout targets. Other tools follow the same rule.
 
 Run `npm run sidebar:check` for contracts/types, provider ownership/restart,
 validation/order, rail selection/collapse/keyboard focus, missing/replacement/failing
@@ -124,7 +127,9 @@ Run the Tauri frontend build and the CI scope/export/documentation audits.
 Automated tests use JSDOM; desktop automation is prohibited.
 
 Manual acceptance: run `npm run tauri:dev` and open a Vault. Without tool plugins,
-Sidebar must remain hidden and Workspace's main placeholder must remain visible.
+Sidebar must remain hidden and Workspace's main placeholder must remain visible
+when the file-explorer tool is excluded. With default composition, its Files tab
+and tree must be visible; the main placeholder remains until document UI exists.
 For a real tool consumer (or an explicitly composed development fixture), verify
 icon-only rail, accessible tooltips, active state, collapse/reopen, keyboard/Escape,
 long translated titles, short/narrow windows, nonmodal overlay, theme changes,

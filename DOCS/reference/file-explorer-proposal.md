@@ -1,7 +1,8 @@
 # File explorer: implementation proposal and SDK prerequisite
 
-Status: the owned-observation prerequisite is implemented. Explorer implementation
-is in progress. React Arborist is the selected UI implementation.
+Status: implemented. This document records the original design and prerequisite
+specification. See [the implemented file explorer](file-explorer.md) for current
+contracts, behavior, verification and outstanding document/editor integration.
 
 ## Existing contracts and required work
 

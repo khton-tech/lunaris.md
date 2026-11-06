@@ -7,6 +7,7 @@ import { Components } from "@lunaris/components";
 import { definePlugin } from "@lunaris/sdk";
 import { Logger } from "@lunaris/logging";
 import { Themes, ThemeChanged } from "@lunaris/themes";
+import { explorerProps, FileExplorer } from "./explorer.js";
 import { startupProps, selectorProps, workspaceHeaderProps, workspaceEmptyProps } from "./props.js";
 import { StartupScreen, VaultSelector, WorkspaceHeader, WorkspaceEmpty } from "./views.js";
 import { resolveTheme } from "./theme.js";
@@ -24,10 +25,10 @@ export default definePlugin({ manifest, activate(ctx) {
   ctx.events.on(ThemeChanged, () => {
     for (const instance of instances) instance.applyTheme();
   });
-  for (const id of ["lunaris.startup-screen", "lunaris.vault-selector", "lunaris.workspace-header", "lunaris.workspace-empty", "lunaris.workspace-layout", "lunaris.sidebar-rail"] as const) {
+  for (const id of ["lunaris.startup-screen", "lunaris.vault-selector", "lunaris.workspace-header", "lunaris.workspace-empty", "lunaris.workspace-layout", "lunaris.sidebar-rail", "lunaris.file-explorer"] as const) {
     const validate = { "lunaris.startup-screen": startupProps, "lunaris.vault-selector": selectorProps,
       "lunaris.workspace-header": workspaceHeaderProps, "lunaris.workspace-empty": workspaceEmptyProps,
-      "lunaris.workspace-layout": layoutProps, "lunaris.sidebar-rail": railProps }[id];
+      "lunaris.workspace-layout": layoutProps, "lunaris.sidebar-rail": railProps, "lunaris.file-explorer": explorerProps }[id];
     const registration = components.register({ id, mount(target, initial, signal): ComponentInstance {
       let props = initial;
       try { validate(props); }
@@ -53,7 +54,8 @@ export default definePlugin({ manifest, activate(ctx) {
           : id === "lunaris.workspace-header" ? createElement(WorkspaceHeader, { props: workspaceHeaderProps(props), theme })
           : id === "lunaris.workspace-empty" ? createElement(WorkspaceEmpty, { props: workspaceEmptyProps(props), theme })
           : id === "lunaris.workspace-layout" ? createElement(WorkspaceLayout, { props: layoutProps(props), theme })
-          : createElement(SidebarRail, { props: railProps(props), theme });
+          : id === "lunaris.sidebar-rail" ? createElement(SidebarRail, { props: railProps(props), theme })
+          : createElement(FileExplorer, { key: explorerProps(props).vaultId, props: explorerProps(props), theme });
         rendering = true;
         try { flushSync(() => root.render(createElement(MantineProvider, {
           theme: theme.mantine, forceColorScheme: theme.scheme, colorSchemeManager,

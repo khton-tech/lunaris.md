@@ -1,5 +1,15 @@
 # Product backlog
 
+## File explorer
+
+Status: IMPLEMENTED on 2026-11-06; native visual/drag-and-drop acceptance remains manual.
+React Arborist supplies a virtualized tree inside Mantine components. The separate
+SDK controller registers in Sidebar and supports lazy browsing, multi-selection,
+creation, F2 rename, drag moves, copy/cut/paste, explicit permanent deletion and
+external-change refresh. Consumer/provider-owned observations are implemented.
+Panel remount preserves tree state and drafts. Document/editor opening remains
+outstanding. See [File explorer](reference/file-explorer.md).
+
 ## Sidebar
 
 Status: IMPLEMENTED on 2026-11-06; native visual acceptance remains manual.
@@ -8,8 +18,8 @@ public registration/update/select/snapshot contracts. Mantine supplies icon-only
 Lucide controls; Workspace 1.1 supplies left-rail/left-panel regions without owning
 tab logic. Active icons toggle collapse, keyboard/Escape and owner removal are
 supported, and missing/failing content has explanatory placeholders. Without tabs
-both side regions are absent. Tool plugins, persistence and resizing remain future
-work. See [Sidebar](reference/sidebar.md).
+both side regions are absent. The default file explorer now registers a tab;
+other tools, persistent sessions and resizing remain future work. See [Sidebar](reference/sidebar.md).
 
 ## Workspace
 
@@ -20,7 +30,7 @@ portable provider owns content registrations through the public Workspace API/ev
 The screen remounts content for each Vault, handles missing/replacement/failing roles,
 and restores the selector on close. Mantine components owns both visible roles.
 Workspace 1.1 now adds left regions for the independent Sidebar while retaining
-the main content column. Explorer, documents, editor, document tabs and
+the main content column. The file explorer now uses Sidebar; documents, editor, document tabs and
 resize/session persistence remain future work. See [Workspace](reference/workspace.md).
 
 ## Vault selector

@@ -45,7 +45,8 @@
     "vault-selector:check": "node tools/scripts/check.mjs vault-selector mantine-components runner",
     "mantine-components:check": "node tools/scripts/check.mjs mantine-components runner vault-selector",
     "workspace:check": "node tools/scripts/check.mjs workspace workspace-provider workspace-plugin mantine-components vault-selector",
-    "sidebar:check": "node tools/scripts/check.mjs sidebar sidebar-provider sidebar-plugin workspace workspace-provider workspace-plugin mantine-components"
+    "sidebar:check": "node tools/scripts/check.mjs sidebar sidebar-provider sidebar-plugin workspace workspace-provider workspace-plugin mantine-components",
+    "file-explorer:check": "node tools/scripts/check.mjs file-explorer mantine-components sidebar-plugin"
   },
   "devDependencies": {
     "@types/node": "26.6.6",
