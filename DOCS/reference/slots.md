@@ -135,7 +135,13 @@ loading plugin can present [SDK startup milestones](startup.md). It currently sh
 surface; the first visible product UI plugins are separate work.
 
 Targets use shrinkable flex layouts, zero automatic minimum sizes and overflow
-containment. DOM order matches visual order for keyboard traversal. No fixed panel
+containment. The host bounds its application surface to the viewport and suppresses
+native scrollbar chrome across the document, including nested/future plugin slots
+and recovery. Scrollable overflow stays available through wheel, touch and keyboard;
+consumers adapt their owned layouts to width and height rather than hiding content.
+Component Kit independently applies this policy to its owned surfaces. Driver and
+provider contracts are unchanged; consumers must not override slot sizing/overflow.
+DOM order matches visual order for keyboard traversal. No fixed panel
 dimensions or decoration are introduced. Arbitrary grid tracks, resize handles,
 reparenting, metadata updates, persistence, tab selection and cross-plugin mount
 discovery are deferred. Reconfigure a region by releasing its child scope and

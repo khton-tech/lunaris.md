@@ -47,19 +47,27 @@ test('selector centers its resting content without moving the anchor during disc
   assert.equal(mounted.ok, true);
   const main = s.target.querySelector('.ln-vault-main'); const content = s.target.querySelector('.ln-vault-content');
   const disclosures = [...s.target.querySelectorAll('.ln-vault-disclosure')];
-  let panelHeight = 800; let contentHeight = 240; let disclosureHeight = 0;
+  const forms = [...s.target.querySelectorAll('form')];
+  let panelHeight = 800; let contentHeight = 240; let disclosureHeight = 0; let formHeight = 240;
   Object.defineProperty(main, 'clientHeight', { get: () => panelHeight });
   Object.defineProperty(content, 'offsetHeight', { get: () => contentHeight });
   for (const [index, node] of disclosures.entries()) Object.defineProperty(node, 'offsetHeight', { get: () => index === 0 ? disclosureHeight : 0 });
+  for (const [index, node] of forms.entries()) Object.defineProperty(node, 'offsetHeight', { get: () => index === 0 ? formHeight : 160 });
   const getStyle = s.dom.window.getComputedStyle.bind(s.dom.window);
   s.dom.window.getComputedStyle = node => node === main ? { paddingTop: '32px', paddingBottom: '32px' } : getStyle(node);
-  assert.deepEqual(observed, [main, content]);
+  assert.deepEqual(observed, [main, content, ...forms]);
   notify(); assert.equal(main.style.getPropertyValue('--vault-center-offset'), '248px');
   for (const height of [120, 240, 90, 0]) {
     disclosureHeight = height; contentHeight = 240 + height; notify();
     assert.equal(main.style.getPropertyValue('--vault-center-offset'), '248px', 'Opening, interrupted motion and closing must preserve the logo anchor.');
   }
-  panelHeight = 600; notify(); assert.equal(main.style.getPropertyValue('--vault-center-offset'), '148px');
+  panelHeight = 600; notify(); assert.equal(main.style.getPropertyValue('--vault-center-offset'), '56px');
+  disclosureHeight = formHeight; contentHeight = 240 + formHeight; notify();
+  assert.equal(main.style.getPropertyValue('--vault-center-offset'), '56px', 'A shorter panel must reserve the full form before it opens.');
+  assert.ok(56 + contentHeight <= panelHeight - 64, 'Fitting content must not overflow because of centering.');
+  formHeight = 400; contentHeight = 240 + formHeight; disclosureHeight = formHeight; notify();
+  assert.equal(main.style.getPropertyValue('--vault-center-offset'), '0px', 'Long translations or errors must remove decorative top space.');
+  disclosureHeight = 0;
   contentHeight = 700; notify(); assert.equal(main.style.getPropertyValue('--vault-center-offset'), '0px', 'Long content must remain reachable from the top.');
   mounted.value.dispose(); assert.equal(disconnected, true);
   panelHeight = 1000; notify(); assert.equal(main.style.getPropertyValue('--vault-center-offset'), '0px');

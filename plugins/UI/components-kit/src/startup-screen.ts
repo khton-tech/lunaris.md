@@ -1,6 +1,7 @@
 import type { CancellationSignal } from "@lunaris/sdk";
 import type { ComponentInstance, ComponentProps } from "@lunaris/components";
 import type { ThemeDefinition, ThemeValue } from "@lunaris/themes";
+import { surfaceStyle } from "./surface-style.js";
 
 interface ScreenProps { readonly art: string; readonly logoLabel: string; readonly status: string; readonly detail: string }
 
@@ -30,6 +31,8 @@ export function mountStartupScreen(target: HTMLElement, props: ComponentProps, s
   const initial = readProps(props);
   const document = target.ownerDocument;
   const screen = document.createElement("section");
+  screen.className = "ln-surface";
+  const style = document.createElement("style"); style.textContent = surfaceStyle;
   const logo = document.createElement("pre");
   const status = document.createElement("p");
   const detail = document.createElement("p");
@@ -39,7 +42,7 @@ export function mountStartupScreen(target: HTMLElement, props: ComponentProps, s
   for (const node of [status, detail]) Object.assign(node.style, { margin: "0", maxWidth: "100%", overflowWrap: "anywhere", textAlign: "center" });
   logo.setAttribute("role", "img");
   status.setAttribute("role", "status"); status.setAttribute("aria-live", "polite"); status.setAttribute("aria-atomic", "true");
-  screen.append(logo, status, detail);
+  screen.append(style, logo, status, detail);
   let disposed = false;
   function update(next: ScreenProps): void {
     logo.textContent = next.art; logo.setAttribute("aria-label", next.logoLabel);

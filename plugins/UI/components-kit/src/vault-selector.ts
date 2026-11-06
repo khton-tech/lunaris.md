@@ -37,8 +37,8 @@ export function mountVaultSelector(target: HTMLElement, input: ComponentProps, s
   const document = target.ownerDocument;
   const id = `ln-vault-${++instanceId}`;
   const frame = document.createElement("div");
-  Object.assign(frame.style, { display: "flex", flex: "1 1 0%", minWidth: "0", minHeight: "0", containerType: "inline-size" });
-  const screen = document.createElement("section"); screen.className = "ln-vault";
+  Object.assign(frame.style, { display: "flex", flex: "1 1 0%", minWidth: "0", minHeight: "0", containerType: "size" });
+  const screen = document.createElement("section"); screen.className = "ln-surface ln-vault";
   const style = document.createElement("style"); style.textContent = selectorStyle;
   const recents = document.createElement("aside"); recents.className = "ln-panel ln-vault-recents";
   const heading = document.createElement("h2");
@@ -162,17 +162,20 @@ export function mountVaultSelector(target: HTMLElement, input: ComponentProps, s
     update(props); applyTheme(); signal.addEventListener("abort", dispose, { once: true }); target.append(frame);
     const view = document.defaultView;
     if (view?.ResizeObserver) {
-      // Center the resting composition; disclosure height must never move its anchor.
+      // Reserve the largest intrinsic form before opening, so the anchor stays stable
+      // and centering cannot push otherwise fitting controls beyond the panel.
       centering = new view.ResizeObserver(() => {
         if (disposed) return;
         const padding = view.getComputedStyle(main);
         const available = main.clientHeight - parseFloat(padding.paddingTop) - parseFloat(padding.paddingBottom);
         const disclosed = [...cards.values()].reduce((height, card) => height + card.disclosure.offsetHeight, 0);
         const resting = content.offsetHeight - disclosed;
-        const offset = `${Math.max(0, (available - resting) / 2)}px`;
+        const expansion = Math.max(0, ...[...cards.values()].map(card => card.form.offsetHeight));
+        const offset = `${Math.max(0, Math.min((available - resting) / 2, available - resting - expansion))}px`;
         if (main.style.getPropertyValue("--vault-center-offset") !== offset) main.style.setProperty("--vault-center-offset", offset);
       });
       centering.observe(main); centering.observe(content);
+      for (const card of cards.values()) centering.observe(card.form);
     }
   }
   catch (error) { dispose(); throw error; }

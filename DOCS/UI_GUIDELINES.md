@@ -14,6 +14,7 @@ Apply the following core principles to all interface design and frontend code ge
 ### 3. Fluidity & Resilience
 - **Flexibility:** Avoid brittle, overly rigid layouts with hardcoded values.
 - **Robustness:** Ensure UI components are adaptive and systematic (using proper spacing, tokens, and responsive behavior) so layouts remain intact across varying content lengths and screen sizes.
+- **Viewport and Overflow:** Adapt to both available width and height. Reduce decorative space before compromising content or control readability. Keep the application shell within the viewport and give overflow ownership to the relevant content region. Never display native scrollbars; retain wheel, touch and keyboard access to content that cannot fit. Hiding scrollbar chrome must not be replaced with clipping meaningful content. The host enforces this policy globally, and Component Kit surfaces apply it within their owned DOM for standalone consumers.
 
 ### 4. Shared Components and Theme Inheritance
 - **Reuse First:** Before implementing any interface, check whether an existing component supports it. Reuse or compose available components instead of duplicating their implementation in the consuming plugin.

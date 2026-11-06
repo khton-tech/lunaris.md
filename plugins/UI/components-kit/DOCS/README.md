@@ -63,10 +63,25 @@ grid-track transitions in both directions, with immediately inert/ARIA-hidden
 closed forms, retained input nodes/drafts and no animation timers. Its anchored
 layout centers the resting logo/action composition vertically in the wide panel.
 A document-local ResizeObserver measures available space and content minus live
-disclosure heights, keeping the logo stable during expansion without fixed form
-heights or timers. The panel scrolls when expanded content exceeds its height.
+disclosure heights, reserving the largest intrinsic form height before expansion.
+The center offset is limited by the space remaining after that reservation, so
+centering cannot cause otherwise fitting content to overflow. Main/content/form
+size changes recalculate it; disclosure motion does not move the logo. There are
+no fixed form heights or timers. Content that cannot fit remains scrollable.
 Narrow layouts use normal document flow; environments without ResizeObserver
 retain the padded flow layout. The observer disconnects on disposal.
+
+The selector frame is a size query container. Below 44rem of available height,
+panel padding, logo spacing, action padding and form gaps become compact; empty
+status space collapses. Below 40rem of width, actions precede recents in a single
+flow with one outer overflow region. Wide layouts constrain grid tracks and give
+each panel its own overflow region, so long recent history cannot enlarge the
+whole application. Text and input sizes remain readable rather than scaling the UI.
+
+Shared `ln-surface` styles in `surface-style.ts` suppress native scrollbar chrome
+on startup and selector-owned DOM, including descendants. Overflow remains usable
+with wheel, touch and keyboard. The host applies the same rule globally, including
+slot targets and recovery surfaces; no consumer modifies a borrowed slot's styles.
 
 Shared `ln-control-button`/`ln-control-input` styles live in `controls-style.ts`.
 Surfaces map their semantic theme variables to `--control-*` tokens. Hover is a

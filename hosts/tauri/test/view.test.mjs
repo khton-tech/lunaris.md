@@ -7,6 +7,21 @@ import { mountSystemView } from '../dist/view.js';
 import { readFileSync } from 'node:fs';
 import viteConfig from '../vite.config.ts';
 
+test('the shell contains viewport overflow and hides scrollbar chrome without disabling content scrolling', () => {
+  const dom = new JSDOM('<div id="system-root"><div class="diagnostics"></div></div><div id="application-root"><div class="application-surface"><div data-lunaris-slot="root" style="overflow:auto"></div></div></div>');
+  const document = dom.window.document; const style = document.createElement('style');
+  style.textContent = readFileSync(new URL('../assets/shell.css', import.meta.url), 'utf8'); document.head.append(style);
+  for (const node of [document.documentElement, document.body, document.getElementById('application-root'), document.querySelector('.application-surface')]) {
+    assert.equal(dom.window.getComputedStyle(node).overflow, 'hidden');
+  }
+  for (const node of [document.getElementById('system-root'), document.querySelector('.diagnostics'), document.querySelector('[data-lunaris-slot]')]) {
+    const computed = dom.window.getComputedStyle(node);
+    assert.equal(computed.overflow, 'auto', 'Recovery, diagnostics and plugin overflow must remain reachable.');
+    assert.equal(computed.scrollbarWidth, 'none');
+  }
+  dom.window.close();
+});
+
 test('recovery button and focus styling cannot leak into product controls', () => {
   const dom = new JSDOM('<div id="system-root"><button>Recovery</button></div><div id="application-root"><button>Product</button></div>');
   const document = dom.window.document; const style = document.createElement('style');
