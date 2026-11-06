@@ -75,12 +75,18 @@ nodes are imported in `controls.ts` and rendered in the borrowed document; no
 global icon scan or document access occurs. Shared button/input/icon factories
 live in the kit, not in the consumer.
 
-Recent rows occupy 95% of the sidebar width, with compact padding and a name
+Recent rows fill the panel's padded content area, with compact padding and a name
 above the complete, wrapping location label. Current rows retain an accent outline
 and `aria-current`; pressed feedback and keyboard focus remain distinct.
 
-The left recent panel and right action panel use a 1:2 grid, stacking actions
-first below a 40rem container width. The frame uses container queries; all content
+The left recent panel and right action panel are separate cards in a 1:2 grid,
+stacking actions first below a 40rem container width. Shared `ln-panel` surfaces
+live in `panel-style.ts`; owners map `--panel-background` and `--panel-radius`
+to active theme tokens. The selector uses `colors.panel` and `geometry.radius.medium`,
+with three spacing steps for outer padding, the card gap and recent-panel padding.
+Cards have no decorative border or shadow. Recent rows and action disclosures
+remain flat inside their parent card. Inputs retain their existing styling.
+The frame uses container queries; all content
 can shrink/wrap, and ASCII type scales with its available width. Selector colors
 inherit `colors.background/panel/content/selection/text/textSecondary/separator/controlBorder/hover/
 focus/accent/onAccent/accentHover`; geometry inherits `unit`, `spacing.step`,

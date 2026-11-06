@@ -40,14 +40,14 @@ export function mountVaultSelector(target: HTMLElement, input: ComponentProps, s
   Object.assign(frame.style, { display: "flex", flex: "1 1 0%", minWidth: "0", minHeight: "0", containerType: "inline-size" });
   const screen = document.createElement("section"); screen.className = "ln-vault";
   const style = document.createElement("style"); style.textContent = selectorStyle;
-  const recents = document.createElement("aside"); recents.className = "ln-vault-recents";
+  const recents = document.createElement("aside"); recents.className = "ln-panel ln-vault-recents";
   const heading = document.createElement("h2");
   const list = document.createElement("ul");
   const empty = document.createElement("p");
   const historyError = document.createElement("p"); historyError.className = "ln-vault-message"; historyError.setAttribute("role", "status");
   const retry = button(document, ""); retry.addEventListener("click", () => props.onRetry());
   recents.append(heading, list, empty, historyError, retry);
-  const main = document.createElement("div"); main.className = "ln-vault-main";
+  const main = document.createElement("div"); main.className = "ln-panel ln-vault-main";
   const content = document.createElement("div"); content.className = "ln-vault-content";
   const logo = document.createElement("pre"); logo.setAttribute("role", "img");
   const status = document.createElement("p"); status.className = "ln-vault-status"; status.setAttribute("role", "status"); status.setAttribute("aria-live", "polite");

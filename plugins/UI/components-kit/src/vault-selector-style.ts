@@ -1,9 +1,11 @@
 import { controlStyle } from "./controls-style.js";
+import { panelStyle } from "./panel-style.js";
 
 /** Quiet surfaces; interaction states and motion come from the active theme. */
-export const selectorStyle = `${controlStyle}
-.ln-vault { display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);flex:1 1 0%;min-height:0;min-width:0;overflow:auto;
+export const selectorStyle = `${controlStyle}${panelStyle}
+.ln-vault { display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:calc(var(--vault-space)*3);padding:calc(var(--vault-space)*3);flex:1 1 0%;min-height:0;min-width:0;overflow:auto;
  background:var(--vault-background);color:var(--vault-text);font-family:var(--vault-font);font-size:var(--vault-font-size);line-height:var(--vault-line-height);user-select:none;
+ --panel-background:var(--vault-panel);--panel-radius:var(--vault-radius);
  --control-radius:var(--vault-radius);--control-gap:calc(var(--vault-space)*3);--control-padding:calc(var(--vault-space)*3);
  --control-background:var(--vault-content);--control-text:var(--vault-text);--control-secondary:var(--vault-secondary);
  --control-border:var(--vault-control-border);--control-border-width:var(--vault-border);--control-focus:var(--vault-focus);
@@ -13,7 +15,7 @@ export const selectorStyle = `${controlStyle}
 .ln-vault * { box-sizing:border-box;min-width:0 }
 .ln-vault [hidden] { display:none!important }
 .ln-vault svg { width:1.15em;height:1.15em;flex-shrink:0 }
-.ln-vault .ln-vault-recents { background:color-mix(in srgb,var(--vault-panel) 45%,var(--vault-background));padding-block:clamp(1rem,4cqw,2.5rem);padding-inline:2.5%;overflow-wrap:anywhere }
+.ln-vault .ln-vault-recents { padding:calc(var(--vault-space)*3);overflow-wrap:anywhere }
 .ln-vault h2 { font-size:.9em;font-weight:500;color:var(--vault-secondary);margin:0 calc(var(--vault-space)*2) calc(var(--vault-space)*3) }
 .ln-vault p { margin:0;color:var(--vault-secondary);overflow-wrap:anywhere }
 .ln-vault ul { list-style:none;padding:0;margin:0;display:grid;gap:var(--vault-space) }
@@ -27,8 +29,7 @@ export const selectorStyle = `${controlStyle}
 .ln-vault .ln-vault-content { width:100%;max-width:32rem;container-type:inline-size }
 .ln-vault pre { color:var(--vault-secondary);font-family:var(--vault-mono);font-size:min(9px,1.7cqw);line-height:1.2;white-space:pre;margin:0 0 calc(var(--vault-space)*8);text-align:center;max-width:100%;overflow:hidden }
 .ln-vault .ln-vault-actions { display:grid;gap:calc(var(--vault-space)*2) }
-.ln-vault .ln-vault-action { border-radius:var(--vault-radius);transition:background-color var(--vault-motion-fast) var(--vault-motion-easing) }
-.ln-vault .ln-vault-action[data-open=true] { background:color-mix(in srgb,var(--vault-panel) 55%,transparent) }
+.ln-vault .ln-vault-action { border-radius:var(--vault-radius) }
 .ln-vault .ln-vault-toggle { width:100%;padding:calc(var(--vault-space)*4) }
 .ln-vault .ln-vault-toggle span { flex:1 }
 .ln-vault .ln-vault-toggle > svg { color:var(--vault-secondary) }
@@ -61,6 +62,6 @@ export const selectorStyle = `${controlStyle}
  .ln-vault .ln-vault-next:enabled:hover:not(:active) { background:var(--vault-accent-hover) }
  .ln-vault li button[aria-current=true]:enabled:hover:not(:active) { box-shadow:inset 0 0 0 var(--vault-border) color-mix(in srgb,var(--vault-accent) 60%,transparent) }
 }
-@media(prefers-reduced-motion:reduce) { .ln-vault .ln-vault-action,.ln-vault .ln-vault-disclosure,.ln-vault .ln-vault-toggle > svg:last-child,.ln-vault .ln-vault-folder { transition:none } }
+@media(prefers-reduced-motion:reduce) { .ln-vault .ln-vault-disclosure,.ln-vault .ln-vault-toggle > svg:last-child,.ln-vault .ln-vault-folder { transition:none } }
 @container(max-width:40rem) { .ln-vault { grid-template-columns:minmax(0,1fr) } .ln-vault .ln-vault-main { grid-row:1;padding-block:calc(var(--vault-space)*8) } }
 `;
