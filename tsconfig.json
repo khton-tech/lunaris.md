@@ -108,6 +108,12 @@
     },
     {
       "path": "plugins/UI/mantine-components"
+    },
+    {
+      "path": "plugins/UI/workspace"
+    },
+    {
+      "path": "plugins/UI/workspace-content"
     }
   ]
 }

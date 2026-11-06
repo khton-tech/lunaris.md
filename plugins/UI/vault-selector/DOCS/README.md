@@ -37,9 +37,11 @@ rows and intrinsically animated inline forms replace nested outlined cards;
 the logo stays anchored when forms expand. These rendering rules and all motion
 tokens belong to Mantine components and the active theme.
 
-After a successful open, show the active Vault name and keep the selector usable
-for switching. The editor/workspace screen is not implemented, so this plugin
-does not navigate to an empty surface or claim editor readiness.
+With `hideWhenVaultOpen: true`, a committed open releases the selector child scope.
+A committed close allocates a fresh surface and restores the selector. Tauri enables
+this option and starts the separate [Workspace screen](../../workspace/DOCS/README.md).
+Standalone callers default to false and retain the selector/current Vault name for
+switching. The selector imports no Workspace implementation and claims no editor readiness.
 
 ## Public contracts and lifecycle
 

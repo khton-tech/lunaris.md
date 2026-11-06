@@ -7,8 +7,8 @@ import { Components } from "@lunaris/components";
 import { definePlugin } from "@lunaris/sdk";
 import { Logger } from "@lunaris/logging";
 import { Themes, ThemeChanged } from "@lunaris/themes";
-import { startupProps, selectorProps } from "./props.js";
-import { StartupScreen, VaultSelector } from "./views.js";
+import { startupProps, selectorProps, workspaceHeaderProps, workspaceEmptyProps } from "./props.js";
+import { StartupScreen, VaultSelector, WorkspaceHeader, WorkspaceEmpty } from "./views.js";
 import { resolveTheme } from "./theme.js";
 import manifest from "../manifest.json" with { type: "json" };
 
@@ -23,8 +23,9 @@ export default definePlugin({ manifest, activate(ctx) {
   ctx.events.on(ThemeChanged, () => {
     for (const instance of instances) instance.applyTheme();
   });
-  for (const id of ["lunaris.startup-screen", "lunaris.vault-selector"] as const) {
-    const validate = id === "lunaris.startup-screen" ? startupProps : selectorProps;
+  for (const id of ["lunaris.startup-screen", "lunaris.vault-selector", "lunaris.workspace-header", "lunaris.workspace-empty"] as const) {
+    const validate = { "lunaris.startup-screen": startupProps, "lunaris.vault-selector": selectorProps,
+      "lunaris.workspace-header": workspaceHeaderProps, "lunaris.workspace-empty": workspaceEmptyProps }[id];
     const registration = components.register({ id, mount(target, initial, signal): ComponentInstance {
       let props = initial;
       try { validate(props); }
@@ -44,7 +45,9 @@ export default definePlugin({ manifest, activate(ctx) {
         // A provider per SDK-owned React root scopes color scheme and variables to its owned DOM.
         const view = id === "lunaris.startup-screen"
           ? createElement(StartupScreen, { props: startupProps(props), theme })
-          : createElement(VaultSelector, { props: selectorProps(props), theme });
+          : id === "lunaris.vault-selector" ? createElement(VaultSelector, { props: selectorProps(props), theme })
+          : id === "lunaris.workspace-header" ? createElement(WorkspaceHeader, { props: workspaceHeaderProps(props), theme })
+          : createElement(WorkspaceEmpty, { props: workspaceEmptyProps(props), theme });
         rendering = true;
         try { flushSync(() => root.render(createElement(MantineProvider, {
           theme: theme.mantine, forceColorScheme: theme.scheme, colorSchemeManager,

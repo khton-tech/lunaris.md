@@ -17,7 +17,8 @@ copied verbatim, and no broad gallery catalog is registered without a consumer.
 ## SDK integration and lifetime
 
 Requires Logger, Components, Themes, ThemeChanged and the `ui.dom` permission.
-Registers `lunaris.startup-screen` and `lunaris.vault-selector` with ctx.signal.
+Registers `lunaris.startup-screen`, `lunaris.vault-selector`,
+`lunaris.workspace-header` and `lunaris.workspace-empty` with ctx.signal.
 Provides no additional API or events. Subscribes to ThemeChanged and re-renders
 live instances. Readiness, degraded missing themes, rejected props/registration,
 and original rendering failures are logged using ctx.pluginId as source.
@@ -62,6 +63,15 @@ the toggle when necessary. Controlled names survive locale/theme updates.
 Intrinsic grid disclosure, reserved form space and reduced-motion styles retain
 layout stability. Narrow/short containers compact or stack, with local overflow
 and hidden scrollbar chrome. The logo uses the theme text color.
+
+Workspace header props: strings `name`, `closeLabel`, `error`; boolean `busy`;
+callback `onClose()`. It renders a wrapping Mantine Text/Button header with a
+semantic h1 and an alert only on failure. Empty-state props: strings `title` and
+`detail`. It renders a centered, scrollable Mantine Stack/Title/Text composition.
+Both roles use the current theme and localized consumer text. The header adapts
+the restrained [Mantine UI header compositions](https://ui.mantine.dev/category/headers/);
+no fixed-position AppShell or unused navigation is added. These roles own no Vault
+operations and follow the same registration/instance lifecycle as the existing roles.
 
 ## Themes and development rules
 
@@ -114,7 +124,8 @@ no SDK checks or compiler strictness flags are disabled.
 
 Tauri starts this plugin; runner and vault-selector mount its unchanged roles.
 Themes/ThemeChanged update Mantine, theme-settings selects startup appearance,
-and localization remains consumer-owned. Required integrations are complete.
+and localization remains consumer-owned. Workspace mounts its header and empty-state
+roles through the same public registry. Required integrations are complete.
 
 Run `npm run mantine-components:check` for real SDK/React/Mantine behavior,
 registration rollback/restart, owner cleanup, isolated roots, prop validation,

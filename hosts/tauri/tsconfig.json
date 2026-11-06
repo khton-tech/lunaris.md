@@ -78,6 +78,12 @@
     },
     {
       "path": "../../plugins/UI/vault-selector"
+    },
+    {
+      "path": "../../plugins/UI/workspace"
+    },
+    {
+      "path": "../../plugins/UI/workspace-content"
     }
   ]
 }

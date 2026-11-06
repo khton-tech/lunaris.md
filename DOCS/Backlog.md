@@ -1,5 +1,16 @@
 # Product backlog
 
+## Workspace
+
+Status: IMPLEMENTED on 2026-11-06; native visual acceptance remains manual.
+Tauri hands the opened Vault to a Workspace screen with a quiet header, Close vault
+action and a placeholder when no content role mounts successfully. A separate
+portable provider owns content registrations through the public Workspace API/event.
+The screen remounts content for each Vault, handles missing/replacement/failing roles,
+and restores the selector on close. Mantine components owns both visible roles.
+One ordered content column ships initially; explorer, documents, editor, sidebars,
+tabs and resize/session persistence remain future work. See [Workspace](reference/workspace.md).
+
 ## Vault selector
 
 Status: IMPLEMENTED on 2026-11-05; native visual acceptance remains manual.
@@ -9,7 +20,7 @@ thirds. Mantine components supplies themed controls with Lucide icons; the consu
 uses public Slots, Components, Localization, VaultLocations and VaultHistory APIs.
 Browse/Next, name validation, cancellation, retry, duplicate-submit protection,
 history reopening and shutdown are integrated. A successful open displays the
-active Vault name; an editor/workspace shell remains deferred. See
+active Vault name in standalone mode; Tauri now hands off to Workspace. See
 [selector usage and manual acceptance](../plugins/UI/vault-selector/DOCS/README.md).
 
 ## Component provider

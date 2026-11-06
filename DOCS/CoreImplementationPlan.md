@@ -937,3 +937,22 @@ product UI remain deferred. No SDK/kernel/native changes, merge or push.
 
 Implementation commit: `7cbd1c1` (`feat(localization): add English-first plugin
 language service (K14)`).
+
+## Workspace — 2026-11-06
+
+Owner scope: continue from the completed startup/Vault base with a working surface
+and a placeholder when no content plugins are available. Existing SDK contracts,
+events and child scopes suffice; no kernel/runtime changes are required.
+
+| Task | Status | Delivered behavior / acceptance |
+|---|---|---|
+| Content contracts/provider | DONE | Public Workspace register/update/list API, change event, validated shallow immutable descriptors, owner-scoped removal and independent portable registry. |
+| Workspace screen | DONE | Loaded/Vault gating, committed selector handoff, fresh views on Vault switches, single-flight close/retry and return to selector. |
+| Mantine roles/placeholder | DONE | Theme/localization-aware header and empty state; successful mounts replace the placeholder; missing, removed or failed content restores it. |
+| Integration/verification | DONE | Tauri composition/grants, 90 targeted contract/provider/UI/host/boundary tests, type fixtures and production frontend build. |
+
+Branch: `feat/workspace`. Run `npm run workspace:check` and
+`npm run build --workspace @lunaris/tauri`. See [Workspace](reference/workspace.md)
+for the API, integration assessment, limits and manual acceptance. Native WebView
+visual acceptance remains manual. Explorer, document state, editor, tabs, sidebars,
+resizing and session restoration are deferred. No merge or push.

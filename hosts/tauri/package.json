@@ -37,7 +37,9 @@
     "@lunaris/runner": "0.1.0",
     "@lunaris/vault-history": "0.1.0",
     "@lunaris/vault-selector": "0.1.0",
-    "@lunaris/mantine-components": "0.1.0"
+    "@lunaris/mantine-components": "0.1.0",
+    "@lunaris/workspace-plugin": "0.1.0",
+    "@lunaris/workspace-provider": "0.1.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.12.4",

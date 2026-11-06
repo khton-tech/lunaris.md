@@ -15,7 +15,7 @@ import manifest from "../manifest.json" with { type: "json" };
 const role = "lunaris.vault-selector";
 type Mode = "create" | "select";
 
-export function createVaultSelector(options: { readonly art: string }) {
+export function createVaultSelector(options: { readonly art: string; readonly hideWhenVaultOpen?: boolean }) {
   const art = options.art;
   if (typeof art !== "string" || !art.trim()) throw new TypeError("Selector artwork is required.");
   return definePlugin({ manifest, async activate(ctx) {
@@ -30,6 +30,7 @@ export function createVaultSelector(options: { readonly art: string }) {
       let mode: Mode | null = null; let busy = false; let operation = "working"; let errorKey = ""; let historyFailed = false;
       let entries: readonly RecentVault[] = []; let historyVersion = 0; let current = vaults.current(); let activeReference: string | null = null;
       let latest = startup.snapshot(); let mounted: MountedComponent | undefined; let allocated = false;
+      let screen = ctx.scope.child();
       const slotId = `${ctx.pluginId}.screen`;
       const text = (key: string) => localization.text(ctx.pluginId, key);
       function failure(error: { readonly code: string }): string {
@@ -43,8 +44,14 @@ export function createVaultSelector(options: { readonly art: string }) {
       }
       function render(): void {
         if (ctx.signal.aborted || latest.state !== "loaded") return;
+        if (options.hideWhenVaultOpen && current) {
+          mounted = undefined; allocated = false;
+          void screen.dispose().catch(error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot release selector surface", { code: "SELECTOR_RELEASE_FAILED", error }); });
+          return;
+        }
         if (!allocated) {
-          const result = slots.create({ id: slotId, grow: 1 }, ctx.signal);
+          if (screen.signal.aborted) screen = ctx.scope.child();
+          const result = slots.create({ id: slotId, grow: 1 }, screen.signal);
           if (!result.ok) throw new Error("Cannot allocate selector slot.", { cause: result.error });
           allocated = true;
         }
@@ -68,7 +75,7 @@ export function createVaultSelector(options: { readonly art: string }) {
         if (!components.has(role)) return;
         const target = targets.get(slotId);
         if (!target) throw new Error("Selector rendering target is unavailable.");
-        const result = components.mount(role, target, props, ctx.signal);
+        const result = components.mount(role, target, props, screen.signal);
         if (!result.ok) throw new Error("Cannot mount selector.", { cause: result.error });
         mounted = result.value;
         logger.debug(ctx.pluginId, "Vault selector mounted");

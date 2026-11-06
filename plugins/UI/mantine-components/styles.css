@@ -14,6 +14,13 @@
 .lm-root [hidden] { display:none!important }
 .lm-root section { user-select:none }
 .lm-root input { user-select:text }
+.lm-workspace-header { flex:1;overflow:auto;padding:calc(var(--vault-space)*3);user-select:none }
+.lm-workspace-toolbar { display:flex;align-items:center;flex-wrap:wrap;gap:calc(var(--vault-space)*3) }
+.lm-root .lm-workspace-name { flex:1;font:inherit;font-weight:500;margin:0;overflow-wrap:anywhere }
+.lm-workspace-toolbar button { flex-shrink:0 }
+.lm-workspace-empty { display:flex;flex:1;min-height:0;overflow:auto;align-items:safe center;justify-content:safe center;padding:calc(var(--vault-space)*4);text-align:center }
+.lm-workspace-empty h2 { font:inherit;font-weight:500;margin:0 }
+.lm-workspace-empty p { color:var(--vault-secondary);max-width:40ch }
 .lm-root button,.lm-root input { font:inherit }
 .lm-root p { margin:0;overflow-wrap:anywhere }
 .lm-root .lm-button { height:auto;min-height:var(--button-height);padding:calc(var(--vault-space)*2) calc(var(--vault-space)*3);white-space:normal;transition:background-color var(--vault-motion-fast) var(--vault-motion-easing),color var(--vault-motion-fast) var(--vault-motion-easing) }

@@ -120,7 +120,9 @@ startup-screen handoff, and Tauri composition. The selector lives under
 contracts. Themes flow through the kit, localized text through props, and
 rendering through component roles and allocated slots. The runner's `hideWhenLoaded`
 option releases its child scope; the selector mounts on the loaded milestone.
-Successful opening displays the active Vault name; an editor/workspace is deferred.
+Tauri enables `hideWhenVaultOpen`, releasing the selector surface after a committed
+open and restoring it after close. The separate [Workspace](workspace.md) renders
+the opened Vault; standalone selectors retain the current Vault name by default.
 
 Targeted checks must cover selection without writes/activation, cancel/retry,
 Next using the chosen location without a second dialog, duplicate submissions,

@@ -216,3 +216,12 @@ Environment: Windows x64, Node 26.13.0, npm 11.20.0, Rust/Cargo 1.99.1,
 Tauri Rust 2.12.5 and JavaScript API/CLI 2.12.4. Actual WebView visuals, native close
 events and remote CI remain unverified. No merge, push, installer or publication
 was performed.
+
+## Workspace handoff
+
+The default composition starts the Workspace screen, resolving its separate content
+provider through SDK contracts. After startup, the selector is visible only without
+an active Vault. Opening shows Workspace; Close vault restores the selector after
+a committed Vault event. Mantine supplies the header/placeholder, and empty content
+shows an explanatory message. See [Workspace](../reference/workspace.md) for API,
+integration boundaries and manual visual acceptance.

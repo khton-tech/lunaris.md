@@ -140,7 +140,8 @@ Logs contain component IDs, never props.
 Tauri registers the provider as an entrypoint and grants it `ui.dom`. It starts
 empty, so there is no visible change until a component set and consumer are added.
 Tauri now also starts [Mantine components](../../plugins/UI/mantine-components/DOCS/README.md),
-which registers `lunaris.startup-screen` and `lunaris.vault-selector` without mounting them. The remaining
+which registers `lunaris.startup-screen`, `lunaris.vault-selector`,
+`lunaris.workspace-header` and `lunaris.workspace-empty` without mounting them. The remaining
 standard component catalog, non-DOM renderers, prop schemas, multiple
 simultaneous implementations per role and set priority are out of scope.
 
