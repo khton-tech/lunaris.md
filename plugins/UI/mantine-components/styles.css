@@ -138,8 +138,8 @@
 .lm-explorer-node[data-selected] { background:color-mix(in srgb,var(--vault-selection) 75%,var(--vault-panel)) }
 .lm-explorer:not([aria-busy=true]) .lm-explorer-node:active { background:var(--explorer-control-pressed) }
 .lm-explorer-node[data-drop] { outline:var(--vault-border) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-border)) }
-.lm-explorer-row:focus-visible .lm-explorer-node { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
-.lm-explorer-tree [role=tree]:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
+.lm-explorer[data-keyboard-navigation] .lm-explorer-row:focus-visible .lm-explorer-node { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
+.lm-explorer-tree [role=tree] { outline:none }
 .lm-explorer-spacer { width:1.25em;flex-shrink:0 }
 .lm-explorer .lm-explorer-disclosure { --ai-size:1.25em;--ai-hover:var(--explorer-control-hover);--ai-hover-color:var(--vault-text);flex-shrink:0;color:var(--vault-secondary);border-radius:calc(var(--vault-radius)*0.5) }
 .lm-explorer-disclosure span { display:flex;transition:transform var(--vault-motion-fast) var(--vault-motion-easing) }

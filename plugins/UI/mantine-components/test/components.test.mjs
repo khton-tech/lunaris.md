@@ -208,6 +208,25 @@ test('right-click preserves invocation multi-selection, coordinates and safe roo
   assert.equal(contexts[3].kind, 'root'); assert.deepEqual(contexts[3].selection, []);
   await s.stop();
 });
+
+test('Shift-click keeps range selection without enabling navigation focus chrome; arrows and pointer input switch modality', async () => {
+  const s = await setup(); await s.start(); const selections = [];
+  s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 320);
+  s.components.mount('lunaris.file-explorer', s.target, explorerFixture({ onSelection: paths => selections.push(paths) }), s.ctx.signal); await settle();
+  const explorer = s.target.querySelector('.lm-explorer'); const tree = s.target.querySelector('[role=tree]');
+  const folder = s.target.querySelector('[title=folder]').closest('[role=treeitem]');
+  const file = s.target.querySelector('[title="a.md"]').closest('[role=treeitem]');
+  folder.click(); await settle();
+  tree.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Shift', shiftKey: true, bubbles: true })); await settle();
+  assert.equal(explorer.hasAttribute('data-keyboard-navigation'), false);
+  file.dispatchEvent(new s.dom.window.MouseEvent('pointerdown', { shiftKey: true, bubbles: true }));
+  file.dispatchEvent(new s.dom.window.MouseEvent('click', { shiftKey: true, bubbles: true })); await settle();
+  assert.deepEqual(selections.at(-1), ['folder', 'folder/note.md', 'a.md']); assert.equal(explorer.hasAttribute('data-keyboard-navigation'), false);
+  tree.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true })); await settle();
+  assert.equal(explorer.hasAttribute('data-keyboard-navigation'), true);
+  file.dispatchEvent(new s.dom.window.MouseEvent('pointerdown', { shiftKey: true, bubbles: true })); await settle();
+  assert.equal(explorer.hasAttribute('data-keyboard-navigation'), false); await s.stop();
+});
 test('Arborist renders a virtualized, escaped tree and preserves owned roots across theme/props updates', async () => {
   const s = await setup(); await s.start();
   const props = explorerFixture({ data: Array.from({ length: 10000 }, (_, i) => ({ id: 'file-' + i, name: '<img src=x>' + i, kind: 'file' })) });

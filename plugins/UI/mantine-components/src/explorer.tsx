@@ -132,6 +132,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
   const synchronizing = useRef(false);
   const initializing = useRef(true);
   const [size, setSize] = useState({ height: 1, row: 28 });
+  const [keyboardNavigation, setKeyboardNavigation] = useState(false);
   const menu = useRef<MenuSession | undefined>(undefined);
   useEffect(() => () => { const previous = menu.current; void Promise.resolve().then(() => previous?.dispose()); }, []);
   const [form, setForm] = useState<Form | null>(() => props.initialDraft.form); const [name, setName] = useState(() => props.initialDraft.name);
@@ -232,6 +233,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
   function keyboard(event: KeyboardEvent): void {
     const target = event.target as HTMLElement;
     if (target.closest("input,textarea,[contenteditable=true]") || form) return;
+    if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key) && target.closest("[role=tree]")) setKeyboardNavigation(true);
     if (event.key === "Enter" && target.closest("[role=tree]")) {
       event.preventDefault(); event.stopPropagation();
       const node = tree.current?.focusedNode;
@@ -264,7 +266,8 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     else if (form) { tree.current?.openParents(DRAFT_ID); tree.current?.focus(DRAFT_ID, { scroll: false }); void tree.current?.scrollTo(DRAFT_ID); }
   }, [form, props.data]);
   const empty = !props.data.length && (!form || form.kind === "delete");
-  return <Box className="lm-explorer" style={{ ...theme.style, backgroundColor: "transparent" }} onKeyDownCapture={keyboard} aria-label={t.title} aria-busy={props.busy || props.loading}>
+  return <Box className="lm-explorer" style={{ ...theme.style, backgroundColor: "transparent" }} onKeyDownCapture={keyboard}
+    onPointerDownCapture={() => setKeyboardNavigation(false)} data-keyboard-navigation={keyboardNavigation || undefined} aria-label={t.title} aria-busy={props.busy || props.loading}>
     <Group className="lm-explorer-toolbar" gap={0} wrap="nowrap">
       <Menu withinPortal={false} position="bottom-start" width="target" offset={6} transitionProps={{ transition: "fade" }} returnFocus>
         <Menu.Target><Button variant="subtle" fullWidth justify="space-between" className="lm-explorer-tabs" aria-label={t.tabs} title={t.title} rightSection={<Icon name="expand" />}>{t.title}</Button></Menu.Target>

@@ -184,6 +184,12 @@ recent rows, bright artwork and reduced-motion settings.
 
 ## File explorer role
 
+Tree focus chrome follows explicit navigation modality: arrows, Home/End and
+PageUp/PageDown enable a row focus indicator; pointer input clears it. Shift or
+other modifiers alone do not enable it. The tree container never draws a panel-
+sized focus outline. Shift/Ctrl range selection, editor focus borders and drop
+target feedback retain their existing behavior.
+
 Creation uses a protected, view-local draft row inside the destination folder.
 The row mounts a Mantine TextInput, opens ancestors and scrolls into view. Enter
 submits once, Escape cancels, and errors retain name/focus for retry. Its synthetic
