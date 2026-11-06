@@ -102,7 +102,7 @@ export function mountVaultSelector(target: HTMLElement, input: ComponentProps, s
         const li = document.createElement("li"); const open = button(document, "", "folder");
         const labels = open.querySelector("span")!; labels.className = "ln-vault-recent-text";
         const title = document.createElement("span"); title.textContent = entry.name;
-        const label = document.createElement("small"); label.textContent = entry.label; label.hidden = entry.label === entry.name;
+        const label = document.createElement("small"); label.textContent = entry.label; label.title = entry.label;
         open.dataset.reference = entry.reference;
         labels.append(title, label); open.addEventListener("click", () => props.onRecent(entry.reference)); li.append(open); list.append(li);
       }

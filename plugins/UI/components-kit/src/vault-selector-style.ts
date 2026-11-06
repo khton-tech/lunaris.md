@@ -13,15 +13,15 @@ export const selectorStyle = `${controlStyle}
 .ln-vault * { box-sizing:border-box;min-width:0 }
 .ln-vault [hidden] { display:none!important }
 .ln-vault svg { width:1.15em;height:1.15em;flex-shrink:0 }
-.ln-vault .ln-vault-recents { background:color-mix(in srgb,var(--vault-panel) 45%,var(--vault-background));padding:clamp(1rem,4cqw,2.5rem);overflow-wrap:anywhere }
-.ln-vault h2 { font-size:.9em;font-weight:500;color:var(--vault-secondary);margin:0 0 calc(var(--vault-space)*5) }
+.ln-vault .ln-vault-recents { background:color-mix(in srgb,var(--vault-panel) 45%,var(--vault-background));padding-block:clamp(1rem,4cqw,2.5rem);padding-inline:2.5%;overflow-wrap:anywhere }
+.ln-vault h2 { font-size:.9em;font-weight:500;color:var(--vault-secondary);margin:0 calc(var(--vault-space)*2) calc(var(--vault-space)*3) }
 .ln-vault p { margin:0;color:var(--vault-secondary);overflow-wrap:anywhere }
 .ln-vault ul { list-style:none;padding:0;margin:0;display:grid;gap:var(--vault-space) }
-.ln-vault li button { width:100% }
+.ln-vault li button { width:100%;padding:calc(var(--vault-space)*2);gap:calc(var(--vault-space)*2) }
 .ln-vault li button > svg { color:var(--vault-secondary) }
-.ln-vault li button[aria-current=true] { background:color-mix(in srgb,var(--vault-selection) 45%,transparent) }
+.ln-vault li button[aria-current=true] { box-shadow:inset 0 0 0 var(--vault-border) color-mix(in srgb,var(--vault-accent) 45%,transparent) }
 .ln-vault li button[aria-current=true] > svg { color:var(--vault-accent) }
-.ln-vault .ln-vault-recent-text { display:grid;gap:var(--vault-space);flex:1 }
+.ln-vault .ln-vault-recent-text { display:grid;gap:0;flex:1 }
 .ln-vault small { font:inherit;font-size:.85em;color:var(--vault-secondary);overflow-wrap:anywhere }
 .ln-vault .ln-vault-main { display:flex;flex-direction:column;align-items:center;padding:clamp(1rem,5cqw,4rem);padding-block-start:clamp(3rem,14vh,8rem) }
 .ln-vault .ln-vault-content { width:100%;max-width:32rem;container-type:inline-size }
@@ -59,7 +59,7 @@ export const selectorStyle = `${controlStyle}
 .ln-vault .ln-vault-next:enabled:active { background:var(--vault-accent-hover) }
 @media(hover:hover) {
  .ln-vault .ln-vault-next:enabled:hover:not(:active) { background:var(--vault-accent-hover) }
- .ln-vault li button[aria-current=true]:enabled:hover:not(:active) { background:color-mix(in srgb,var(--vault-selection) 65%,transparent) }
+ .ln-vault li button[aria-current=true]:enabled:hover:not(:active) { box-shadow:inset 0 0 0 var(--vault-border) color-mix(in srgb,var(--vault-accent) 60%,transparent) }
 }
 @media(prefers-reduced-motion:reduce) { .ln-vault .ln-vault-action,.ln-vault .ln-vault-disclosure,.ln-vault .ln-vault-toggle > svg:last-child,.ln-vault .ln-vault-folder { transition:none } }
 @container(max-width:40rem) { .ln-vault { grid-template-columns:minmax(0,1fr) } .ln-vault .ln-vault-main { grid-row:1;padding-block:calc(var(--vault-space)*8) } }

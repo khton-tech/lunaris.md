@@ -65,7 +65,7 @@ layout keeps the logo stable as content expands.
 
 Shared `ln-control-button`/`ln-control-input` styles live in `controls-style.ts`.
 Surfaces map their semantic theme variables to `--control-*` tokens. Hover is a
-quiet fill, current selection is persistent, pressed feedback is separate, button
+a light translucent inset outline without a fill; current selection is persistent, pressed feedback is separate, button
 focus is keyboard-only, and fields use a single focused boundary. Text selection
 uses the theme's selection/text roles. Host recovery styles are isolated under
 `#system-root`, so they cannot override product interactions.
@@ -74,6 +74,10 @@ The initial icon pack is **Lucide**, pinned to `lucide@1.69.0`. Only required ic
 nodes are imported in `controls.ts` and rendered in the borrowed document; no
 global icon scan or document access occurs. Shared button/input/icon factories
 live in the kit, not in the consumer.
+
+Recent rows occupy 95% of the sidebar width, with compact padding and a name
+above the complete, wrapping location label. Current rows retain an accent outline
+and `aria-current`; pressed feedback and keyboard focus remain distinct.
 
 The left recent panel and right action panel use a 1:2 grid, stacking actions
 first below a 40rem container width. The frame uses container queries; all content

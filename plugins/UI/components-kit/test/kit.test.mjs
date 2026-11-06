@@ -136,3 +136,21 @@ test('owner cancellation and kit shutdown dispose instances; roles can be replac
   assert.ok(logs.some(args => args[2]?.code === 'SCREEN_MOUNT_FAILED' && args[2].error instanceof Error));
   await kernel.stopAll(); dom.window.close();
 });
+
+
+test('recent entries preserve full location text and current state through updates', async () => {
+  const s = await setup(); const selected = [];
+  const label = 'C:/Users/owner/Documents/a long folder/Notes';
+  const input = { ...selectorProps, activeReference: 'saved', entries: [{ reference: 'saved', name: 'Notes', label }], onRecent: ref => selected.push(ref) };
+  const mounted = s.components.mount('lunaris.vault-selector', s.target, input, s.owner);
+  assert.equal(mounted.ok, true);
+  const row = s.target.querySelector('li button');
+  assert.equal(row.getAttribute('aria-current'), 'true');
+  assert.equal(row.querySelector('small').textContent, label);
+  assert.equal(row.querySelector('small').title, label);
+  row.click(); assert.deepEqual(selected, ['saved']);
+  mounted.value.update({ ...input, activeReference: null, entries: [{ reference: 'saved', name: 'Notes', label: 'Notes' }] });
+  assert.equal(s.target.querySelector('li button').hasAttribute('aria-current'), false);
+  assert.equal(s.target.querySelector('li small').hidden, false);
+  await s.kernel.stopAll(); s.dom.window.close();
+});
