@@ -9,7 +9,7 @@ import { Config } from '@lunaris/config';
 import { Components } from '@lunaris/components';
 import { Themes } from '@lunaris/themes';
 import { Localization } from '@lunaris/localization';
-import { Vault, VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged } from '@lunaris/vault';
+import { Vault, VaultCreation, VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged } from '@lunaris/vault';
 import { createVaultSelector } from '@lunaris/vault-selector';
 import { createRunner } from '@lunaris/runner';
 import { createStartupProvider } from '@lunaris/startup-provider';
@@ -37,7 +37,7 @@ function setup(options = {}) {
     ctx.provide(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push([level, ...args]); return true; }])));
   } });
   const config = definePlugin({ manifest: manifest('test.config', [Config]), activate(ctx) { ctx.provide(Config, { async read() { return ok({}); }, async get() { return ok(undefined); }, async set() { return ok(null); }, async remove() { return ok(false); } }); } });
-  const services = definePlugin({ manifest: manifest('test.vaults', [Vault, VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged]), activate(ctx) {
+  const services = definePlugin({ manifest: manifest('test.vaults', [Vault, VaultCreation, VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged]), activate(ctx) {
     async function open(folder, input) {
       calls.push({ operation: 'open', folder, input }); await options.beforeOpen?.();
       if (options.openFailure) return fail(options.openFailure);
@@ -48,6 +48,7 @@ function setup(options = {}) {
       return ok(current);
     }
     ctx.provide(Vault, { current: () => current, open: () => open(location), async close() { current = null; return ok(null); } });
+    ctx.provide(VaultCreation, { create: (parent, name) => open({ reference: parent.reference + '/' + name, label: parent.label + '/' + name }, { name }) });
     ctx.provide(VaultLocations, { async describe(reference) { return ok({ reference, label: reference }); }, async select() { calls.push({ operation: 'select' }); return selections.length ? await selections.shift() : ok(location); }, open });
     ctx.provide(VaultHistory, { async list() { return options.historyFailure ? fail('HISTORY_UNAVAILABLE') : ok(entries); }, async open(reference) {
       calls.push({ operation: 'recent', reference }); const entry = entries.find(e => e.location.reference === reference);
@@ -110,6 +111,7 @@ test('create card browses without opening, requires a name and submits once thro
   assert.equal(s.calls.filter(c => c.operation === 'open').length, 1); assert.equal(name.disabled, true);
   pending.resolve(); await flush();
   assert.deepEqual(s.calls.at(-1).input, { name: 'My Notes' });
+  assert.equal(s.calls.at(-1).folder.reference, location.reference + '/My Notes');
   assert.equal(s.surface.querySelector('.ln-vault-status').textContent, 'My Notes'); assert.match(s.surface.querySelector('.ln-vault-recents').textContent, /My Notes/);
   assert.equal(s.surface.querySelector('li button[aria-current=true]').textContent.includes('My Notes'), true);
   assert.equal(s.surface.querySelectorAll('form:not([inert])').length, 0);
@@ -190,4 +192,18 @@ test('denied Vault access fails through host recovery; missing selector role can
     return { update() {}, dispose() { node.remove(); } };
   } }, s.context.signal); await flush();
   assert.match(s.surface.textContent, /Replacement selector/); await s.stop();
+});
+
+
+test('create validates directory names and preserves parent/name on collision', async () => {
+  const s = setup({ openFailure: 'ALREADY_EXISTS' }); await s.ready(); find(s, 'Create vault').click();
+  const form = [...s.surface.querySelectorAll('form')].find(form => !form.hasAttribute('inert'));
+  assert.ok(form.textContent.includes('Parent folder'));
+  form.querySelector('[aria-label=Browse]').click(); await flush();
+  const input = form.querySelector('input');
+  for (const name of ['../escape', 'a/b', 'CON', 'name.']) { typeInput(input, name); assert.equal(form.querySelector('[type=submit]').disabled, true); }
+  typeInput(input, 'Notes'); form.dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true })); await flush();
+  assert.match(s.surface.textContent, /folder with this name already exists/); assert.equal(input.value, 'Notes');
+  assert.equal(form.querySelector('.ln-vault-path').textContent, location.label); assert.equal(form.querySelector('[type=submit]').disabled, false);
+  await s.stop();
 });

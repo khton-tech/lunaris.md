@@ -99,3 +99,17 @@ and capability confinement apply to application roots.
 type fixtures, boundaries, formatting, host compilation and frontend build.
 Tests use temporary directories and injected transports; no windows/dialogs open
 and no files are written into the user's actual application directory.
+
+## Child directory locations
+
+`DirectoryLocations` and `DirectoryLocationsDriver` in @lunaris/filesystem
+provide `create(parent, name, owner): Promise<FsResult<FolderLocation>>`. Tokens
+are api:lunaris.directory-locations and api:lunaris.directory-locations-driver
+1.0.0. They require filesystem.access (and filesystem.native to provide the driver).
+The native createLocation operation resolves an opaque parent reference, validates
+a portable single-segment name, uses capability-relative exclusive mkdir and
+registers a distinct child reference. It never parses a UI label as authority.
+Pre-cancelled owners perform no I/O; late cancellation returns CANCELLED and does
+not attach a root. A directory already created can remain after late cancellation
+or registry failure. Existing directories are never reused and contents are never
+deleted as rollback. The provider forwards calls through the public driver SDK.

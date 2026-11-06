@@ -7,9 +7,11 @@ import { Components } from "@lunaris/components";
 import { definePlugin } from "@lunaris/sdk";
 import { Logger } from "@lunaris/logging";
 import { Themes, ThemeChanged } from "@lunaris/themes";
-import { startupProps, selectorProps } from "./props.js";
-import { StartupScreen, VaultSelector } from "./views.js";
+import { explorerProps, FileExplorer } from "./explorer.js";
+import { startupProps, selectorProps, workspaceHeaderProps, workspaceEmptyProps } from "./props.js";
+import { StartupScreen, VaultSelector, WorkspaceHeader, WorkspaceEmpty } from "./views.js";
 import { resolveTheme } from "./theme.js";
+import { layoutProps, railProps, WorkspaceLayout, SidebarRail } from "./sidebar.js";
 import manifest from "../manifest.json" with { type: "json" };
 
 let nextId = 0;
@@ -23,15 +25,19 @@ export default definePlugin({ manifest, activate(ctx) {
   ctx.events.on(ThemeChanged, () => {
     for (const instance of instances) instance.applyTheme();
   });
-  for (const id of ["lunaris.startup-screen", "lunaris.vault-selector"] as const) {
-    const validate = id === "lunaris.startup-screen" ? startupProps : selectorProps;
+  for (const id of ["lunaris.startup-screen", "lunaris.vault-selector", "lunaris.workspace-header", "lunaris.workspace-empty", "lunaris.workspace-layout", "lunaris.sidebar-rail", "lunaris.file-explorer"] as const) {
+    const validate = { "lunaris.startup-screen": startupProps, "lunaris.vault-selector": selectorProps,
+      "lunaris.workspace-header": workspaceHeaderProps, "lunaris.workspace-empty": workspaceEmptyProps,
+      "lunaris.workspace-layout": layoutProps, "lunaris.sidebar-rail": railProps, "lunaris.file-explorer": explorerProps }[id];
     const registration = components.register({ id, mount(target, initial, signal): ComponentInstance {
       let props = initial;
       try { validate(props); }
       catch (error) { logger.error(ctx.pluginId, "Invalid Mantine component props", { code: "MANTINE_PROPS_INVALID", data: { componentId: id }, error }); throw error; }
       const container = target.ownerDocument.createElement("div");
       container.id = `lunaris-mantine-${++nextId}`; container.className = "lm-root";
-      Object.assign(container.style, { display: "flex", flex: "1 1 0%", minWidth: "0", minHeight: "0", containerType: "size" });
+      const intrinsicHeight = id === "lunaris.workspace-header";
+      // Size containment suppresses intrinsic height in the non-growing header slot.
+      Object.assign(container.style, { display: "flex", flex: intrinsicHeight ? "0 0 auto" : "1 1 0%", minWidth: "0", minHeight: "0", containerType: intrinsicHeight ? "inline-size" : "size" });
       let disposed = false; let failed = false; let renderError: unknown; let rendering = false;
       const root = createRoot(container, { onUncaughtError(error) {
         failed = true; renderError = error;
@@ -44,7 +50,12 @@ export default definePlugin({ manifest, activate(ctx) {
         // A provider per SDK-owned React root scopes color scheme and variables to its owned DOM.
         const view = id === "lunaris.startup-screen"
           ? createElement(StartupScreen, { props: startupProps(props), theme })
-          : createElement(VaultSelector, { props: selectorProps(props), theme });
+          : id === "lunaris.vault-selector" ? createElement(VaultSelector, { props: selectorProps(props), theme })
+          : id === "lunaris.workspace-header" ? createElement(WorkspaceHeader, { props: workspaceHeaderProps(props), theme })
+          : id === "lunaris.workspace-empty" ? createElement(WorkspaceEmpty, { props: workspaceEmptyProps(props), theme })
+          : id === "lunaris.workspace-layout" ? createElement(WorkspaceLayout, { props: layoutProps(props), theme })
+          : id === "lunaris.sidebar-rail" ? createElement(SidebarRail, { props: railProps(props), theme })
+          : createElement(FileExplorer, { key: explorerProps(props).vaultId, props: explorerProps(props), theme });
         rendering = true;
         try { flushSync(() => root.render(createElement(MantineProvider, {
           theme: theme.mantine, forceColorScheme: theme.scheme, colorSchemeManager,

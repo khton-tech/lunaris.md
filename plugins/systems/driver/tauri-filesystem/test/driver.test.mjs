@@ -3,19 +3,19 @@ import assert from 'node:assert/strict';
 import { definePlugin } from '@lunaris/sdk';
 import { createTestKernel } from '@lunaris/test';
 import { Logger } from '@lunaris/logging';
-import { FilesystemDriver, FilesystemRootsDriver, FilesystemLocationsDriver, ApplicationDirectoryDriver, DriverFileChanged } from '@lunaris/filesystem';
+import { FilesystemDriver, FilesystemObservationDriver, FilesystemRootsDriver, FilesystemLocationsDriver, ApplicationDirectoryDriver, DriverFileChanged } from '@lunaris/filesystem';
 import { createTauriFilesystemDriver } from '@lunaris/tauri-filesystem';
 
 async function setup(native) {
   const host = createTestKernel({ initialGrants: { 'lunaris.tauri-filesystem': ['filesystem.native'], 'test.consumer': ['filesystem.access', 'filesystem.app-config'] } });
-  const logs = []; const changes = []; let api; let roots; let locations; let directories; let context;
+  const logs = []; const changes = []; let api; let observation; let roots; let locations; let directories; let context;
   host.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push([level, ...args]); return true; }])));
   host.register(createTauriFilesystemDriver(native));
   host.register(definePlugin({ manifest: { manifestVersion: 1, id: 'test.consumer', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js',
-    provides: [], requires: [FilesystemDriver, FilesystemRootsDriver, FilesystemLocationsDriver, ApplicationDirectoryDriver, DriverFileChanged].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' })), permissions: ['filesystem.access', 'filesystem.app-config'], optionalPermissions: [] },
-  activate(ctx) { context = ctx; api = ctx.use(FilesystemDriver); roots = ctx.use(FilesystemRootsDriver); locations = ctx.use(FilesystemLocationsDriver); directories = ctx.use(ApplicationDirectoryDriver); ctx.events.on(DriverFileChanged, change => { changes.push(change); }); } }));
+    provides: [], requires: [FilesystemDriver, FilesystemObservationDriver, FilesystemRootsDriver, FilesystemLocationsDriver, ApplicationDirectoryDriver, DriverFileChanged].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' })), permissions: ['filesystem.access', 'filesystem.app-config'], optionalPermissions: [] },
+  activate(ctx) { context = ctx; api = ctx.use(FilesystemDriver); observation = ctx.use(FilesystemObservationDriver); roots = ctx.use(FilesystemRootsDriver); locations = ctx.use(FilesystemLocationsDriver); directories = ctx.use(ApplicationDirectoryDriver); ctx.events.on(DriverFileChanged, change => { changes.push(change); }); } }));
   await host.start('test.consumer');
-  return { host, api, roots, locations, directories, context, logs, changes };
+  return { host, api, observation, roots, locations, directories, context, logs, changes };
 }
 
 test('driver contains transport errors, uses native session ownership and releases it on stop', async () => {
@@ -151,4 +151,38 @@ test('location descriptions validate references and bridge results without attac
   assert.equal((await s.locations.describe('saved')).error.code, 'IO_ERROR');
   assert.equal(calls.some(c => c.operation === 'attachLocation'), false);
   await s.host.stopAll(); s.host.assertNoResources();
+});
+
+
+test('native owned watches release on provider-owner stop and during pending creation', async () => {
+  const pending = deferred(); const calls = []; let sequence = 0; let callback;
+  const s = await setup({ async request(session, operation, args, send) {
+    calls.push([operation, args]);
+    if (operation === 'watch') { callback = send; return ++sequence === 1 ? { ok: true, value: 'first' } : pending.promise; }
+    return { ok: true, value: null };
+  } });
+  const aborted = new AbortController(); aborted.abort();
+  assert.equal((await s.observation.watch({ vaultId: 'v', path: '' }, aborted.signal)).error.code, 'CANCELLED');
+  assert.equal(calls.filter(([op]) => op === 'watch').length, 0);
+  await s.observation.watch({ vaultId: 'v', path: '' }, s.context.signal);
+  const second = s.observation.watch({ vaultId: 'v', path: '' }, s.context.signal);
+  await s.host.stop('test.consumer'); await flush();
+  assert.equal(calls.filter(([op]) => op === 'unwatch').length, 1);
+  pending.resolve({ ok: true, value: 'late' }); assert.equal((await second).error.code, 'CANCELLED');
+  assert.equal(calls.filter(([op]) => op === 'unwatch').length, 2);
+  callback({ vaultId: 'v', watchId: 'late', kind: 'rescan', paths: [] }); await flush(); assert.equal(s.changes.length, 0);
+  assert.deepEqual(s.host.diagnostics(), []);
+  await s.host.stopAll(); s.host.assertNoResources();
+});
+
+test('native driver shutdown with pending owned watch uses session cleanup without closed SDK calls', async () => {
+  const pending = deferred(); const calls = [];
+  const s = await setup({ async request(session, operation) {
+    calls.push(operation); return operation === 'watch' ? pending.promise : { ok: true, value: null };
+  } });
+  const watching = s.observation.watch({ vaultId: 'v', path: '' }, s.context.signal);
+  await s.host.stopAll(); pending.resolve({ ok: true, value: 'late' });
+  assert.equal((await watching).error.code, 'CANCELLED'); await flush();
+  assert.equal(calls.at(-1), 'end'); assert.equal(calls.includes('unwatch'), false);
+  assert.deepEqual(s.host.diagnostics(), []); s.host.assertNoResources();
 });

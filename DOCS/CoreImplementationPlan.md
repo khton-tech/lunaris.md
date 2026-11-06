@@ -937,3 +937,42 @@ product UI remain deferred. No SDK/kernel/native changes, merge or push.
 
 Implementation commit: `7cbd1c1` (`feat(localization): add English-first plugin
 language service (K14)`).
+
+## Workspace — 2026-11-06
+
+Owner scope: continue from the completed startup/Vault base with a working surface
+and a placeholder when no content plugins are available. Existing SDK contracts,
+events and child scopes suffice; no kernel/runtime changes are required.
+
+| Task | Status | Delivered behavior / acceptance |
+|---|---|---|
+| Content contracts/provider | DONE | Public Workspace register/update/list API, change event, validated shallow immutable descriptors, owner-scoped removal and independent portable registry. |
+| Workspace screen | DONE | Loaded/Vault gating, committed selector handoff, fresh views on Vault switches, single-flight close/retry and return to selector. |
+| Mantine roles/placeholder | DONE | Theme/localization-aware header and empty state; successful mounts replace the placeholder; missing, removed or failed content restores it. |
+| Integration/verification | DONE | Tauri composition/grants, 90 targeted contract/provider/UI/host/boundary tests, type fixtures and production frontend build. |
+
+Branch: `feat/workspace`. Run `npm run workspace:check` and
+`npm run build --workspace @lunaris/tauri`. See [Workspace](reference/workspace.md)
+for the API, integration assessment, limits and manual acceptance. Native WebView
+visual acceptance remains manual. Explorer, document state, editor, tabs, sidebars,
+resizing and session restoration are deferred. No merge or push.
+
+## Independent Sidebar — 2026-11-06
+
+Owner scope: implement Sidebar as a separate plugin with an icon-only left rail and
+an active tool panel; integrate it through public Workspace contracts.
+
+| Task | Status | Delivered behavior / acceptance |
+|---|---|---|
+| Sidebar contracts/provider | DONE | Owned tab registration, immutable snapshots, localized title/props updates, selection/collapse, deterministic removal fallback and change events. |
+| Independent Sidebar controller | DONE | Public Workspace contributions for rail/selected role, no dummy tabs, missing-role fallback and late/replacement renderer support. |
+| Workspace regions | DONE | Compatible API 1.1 main/left-rail/left-panel descriptors, exclusive side-region ownership, stable borrowed layout targets and independent main placeholder/views. |
+| Mantine/integration | DONE | ActionIcon/Lucide rail, accessible labels/native tooltips, keyboard focus/Escape, theme inheritance, narrow nonmodal overlay and Tauri composition. |
+
+Branch: `feat/sidebar`, based on `feat/workspace`. Run `npm run sidebar:check`,
+the Tauri frontend build and CI scope/export/documentation audits. See
+[Sidebar](reference/sidebar.md) and [Workspace](reference/workspace.md).
+Local checks passed 95 targeted tests with zero skipped, type fixtures, import
+boundaries, the frontend build, CI scope selection and the export/docs audit.
+Native WebView geometry remains subject to manual acceptance. No actual tool
+plugins, document tabs, resizing, session persistence, merge or push are included.

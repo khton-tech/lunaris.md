@@ -1,7 +1,7 @@
 import { defineApi, defineEvent } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
 
-export type FsErrorCode = "INVALID_PATH" | "INVALID_ARGUMENT" | "VAULT_CLOSED" | "NOT_FOUND" | "ALREADY_EXISTS" | "NOT_FILE" | "NOT_DIRECTORY" | "DIRECTORY_NOT_EMPTY" | "ACCESS_DENIED" | "CONFLICT" | "UNSUPPORTED" | "TOO_LARGE" | "INVALID_ENCODING" | "IO_ERROR";
+export type FsErrorCode = "CANCELLED" | "INVALID_PATH" | "INVALID_ARGUMENT" | "VAULT_CLOSED" | "NOT_FOUND" | "ALREADY_EXISTS" | "NOT_FILE" | "NOT_DIRECTORY" | "DIRECTORY_NOT_EMPTY" | "ACCESS_DENIED" | "CONFLICT" | "UNSUPPORTED" | "TOO_LARGE" | "INVALID_ENCODING" | "IO_ERROR";
 export interface FsFailure {
   readonly code: FsErrorCode;
   readonly message: string;
@@ -27,6 +27,17 @@ export interface FilesystemLocationsApi {
   select(owner: CancellationSignal): Promise<FsResult<FolderLocation | null>>;
   attach(location: FolderLocation, owner: CancellationSignal): Promise<FsResult<VaultRoot>>;
 }
+export function validDirectoryName(value: unknown): value is string {
+  return typeof value === "string" && value.length <= 200 && value === value.trim() && !value.includes("/") && validPath(value);
+}
+export interface DirectoryLocationsApi {
+  /** Exclusively create a direct child and return its durable location; never reuse an existing directory. */
+  create(parent: FolderLocation, name: string, owner: CancellationSignal): Promise<FsResult<FolderLocation>>;
+}
+const validDirectoryLocations = (value: unknown): boolean => value !== null && typeof value === "object" &&
+  typeof Object.getOwnPropertyDescriptor(value, "create")?.value === "function";
+export const DirectoryLocations = defineApi<DirectoryLocationsApi>({ id: "lunaris.directory-locations", version: "1.0.0", consumePermission: "filesystem.access", validate: validDirectoryLocations });
+export const DirectoryLocationsDriver = defineApi<DirectoryLocationsApi>({ id: "lunaris.directory-locations-driver", version: "1.0.0", providePermission: "filesystem.native", consumePermission: "filesystem.access", validate: validDirectoryLocations });
 const validLocationsApi = (value: unknown): boolean => value !== null && typeof value === "object" &&
   ["select", "attach", "describe"].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function");
 export const FilesystemLocations = defineApi<FilesystemLocationsApi>({
@@ -85,6 +96,21 @@ export const filesystemMethods = Object.freeze([
 const validateApi = (value: unknown): boolean => value !== null && typeof value === "object" &&
   filesystemMethods.every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function");
 export const Filesystem = defineApi<FilesystemApi>({ id: "lunaris.filesystem", version: "1.0.0", consumePermission: "filesystem.access", validate: validateApi });
+/** Provider-owned observation: cancellation releases the watch using the provider's live scope. */
+export interface FilesystemObservationApi {
+  watch(target: FileTarget, owner: CancellationSignal, recursive?: boolean): Promise<FsResult<string>>;
+}
+export const FilesystemObservation = defineApi<FilesystemObservationApi>({
+  id: "lunaris.filesystem-observation", version: "1.0.0", consumePermission: "filesystem.access",
+  validate: value => value !== null && typeof value === "object" &&
+    typeof Object.getOwnPropertyDescriptor(value, "watch")?.value === "function",
+});
+/** Bind native observations to the provider activation, including provider-only restarts. */
+export const FilesystemObservationDriver = defineApi<FilesystemObservationApi>({
+  id: "lunaris.filesystem-observation-driver", version: "1.0.0", providePermission: "filesystem.native", consumePermission: "filesystem.access",
+  validate: value => value !== null && typeof value === "object" &&
+    typeof Object.getOwnPropertyDescriptor(value, "watch")?.value === "function",
+});
 export const FilesystemDriver = defineApi<FilesystemApi>({ id: "lunaris.filesystem-driver", version: "1.0.0", providePermission: "filesystem.native", consumePermission: "filesystem.access", validate: validateApi });
 
 /** Roots are opaque capabilities; FileTarget.vaultId also accepts an application root ID. */

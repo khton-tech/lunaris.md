@@ -204,3 +204,20 @@ without attaching a root or preparing Vault data. The native driver returns the
 full absolute display path in `label`; `reference` remains opaque authority.
 Recent history refreshes legacy labels on listing and recording, retaining saved
 labels on recoverable failures. Display paths must never be logged.
+
+## Owned observations
+
+Consumers that need change observation should require
+`api:lunaris.filesystem-observation@^1.0.0` and acquire
+`ctx.use(FilesystemObservation)`. Call `watch(target, owner, recursive = true)`
+with a consumer or child-scope signal. Subscribe to FileChanged first, establish
+the watch, then scan. Cancellation automatically releases the driver watch using
+the provider's live context, including cancellation during creation. It returns
+`CANCELLED` when ownership has ended. Cancelled/closed watch events are suppressed.
+The existing Filesystem.unwatch releases early; subsequent cancellation is harmless.
+Vault close detaches ownership listeners. Provider shutdown detaches local listeners
+and relies on the driver's owned native session cleanup, never closed SDK handles.
+Native unwatch failures are diagnosed by the live provider; session/Vault cleanup
+remains the safety net. The original unowned watch API remains compatible.
+
+The provider requires `api:lunaris.filesystem-observation-driver@1.0.0` and passes its own activation signal to it. The Tauri driver releases native watches on provider-only shutdown, including late watch creation, and suppresses callbacks immediately on cancellation. Explicit unwatch and Vault closure detach driver ownership listeners. Driver shutdown uses its native session cleanup. Replacement filesystem drivers must implement this additive contract.

@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { bindWindowClose } from '../dist/desktop.js';
@@ -12,4 +13,9 @@ test('native close awaits resource cleanup; repeated requests cannot destroy the
   await handler({ preventDefault() { prevented = true; } });
   assert.equal(stops, 1); assert.equal(prevented, true);
   finished.resolve(); await first; unlisten(); assert.ok(removed);
+});
+
+test('Windows WebView leaves HTML5 drag/drop to the SDK component renderer', () => {
+  const config = JSON.parse(readFileSync(new URL('../src-tauri/tauri.conf.json', import.meta.url), 'utf8'));
+  assert.equal(config.app.windows.find(window => window.label === 'main').dragDropEnabled, false);
 });

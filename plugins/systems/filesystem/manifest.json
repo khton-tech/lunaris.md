@@ -30,6 +30,16 @@
       "kind": "api",
       "id": "lunaris.filesystem-locations",
       "version": "1.1.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.filesystem-observation",
+      "version": "1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.directory-locations",
+      "version": "1.0.0"
     }
   ],
   "requires": [
@@ -62,6 +72,16 @@
       "kind": "api",
       "id": "lunaris.filesystem-locations-driver",
       "range": "^1.1.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.filesystem-observation-driver",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.directory-locations-driver",
+      "range": "^1.0.0"
     }
   ],
   "permissions": [

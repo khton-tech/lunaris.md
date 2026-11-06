@@ -17,7 +17,9 @@ copied verbatim, and no broad gallery catalog is registered without a consumer.
 ## SDK integration and lifetime
 
 Requires Logger, Components, Themes, ThemeChanged and the `ui.dom` permission.
-Registers `lunaris.startup-screen` and `lunaris.vault-selector` with ctx.signal.
+Registers `lunaris.startup-screen`, `lunaris.vault-selector`,
+`lunaris.workspace-header`, `lunaris.workspace-empty`, `lunaris.workspace-layout`
+and `lunaris.sidebar-rail` with ctx.signal.
 Provides no additional API or events. Subscribes to ThemeChanged and re-renders
 live instances. Readiness, degraded missing themes, rejected props/registration,
 and original rendering failures are logged using ctx.pluginId as source.
@@ -34,6 +36,10 @@ color-scheme manager prevents browser persistence. Theme selection and config
 remain the responsibility of theme-settings/Config. Mantine's global body/root
 baseline is omitted; hosts import the plugin's `styles.css` export once for the
 required component styles. Host recovery remains independent.
+
+The Workspace header uses inline-size containment and intrinsic flex sizing so its
+non-growing slot retains the full height of wrapped names, actions and errors.
+Full-height screen/content roots continue to use size containment.
 
 ## Roles and props
 
@@ -62,6 +68,41 @@ the toggle when necessary. Controlled names survive locale/theme updates.
 Intrinsic grid disclosure, reserved form space and reduced-motion styles retain
 layout stability. Narrow/short containers compact or stack, with local overflow
 and hidden scrollbar chrome. The logo uses the theme text color.
+
+The optional workspace-header role remains available to SDK consumers but is not
+mounted by the default Workspace screen. Its props: strings `name`, `closeLabel`, `error`; boolean `busy`;
+callback `onClose()`. It renders a wrapping Mantine Text/Button header with a
+semantic h1 and an alert only on failure. Empty-state props: strings `title` and
+`detail`. It renders a centered, scrollable Mantine Stack/Title/Text composition
+with a Lucide PackageOpen illustration above the copy. The decorative icon is
+hidden from assistive technology, inherits the theme's secondary text color and
+scales down in short regions; no new props, translations or consumer integration
+are required.
+Both roles use the current theme and localized consumer text. The header adapts
+the restrained [Mantine UI header compositions](https://ui.mantine.dev/category/headers/);
+no fixed-position AppShell or unused navigation is added. These roles own no Vault
+operations and follow the same registration/instance lifecycle as the existing roles.
+
+## Workspace regions and Sidebar roles
+
+`lunaris.workspace-layout` takes booleans railVisible/panelVisible, localized
+mainLabel/panelLabel and onDismiss(). Its onTargets callback receives stable
+`{ main, "left-rail", "left-panel" }` HTMLElements after mount and null on release.
+Callbacks only capture data; consumers mount nested Components after the layout
+mount/update call returns, outside React effects. Updates/theme changes preserve
+the targets. Consumers release their nested instances when the layout is replaced.
+The role owns the responsive grid and region-local overflow, with a nonmodal left
+overlay in narrow containers. Escape focuses the active rail control then calls
+onDismiss; no portals leave the target. Regions contain independently owned React
+roots, not React children that the layout reconciles.
+
+`lunaris.sidebar-rail` takes label, activeId, tabs `{ id, title, icon }[]` and
+onSelect(id). It uses Mantine ActionIcon with Lucide roles, native title tooltips,
+accessible names, aria-pressed/expanded, theme selection/hover/focus colors and
+Up/Down/Home/End focus navigation. It adapts the
+[Mantine UI navbar compositions](https://ui.mantine.dev/category/navbars/).
+Supported icon names add files/search/outline/settings; unknown names use PackageOpen.
+No registry, active-tab policy, Workspace calls or Vault access lives in the renderer.
 
 ## Themes and development rules
 
@@ -114,7 +155,10 @@ no SDK checks or compiler strictness flags are disabled.
 
 Tauri starts this plugin; runner and vault-selector mount its unchanged roles.
 Themes/ThemeChanged update Mantine, theme-settings selects startup appearance,
-and localization remains consumer-owned. Required integrations are complete.
+and localization remains consumer-owned. Workspace mounts its header and empty-state
+roles through the same public registry. Workspace borrows the layout targets;
+Sidebar supplies rail props while its selected content mounts independently.
+Required integrations are complete.
 
 Run `npm run mantine-components:check` for real SDK/React/Mantine behavior,
 registration rollback/restart, owner cleanup, isolated roots, prop validation,
@@ -123,3 +167,58 @@ theme changes, focus/drafts and host/controller regressions. Run
 Desktop automation is forbidden. Manually run `npm run tauri:dev` and check both
 screens, short/narrow windows, keyboard focus, create/select/cancel/error flows,
 recent rows, bright artwork and reduced-motion settings.
+
+## File explorer role
+
+`lunaris.file-explorer` renders the public controller props documented in the
+[file explorer reference](../../../../DOCS/reference/file-explorer.md#renderer-contract).
+It uses React Arborist 4.0.1 with react-dnd/HTML5 backend 16.0.1, Mantine menus,
+ActionIcon, TextInput, Paper and Button. The renderer owns only view mechanics;
+file operations, localization, drafts and logical tree state belong to the SDK
+controller. A localized Tabs dropdown currently offers only Files. Its single-line
+trigger spans the available panel width and reads as a medium-weight panel
+heading: transparent at rest, without a persistent border, with a 32px minimum
+height at default spacing. A quiet hover/open surface and distinct pressed
+feedback use the active theme; keyboard focus retains the shared focus indicator.
+The dropdown stays available with the single Files entry for interaction testing.
+It shares the trigger width but is detached by a 6px gap, with a restrained
+theme-derived border and shadow. Menu corners remain rounded in either placement;
+item corners use half the menu radius. The current entry is marked by a trailing
+Lucide check rather than a permanent selection fill. Opening uses a fade without
+scaling/movement. Long localized names truncate with full native titles, and the
+chevron stays at the trailing edge. The Workspace
+Vault name is rendered as an initially expanded, protected root row above the
+controller entries; header titles and operation buttons are absent. Root disclosure
+is view-local and resets on remount. Root identities are excluded from controller
+selection and mutation sources; root drop targets map to the public empty path.
+Existing file commands remain available through context menus and shortcuts. Popover/Menu styles are included in styles.css. Menus and themed
+drag previews remain inside the owned root. Custom public row/cursor renderers
+keep names truncatable and drop feedback on the SDK palette.
+
+The tree shares the toolbar's horizontal inset, with compact 28px rows at the
+default font size. Row spacing stays inside the virtualized row allocation so
+selection, scrolling and drag/drop geometry retain their controller behavior.
+Rows have small theme-derived corners and no resting boundaries; the protected
+Vault root uses medium-weight text. Disclosure controls and file placeholders
+share a width to align labels at each depth. Thin vertical guides in the indent
+area align with ancestor disclosure centers and use a subdued theme secondary
+color. Their spacing follows Arborist's public indent and node level, so they
+track nested folders and font-size changes without affecting row geometry.
+Guides are decorative, hidden from assistive technology and ignore pointer input. Hover uses the same quiet surface
+as the header, selection retains a stronger theme-derived fill, and press/drop/
+keyboard focus remain distinct. Busy trees suppress row hover/press feedback.
+Context menus reuse the detached dropdown geometry and interaction palette;
+inline forms use the same insets and subdued boundaries. Motion follows theme
+timing and is removed for reduced-motion preferences. No controller contracts,
+file commands or cross-plugin integrations change.
+
+## Global region surfaces
+
+WorkspaceLayout owns one Mantine Paper card per supporting region (navigation
+rail and selected tool panel), using the active theme panel surface, radius and
+spacing. Main remains an open workspace with no card or outer inset. Rail,
+explorer and empty-state views use transparent backgrounds so they inherit the
+region surface without adding nested cards. Narrow overlays retain external
+spacing and rounded corners; region scrolling, stable SDK targets and Escape
+behavior are preserved. Individual tab buttons remain controls inside the rail
+card. No SDK contracts or controller integrations change.

@@ -1,5 +1,11 @@
 # Tauri host and independent recovery shell
 
+The host bootstrap prevents the default `contextmenu` action throughout the
+document, suppressing the built-in WebView menu. It does not stop event
+propagation: SDK component renderers retain their own contextual actions,
+including the file explorer menu. The policy also applies to the recovery shell
+and editable fields; product editing actions remain component-owned.
+
 Normal desktop startup presents the runner (ASCII logo/loading) followed by the
 Vault selector. Before plugin services are available, a host-owned static surface
 uses the same `resources/ascii_art.txt` artwork and default dark runner appearance.
@@ -216,3 +222,23 @@ Environment: Windows x64, Node 26.13.0, npm 11.20.0, Rust/Cargo 1.99.1,
 Tauri Rust 2.12.5 and JavaScript API/CLI 2.12.4. Actual WebView visuals, native close
 events and remote CI remain unverified. No merge, push, installer or publication
 was performed.
+
+## Workspace handoff
+
+The default composition starts the Workspace screen, resolving its separate content
+provider through SDK contracts. After startup, the selector is visible only without
+an active Vault. Opening shows Workspace; a committed close through the public
+Vault service restores the selector. Workspace has no top Vault-name/Close vault
+row. Mantine supplies the layout/placeholder, and empty content
+shows an explanatory message. See [Workspace](../reference/workspace.md) for API,
+integration boundaries and manual visual acceptance.
+
+## Sidebar composition
+
+The default host also registers the independent Sidebar controller/tab provider
+and starts the controller with ui.dom. Its required SDK contracts resolve the
+provider. It contributes left-rail and left-panel through Workspace 1.1; no tool
+tabs are registered by default, so empty Sidebar adds no width or demo UI.
+See [Sidebar](../reference/sidebar.md) for tool registration and manual acceptance.
+
+The main WebView sets `dragDropEnabled: false` so Windows delivers HTML5 drag/drop to React Arborist. Tauri's default native file-drop handler intercepts those events. This host-level setting does not grant plugins native access or add OS-file import. Restart `tauri:dev` after changing native window configuration. See [Tauri WindowConfig](https://v2.tauri.app/reference/config/#windowconfig).

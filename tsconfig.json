@@ -108,6 +108,21 @@
     },
     {
       "path": "plugins/UI/mantine-components"
+    },
+    {
+      "path": "plugins/UI/workspace"
+    },
+    {
+      "path": "plugins/UI/workspace-content"
+    },
+    {
+      "path": "plugins/UI/sidebar"
+    },
+    {
+      "path": "plugins/UI/sidebar-tabs"
+    },
+    {
+      "path": "plugins/UI/file-explorer"
     }
   ]
 }

@@ -3,6 +3,9 @@ import { createWebviewScheduler } from "./scheduler.js";
 import { mountSystemView } from "./view.js";
 import { bindDesktopLifecycle } from "./desktop.js";
 
+// Suppress WebView chrome while preserving plugin context-menu handlers.
+document.addEventListener("contextmenu", event => event.preventDefault(), { capture: true });
+
 const root = document.getElementById("system-root")!;
 const application = document.getElementById("application-root")!;
 const session = new HostSession({

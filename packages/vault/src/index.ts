@@ -17,6 +17,11 @@ export const VaultLocations = defineApi<VaultLocationsApi>({
   validate: value => value !== null && typeof value === "object" &&
     ["select", "open", "describe"].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function"),
 });
+/** Create a named child of the selected parent, prepare it and activate its own root. */
+export const VaultCreation = defineApi<{ create(parent: FolderLocation, name: string): Promise<VaultResult<VaultRoot>> }>({
+  id: "lunaris.vault-creation", version: "1.0.0", consumePermission: "vault.access",
+  validate: value => value !== null && typeof value === "object" && typeof Object.getOwnPropertyDescriptor(value, "create")?.value === "function",
+});
 export interface RecentVault { readonly location: FolderLocation; readonly name: string }
 export type VaultHistoryResult<T> = { readonly ok: true; readonly value: T } | {
   readonly ok: false; readonly error: VaultFailure | { readonly code: "HISTORY_UNAVAILABLE"; readonly message: string };

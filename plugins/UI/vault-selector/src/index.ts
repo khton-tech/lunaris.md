@@ -6,8 +6,9 @@ import { SlotDom } from "@lunaris/slot-dom";
 import { Components, ComponentsChanged } from "@lunaris/components";
 import type { MountedComponent } from "@lunaris/components";
 import { Startup, StartupChanged } from "@lunaris/startup";
-import { Vault, VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged, validVaultName } from "@lunaris/vault";
+import { Vault, VaultCreation, VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged } from "@lunaris/vault";
 import type { RecentVault } from "@lunaris/vault";
+import { validDirectoryName } from "@lunaris/filesystem";
 import type { FolderLocation } from "@lunaris/filesystem";
 import { catalogs } from "./catalog.js";
 import manifest from "../manifest.json" with { type: "json" };
@@ -15,7 +16,7 @@ import manifest from "../manifest.json" with { type: "json" };
 const role = "lunaris.vault-selector";
 type Mode = "create" | "select";
 
-export function createVaultSelector(options: { readonly art: string }) {
+export function createVaultSelector(options: { readonly art: string; readonly hideWhenVaultOpen?: boolean }) {
   const art = options.art;
   if (typeof art !== "string" || !art.trim()) throw new TypeError("Selector artwork is required.");
   return definePlugin({ manifest, async activate(ctx) {
@@ -25,14 +26,18 @@ export function createVaultSelector(options: { readonly art: string }) {
       const registered = localization.register(ctx.pluginId, catalogs, ctx.signal);
       if (!registered.ok) throw new Error("Cannot register selector messages.", { cause: registered.error });
       const slots = ctx.use(Slots); const targets = ctx.use(SlotDom); const components = ctx.use(Components);
+      const creation = ctx.use(VaultCreation);
       const startup = ctx.use(Startup); const vaults = ctx.use(Vault); const locations = ctx.use(VaultLocations); const history = ctx.use(VaultHistory);
       const forms: Record<Mode, { location: FolderLocation | null; name: string }> = { create: { location: null, name: "" }, select: { location: null, name: "" } };
       let mode: Mode | null = null; let busy = false; let operation = "working"; let errorKey = ""; let historyFailed = false;
       let entries: readonly RecentVault[] = []; let historyVersion = 0; let current = vaults.current(); let activeReference: string | null = null;
       let latest = startup.snapshot(); let mounted: MountedComponent | undefined; let allocated = false;
+      let screen = ctx.scope.child();
       const slotId = `${ctx.pluginId}.screen`;
       const text = (key: string) => localization.text(ctx.pluginId, key);
       function failure(error: { readonly code: string }): string {
+        if (error.code === "ALREADY_EXISTS") return "exists";
+        if (["INVALID_PATH", "INVALID_ARGUMENT"].includes(error.code)) return "invalidName";
         if (["NOT_FOUND", "NOT_DIRECTORY"].includes(error.code)) return "missing";
         if (error.code === "ACCESS_DENIED") return "denied";
         if (["PREPARATION_FAILED", "INVALID_CONFIG", "INVALID_TOML"].includes(error.code)) return "config";
@@ -43,15 +48,21 @@ export function createVaultSelector(options: { readonly art: string }) {
       }
       function render(): void {
         if (ctx.signal.aborted || latest.state !== "loaded") return;
+        if (options.hideWhenVaultOpen && current) {
+          mounted = undefined; allocated = false;
+          void screen.dispose().catch(error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot release selector surface", { code: "SELECTOR_RELEASE_FAILED", error }); });
+          return;
+        }
         if (!allocated) {
-          const result = slots.create({ id: slotId, grow: 1 }, ctx.signal);
+          if (screen.signal.aborted) screen = ctx.scope.child();
+          const result = slots.create({ id: slotId, grow: 1 }, screen.signal);
           if (!result.ok) throw new Error("Cannot allocate selector slot.", { cause: result.error });
           allocated = true;
         }
         const form = mode ? forms[mode] : null;
-        const props = { art, text: Object.fromEntries(Object.keys(catalogs.en).filter(key => key !== "opened").map(key => [key, text(key)])), mode, activeReference,
+        const props = { art, text: Object.fromEntries(Object.keys(catalogs.en).filter(key => key !== "opened").map(key => [key, text(key === "folder" && mode === "create" ? "parentFolder" : key)])), mode, activeReference,
           folder: form?.location?.label ?? "", name: form?.name ?? "", busy,
-          canContinue: !!form?.location && (mode !== "create" || validVaultName(form.name.trim())),
+          canContinue: !!form?.location && (mode !== "create" || validDirectoryName(form.name.trim())),
           error: errorKey ? text(errorKey) : "", historyError: historyFailed ? text("historyError") : "",
           status: busy ? text(operation) : current ? localization.text(ctx.pluginId, "opened", { name: current.name }) : "",
           entries: entries.map(entry => ({ reference: entry.location.reference, name: entry.name, label: entry.location.label })),
@@ -68,7 +79,7 @@ export function createVaultSelector(options: { readonly art: string }) {
         if (!components.has(role)) return;
         const target = targets.get(slotId);
         if (!target) throw new Error("Selector rendering target is unavailable.");
-        const result = components.mount(role, target, props, ctx.signal);
+        const result = components.mount(role, target, props, screen.signal);
         if (!result.ok) throw new Error("Cannot mount selector.", { cause: result.error });
         mounted = result.value;
         logger.debug(ctx.pluginId, "Vault selector mounted");
@@ -108,13 +119,13 @@ export function createVaultSelector(options: { readonly art: string }) {
       function next(): void {
         if (!mode || busy) return;
         const form = forms[mode]; const location = form.location;
-        if (!location || (mode === "create" && !validVaultName(form.name.trim()))) return;
-        const options = mode === "create" ? { name: form.name.trim() } : undefined;
+        if (!location || (mode === "create" && !validDirectoryName(form.name.trim()))) return;
+        const creating = mode === "create"; const name = form.name.trim();
         run(async () => {
-          const result = await locations.open(location, options);
+          const result = creating ? await creation.create(location, name) : await locations.open(location);
           if (ctx.signal.aborted) return;
           if (!result.ok) { errorKey = failure(result.error); logger.error(ctx.pluginId, "Cannot open selected Vault", { code: result.error.code, error: result.error }); }
-          else { current = vaults.current(); activeReference = current?.id === result.value.id ? location.reference : null; mode = null; logger.info(ctx.pluginId, "Vault opened from selector", { code: "SELECTOR_VAULT_OPENED" }); }
+          else { current = vaults.current(); if (!creating) activeReference = current?.id === result.value.id ? location.reference : null; mode = null; logger.info(ctx.pluginId, "Vault opened from selector", { code: "SELECTOR_VAULT_OPENED" }); }
         });
       }
       function recent(reference: string): void {

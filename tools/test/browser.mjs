@@ -6,7 +6,9 @@ export function useBrowser(dom) {
   const view = dom.window;
   view.matchMedia ??= query => ({ matches: false, media: query, onchange: null, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent() { return true; } });
   view.ResizeObserver ??= class { observe() {} unobserve() {} disconnect() {} };
-  for (const [key, value] of Object.entries({ window: view, document: view.document, navigator: view.navigator, HTMLElement: view.HTMLElement, Element: view.Element, Node: view.Node, getComputedStyle: view.getComputedStyle.bind(view), ResizeObserver: view.ResizeObserver })) {
+  view.requestAnimationFrame ??= callback => view.setTimeout(() => callback(view.performance.now()), 16);
+  view.cancelAnimationFrame ??= id => view.clearTimeout(id);
+  for (const [key, value] of Object.entries({ addEventListener: view.addEventListener.bind(view), removeEventListener: view.removeEventListener.bind(view), window: view, document: view.document, navigator: view.navigator, HTMLElement: view.HTMLElement, Image: view.Image, Element: view.Element, Node: view.Node, getComputedStyle: view.getComputedStyle.bind(view), ResizeObserver: view.ResizeObserver, requestAnimationFrame: view.requestAnimationFrame.bind(view), cancelAnimationFrame: view.cancelAnimationFrame.bind(view) })) {
     Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   }
   return dom;

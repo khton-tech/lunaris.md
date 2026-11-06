@@ -3,28 +3,30 @@ import assert from 'node:assert/strict';
 import { definePlugin } from '@lunaris/sdk';
 import { createTestKernel } from '@lunaris/test';
 import { Logger } from '@lunaris/logging';
-import { Filesystem, FilesystemDriver, FilesystemRoots, FilesystemRootsDriver, FilesystemLocationsDriver, ApplicationDirectory, ApplicationDirectoryDriver, DriverFileChanged, FileChanged, filesystemMethods } from '@lunaris/filesystem';
+import { DirectoryLocations, DirectoryLocationsDriver, Filesystem, FilesystemObservation, FilesystemObservationDriver, FilesystemDriver, FilesystemRoots, FilesystemRootsDriver, FilesystemLocationsDriver, ApplicationDirectory, ApplicationDirectoryDriver, DriverFileChanged, FileChanged, filesystemMethods } from '@lunaris/filesystem';
 import filesystem from '@lunaris/filesystem-provider';
 
 const manifest = (id, provides = [], requires = [], permissions = []) => ({ manifestVersion: 1, id, version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides, requires, permissions, optionalPermissions: [] });
-const requires = [Filesystem, FilesystemRoots, ApplicationDirectory, FileChanged].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' }));
+const requires = [FilesystemObservation, Filesystem, FilesystemRoots, ApplicationDirectory, FileChanged].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' }));
 
 async function setup(implementation = {}, options = {}) {
-  const logs = []; const calls = []; const changes = []; let api; let ownedRoots; let directories; let consumerContext; let driverContext;
+  const logs = []; const calls = []; const changes = []; let api; let observation; let ownedRoots; let directories; let consumerContext; let driverContext;
   const host = createTestKernel({ initialGrants: { 'lunaris.filesystem-provider': ['filesystem.access', 'filesystem.app-config'], 'test.driver': ['filesystem.native'], 'test.consumer': options.denied ? [] : options.deniedConfig ? ['filesystem.access'] : ['filesystem.access', 'filesystem.app-config'] } });
   host.installMock(ApplicationDirectoryDriver, { openConfig: async () => ({ ok: true, value: { id: 'config-root', name: 'App config' } }) }, { grants: ['filesystem.native'] });
   host.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push([level, ...args]); return true; }])));
   const methods = Object.fromEntries(filesystemMethods.map(name => [name, async (...args) => { calls.push([name, ...args]); return { ok: true, value: null }; }]));
   methods.capabilities = () => ({ watch: true, atomicReplace: true, versionCheck: 'optimistic', trash: false, maxFileBytes: 1024 });
   Object.assign(methods, implementation);
+  host.installMock(FilesystemObservationDriver, { watch: (target, owner, recursive) => methods.watch(target, recursive) }, { grants: ['filesystem.native'] });
+  host.installMock(DirectoryLocationsDriver, { create: async (parent, name) => ({ ok: true, value: { reference: 'child-' + name, label: parent.label + '/' + name } }) }, { grants: ['filesystem.native'] });
   host.installMock(FilesystemRootsDriver, { selectVault: owner => methods.selectVault(owner) }, { grants: ['filesystem.native'] });
   host.installMock(FilesystemLocationsDriver, { describe: async reference => ({ ok: true, value: { reference, label: reference } }), select: async () => ({ ok: true, value: null }), attach: async () => ({ ok: false, error: { code: 'NOT_FOUND', message: 'Missing location' } }) }, { grants: ['filesystem.native'] });
   host.register(definePlugin({ manifest: manifest('test.driver', [{ kind: 'api', id: FilesystemDriver.id, version: '1.0.0' }, { kind: 'event', id: DriverFileChanged.id, version: '1.0.0' }], [], ['filesystem.native']), activate(ctx) { driverContext = ctx; ctx.provide(FilesystemDriver, methods); } }));
   host.register(filesystem);
-  host.register(definePlugin({ manifest: manifest('test.consumer', [], requires, ['filesystem.access', 'filesystem.app-config']), activate(ctx) { consumerContext = ctx; api = ctx.use(Filesystem); ownedRoots = ctx.use(FilesystemRoots); directories = ctx.use(ApplicationDirectory); ctx.events.on(FileChanged, change => { changes.push(change); }); } }));
+  host.register(definePlugin({ manifest: manifest('test.consumer', [], requires, ['filesystem.access', 'filesystem.app-config']), activate(ctx) { consumerContext = ctx; api = ctx.use(Filesystem); observation = ctx.use(FilesystemObservation); ownedRoots = ctx.use(FilesystemRoots); directories = ctx.use(ApplicationDirectory); ctx.events.on(FileChanged, change => { changes.push(change); }); } }));
   if (options.denied || options.deniedConfig) return { host };
   await host.start('test.consumer');
-  return { host, api, ownedRoots, directories, consumerContext, calls, logs, changes, emit: change => driverContext.events.emit(DriverFileChanged, change) };
+  return { host, api, observation, ownedRoots, directories, consumerContext, calls, logs, changes, emit: change => driverContext.events.emit(DriverFileChanged, change) };
 }
 
 test('provider forwards explicit targets, write policy and binary snapshots through SDK', async () => {
@@ -131,4 +133,45 @@ test('provider passes the owner signal through the root driver', async () => {
   selection.resolve({ ok: true, value: { id: 'late', name: 'Late' } });
   assert.equal((await pending).value.id, 'late');
   await host.stopAll(); host.assertNoResources(); assert.deepEqual(host.diagnostics(), []);
+});
+
+
+test('owned watches cancel before/during/after creation and suppress retired events', async () => {
+  const pending = deferred(); let started = 0;
+  const { host, observation, api, consumerContext, calls, changes, emit } = await setup({ watch: () => { started++; return pending.promise; } });
+  const aborted = new AbortController(); aborted.abort();
+  assert.equal((await observation.watch({ vaultId: 'v', path: '' }, aborted.signal)).error.code, 'CANCELLED');
+  assert.equal(started, 0);
+  const owner = new AbortController();
+  const result = observation.watch({ vaultId: 'v', path: '' }, owner.signal); owner.abort();
+  pending.resolve({ ok: true, value: 'w' });
+  assert.equal((await result).error.code, 'CANCELLED');
+  assert.equal(calls.filter(call => call[0] === 'unwatch').length, 1);
+  await emit({ vaultId: 'v', watchId: 'w', kind: 'modified', paths: ['a.md'] });
+  assert.equal(changes.length, 0);
+  await api.unwatch('v', 'w');
+  assert.equal(calls.filter(call => call[0] === 'unwatch').length, 1);
+  await host.stopAll(); host.assertNoResources();
+});
+
+test('consumer shutdown releases owned watches through the live provider', async () => {
+  const { host, observation, consumerContext, calls } = await setup({ watch: async () => ({ ok: true, value: 'owned' }) });
+  assert.equal((await observation.watch({ vaultId: 'v', path: '' }, consumerContext.signal)).value, 'owned');
+  await host.stop('test.consumer'); await flush();
+  assert.equal(calls.filter(call => call[0] === 'unwatch').length, 1);
+  assert.deepEqual(host.diagnostics(), []);
+  await host.stopAll(); host.assertNoResources();
+});
+
+test('explicit unwatch and Vault close detach observation ownership idempotently', async () => {
+  let id = 0;
+  const { host, observation, api, calls } = await setup({ watch: async () => ({ ok: true, value: String(++id) }) });
+  const first = new AbortController(); const second = new AbortController();
+  await observation.watch({ vaultId: 'v', path: '' }, first.signal);
+  await api.unwatch('v', '1'); first.abort(); await flush();
+  assert.equal(calls.filter(call => call[0] === 'unwatch').length, 1);
+  await observation.watch({ vaultId: 'v', path: '' }, second.signal);
+  await api.closeVault('v'); second.abort(); await flush();
+  assert.equal(calls.filter(call => call[0] === 'unwatch').length, 1);
+  await host.stopAll(); host.assertNoResources();
 });

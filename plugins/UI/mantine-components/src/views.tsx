@@ -1,9 +1,30 @@
 import { useId, useLayoutEffect, useRef } from "react";
 import { Box, Button, Input, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
-import type { SelectorProps, StartupProps } from "./props.js";
+import type { SelectorProps, StartupProps, WorkspaceHeaderProps, WorkspaceEmptyProps } from "./props.js";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
 import { CardRow } from "./card-row.js";
+
+export function WorkspaceHeader({ props, theme }: { props: WorkspaceHeaderProps; theme: ReturnType<typeof resolveTheme> }) {
+  return <Box component="header" className="lm-workspace-header" style={theme.style} aria-busy={props.busy}>
+    <Box className="lm-workspace-toolbar">
+      <Text component="h1" className="lm-workspace-name" title={props.name}>{props.name}</Text>
+      <Button variant="subtle" disabled={props.busy} onClick={props.onClose}>{props.closeLabel}</Button>
+    </Box>
+    <Text role="alert" hidden={!props.error}>{props.error}</Text>
+  </Box>;
+}
+export function WorkspaceEmpty({ props, theme }: { props: WorkspaceEmptyProps; theme: ReturnType<typeof resolveTheme> }) {
+  return <Box component="section" className="lm-workspace-empty" style={{ ...theme.style, backgroundColor: "transparent" }} aria-label={props.title}>
+    <Stack align="center" gap="md">
+      <Box className="lm-workspace-empty-icon"><Icon name="package" /></Box>
+      <Stack align="center" gap="xs">
+        <Title order={2}>{props.title}</Title>
+        <Text>{props.detail}</Text>
+      </Stack>
+    </Stack>
+  </Box>;
+}
 
 export function StartupScreen({ props, theme }: { props: StartupProps; theme: ReturnType<typeof resolveTheme> }) {
   return <Box component="section" className="lm-startup" style={{ ...theme.style, padding: theme.startup.padding, gap: theme.startup.gap }}>

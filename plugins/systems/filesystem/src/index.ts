@@ -1,14 +1,17 @@
 import { definePlugin } from "@lunaris/sdk";
-import { Filesystem, FilesystemDriver, FilesystemRoots, FilesystemRootsDriver, FilesystemLocations, FilesystemLocationsDriver, ApplicationDirectory, ApplicationDirectoryDriver, FileChanged, DriverFileChanged, failure, validTarget, validFolderLocation } from "@lunaris/filesystem";
+import { DirectoryLocations, DirectoryLocationsDriver, validDirectoryName, Filesystem, FilesystemObservation, FilesystemObservationDriver, FilesystemDriver, FilesystemRoots, FilesystemRootsDriver, FilesystemLocations, FilesystemLocationsDriver, ApplicationDirectory, ApplicationDirectoryDriver, FileChanged, DriverFileChanged, failure, validTarget, validFolderLocation } from "@lunaris/filesystem";
 import type { FileTarget, FsResult, WriteOptions } from "@lunaris/filesystem";
 import { Logger } from "@lunaris/logging";
 import manifest from "../manifest.json" with { type: "json" };
+import { createObservation } from "./observation.js";
 import { createRootLifecycle } from "./roots.js";
 
 export default definePlugin({ manifest, activate(ctx) {
   const logger = ctx.use(Logger);
   logger.debug(ctx.pluginId, "Activating filesystem provider");
+  const directoryLocations = ctx.use(DirectoryLocationsDriver);
   const driver = ctx.use(FilesystemDriver);
+  const observationDriver = ctx.use(FilesystemObservationDriver);
   const directories = ctx.use(ApplicationDirectoryDriver);
   const ownedRoots = ctx.use(FilesystemRootsDriver);
   const locations = ctx.use(FilesystemLocationsDriver);
@@ -46,14 +49,23 @@ export default definePlugin({ manifest, activate(ctx) {
       if (!validTarget(destination) || destination.vaultId !== copy.vaultId) return Promise.resolve(failure("INVALID_PATH", "Transfers must stay within one Vault."));
       return driver[operation](copy, snapshot(destination), overwrite);
     });
+  const observation = createObservation(ctx, (target, recursive) => onTarget("watch", target, true, copy => observationDriver.watch(copy, ctx.signal, recursive)),
+    (vaultId, watchId) => roots.run(vaultId, () => call("unwatch", () => driver.unwatch(vaultId, watchId))),
+    error => logger.error(ctx.pluginId, "Cannot release filesystem observation", { code: "OBSERVATION_RELEASE_FAILED", error }));
+  ctx.provide(FilesystemObservation, { watch: (target, owner, recursive) => observation.watch({ ...target }, owner, recursive) });
   ctx.events.on(DriverFileChanged, async change => {
+    if (!observation.accepts(change.vaultId, change.watchId)) return;
     try { await ctx.events.emit(FileChanged, change); }
     catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot publish filesystem change", { code: "FILESYSTEM_EVENT_FAILED", error }); }
   });
   ctx.provide(Filesystem, {
     capabilities: () => driver.capabilities(),
     selectVault: () => call("selectVault", () => driver.selectVault()),
-    closeVault: vaultId => roots.close(vaultId),
+    closeVault: async vaultId => {
+      const result = await roots.close(vaultId);
+      if (result.ok || result.error.code === "VAULT_CLOSED") observation.close(vaultId);
+      return result;
+    },
     pickFile: vaultId => roots.run(vaultId, () => call("pickFile", () => driver.pickFile(vaultId))),
     pickDirectory: vaultId => roots.run(vaultId, () => call("pickDirectory", () => driver.pickDirectory(vaultId))),
     pickSaveLocation: vaultId => roots.run(vaultId, () => call("pickSaveLocation", () => driver.pickSaveLocation(vaultId))),
@@ -74,9 +86,13 @@ export default definePlugin({ manifest, activate(ctx) {
     move: (source, destination, overwrite = false) => transfer("move", source, destination, overwrite),
     copy: (source, destination, overwrite = false) => transfer("copy", source, destination, overwrite),
     watch: (target, recursive = true) => onTarget("watch", target, true, copy => driver.watch(copy, recursive)),
-    unwatch: (vaultId, watchId) => roots.run(vaultId, () => call("unwatch", () => driver.unwatch(vaultId, watchId))),
+    unwatch: (vaultId, watchId) => observation.unwatch(vaultId, watchId),
   });
   ctx.provide(FilesystemRoots, { selectVault: owner => call("selectVault", () => ownedRoots.selectVault(owner)) });
+  ctx.provide(DirectoryLocations, { create(parent, name, owner) {
+    if (!validFolderLocation(parent) || !validDirectoryName(name)) return Promise.resolve(failure("INVALID_PATH", "A valid parent and portable directory name are required."));
+    return call("createLocation", () => directoryLocations.create({ ...parent }, name, owner));
+  } });
   ctx.provide(FilesystemLocations, {
     describe(reference) {
       if (typeof reference !== "string" || !reference.length || reference.length > 512) return Promise.resolve(failure("INVALID_ARGUMENT", "A valid location reference is required."));

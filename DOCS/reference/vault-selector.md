@@ -24,13 +24,13 @@ to the available width without distorting it or forcing page-wide overflow.
 Initially show two actions: Create Vault and Select Vault. Each expands a card
 directly below its action; only one card is expanded at a time.
 
-- Create: select a folder using an icon-only Browse button, then enter a Vault
-  name, then press Next.
+- Create: select a parent folder using Browse, then enter the new directory/Vault
+  name and press Next. Create exclusively makes and opens that named child.
 - Select: select a folder using the same Browse control, then press Next.
-- Proposed create semantics: the selected folder is the Vault root; the entered
-  name is its display name, not a request to create a nested directory. This
-  is the current backend behavior; confirm before changing it to nested creation.
-- Accept empty and populated folders. Existing unrelated content is preserved.
+- Create uses VaultCreation.create(parent, name); Select uses VaultLocations.open
+  without a name. An existing named child produces a recoverable error, never
+  implicit selection or overwrite. The new child location is saved in history.
+- Select accepts empty and populated folders. Existing unrelated content is preserved.
   Config Manager creates missing `.lunaris/config.toml` during preparation and
   validates existing configuration without overwriting it.
 - Browse only selects a candidate. Next prepares and activates it. Cancelling
@@ -120,7 +120,9 @@ startup-screen handoff, and Tauri composition. The selector lives under
 contracts. Themes flow through the kit, localized text through props, and
 rendering through component roles and allocated slots. The runner's `hideWhenLoaded`
 option releases its child scope; the selector mounts on the loaded milestone.
-Successful opening displays the active Vault name; an editor/workspace is deferred.
+Tauri enables `hideWhenVaultOpen`, releasing the selector surface after a committed
+open and restoring it after close. The separate [Workspace](workspace.md) renders
+the opened Vault; standalone selectors retain the current Vault name by default.
 
 Targeted checks must cover selection without writes/activation, cancel/retry,
 Next using the chosen location without a second dialog, duplicate submissions,

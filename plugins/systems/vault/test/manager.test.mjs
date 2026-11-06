@@ -4,7 +4,7 @@ import { definePlugin } from '@lunaris/sdk';
 import { createTestKernel } from '@lunaris/test';
 import { Logger } from '@lunaris/logging';
 import { Filesystem, filesystemMethods } from '@lunaris/filesystem';
-import { Vault, VaultChanged, PrepareVault } from '@lunaris/vault';
+import { Vault, VaultCreation, VaultLocations, VaultChanged, PrepareVault } from '@lunaris/vault';
 import filesystem from '@lunaris/filesystem-provider';
 import vaultManager from '@lunaris/vault-manager';
 import { createTauriFilesystemDriver } from '@lunaris/tauri-filesystem';
@@ -17,7 +17,7 @@ const failure = (code, message = code) => ({ ok: false, error: { code, message }
 
 async function setup(options = {}) {
   const calls = []; const logs = []; const changes = []; const selections = [];
-  let manager; let fs; let context;
+  let manager; let creation; let locations; let fs; let context;
   const host = createTestKernel({ initialGrants: {
     'lunaris.filesystem-provider': ['filesystem.access', 'filesystem.app-config'],
     'lunaris.vault-manager': ['filesystem.access'], 'lunaris.tauri-filesystem': ['filesystem.native'],
@@ -35,6 +35,7 @@ async function setup(options = {}) {
   Object.assign(methods, options.driver);
   host.register(createTauriFilesystemDriver({ async request(session, operation, args) {
     if (['begin', 'end'].includes(operation)) return ok(null);
+    if (options.native) { const result = await options.native(operation, args); if (result !== undefined) return result; }
     if (operation === 'selectVault') return methods.selectVault();
     if (operation === 'closeVault') return methods.closeVault(args.vaultId);
     if (operation === 'writeText') return methods.writeText(args.target, args.text, args.options);
@@ -42,14 +43,14 @@ async function setup(options = {}) {
     return methods[operation](args.target);
   } }));
   host.register(filesystem); host.register(vaultManager);
-  host.register(definePlugin({ manifest: manifest('test.consumer', [], [Vault, VaultChanged, PrepareVault, Filesystem].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' })), ['vault.access', 'filesystem.access']), activate(ctx) {
-    context = ctx; manager = ctx.use(Vault); fs = ctx.use(Filesystem);
+  host.register(definePlugin({ manifest: manifest('test.consumer', [], [Vault, VaultCreation, VaultLocations, VaultChanged, PrepareVault, Filesystem].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' })), ['vault.access', 'filesystem.access']), activate(ctx) {
+    context = ctx; manager = ctx.use(Vault); creation = ctx.use(VaultCreation); locations = ctx.use(VaultLocations); fs = ctx.use(Filesystem);
     ctx.events.on(VaultChanged, async change => { changes.push(change); await options.onChange?.(change, manager); });
     if (options.prepare) ctx.hooks.register(PrepareVault, value => options.prepare(value, manager, fs));
   } }));
   if (options.denied) return { host };
   await host.start('test.consumer');
-  return { host, manager, fs, context, calls, logs, changes, select: (id, name = id) => selections.push(ok({ id, name })), selections };
+  return { host, manager, creation, locations, fs, context, calls, logs, changes, select: (id, name = id) => selections.push(ok({ id, name })), selections };
 }
 
 test('startup has no dialog; open/switch/close publish explicit identities after preparation', async () => {
@@ -194,4 +195,32 @@ test('Vault access requires an explicit consumer grant', async () => {
   const { host } = await setup({ denied: true });
   await assert.rejects(host.start('test.consumer'), error => error.code === 'ACTIVATION_FAILED' && error.cause?.code === 'PERMISSION_DENIED');
   await host.stopAll(); host.assertNoResources();
+});
+
+
+test('creation attaches and publishes the named child location; selection opens the parent unchanged', async () => {
+  const parent = { reference: 'parent', label: 'Parent' }; const child = { reference: 'child', label: 'Parent/Notes' }; const native = []; let exists = false;
+  const s = await setup({ prepare: value => ({ ...value, displayName: value.requestedName ?? value.vault.name }), native(operation, args) {
+    native.push([operation, args]);
+    if (operation === 'createLocation') { if (exists) return failure('ALREADY_EXISTS'); exists = true; return ok(child); }
+    if (operation === 'attachLocation') return ok({ id: args.reference, name: args.reference === 'child' ? 'Notes' : 'Parent' });
+  } });
+  assert.equal((await s.creation.create(parent, '../escape')).error.code, 'INVALID_PATH'); assert.equal(native.length, 0);
+  assert.equal((await s.creation.create(parent, 'Notes')).value.id, 'child'); await flush();
+  assert.deepEqual(native[0], ['createLocation', { reference: 'parent', name: 'Notes' }]);
+  assert.equal(native.find(([op]) => op === 'attachLocation')[1].reference, 'child');
+  assert.deepEqual(s.changes[0].location, child);
+  assert.equal((await s.creation.create(parent, 'Notes')).error.code, 'ALREADY_EXISTS'); assert.equal(s.manager.current().id, 'child');
+  assert.equal((await s.locations.open(parent)).value.id, 'parent'); await flush(); assert.deepEqual(s.changes.at(-1).location, parent);
+  await s.host.stopAll(); s.host.assertNoResources(); assert.deepEqual(s.host.diagnostics(), []);
+});
+
+
+test('stopping during child creation never attaches the parent or late child', async () => {
+  const pending = deferred(); const native = [];
+  const s = await setup({ native(operation, args) { native.push([operation, args]); if (operation === 'createLocation') return pending.promise; } });
+  const creating = s.creation.create({ reference: 'parent', label: 'Parent' }, 'Notes'); await flush();
+  await s.host.stop('lunaris.vault-manager'); pending.resolve(ok({ reference: 'child', label: 'Parent/Notes' }));
+  assert.equal((await creating).error.code, 'STOPPED'); assert.equal(native.some(([op]) => op === 'attachLocation'), false); assert.equal(s.changes.length, 0);
+  await s.host.stopAll(); s.host.assertNoResources(); assert.deepEqual(s.host.diagnostics(), []);
 });

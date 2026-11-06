@@ -1,4 +1,9 @@
+import fileExplorer from "@lunaris/file-explorer";
 import { createRunner } from "@lunaris/runner";
+import workspaceProvider from "@lunaris/workspace-provider";
+import sidebar from "@lunaris/sidebar-plugin";
+import sidebarProvider from "@lunaris/sidebar-provider";
+import workspace from "@lunaris/workspace-plugin";
 import { createVaultSelector } from "@lunaris/vault-selector";
 import { createThemeSettings } from "@lunaris/theme-settings";
 import mantineComponents from "@lunaris/mantine-components";
@@ -27,18 +32,21 @@ const logger = createLogger();
 export function composeApplication(target: HTMLElement): ApplicationDefinition {
   const themeSettings = createThemeSettings({ defaultThemeId: "lunaris.base-theme-engine.monochrome" });
   const runner = createRunner({ art, hideWhenLoaded: true });
-  const selector = createVaultSelector({ art });
+  const selector = createVaultSelector({ art, hideWhenVaultOpen: true });
   const startup = createStartupProvider();
   const layout = composeSlotSurface(target);
   return {
     ...layout,
     startup,
-    plugins: [runner, selector, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
-    entrypoints: [startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, selector.manifest.id],
+    plugins: [fileExplorer, sidebar, sidebarProvider, runner, selector, workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
+    entrypoints: [startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, selector.manifest.id, workspace.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id],
     grants: {
       ...layout.grants,
       [runner.manifest.id]: ["config.access", "ui.dom"],
       [selector.manifest.id]: ["vault.access", "ui.dom"],
+      [workspace.manifest.id]: ["vault.access", "ui.dom"],
+      [fileExplorer.manifest.id]: ["filesystem.access", "vault.access"],
+      [sidebar.manifest.id]: ["ui.dom"],
       [themeSettings.manifest.id]: ["config.access"],
       [componentProvider.manifest.id]: ["ui.dom"],
       [mantineComponents.manifest.id]: ["ui.dom"],
