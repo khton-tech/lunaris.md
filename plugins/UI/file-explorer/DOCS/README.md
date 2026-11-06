@@ -22,6 +22,12 @@ renderer displays the Workspace Vault name as a protected tree root; operations
 remain available for ordinary entries through context menus and keyboard shortcuts. Tree state, operation policy, drafts and an in-memory per-Vault
 copy/cut buffer belong to the controller, independent of a mounted view.
 
+Creation drafts carry a localized default name and optional initial sort name.
+The renderer keeps folder-first ordering, selects the initial basename, commits
+nonempty drafts on blur and cancels empty drafts/Escape. These remain local until
+the existing public creation callback succeeds; no file is written merely by
+opening the inline editor. Context-menu commands release their overlay first.
+
 See the [full reference](../../../../DOCS/reference/file-explorer.md) for keyboard
 commands, public component props, cancellation, operation/error semantics,
 completed integrations, outstanding document opening and manual acceptance.

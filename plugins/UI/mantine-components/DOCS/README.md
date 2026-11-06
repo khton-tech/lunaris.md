@@ -186,6 +186,14 @@ identity never reaches selection, drag, mutation or context contracts. The
 controller retains the existing draft shape across view remounts. Only permanent
 deletion keeps an explicit confirmation form outside the tree.
 
+Drafts now start with localized Unnamed.md/Unnamed folder labels and a numeric
+suffix for known sibling collisions. They sort folder-first by their initial
+name, staying in place during input. The tree focuses the draft through public
+Arborist APIs; focusing its row forwards focus to the input. Context-menu teardown
+precedes editor commands, so restoring source focus cannot steal the editor's
+initial focus. Blur submits nonempty creation drafts or cancels empty ones;
+Escape marks the draft closed before moving focus, preventing accidental creation.
+
 The shared `lunaris.context-menu` role renders frozen `items` with viewport
 `x`/`y`, an accessible localized `label`, `onAction(id)` and `onClose()`.
 The context-menu provider mounts it in an owned document overlay; Mantine Menu

@@ -45,6 +45,14 @@ the root or background. Multi-selection offers only selection operations.
   and the row scrolls into view. Enter submits, Escape cancels. There is no separate
   creation form or action toolbar. A failed operation retains the entered name
   for correction/retry; repeated Enter cannot submit parallel creations.
+  The localized default name is `Unnamed.md` for files and `Unnamed folder` for
+  folders; known sibling collisions get a numeric suffix before the extension.
+  The draft sorts folder-first by its initial name and keeps that position while
+  typing; the confirmed filesystem entry sorts by its final name. Initial focus
+  selects the basename while preserving the file extension. Leaving a nonempty
+  creation field submits it; leaving an empty field cancels it. Escape never
+  submits through the resulting blur event. Failed blur submissions keep the
+  editor available for correction.
 - F2 renames in place; Enter submits and Escape cancels. Enter on a folder toggles
   it; file activation has no document-opening action yet.
 - Drag selected items into a folder or the root to move them. Tree order is always
@@ -107,9 +115,10 @@ controller. Props:
   unloaded/empty folders.
 - `busy`, `loading`, `canPaste`, localized `error`/`degraded`, and the localized
   `text` map supplied by the controller catalog.
-- `initialDraft: { form, name }`, where form is null, `{ kind: file|folder, parent }`
+- `initialDraft: { form, name }`, where form is null, `{ kind: file|folder, parent, initialName? }`
   or `{ kind: delete, paths }`; `onDraft(draft)` retains logical drafts outside the
   mounted view. It captures data only and never calls rendering synchronously.
+  Optional `initialName` preserves the draft's sort position across remounts.
 - `onToggle(path, open)`, `onSelection(paths)`, `onBuffer(paths, cut)`, `onRefresh()`.
 - Async boolean-result callbacks `onCreate(parent, name, directory)`,
   `onRename(path, name)`, `onMove(paths, destination)`, `onPaste(destination)` and

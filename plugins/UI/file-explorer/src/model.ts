@@ -2,7 +2,7 @@ import { validPath } from "@lunaris/filesystem";
 import type { FilesystemApi, FileInfo, FsResult } from "@lunaris/filesystem";
 
 export interface Entry { id: string; name: string; kind: FileInfo["kind"]; children?: Entry[] }
-export type ExplorerDraft = { form: { kind: "file" | "folder"; parent: string } | { kind: "delete"; paths: string[] } | null; name: string };
+export type ExplorerDraft = { form: { kind: "file" | "folder"; parent: string; initialName?: string } | { kind: "delete"; paths: string[] } | null; name: string };
 export const parentPath = (path: string) => path.slice(0, Math.max(0, path.lastIndexOf("/")));
 const basename = (path: string) => path.slice(path.lastIndexOf("/") + 1);
 const inside = (path: string, parent: string) => path === parent || path.startsWith(`${parent}/`);
