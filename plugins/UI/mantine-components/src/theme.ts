@@ -1,4 +1,4 @@
-import { Button, TextInput, createTheme } from "@mantine/core";
+import { Button, Input, InputWrapper, TextInput, createTheme } from "@mantine/core";
 import type { CSSProperties } from "react";
 import type { ThemeDefinition, ThemeValue } from "@lunaris/themes";
 
@@ -41,6 +41,9 @@ export function resolveTheme(theme: ThemeDefinition | null) {
     "--mantine-color-anchor": color("accent"), "--mantine-color-default": color("content", "transparent"),
     "--mantine-color-default-hover": color("hover", "transparent"), "--mantine-color-default-color": color("text"),
     "--mantine-color-default-border": color("controlBorder"),
+    "--mantine-color-disabled": color("selection", "transparent"),
+    "--mantine-color-disabled-color": color("textSecondary"),
+    "--mantine-color-disabled-border": color("separator", "transparent"),
     "--mantine-primary-color-filled": color("accent"), "--mantine-primary-color-filled-hover": color("accentHover"),
     "--mantine-primary-color-contrast": color("onAccent"), "--mantine-primary-color-light-color": color("accent"),
     "--mantine-primary-color-light": color("selection", "transparent"), "--mantine-primary-color-light-hover": color("hover", "transparent"),
@@ -60,11 +63,16 @@ export function resolveTheme(theme: ThemeDefinition | null) {
       fontFamily: font, fontFamilyMonospace: variables["--vault-mono"]!, defaultRadius: radius,
       fontSizes: { sm: fontSize, md: fontSize }, lineHeights: { sm: String(number(field(typography, "lineHeight"), 1.5)), md: String(number(field(typography, "lineHeight"), 1.5)) },
       respectReducedMotion: true, activeClassName: "lm-pressed",
+      variantColorResolver: ({ variant }) => variant === "filled"
+        ? { background: color("accent"), hover: color("accentHover"), color: color("onAccent"), border: "transparent" }
+        : { background: "transparent", hover: color("hover", "transparent"), color: color("text"), border: "transparent" },
       focusClassName: "lm-focus",
       spacing: { xs: dimension(field(field(geometry, "spacing"), "step"), 4), sm: dimension(number(field(field(geometry, "spacing"), "step"), 4) * 3, 12) },
       components: {
-        Button: Button.extend({ defaultProps: { variant: "subtle", color: "gray" }, classNames: { root: "lm-button" } }),
-        TextInput: TextInput.extend({ classNames: { input: "lm-input", label: "lm-label" } }),
+        Button: Button.extend({ defaultProps: { variant: "subtle", size: "md" }, classNames: { root: "lm-button" } }),
+        Input: Input.extend({ defaultProps: { size: "md" }, classNames: { input: "lm-input" } }),
+        InputWrapper: InputWrapper.extend({ defaultProps: { size: "md" }, classNames: { label: "lm-label" } }),
+        TextInput: TextInput.extend({ defaultProps: { size: "md" } }),
       },
     }),
   };

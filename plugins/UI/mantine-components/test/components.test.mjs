@@ -85,6 +85,31 @@ test('prop validation preserves prior content, editable nodes, safe copy and foc
   await s.stop();
 });
 
+test('folder picker uses one native button, shares input sizing and keeps primary actions on the SDK palette', async () => {
+  const s = await setup(); await s.start(); let browsed = 0; let submitted = 0;
+  const theme = { id: 'test.controls', name: 'Controls', properties: { colors: { accent: '#abcdef', accentHover: '#fedcba', onAccent: '#123456' } } };
+  s.themes.register(theme, s.ctx.signal); s.themes.select(theme.id);
+  const props = { ...selector, onBrowse() { browsed++; }, onNext() { submitted++; } };
+  const result = s.components.mount('lunaris.vault-selector', s.target, props, s.ctx.signal); assert.equal(result.ok, true);
+  const form = s.target.querySelector('form:not([inert])');
+  const picker = form.querySelector('button[aria-label=Browse]'); const input = form.querySelector('input');
+  assert.equal(picker.type, 'button'); assert.equal(picker.id, form.querySelector('label').htmlFor);
+  assert.equal(picker.closest('.mantine-Input-wrapper').dataset.size, 'md');
+  assert.equal(input.closest('.mantine-Input-wrapper').dataset.size, 'md');
+  assert.equal(form.querySelectorAll('[aria-label=Browse]').length, 1);
+  picker.querySelector('.ln-vault-path').click(); assert.equal(browsed, 1); assert.equal(submitted, 0);
+  const next = form.querySelector('[type=submit]');
+  assert.equal(next.dataset.variant, 'filled'); assert.equal(next.style.getPropertyValue('--button-bg'), '#abcdef');
+  assert.equal(next.style.getPropertyValue('--button-color'), '#123456');
+  result.value.update({ ...props, busy: true }); picker.click(); next.click();
+  assert.equal(browsed, 1); assert.equal(submitted, 0); assert.equal(input.disabled, true);
+  result.value.update(props); next.click(); assert.equal(submitted, 1);
+  s.themes.update({ ...theme, properties: { colors: { accent: '#112233', onAccent: '#ffffff' } } });
+  assert.equal(form.querySelector('[type=submit]'), next);
+  assert.equal(next.style.getPropertyValue('--button-bg'), '#112233');
+  await s.stop();
+});
+
 test('keyboard disclosure, collapse, current rows and separate roots preserve accessible behavior', async () => {
   const s = await setup(); await s.start();
   const result = s.components.mount('lunaris.vault-selector', s.target, { ...selector, activeReference: 'saved' }, s.ctx.signal);

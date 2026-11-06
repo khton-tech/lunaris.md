@@ -1,5 +1,5 @@
 import { useId, useLayoutEffect, useRef } from "react";
-import { Box, Button, Group, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Box, Button, Input, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
 import type { SelectorProps, StartupProps } from "./props.js";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
@@ -33,17 +33,20 @@ function ActionForm({ mode, props }: { mode: "create" | "select"; props: Selecto
       <Box className="ln-vault-disclosure-body">
         <Box component="form" ref={form} id={id} inert={!expanded} onSubmit={event => { event.preventDefault(); if (expanded && !props.busy && props.canContinue) props.onNext(); }}>
           <Stack gap="sm">
-            <Box>
-              <Text component="span" id={`${id}-folder`} className="lm-label">{props.text.folder}</Text>
-              <Group className="ln-vault-folder" role="group" aria-labelledby={`${id}-folder`} wrap="nowrap" gap="xs">
-                <Text component="span" id={`${id}-path`} className="ln-vault-path" title={expanded ? props.folder : ""}>{expanded && props.folder ? props.folder : props.text.folderPlaceholder}</Text>
-                <Button ref={browse} aria-label={props.text.browse} aria-describedby={`${id}-path`} title={props.text.browse} disabled={props.busy || !expanded} onClick={props.onBrowse}><Icon name="browse" /></Button>
-              </Group>
-            </Box>
+            <Input.Wrapper label={props.text.folder} id={`${id}-folder`}>
+              <Input component="button" type="button" pointer ref={browse} id={`${id}-folder`}
+                classNames={{ input: "lm-input ln-vault-folder" }}
+                aria-label={props.text.browse} aria-describedby={`${id}-path`}
+                title={expanded && props.folder ? props.folder : props.text.browse}
+                disabled={props.busy || !expanded} onClick={props.onBrowse}
+                rightSection={<Icon name="browse" />} rightSectionPointerEvents="none">
+                <span id={`${id}-path`} className="ln-vault-path" data-placeholder={!props.folder || !expanded || undefined}>{expanded && props.folder ? props.folder : props.text.folderPlaceholder}</span>
+              </Input>
+            </Input.Wrapper>
             <TextInput ref={name} hidden={mode !== "create"} label={props.text.name} value={props.name} maxLength={200} required={mode === "create"} autoComplete="off" spellCheck={false}
               disabled={props.busy || !expanded} onChange={event => props.onName(event.currentTarget.value)} />
             <Text role="alert" hidden={!expanded || !props.error}>{expanded ? props.error : ""}</Text>
-            <Button ref={next} type="submit" className="ln-vault-next" rightSection={<Icon name="next" />} disabled={props.busy || !props.canContinue || !expanded}>{props.text.next}</Button>
+            <Button ref={next} type="submit" variant="filled" className="ln-vault-next" rightSection={<Icon name="next" />} disabled={props.busy || !props.canContinue || !expanded}>{props.text.next}</Button>
           </Stack>
         </Box>
       </Box>

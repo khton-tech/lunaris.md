@@ -9,7 +9,7 @@ The old plugin stays on disk but is not registered, started or granted permissio
 by the default host. Never activate both plugins for the same roles.
 
 Runtime: Mantine Core/Hooks 9.7.5 and React/React DOM 19.3.1. Controls and layouts
-use Mantine Button, TextInput, Box, Paper, Stack, Group, Text and Title. Lucide
+use Mantine Button, TextInput, Input/Wrapper, Box, Paper, Stack, Text and Title. Lucide
 remains the icon pack. [Mantine UI](https://ui.mantine.dev/) is the reference catalog
 for future compositions; it is not an npm runtime package. No gallery example was
 copied verbatim, and no broad gallery catalog is registered without a consumer.
@@ -64,6 +64,18 @@ layout stability. Narrow/short containers compact or stack, with local overflow
 and hidden scrollbar chrome. The logo uses the theme text color.
 
 ## Themes and development rules
+
+The vault form follows the [Mantine UI form compositions](https://ui.mantine.dev/category/authentication/)
+with shared medium-sized controls and a full-width primary action. Folder selection
+uses the documented Input-as-button pattern inside Input.Wrapper: the whole field
+opens the SDK-owned picker, with one tab stop and no editable path impersonation.
+Name and folder fields share Input defaults, geometry and boundary focus treatment.
+Buttons retain Mantine variants; the variant resolver maps their colors to the
+selected SDK theme instead of a library gray/blue palette. Disabled colors also
+come from the SDK theme. Input boundaries blend controlBorder into content at rest
+and expose the full controlBorder on hover and focus on the focused boundary.
+The scoped root supplies typography and color scheme without global baseline CSS.
+Branding and form width are restrained to keep controls primary.
 
 The adapter in src/theme.ts translates the shared engine's colors, geometry,
 spacing, typography, startup tokens and motion into Mantine theme/owned CSS

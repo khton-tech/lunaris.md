@@ -8,7 +8,7 @@
 @import '@mantine/core/styles/Text.css';
 @import '@mantine/core/styles/Title.css';
 
-.lm-root { isolation:isolate; }
+.lm-root { isolation:isolate;font-family:var(--mantine-font-family);font-size:var(--mantine-font-size-md);line-height:var(--mantine-line-height);color-scheme:var(--mantine-color-scheme) }
 .lm-root,.lm-root *,.lm-root *::before,.lm-root *::after { box-sizing:border-box;scrollbar-width:none;min-width:0 }
 .lm-root *::-webkit-scrollbar { display:none;width:0;height:0 }
 .lm-root [hidden] { display:none!important }
@@ -16,16 +16,16 @@
 .lm-root input { user-select:text }
 .lm-root button,.lm-root input { font:inherit }
 .lm-root p { margin:0;overflow-wrap:anywhere }
-.lm-root .lm-button { height:auto;min-height:2.5rem;padding:calc(var(--vault-space)*2) calc(var(--vault-space)*3);color:var(--vault-text);background:transparent;border:0;white-space:normal;border-radius:var(--vault-radius);transition:background-color var(--vault-motion-fast) var(--vault-motion-easing) }
+.lm-root .lm-button { height:auto;min-height:var(--button-height);padding:calc(var(--vault-space)*2) calc(var(--vault-space)*3);white-space:normal;transition:background-color var(--vault-motion-fast) var(--vault-motion-easing),color var(--vault-motion-fast) var(--vault-motion-easing) }
 .lm-root .mantine-Button-inner { min-width:0;height:auto }
 .lm-root .mantine-Button-label { height:auto;overflow:visible;white-space:normal;overflow-wrap:anywhere }
 .lm-root .lm-button:enabled:active { background:var(--vault-selection) }
 .lm-root .lm-focus:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset) }
-.lm-root .lm-button:disabled { color:var(--vault-secondary);opacity:.5;cursor:default;background:transparent }
-.lm-root .lm-input { color:var(--vault-text);background:var(--vault-content);caret-color:var(--vault-caret);border:var(--vault-border) solid var(--vault-control-border);border-radius:var(--vault-radius) }
-.lm-root .lm-input:focus { outline:none;border-color:var(--vault-focus) }
+.lm-root .lm-button:disabled { cursor:default }
+.lm-root .lm-input { --input-bd:color-mix(in srgb,var(--vault-control-border) 35%,var(--vault-content));--input-bg:var(--vault-content);--input-bd-focus:var(--vault-focus);--input-disabled-bg:var(--vault-selection);--input-disabled-color:var(--vault-secondary);caret-color:var(--vault-caret);border-width:var(--vault-border);transition:border-color var(--vault-motion-fast) var(--vault-motion-easing),background-color var(--vault-motion-fast) var(--vault-motion-easing) }
+.lm-root input.lm-input:focus,.lm-root button.lm-input:focus-visible { outline:none;border-color:var(--vault-focus) }
 .lm-root .lm-input::selection { background:var(--vault-selection);color:var(--vault-text) }
-.lm-root .lm-label { color:var(--vault-secondary);font:inherit;display:block;margin-bottom:var(--vault-space) }
+.lm-root .lm-label { color:var(--vault-text);font-size:inherit;font-weight:500;display:block;margin-bottom:calc(var(--vault-space)*2) }
 .lm-root [role=alert] { color:var(--vault-error) }
 .lm-startup { display:flex;flex:1 1 0%;flex-direction:column;align-items:center;justify-content:safe center;min-height:0;overflow:auto }
 .lm-startup pre { margin:0;max-width:100%;flex-shrink:0;overflow:auto;white-space:pre;font-family:var(--vault-mono) }
@@ -41,8 +41,8 @@
 .ln-vault small { font:inherit;color:var(--vault-secondary);overflow-wrap:anywhere }
 .ln-vault-main { display:flex;flex-direction:column;align-items:center;padding:clamp(1rem,5cqw,4rem) }
 .ln-vault-main::before { content:"";flex:0 0 var(--vault-center-offset,0px) }
-.ln-vault-content { flex-shrink:0;width:100%;max-width:32rem;container-type:inline-size;display:flow-root }
-.ln-vault pre { color:var(--vault-text);font: min(9px,1.7cqw)/1.2 var(--vault-mono);white-space:pre;margin:0 0 calc(var(--vault-space)*8);text-align:center;max-width:100%;overflow:auto }
+.ln-vault-content { flex-shrink:0;width:100%;max-width:28rem;container-type:inline-size;display:flow-root }
+.ln-vault pre { color:var(--vault-text);font: min(8px,1.7cqw)/1.2 var(--vault-mono);white-space:pre;margin:0 0 calc(var(--vault-space)*6);text-align:center;max-width:100%;overflow:auto }
 .lm-root .ln-vault-toggle { width:100%;padding:calc(var(--vault-space)*4) }
 .ln-vault-toggle .mantine-Button-inner { width:100%;justify-content:space-between;gap:calc(var(--vault-space)*3) }
 .ln-vault-toggle .mantine-Button-label { flex:1;text-align:start }
@@ -50,19 +50,19 @@
 .ln-vault-action[data-open=true] .ln-vault-disclosure { grid-template-rows:1fr;opacity:1;visibility:visible }
 .ln-vault-disclosure-body { overflow:hidden;min-height:0 }
 .ln-vault form { padding:calc(var(--vault-space)*2) calc(var(--vault-space)*4) calc(var(--vault-space)*4) }
-.ln-vault-folder { background:var(--vault-content);border:var(--vault-border) solid var(--vault-control-border);border-radius:var(--vault-radius);padding:var(--vault-space) }
-.ln-vault-folder:focus-within { border-color:var(--vault-focus) }
-.ln-vault-folder .lm-focus:focus-visible { outline:none }
-.ln-vault-path { flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
-.lm-root .ln-vault-next { align-self:flex-end;background:var(--vault-accent);color:var(--vault-on-accent) }
-.lm-root .ln-vault-next:enabled:active { background:var(--vault-accent-hover) }
+.lm-root .ln-vault-folder { text-align:start }
+.ln-vault-path { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
+.ln-vault-path[data-placeholder] { color:var(--mantine-color-placeholder) }
+.lm-root .ln-vault-next { width:100%;margin-top:var(--vault-space) }
+.lm-root .ln-vault-next:enabled:active { background:var(--vault-selection);color:var(--vault-text) }
 .ln-vault-status { min-height:1.5em;margin-bottom:calc(var(--vault-space)*4)!important }
 .ln-vault-status:empty { visibility:hidden }
 @media(hover:hover) {
  .lm-root .lm-button:enabled:hover:not(:active) { background:var(--vault-hover) }
  .lm-root .ln-vault-next:enabled:hover:not(:active) { background:var(--vault-accent-hover) }
+ .lm-root .lm-input:enabled:hover:not(:focus):not(:focus-visible) { border-color:var(--vault-control-border) }
 }
-@media(prefers-reduced-motion:reduce) { .lm-root .lm-button,.lm-root .ln-vault-disclosure { transition:none } }
+@media(prefers-reduced-motion:reduce) { .lm-root .lm-button,.lm-root .lm-input,.lm-root .ln-vault-disclosure { transition:none } }
 @container(max-height:44rem) {
  .lm-root .ln-vault-main { padding:calc(var(--vault-space)*4) }
  .ln-vault pre { margin-bottom:calc(var(--vault-space)*3) }
