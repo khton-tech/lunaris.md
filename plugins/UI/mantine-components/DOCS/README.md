@@ -178,7 +178,11 @@ file operations, localization, drafts and logical tree state belong to the SDK
 controller. A localized Tabs dropdown currently offers only Files. Its single-line
 trigger spans the available panel width, with a theme-derived control boundary,
 content surface and radius. The dropdown matches the trigger width and styling;
-the current entry uses the theme selection color. Long localized names truncate
+the current entry uses a subdued mix of the theme selection and content colors.
+Regular-weight labels, a compact 36px minimum trigger at default spacing, a 22%
+control boundary (35% on hover/open) and lightly mixed interaction surfaces keep
+the picker secondary to the file tree. Pressed feedback remains distinct and
+keyboard focus retains the shared focus indicator. Long localized names truncate
 with full native titles, and the chevron stays at the trailing edge. The Workspace
 Vault name is rendered as an initially expanded, protected root row above the
 controller entries; header titles and operation buttons are absent. Root disclosure
