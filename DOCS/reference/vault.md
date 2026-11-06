@@ -162,3 +162,20 @@ without attaching a root or preparing Vault data. The native driver returns the
 full absolute display path in `label`; `reference` remains opaque authority.
 Recent history refreshes legacy labels on listing and recording, retaining saved
 labels on recoverable failures. Display paths must never be logged.
+
+## Create a named child Vault
+
+Require `api:lunaris.vault-creation@1.0.0`, declare `vault.access` and call
+`ctx.use(VaultCreation).create(parentLocation, name)`. This creates a new direct
+child directory of the chosen parent, obtains the child's durable location,
+attaches/prepares that child and activates it. The create/select/open/close flows
+share the manager transition lock. The name must be a portable single directory
+segment of at most 200 UTF-16 code units, with no leading/trailing whitespace.
+An existing destination returns ALREADY_EXISTS and is never opened or overwritten.
+VaultChanged publishes the child location, so history reopens the child.
+Preparation writes configuration only inside the child; it does not prepare the
+parent. Failure preserves the active Vault. After successful directory creation,
+a later cancellation/preparation/attachment failure can leave the new directory;
+there is no unsafe recursive rollback. The user can select it explicitly or use
+a different name. Existing VaultLocations.open display-name behavior remains
+compatible; the Create UI uses this dedicated creation contract.

@@ -84,6 +84,10 @@ pub enum Request {
     End,
     SelectVault,
     SelectLocation,
+    CreateLocation {
+        reference: String,
+        name: String,
+    },
     DescribeLocation {
         reference: String,
     },
@@ -283,6 +287,28 @@ impl Backend {
                 }
                 let path = self.resolve_location(&reference)?;
                 Ok(json!({ "reference": reference, "label": path.display().to_string() }))
+            }
+            Request::CreateLocation { reference, name } => {
+                if !self.sessions.contains_key(session) {
+                    return Err(fail("VAULT_CLOSED", "The filesystem session is closed."));
+                }
+                valid_path(&name, false)?;
+                if name.contains('/') || name.trim() != name || name.chars().count() > 200 {
+                    return Err(fail(
+                        "INVALID_PATH",
+                        "A single portable directory name is required.",
+                    ));
+                }
+                let parent = self.resolve_location(&reference)?;
+                let dir = Dir::open_ambient_dir(&parent, cap_std::ambient_authority())?;
+                dir.create_dir(&name)?;
+                let child = parent.join(&name);
+                if child.canonicalize()? != child
+                    || dir.symlink_metadata(&name)?.file_type().is_symlink()
+                {
+                    return Err(fail("CONFLICT", "The created directory was redirected."));
+                }
+                self.register_location(child)
             }
             Request::AttachLocation { reference } => {
                 if !self.sessions.contains_key(session) {

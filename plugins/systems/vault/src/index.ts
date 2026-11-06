@@ -1,8 +1,8 @@
 import { definePlugin } from "@lunaris/sdk";
 import type { ResourceScope } from "@lunaris/sdk";
-import { Filesystem, FilesystemRoots, FilesystemLocations, validFolderLocation } from "@lunaris/filesystem";
+import { DirectoryLocations, validDirectoryName, Filesystem, FilesystemRoots, FilesystemLocations, validFolderLocation } from "@lunaris/filesystem";
 import type { FolderLocation, VaultRoot } from "@lunaris/filesystem";
-import { Vault, VaultLocations, VaultChanged, PrepareVault, validVaultName } from "@lunaris/vault";
+import { Vault, VaultCreation, VaultLocations, VaultChanged, PrepareVault, validVaultName } from "@lunaris/vault";
 import type { VaultChange, VaultResult } from "@lunaris/vault";
 import { Logger } from "@lunaris/logging";
 import manifest from "../manifest.json" with { type: "json" };
@@ -13,6 +13,7 @@ const failed = (code: "BUSY" | "PREPARATION_FAILED" | "STOPPED", message: string
 export default definePlugin({ manifest, activate(ctx) {
   const logger = ctx.use(Logger);
   logger.debug(ctx.pluginId, "Activating Vault Manager");
+  const directoryLocations = ctx.use(DirectoryLocations);
   const fs = ctx.use(Filesystem);
   const roots = ctx.use(FilesystemRoots);
   const locations = ctx.use(FilesystemLocations);
@@ -52,14 +53,20 @@ export default definePlugin({ manifest, activate(ctx) {
     } finally { await candidate.scope.dispose(); }
   }
 
-  async function open(location?: FolderLocation, name?: string): Promise<VaultResult<VaultRoot | null>> {
-    let change: VaultChange | undefined;
+  async function open(location?: FolderLocation, name?: string, createName?: string): Promise<VaultResult<VaultRoot | null>> {
+    let change: VaultChange | undefined; let selectedLocation = location;
     const result = await transition<VaultRoot | null>("open", async () => {
       const scope = ctx.scope.child();
       let candidate: Attachment | null = null;
       let committed = false;
       try {
-        const selected = location ? await locations.attach(location, scope.signal) : await roots.selectVault(scope.signal);
+        if (createName !== undefined && location) {
+          const created = await directoryLocations.create(location, createName, scope.signal);
+          if (ctx.signal.aborted) return failed("STOPPED", "The Vault Manager is stopped.");
+          if (!created.ok) return created;
+          selectedLocation = created.value;
+        }
+        const selected = selectedLocation ? await locations.attach(selectedLocation, scope.signal) : await roots.selectVault(scope.signal);
         if (ctx.signal.aborted) return failed("STOPPED", "The Vault Manager is stopped.");
         if (!selected.ok || selected.value === null) {
           if (selected.ok) logger.debug(ctx.pluginId, "Vault selection cancelled");
@@ -93,7 +100,7 @@ export default definePlugin({ manifest, activate(ctx) {
         if (ctx.signal.aborted) return failed("STOPPED", "The Vault Manager is stopped.");
         active = candidate;
         committed = true;
-        change = { kind: previous ? "switched" : "opened", previous: previous?.vault ?? null, current: candidate.vault, ...(location ? { location } : {}) };
+        change = { kind: previous ? "switched" : "opened", previous: previous?.vault ?? null, current: candidate.vault, ...(selectedLocation ? { location: selectedLocation } : {}) };
         return { ok: true, value: candidate.vault };
       } finally {
         if (!committed) {
@@ -106,6 +113,12 @@ export default definePlugin({ manifest, activate(ctx) {
     if (change && !ctx.signal.aborted) changed(change);
     return result;
   }
+  ctx.provide(VaultCreation, { async create(parent, name) {
+    if (!validFolderLocation(parent) || !validDirectoryName(name)) return { ok: false, error: { code: "INVALID_PATH", message: "A parent and portable directory name are required." } };
+    const result = await open({ ...parent }, name, name);
+    if (!result.ok) return result;
+    return result.value === null ? failed("PREPARATION_FAILED", "The new Vault could not be attached.") : { ok: true, value: result.value };
+  } });
   ctx.provide(VaultLocations, {
     async describe(reference) {
       if (ctx.signal.aborted) return failed("STOPPED", "The Vault Manager is stopped.");

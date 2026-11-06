@@ -36,3 +36,5 @@ without attaching a root or preparing Vault data. The native driver returns the
 full absolute display path in `label`; `reference` remains opaque authority.
 Recent history refreshes legacy labels on listing and recording, retaining saved
 labels on recoverable failures. Display paths must never be logged.
+
+Provides `api:lunaris.vault-creation@1.0.0` with `create(parent, name)`. Requires DirectoryLocations and uses the existing preparation/transition lifecycle for the newly created child. History events contain its durable location. See [creation semantics](../../../../DOCS/reference/vault.md#create-a-named-child-vault).

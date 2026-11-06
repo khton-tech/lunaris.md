@@ -1,5 +1,5 @@
 import { definePlugin } from "@lunaris/sdk";
-import { FilesystemDriver, FilesystemObservationDriver, FilesystemRootsDriver, FilesystemLocationsDriver, ApplicationDirectoryDriver, DriverFileChanged, failure, validFolderLocation } from "@lunaris/filesystem";
+import { DirectoryLocationsDriver, validDirectoryName, FilesystemDriver, FilesystemObservationDriver, FilesystemRootsDriver, FilesystemLocationsDriver, ApplicationDirectoryDriver, DriverFileChanged, failure, validFolderLocation } from "@lunaris/filesystem";
 import type { CancellationSignal } from "@lunaris/sdk";
 import type { FileChange, FolderLocation, FsResult, FsCapabilities } from "@lunaris/filesystem";
 import { Logger } from "@lunaris/logging";
@@ -68,6 +68,14 @@ export function createTauriFilesystemDriver(native: NativeFilesystem = nativeFil
     function liveOwner(owner: CancellationSignal): boolean {
       return !!owner && typeof owner.aborted === "boolean" && typeof owner.addEventListener === "function" && typeof owner.removeEventListener === "function";
     }
+    ctx.provide(DirectoryLocationsDriver, { async create(parent, name, owner) {
+      if (!validFolderLocation(parent) || !validDirectoryName(name) || !liveOwner(owner)) return failure("INVALID_ARGUMENT", "A valid parent, name and cancellation signal are required.");
+      if (owner.aborted || ctx.signal.aborted) return failure("CANCELLED", "Directory creation was cancelled.");
+      const result = await request<FolderLocation>("createLocation", { reference: parent.reference, name });
+      if (owner.aborted || ctx.signal.aborted) return failure("CANCELLED", "Directory creation was cancelled.");
+      if (result.ok && !validFolderLocation(result.value)) return failure("IO_ERROR", "The driver returned an invalid location.");
+      return result;
+    } });
     ctx.provide(FilesystemLocationsDriver, {
       async describe(reference) {
         if (typeof reference !== "string" || !reference.length || reference.length > 512) return failure("INVALID_ARGUMENT", "A valid location reference is required.");

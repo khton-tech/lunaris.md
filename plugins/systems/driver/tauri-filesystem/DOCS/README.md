@@ -56,3 +56,5 @@ Recent history refreshes legacy labels on listing and recording, retaining saved
 labels on recoverable failures. Display paths must never be logged.
 
 Provides `api:lunaris.filesystem-observation-driver@1.0.0` for provider-owned native observations. Cancellation releases even late-created watches without invoking consumer SDK handles; explicit unwatch and root closure detach ownership. See [owned observations](../../../../../DOCS/reference/filesystem.md#owned-observations).
+
+Provides `api:lunaris.directory-locations-driver@1.0.0`, using native `createLocation`. This creates a direct child with exclusive capability-relative mkdir and registers its durable reference. Cancellation never falls back to attaching the parent; pre-existing children are preserved.

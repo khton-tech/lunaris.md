@@ -35,6 +35,11 @@
       "kind": "api",
       "id": "lunaris.filesystem-observation-driver",
       "version": "1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.directory-locations-driver",
+      "version": "1.0.0"
     }
   ],
   "requires": [

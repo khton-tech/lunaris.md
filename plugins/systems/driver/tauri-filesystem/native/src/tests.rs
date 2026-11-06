@@ -3,6 +3,108 @@ use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
 #[test]
+fn create_location_makes_a_distinct_child_and_never_reuses_existing_content() {
+    let f = Fixture::new();
+    let parent = f.path.join("vault");
+    std::fs::write(parent.join("parent.md"), "parent").unwrap();
+    let mut backend = f.backend.lock().unwrap();
+    backend.config_directory = Some(f.path.join("app-config"));
+    let selected = backend.register_location(parent.clone()).unwrap();
+    let reference = selected["reference"].as_str().unwrap().to_owned();
+    let child = backend
+        .execute(
+            "test",
+            Request::CreateLocation {
+                reference: reference.clone(),
+                name: "Notes".into(),
+            },
+            None,
+        )
+        .unwrap();
+    assert_ne!(child["reference"], selected["reference"]);
+    assert_eq!(
+        backend
+            .resolve_location(child["reference"].as_str().unwrap())
+            .unwrap(),
+        parent.join("Notes").canonicalize().unwrap()
+    );
+    assert!(!parent.join(".lunaris").exists());
+    std::fs::write(parent.join("Notes/keep.md"), "keep").unwrap();
+    assert_eq!(
+        backend
+            .execute(
+                "test",
+                Request::CreateLocation {
+                    reference: reference.clone(),
+                    name: "Notes".into()
+                },
+                None
+            )
+            .unwrap_err()
+            .code,
+        "ALREADY_EXISTS"
+    );
+    assert_eq!(
+        std::fs::read_to_string(parent.join("Notes/keep.md")).unwrap(),
+        "keep"
+    );
+    let root = backend
+        .execute(
+            "test",
+            Request::AttachLocation {
+                reference: child["reference"].as_str().unwrap().into(),
+            },
+            None,
+        )
+        .unwrap();
+    let files = backend
+        .execute(
+            "test",
+            Request::List {
+                target: Target {
+                    vault_id: root["id"].as_str().unwrap().into(),
+                    path: "".into(),
+                },
+            },
+            None,
+        )
+        .unwrap();
+    assert_eq!(files.as_array().unwrap().len(), 1);
+    assert_eq!(files[0]["path"], "keep.md");
+    for name in ["../escape", "a/b", "CON", "name.", " leading"] {
+        assert_eq!(
+            backend
+                .execute(
+                    "test",
+                    Request::CreateLocation {
+                        reference: reference.clone(),
+                        name: name.into()
+                    },
+                    None
+                )
+                .unwrap_err()
+                .code,
+            "INVALID_PATH"
+        );
+    }
+    assert_eq!(
+        backend
+            .execute(
+                "closed",
+                Request::CreateLocation {
+                    reference,
+                    name: "Closed".into()
+                },
+                None
+            )
+            .unwrap_err()
+            .code,
+        "VAULT_CLOSED"
+    );
+    backend.sessions.clear();
+}
+
+#[test]
 fn folder_locations_survive_backend_restart_without_preparing_or_attaching() {
     let f = Fixture::new();
     let config = f.path.join("app-config");

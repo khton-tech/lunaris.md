@@ -1,4 +1,4 @@
-import { Vault, VaultLocations, VaultChanged, PrepareVault } from "@lunaris/vault";
+import { Vault, VaultCreation, VaultLocations, VaultChanged, PrepareVault } from "@lunaris/vault";
 import type { VaultResult } from "@lunaris/vault";
 import type { PluginContext } from "@lunaris/sdk";
 import type { VaultRoot } from "@lunaris/filesystem";
@@ -16,3 +16,7 @@ void ctx.use(VaultLocations).open({ reference: "saved", label: "Notes" }, { name
 ctx.use(VaultLocations).open("C:/notes");
 // @ts-expect-error Preparation handlers must return the preparation payload.
 ctx.hooks.register(PrepareVault, () => true);
+
+void ctx.use(VaultCreation).create({ reference: "parent", label: "Parent" }, "Notes");
+// @ts-expect-error Creation requires an explicit directory name.
+ctx.use(VaultCreation).create({ reference: "parent", label: "Parent" });

@@ -27,6 +27,17 @@ export interface FilesystemLocationsApi {
   select(owner: CancellationSignal): Promise<FsResult<FolderLocation | null>>;
   attach(location: FolderLocation, owner: CancellationSignal): Promise<FsResult<VaultRoot>>;
 }
+export function validDirectoryName(value: unknown): value is string {
+  return typeof value === "string" && value.length <= 200 && value === value.trim() && !value.includes("/") && validPath(value);
+}
+export interface DirectoryLocationsApi {
+  /** Exclusively create a direct child and return its durable location; never reuse an existing directory. */
+  create(parent: FolderLocation, name: string, owner: CancellationSignal): Promise<FsResult<FolderLocation>>;
+}
+const validDirectoryLocations = (value: unknown): boolean => value !== null && typeof value === "object" &&
+  typeof Object.getOwnPropertyDescriptor(value, "create")?.value === "function";
+export const DirectoryLocations = defineApi<DirectoryLocationsApi>({ id: "lunaris.directory-locations", version: "1.0.0", consumePermission: "filesystem.access", validate: validDirectoryLocations });
+export const DirectoryLocationsDriver = defineApi<DirectoryLocationsApi>({ id: "lunaris.directory-locations-driver", version: "1.0.0", providePermission: "filesystem.native", consumePermission: "filesystem.access", validate: validDirectoryLocations });
 const validLocationsApi = (value: unknown): boolean => value !== null && typeof value === "object" &&
   ["select", "attach", "describe"].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function");
 export const FilesystemLocations = defineApi<FilesystemLocationsApi>({

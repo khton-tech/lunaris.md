@@ -1,4 +1,4 @@
-import { ApplicationDirectory, FilesystemRoots, FilesystemObservation } from "@lunaris/filesystem";
+import { DirectoryLocations, ApplicationDirectory, FilesystemRoots, FilesystemObservation } from "@lunaris/filesystem";
 import type { FilesystemApi, FsResult, TextFile } from "@lunaris/filesystem";
 import type { PluginContext } from "@lunaris/sdk";
 declare const fs: FilesystemApi;
@@ -22,3 +22,7 @@ ctx.use(ApplicationDirectory).openConfig();
 void ctx.use(FilesystemObservation).watch({ vaultId: "v", path: "" }, ctx.signal);
 // @ts-expect-error Observations require an owner.
 ctx.use(FilesystemObservation).watch({ vaultId: "v", path: "" });
+
+void ctx.use(DirectoryLocations).create({ reference: "parent", label: "Parent" }, "Notes", ctx.signal);
+// @ts-expect-error Creating a location requires lifecycle ownership.
+ctx.use(DirectoryLocations).create({ reference: "parent", label: "Parent" }, "Notes");

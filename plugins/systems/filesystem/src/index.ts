@@ -1,5 +1,5 @@
 import { definePlugin } from "@lunaris/sdk";
-import { Filesystem, FilesystemObservation, FilesystemObservationDriver, FilesystemDriver, FilesystemRoots, FilesystemRootsDriver, FilesystemLocations, FilesystemLocationsDriver, ApplicationDirectory, ApplicationDirectoryDriver, FileChanged, DriverFileChanged, failure, validTarget, validFolderLocation } from "@lunaris/filesystem";
+import { DirectoryLocations, DirectoryLocationsDriver, validDirectoryName, Filesystem, FilesystemObservation, FilesystemObservationDriver, FilesystemDriver, FilesystemRoots, FilesystemRootsDriver, FilesystemLocations, FilesystemLocationsDriver, ApplicationDirectory, ApplicationDirectoryDriver, FileChanged, DriverFileChanged, failure, validTarget, validFolderLocation } from "@lunaris/filesystem";
 import type { FileTarget, FsResult, WriteOptions } from "@lunaris/filesystem";
 import { Logger } from "@lunaris/logging";
 import manifest from "../manifest.json" with { type: "json" };
@@ -9,6 +9,7 @@ import { createRootLifecycle } from "./roots.js";
 export default definePlugin({ manifest, activate(ctx) {
   const logger = ctx.use(Logger);
   logger.debug(ctx.pluginId, "Activating filesystem provider");
+  const directoryLocations = ctx.use(DirectoryLocationsDriver);
   const driver = ctx.use(FilesystemDriver);
   const observationDriver = ctx.use(FilesystemObservationDriver);
   const directories = ctx.use(ApplicationDirectoryDriver);
@@ -88,6 +89,10 @@ export default definePlugin({ manifest, activate(ctx) {
     unwatch: (vaultId, watchId) => observation.unwatch(vaultId, watchId),
   });
   ctx.provide(FilesystemRoots, { selectVault: owner => call("selectVault", () => ownedRoots.selectVault(owner)) });
+  ctx.provide(DirectoryLocations, { create(parent, name, owner) {
+    if (!validFolderLocation(parent) || !validDirectoryName(name)) return Promise.resolve(failure("INVALID_PATH", "A valid parent and portable directory name are required."));
+    return call("createLocation", () => directoryLocations.create({ ...parent }, name, owner));
+  } });
   ctx.provide(FilesystemLocations, {
     describe(reference) {
       if (typeof reference !== "string" || !reference.length || reference.length > 512) return Promise.resolve(failure("INVALID_ARGUMENT", "A valid location reference is required."));
