@@ -25,5 +25,10 @@ pinned `smol-toml` in the codec. Storage serializes mutations and checks filesys
 versions. Existing invalid files are never overwritten; persisted modifications
 rewrite TOML formatting/comments. All outcomes/failures log through Logger without values.
 
+Vault preparation uses recursive directory creation to accept an existing
+`.lunaris` directory without an expected ALREADY_EXISTS error on every reopen.
+Drivers that return ALREADY_EXISTS still get an explicit directory-kind check;
+a file occupying that name is rejected and preserved.
+
 See [API, format, consistency and error details](../../../../DOCS/reference/config.md).
 Run `npm run config:check` from the repository root.

@@ -37,6 +37,10 @@ remain the responsibility of theme-settings/Config. Mantine's global body/root
 baseline is omitted; hosts import the plugin's `styles.css` export once for the
 required component styles. Host recovery remains independent.
 
+The Workspace header uses inline-size containment and intrinsic flex sizing so its
+non-growing slot retains the full height of wrapped names, actions and errors.
+Full-height screen/content roots continue to use size containment.
+
 ## Roles and props
 
 Mount through ctx.use(Components), never import a renderer from a consumer:

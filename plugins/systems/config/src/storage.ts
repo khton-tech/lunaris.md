@@ -41,7 +41,8 @@ export function createStorage(fs: FilesystemApi, stopped: () => boolean) {
     async prepareVault(vaultId: string): Promise<ConfigResult<null>> {
       if (stopped()) return stoppedResult();
       const directory = { vaultId, path: ".lunaris" };
-      const created = await fs.createDirectory(directory);
+      // Recursive creation also accepts an existing directory in native drivers.
+      const created = await fs.createDirectory(directory, true);
       if (stopped()) return stoppedResult();
       if (!created.ok) {
         if (created.error.code !== "ALREADY_EXISTS") return created;

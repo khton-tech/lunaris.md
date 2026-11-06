@@ -39,6 +39,18 @@ const selector = {
   onMode() {}, onName() {}, onBrowse() {}, onNext() {}, onRecent() {}, onRetry() {},
 };
 
+test('workspace header retains intrinsic block sizing while full-height surfaces retain size containment', async () => {
+  const s = await setup(); await s.start();
+  const props = { name: 'A long Vault name that can wrap', closeLabel: 'Close vault', busy: false, error: '', onClose() {} };
+  const header = s.components.mount('lunaris.workspace-header', s.target, props, s.ctx.signal); assert.equal(header.ok, true);
+  const root = s.target.querySelector('header').closest('.lm-root');
+  assert.equal(root.style.containerType, 'inline-size'); assert.equal(root.style.flexBasis, 'auto'); assert.equal(root.style.height, '');
+  header.value.update({ ...props, error: 'Could not close this vault. Try again.' });
+  assert.equal(s.target.querySelector('header').closest('.lm-root'), root); assert.equal(s.target.querySelector('[role=alert]').hidden, false);
+  s.components.mount('lunaris.startup-screen', s.target, startup, s.ctx.signal);
+  assert.equal(s.target.querySelector('.lm-startup').closest('.lm-root').style.containerType, 'size'); await s.stop();
+});
+
 test('registers the replaceable roles, renders real Mantine controls, preserves siblings and releases roots', async () => {
   const s = await setup(); await s.start();
   assert.deepEqual(s.components.list(), ['lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.vault-selector', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);

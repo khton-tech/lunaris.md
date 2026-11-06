@@ -54,6 +54,7 @@ async function setup(options = {}) {
     if (!location) return fail('VAULT_CLOSED');
     const path = `${location}/${target.path}`;
     if (operation === 'createDirectory') {
+      if (args.recursive && dirs.has(path)) return ok(null);
       if (dirs.has(path) || files.has(path)) return fail('ALREADY_EXISTS');
       dirs.add(path); return ok(null);
     }
@@ -245,6 +246,17 @@ test('existing configuration files are validated and never overwritten during se
   const s = await setup({ files: [['a/.lunaris/config.toml', text]], dirs: ['a/.lunaris'] });
   s.select('a'); await s.vaults.open(); assert.equal(s.files.get('a/.lunaris/config.toml'), text);
   assert.equal((await s.config.get('example.plugin', 'value')).value, 42);
+  await s.vaults.close(); s.select('reopened', 'a'); assert.equal((await s.vaults.open()).ok, true);
+  assert.equal(s.files.get('a/.lunaris/config.toml'), text);
+  assert.ok(s.calls.filter(call => call.operation === 'createDirectory').every(call => call.recursive === true));
+  assert.equal(s.logs.some(([level, , , details]) => level === 'error' && details?.code === 'ALREADY_EXISTS'), false);
+  await s.host.stopAll(); s.host.assertNoResources();
+});
+
+test('recursive configuration initialization still rejects a file occupying .lunaris', async () => {
+  const s = await setup({ files: [['a/.lunaris', 'Keep this file']] });
+  s.select('a'); assert.equal((await s.vaults.open()).ok, false); assert.equal(s.vaults.current(), null);
+  assert.equal(s.files.get('a/.lunaris'), 'Keep this file'); assert.equal(s.files.has('a/.lunaris/config.toml'), false);
   await s.host.stopAll(); s.host.assertNoResources();
 });
 

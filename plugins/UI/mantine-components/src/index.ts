@@ -34,7 +34,9 @@ export default definePlugin({ manifest, activate(ctx) {
       catch (error) { logger.error(ctx.pluginId, "Invalid Mantine component props", { code: "MANTINE_PROPS_INVALID", data: { componentId: id }, error }); throw error; }
       const container = target.ownerDocument.createElement("div");
       container.id = `lunaris-mantine-${++nextId}`; container.className = "lm-root";
-      Object.assign(container.style, { display: "flex", flex: "1 1 0%", minWidth: "0", minHeight: "0", containerType: "size" });
+      const intrinsicHeight = id === "lunaris.workspace-header";
+      // Size containment suppresses intrinsic height in the non-growing header slot.
+      Object.assign(container.style, { display: "flex", flex: intrinsicHeight ? "0 0 auto" : "1 1 0%", minWidth: "0", minHeight: "0", containerType: intrinsicHeight ? "inline-size" : "size" });
       let disposed = false; let failed = false; let renderError: unknown; let rendering = false;
       const root = createRoot(container, { onUncaughtError(error) {
         failed = true; renderError = error;
