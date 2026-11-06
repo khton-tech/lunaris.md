@@ -30,7 +30,7 @@ compatible with Components Kit. Colors are transcribed from the Owner's referenc
 
 The reference sub color is decorative, not a readable small-text role. Secondary
 labels use the text color; typography and spacing provide hierarchy. Selector
-artwork uses sub, editable fields use caret, and alerts use error. Extra error and
+artwork uses text for a readable logo, editable fields use caret, and alerts use error. Extra error and
 colorful variants are available as data for future consumers; no colorful-mode
 setting or theme editor is introduced. Selection uses sub with readable text.
 

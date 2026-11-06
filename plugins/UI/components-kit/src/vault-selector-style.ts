@@ -30,7 +30,7 @@ export const selectorStyle = `${controlStyle}${panelStyle}${surfaceStyle}
 .ln-vault .ln-vault-main { display:flex;flex-direction:column;align-items:center;min-height:0;overflow:auto;padding:clamp(1rem,5cqw,4rem) }
 .ln-vault .ln-vault-main::before { content:"";flex:0 0 var(--vault-center-offset,0px) }
 .ln-vault .ln-vault-content { flex-shrink:0;width:100%;max-width:32rem;container-type:inline-size;display:flow-root }
-.ln-vault pre { color:var(--vault-sub);font-family:var(--vault-mono);font-size:min(9px,1.7cqw);line-height:1.2;white-space:pre;margin:0 0 calc(var(--vault-space)*8);text-align:center;max-width:100%;overflow:hidden }
+.ln-vault pre { color:var(--vault-text);font-family:var(--vault-mono);font-size:min(9px,1.7cqw);line-height:1.2;white-space:pre;margin:0 0 calc(var(--vault-space)*8);text-align:center;max-width:100%;overflow:hidden }
 .ln-vault .ln-vault-actions { display:grid;gap:calc(var(--vault-space)*2) }
 .ln-vault .ln-vault-action { border-radius:var(--vault-radius) }
 .ln-vault .ln-vault-toggle { width:100%;padding:calc(var(--vault-space)*4) }
