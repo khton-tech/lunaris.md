@@ -17,10 +17,10 @@ three through public contracts; the selector never imports Workspace.
 
 Tauri enables `createVaultSelector({ art, hideWhenVaultOpen: true })`. After
 `Startup` reaches `loaded`, no Vault shows the selector and an open Vault shows
-Workspace. Selector handoff releases its child scope. Closing through the
-Workspace header calls `Vault.close()`; its committed event restores the selector.
-Close is single-flight; failures leave the current screen with a localized retryable
-error. External open/switch/close events use the same path.
+Workspace. Selector handoff releases its child scope. Workspace has no top header,
+Vault-name row or close action. Closing through a public Vault service consumer
+restores the selector after the committed event. External open/switch/close events
+control the same screen lifecycle.
 
 ## Content API
 
@@ -94,7 +94,7 @@ The separate [Sidebar](sidebar.md) registers its rail and active tool through th
 regions. No left registrations means no reserved width. On narrow containers the
 left panel overlays main inside the owned layout; scrolling stays region-local.
 
-The header and composite layout have SDK-owned Slots. The public
+The composite layout has SDK-owned Slots. The public
 lunaris.workspace-layout Components role lends stable main/left targets after mount
 and keeps them unchanged on updates. Workspace mounts content through Components
 after the layout call returns, and releases old views when the role is replaced.
@@ -127,8 +127,9 @@ covered by independent kernel diagnostics.
 Completed: Tauri registers both plugins, starts the screen, grants it `ui.dom` and
 `vault.access`, and resolves the provider through its required API/event. The screen
 uses Vault, Startup, Slots/SlotDom, Components, Localization and mandatory Logger.
-Mantine components supplies `lunaris.workspace-header`, `lunaris.workspace-empty`
-and `lunaris.workspace-layout`. The independent Sidebar uses the new side regions.
+Workspace uses Mantine roles `lunaris.workspace-empty` and `lunaris.workspace-layout`.
+The reusable `lunaris.workspace-header` role remains available for other consumers
+but is not mounted by the default Workspace. The independent Sidebar uses the new side regions.
 Selector hides while a Vault is open and returns after closing. No editor/document
 or explorer integration is claimed; these plugins do not exist yet. Future content
 plugins connect through Workspace registration and public component roles.
@@ -138,7 +139,7 @@ selector handoff, existing/switching/closing Vaults, missing/replacement/failing
 roles, placeholders, validation/order, theme/locale updates and shutdown.
 Run `npm run build --workspace @lunaris/tauri` for the production frontend.
 JSDOM checks do not verify native WebView geometry. Manual acceptance: run
-`npm run tauri:dev`, open a Vault, confirm its name, empty-state copy and Close
-vault action; close/reopen it, use keyboard navigation and resize to narrow/short
-windows. Verify long names, theme inheritance and readable local overflow.
+`npm run tauri:dev`, open a Vault and confirm the layout fills the product surface
+without a top Vault-name/Close vault row. Check empty-state copy, keyboard navigation,
+narrow/short windows, theme inheritance and readable local overflow.
 Desktop automation is prohibited and is not used.

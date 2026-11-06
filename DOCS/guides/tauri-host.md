@@ -221,8 +221,9 @@ was performed.
 
 The default composition starts the Workspace screen, resolving its separate content
 provider through SDK contracts. After startup, the selector is visible only without
-an active Vault. Opening shows Workspace; Close vault restores the selector after
-a committed Vault event. Mantine supplies the header/placeholder, and empty content
+an active Vault. Opening shows Workspace; a committed close through the public
+Vault service restores the selector. Workspace has no top Vault-name/Close vault
+row. Mantine supplies the layout/placeholder, and empty content
 shows an explanatory message. See [Workspace](../reference/workspace.md) for API,
 integration boundaries and manual visual acceptance.
 

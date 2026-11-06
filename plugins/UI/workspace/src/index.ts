@@ -25,9 +25,9 @@ export default definePlugin({ manifest, activate(ctx) {
   const rootId = `${ctx.pluginId}.screen`;
   const contentId = `${ctx.pluginId}.content`;
   let screen: ResourceScope | undefined; let screenVaultId: string | undefined;
-  let header: View | undefined; let empty: View | undefined; let sideEmpty: View | undefined; let layout: View | undefined; let regions: Regions | undefined; let sequence = 0;
+  let empty: View | undefined; let sideEmpty: View | undefined; let layout: View | undefined; let regions: Regions | undefined; let sequence = 0;
   const contentSignatures = new Map<string, string>();
-  let latest = startup.snapshot(); let closing = false; let closeFailed = false;
+  let latest = startup.snapshot();
   const text = (key: string) => localization.text(ctx.pluginId, key);
   function release(owner: ResourceScope | undefined): void {
     // Owned scopes report cleanup failures through independent kernel diagnostics.
@@ -41,7 +41,7 @@ export default definePlugin({ manifest, activate(ctx) {
   function releaseScreen(): void {
     release(screen);
     screen = undefined; screenVaultId = undefined;
-    views.clear(); header = undefined; empty = undefined; sideEmpty = undefined; layout = undefined; regions = undefined; contentSignatures.clear();
+    views.clear(); empty = undefined; sideEmpty = undefined; layout = undefined; regions = undefined; contentSignatures.clear();
   }
   ctx.scope.own({ dispose() {
     releaseScreen();
@@ -79,16 +79,12 @@ export default definePlugin({ manifest, activate(ctx) {
     const current = vaults.current();
     if (!current || latest.state !== "loaded") { releaseScreen(); return; }
     if (screenVaultId !== current.id) {
-      releaseScreen(); screen = ctx.scope.child(); screenVaultId = current.id; closeFailed = false;
+      releaseScreen(); screen = ctx.scope.child(); screenVaultId = current.id;
       const result = slots.create({ id: rootId, grow: 1 }, screen.signal);
       if (!result.ok) { releaseScreen(); throw new Error("Cannot allocate workspace screen.", { cause: result.error }); }
       const content = slots.create({ id: contentId, parent: rootId, order: 1, grow: 1 }, screen.signal);
       if (!content.ok) { releaseScreen(); throw new Error("Cannot allocate workspace content region.", { cause: content.error }); }
       logger.info(ctx.pluginId, "Workspace opened", { code: "WORKSPACE_OPENED" });
-    }
-    header ??= createView("lunaris.workspace-header", 0, 0, rootId);
-    if (!show(header, { name: current.name, closeLabel: text("close"), busy: closing, error: closeFailed ? text("closeError") : "", onClose: close })) {
-      release(header.owner); header = undefined;
     }
     layout ??= createView("lunaris.workspace-layout", 0, 1);
     const entries = workspace.list();
@@ -137,22 +133,6 @@ export default definePlugin({ manifest, activate(ctx) {
       throw error;
     }
   }
-  function close(): void {
-    if (closing || ctx.signal.aborted) return;
-    closing = true; closeFailed = false; refresh();
-    void (async () => {
-      try {
-        const result = await vaults.close();
-        if (ctx.signal.aborted) return;
-        if (!result.ok) {
-          closeFailed = true;
-          logger.error(ctx.pluginId, "Cannot close workspace Vault", { code: result.error.code, error: result.error });
-        } else logger.info(ctx.pluginId, "Workspace Vault closed", { code: "WORKSPACE_CLOSED" });
-      } catch (error) {
-        if (!ctx.signal.aborted) { closeFailed = true; logger.error(ctx.pluginId, "Cannot close workspace Vault", { code: "WORKSPACE_CLOSE_FAILED", error }); }
-      } finally { closing = false; if (!ctx.signal.aborted) refresh(); }
-    })().catch(error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot refresh workspace after closing", { code: "WORKSPACE_RENDER_FAILED", error }); });
-  }
   ctx.events.on(WorkspaceChanged, change => {
     const entry = workspace.list().find(item => item.id === change.id);
     if (entry && !components.has(entry.componentId)) logger.warn(ctx.pluginId, "Waiting for workspace component role", { code: "WORKSPACE_COMPONENT_MISSING", data: { componentId: entry.componentId } });
@@ -171,14 +151,13 @@ export default definePlugin({ manifest, activate(ctx) {
         releaseContent();
         release(layout.owner); layout = undefined; regions = undefined;
       }
-      if (header?.componentId === change.componentId) { release(header.owner); header = undefined; }
       if (empty?.componentId === change.componentId) { release(empty.owner); empty = undefined; }
       if (sideEmpty?.componentId === change.componentId) { release(sideEmpty.owner); sideEmpty = undefined; }
     }
     if (change.componentId.startsWith("lunaris.workspace-") || workspace.list().some(entry => entry.componentId === change.componentId)) refresh();
   });
   refresh();
-  for (const role of ["lunaris.workspace-header", "lunaris.workspace-empty", "lunaris.workspace-layout"]) {
+  for (const role of ["lunaris.workspace-empty", "lunaris.workspace-layout"]) {
     if (!components.has(role)) logger.warn(ctx.pluginId, "Waiting for workspace component role", { code: "WORKSPACE_COMPONENT_MISSING", data: { componentId: role } });
   }
   logger.info(ctx.pluginId, "Workspace ready", { code: "WORKSPACE_READY" });

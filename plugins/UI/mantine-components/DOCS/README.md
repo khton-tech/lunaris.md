@@ -69,7 +69,8 @@ Intrinsic grid disclosure, reserved form space and reduced-motion styles retain
 layout stability. Narrow/short containers compact or stack, with local overflow
 and hidden scrollbar chrome. The logo uses the theme text color.
 
-Workspace header props: strings `name`, `closeLabel`, `error`; boolean `busy`;
+The optional workspace-header role remains available to SDK consumers but is not
+mounted by the default Workspace screen. Its props: strings `name`, `closeLabel`, `error`; boolean `busy`;
 callback `onClose()`. It renders a wrapping Mantine Text/Button header with a
 semantic h1 and an alert only on failure. Empty-state props: strings `title` and
 `detail`. It renders a centered, scrollable Mantine Stack/Title/Text composition

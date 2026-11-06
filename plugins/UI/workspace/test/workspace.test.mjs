@@ -6,10 +6,11 @@ test('selector hands off to an empty workspace and closing returns to the select
   const s = await setup(); assert.ok(s.surface.querySelector('.ln-vault')); assert.equal(s.surface.querySelector('.lm-workspace-empty'), null);
   s.surface.querySelector('.ln-vault-recents button').click(); await flush();
   assert.equal(s.surface.querySelector('.ln-vault'), null); assert.equal(s.surface.querySelector('[data-lunaris-slot="lunaris.vault-selector.screen"]'), null);
-  assert.equal(s.surface.querySelector('h1').textContent, 'Notes');
+  assert.equal(s.surface.querySelector('h1'), null);
+  assert.equal(s.surface.querySelector('.lm-workspace-header'), null);
   assert.equal(s.surface.querySelector('.lm-workspace-empty h2').textContent, 'No workspace plugins');
   assert.equal(s.surface.querySelectorAll('.lm-workspace-empty').length, 1);
-  s.surface.querySelector('.lm-workspace-header button').click(); await flush();
+  await s.service.close(); await flush();
   assert.equal(s.surface.querySelector('.lm-workspace-header'), null); assert.ok(s.surface.querySelector('.ln-vault'));
   assert.equal(s.surface.querySelector('[data-lunaris-slot="lunaris.workspace.screen"]'), null);
   await s.open(); assert.ok(s.surface.querySelector('.lm-workspace-empty')); await s.stop();
@@ -61,7 +62,7 @@ test('input validation, frozen copies, duplicate IDs and ordered content preserv
   assert.deepEqual(api.list().map(item => item.id), ['test.first', 'test.last']);
   assert.equal(Object.isFrozen(api.list()), true); assert.equal(Object.isFrozen(api.list()[0].props), true);
   assert.deepEqual([...s.surface.querySelectorAll('article')].map(node => node.textContent), ['First: Notes', 'Last: Notes']);
-  const root = s.surface.querySelector('[data-lunaris-slot="lunaris.workspace.screen"]'); assert.ok(root.firstElementChild.querySelector('header'));
+  const root = s.surface.querySelector('[data-lunaris-slot="lunaris.workspace.screen"]'); assert.ok(root.firstElementChild.querySelector('.lm-workspace-layout'));
   assert.equal(api.register({ id: 'test.first', componentId: 'test.panel' }, s.ctx.signal).error.code, 'ALREADY_REGISTERED');
   assert.equal(api.update('test.missing', {}).error.code, 'NOT_FOUND'); assert.equal(api.update('test.first', { workspace: {} }).error.code, 'INVALID_ARGUMENT');
   api.update('test.first', { label: 'Updated' }); assert.equal(s.surface.querySelector('article').textContent, 'Updated: Notes'); await s.stop();
@@ -72,26 +73,12 @@ test('existing Vault appears after startup; localized messages and theme changes
     assert.equal(surface.querySelector('.lm-workspace-header'), null); assert.equal(surface.querySelector('.lm-workspace-empty'), null);
   } });
   assert.equal(s.surface.querySelector('.ln-vault'), null); assert.ok(s.surface.querySelector('.lm-workspace-empty')); assert.equal(s.surface.querySelector('img'), null);
-  assert.equal(s.surface.querySelector('h1').textContent, '<img src=x> Notes');
+  assert.equal(s.surface.querySelector('h1'), null);
   s.tools.themes.register({ id: 'test.light', name: 'Light', properties: { appearance: 'light', colors: { background: '#ffffff', text: '#202020' } } }, s.ctx.signal);
   s.tools.themes.select('test.light'); assert.equal(s.surface.querySelector('.lm-workspace-empty').style.backgroundColor, 'rgb(255, 255, 255)');
   s.tools.localization.register('test.languages', { en: { title: 'Language' }, fr: { title: 'Langue' } }, s.ctx.signal); s.tools.localization.setLocale('fr'); await flush();
-  assert.ok(s.surface.querySelector('.lm-workspace-empty')); assert.equal(s.surface.querySelector('button').textContent, 'Close vault');
+  assert.ok(s.surface.querySelector('.lm-workspace-empty')); assert.equal(s.surface.querySelector('.lm-workspace-header'), null);
   assert.equal(s.dom.window.localStorage.length, 0); await s.stop();
-});
-
-test('close is single-flight, failures retain the workspace and allow retry', async () => {
-  const deferred = Promise.withResolvers(); const options = { beforeClose: () => deferred.promise, closeFailure: 'BUSY' };
-  const s = await setup(options); await s.open(); const button = s.surface.querySelector('.lm-workspace-header button'); button.click(); button.click();
-  assert.equal(options.closeCalls, 1); assert.equal(button.disabled, true); deferred.resolve(); await flush();
-  assert.match(s.surface.querySelector('[role=alert]').textContent, /Could not close/); assert.equal(button.disabled, false);
-  options.closeFailure = null; button.click(); await flush(); assert.ok(s.surface.querySelector('.ln-vault')); await s.stop();
-});
-
-test('shutdown during close ignores late results and releases owned screens', async () => {
-  const deferred = Promise.withResolvers(); const s = await setup({ beforeClose: () => deferred.promise }); await s.open();
-  s.surface.querySelector('.lm-workspace-header button').click(); await s.session.stop(); deferred.resolve(); await flush();
-  assert.equal(s.surface.childElementCount, 0); s.dom.window.close();
 });
 
 test('missing placeholder role can arrive later; denied Vault permission enters host recovery', async () => {

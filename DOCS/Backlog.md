@@ -14,8 +14,8 @@ work. See [Sidebar](reference/sidebar.md).
 ## Workspace
 
 Status: IMPLEMENTED on 2026-11-06; native visual acceptance remains manual.
-Tauri hands the opened Vault to a Workspace screen with a quiet header, Close vault
-action and a placeholder when no content role mounts successfully. A separate
+Tauri hands the opened Vault to a full-window Workspace with no Vault-name/Close vault
+header. A placeholder appears when no main content role mounts successfully. A separate
 portable provider owns content registrations through the public Workspace API/event.
 The screen remounts content for each Vault, handles missing/replacement/failing roles,
 and restores the selector on close. Mantine components owns both visible roles.
