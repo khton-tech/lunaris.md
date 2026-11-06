@@ -175,7 +175,11 @@ recent rows, bright artwork and reduced-motion settings.
 It uses React Arborist 4.0.1 with react-dnd/HTML5 backend 16.0.1, Mantine menus,
 ActionIcon, TextInput, Paper and Button. The renderer owns only view mechanics;
 file operations, localization, drafts and logical tree state belong to the SDK
-controller. A localized Tabs dropdown currently offers only Files. The Workspace
+controller. A localized Tabs dropdown currently offers only Files. Its single-line
+trigger spans the available panel width, with a theme-derived control boundary,
+content surface and radius. The dropdown matches the trigger width and styling;
+the current entry uses the theme selection color. Long localized names truncate
+with full native titles, and the chevron stays at the trailing edge. The Workspace
 Vault name is rendered as an initially expanded, protected root row above the
 controller entries; header titles and operation buttons are absent. Root disclosure
 is view-local and resets on remount. Root identities are excluded from controller
