@@ -80,6 +80,10 @@ export default definePlugin({ manifest, activate(ctx) {
         // Releasing the UI must not cancel a command that already started.
         const run = action.run; session.dispose();
         try {
+          // Let the opened view release its overlay/focus before a command mounts
+          // a new editor. Recheck owners after this dispatch boundary.
+          await Promise.resolve();
+          if (owner.aborted || ctx.signal.aborted || !action.available()) return { ok: false, error: { code: "UNAVAILABLE", message: "Context menu action is no longer available." } };
           await run(context);
           if (!ctx.signal.aborted) logger.info(ctx.pluginId, "Context menu action completed", { data: { id } });
           return done;

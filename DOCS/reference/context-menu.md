@@ -91,6 +91,9 @@ tests. Always dispose resolved sessions when their view closes.
 An action can execute once per session. Disabled actions, expired sessions and
 commands from removed contributions cannot execute. A started asynchronous action
 may finish after its menu closes; contributors own cancellation of their work.
+Opened menus release their overlay and restore source focus before dispatching
+the command, so an editor opened by that command keeps its own initial focus.
+Owners are checked again at the dispatch boundary.
 Provider shutdown disposes sessions and registrations without SDK/logging calls.
 Runtime callback errors retain their original error in Logger diagnostics.
 

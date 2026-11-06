@@ -82,3 +82,17 @@ test('opening owns an overlay, replaces the previous opening and releases on own
   await owner.dispose();assert.equal(s.disposed,2);assert.equal(dom.window.document.querySelector('[data-lunaris-context-menu]'),null);
   dom.window.close();await s.stop();
 });
+
+test('opened commands run after overlay disposal and never run if their owner expires before dispatch', async () => {
+  const s = await setup(); const dom = new JSDOM('<button>Source</button>'); const target = dom.window.document.querySelector('button'); let calls = 0;
+  const owner = s.ctx.scope.child();
+  const request = { target, x: 10, y: 20, label: 'Actions', context, entries: [action('test.edit', () => {
+    assert.equal(dom.window.document.querySelector('[data-lunaris-context-menu]'), null);
+    assert.equal(dom.window.document.activeElement, target); calls++;
+  })] };
+  const first = s.api.open(request, owner.signal).value;
+  assert.equal((await first.execute('test.edit')).ok, true); assert.equal(calls, 1);
+  const second = s.api.open(request, owner.signal).value; const pending = second.execute('test.edit'); await owner.dispose();
+  assert.equal((await pending).error.code, 'UNAVAILABLE'); assert.equal(calls, 1);
+  await s.stop(); dom.window.close();
+});
