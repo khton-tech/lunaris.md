@@ -83,4 +83,3 @@ export function panel(s, id = 'test.panel', options = {}) {
   assert.equal(result.ok, true);
   return { owner, seen, releases };
 }
-
