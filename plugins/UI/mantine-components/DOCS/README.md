@@ -195,6 +195,19 @@ Existing file commands remain available through context menus and shortcuts. Pop
 drag previews remain inside the owned root. Custom public row/cursor renderers
 keep names truncatable and drop feedback on the SDK palette.
 
+The tree shares the toolbar's horizontal inset, with compact 28px rows at the
+default font size. Row spacing stays inside the virtualized row allocation so
+selection, scrolling and drag/drop geometry retain their controller behavior.
+Rows have small theme-derived corners and no resting boundaries; the protected
+Vault root uses medium-weight text. Disclosure controls and file placeholders
+share a width to align labels at each depth. Hover uses the same quiet surface
+as the header, selection retains a stronger theme-derived fill, and press/drop/
+keyboard focus remain distinct. Busy trees suppress row hover/press feedback.
+Context menus reuse the detached dropdown geometry and interaction palette;
+inline forms use the same insets and subdued boundaries. Motion follows theme
+timing and is removed for reduced-motion preferences. No controller contracts,
+file commands or cross-plugin integrations change.
+
 ## Global region surfaces
 
 WorkspaceLayout owns one Mantine Paper card per supporting region (navigation
