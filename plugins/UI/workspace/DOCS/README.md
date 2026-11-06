@@ -10,11 +10,17 @@ Vault/VaultChanged, Startup/StartupChanged, Slots, SlotDom,
 Components/ComponentsChanged and Localization/LocaleChanged. The host grants
 `ui.dom` and `vault.access`. All access uses `ctx.use` and SDK events.
 
-The screen renders `lunaris.workspace-header` and `lunaris.workspace-empty` through
+The screen renders `lunaris.workspace-header`, `lunaris.workspace-empty` and
+`lunaris.workspace-layout` through
 Components. Registered content roles receive `{ ...props, workspace: { vaultId,
 vaultName } }`. Owned child scopes release all old instances before a Vault switch;
-registered descriptors remain available for the next Vault. Zero successful mounts
-shows the placeholder, including missing or failed roles. Renderer replacement,
+registered descriptors remain available for the next Vault. The placeholder appears
+when main has no successful mounts, including missing or failed roles. Sidebar content
+does not suppress it; failed side content receives a separate placeholder.
+Workspace 1.1 regions provide main, left-rail and left-panel. The replaceable layout
+role lends stable targets through its public callback contract; SDK-owned scopes
+release content before using new targets after replacement. Narrow panels overlay
+main within that layout. Workspace contains no Sidebar imports or tab state. Renderer replacement,
 consumer removal, locale changes and external Vault transitions update the screen.
 
 Tauri starts this plugin and hides the selector while a Vault is open. Closing

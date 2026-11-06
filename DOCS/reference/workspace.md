@@ -24,7 +24,7 @@ error. External open/switch/close events use the same path.
 
 ## Content API
 
-Require `api:lunaris.workspace@^1.0.0` and import `Workspace` from
+Require `api:lunaris.workspace@^1.1.0` and import `Workspace` from
 `@lunaris/workspace`. The provider plugin is `lunaris.workspace-provider`.
 Registration itself requires no DOM or filesystem permission.
 
@@ -51,16 +51,16 @@ Consumer plugins never import React/Mantine or another plugin's implementation.
 
 | Method | Behavior |
 |---|---|
-| `register(content, owner)` | Register an ID, component role, optional props and optional order (default 0). Duplicate IDs are rejected. |
+| `register(content, owner)` | Register an ID, component role, optional props/order and region (default main). Duplicate IDs and occupied side regions are rejected. |
 | `update(id, props)` | Replace all custom props without changing the ID, role or order. |
 | `list()` | Frozen snapshot ordered by order, then registration order. |
 
 Results are `{ ok: true, value: null }` or
 `{ ok: false, error: { code, message } }`. Codes: `INVALID_ARGUMENT`,
-`ALREADY_REGISTERED`, `NOT_FOUND`. A successful registration/update accepts the
+`ALREADY_REGISTERED`, `REGION_OCCUPIED`, `NOT_FOUND`. A successful registration/update accepts the
 descriptor; it does not promise that its component is available or rendered.
 Input records must be plain objects with data properties, valid dotted IDs and
-safe-integer order. Unknown descriptor keys and the reserved `workspace` prop
+safe-integer order. Optional region is main/left-rail/left-panel; optional onDismiss is a callback. Unknown descriptor keys and the reserved `workspace` prop
 are rejected. Descriptor and top-level props are copied and frozen; nested prop
 values and callbacks retain their identity, matching Components semantics.
 IDs provide attribution, not authenticated caller isolation.
@@ -86,15 +86,29 @@ view before creating fresh instances; callbacks and asynchronous work must honor
 that signal. Registrations persist across Vault switches, but rendered instances
 do not. Closing removes the entire screen and its descendants.
 
-The first version supplies one column of ordered, equally growing content slots.
-The header has a separate slot; content order cannot move a panel above it.
-No unused sidebar, tabs, status bar, resize controls or decorative chrome is added.
-The screen owns `lunaris.workspace.screen` and `lunaris.workspace.content`; content
-plugins must use registrations instead of depending on private slot IDs.
+Workspace 1.1 supplies main, left-rail and left-panel regions. Main accepts ordered,
+equally growing components; each left region accepts one owner and rejects a second
+with REGION_OCCUPIED. Existing 1.0 descriptions default to main. The optional
+onDismiss callback on left-panel handles Escape; Workspace owns no tab selection.
+The separate [Sidebar](sidebar.md) registers its rail and active tool through these
+regions. No left registrations means no reserved width. On narrow containers the
+left panel overlays main inside the owned layout; scrolling stays region-local.
 
-`lunaris.workspace-empty` appears when zero components mount successfully,
+The header and composite layout have SDK-owned Slots. The public
+lunaris.workspace-layout Components role lends stable main/left targets after mount
+and keeps them unchanged on updates. Workspace mounts content through Components
+after the layout call returns, and releases old views when the role is replaced.
+Consumers never reach into the host or restyle/reparent Slots. The screen owns
+lunaris.workspace.screen and lunaris.workspace.content; content plugins use public
+registrations rather than private slot IDs. Changes to a region's ordered content
+set can remount that region; props updates preserve its existing views.
+No tab management, status bar or resize controls belong to Workspace.
+
+`lunaris.workspace-empty` appears in main when zero main components mount successfully,
 including registered roles that are missing or fail to render/update. It disappears
-when content becomes available and returns when the last content owner stops.
+when main content becomes available and returns when its last owner stops.
+Sidebar content never suppresses the main placeholder. A failed left-panel renderer
+gets its own localized failure placeholder.
 Failed/missing views do not reserve empty slots. `ComponentsChanged` supports
 late and replacement renderers. Component failures log diagnostics; no raw errors
 or Vault paths appear in the product UI. Header and empty-state text use the
@@ -113,7 +127,8 @@ covered by independent kernel diagnostics.
 Completed: Tauri registers both plugins, starts the screen, grants it `ui.dom` and
 `vault.access`, and resolves the provider through its required API/event. The screen
 uses Vault, Startup, Slots/SlotDom, Components, Localization and mandatory Logger.
-Mantine components supplies `lunaris.workspace-header` and `lunaris.workspace-empty`.
+Mantine components supplies `lunaris.workspace-header`, `lunaris.workspace-empty`
+and `lunaris.workspace-layout`. The independent Sidebar uses the new side regions.
 Selector hides while a Vault is open and returns after closing. No editor/document
 or explorer integration is claimed; these plugins do not exist yet. Future content
 plugins connect through Workspace registration and public component roles.

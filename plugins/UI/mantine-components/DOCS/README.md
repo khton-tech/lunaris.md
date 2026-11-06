@@ -18,7 +18,8 @@ copied verbatim, and no broad gallery catalog is registered without a consumer.
 
 Requires Logger, Components, Themes, ThemeChanged and the `ui.dom` permission.
 Registers `lunaris.startup-screen`, `lunaris.vault-selector`,
-`lunaris.workspace-header` and `lunaris.workspace-empty` with ctx.signal.
+`lunaris.workspace-header`, `lunaris.workspace-empty`, `lunaris.workspace-layout`
+and `lunaris.sidebar-rail` with ctx.signal.
 Provides no additional API or events. Subscribes to ThemeChanged and re-renders
 live instances. Readiness, degraded missing themes, rejected props/registration,
 and original rendering failures are logged using ctx.pluginId as source.
@@ -77,6 +78,27 @@ the restrained [Mantine UI header compositions](https://ui.mantine.dev/category/
 no fixed-position AppShell or unused navigation is added. These roles own no Vault
 operations and follow the same registration/instance lifecycle as the existing roles.
 
+## Workspace regions and Sidebar roles
+
+`lunaris.workspace-layout` takes booleans railVisible/panelVisible, localized
+mainLabel/panelLabel and onDismiss(). Its onTargets callback receives stable
+`{ main, "left-rail", "left-panel" }` HTMLElements after mount and null on release.
+Callbacks only capture data; consumers mount nested Components after the layout
+mount/update call returns, outside React effects. Updates/theme changes preserve
+the targets. Consumers release their nested instances when the layout is replaced.
+The role owns the responsive grid and region-local overflow, with a nonmodal left
+overlay in narrow containers. Escape focuses the active rail control then calls
+onDismiss; no portals leave the target. Regions contain independently owned React
+roots, not React children that the layout reconciles.
+
+`lunaris.sidebar-rail` takes label, activeId, tabs `{ id, title, icon }[]` and
+onSelect(id). It uses Mantine ActionIcon with Lucide roles, native title tooltips,
+accessible names, aria-pressed/expanded, theme selection/hover/focus colors and
+Up/Down/Home/End focus navigation. It adapts the
+[Mantine UI navbar compositions](https://ui.mantine.dev/category/navbars/).
+Supported icon names add files/search/outline/settings; unknown names use PackageOpen.
+No registry, active-tab policy, Workspace calls or Vault access lives in the renderer.
+
 ## Themes and development rules
 
 The vault form follows the [Mantine UI form compositions](https://ui.mantine.dev/category/authentication/)
@@ -129,7 +151,9 @@ no SDK checks or compiler strictness flags are disabled.
 Tauri starts this plugin; runner and vault-selector mount its unchanged roles.
 Themes/ThemeChanged update Mantine, theme-settings selects startup appearance,
 and localization remains consumer-owned. Workspace mounts its header and empty-state
-roles through the same public registry. Required integrations are complete.
+roles through the same public registry. Workspace borrows the layout targets;
+Sidebar supplies rail props while its selected content mounts independently.
+Required integrations are complete.
 
 Run `npm run mantine-components:check` for real SDK/React/Mantine behavior,
 registration rollback/restart, owner cleanup, isolated roots, prop validation,

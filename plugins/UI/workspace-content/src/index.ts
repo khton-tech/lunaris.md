@@ -20,7 +20,7 @@ export default definePlugin({ manifest, activate(ctx) {
       logger.error(ctx.pluginId, "Cannot publish workspace change", { code: "WORKSPACE_EVENT_FAILED", error });
     });
   }
-  function reject(code: "INVALID_ARGUMENT" | "ALREADY_REGISTERED" | "NOT_FOUND", message: string): WorkspaceResult {
+  function reject(code: "INVALID_ARGUMENT" | "ALREADY_REGISTERED" | "REGION_OCCUPIED" | "NOT_FOUND", message: string): WorkspaceResult {
     logger.warn(ctx.pluginId, message, { code });
     return { ok: false, error: { code, message } };
   }
@@ -33,6 +33,7 @@ export default definePlugin({ manifest, activate(ctx) {
         return reject("INVALID_ARGUMENT", "Valid workspace content and a live owner are required.");
       }
       if (entries.has(content.id)) return reject("ALREADY_REGISTERED", "Workspace content is already registered.");
+      if (content.region !== "main" && [...entries.values()].some(entry => entry.content.region === content.region)) return reject("REGION_OCCUPIED", "The workspace region already has an owner.");
       const remove = () => {
         owner.removeEventListener("abort", remove); entries.delete(content.id);
         return notify("removed", content.id, true);

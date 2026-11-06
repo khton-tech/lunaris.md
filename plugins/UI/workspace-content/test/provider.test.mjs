@@ -38,3 +38,15 @@ test('a stopped consumer releases registrations while the provider remains avail
   assert.equal(s.api.register({ id: 'test.files', componentId: 'test.tree' }, s.ctx.signal).ok, true);
   await s.kernel.stopAll(); assert.deepEqual(s.kernel.inspect().diagnostics.filter(item => item.code === 'CLEANUP_FAILED'), []);
 });
+
+test('named side regions have one owner and remain compatible with default main registrations', async () => {
+  const s = await setup(); const owner = s.ctx.scope.child();
+  s.api.register({ id: 'test.main', componentId: 'test.content' }, s.ctx.signal);
+  assert.equal(s.api.list()[0].region, 'main');
+  assert.equal(s.api.register({ id: 'test.rail', componentId: 'test.rail-view', region: 'left-rail' }, owner.signal).ok, true);
+  assert.equal(s.api.register({ id: 'test.other', componentId: 'test.rail-view', region: 'left-rail' }, s.ctx.signal).error.code, 'REGION_OCCUPIED');
+  assert.equal(s.api.register({ id: 'test.bad', componentId: 'test.content', region: 'unknown' }, s.ctx.signal).error.code, 'INVALID_ARGUMENT');
+  assert.equal(s.api.register({ id: 'test.bad', componentId: 'test.content', region: 'left-panel', onDismiss: 'bad' }, s.ctx.signal).ok, false);
+  await owner.dispose(); assert.equal(s.api.register({ id: 'test.other', componentId: 'test.rail-view', region: 'left-rail' }, s.ctx.signal).ok, true);
+  await s.kernel.stopAll(); assert.deepEqual(s.kernel.inspect().diagnostics.filter(item => item.code === 'CLEANUP_FAILED'), []);
+});

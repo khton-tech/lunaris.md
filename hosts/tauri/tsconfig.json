@@ -84,6 +84,12 @@
     },
     {
       "path": "../../plugins/UI/workspace-content"
+    },
+    {
+      "path": "../../plugins/UI/sidebar"
+    },
+    {
+      "path": "../../plugins/UI/sidebar-tabs"
     }
   ]
 }

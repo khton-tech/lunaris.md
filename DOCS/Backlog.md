@@ -1,5 +1,16 @@
 # Product backlog
 
+## Sidebar
+
+Status: IMPLEMENTED on 2026-11-06; native visual acceptance remains manual.
+Sidebar is an independent UI plugin, with a separate portable tab provider and
+public registration/update/select/snapshot contracts. Mantine supplies icon-only
+Lucide controls; Workspace 1.1 supplies left-rail/left-panel regions without owning
+tab logic. Active icons toggle collapse, keyboard/Escape and owner removal are
+supported, and missing/failing content has explanatory placeholders. Without tabs
+both side regions are absent. Tool plugins, persistence and resizing remain future
+work. See [Sidebar](reference/sidebar.md).
+
 ## Workspace
 
 Status: IMPLEMENTED on 2026-11-06; native visual acceptance remains manual.
@@ -8,8 +19,9 @@ action and a placeholder when no content role mounts successfully. A separate
 portable provider owns content registrations through the public Workspace API/event.
 The screen remounts content for each Vault, handles missing/replacement/failing roles,
 and restores the selector on close. Mantine components owns both visible roles.
-One ordered content column ships initially; explorer, documents, editor, sidebars,
-tabs and resize/session persistence remain future work. See [Workspace](reference/workspace.md).
+Workspace 1.1 now adds left regions for the independent Sidebar while retaining
+the main content column. Explorer, documents, editor, document tabs and
+resize/session persistence remain future work. See [Workspace](reference/workspace.md).
 
 ## Vault selector
 

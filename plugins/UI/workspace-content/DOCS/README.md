@@ -4,10 +4,13 @@ Purpose: own portable content registrations independently of UI, Vault lifecycle
 and platform rendering. Default export: `@lunaris/workspace-provider`, plugin ID
 `lunaris.workspace-provider`. Requires Logger only; no permissions or DOM access.
 
-Provides `api:lunaris.workspace@1.0.0`: `register(content, owner)`, `update(id, props)`
+Provides `api:lunaris.workspace@1.1.0`: `register(content, owner)`, `update(id, props)`
 and `list()`. Provides `event:lunaris.workspace-changed@1.0.0`: frozen
 `{ kind: "registered" | "updated" | "removed", id }`. Subscribes to no events.
-Descriptors declare an ID, component role, optional props and order. Inputs are
+Descriptors declare an ID, component role, optional props/order, main/left-rail/left-panel
+region and optional onDismiss callback. Main is the compatible default for 1.0
+consumers. Each left region accepts one owner; duplicate region claims return
+REGION_OCCUPIED. The provider owns neither tab selection nor geometry. Inputs are
 validated and shallow copied/frozen. Owner cancellation removes the descriptor.
 Registration does not guarantee component availability or successful rendering.
 

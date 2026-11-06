@@ -225,3 +225,11 @@ an active Vault. Opening shows Workspace; Close vault restores the selector afte
 a committed Vault event. Mantine supplies the header/placeholder, and empty content
 shows an explanatory message. See [Workspace](../reference/workspace.md) for API,
 integration boundaries and manual visual acceptance.
+
+## Sidebar composition
+
+The default host also registers the independent Sidebar controller/tab provider
+and starts the controller with ui.dom. Its required SDK contracts resolve the
+provider. It contributes left-rail and left-panel through Workspace 1.1; no tool
+tabs are registered by default, so empty Sidebar adds no width or demo UI.
+See [Sidebar](../reference/sidebar.md) for tool registration and manual acceptance.

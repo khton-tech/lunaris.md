@@ -19,6 +19,9 @@ test('CI selects touched packages and the caller check expands their consumers',
   assert.deepEqual(selectScopes(['plugins/UI/themes/src/index.ts']), ['theme-provider']);
   assert.deepEqual(selectScopes(['packages/components/src/index.ts']), ['components']);
   assert.deepEqual(selectScopes(['packages/workspace/src/index.ts']), ['workspace']);
+  assert.deepEqual(selectScopes(['packages/sidebar/src/index.ts']), ['sidebar']);
+  assert.deepEqual(selectScopes(['plugins/UI/sidebar-tabs/src/index.ts']), ['sidebar-provider']);
+  assert.deepEqual(selectScopes(['plugins/UI/sidebar/src/index.ts']), ['sidebar-plugin']);
   assert.deepEqual(selectScopes(['plugins/UI/workspace-content/src/index.ts']), ['workspace-provider']);
   assert.deepEqual(selectScopes(['plugins/UI/workspace/src/index.ts']), ['workspace-plugin']);
   assert.deepEqual(selectScopes(['plugins/UI/components/src/index.ts']), ['component-provider']);

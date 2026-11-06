@@ -1,5 +1,7 @@
 import { createRunner } from "@lunaris/runner";
 import workspaceProvider from "@lunaris/workspace-provider";
+import sidebar from "@lunaris/sidebar-plugin";
+import sidebarProvider from "@lunaris/sidebar-provider";
 import workspace from "@lunaris/workspace-plugin";
 import { createVaultSelector } from "@lunaris/vault-selector";
 import { createThemeSettings } from "@lunaris/theme-settings";
@@ -35,13 +37,14 @@ export function composeApplication(target: HTMLElement): ApplicationDefinition {
   return {
     ...layout,
     startup,
-    plugins: [runner, selector, workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
-    entrypoints: [startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, selector.manifest.id, workspace.manifest.id],
+    plugins: [sidebar, sidebarProvider, runner, selector, workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
+    entrypoints: [startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, selector.manifest.id, workspace.manifest.id, sidebar.manifest.id],
     grants: {
       ...layout.grants,
       [runner.manifest.id]: ["config.access", "ui.dom"],
       [selector.manifest.id]: ["vault.access", "ui.dom"],
       [workspace.manifest.id]: ["vault.access", "ui.dom"],
+      [sidebar.manifest.id]: ["ui.dom"],
       [themeSettings.manifest.id]: ["config.access"],
       [componentProvider.manifest.id]: ["ui.dom"],
       [mantineComponents.manifest.id]: ["ui.dom"],
