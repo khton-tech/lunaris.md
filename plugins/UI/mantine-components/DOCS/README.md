@@ -177,7 +177,10 @@ ActionIcon, TextInput, Paper and Button. The renderer owns only view mechanics;
 file operations, localization, drafts and logical tree state belong to the SDK
 controller. A localized Tabs dropdown currently offers only Files. Its single-line
 trigger spans the available panel width, with a theme-derived control boundary,
-content surface and radius. The dropdown matches the trigger width and styling;
+content surface and radius. The dropdown joins the trigger without a gap, sharing
+its width, background and outer boundary. Joined edges have no double border or
+rounded inner corners; the outer corners follow the actual Mantine placement,
+including an upward flip. Opening uses a fade without detached scaling/movement;
 the current entry uses a subdued mix of the theme selection and content colors.
 Regular-weight labels, a compact 36px minimum trigger at default spacing, a 22%
 control boundary (35% on hover/open) and lightly mixed interaction surfaces keep
