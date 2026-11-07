@@ -46,9 +46,10 @@ export function explorerProps(value: ComponentProps): ExplorerProps {
 }
 function fileLabel(name: string, kind: string, extensions: readonly string[] = []) {
   const dot = name.lastIndexOf(".");
+  if (kind !== "file" || dot <= 0 || dot === name.length - 1) return { name, suffix: "", badge: "" };
   const suffix = name.slice(dot);
-  const supported = kind === "file" && dot > 0 && extensions.some(extension => extension.toLowerCase() === suffix.slice(1).toLowerCase());
-  return supported ? { name: name.slice(0, dot), suffix, badge: suffix.slice(1).toLowerCase() } : { name, suffix: "", badge: "" };
+  const supported = extensions.some(extension => extension.toLowerCase() === suffix.slice(1).toLowerCase());
+  return { name: name.slice(0, dot), suffix, badge: supported ? "" : suffix.slice(1).toLowerCase() };
 }
 function withSuffix(name: string, suffix: string): string {
   return suffix && name.toLowerCase().endsWith(suffix.toLowerCase()) ? name.slice(0, -suffix.length) + suffix : name + suffix;
@@ -97,7 +98,7 @@ function CreateInput() {
       event.stopPropagation();
       if (event.key === "Escape") { event.preventDefault(); if (!props.busy && !creation.pending) creation.cancel(); }
       if (event.key === "Enter") { event.preventDefault(); void creation.submit(); }
-    }} /><ExtensionBadge extension={suffix.slice(1).toLowerCase()} /></>;
+    }} /></>;
 }
 function ExplorerCursor({ top, left, indent }: CursorProps) {
   return <Box className="lm-explorer-cursor" style={{ top, left, right: indent }} />;

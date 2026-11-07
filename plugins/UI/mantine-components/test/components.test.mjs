@@ -437,10 +437,12 @@ test('extension policy accepts new formats and preserves dotted directories and 
   const mounted = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true); await settle();
   const row = path => s.target.querySelector('[title="' + path + '"]');
   assert.equal(row('note.MD').querySelector('.lm-explorer-filename').textContent, 'note');
-  assert.equal(row('note.MD').querySelector('.lm-explorer-extension').textContent, 'md');
+  assert.equal(row('note.MD').querySelector('.lm-explorer-extension'), null);
   assert.equal(row('readme.txt').querySelector('.lm-explorer-filename').textContent, 'readme');
-  assert.equal(row('readme.txt').querySelector('.lm-explorer-extension').textContent, 'txt');
-  for (const path of ['folder.md', 'archive.zip', '.md']) {
+  assert.equal(row('readme.txt').querySelector('.lm-explorer-extension'), null);
+  assert.equal(row('archive.zip').querySelector('.lm-explorer-filename').textContent, 'archive');
+  assert.equal(row('archive.zip').querySelector('.lm-explorer-extension').textContent, 'zip');
+  for (const path of ['folder.md', '.md']) {
     assert.equal(row(path).querySelector('.lm-explorer-filename').textContent, path);
     assert.equal(row(path).querySelector('.lm-explorer-extension'), null);
   }
