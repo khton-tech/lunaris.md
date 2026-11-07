@@ -307,8 +307,8 @@ and deletion/observation/manual refresh reconcile missing files. See
 [the active document reference](../../../../DOCS/reference/active-document.md).
 Content editor integration remains outstanding; no editor exists yet.
 
-Selected directories, including the Vault root, use a subtle vertical marker
-before their icon instead of a persistent row background. The marker is
-positioned within the icon wrapper and does not shift tree indentation or row
-geometry. Files retain independent selection/active-document highlighting.
+The active file uses a visible vertical marker before its icon instead of a
+persistent row background. The marker uses 80% theme text color with a 1.75-space
+offset from the icon. It remains anchored to the icon wrapper without shifting
+indentation. Folders and temporary operation selection retain normal row feedback.
 No SDK/controller integration changes are required.

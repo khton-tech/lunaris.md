@@ -136,10 +136,10 @@
 .lm-explorer-indent-guides { position:absolute;inset-inline-start:0;inset-block:calc(var(--vault-space)*-0.25);pointer-events:none;background-image:linear-gradient(to right,color-mix(in srgb,var(--vault-secondary) 18%,transparent) var(--vault-border),transparent var(--vault-border));background-position:calc(0.625em - var(--vault-border)*0.5) 0;background-repeat:repeat-x }
 .lm-explorer-entry-icon { position:relative;display:flex;align-items:center;width:1.1em;height:1.1em;flex-shrink:0;color:var(--vault-secondary) }
 .lm-explorer-entry-icon>svg { width:100%;height:100% }
-.lm-explorer-node[data-directory][data-selected] .lm-explorer-entry-icon::before { content:"";position:absolute;inset-inline-start:calc(var(--vault-space)*-1);inset-block:0.1em;width:calc(var(--vault-border)*2);border-radius:var(--vault-radius);background:color-mix(in srgb,var(--vault-secondary) 55%,transparent);pointer-events:none }
+.lm-explorer-node[data-active]:not([data-directory]) .lm-explorer-entry-icon::before { content:"";position:absolute;inset-inline-start:calc(var(--vault-space)*-1.75);inset-block:0;width:calc(var(--vault-border)*2);border-radius:var(--vault-radius);background:color-mix(in srgb,var(--vault-text) 80%,transparent);pointer-events:none }
 .lm-explorer-node[data-root] .lm-explorer-filename { font-weight:500 }
-.lm-explorer-node[data-selected]:not([data-directory]) { background:color-mix(in srgb,var(--vault-selection) 75%,var(--vault-panel)) }
-.lm-explorer:not([aria-busy=true]) .lm-explorer-node:not([data-directory]):active { background:var(--explorer-control-pressed) }
+.lm-explorer-node[data-selected] { background:color-mix(in srgb,var(--vault-selection) 75%,var(--vault-panel)) }
+.lm-explorer:not([aria-busy=true]) .lm-explorer-node:active { background:var(--explorer-control-pressed) }
 .lm-explorer-node[data-drop] { outline:var(--vault-border) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-border)) }
 .lm-explorer[data-keyboard-navigation] .lm-explorer-row:focus-visible .lm-explorer-node { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
 .lm-explorer-tree [role=tree] { outline:none }
@@ -187,4 +187,4 @@
 
 .lm-explorer .lm-explorer-extension { flex-shrink:0;margin-inline-start:auto;max-width:40%;height:1.5em;min-width:0;padding-inline:0.45em;border-radius:999px;font-size:calc(var(--vault-font-size)*0.72 - 1.5pt);line-height:1;font-weight:400;letter-spacing:0;text-transform:none;color:var(--vault-secondary);background:color-mix(in srgb,var(--vault-hover) 25%,transparent);border:0;pointer-events:none }
 
-.lm-explorer-node[data-active] { background:var(--explorer-control-pressed) }
+.lm-explorer-node[data-active] { background:transparent }
