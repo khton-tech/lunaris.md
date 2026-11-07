@@ -12,7 +12,11 @@ export async function bindWindowClose(session: HostSession, window: ClosePort): 
   return window.onCloseRequested(async event => {
     if (closing) { event.preventDefault(); return; }
     closing = true;
-    await session.stop();
+    try {
+      if (!await session.requestClose()) { event.preventDefault(); closing = false; }
+    } catch {
+      event.preventDefault(); closing = false;
+    }
   });
 }
 

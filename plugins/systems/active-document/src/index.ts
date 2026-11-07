@@ -42,11 +42,16 @@ export default definePlugin({ manifest, async activate(ctx) {
   async function guarded(next: ActiveDocumentState, reason: "open" | "close", version: number, work: () => Promise<FsResult<null>>): Promise<FsResult<null>> {
     const listeners: (() => void)[] = [];
     try {
-      const guard = await ctx.hooks.run(BeforeActiveDocumentChange, { previous: current, current: next, reason, error: null, onSettled: listener => { listeners.push(listener); } });
-      if (guard.error) return { ok: false, error: guard.error };
+      const guard = await ctx.hooks.run(BeforeActiveDocumentChange, Object.freeze({ previous: current, current: next ? Object.freeze({ ...next }) : null,
+        reason, error: null, onSettled: (listener: () => void) => { listeners.push(listener); } }));
+      if (guard.error) { if (!ctx.signal.aborted) logger.warn(ctx.pluginId, "Document transition declined", { error: guard.error }); return { ok: false, error: guard.error }; }
       if (!live(version, next?.vaultId)) return fail("CANCELLED", "Vault session changed.");
       return await work();
-    } finally { for (const listener of listeners) listener(); }
+    } finally {
+      for (const listener of listeners) {
+        try { listener(); } catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Document transition completion failed", { error }); }
+      }
+    }
   }
   async function select(target: FileTarget, version: number, reason: "open" | "restore" | "relocate" = "open"): Promise<FsResult<null>> {
     if (!live(version, target.vaultId)) return fail("CANCELLED", "Vault session changed.");

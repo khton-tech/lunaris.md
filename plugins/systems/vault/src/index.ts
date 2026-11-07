@@ -23,7 +23,8 @@ export default definePlugin({ manifest, activate(ctx) {
   let releaseListeners: (() => void)[] = [];
   async function guardRelease(previous: VaultRoot, next: VaultRoot | null) {
     try {
-      const guard = await ctx.hooks.run(BeforeVaultRelease, { previous, next, error: null, onSettled: listener => { releaseListeners.push(listener); } });
+      const guard = await ctx.hooks.run(BeforeVaultRelease, Object.freeze({ previous, next, error: null, onSettled: (listener: () => void) => { releaseListeners.push(listener); } }));
+      if (guard.error && !ctx.signal.aborted) logger.warn(ctx.pluginId, "Vault release declined", { error: guard.error });
       return guard.error ? { ok: false as const, error: guard.error } : { ok: true as const, value: null };
     } catch (error) {
       if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Vault release guard failed", { error });
@@ -32,10 +33,10 @@ export default definePlugin({ manifest, activate(ctx) {
   }
   ctx.scope.own({ dispose() { active = null; } });
 
-  function changed(change: VaultChange): void {
+  function changed(change: VaultChange): Promise<void> {
     logger.info(ctx.pluginId, "Active Vault changed", { code: "VAULT_CHANGED", data: { kind: change.kind, previousId: change.previous?.id, currentId: change.current?.id } });
     // Notifications do not hold a transition open; listeners may request another transition.
-    void ctx.events.emit(VaultChanged, Object.freeze(change)).catch(error => {
+    return ctx.events.emit(VaultChanged, Object.freeze(change)).catch(error => {
       if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot publish Vault change", { code: "VAULT_EVENT_FAILED", error });
     });
   }
@@ -129,7 +130,7 @@ export default definePlugin({ manifest, activate(ctx) {
       }
     });
     // The transition lock is released before invoking event listeners.
-    if (change && !ctx.signal.aborted) changed(change);
+    if (change && !ctx.signal.aborted) void changed(change);
     return result;
   }
   ctx.provide(VaultCreation, { async create(parent, name) {
@@ -179,7 +180,7 @@ export default definePlugin({ manifest, activate(ctx) {
         change = { kind: "closed", previous: previous.vault, current: null };
         return { ok: true, value: null };
       });
-      if (change && !ctx.signal.aborted) changed(change);
+      if (change && !ctx.signal.aborted) await changed(change);
       return result;
     },
   });

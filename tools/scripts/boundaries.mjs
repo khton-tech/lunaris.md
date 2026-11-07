@@ -3,6 +3,7 @@ import path from 'node:path';
 import ts from 'typescript';
 
 export const dependencies = {
+  'text-editor': ['sdk', 'logging', 'active-document', 'active-screen', 'filesystem', 'vault', 'components', 'localization', 'themes'],
   'interface-settings': ['sdk', 'logging', 'config', 'settings', 'localization', 'themes', 'vault'],
   settings: ['sdk'],
   'settings-provider': ['sdk', 'logging', 'settings'],
@@ -56,10 +57,11 @@ export const dependencies = {
   test: ['sdk', 'kernel'],
   development: ['manifest', 'sdk', 'kernel'],
   cli: ['manifest', 'sdk', 'kernel', 'test', 'development'],
-  tauri: ['interface-settings', 'settings-provider', 'settings-plugin', 'active-screen-provider', 'active-screen-plugin', 'active-document', 'active-document-provider', 'context-menu-provider', 'file-explorer', 'sidebar-plugin', 'sidebar-provider', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'mantine-components', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'],
+  tauri: ['vault', 'logging', 'text-editor', 'interface-settings', 'settings-provider', 'settings-plugin', 'active-screen-provider', 'active-screen-plugin', 'active-document', 'active-document-provider', 'context-menu-provider', 'file-explorer', 'sidebar-plugin', 'sidebar-provider', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'mantine-components', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'],
 };
 
 export const packagePath = scope => {
+  if (scope === 'text-editor') return 'plugins/UI/text-editor';
   if (scope === 'interface-settings') return 'plugins/UI/interface-settings';
   if (scope === 'settings-provider') return 'plugins/UI/settings-provider';
   if (scope === 'settings-plugin') return 'plugins/UI/settings';
@@ -107,6 +109,9 @@ export function checkSource(source, filename, scope) {
   if (scope === 'manifest') allowed.add('semver');
   if (scope === 'config-manager' && path.resolve(filename) === path.resolve('plugins/systems/config/src/codec.ts')) allowed.add('smol-toml');
   if (scope === 'components-kit' && path.resolve(filename) === path.resolve('plugins/UI/components-kit/src/controls.ts')) allowed.add('lucide');
+  if (scope === 'text-editor') {
+    for (const name of ['@codemirror/state', '@codemirror/view', '@codemirror/commands', '@codemirror/lang-markdown', '@codemirror/language', '@lezer/highlight']) allowed.add(name);
+  }
   if (scope === 'mantine-components') {
     for (const name of ['react', 'react/jsx-runtime', 'react-dom', 'react-dom/client', '@mantine/core', 'lucide', 'react-arborist']) allowed.add(name);
   }
@@ -117,7 +122,7 @@ export function checkSource(source, filename, scope) {
       return;
     }
     const value = node.text;
-    if (['interface-settings', 'settings-provider', 'settings-plugin', 'active-screen-provider', 'active-screen-plugin', 'active-document-provider', 'context-menu-provider', 'file-explorer', 'sidebar-provider', 'sidebar-plugin', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'components-kit', 'mantine-components', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'].includes(scope) &&
+    if (['text-editor', 'interface-settings', 'settings-provider', 'settings-plugin', 'active-screen-provider', 'active-screen-plugin', 'active-document-provider', 'context-menu-provider', 'file-explorer', 'sidebar-provider', 'sidebar-plugin', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'components-kit', 'mantine-components', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'].includes(scope) &&
         path.resolve(filename) === path.resolve(packagePath(scope), 'src/index.ts') &&
         value === '../manifest.json') return;
     // The host owns startup artwork; plugins cannot reach outside their source roots.

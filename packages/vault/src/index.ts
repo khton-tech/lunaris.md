@@ -67,9 +67,9 @@ export interface VaultRelease {
   readonly onSettled: (listener: () => void) => void;
 }
 export const BeforeVaultRelease = defineHook<VaultRelease>({
-  id: "lunaris.before-vault-release", version: "1.0.0",
+  id: "lunaris.before-vault-release", version: "1.0.0", consumePermission: "vault.access",
   validate: input => { const value = input as VaultRelease | null; return !!value && validRoot(value.previous) && (value.next === null || validRoot(value.next)) &&
-    (value.error === null || typeof value.error.code === "string") && typeof value.onSettled === "function"; },
+    (value.error === null || typeof value.error?.code === "string") && typeof value.onSettled === "function"; },
 });
 export interface VaultChange {
   readonly kind: "opened" | "switched" | "closed";

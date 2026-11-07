@@ -26,7 +26,7 @@ export const BeforeFileMutation = defineHook<FileMutation>({
   id: "lunaris.before-file-mutation", version: "1.0.0", consumePermission: "filesystem.access",
   validate: input => { const value = input as FileMutation | null; return !!value && ["move", "copy", "remove"].includes(value.operation) && validTarget(value.source) &&
     (value.destination === null || validTarget(value.destination)) && typeof value.overwrite === "boolean" &&
-    (value.error === null || typeof value.error.code === "string") && typeof value.onSettled === "function"; },
+    (value.error === null || typeof value.error?.code === "string") && typeof value.onSettled === "function"; },
 });
 export interface VaultRoot { readonly id: string; readonly name: string }
 /** Durable driver-owned reference, not a path or an attached root ID. */

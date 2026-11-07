@@ -189,3 +189,7 @@ candidate. Completion runs on both success and failure, allowing temporary edit
 locks to be released. Do not recursively request a Vault transition in a handler.
 Forced shutdown and process crashes do not run this product transition guard.
 
+Normal close awaits VaultChanged listeners after releasing the transition lock,
+so desktop shutdown can safely stop plugins after the closing notification has
+settled. Listeners may still request another transition; they run outside the lock.
+Open/switch notification remains asynchronous.

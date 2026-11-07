@@ -50,7 +50,9 @@
     "@lunaris/active-screen-plugin": "0.1.0",
     "@lunaris/settings-provider": "0.1.0",
     "@lunaris/settings-plugin": "0.1.0",
-    "@lunaris/interface-settings": "0.1.0"
+    "@lunaris/interface-settings": "0.1.0",
+    "@lunaris/text-editor": "0.1.0",
+    "@lunaris/vault": "0.1.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.12.4",

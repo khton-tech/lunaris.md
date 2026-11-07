@@ -13,6 +13,8 @@ export interface ApplicationDefinition {
   readonly view?: { readonly duringStartup?: boolean; mount(signal: AbortSignal): MaybePromise<Disposable> };
   /** Trusted ingress to a replaceable SDK startup provider. */
   readonly startup?: { update(snapshot: StartupSnapshot): boolean };
+  /** Product-owned save/release gate, invoked before normal window closure. */
+  readonly beforeClose?: () => Promise<boolean>;
 }
 
 export type HostPhase = "idle" | "starting" | "running" | "fallback" | "stopped";
@@ -291,6 +293,21 @@ export class HostSession {
       }
     }
     this.#publish();
+  };
+
+  requestClose = async (): Promise<boolean> => {
+    let allowed = false;
+    await this.#enqueue(async () => {
+      if (this.#phase === "running" && this.#definition?.beforeClose) {
+        try { if (!await this.#definition.beforeClose()) return; }
+        catch { this.#incident("runtime", "APPLICATION_CLOSE_BLOCKED"); this.#publish(); return; }
+      }
+      ++this.#generation; this.#phase = "stopped"; this.#progress("stopped", "stopped");
+      this.#abort?.abort(); this.#publish();
+      try { await this.#shutdown(); } catch { /* Incidents describe unsuccessful cleanup. */ }
+      allowed = true;
+    });
+    return allowed;
   };
 
   stop = (): Promise<void> => {

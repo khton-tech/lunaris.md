@@ -34,6 +34,20 @@ async function setup() {
   } };
 }
 const startup = { art: '<img src=x> ASCII', logoLabel: 'Lunaris', status: 'Loading' };
+
+test('editor role preserves its borrowed target through status/theme changes and confirms destructive reload', async () => {
+  const s = await setup(); await s.start(); let target; let reloads = 0;
+  const props = { documentKey: 'note', name: '<draft>.md', status: 'Unsaved', error: 'Conflict', ready: true, dirty: true, busy: false,
+    saveLabel: 'Save', retryLabel: 'Retry', reloadLabel: 'Reload', discardLabel: 'Discard', cancelLabel: 'Cancel', onSave() {}, onReload() { reloads++; }, onTarget(value) { target = value; } };
+  const mounted = s.components.mount('lunaris.text-editor', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true);
+  const borrowed = target; const owned = s.target.ownerDocument.createElement('div'); borrowed.append(owned);
+  const click = label => [...s.target.querySelectorAll('button')].find(button => button.textContent === label).click();
+  click('Reload'); await new Promise(setImmediate); assert.equal(reloads, 0); click('Discard'); assert.equal(reloads, 1);
+  mounted.value.update({ ...props, status: 'Saved', dirty: false }); assert.equal(target, borrowed); assert.equal(borrowed.firstChild, owned);
+  assert.equal(s.target.querySelector('.lm-root').style.backgroundColor, 'transparent'); assert.equal(s.target.querySelector('draft'), null);
+  assert.equal(mounted.value.update({ ...props, onTarget: undefined }).ok, false);
+  mounted.value.dispose(); assert.equal(target, null); await s.stop();
+});
 const selector = {
   art: 'ASCII', text: { logo: 'Lunaris', recent: 'Recent', empty: 'Empty', create: 'Create', select: 'Select', folder: 'Folder', folderPlaceholder: 'Choose folder', browse: 'Browse', name: 'Name', next: 'Next', retry: 'Retry' },
   mode: 'create', folder: 'Notes', name: 'Draft', busy: false, canContinue: true, error: '', historyError: '', status: '',
@@ -119,7 +133,7 @@ test('workspace header retains intrinsic block sizing while full-height surfaces
 
 test('registers the replaceable roles, renders real Mantine controls, preserves siblings and releases roots', async () => {
   const s = await setup(); await s.start();
-  assert.deepEqual(s.components.list(), ['lunaris.active-screen', 'lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.settings-choices', 'lunaris.settings-items', 'lunaris.settings-navigation', 'lunaris.settings-page', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.vault-selector', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
+  assert.deepEqual(s.components.list(), ['lunaris.active-screen', 'lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.settings-choices', 'lunaris.settings-items', 'lunaris.settings-navigation', 'lunaris.settings-page', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.text-editor', 'lunaris.vault-selector', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
   const owner = s.ctx.scope.child();
   const mounted = s.components.mount('lunaris.vault-selector', s.target, selector, owner.signal); assert.equal(mounted.ok, true);
   assert.ok(s.target.querySelector('.mantine-Button-root')); assert.ok(s.target.querySelector('.mantine-TextInput-input'));

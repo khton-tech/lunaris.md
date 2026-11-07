@@ -232,4 +232,3 @@ not enter that queue, so a hook may safely save before a move/delete. Completion
 must not await another structural operation. File creation and version-checked
 text writes retain their existing semantics; this hook does not coordinate
 external OS writes. SDK access remains forbidden after scope cancellation.
-

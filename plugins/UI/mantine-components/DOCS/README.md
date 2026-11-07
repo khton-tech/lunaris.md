@@ -417,7 +417,8 @@ changes. Restored files reveal their ancestors without taking keyboard focus.
 Confirmed file creation activates the new file; rename/move update its identity
 and deletion/observation/manual refresh reconcile missing files. See
 [the active document reference](../../../../DOCS/reference/active-document.md).
-Content editor integration remains outstanding; no editor exists yet.
+The CodeMirror editor is integrated through the public ActiveDocument transition
+contract and ActiveScreen; see the [editor guide](../../text-editor/DOCS/README.md).
 
 The active file uses a visible vertical marker before its icon instead of a
 persistent row background. The marker uses 80% theme text color with a 1.75-space
@@ -454,3 +455,13 @@ Section control roots use intrinsic block sizing inside targets owned by this se
 No concrete settings, storage or theme controls are supplied. See
 [the settings reference](../../../../DOCS/reference/settings.md). Compositions were
 reviewed against [Mantine UI navbars](https://ui.mantine.dev/category/navbars/).
+
+## Text editor role
+
+lunaris.text-editor supplies the embedded editor header/status/recovery controls
+and a stable owned CodeMirror target. Strings and callbacks come from the editor
+controller through Components; this role contains no filesystem or editor state.
+It confirms dirty reload before invoking onReload and preserves its target across
+theme/status updates. It adds no card or background over Workspace main. See the
+[role props, integration and manual acceptance](../../text-editor/DOCS/README.md).
+Reference: existing Settings/open Workspace composition and Mantine UI catalog.
