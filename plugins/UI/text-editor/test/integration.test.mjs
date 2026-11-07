@@ -209,6 +209,7 @@ test('Tab inserts at the caret, indents selected lines and Shift-Tab removes ind
   assert.equal(s.logs.filter(log => log[3]?.code === 'EDITOR_TAB_TRACE').length, 12);
   assert.ok(traces.some(trace => trace.phase === 'ready' && trace.diagnosticVersion === 2));
   assert.ok(traces.some(trace => trace.phase === 'first-key' && trace.inEditor && trace.focused));
+  assert.ok(s.logs.some(log => log[3]?.code === 'EDITOR_TAB_TRACE' && log[2].includes('phase=settled') && log[2].includes('commandRan=true')));
   await s.stop();
 });
 

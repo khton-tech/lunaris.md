@@ -151,7 +151,13 @@ export default definePlugin({ manifest, activate(ctx) {
           rendered = session;
           editor = mountEditor(editorTarget, session, states.get(session), themes.current(), text("editor"), onSave,
             error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "CodeMirror operation failed", { error }); }, true,
-            data => { if (!ctx.signal.aborted && !disposed && !signal.aborted) logger.info(ctx.pluginId, "Editor Tab diagnostic", { code: "EDITOR_TAB_TRACE", data }); });
+            data => {
+              if (ctx.signal.aborted || disposed || signal.aborted) return;
+              // Keep the bounded, content-free trace readable in copied console
+              // text, where DevTools otherwise reduces the details to "Object".
+              const summary = Object.entries(data).map(([name, value]) => `${name}=${String(value)}`).join(" ");
+              logger.info(ctx.pluginId, `Editor Tab diagnostic: ${summary}`, { code: "EDITOR_TAB_TRACE", data });
+            });
         } else editor.update(themes.current(), text("editor"));
       }
     }

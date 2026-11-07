@@ -125,7 +125,9 @@ single `first-key` record containing only focus and Tab-identification booleans.
 Tab detection accepts key, code and legacy keyCode, and `inEditor` distinguishes
 the input target. No document content, paths or other key values are logged. Disposal removes the listener
 and suppresses queued records after scope closure. Filter the DevTools console by
-`EDITOR_TAB_TRACE` and expand both data objects after reproducing Tab. These traces
+`EDITOR_TAB_TRACE` after reproducing Tab. The bounded primitive fields also appear
+in the message itself so a plain-text console copy preserves them without
+expanding DevTools objects. These traces
 diagnose native input; passing simulated-key tests does not establish the reported
 WebView failure's cause or resolution. Remove this bounded instrumentation once
 the native cause is established.
