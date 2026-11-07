@@ -110,13 +110,30 @@ test('workspace header retains intrinsic block sizing while full-height surfaces
 
 test('registers the replaceable roles, renders real Mantine controls, preserves siblings and releases roots', async () => {
   const s = await setup(); await s.start();
-  assert.deepEqual(s.components.list(), ['lunaris.active-screen', 'lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.settings-navigation', 'lunaris.settings-page', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.vault-selector', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
+  assert.deepEqual(s.components.list(), ['lunaris.active-screen', 'lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.settings-choices', 'lunaris.settings-navigation', 'lunaris.settings-page', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.vault-selector', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
   const owner = s.ctx.scope.child();
   const mounted = s.components.mount('lunaris.vault-selector', s.target, selector, owner.signal); assert.equal(mounted.ok, true);
   assert.ok(s.target.querySelector('.mantine-Button-root')); assert.ok(s.target.querySelector('.mantine-TextInput-input'));
   assert.equal(s.target.querySelector('img'), null); assert.equal(s.target.firstElementChild.textContent, 'Sibling');
   assert.ok(s.logs.some(log => log[0] === 'info' && log[1] === plugin.manifest.id && log[3]?.code === 'MANTINE_COMPONENTS_READY'));
   await owner.dispose(); assert.equal(s.target.querySelector('.lm-root'), null); await s.stop();
+});
+
+test('settings choices validate data, render single values as text and retain live controls on updates', async () => {
+  const s = await setup(); await s.start(); const changes = [];
+  const props = { fields: [{ id: 'locale', label: 'Language', value: 'en', options: [{ value: 'en', label: 'English' }] }],
+    disabled: false, error: '', canRetry: false, retryLabel: 'Retry', onChange: (...args) => changes.push(args), onRetry() {} };
+  const mounted = s.components.mount('lunaris.settings-choices', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true);
+  assert.equal(s.target.querySelector('select'), null); assert.match(s.target.textContent, /LanguageEnglish/);
+  const multiple = { ...props, fields: [{ ...props.fields[0], options: [...props.fields[0].options, { value: 'fr', label: '<French>' }] }] };
+  assert.equal(mounted.value.update(multiple).ok, true); const input = s.target.querySelector('select');
+  input.value = 'fr'; input.dispatchEvent(new s.dom.window.Event('change', { bubbles: true })); assert.deepEqual(changes, [['locale', 'fr']]);
+  assert.equal(mounted.value.update({ ...multiple, fields: [{ ...multiple.fields[0], value: 'fr', label: 'Langue' }], error: 'Save failed' }).ok, true);
+  assert.equal(s.target.querySelector('select'), input); assert.equal(input.value, 'fr'); assert.equal(s.target.querySelector('img'), null);
+  assert.equal(mounted.value.update({ ...multiple, fields: [...multiple.fields, ...multiple.fields] }).ok, false);
+  assert.equal(s.target.querySelector('select'), input); assert.match(s.target.querySelector('[role=alert]').textContent, /Save failed/);
+  assert.equal(s.target.querySelector('.lm-root').style.backgroundColor, 'transparent');
+  assert.equal(s.target.querySelector('.lm-root').style.containerType, 'inline-size'); await s.stop();
 });
 
 test('theme replacement and clearing update mounted roots without affecting the document or stored preferences', async () => {

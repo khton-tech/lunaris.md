@@ -6,7 +6,9 @@ Settings is an extensible UI foundation. A Settings icon in the bottom group of
 Sidebar opens category navigation. Selecting a category opens one Settings active
 screen; section headings organize contributed content. No categories or controls
 are hardcoded into the foundation. With no contributions, navigation shows
-"No settings available". There are no theme integrations or demonstration settings.
+"No settings available". The foundation itself supplies no concrete controls.
+The separate [interface settings controller](../../plugins/UI/interface-settings/DOCS/README.md)
+now contributes Vault-local language and theme selection in Tauri.
 
 ## Public contribution API
 
@@ -93,7 +95,8 @@ Future setting controllers must apply changes immediately, use Config's explicit
 against their view/Vault lifetime, and use their own namespace. Do not read effective
 or global preferences for these user settings. Rendering roles stay presentation-only;
 storage and live behavior belong to the contributing controller through SDK APIs.
-Global settings and theme integrations are outside this milestone.
+Global settings remain outside this foundation. Concrete interface preferences
+are implemented separately; the registry and Settings container remain unchanged.
 
 ## Composition and visual roles
 
@@ -120,9 +123,10 @@ card surface. Navigation and page own scrolling with hidden native scrollbar chr
 All labels are localized and styles use the active theme. Layout was informed by
 [Mantine UI navbar compositions](https://ui.mantine.dev/category/navbars/).
 
-Completed integrations: registry, UI, Sidebar, ActiveScreen, Workspace context,
-Mantine roles, Localization/Vault lifecycle, Logger and Tauri composition. No
-concrete settings providers are integrated; those are intentional later work.
+Completed foundation integrations: registry, UI, Sidebar, ActiveScreen, Workspace
+context, Mantine roles, Localization/Vault lifecycle, Logger and Tauri composition.
+The separate interface settings contribution connects Config, Themes and
+Localization without making the foundation depend on those preference controllers.
 
 ## Verification
 

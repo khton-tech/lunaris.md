@@ -4,6 +4,13 @@ Date: 2026-11-07. Status: proposal based on current documentation, public
 contracts and product source. No concrete settings integration is implemented
 by this audit. Proposed options, keys and category IDs are not shipped contracts.
 
+Owner scope update, 2026-11-07: integrate language and theme selection only;
+do not change File Explorer. The implementation uses a separate
+[interface-preference controller](../../plugins/UI/interface-settings/DOCS/README.md)
+with its own Vault namespace, preserving the existing startup theme controller.
+Its documentation supersedes the proposed controller placement and delivery order
+below. Explorer candidates remain deferred, regardless of their technical readiness.
+
 ## Scope and existing foundation
 
 The [Settings reference](../reference/settings.md) and

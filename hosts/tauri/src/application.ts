@@ -1,3 +1,4 @@
+import { createInterfaceSettings } from "@lunaris/interface-settings";
 import settingsProvider from "@lunaris/settings-provider";
 import settings from "@lunaris/settings-plugin";
 import activeScreenProvider from "@lunaris/active-screen-provider";
@@ -37,6 +38,7 @@ const logger = createLogger();
 /** Host composition point. Product plugins import only the public SDK. */
 export function composeApplication(target: HTMLElement): ApplicationDefinition {
   const themeSettings = createThemeSettings({ defaultThemeId: "lunaris.base-theme-engine.monochrome" });
+  const interfaceSettings = createInterfaceSettings({ defaultThemeId: "lunaris.base-theme-engine.monochrome" });
   const runner = createRunner({ art, hideWhenLoaded: true });
   const selector = createVaultSelector({ art, hideWhenVaultOpen: true });
   const startup = createStartupProvider();
@@ -44,10 +46,11 @@ export function composeApplication(target: HTMLElement): ApplicationDefinition {
   return {
     ...layout,
     startup,
-    plugins: [settingsProvider, settings, activeScreenProvider, activeScreen, activeDocument, contextMenu, fileExplorer, sidebar, sidebarProvider, runner, selector, workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
-    entrypoints: [startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, selector.manifest.id, workspace.manifest.id, activeScreen.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id, settings.manifest.id],
+    plugins: [interfaceSettings, settingsProvider, settings, activeScreenProvider, activeScreen, activeDocument, contextMenu, fileExplorer, sidebar, sidebarProvider, runner, selector, workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
+    entrypoints: [startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, selector.manifest.id, workspace.manifest.id, activeScreen.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id, settings.manifest.id, interfaceSettings.manifest.id],
     grants: {
       ...layout.grants,
+      [interfaceSettings.manifest.id]: ["config.access", "vault.access", "ui.dom"],
       [settings.manifest.id]: ["ui.dom", "vault.access"],
       [activeScreenProvider.manifest.id]: ["vault.access"],
       [activeScreen.manifest.id]: ["ui.dom"],

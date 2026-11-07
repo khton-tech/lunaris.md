@@ -19,6 +19,7 @@
 - [Vault Manager](reference/vault.md): active context, opening/switching/closing, preparation hooks and events.
 - [Settings foundation](reference/settings.md): bottom Sidebar navigation, owned categories/sections and Vault-scoped extension contracts, without concrete settings.
 - [Settings integration audit](design/settings-integrations.md): proposed preferences, owning plugins, SDK readiness, exclusions and bounded delivery order.
+- [Interface settings](../plugins/UI/interface-settings/DOCS/README.md): immediate Vault-local language/theme preferences, live application, persistence and selection limits.
 - [Active screen](reference/active-screen.md): one selected screen in Workspace main, lazy mounting, retained hidden instances and Vault lifecycle.
 - [Active document](reference/active-document.md): shared active file identity, restoration and persistent marking independent of focus.
 - [File explorer](reference/file-explorer.md): Arborist Sidebar tool, owned observation, file operations and document-layer integration status.

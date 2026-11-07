@@ -13,7 +13,11 @@ registry, bottom Sidebar placement, category navigation and the Settings active
 screen. There are no built-in categories, controls, Config writes or theme/system
 integrations. Future user settings apply immediately and exclusively to the current
 Vault. See [Settings foundation](reference/settings.md). Concrete contributions
-remain a separate milestone.
+are delivered separately: language/theme selection now comes from
+[interface settings](../plugins/UI/interface-settings/DOCS/README.md), with immediate
+Vault-local persistence and restoration. Only English and Monochrome ship; new
+catalogs/palettes are separate work. File Explorer settings are deferred by Owner
+instruction. Native visual acceptance remains manual.
 
 ## Context menu
 
@@ -127,8 +131,9 @@ geometry/color/typography/custom data, selection, updates and owner-scoped remov
 It contains no built-in themes, palettes, required tokens or rendering behavior.
 See [the theme provider reference](reference/themes.md).
 
-The separate base theme engine is now implemented. Persistence and theme-selection
-UI are deferred. Component management and the standard component set follow.
+The separate base theme engine is now implemented. Vault-local theme selection
+and persistence now belong to the separate interface settings controller.
+Component management and the standard component set follow.
 
 ## UI slots
 
@@ -147,8 +152,9 @@ own those services.
 Status: IMPLEMENTED on 2026-11-05 before product UI development.
 The replaceable service provides English-first, per-plugin catalogs with scoped
 ownership, interpolation, English fallback and locale-change events through SDK
-contracts. Only English is shipped; language selection UI, persistence, ICU and
-language-pack distribution are deferred. Existing system plugins have only
+contracts. Only English is shipped; the separate interface settings controller
+now provides Vault-local language selection/persistence. ICU and language-pack
+distribution remain deferred. Existing system plugins have only
 technical logs/errors, which stay English and independent of localization.
 The host recovery shell retains its standalone English dictionary.
 See [the localization reference](reference/localization.md).

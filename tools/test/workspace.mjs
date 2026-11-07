@@ -10,7 +10,7 @@ import { JSDOM } from 'jsdom';
 import { definePlugin } from '@lunaris/sdk';
 import { TestScheduler } from '@lunaris/test';
 import { Logger } from '@lunaris/logging';
-import { Config } from '@lunaris/config';
+import { Config, ConfigChanged } from '@lunaris/config';
 import { Components } from '@lunaris/components';
 import { Themes } from '@lunaris/themes';
 import { Localization } from '@lunaris/localization';
@@ -42,7 +42,7 @@ export async function setupWorkspace(options = {}) {
   const dom = useBrowser(new JSDOM('<div id="app"></div>')); const surface = dom.window.document.getElementById('app');
   const logs = []; let current = options.current ?? null; let serial = 0; let ctx; let tools; let service;
   const preferences = options.preferences ?? new Map(); const preferenceWrites = [];
-  const config = definePlugin({ manifest: manifest('test.config', [Config]), activate(context) {
+  const config = definePlugin({ manifest: manifest('test.config', [Config, ConfigChanged]), activate(context) {
     context.provide(Config, {
       read: async () => ok(Object.fromEntries(preferences)),
       get: async (_, key) => options.configReadFailure ? fail('IO_ERROR') : ok(preferences.get(key)),
@@ -52,6 +52,7 @@ export async function setupWorkspace(options = {}) {
         preferences.set(key, value); return ok(null);
       },
       remove: async (_, key) => ok(preferences.delete(key)),
+      ...options.config,
     });
   } });
   const logger = definePlugin({ manifest: manifest('test.logger', [Logger]), activate(context) {
@@ -83,10 +84,10 @@ export async function setupWorkspace(options = {}) {
   } });
   const startup = createStartupProvider(); const layout = composeSlotSurface(surface); const selector = createVaultSelector({ art: 'ASCII', hideWhenVaultOpen: true, restoreLastVault: false });
   const session = new HostSession({ scheduler: new TestScheduler(), load: async () => ({ ...layout, startup,
-    plugins: [...(options.settings ? [settingsProvider, settingsPlugin] : []), ...(options.activeScreen ? [activeScreenProvider, activeScreenPlugin] : []), ...(options.sidebar ? [sidebarPlugin, sidebarProvider] : []), config, logger, vaults, localization, componentProvider, kit, themes, baseTheme, consumer, startup.plugin, selector, workspacePlugin, workspaceProvider, ...layout.plugins],
-    entrypoints: [startup.plugin.manifest.id, baseTheme.manifest.id, ...(options.noKit ? [] : [kit.manifest.id]), selector.manifest.id, workspacePlugin.manifest.id, ...(options.sidebar ? [sidebarPlugin.manifest.id] : []), ...(options.activeScreen ? [activeScreenPlugin.manifest.id] : []), ...(options.settings ? [settingsPlugin.manifest.id] : []), consumer.manifest.id],
+    plugins: [...(options.plugins ?? []), ...(options.settings ? [settingsProvider, settingsPlugin] : []), ...(options.activeScreen ? [activeScreenProvider, activeScreenPlugin] : []), ...(options.sidebar ? [sidebarPlugin, sidebarProvider] : []), config, logger, vaults, localization, componentProvider, kit, themes, baseTheme, consumer, startup.plugin, selector, workspacePlugin, workspaceProvider, ...layout.plugins],
+    entrypoints: [startup.plugin.manifest.id, baseTheme.manifest.id, ...(options.noKit ? [] : [kit.manifest.id]), selector.manifest.id, workspacePlugin.manifest.id, ...(options.sidebar ? [sidebarPlugin.manifest.id] : []), ...(options.activeScreen ? [activeScreenPlugin.manifest.id] : []), ...(options.settings ? [settingsPlugin.manifest.id] : []), consumer.manifest.id, ...(options.entrypoints ?? [])],
     grants: { ...layout.grants, ...(options.settings ? { [settingsPlugin.manifest.id]: ["ui.dom", "vault.access"] } : {}), ...(options.activeScreen ? { [activeScreenProvider.manifest.id]: ["vault.access"], [activeScreenPlugin.manifest.id]: ["ui.dom"] } : {}), [componentProvider.manifest.id]: ['ui.dom'], [kit.manifest.id]: ['ui.dom'], 'test.consumer': ['ui.dom'], ...(options.sidebar ? { [sidebarPlugin.manifest.id]: ['ui.dom'] } : {}),
-      [selector.manifest.id]: ['ui.dom', 'vault.access'], [workspacePlugin.manifest.id]: options.denied ? ['ui.dom', 'config.access'] : ['ui.dom', 'vault.access', 'config.access'] },
+      [selector.manifest.id]: ['ui.dom', 'vault.access'], [workspacePlugin.manifest.id]: options.denied ? ['ui.dom', 'config.access'] : ['ui.dom', 'vault.access', 'config.access'], ...options.grants },
   }) });
   await session.start(); await flush();
   return { dom, surface, session, logs, ctx, tools, service, preferences, preferenceWrites, async open() { await service.open(); await flush(); },

@@ -4,6 +4,10 @@ Purpose: bottom Sidebar entry, category navigation and one extensible Settings
 active screen. Default export of `@lunaris/settings-plugin`: `lunaris.settings`.
 No concrete controls, theme-engine integrations or configuration writes ship.
 
+These exclusions describe this container plugin. Tauri now also composes the
+separate [interface settings contribution](../../interface-settings/DOCS/README.md)
+for Vault-local language/theme choices, using the public section contract.
+
 Requires Logger, Settings/SettingsChanged, Sidebar 1.1, ActiveScreen, Components/
 ComponentsChanged, Localization/LocaleChanged and Vault/VaultChanged. Host grants
 `ui.dom` and `vault.access`. It provides no API/events. Subscribes to SettingsChanged,

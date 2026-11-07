@@ -162,6 +162,11 @@ Persistence, installed theme discovery, theme compatibility negotiation, platfor
 application and selection UI remain outside the provider. This plugin follows
 [the UI guidelines](../UI_GUIDELINES.md) by adding no visible elements.
 
+The separate [interface settings controller](../../plugins/UI/interface-settings/DOCS/README.md)
+now supplies Vault-local selection/persistence for registered base-schema version 1
+themes. Startup selection remains owned by theme-settings. Neither integration
+changes the registry into a renderer or general compatibility negotiator.
+
 Run `npm run themes:check` for contract/type fixtures, provider behavior, actual SDK
 engine lifecycle, host recovery and dependency boundaries. Run
 `npm run build --workspace @lunaris/tauri` for the production frontend bundle.

@@ -1,4 +1,4 @@
-import { settingsNavigationProps, settingsPageProps, SettingsNavigation, SettingsPage } from "./settings.js";
+import { settingsChoicesProps, SettingsChoices, settingsNavigationProps, settingsPageProps, SettingsNavigation, SettingsPage } from "./settings.js";
 import { readPresentation } from "./presentation.js";
 import { activeScreenProps, ActiveScreenView } from "./active-screen.js";
 import { createElement } from "react";
@@ -29,8 +29,8 @@ export default definePlugin({ manifest, activate(ctx) {
   ctx.events.on(ThemeChanged, () => {
     for (const instance of instances) instance.applyTheme();
   });
-  for (const id of ["lunaris.settings-navigation", "lunaris.settings-page", "lunaris.active-screen", "lunaris.startup-screen", "lunaris.vault-selector", "lunaris.workspace-header", "lunaris.workspace-empty", "lunaris.workspace-layout", "lunaris.sidebar-rail", "lunaris.file-explorer", "lunaris.context-menu"] as const) {
-    const validate = { "lunaris.settings-navigation": settingsNavigationProps, "lunaris.settings-page": settingsPageProps, "lunaris.active-screen": activeScreenProps, "lunaris.startup-screen": startupProps, "lunaris.vault-selector": selectorProps,
+  for (const id of ["lunaris.settings-choices", "lunaris.settings-navigation", "lunaris.settings-page", "lunaris.active-screen", "lunaris.startup-screen", "lunaris.vault-selector", "lunaris.workspace-header", "lunaris.workspace-empty", "lunaris.workspace-layout", "lunaris.sidebar-rail", "lunaris.file-explorer", "lunaris.context-menu"] as const) {
+    const validate = { "lunaris.settings-choices": settingsChoicesProps, "lunaris.settings-navigation": settingsNavigationProps, "lunaris.settings-page": settingsPageProps, "lunaris.active-screen": activeScreenProps, "lunaris.startup-screen": startupProps, "lunaris.vault-selector": selectorProps,
       "lunaris.workspace-header": workspaceHeaderProps, "lunaris.workspace-empty": workspaceEmptyProps,
       "lunaris.workspace-layout": layoutProps, "lunaris.sidebar-rail": railProps, "lunaris.file-explorer": explorerProps, "lunaris.context-menu": contextMenuProps }[id];
     const registration = components.register({ id, mount(target, initial, signal): ComponentInstance {
@@ -57,7 +57,7 @@ export default definePlugin({ manifest, activate(ctx) {
         // The context-menu role owns its overlay geometry, independently of its target.
         if (id === "lunaris.context-menu") Object.assign(container.style, { containerType: "normal", position: "fixed", inset: "0", pointerEvents: "none" });
         // A provider per SDK-owned React root scopes color scheme and variables to its owned DOM.
-        const view = id === "lunaris.settings-navigation" ? createElement(SettingsNavigation, { props: settingsNavigationProps(props), theme }) : id === "lunaris.settings-page" ? createElement(SettingsPage, { props: settingsPageProps(props), theme }) : id === "lunaris.active-screen" ? createElement(ActiveScreenView, { props: activeScreenProps(props), theme }) : id === "lunaris.startup-screen"
+        const view = id === "lunaris.settings-choices" ? createElement(SettingsChoices, { props: settingsChoicesProps(props), theme }) : id === "lunaris.settings-navigation" ? createElement(SettingsNavigation, { props: settingsNavigationProps(props), theme }) : id === "lunaris.settings-page" ? createElement(SettingsPage, { props: settingsPageProps(props), theme }) : id === "lunaris.active-screen" ? createElement(ActiveScreenView, { props: activeScreenProps(props), theme }) : id === "lunaris.startup-screen"
           ? createElement(StartupScreen, { props: startupProps(props), theme })
           : id === "lunaris.vault-selector" ? createElement(VaultSelector, { props: selectorProps(props), theme })
           : id === "lunaris.workspace-header" ? createElement(WorkspaceHeader, { props: workspaceHeaderProps(props), theme })

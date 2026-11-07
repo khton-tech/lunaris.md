@@ -89,6 +89,15 @@ and retained root/input identity. Native geometry remains subject to manual chec
 
 ## Roles and props
 
+`lunaris.settings-choices` renders embedded/content preference controls. Props:
+`fields: { id, label, value, options: { value, label }[] }[]`, `disabled`, localized
+`error`, `retryLabel`, `canRetry`, `onChange(id, value)` and `onRetry()`. Field/option
+IDs are unique; values/labels are strings. Multiple choices use Mantine NativeSelect;
+a single choice is plain labeled text. Errors use an alert and optional Retry.
+The role owns internal spacing/controls only, preserves input identity on updates
+and inherits Settings' surface. Persistence and lifetime checks stay in the
+[interface settings controller](../../interface-settings/DOCS/README.md).
+
 Mount through ctx.use(Components), never import a renderer from a consumer:
 
 `components.mount("lunaris.startup-screen", target, props, ctx.signal)`

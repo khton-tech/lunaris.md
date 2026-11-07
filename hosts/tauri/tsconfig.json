@@ -114,6 +114,9 @@
     },
     {
       "path": "../../plugins/UI/settings"
+    },
+    {
+      "path": "../../plugins/UI/interface-settings"
     }
   ]
 }
