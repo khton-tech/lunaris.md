@@ -290,5 +290,7 @@ Existing Sidebar/Components callbacks carry full filenames; no driver or SDK
 API changes or additional plugin integrations are required.
 
 Explorer disclosure arrows keep a transparent background and their resting icon
-color on hover. The containing row owns hover feedback; expansion and keyboard
+color on hover, with the default arrow cursor. Explicit background/color rules
+override Mantine hover properties because variant variables are inline styles.
+The containing row owns hover feedback; expansion and keyboard
 focus behavior remain provided by the existing component role.
