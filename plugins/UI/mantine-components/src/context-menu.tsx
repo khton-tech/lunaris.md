@@ -36,7 +36,7 @@ export function ContextMenuView({ props, theme }: { props: ContextMenuProps; the
       void Promise.resolve().then(() => props.onAction(item.id));
     }}>{item.label}</Menu.Item>);
   }
-  return <Box className="lm-context-surface" style={{ ...theme.style, backgroundColor: "transparent" }}>
+  return <Box className="lm-context-surface" style={theme.contentStyle}>
     <Menu opened onChange={opened => { if (!opened) close(); }} withinPortal={false} floatingStrategy="fixed" position="bottom-start" offset={0}
       middlewares={{ flip: true, shift: { padding: 4 } }} transitionProps={{ duration: 0 }} returnFocus={false} trapFocus closeOnItemClick={false} loop>
       <Menu.Target><Box aria-hidden="true" tabIndex={-1} className="lm-context-anchor" style={{ left: props.x, top: props.y }} /></Menu.Target>

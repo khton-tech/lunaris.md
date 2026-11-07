@@ -1,4 +1,5 @@
 import { settingsNavigationProps, settingsPageProps, SettingsNavigation, SettingsPage } from "./settings.js";
+import { readPresentation } from "./presentation.js";
 import { activeScreenProps, ActiveScreenView } from "./active-screen.js";
 import { createElement } from "react";
 import { createRoot } from "react-dom/client";
@@ -34,14 +35,10 @@ export default definePlugin({ manifest, activate(ctx) {
       "lunaris.workspace-layout": layoutProps, "lunaris.sidebar-rail": railProps, "lunaris.file-explorer": explorerProps, "lunaris.context-menu": contextMenuProps }[id];
     const registration = components.register({ id, mount(target, initial, signal): ComponentInstance {
       let props = initial;
-      try { validate(props); }
+      try { validate(props); readPresentation(id, props); }
       catch (error) { logger.error(ctx.pluginId, "Invalid Mantine component props", { code: "MANTINE_PROPS_INVALID", data: { componentId: id }, error }); throw error; }
       const container = target.ownerDocument.createElement("div");
       container.id = `lunaris-mantine-${++nextId}`; container.className = "lm-root";
-      const intrinsicHeight = id === "lunaris.workspace-header" || target.classList.contains("lm-settings-section");
-      // Size containment suppresses intrinsic height in the non-growing header slot.
-      Object.assign(container.style, { display: "flex", flex: intrinsicHeight ? "0 0 auto" : "1 1 0%", minWidth: "0", minHeight: "0", containerType: intrinsicHeight ? "inline-size" : "size" });
-      if (id === "lunaris.context-menu") Object.assign(container.style, { containerType: "normal", position: "fixed", inset: "0", pointerEvents: "none" });
       let disposed = false; let failed = false; let renderError: unknown; let rendering = false;
       const root = createRoot(container, { onUncaughtError(error) {
         failed = true; renderError = error;
@@ -51,6 +48,14 @@ export default definePlugin({ manifest, activate(ctx) {
         if (disposed) return;
         failed = false;
         const theme = resolveTheme(themes.current());
+        const presentation = readPresentation(id, props);
+        const intrinsicHeight = presentation.sizing === "content";
+        // Only this owned root is styled. Borrowed target geometry is untouched.
+        Object.assign(container.style, { display: "flex", flex: intrinsicHeight ? "0 0 auto" : "1 1 0%", minWidth: "0", minHeight: "0",
+          containerType: intrinsicHeight ? "inline-size" : "size", backgroundColor: presentation.mode === "standalone" ? theme.pageBackground : "transparent" });
+        container.dataset.presentation = presentation.mode; container.dataset.sizing = presentation.sizing;
+        // The context-menu role owns its overlay geometry, independently of its target.
+        if (id === "lunaris.context-menu") Object.assign(container.style, { containerType: "normal", position: "fixed", inset: "0", pointerEvents: "none" });
         // A provider per SDK-owned React root scopes color scheme and variables to its owned DOM.
         const view = id === "lunaris.settings-navigation" ? createElement(SettingsNavigation, { props: settingsNavigationProps(props), theme }) : id === "lunaris.settings-page" ? createElement(SettingsPage, { props: settingsPageProps(props), theme }) : id === "lunaris.active-screen" ? createElement(ActiveScreenView, { props: activeScreenProps(props), theme }) : id === "lunaris.startup-screen"
           ? createElement(StartupScreen, { props: startupProps(props), theme })
@@ -89,7 +94,7 @@ export default definePlugin({ manifest, activate(ctx) {
       }
       return { update(next: ComponentProps) {
         if (disposed) return;
-        try { validate(next); props = next; render(); }
+        try { validate(next); readPresentation(id, next); props = next; render(); }
         catch (error) { logger.error(ctx.pluginId, "Cannot update Mantine component", { code: "MANTINE_UPDATE_FAILED", data: { componentId: id }, error }); throw error; }
       }, dispose };
     } }, ctx.signal);

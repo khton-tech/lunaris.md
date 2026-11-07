@@ -7,6 +7,15 @@ import type { CancellationSignal } from "@lunaris/sdk";
  */
 export type ComponentProps = Readonly<Record<string, unknown>>;
 
+/** Public presentation context supplied by the owner of a borrowed region.
+ * Component sets implementing these props document role-specific defaults.
+ * The registry transports them without interpreting rendering policy.
+ */
+export interface ComponentPresentation {
+  readonly mode?: "embedded" | "standalone";
+  readonly sizing?: "fill" | "content";
+}
+
 /** A live rendering created by a component implementation. */
 export interface ComponentInstance {
   /** Replace all props. Throwing reports a render failure to the consumer. */

@@ -41,6 +41,29 @@ const selector = {
   onMode() {}, onName() {}, onBrowse() {}, onNext() {}, onRecent() {}, onRetry() {},
 };
 
+test('presentation uses public props rather than target classes and separates embedded surfaces from page themes', async () => {
+  const s = await setup(); await s.start();
+  s.target.className = 'lm-settings-section'; s.target.style.backgroundColor = '#123456';
+  s.themes.register({ id: 'test.palette', name: 'Palette', properties: { colors: { background: '#abcdef', text: '#101010' } } }, s.ctx.signal);
+  s.themes.select('test.palette');
+  // A role's default sizing must not change because its target happens to have a class.
+  const first = s.components.mount('lunaris.startup-screen', s.target, startup, s.ctx.signal); assert.equal(first.ok, true);
+  let root = s.target.querySelector('.lm-root'); assert.equal(root.style.containerType, 'size');
+  assert.equal(root.style.backgroundColor, 'rgb(171, 205, 239)');
+  const embedded = { ...startup, presentation: { mode: 'embedded', sizing: 'content' } };
+  assert.equal(first.value.update(embedded).ok, true);
+  assert.equal(root.style.backgroundColor, 'transparent'); assert.equal(root.style.containerType, 'inline-size'); assert.equal(root.style.flexBasis, 'auto');
+  assert.equal(s.target.querySelector('.lm-startup').style.backgroundColor, '');
+  s.target.className = 'unrelated-container'; s.themes.select(null);
+  assert.equal(root.style.containerType, 'inline-size'); assert.equal(root.style.backgroundColor, 'transparent');
+  assert.equal(s.target.style.backgroundColor, 'rgb(18, 52, 86)');
+  for (const presentation of [null, { mode: 'panel' }, { sizing: 'auto' }, { unexpected: true }, { get mode() { throw new Error('Getter invoked'); } }]) {
+    assert.equal(first.value.update({ ...startup, presentation }).ok, false);
+    assert.equal(root.style.containerType, 'inline-size'); assert.equal(root.style.backgroundColor, 'transparent');
+  }
+  first.value.dispose(); s.target.removeAttribute('class'); s.target.removeAttribute('style'); await s.stop();
+});
+
 test('active screen role lends stable targets, hides inactive content and validates selection without removing siblings', async () => {
   const s = await setup(); await s.start(); let targets;
   const onTargets = value => { targets = value; };
@@ -103,7 +126,7 @@ test('theme replacement and clearing update mounted roots without affecting the 
   const input = s.target.querySelector('input'); const roots = [...s.target.querySelectorAll('.lm-root')];
   const theme = { id: 'test.theme', name: 'Custom', properties: { appearance: 'light', colors: { background: '#ffffff', text: '#202020', caret: '#234567', error: '#ff0000' }, geometry: { radius: { medium: 12 } }, typography: { fontFamily: ['Arial', 'sans-serif'], fontSize: 16 } } };
   s.themes.register(theme, s.ctx.signal); s.themes.select(theme.id);
-  assert.equal(s.target.querySelector('section').style.backgroundColor, 'rgb(255, 255, 255)');
+  assert.equal(s.target.querySelector('section').closest('.lm-root').style.backgroundColor, 'rgb(255, 255, 255)');
   assert.equal(s.target.querySelector('.ln-vault').style.getPropertyValue('--vault-caret'), '#234567');
   assert.equal(s.target.querySelector('input'), input); assert.equal(input.value, 'Draft');
   for (const root of roots) {
@@ -115,7 +138,7 @@ test('theme replacement and clearing update mounted roots without affecting the 
   assert.equal(s.dom.window.localStorage.length, 0);
   s.themes.select(null);
   assert.equal(s.target.querySelector('.ln-vault').style.getPropertyValue('--vault-caret'), 'currentColor');
-  assert.equal(s.target.querySelector('section').style.backgroundColor, 'transparent');
+  assert.equal(s.target.querySelector('section').closest('.lm-root').style.backgroundColor, 'transparent');
   await s.stop();
 });
 
@@ -192,7 +215,7 @@ test('shared context menu opens nested folders by keyboard, executes once and re
   const context = { source: 'lunaris.file-explorer', target: 'file', data: { path: 'a.md' } };
   const opened = s.menus.open({ target: source, x: 15, y: 25, label: 'File actions', context }, s.ctx.signal); assert.equal(opened.ok, true); await settle();
   const doc = s.dom.window.document;
-  assert.equal(doc.querySelector('.lm-context-surface').style.backgroundColor, 'transparent');
+  assert.equal(doc.querySelector('.lm-context-surface').closest('.lm-root').style.backgroundColor, 'transparent');
   assert.ok(doc.querySelector('[role=menuitem] .mantine-Menu-itemSection[data-position=left] svg[aria-hidden=true]'));
   const item = label => [...doc.querySelectorAll('[role=menuitem]')].find(node => node.textContent === label);
   item('Tools').focus(); item('Tools').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })); await settle();

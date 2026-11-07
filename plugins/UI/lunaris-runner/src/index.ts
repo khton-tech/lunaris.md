@@ -53,7 +53,7 @@ export function createRunner(options: { readonly art: string; readonly hideWhenL
         } else if (showDetails && snapshot.state === "failed" && snapshot.errorCode) {
           detail = localization.text(ctx.pluginId, "failureDetail", { code: snapshot.errorCode });
         }
-        return { art, logoLabel: text("logo"), status: text(snapshot.state), detail };
+        return { presentation: { mode: "standalone", sizing: "fill" }, art, logoLabel: text("logo"), status: text(snapshot.state), detail };
       }
       function render(): void {
         if (!latest || ctx.signal.aborted) return;

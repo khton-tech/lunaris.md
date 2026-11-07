@@ -82,6 +82,10 @@ Each role receives its registered props plus a reserved, frozen context:
 ```
 
 Treat `workspace.vaultId` as the explicit target for document/filesystem services.
+Workspace also supplies `presentation: { mode: "embedded", sizing: "fill" }` after
+custom content props. The layout itself is standalone/fill and owns the application
+background and both supporting card surfaces. Child roles inherit those surfaces;
+their contribution props cannot override the container's presentation context.
 The role's mount signal owns its current view. Switching Vaults cancels every old
 view before creating fresh instances; callbacks and asynchronous work must honor
 that signal. Registrations persist across Vault switches, but rendered instances

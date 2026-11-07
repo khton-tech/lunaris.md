@@ -58,6 +58,35 @@ The Workspace header uses inline-size containment and intrinsic flex sizing so i
 non-growing slot retains the full height of wrapped names, actions and errors.
 Full-height screen/content roots continue to use size containment.
 
+## Presentation and surface owners
+
+All roles accept the public `presentation` prop, typed by `ComponentPresentation`
+from `@lunaris/components`: optional `mode: "embedded" | "standalone"` and
+`sizing: "fill" | "content"`. Invalid modes, sizing, extra presentation fields or
+accessors reject the update before changing the current view. Valid updates retain
+the root and apply the new presentation; theme updates preserve the chosen mode.
+
+The theme adapter's `contentStyle` contains tokens, colors and typography without
+a background. A separate `pageBackground` is applied only to the owned mount root
+in standalone mode. Embedded roots remain transparent. Views never paint their
+outer page surface independently of that contract. Borrowed targets are untouched.
+
+| Role | Default presentation | Owned surface/layout responsibility |
+|---|---|---|
+| Startup / Vault selector | standalone, fill | Standalone page background and internal content |
+| Workspace layout | standalone, fill | Application background, region geometry, rail/panel cards |
+| Workspace header | embedded, content | Header content and internal spacing |
+| Sidebar rail / File Explorer / Settings navigation | embedded, fill | Content inside the owning panel surface |
+| Active screen / Settings page / empty state | embedded, fill | Main/section content inside borrowed targets |
+| Context menu | embedded, fill | Transparent overlay and its intentional local menu surfaces |
+
+Composition owners pass presentation explicitly. Settings passes embedded/content
+to section roles and their fallbacks; it never determines sizing from target classes.
+Internal event handling may locate controls within an owned view, but those lookups
+must not infer a parent's presentation or layout contract. Tests verify ownership
+inside composed views, target-class independence, theme switching, prop validation
+and retained root/input identity. Native geometry remains subject to manual checks.
+
 ## Roles and props
 
 Mount through ctx.use(Components), never import a renderer from a consumer:

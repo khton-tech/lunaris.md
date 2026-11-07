@@ -7,6 +7,31 @@ const category = (s, title) => [...s.surface.querySelectorAll('.lm-settings-cate
 const register = (s, id = 'test.category', title = 'Example') => s.tools.settings.registerCategory({ id, title }, s.ctx.signal);
 const section = (s, extra = {}, owner = s.ctx.signal) => s.tools.settings.registerSection({ id: 'test.section', categoryId: 'test.category', title: 'Controls', componentId: 'test.controls', ...extra }, owner);
 
+test('Settings preserves the Workspace panel surface and lends explicit embedded intrinsic presentation to sections', async () => {
+  const s = await setup(); const form = panel(s, 'test.controls'); register(s);
+  section(s, { props: { presentation: { mode: 'standalone', sizing: 'fill' } } }); await s.open();
+  s.tools.sidebar.select('lunaris.settings.navigation'); await flush();
+  const region = s.surface.querySelector('.lm-workspace-panel');
+  const navigation = region.querySelector('.lm-settings-navigation');
+  const roots = () => [...region.querySelectorAll('.lm-root')];
+  assert.ok(region.classList.contains('lm-workspace-card'));
+  assert.equal(navigation.style.backgroundColor, '');
+  for (const root of roots()) assert.ok(['', 'transparent'].includes(root.style.backgroundColor));
+  category(s, 'Example').click(); await flush();
+  assert.deepEqual(form.seen.at(-1).presentation, { mode: 'embedded', sizing: 'content' });
+  s.tools.themes.register({ id: 'test.palette', name: 'Palette', properties: { colors: { background: '#fafafa', panel: '#223344', text: '#112233' } } }, s.ctx.signal);
+  s.tools.themes.select('test.palette'); await flush();
+  assert.equal(navigation.style.backgroundColor, '');
+  for (const root of roots()) assert.ok(['', 'transparent'].includes(root.style.backgroundColor));
+  assert.equal(s.surface.querySelector('.lm-settings-page').style.backgroundColor, '');
+  assert.equal(s.surface.querySelector('.lm-workspace-layout').closest('.lm-root').style.backgroundColor, 'rgb(250, 250, 250)');
+  await form.owner.dispose(); await flush();
+  const fallback = s.surface.querySelector('[data-settings-section] .lm-workspace-empty').closest('.lm-root');
+  assert.equal(fallback.style.containerType, 'inline-size'); assert.equal(fallback.style.backgroundColor, 'transparent');
+  assert.equal(s.surface.querySelector('[data-settings-section]').style.backgroundColor, '');
+  await s.stop();
+});
+
 test('foundation adds a bottom settings entry and shows empty navigation without fake settings or writes', async () => {
   const s = await setup(); await s.open();
   assert.equal(button(s).parentElement.classList.contains('lm-sidebar-end'), true);

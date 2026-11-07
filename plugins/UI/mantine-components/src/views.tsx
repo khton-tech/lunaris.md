@@ -6,7 +6,7 @@ import { Icon } from "./icons.js";
 import { CardRow } from "./card-row.js";
 
 export function WorkspaceHeader({ props, theme }: { props: WorkspaceHeaderProps; theme: ReturnType<typeof resolveTheme> }) {
-  return <Box component="header" className="lm-workspace-header" style={theme.style} aria-busy={props.busy}>
+  return <Box component="header" className="lm-workspace-header" style={theme.contentStyle} aria-busy={props.busy}>
     <Box className="lm-workspace-toolbar">
       <Text component="h1" className="lm-workspace-name" title={props.name}>{props.name}</Text>
       <Button variant="subtle" disabled={props.busy} onClick={props.onClose}>{props.closeLabel}</Button>
@@ -15,7 +15,7 @@ export function WorkspaceHeader({ props, theme }: { props: WorkspaceHeaderProps;
   </Box>;
 }
 export function WorkspaceEmpty({ props, theme }: { props: WorkspaceEmptyProps; theme: ReturnType<typeof resolveTheme> }) {
-  return <Box component="section" className="lm-workspace-empty" style={{ ...theme.style, backgroundColor: "transparent" }} aria-label={props.title}>
+  return <Box component="section" className="lm-workspace-empty" style={theme.contentStyle} aria-label={props.title}>
     <Stack align="center" gap="md">
       <Box className="lm-workspace-empty-icon"><Icon name="package" /></Box>
       <Stack align="center" gap="xs">
@@ -27,7 +27,7 @@ export function WorkspaceEmpty({ props, theme }: { props: WorkspaceEmptyProps; t
 }
 
 export function StartupScreen({ props, theme }: { props: StartupProps; theme: ReturnType<typeof resolveTheme> }) {
-  return <Box component="section" className="lm-startup" style={{ ...theme.style, padding: theme.startup.padding, gap: theme.startup.gap }}>
+  return <Box component="section" className="lm-startup" style={{ ...theme.contentStyle, padding: theme.startup.padding, gap: theme.startup.gap }}>
     <Box component="pre" role="img" aria-label={props.logoLabel} style={{ fontSize: theme.startup.logoFontSize, lineHeight: theme.startup.logoLineHeight }}>{props.art}</Box>
     <Text role="status" aria-live="polite" aria-atomic="true" style={{ fontWeight: theme.startup.statusFontWeight }}>{props.status}</Text>
     <Text hidden={!props.detail} style={{ color: "var(--vault-secondary)" }}>{props.detail ?? ""}</Text>
@@ -91,7 +91,7 @@ export function VaultSelector({ props, theme }: { props: SelectorProps; theme: R
     observer.observe(panel); observer.observe(body); for (const form of body.querySelectorAll("form")) observer.observe(form);
     return () => observer.disconnect();
   }, []);
-  return <Box component="section" className="ln-vault" style={theme.style} aria-busy={props.busy}>
+  return <Box component="section" className="ln-vault" style={theme.contentStyle} aria-busy={props.busy}>
     <Paper component="aside" className="ln-vault-recents" aria-label={props.text.recent}>
       <Title order={2}>{props.text.recent}</Title>
       <Stack component="ul" gap="xs">

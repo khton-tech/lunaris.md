@@ -17,3 +17,7 @@ integration is complete.
 
 See the [API reference](../../../../DOCS/reference/context-menu.md) for usage,
 data/ownership rules, errors, the File Explorer context and verification.
+
+The renderer receives explicit embedded/fill presentation. The overlay remains
+transparent; only the local menu surfaces own backgrounds. No target DOM inspection
+is used to infer presentation.

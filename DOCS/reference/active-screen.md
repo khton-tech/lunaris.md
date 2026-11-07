@@ -69,6 +69,9 @@ the next screen. There is no automatic background eviction or timer.
 
 Roles receive `{ ...props, workspace: { vaultId, vaultName } }` and an owned view
 signal through Components. Prop/theme/locale changes preserve the mounted target.
+The container supplies `presentation: { mode: "embedded", sizing: "fill" }` after
+custom props, including for its layout and placeholders. The owning Workspace
+surface remains visible beneath all screen roots.
 Hiding does not abort the view signal or suspend background work; screen authors
 must design their own operation lifetime accordingly.
 

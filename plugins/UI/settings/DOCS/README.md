@@ -31,3 +31,8 @@ immediately and only to the explicit current Vault; see
 Run `npm run settings:check`, relevant Mantine/Sidebar checks and the Tauri frontend
 build. Native appearance, focus and short/narrow-window acceptance remain manual;
 desktop automation is prohibited.
+
+Settings navigation/page use embedded/fill presentation. Section roles and their
+fallbacks receive `presentation: { mode: "embedded", sizing: "content" }` after
+custom props; sizing never depends on target classes. All embedded roots inherit
+the owning surface.

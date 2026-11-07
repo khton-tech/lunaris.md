@@ -28,3 +28,7 @@ Consumers use only `@lunaris/active-screen`; they must not import this plugin or
 manipulate its DOM. See [usage and limits](../../../../DOCS/reference/active-screen.md).
 Run `npm run active-screen:check` and the Tauri frontend build. Native geometry
 and focus behavior require manual acceptance; desktop automation is prohibited.
+
+The controller supplies `presentation: { mode: "embedded", sizing: "fill" }` to
+its layout, screens and placeholders after custom props. Screen roots inherit the
+Workspace surface, independently of their target DOM.

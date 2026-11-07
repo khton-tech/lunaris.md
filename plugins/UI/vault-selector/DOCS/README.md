@@ -92,3 +92,7 @@ Light/Dark themes, narrow-window stacking, long folder names, keyboard focus,
 native Browse cancellation and successful opening of empty/populated folders.
 Desktop automation is prohibited. Automated DOM checks do not verify native
 WebView appearance or operating-system dialogs.
+
+This standalone page explicitly supplies `presentation: { mode: "standalone",
+sizing: "fill" }` through its public Components role. The component set owns the
+page background separately from theme tokens and typography.

@@ -38,7 +38,7 @@ export default definePlugin({ manifest, activate(ctx) {
     };
     function render(): void {
       if (disposed || signal.aborted || ctx.signal.aborted) return;
-      const next = { ...props, onSelect };
+      const next = { ...props, onSelect, presentation: { mode: "embedded", sizing: "fill" } };
       if (mounted) { const result = mounted.update(next); if (result.ok) return; mounted.dispose(); mounted = undefined; }
       const result = components.mount("lunaris.settings-navigation", target, next, owner.signal);
       if (!result.ok) throw new Error("Cannot mount settings navigation.", { cause: result.error });

@@ -23,7 +23,7 @@ export function settingsPageProps(value: ComponentProps): PageProps {
   return value as unknown as PageProps;
 }
 export function SettingsNavigation({ props, theme }: { props: NavigationProps; theme: ReturnType<typeof resolveTheme> }) {
-  return <Stack component="nav" className="lm-settings-navigation" aria-label={props.title} style={theme.style} gap="xs">
+  return <Stack component="nav" className="lm-settings-navigation" aria-label={props.title} style={theme.contentStyle} gap="xs">
     <Title order={2} size="sm">{props.title}</Title>
     {props.categories.length ? props.categories.map(item => <Button key={item.id} variant="subtle" justify="start"
       className="lm-settings-category lm-focus" aria-current={item.id === props.selectedId ? "page" : undefined}
@@ -35,7 +35,7 @@ export function SettingsPage({ props, theme }: { props: PageProps; theme: Return
   const signature = JSON.stringify(props.sections.map(section => section.id));
   useLayoutEffect(() => { publish(new Map(targets.current)); }, [signature, publish]);
   useLayoutEffect(() => () => publish(null), [publish]);
-  return <Stack className="lm-settings-page" style={theme.style} gap="xl">
+  return <Stack className="lm-settings-page" style={theme.contentStyle} gap="xl">
     <Title order={1} size="h2">{props.title}</Title>
     {props.sections.length ? props.sections.map(section => <Stack component="section" key={section.id} gap="sm">
       <Title order={2} size="h4">{section.title}</Title>

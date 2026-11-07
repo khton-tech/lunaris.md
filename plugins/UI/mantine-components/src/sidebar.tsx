@@ -43,7 +43,7 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
     publish(Object.freeze({ main: main.current!, "left-rail": rail.current!, "left-panel": panel.current! }));
     return () => publish(null);
   }, [publish]);
-  return <Box className="lm-workspace-layout" style={{ ...theme.style, "--workspace-panel-width": `${width}px` }} data-rail={props.railVisible || undefined} data-panel={props.panelVisible || undefined}
+  return <Box className="lm-workspace-layout" style={{ ...theme.contentStyle, "--workspace-panel-width": `${width}px` }} data-rail={props.railVisible || undefined} data-panel={props.panelVisible || undefined}
     onKeyDown={event => { if (event.key === "Escape" && props.panelVisible) {
       event.preventDefault(); rail.current?.querySelector<HTMLButtonElement>("button[aria-pressed=true]")?.focus({ preventScroll: true }); props.onDismiss();
     } }}>
@@ -96,7 +96,7 @@ export function SidebarRail({ props, theme }: { props: RailProps; theme: ReturnT
     onKeyDown={event => navigate(event, ordered.indexOf(tab))} onClick={() => props.onSelect(tab.id)}>
     <Icon name={tab.icon} />
   </ActionIcon>;
-  return <Box component="nav" className="lm-sidebar-rail" aria-label={props.label} style={{ ...theme.style, backgroundColor: "transparent" }}>
+  return <Box component="nav" className="lm-sidebar-rail" aria-label={props.label} style={theme.contentStyle}>
     <Stack gap="xs" align="center" className="lm-sidebar-start">
       {ordered.filter(tab => tab.placement !== "end").map(renderTab)}
     </Stack>

@@ -45,3 +45,7 @@ the content API, lifecycle, limits and manual acceptance. Run
 Active file identity and restoration belong to the independent
 [ActiveDocument service](../../../../DOCS/reference/active-document.md), not the
 Workspace registry. A future content editor must consume that SDK contract.
+
+WorkspaceLayout owns the application background and rail/panel card surfaces with
+standalone/fill presentation. Registered content and placeholders receive public
+embedded/fill presentation after custom props and inherit their assigned surface.

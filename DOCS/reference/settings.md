@@ -110,8 +110,10 @@ Mantine supplies:
   selection without forcing focus.
 - `lunaris.settings-page`: title, emptyLabel, sections `{ id, title }[]`, and
   onTargets(map or null). Stable section targets are borrowed; mount children only
-  after the parent Components call returns. The component set retains intrinsic
-  height for controls mounted into its own section targets.
+  after the parent Components call returns. The container passes public
+  `presentation: { mode: "embedded", sizing: "content" }` to section roles and
+  fallbacks; intrinsic height never depends on target classes. The page and
+  navigation use embedded/fill presentation and inherit their owning surfaces.
 
 The main screen remains open and borderless. Sidebar content inherits the existing
 card surface. Navigation and page own scrolling with hidden native scrollbar chrome.

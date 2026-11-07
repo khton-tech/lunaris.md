@@ -30,7 +30,7 @@ export function mountSettingsPage(ctx: PluginContext, components: ComponentsApi,
     for (const [id, section] of sections) if (!descriptions.some(item => item.id === id && item.componentId === section.componentId)) {
       release(section.owner); sections.delete(id);
     }
-    const layoutProps = { title: props.title, emptyLabel: props.emptyLabel, sections: descriptions.map(item => ({ id: item.id, title: item.title })), onTargets };
+    const layoutProps = { title: props.title, emptyLabel: props.emptyLabel, sections: descriptions.map(item => ({ id: item.id, title: item.title })), onTargets, presentation: { mode: "embedded", sizing: "fill" } };
     if (layout) { const result = layout.update(layoutProps); if (!result.ok) { logger.warn(ctx.pluginId, "Settings layout needs replacement", { error: result.error }); clear(); } }
     if (!layout) {
       layoutOwner = owner.child(); const result = components.mount("lunaris.settings-page", target, layoutProps, layoutOwner.signal);
@@ -45,17 +45,17 @@ export function mountSettingsPage(ctx: PluginContext, components: ComponentsApi,
         release(current.owner); sections.delete(section.id); current = undefined;
       }
       if (current) {
-        const updated = current.mounted.update(current.failed ? { title: props.unavailable, detail: props.unavailableDetail } : { ...section.props, workspace: props.workspace });
+        const updated = current.mounted.update(current.failed ? { title: props.unavailable, detail: props.unavailableDetail, presentation: { mode: "embedded", sizing: "content" } } : { ...section.props, workspace: props.workspace, presentation: { mode: "embedded", sizing: "content" } });
         if (!updated.ok) { logger.error(ctx.pluginId, "Cannot update settings section", { data: { id: section.id }, error: updated.error }); release(current.owner); sections.delete(section.id); current = undefined; }
         else current.props = section.props;
       }
       if (current) continue;
       let child = owner.child(); let failed = false;
-      let result = components.mount(section.componentId, element, { ...section.props, workspace: props.workspace }, child.signal);
+      let result = components.mount(section.componentId, element, { ...section.props, workspace: props.workspace, presentation: { mode: "embedded", sizing: "content" } }, child.signal);
       if (!result.ok) {
         logger.warn(ctx.pluginId, "Settings section unavailable", { data: { id: section.id, componentId: section.componentId }, error: result.error });
         release(child); child = owner.child(); failed = true;
-        result = components.mount("lunaris.workspace-empty", element, { title: props.unavailable, detail: props.unavailableDetail }, child.signal);
+        result = components.mount("lunaris.workspace-empty", element, { title: props.unavailable, detail: props.unavailableDetail, presentation: { mode: "embedded", sizing: "content" } }, child.signal);
       }
       if (result.ok) sections.set(section.id, { owner: child, componentId: section.componentId, props: section.props, mounted: result.value, failed });
       else { release(child); logger.error(ctx.pluginId, "Cannot mount settings section fallback", { error: result.error }); }

@@ -60,7 +60,7 @@ export function createVaultSelector(options: { readonly art: string; readonly hi
           allocated = true;
         }
         const form = mode ? forms[mode] : null;
-        const props = { art, text: Object.fromEntries(Object.keys(catalogs.en).filter(key => key !== "opened").map(key => [key, text(key === "folder" && mode === "create" ? "parentFolder" : key)])), mode, activeReference,
+        const props = { presentation: { mode: "standalone", sizing: "fill" }, art, text: Object.fromEntries(Object.keys(catalogs.en).filter(key => key !== "opened").map(key => [key, text(key === "folder" && mode === "create" ? "parentFolder" : key)])), mode, activeReference,
           folder: form?.location?.label ?? "", name: form?.name ?? "", busy,
           canContinue: !!form?.location && (mode !== "create" || validDirectoryName(form.name.trim())),
           error: errorKey ? text(errorKey) : "", historyError: historyFailed ? text("historyError") : "",

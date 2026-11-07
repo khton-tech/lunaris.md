@@ -18,7 +18,7 @@ export function ActiveScreenView({ props, theme }: { props: ScreenProps; theme: 
   const signature = JSON.stringify(props.ids); const publish = props.onTargets;
   useLayoutEffect(() => { publish(new Map(targets.current)); }, [signature, publish]);
   useLayoutEffect(() => () => publish(null), [publish]);
-  return <Box className="lm-active-screen" style={theme.style}>
+  return <Box className="lm-active-screen" style={theme.contentStyle}>
     {props.ids.map(id => <Box key={id} className="lm-screen-target" data-screen-id={id}
       ref={node => { if (node) targets.current.set(id, node); else targets.current.delete(id); }}
       hidden={id !== props.activeId} inert={id !== props.activeId} aria-hidden={id !== props.activeId}

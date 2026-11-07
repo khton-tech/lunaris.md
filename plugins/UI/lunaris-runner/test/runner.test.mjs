@@ -67,7 +67,7 @@ test('runner renders supplied ASCII art, real milestones and configured theme, t
   assert.equal(s.session.snapshot().phase, 'starting'); assert.equal(s.session.snapshot().applicationVisible, true);
   assert.equal(s.surface.querySelector('pre').textContent, art);
   assert.equal(s.surface.querySelector('[role=status]').textContent, 'Loading system'); assert.match(s.surface.textContent, /Starting test.slow/);
-  assert.equal(s.surface.querySelector('section').style.backgroundColor, 'rgb(15, 15, 15)');
+  assert.equal(s.surface.querySelector('section').closest('.lm-root').style.backgroundColor, 'rgb(15, 15, 15)');
   assert.equal(s.surface.querySelector('pre').style.fontSize, '10px');
   assert.deepEqual(s.reads, ['lunaris.theme-settings','lunaris.runner']);
   s.finish.resolve(); await s.starting;
@@ -84,7 +84,7 @@ test('no runner content is mounted before its settings read completes; details c
   await entered.promise; assert.equal(s.surface.querySelector('section'), null);
   release.resolve(); await s.slowEntered.promise;
   assert.equal(s.surface.querySelector('section').lastElementChild.hidden, true);
-  assert.equal(s.surface.querySelector('section').style.backgroundColor, 'rgb(15, 15, 15)');
+  assert.equal(s.surface.querySelector('section').closest('.lm-root').style.backgroundColor, 'rgb(15, 15, 15)');
   s.finish.resolve(); await s.starting; await s.session.stop(); s.dom.window.close();
 });
 
@@ -118,7 +118,7 @@ test('theme and locale changes refresh the loaded screen, and older milestones a
   const s = setup(); await s.slowEntered.promise; s.finish.resolve(); await s.starting;
   assert.equal(s.tools.themes.register({ id: 'test.alternate', name: 'Alternate', properties: { colors: { background: '#FFFFFF' } } }, s.context.signal).ok, true);
   s.tools.themes.select('test.alternate');
-  assert.equal(s.surface.querySelector('section').style.backgroundColor, 'rgb(255, 255, 255)');
+  assert.equal(s.surface.querySelector('section').closest('.lm-root').style.backgroundColor, 'rgb(255, 255, 255)');
   // Replace the English-first catalog through its public registration contract.
   // A separate catalog adds locale availability; absent runner translations fall back to English.
   s.tools.localization.register('test.languages', { en: { name: 'Language' }, fr: { name: 'Langue' } }, s.context.signal);

@@ -40,7 +40,7 @@ export default definePlugin({ manifest, activate(ctx) {
     function clearCache(): void { for (const item of cache.values()) release(item.owner); cache.clear(); clearPlaceholder(); }
     function clearLayout(): void { clearCache(); if (layoutOwner) release(layoutOwner); layoutOwner = undefined; layout = undefined; targets = null; }
     function showPlaceholder(element: HTMLElement, kind: "empty" | "unavailable"): void {
-      const placeholderProps = { title: localization.text(ctx.pluginId, kind), detail: localization.text(ctx.pluginId, `${kind}Detail`) };
+      const placeholderProps = { title: localization.text(ctx.pluginId, kind), detail: localization.text(ctx.pluginId, `${kind}Detail`), presentation: { mode: "embedded", sizing: "fill" } };
       if (placeholderTarget && placeholderTarget !== element) clearPlaceholder();
       if (placeholder) {
         const updated = placeholder.update(placeholderProps);
@@ -75,7 +75,7 @@ export default definePlugin({ manifest, activate(ctx) {
         if (focused && "blur" in focused && typeof focused.blur === "function") focused.blur();
       }
       const placeholderId = "__placeholder";
-      const layoutProps = { ids: [...visited, placeholderId], activeId: snapshot.activeId, onTargets };
+      const layoutProps = { ids: [...visited, placeholderId], activeId: snapshot.activeId, onTargets, presentation: { mode: "embedded", sizing: "fill" } };
       if (layout) {
         const updated = layout.update(layoutProps);
         if (!updated.ok) { logger.error(ctx.pluginId, "Cannot update active screen layout", { error: updated.error }); clearLayout(); }
@@ -96,13 +96,13 @@ export default definePlugin({ manifest, activate(ctx) {
         const screenTarget = targets?.get(screen.id); if (!screenTarget) continue;
         let cached = cache.get(screen.id);
         if (cached && cached.props !== screen.props) {
-          const updated = cached.mounted.update({ ...screen.props, workspace: context });
+          const updated = cached.mounted.update({ ...screen.props, workspace: context, presentation: { mode: "embedded", sizing: "fill" } });
           if (updated.ok) cached.props = screen.props;
           else { logger.error(ctx.pluginId, "Cannot update screen", { data: { id: screen.id }, error: updated.error }); release(cached.owner); cache.delete(screen.id); cached = undefined; }
         }
         if (!cached && screen.id === snapshot.activeId && components.has(screen.componentId)) {
           const child = owner.child();
-          const mounted = components.mount(screen.componentId, screenTarget, { ...screen.props, workspace: context }, child.signal);
+          const mounted = components.mount(screen.componentId, screenTarget, { ...screen.props, workspace: context, presentation: { mode: "embedded", sizing: "fill" } }, child.signal);
           if (mounted.ok) { cached = { owner: child, mounted: mounted.value, props: screen.props }; cache.set(screen.id, cached); }
           else { release(child); logger.error(ctx.pluginId, "Cannot mount screen", { data: { id: screen.id, componentId: screen.componentId }, error: mounted.error }); }
         }
