@@ -11,6 +11,7 @@ import { Localization, LocaleChanged } from "@lunaris/localization";
 import { ExplorerModel } from "./model.js";
 import type { ExplorerDraft } from "./model.js";
 import { catalogs } from "./catalog.js";
+import { createVaultSwitcher } from "./vault-switcher.js";
 import manifest from "../manifest.json" with { type: "json" };
 
 export default definePlugin({ manifest, activate(ctx) {
@@ -24,6 +25,7 @@ export default definePlugin({ manifest, activate(ctx) {
   let session: ResourceScope | undefined; let model: ExplorerModel | undefined; let watchId: string | undefined;
   let refreshing = false; let dirty = false;
   const text = (key: string) => localization.text(ctx.pluginId, key);
+  const switcher = createVaultSwitcher(ctx, changed);
   function publish(): void {
     if (ctx.signal.aborted) return;
     menu?.dispose(); menu = undefined;
@@ -34,6 +36,7 @@ export default definePlugin({ manifest, activate(ctx) {
       busy: current?.busy ?? false, loading: (current?.loading ?? 0) > 0, error: current?.error ? text(current.error) : "",
       degraded: current?.degraded ? text("unwatched") : "", canPaste: !!current?.clipboard?.paths.length,
       initialDraft: current?.draft ?? { form: null, name: "" },
+      vaultSwitcher: switcher.snapshot(),
       onDraft: (draft: ExplorerDraft) => { if (current?.active) current.draft = draft; },
       text: Object.fromEntries(Object.keys(catalogs.en).map(key => [key, text(key)])),
       onToggle: (path: string, open: boolean) => current?.toggle(path, open),

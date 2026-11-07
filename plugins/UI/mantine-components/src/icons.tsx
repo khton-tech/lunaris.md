@@ -1,8 +1,8 @@
 import { createElement } from "react";
-import { FolderOpen, Plus, ChevronRight, Folder, ArrowRight, PackageOpen, Search, ListTree, Settings, Files, File, Ellipsis, Check, FilePlus, FolderPlus, Pencil, Copy, Scissors, ClipboardPaste, Trash2, RefreshCw } from "lucide";
+import { ChevronsUpDown, FolderOpen, Plus, ChevronRight, Folder, ArrowRight, PackageOpen, Search, ListTree, Settings, Files, File, Ellipsis, Check, FilePlus, FolderPlus, Pencil, Copy, Scissors, ClipboardPaste, Trash2, RefreshCw } from "lucide";
 import type { IconNode } from "lucide";
 
-const icons = { "file-plus": FilePlus, "folder-plus": FolderPlus, rename: Pencil, copy: Copy, cut: Scissors, paste: ClipboardPaste, trash: Trash2, refresh: RefreshCw, check: Check, file: File, actions: Ellipsis, browse: FolderOpen, create: Plus, expand: ChevronRight, folder: Folder, next: ArrowRight, package: PackageOpen, search: Search, outline: ListTree, settings: Settings, files: Files };
+const icons = { "vault-switch": ChevronsUpDown, "file-plus": FilePlus, "folder-plus": FolderPlus, rename: Pencil, copy: Copy, cut: Scissors, paste: ClipboardPaste, trash: Trash2, refresh: RefreshCw, check: Check, file: File, actions: Ellipsis, browse: FolderOpen, create: Plus, expand: ChevronRight, folder: Folder, next: ArrowRight, package: PackageOpen, search: Search, outline: ListTree, settings: Settings, files: Files };
 /** Preserve the shared Lucide pack while Mantine owns the controls. */
 export function Icon({ name }: { name: string }) {
   const node = Object.hasOwn(icons, name) ? icons[name as keyof typeof icons] : PackageOpen;

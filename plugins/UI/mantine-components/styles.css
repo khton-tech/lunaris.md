@@ -188,3 +188,8 @@
 .lm-explorer .lm-explorer-extension { flex-shrink:0;margin-inline-start:auto;max-width:40%;height:1.5em;min-width:0;padding-inline:0.45em;border-radius:999px;font-size:calc(var(--vault-font-size)*0.72 - 1.5pt);line-height:1;font-weight:400;letter-spacing:0;text-transform:none;color:var(--vault-secondary);background:color-mix(in srgb,var(--vault-hover) 25%,transparent);border:0;pointer-events:none }
 
 .lm-explorer-node[data-active] { background:transparent }
+
+.lm-vault-switcher { flex-shrink:0;min-width:0;padding:calc(var(--vault-space)*2);position:relative }
+.lm-root .lm-vault-switcher-toggle { border:var(--vault-border) solid color-mix(in srgb,var(--vault-control-border) 22%,transparent) }
+.lm-vault-switcher-toggle .mantine-Button-section { transform:none }
+.lm-vault-switcher .mantine-Menu-divider { border-color:color-mix(in srgb,var(--vault-control-border) 22%,transparent) }
