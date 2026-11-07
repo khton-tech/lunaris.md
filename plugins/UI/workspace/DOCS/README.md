@@ -7,8 +7,15 @@ registration. Default export: `@lunaris/workspace-plugin`, ID `lunaris.workspace
 
 Provides no callable APIs or events. Requires Logger, Workspace/WorkspaceChanged,
 Vault/VaultChanged, Startup/StartupChanged, Slots, SlotDom,
-Components/ComponentsChanged and Localization/LocaleChanged. The host grants
-`ui.dom` and `vault.access`. All access uses `ctx.use` and SDK events.
+Components/ComponentsChanged, Config and Localization/LocaleChanged. The host grants
+`ui.dom`, `config.access` and `vault.access`. All access uses `ctx.use` and SDK events.
+
+Shared side-panel geometry belongs to this screen. The Mantine layout uses
+Splitter for pointer/keyboard resizing and preserves borrowed content targets.
+The controller restores global `sidePanelWidth` at activation and serializes
+committed pixel widths through Config. Width survives panel closure, Vault
+replacement and restart. Failed reads/writes log recoverable degradation while
+the panel stays adjustable. Narrow windows retain the bounded overlay behavior.
 
 The screen renders `lunaris.workspace-empty` and `lunaris.workspace-layout` through
 Components. Registered content roles receive `{ ...props, workspace: { vaultId,
@@ -34,3 +41,7 @@ and the existing public services. Explorer/editor/document plugins remain future
 work. See the [Workspace reference](../../../../DOCS/reference/workspace.md) for
 the content API, lifecycle, limits and manual acceptance. Run
 `npm run workspace:check` and the Tauri frontend build.
+
+Active file identity and restoration belong to the independent
+[ActiveDocument service](../../../../DOCS/reference/active-document.md), not the
+Workspace registry. A future content editor must consume that SDK contract.

@@ -10,6 +10,14 @@ Create `createVaultSelector({ art })` from `@lunaris/vault-selector`. The truste
 host supplies `resources/ascii_art.txt`; no product plugin imports that file.
 Tauri starts the selector after the runner and grants `ui.dom`/`vault.access`.
 
+On activation, restore the most recent history entry through `VaultHistory.open`
+without a folder dialog, once and only when no Vault is active. Empty/unavailable
+history leaves selection available. Opening failures show a localized error;
+older entries are never opened automatically. Closing later returns to selection.
+Hosts can disable restoration with `restoreLastVault: false`. Tauri uses default
+restoration and `hideWhenVaultOpen: true` for workspace handoff. Integration uses
+existing VaultHistory and VaultChanged SDK contracts; no SDK changes are needed.
+
 The screen mounts only after `Startup` reports `loaded`. Recent Vaults occupy
 the left third; actions occupy the right two thirds, with the ASCII logo above.
 Narrow surfaces stack actions before recents. The `lunaris.vault-selector` role

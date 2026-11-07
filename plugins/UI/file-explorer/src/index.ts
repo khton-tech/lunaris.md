@@ -1,6 +1,9 @@
+import { ActiveDocument, ActiveDocumentChanged } from "@lunaris/active-document";
 import { definePlugin } from "@lunaris/sdk";
 import type { ResourceScope } from "@lunaris/sdk";
 import { Logger } from "@lunaris/logging";
+import { ContextMenu } from "@lunaris/context-menu";
+import type { MenuOpenRequest, MenuSession } from "@lunaris/context-menu";
 import { Sidebar } from "@lunaris/sidebar";
 import { Filesystem, FilesystemObservation, FileChanged } from "@lunaris/filesystem";
 import { Vault, VaultChanged } from "@lunaris/vault";
@@ -12,6 +15,8 @@ import manifest from "../manifest.json" with { type: "json" };
 
 export default definePlugin({ manifest, activate(ctx) {
   const logger = ctx.use(Logger); const sidebar = ctx.use(Sidebar); const fs = ctx.use(Filesystem);
+  const documents = ctx.use(ActiveDocument);
+  const menus = ctx.use(ContextMenu); let menu: MenuSession | undefined;
   const observation = ctx.use(FilesystemObservation); const vaults = ctx.use(Vault); const localization = ctx.use(Localization);
   const messages = localization.register(ctx.pluginId, catalogs, ctx.signal);
   if (!messages.ok) throw new Error("Cannot register explorer localization.", { cause: messages.error });
@@ -21,8 +26,11 @@ export default definePlugin({ manifest, activate(ctx) {
   const text = (key: string) => localization.text(ctx.pluginId, key);
   function publish(): void {
     if (ctx.signal.aborted) return;
+    menu?.dispose(); menu = undefined;
     const current = model;
-    const props = { vaultId: current?.vaultId ?? "", data: current?.tree() ?? [], expanded: [...(current?.expanded ?? [])], selection: current?.selection ?? [],
+    const active = documents.current();
+    const props = { activePath: active?.vaultId === current?.vaultId ? active?.path ?? null : null,
+      onOpen: (path: string) => openDocument(current, path), supportedExtensions: ["md"], vaultId: current?.vaultId ?? "", data: current?.tree() ?? [], expanded: [...(current?.expanded ?? [])], selection: current?.selection ?? [],
       busy: current?.busy ?? false, loading: (current?.loading ?? 0) > 0, error: current?.error ? text(current.error) : "",
       degraded: current?.degraded ? text("unwatched") : "", canPaste: !!current?.clipboard?.paths.length,
       initialDraft: current?.draft ?? { form: null, name: "" },
@@ -31,12 +39,22 @@ export default definePlugin({ manifest, activate(ctx) {
       onToggle: (path: string, open: boolean) => current?.toggle(path, open),
       onSelection: (paths: string[]) => current?.select(paths),
       onBuffer: (paths: string[], cut: boolean) => current?.buffer(paths, cut),
-      onCreate: (parent: string, name: string, directory: boolean) => current?.create(parent, name, directory) ?? Promise.resolve(false),
+      onCreate: async (parent: string, name: string, directory: boolean) => { const result = await (current?.create(parent, name, directory) ?? false); if (result && !directory) await openDocument(current, parent ? parent + "/" + name : name); return result; },
       onRename: (path: string, name: string) => current?.rename(path, name) ?? Promise.resolve(false),
       onMove: (paths: string[], destination: string) => current?.transfer(paths, destination, false) ?? Promise.resolve(false),
       onPaste: (destination: string) => current?.paste(destination) ?? Promise.resolve(false),
-      onRemove: (paths: string[]) => current?.remove(paths) ?? Promise.resolve(false),
+      onRemove: async (paths: string[]) => { const result = await (current?.remove(paths) ?? false); if (current?.active) await documents.reconcile(); return result; },
       onRefresh: () => { if (current?.active) { current.error = ""; requestRefresh(); } },
+      onContextMenu: (request: Omit<MenuOpenRequest, "context"> & { readonly path: string | null; readonly kind: string; readonly selection: readonly string[]; readonly destination: string }) => {
+        if (!current?.active || current !== model || !session) return;
+        const selection = Object.freeze([...request.selection]);
+        const result = menus.open({ target: request.target, x: request.x, y: request.y, label: text("title"), entries: request.entries ?? [],
+          context: { source: ctx.pluginId, target: request.kind,
+            data: { vaultId: current.vaultId, path: request.path, selection, destination: request.destination } },
+        }, session.signal);
+        if (result.ok) { menu = result.value; return menu; }
+        else logger.warn(ctx.pluginId, "Cannot open explorer context menu", { code: result.error.code });
+      },
     };
     const result = registered ? sidebar.update(tabId, { title: text("title"), icon: "files", props })
       : sidebar.register({ id: tabId, title: text("title"), icon: "files", componentId: "lunaris.file-explorer", order: 10, props }, ctx.signal);
@@ -56,7 +74,7 @@ export default definePlugin({ manifest, activate(ctx) {
     if (refreshing || ctx.signal.aborted) return;
     refreshing = true;
     void (async () => {
-      try { while (dirty && model?.active) { dirty = false; await model.refresh(); } }
+      try { while (dirty && model?.active) { dirty = false; const current = model; await current.refresh(); if (current.active && current === model && !current.busy) await documents.reconcile(); } }
       catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot refresh explorer", { error }); }
       finally { refreshing = false; }
     })();
@@ -69,7 +87,8 @@ export default definePlugin({ manifest, activate(ctx) {
     if (!root) { changed(); return; }
     const owner = ctx.scope.child(); session = owner;
     const current = new ExplorerModel(root.id, fs, () => !owner.signal.aborted && !ctx.signal.aborted,
-      changed, (level, message, error) => { if (!ctx.signal.aborted) logger[level](ctx.pluginId, message, error === undefined ? {} : { error }); });
+      changed, (level, message, error) => { if (!ctx.signal.aborted) logger[level](ctx.pluginId, message, error === undefined ? {} : { error }); },
+      async (source, destination) => { if (current.active) { const result = await documents.relocate({ vaultId: root.id, path: source }, { vaultId: root.id, path: destination }); if (!result.ok && current.active) logger.warn(ctx.pluginId, "Cannot relocate active document", { error: result.error }); } });
     model = current; changed();
     void (async () => {
       try {
@@ -77,12 +96,30 @@ export default definePlugin({ manifest, activate(ctx) {
         if (!current.active) return;
         if (result.ok) watchId = result.value;
         else { current.degraded = true; logger.warn(ctx.pluginId, "Explorer automatic refresh unavailable", { code: result.error.code, error: result.error }); }
-        await current.refresh();
+        await current.refresh(); await revealActive();
       } catch (error) {
         if (current.active) { current.degraded = true; logger.error(ctx.pluginId, "Cannot initialize explorer observation", { error }); await current.refresh(); }
       }
     })();
   }
+  async function openDocument(current: ExplorerModel | undefined, path: string): Promise<void> {
+    if (!current?.active || current !== model || current.busy) return;
+    const result = await documents.open({ vaultId: current.vaultId, path });
+    if (!result.ok && current.active) { current.error = result.error.code; changed(); logger.warn(ctx.pluginId, "Cannot open explorer document", { error: result.error }); }
+  }
+  async function revealActive(): Promise<void> {
+    const active = documents.current(); const current = model;
+    if (!active || !current?.active || active.vaultId !== current.vaultId) return;
+    const segments = active.path.split("/"); segments.pop(); let parent = "";
+    for (const segment of segments) {
+      if (!current.active || documents.current()?.path !== active.path) return;
+      parent = parent ? parent + "/" + segment : segment;
+      current.expanded.add(parent);
+      if (!current.directories.has(parent)) await current.load(parent);
+    }
+    changed();
+  }
+  ctx.events.on(ActiveDocumentChanged, () => { changed(); void revealActive().catch(error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot reveal active document", { error }); }); });
   ctx.events.on(FileChanged, change => {
     if (change.vaultId === model?.vaultId && change.watchId === watchId) requestRefresh();
   });

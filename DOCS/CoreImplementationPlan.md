@@ -976,3 +976,51 @@ Local checks passed 95 targeted tests with zero skipped, type fixtures, import
 boundaries, the frontend build, CI scope selection and the export/docs audit.
 Native WebView geometry remains subject to manual acceptance. No actual tool
 plugins, document tabs, resizing, session persistence, merge or push are included.
+
+## Shared context menu and File Explorer integration — 2026-11-06
+
+Owner scope: implement an independent context-menu microplugin with actions,
+nested folders and invocation metadata, then integrate it into File Explorer.
+
+| Task | Status | Delivered behavior / acceptance |
+|---|---|---|
+| Public contract/provider | DONE | SDK-owned contribution registration, per-context trees, immutable sessions, sorting/disabled groups, one-shot dispatch and original-error logging. |
+| Shared Mantine role | DONE | Recursive Menu/Sub controls, hover and keyboard disclosure, viewport coordinates/collision handling, theme inheritance, focus restoration and owned overlay cleanup. |
+| File Explorer/Tauri integration | DONE | Built-in commands join external contributions; explicit source/target/Vault/path/selection/destination, protected root/background actions, Vault/view invalidation and host permission wiring. |
+| Verification | DONE | Targeted provider/controller/Mantine/host tests, strict types and import boundaries; production frontend build and export/documentation audit. Native hover/placement remains manual. |
+
+Branch: `feat/context-menu`. Run `npm run context-menu:check` and the Tauri
+frontend build. See [Context menu](reference/context-menu.md). No merge or push.
+
+## File Explorer workflow refinement — 2026-11-06
+
+Owner scope: retain the Files selector; hide dot directories, create items inline,
+resize the side panel and align context actions with selection. File-type icons
+and document opening remain deferred.
+
+| Task | Status | Delivered behavior / acceptance |
+|---|---|---|
+| Visibility and context | DONE | Dot directories/subtrees hidden; dot files retained. Root/background clear selection. File and multi-selection menus omit directory-only actions. |
+| Inline creation | DONE | Protected draft row in the destination, automatic disclosure/scroll, Enter/Escape, name/focus retained on failure, duplicate-submit guard and remount persistence. |
+| Shared panel sizing | DONE | Mantine Splitter pointer/keyboard sizing without remounting targets; Workspace restores/serializes global Config width. Viewport fitting preserves the preference; narrow overlays remain bounded. |
+| Public integration | DONE | File Explorer/ContextMenu/Sidebar/Workspace/Mantine remain connected through SDK APIs/roles. Tauri grants Workspace config.access; no kernel/SDK extension. |
+
+Branch: `fix/file-explorer-workflow`. Targeted checks cover provider/controller,
+real Arborist/Mantine, Sidebar/Workspace, Config degradation and host behavior.
+Native row geometry, physical pointer traversal and resizing require manual
+acceptance. No merge or push.
+
+### Editor focus and provisional keyboard policy — 2026-11-06
+
+Context-menu overlays now close and restore source focus before command dispatch;
+owner liveness is rechecked after that boundary. File Explorer drafts receive
+localized collision-aware Unnamed defaults, sort folder-first by a stable initial
+name, focus/select the input basename, and finish/cancel on blur without letting
+Escape accidentally submit. Regression tests use the real menu/provider/Arborist
+flow and verify focus, order, blur, cancellation and known-name collisions.
+
+By explicit Owner instruction, Workspace temporarily suspends Tab/Shift+Tab
+traversal until the final keyboard focus design. Listener cleanup restores normal
+behavior outside Workspace. Targeted checks passed 121 tests, zero skipped,
+strict types and dependency boundaries. Native WebView focus/geometry acceptance
+remains manual.

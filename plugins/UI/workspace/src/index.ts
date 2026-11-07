@@ -1,6 +1,7 @@
 import { definePlugin } from "@lunaris/sdk";
 import type { ResourceScope } from "@lunaris/sdk";
 import { Logger } from "@lunaris/logging";
+import { Config } from "@lunaris/config";
 import { Localization, LocaleChanged } from "@lunaris/localization";
 import { Slots } from "@lunaris/slots";
 import { SlotDom } from "@lunaris/slot-dom";
@@ -15,8 +16,29 @@ import manifest from "../manifest.json" with { type: "json" };
 interface View { readonly owner: ResourceScope; readonly target: HTMLElement; readonly componentId: string; readonly region?: string; mounted?: MountedComponent | undefined }
 type Regions = Readonly<Record<"main" | "left-rail" | "left-panel", HTMLElement>>;
 
-export default definePlugin({ manifest, activate(ctx) {
+export default definePlugin({ manifest, async activate(ctx) {
   const logger = ctx.use(Logger);
+  const config = ctx.use(Config); let panelWidth = 288; let saveWidth = Promise.resolve();
+  const validWidth = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value) && value >= 120 && value <= 4096;
+  try {
+    const stored = await config.get(ctx.pluginId, "sidePanelWidth", { scope: "global" });
+    if (ctx.signal.aborted) return;
+    if (stored.ok && validWidth(stored.value)) panelWidth = stored.value;
+    else if (!stored.ok) logger.warn(ctx.pluginId, "Cannot restore side panel width", { error: stored.error });
+  } catch (error) { if (ctx.signal.aborted) return; logger.warn(ctx.pluginId, "Cannot restore side panel width", { error }); }
+  function onPanelWidth(width: number): void {
+    if (ctx.signal.aborted || !validWidth(width) || width === panelWidth) return;
+    panelWidth = Math.round(width);
+    logger.info(ctx.pluginId, "Side panel width changed", { data: { width: panelWidth } });
+    const value = panelWidth;
+    saveWidth = saveWidth.then(async () => {
+      if (ctx.signal.aborted) return;
+      try {
+        const result = await config.set(ctx.pluginId, "sidePanelWidth", value, { scope: "global" });
+        if (!ctx.signal.aborted && !result.ok) logger.warn(ctx.pluginId, "Cannot save side panel width", { error: result.error });
+      } catch (error) { if (!ctx.signal.aborted) logger.warn(ctx.pluginId, "Cannot save side panel width", { error }); }
+    });
+  }
   const localization = ctx.use(Localization); const slots = ctx.use(Slots); const targets = ctx.use(SlotDom);
   const components = ctx.use(Components); const vaults = ctx.use(Vault); const startup = ctx.use(Startup);
   const registered = localization.register(ctx.pluginId, catalogs, ctx.signal);
@@ -90,7 +112,7 @@ export default definePlugin({ manifest, activate(ctx) {
     const entries = workspace.list();
     const available = entries.filter(entry => components.has(entry.componentId));
     if (!show(layout, { railVisible: available.some(entry => entry.region === "left-rail"), panelVisible: available.some(entry => entry.region === "left-panel"),
-      mainLabel: text("main"), panelLabel: text("panel"), onTargets, onDismiss })) {
+      mainLabel: text("main"), panelLabel: text("panel"), panelWidth, resizeLabel: text("resizePanel"), onPanelWidth, onTargets, onDismiss })) {
       releaseContent(); release(layout.owner); layout = undefined; regions = undefined; return;
     }
     if (!regions) return;

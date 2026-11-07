@@ -4,6 +4,7 @@ import { JSDOM } from 'jsdom';
 import { definePlugin } from '@lunaris/sdk';
 import { TestScheduler } from '@lunaris/test';
 import { Logger } from '@lunaris/logging';
+import { Config } from '@lunaris/config';
 import { Components } from '@lunaris/components';
 import { Themes } from '@lunaris/themes';
 import { Localization } from '@lunaris/localization';
@@ -33,6 +34,19 @@ const manifest = (id, provides = [], requires = [], permissions = []) => ({ mani
 export async function setupWorkspace(options = {}) {
   const dom = useBrowser(new JSDOM('<div id="app"></div>')); const surface = dom.window.document.getElementById('app');
   const logs = []; let current = options.current ?? null; let serial = 0; let ctx; let tools; let service;
+  const preferences = options.preferences ?? new Map(); const preferenceWrites = [];
+  const config = definePlugin({ manifest: manifest('test.config', [Config]), activate(context) {
+    context.provide(Config, {
+      read: async () => ok(Object.fromEntries(preferences)),
+      get: async (_, key) => options.configReadFailure ? fail('IO_ERROR') : ok(preferences.get(key)),
+      set: async (pluginId, key, value, target) => {
+        preferenceWrites.push({ pluginId, key, value, target });
+        if (options.configWriteFailure) return fail('IO_ERROR');
+        preferences.set(key, value); return ok(null);
+      },
+      remove: async (_, key) => ok(preferences.delete(key)),
+    });
+  } });
   const logger = definePlugin({ manifest: manifest('test.logger', [Logger]), activate(context) {
     context.provide(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push([level, ...args]); return true; }])));
   } });
@@ -60,15 +74,15 @@ export async function setupWorkspace(options = {}) {
     options.onActivate?.(tools, context);
     options.beforeLoaded?.(surface);
   } });
-  const startup = createStartupProvider(); const layout = composeSlotSurface(surface); const selector = createVaultSelector({ art: 'ASCII', hideWhenVaultOpen: true });
+  const startup = createStartupProvider(); const layout = composeSlotSurface(surface); const selector = createVaultSelector({ art: 'ASCII', hideWhenVaultOpen: true, restoreLastVault: false });
   const session = new HostSession({ scheduler: new TestScheduler(), load: async () => ({ ...layout, startup,
-    plugins: [...(options.sidebar ? [sidebarPlugin, sidebarProvider] : []), logger, vaults, localization, componentProvider, kit, themes, baseTheme, consumer, startup.plugin, selector, workspacePlugin, workspaceProvider, ...layout.plugins],
+    plugins: [...(options.sidebar ? [sidebarPlugin, sidebarProvider] : []), config, logger, vaults, localization, componentProvider, kit, themes, baseTheme, consumer, startup.plugin, selector, workspacePlugin, workspaceProvider, ...layout.plugins],
     entrypoints: [startup.plugin.manifest.id, baseTheme.manifest.id, ...(options.noKit ? [] : [kit.manifest.id]), selector.manifest.id, workspacePlugin.manifest.id, ...(options.sidebar ? [sidebarPlugin.manifest.id] : []), consumer.manifest.id],
     grants: { ...layout.grants, [componentProvider.manifest.id]: ['ui.dom'], [kit.manifest.id]: ['ui.dom'], 'test.consumer': ['ui.dom'], ...(options.sidebar ? { [sidebarPlugin.manifest.id]: ['ui.dom'] } : {}),
-      [selector.manifest.id]: ['ui.dom', 'vault.access'], [workspacePlugin.manifest.id]: options.denied ? ['ui.dom'] : ['ui.dom', 'vault.access'] },
+      [selector.manifest.id]: ['ui.dom', 'vault.access'], [workspacePlugin.manifest.id]: options.denied ? ['ui.dom', 'config.access'] : ['ui.dom', 'vault.access', 'config.access'] },
   }) });
   await session.start(); await flush();
-  return { dom, surface, session, logs, ctx, tools, service, async open() { await service.open(); await flush(); },
+  return { dom, surface, session, logs, ctx, tools, service, preferences, preferenceWrites, async open() { await service.open(); await flush(); },
     async stop() { await session.stop(); assert.equal(surface.childElementCount, 0);
       assert.deepEqual(session.snapshot().kernel.diagnostics.filter(item => item.code === 'CLEANUP_FAILED'), [], logs.filter(log => log[0] === 'error').map(log => log[3]?.error?.stack).join('\n')); dom.window.close(); } };
 }

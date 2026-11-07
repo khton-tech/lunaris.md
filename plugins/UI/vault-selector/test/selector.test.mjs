@@ -60,7 +60,7 @@ function setup(options = {}) {
     tools.themes.select('lunaris.base-theme-engine.monochrome');
   } });
   const slow = definePlugin({ manifest: manifest('test.slow'), async activate() { entered.resolve(); await finish.promise; } });
-  const startup = createStartupProvider(); const runner = createRunner({ art: 'ASCII LOGO', hideWhenLoaded: true }); const selector = createVaultSelector({ art: 'ASCII LOGO' });
+  const startup = createStartupProvider(); const runner = createRunner({ art: 'ASCII LOGO', hideWhenLoaded: true }); const selector = createVaultSelector({ art: 'ASCII LOGO', hideWhenVaultOpen: options.hideWhenVaultOpen, restoreLastVault: options.restoreLastVault });
   const layout = composeSlotSurface(surface);
   const session = new HostSession({ scheduler: new TestScheduler(), load: async () => ({ ...layout, startup,
     plugins: [logger, config, services, localization, componentProvider, kit, themes, baseTheme, toolPlugin, startup.plugin, runner, selector, slow, ...layout.plugins],
@@ -205,5 +205,28 @@ test('create validates directory names and preserves parent/name on collision', 
   typeInput(input, 'Notes'); form.dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true })); await flush();
   assert.match(s.surface.textContent, /folder with this name already exists/); assert.equal(input.value, 'Notes');
   assert.equal(form.querySelector('.ln-vault-path').textContent, location.label); assert.equal(form.querySelector('[type=submit]').disabled, false);
+  await s.stop();
+});
+
+
+test('startup restores only the latest Vault without a folder dialog', async () => {
+  const s = setup({ hideWhenVaultOpen: true, entries: [
+    { location, name: 'Latest' }, { location: { reference: 'older', label: 'Older' }, name: 'Older' },
+  ] });
+  await s.ready();
+  assert.deepEqual(s.calls.map(c => c.operation), ['recent', 'open']);
+  assert.equal(s.calls[0].reference, location.reference);
+  assert.equal(s.surface.querySelector('.ln-vault'), null);
+  await s.stop();
+});
+
+test('failed startup restoration shows selection without trying older Vaults', async () => {
+  const s = setup({ hideWhenVaultOpen: true, openFailure: 'NOT_FOUND', entries: [
+    { location, name: 'Missing' }, { location: { reference: 'older', label: 'Older' }, name: 'Older' },
+  ] });
+  await s.ready();
+  assert.deepEqual(s.calls.map(c => c.operation), ['recent', 'open']);
+  assert.ok(s.surface.querySelector('.ln-vault'));
+  assert.match(s.surface.textContent, /This folder is unavailable/);
   await s.stop();
 });

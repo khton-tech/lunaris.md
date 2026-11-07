@@ -8,6 +8,7 @@ import { definePlugin } from "@lunaris/sdk";
 import { Logger } from "@lunaris/logging";
 import { Themes, ThemeChanged } from "@lunaris/themes";
 import { explorerProps, FileExplorer } from "./explorer.js";
+import { contextMenuProps, ContextMenuView } from "./context-menu.js";
 import { startupProps, selectorProps, workspaceHeaderProps, workspaceEmptyProps } from "./props.js";
 import { StartupScreen, VaultSelector, WorkspaceHeader, WorkspaceEmpty } from "./views.js";
 import { resolveTheme } from "./theme.js";
@@ -25,10 +26,10 @@ export default definePlugin({ manifest, activate(ctx) {
   ctx.events.on(ThemeChanged, () => {
     for (const instance of instances) instance.applyTheme();
   });
-  for (const id of ["lunaris.startup-screen", "lunaris.vault-selector", "lunaris.workspace-header", "lunaris.workspace-empty", "lunaris.workspace-layout", "lunaris.sidebar-rail", "lunaris.file-explorer"] as const) {
+  for (const id of ["lunaris.startup-screen", "lunaris.vault-selector", "lunaris.workspace-header", "lunaris.workspace-empty", "lunaris.workspace-layout", "lunaris.sidebar-rail", "lunaris.file-explorer", "lunaris.context-menu"] as const) {
     const validate = { "lunaris.startup-screen": startupProps, "lunaris.vault-selector": selectorProps,
       "lunaris.workspace-header": workspaceHeaderProps, "lunaris.workspace-empty": workspaceEmptyProps,
-      "lunaris.workspace-layout": layoutProps, "lunaris.sidebar-rail": railProps, "lunaris.file-explorer": explorerProps }[id];
+      "lunaris.workspace-layout": layoutProps, "lunaris.sidebar-rail": railProps, "lunaris.file-explorer": explorerProps, "lunaris.context-menu": contextMenuProps }[id];
     const registration = components.register({ id, mount(target, initial, signal): ComponentInstance {
       let props = initial;
       try { validate(props); }
@@ -38,6 +39,7 @@ export default definePlugin({ manifest, activate(ctx) {
       const intrinsicHeight = id === "lunaris.workspace-header";
       // Size containment suppresses intrinsic height in the non-growing header slot.
       Object.assign(container.style, { display: "flex", flex: intrinsicHeight ? "0 0 auto" : "1 1 0%", minWidth: "0", minHeight: "0", containerType: intrinsicHeight ? "inline-size" : "size" });
+      if (id === "lunaris.context-menu") Object.assign(container.style, { containerType: "normal", position: "fixed", inset: "0", pointerEvents: "none" });
       let disposed = false; let failed = false; let renderError: unknown; let rendering = false;
       const root = createRoot(container, { onUncaughtError(error) {
         failed = true; renderError = error;
@@ -55,6 +57,7 @@ export default definePlugin({ manifest, activate(ctx) {
           : id === "lunaris.workspace-empty" ? createElement(WorkspaceEmpty, { props: workspaceEmptyProps(props), theme })
           : id === "lunaris.workspace-layout" ? createElement(WorkspaceLayout, { props: layoutProps(props), theme })
           : id === "lunaris.sidebar-rail" ? createElement(SidebarRail, { props: railProps(props), theme })
+          : id === "lunaris.context-menu" ? createElement(ContextMenuView, { props: contextMenuProps(props), theme })
           : createElement(FileExplorer, { key: explorerProps(props).vaultId, props: explorerProps(props), theme });
         rendering = true;
         try { flushSync(() => root.render(createElement(MantineProvider, {

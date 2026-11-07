@@ -15,7 +15,9 @@
     "@lunaris/sidebar": "0.1.0",
     "@lunaris/filesystem": "0.1.0",
     "@lunaris/vault": "0.1.0",
-    "@lunaris/localization": "0.1.0"
+    "@lunaris/localization": "0.1.0",
+    "@lunaris/context-menu": "0.1.0",
+    "@lunaris/active-document": "0.1.0"
   },
   "scripts": {
     "build": "tsc -b"

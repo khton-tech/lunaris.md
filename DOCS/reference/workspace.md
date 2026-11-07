@@ -103,7 +103,27 @@ Consumers never reach into the host or restyle/reparent Slots. The screen owns
 lunaris.workspace.screen and lunaris.workspace.content; content plugins use public
 registrations rather than private slot IDs. Changes to a region's ordered content
 set can remount that region; props updates preserve its existing views.
-No tab management, status bar or resize controls belong to Workspace.
+Workspace owns shared side-region sizing; tab management and status-bar behavior
+remain outside its scope. The layout role accepts optional `panelWidth` (pixels),
+localized `resizeLabel` and `onPanelWidth(width)` props. Mantine Splitter supplies
+pointer and keyboard resizing without replacing the borrowed targets. Arrow keys
+resize by 8px (Shift: 32px), Home/End select the constraints, and double-click
+restores the default size. Width is constrained to available space while reserving
+main content; narrow containers keep a bounded overlay and hide the separator.
+Viewport fitting does not overwrite the user's preferred width.
+
+Temporary Owner-directed interaction policy: Workspace suspends Tab/Shift+Tab
+traversal while its layout is mounted, including events starting on the document
+body or a context-menu overlay. Pointer controls, arrow navigation and explicit
+editor focus still work. The owned document listener is removed when Workspace
+closes, leaving selector/recovery navigation unchanged. This is an explicit
+temporary policy until the final focus traversal design is implemented.
+
+The screen requires Config/`config.access`, restores `sidePanelWidth` from its
+global plugin namespace, and writes only committed drag/keyboard changes. This
+preserves width across collapse, Vault changes and application restart. Invalid
+values use the default 288px. Storage failures log warnings and leave resizing
+usable; cleanup makes no Config calls.
 
 `lunaris.workspace-empty` appears in main when zero main components mount successfully,
 including registered roles that are missing or fail to render/update. It disappears
@@ -126,13 +146,13 @@ covered by independent kernel diagnostics.
 ## Integration and verification
 
 Completed: Tauri registers both plugins, starts the screen, grants it `ui.dom` and
-`vault.access`, and resolves the provider through its required API/event. The screen
-uses Vault, Startup, Slots/SlotDom, Components, Localization and mandatory Logger.
+`vault.access`/`config.access`, and resolves the provider through its required API/event. The screen
+uses Vault, Startup, Slots/SlotDom, Components, Config, Localization and mandatory Logger.
 Workspace uses Mantine roles `lunaris.workspace-empty` and `lunaris.workspace-layout`.
 The reusable `lunaris.workspace-header` role remains available for other consumers
 but is not mounted by the default Workspace. The independent Sidebar uses the new side regions.
-Selector hides while a Vault is open and returns after closing. No editor/document
-integration is claimed; those plugins do not exist yet. The file explorer is now
+Selector hides while a Vault is open and returns after closing. The shared [active-document service](active-document.md) now owns file identity
+and restoration; editor rendering remains outstanding because no editor plugin exists. The file explorer is now
 connected through Sidebar and does not occupy main. Future content
 plugins connect through Workspace registration and public component roles.
 

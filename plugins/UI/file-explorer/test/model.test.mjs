@@ -5,7 +5,7 @@ import { ExplorerModel, topLevel } from '../dist/src/model.js';
 const info = (path, kind = 'file') => ({ path, kind, size: 0, modifiedAt: null });
 const ok = value => ({ ok: true, value });
 const fail = code => ({ ok: false, error: { code, message: code } });
-function setup(overrides = {}) {
+function setup(overrides = {}, relocated) {
   const entries = new Map([['folder', info('folder', 'directory')], ['folder/note.md', info('folder/note.md')], ['a.md', info('a.md')]]);
   const calls = []; const logs = []; let active = true;
   const fs = {
@@ -23,7 +23,7 @@ function setup(overrides = {}) {
     async remove(target, recursive) { calls.push(['remove', target, recursive]); entries.delete(target.path); return ok(null); },
     ...overrides,
   };
-  const model = new ExplorerModel('vault', fs, () => active, () => {}, (...args) => logs.push(args));
+  const model = new ExplorerModel('vault', fs, () => active, () => {}, (...args) => logs.push(args), relocated);
   return { model, calls, entries, logs, stop() { active = false; } };
 }
 test('lazy directories, folder-first sorting and portable create policy', async () => {
@@ -37,6 +37,15 @@ test('lazy directories, folder-first sorting and portable create policy', async 
   assert.deepEqual(calls.find(call => call[0] === 'write'), ['write', { vaultId: 'vault', path: 'folder/new.md' }, '', { mode: 'create' }]);
   assert.equal(await model.create('', '../bad', false), false); assert.equal(model.error, 'INVALID_PATH');
   assert.equal(await model.create('', 'a.md', false), false); assert.equal(model.error, 'ALREADY_EXISTS');
+});
+
+test('dot directories and their subtrees are hidden while dot files remain ordinary files', async () => {
+  const s = setup(); s.entries.set('.lunaris', info('.lunaris', 'directory')); s.entries.set('.env', info('.env'));
+  s.entries.set('folder/.git', info('folder/.git', 'directory')); s.entries.set('folder/.git/config', info('folder/.git/config'));
+  await s.model.refresh(); await s.model.load('folder');
+  assert.deepEqual(s.model.tree().map(entry => entry.id), ['folder', '.env', 'a.md']);
+  assert.deepEqual(s.model.tree()[0].children.map(entry => entry.id), ['folder/note.md']);
+  assert.equal(s.calls.some(call => call[0] === 'list' && call[1].path.startsWith('.lunaris')), false);
 });
 test('rename preserves expanded state and remaps selection after confirmed filesystem success', async () => {
   const { model, calls } = setup(); await model.refresh(); model.toggle('folder', true); await model.load('folder'); model.select(['folder/note.md']);
@@ -102,4 +111,18 @@ test('a late initial scan cannot restore a directory removed during expansion', 
   await model.refresh(); const expanding = model.load('folder'); root = []; await model.refresh();
   resolve(ok([info('folder/stale.md')])); await expanding;
   assert.equal(model.directories.has('folder'), false); assert.deepEqual(model.tree(), []);
+});
+
+
+test('active document relocation is notified only after confirmed moves, never copies or failures', async () => {
+  const relocated = []; const s = setup({}, async (...args) => { relocated.push(args); });
+  await s.model.refresh();
+  assert.equal(await s.model.rename('a.md', 'renamed.md'), true);
+  assert.deepEqual(relocated, [['a.md', 'renamed.md']]);
+  assert.equal(await s.model.transfer(['renamed.md'], 'folder', true), true);
+  assert.equal(relocated.length, 1);
+  assert.equal(await s.model.rename('renamed.md', 'folder'), false);
+  assert.equal(relocated.length, 1);
+  assert.equal(await s.model.transfer(['renamed.md'], 'folder', false), false);
+  assert.equal(relocated.length, 1);
 });

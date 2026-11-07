@@ -85,6 +85,20 @@ operations and follow the same registration/instance lifecycle as the existing r
 
 ## Workspace regions and Sidebar roles
 
+WorkspaceLayout uses Mantine Splitter between stable left-panel/main targets.
+
+By temporary Owner instruction, WorkspaceLayout prevents Tab/Shift+Tab traversal
+through an owned document-capture listener. It covers body and overlay events,
+retains pointer/arrow/editor interactions, and is removed on layout disposal.
+Selector/recovery outside Workspace retain their existing keyboard behavior.
+Optional `panelWidth`, `resizeLabel` and `onPanelWidth(width)` props keep preference
+ownership in the SDK consumer. Resizing changes view geometry only; pointer drag,
+keyboard arrows/Home/End, double-click reset and focus indicators reuse Mantine.
+The separator is a quiet 8px hit area without a grip. Collapsing the panel hides it;
+narrow layouts retain the bounded overlay. Viewport fitting reserves main content
+without overwriting the preferred size. The workspace controller persists committed
+changes through Config; the renderer never accesses browser storage.
+
 `lunaris.workspace-layout` takes booleans railVisible/panelVisible, localized
 mainLabel/panelLabel and onDismiss(). Its onTargets callback receives stable
 `{ main, "left-rail", "left-panel" }` HTMLElements after mount and null on release.
@@ -170,6 +184,42 @@ recent rows, bright artwork and reduced-motion settings.
 
 ## File explorer role
 
+Tree focus chrome follows explicit navigation modality: arrows, Home/End and
+PageUp/PageDown enable a row focus indicator; pointer input clears it. Shift or
+other modifiers alone do not enable it. The tree container never draws a panel-
+sized focus outline. Shift/Ctrl range selection, editor focus borders and drop
+target feedback retain their existing behavior.
+
+Creation uses a protected, view-local draft row inside the destination folder.
+The row mounts a Mantine TextInput, opens ancestors and scrolls into view. Enter
+submits once, Escape cancels, and errors retain name/focus for retry. Its synthetic
+identity never reaches selection, drag, mutation or context contracts. The
+controller retains the existing draft shape across view remounts. Only permanent
+deletion keeps an explicit confirmation form outside the tree.
+
+Drafts now start with localized Unnamed.md/Unnamed folder labels and a numeric
+suffix for known sibling collisions. They sort folder-first by their initial
+name, staying in place during input. The tree focuses the draft through public
+Arborist APIs; focusing its row forwards focus to the input. Context-menu teardown
+precedes editor commands, so restoring source focus cannot steal the editor's
+initial focus. Blur submits nonempty creation drafts or cancels empty ones;
+Escape marks the draft closed before moving focus, preventing accidental creation.
+
+The shared `lunaris.context-menu` role renders frozen `items` with viewport
+`x`/`y`, an accessible localized `label`, `onAction(id)` and `onClose()`.
+The context-menu provider mounts it in an owned document overlay; Mantine Menu
+and recursive Menu.Sub provide focus/navigation and hover disclosure. It uses
+the active theme, collision handling, scrollable menus and instant closure.
+The role's root disables size containment so fixed-position submenus escape
+parent menu scrolling. No portal leaves the borrowed target. Explorer context
+menus now use the provider, while the Files tab selector remains local.
+Items accept the public optional `icon` role, with Lucide action/folder fallbacks.
+File commands have dedicated creation/rename/copy/cut/paste/delete/refresh icons.
+Unavailable entries and groups without available descendants are omitted by the
+provider. Compact regular-weight rows, a subdued border, no shadow and quiet
+theme-derived hover/pressed fills keep the menu flat like the Files dropdown.
+See the [context menu reference](../../../../DOCS/reference/context-menu.md).
+
 `lunaris.file-explorer` renders the public controller props documented in the
 [file explorer reference](../../../../DOCS/reference/file-explorer.md#renderer-contract).
 It uses React Arborist 4.0.1 with react-dnd/HTML5 backend 16.0.1, Mantine menus,
@@ -191,8 +241,8 @@ Vault name is rendered as an initially expanded, protected root row above the
 controller entries; header titles and operation buttons are absent. Root disclosure
 is view-local and resets on remount. Root identities are excluded from controller
 selection and mutation sources; root drop targets map to the public empty path.
-Existing file commands remain available through context menus and shortcuts. Popover/Menu styles are included in styles.css. Menus and themed
-drag previews remain inside the owned root. Custom public row/cursor renderers
+Existing file commands remain available through context menus and shortcuts. Popover/Menu styles are included in styles.css. The tab selector and themed
+drag previews remain inside the owned root; shared context menus use the provider-owned overlay. Custom public row/cursor renderers
 keep names truncatable and drop feedback on the SDK palette.
 
 The tree shares the toolbar's horizontal inset, with compact 28px rows at the
@@ -222,3 +272,43 @@ region surface without adding nested cards. Narrow overlays retain external
 spacing and rounded corners; region scrolling, stable SDK targets and Escape
 behavior are preserved. Individual tab buttons remain controls inside the rail
 card. No SDK contracts or controller integrations change.
+
+## File extension presentation
+
+The controller supplies supportedExtensions (currently ["md"]) through public
+lunaris.file-explorer component props. The optional list contains extensions
+without dots; matching ignores case. Additional formats require no rendering
+changes. This controls presentation, not document-opening support.
+File suffixes are hidden from names and inline create/rename fields and preserved
+in filesystem callbacks, including their original case. Supported formats have
+no badge. Only external (unsupported) files show their extension in a small,
+subdued right-aligned Mantine Badge. Omission of supportedExtensions treats all
+extensions as external. Full paths remain available in row tooltips. Directories,
+extensionless files, trailing dots and stemless dotfiles have no badge.
+Pasted full names do not duplicate suffixes. Empty names cannot submit.
+Existing Sidebar/Components callbacks carry full filenames; no driver or SDK
+API changes or additional plugin integrations are required.
+
+Explorer disclosure arrows keep a transparent background and their resting icon
+color on hover, with the default arrow cursor. Explicit background/color rules
+override Mantine hover properties because variant variables are inline styles.
+The containing row owns hover feedback; expansion and keyboard
+focus behavior remain provided by the existing component role.
+
+## Active document integration
+
+The controller consumes ActiveDocument/ActiveDocumentChanged through the public
+SDK. The renderer receives optional activePath and onOpen props. A plain file
+click or Enter opens it; Ctrl/Shift selection remains independent. activePath
+controls persistent row marking and aria-current even when focus or selection
+changes. Restored files reveal their ancestors without taking keyboard focus.
+Confirmed file creation activates the new file; rename/move update its identity
+and deletion/observation/manual refresh reconcile missing files. See
+[the active document reference](../../../../DOCS/reference/active-document.md).
+Content editor integration remains outstanding; no editor exists yet.
+
+The active file uses a visible vertical marker before its icon instead of a
+persistent row background. The marker uses 80% theme text color with a 1.75-space
+offset from the icon. It remains anchored to the icon wrapper without shifting
+indentation. Folders and temporary operation selection retain normal row feedback.
+No SDK/controller integration changes are required.

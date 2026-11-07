@@ -11,23 +11,25 @@ import { Themes } from '@lunaris/themes';
 import componentProvider from '@lunaris/component-provider';
 import themeProvider from '@lunaris/theme-provider';
 import plugin from '@lunaris/mantine-components';
+import contextMenuProvider from '@lunaris/context-menu-provider';
+import { ContextMenu } from '@lunaris/context-menu';
 
 const manifest = (id, provides = [], requires = [], permissions = []) => ({ manifestVersion: 1, id, version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides, requires, permissions, optionalPermissions: [] });
 async function setup() {
   const dom = useBrowser(new JSDOM('<div id="target"><span>Sibling</span></div>'));
   const target = dom.window.document.getElementById('target'); const logs = [];
-  let components; let themes; let ctx;
+  let components; let themes; let ctx; let menus;
   const logger = definePlugin({ manifest: manifest('test.logger', [{ kind: 'api', id: Logger.id, version: Logger.version }]), activate(context) {
     context.provide(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push([level, ...args]); return true; }])));
   } });
-  const consumer = definePlugin({ manifest: manifest('test.consumer', [], [Components, Themes].map(token => ({ kind: 'api', id: token.id, range: '^1.0.0' })), ['ui.dom']), activate(context) {
-    ctx = context; components = ctx.use(Components); themes = ctx.use(Themes);
+  const consumer = definePlugin({ manifest: manifest('test.consumer', [], [Components, Themes, ContextMenu].map(token => ({ kind: 'api', id: token.id, range: '^1.0.0' })), ['ui.dom']), activate(context) {
+    ctx = context; components = ctx.use(Components); themes = ctx.use(Themes); menus = ctx.use(ContextMenu);
   } });
   const kernel = createKernel({ scheduler: new TestScheduler() });
-  for (const item of [logger, componentProvider, themeProvider, plugin, consumer]) kernel.register(item);
-  for (const id of [componentProvider.manifest.id, plugin.manifest.id, consumer.manifest.id]) kernel.grant(id, 'ui.dom');
+  for (const item of [logger, componentProvider, themeProvider, contextMenuProvider, plugin, consumer]) kernel.register(item);
+  for (const id of [componentProvider.manifest.id, contextMenuProvider.manifest.id, plugin.manifest.id, consumer.manifest.id]) kernel.grant(id, 'ui.dom');
   await kernel.start(consumer.manifest.id);
-  return { dom, target, logs, kernel, components, themes, ctx, async start() { await kernel.start(plugin.manifest.id); }, async stop() {
+  return { dom, target, logs, kernel, components, themes, menus, ctx, async start() { await kernel.start(plugin.manifest.id); }, async stop() {
     await kernel.stopAll(); assert.ok(!kernel.inspect().diagnostics.some(item => item.code === 'CLEANUP_FAILED')); assert.equal(target.textContent, 'Sibling'); dom.window.close();
   } };
 }
@@ -53,7 +55,7 @@ test('workspace header retains intrinsic block sizing while full-height surfaces
 
 test('registers the replaceable roles, renders real Mantine controls, preserves siblings and releases roots', async () => {
   const s = await setup(); await s.start();
-  assert.deepEqual(s.components.list(), ['lunaris.file-explorer', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.vault-selector', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
+  assert.deepEqual(s.components.list(), ['lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.vault-selector', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
   const owner = s.ctx.scope.child();
   const mounted = s.components.mount('lunaris.vault-selector', s.target, selector, owner.signal); assert.equal(mounted.ok, true);
   assert.ok(s.target.querySelector('.mantine-Button-root')); assert.ok(s.target.querySelector('.mantine-TextInput-input'));
@@ -147,12 +149,84 @@ test('collision rolls back prior role registration, then restart succeeds and cl
 
 
 const settle = () => new Promise(resolve => setTimeout(resolve, 25));
+test('shared context menu opens nested folders by keyboard, executes once and restores source focus', async () => {
+  const s = await setup(); await s.start();
+  s.themes.register({ id: 'test.menu-theme', name: 'Menu theme', properties: { colors: { background: '#123456' } } }, s.ctx.signal); s.themes.select('test.menu-theme');
+  const source = s.dom.window.document.createElement('button'); source.textContent = 'Source'; s.target.append(source);
+  const calls = [];
+  s.menus.register({ id: 'test.tools', build: context => [{ kind: 'group', id: 'test.group', label: 'Tools', children: [
+    { kind: 'group', id: 'test.nested', label: 'Nested', children: [{ kind: 'action', id: 'test.run', label: 'Inspect', run: invocation => { calls.push(invocation); } }] },
+  ] }] }, s.ctx.signal);
+  const context = { source: 'lunaris.file-explorer', target: 'file', data: { path: 'a.md' } };
+  const opened = s.menus.open({ target: source, x: 15, y: 25, label: 'File actions', context }, s.ctx.signal); assert.equal(opened.ok, true); await settle();
+  const doc = s.dom.window.document;
+  assert.equal(doc.querySelector('.lm-context-surface').style.backgroundColor, 'transparent');
+  assert.ok(doc.querySelector('[role=menuitem] .mantine-Menu-itemSection[data-position=left] svg[aria-hidden=true]'));
+  const item = label => [...doc.querySelectorAll('[role=menuitem]')].find(node => node.textContent === label);
+  item('Tools').focus(); item('Tools').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })); await settle();
+  assert.ok(item('Nested'));
+  item('Nested').focus(); item('Nested').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })); await settle();
+  assert.ok(item('Inspect')); item('Inspect').click(); await settle();
+  assert.equal(calls.length, 1); assert.equal(calls[0].data.path, 'a.md'); assert.equal(doc.querySelector('[data-lunaris-context-menu]'), null); assert.equal(doc.activeElement, source);
+  assert.equal((await opened.value.execute('test.run')).ok, false);
+  s.menus.open({ target: source, x: 15, y: 25, label: 'File actions', context }, s.ctx.signal); await settle();
+  doc.querySelector('[role=menu]').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); await settle();
+  assert.equal(doc.querySelector('[data-lunaris-context-menu]'), null); assert.equal(doc.activeElement, source);
+  source.remove(); await s.stop();
+});
 function explorerFixture(overrides = {}) {
-  return { vaultId: 'a', workspace: { vaultId: 'a' }, data: [{ id: 'folder', name: 'Folder', kind: 'directory', children: [{ id: 'folder/note.md', name: 'note.md', kind: 'file' }] }, { id: 'a.md', name: '<img src=x>.md', kind: 'file' }],
+  return { supportedExtensions: ['md'], vaultId: 'a', workspace: { vaultId: 'a' }, data: [{ id: 'folder', name: 'Folder', kind: 'directory', children: [{ id: 'folder/note.md', name: 'note.md', kind: 'file' }] }, { id: 'a.md', name: '<img src=x>.md', kind: 'file' }],
     expanded: ['folder'], selection: [], busy: false, loading: false, error: '', degraded: '', canPaste: false,
-    text: { tabs: 'Tabs', title: 'Files', newFile: 'New file', newFolder: 'New folder', rename: 'Rename', copy: 'Copy', cut: 'Cut', paste: 'Paste', remove: 'Delete', refresh: 'Refresh', actions: 'Actions', name: 'Name', create: 'Create', cancel: 'Cancel', empty: 'No files', loading: 'Loading', root: 'Vault root', retry: 'Retry', confirmDelete: 'Delete permanently?', deleteWarning: 'No trash or undo' },
-    initialDraft: { form: null, name: '' }, onDraft() {}, onToggle() {}, onSelection() {}, onBuffer() {}, onCreate: async () => true, onRename: async () => true, onMove: async () => true, onPaste: async () => true, onRemove: async () => true, onRefresh() {}, ...overrides };
+    text: { unnamedFile: 'Unnamed.md', unnamedFolder: 'Unnamed folder', tabs: 'Tabs', title: 'Files', newFile: 'New file', newFolder: 'New folder', rename: 'Rename', copy: 'Copy', cut: 'Cut', paste: 'Paste', remove: 'Delete', refresh: 'Refresh', actions: 'Actions', name: 'Name', create: 'Create', cancel: 'Cancel', empty: 'No files', loading: 'Loading', root: 'Vault root', retry: 'Retry', confirmDelete: 'Delete permanently?', deleteWarning: 'No trash or undo' },
+    initialDraft: { form: null, name: '' }, onContextMenu() {}, onDraft() {}, onToggle() {}, onSelection() {}, onBuffer() {}, onCreate: async () => true, onRename: async () => true, onMove: async () => true, onPaste: async () => true, onRemove: async () => true, onRefresh() {}, ...overrides };
 }
+
+test('right-click preserves invocation multi-selection, coordinates and safe root/background commands', async () => {
+  const s = await setup(); await s.start(); const contexts = []; const buffered = [];
+  s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 320);
+  const props = explorerFixture({ selection: ['folder', 'a.md'], onContextMenu: request => { contexts.push(request); }, onBuffer: (...args) => buffered.push(args) });
+  const mounted = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); await settle();
+  const rightClick = node => node.dispatchEvent(new s.dom.window.MouseEvent('contextmenu', { bubbles: true, cancelable: true, clientX: 75, clientY: 95 }));
+  rightClick(s.target.querySelector('[title="a.md"]')); await settle();
+  assert.deepEqual(contexts[0].selection, ['folder', 'a.md']); assert.equal(contexts[0].path, 'a.md'); assert.equal(contexts[0].kind, 'file');
+  assert.equal(contexts[0].x, 75); assert.equal(contexts[0].y, 95);
+  const resolve = request => s.menus.resolve({ source: 'lunaris.file-explorer', target: request.kind, data: {} }, s.ctx.signal, request.entries).value.items;
+  assert.deepEqual(resolve(contexts[0]).map(item => item.icon), ['copy', 'cut', 'trash']);
+  contexts[0].entries.find(item => item.id.endsWith('.copy')).run({}); assert.deepEqual(buffered, [[['folder', 'a.md'], false]]);
+  rightClick(s.target.querySelector('[data-root]')); await settle();
+  assert.equal(contexts[1].kind, 'root'); assert.equal(contexts[1].path, ''); assert.deepEqual(contexts[1].selection, []);
+  assert.equal(contexts[1].entries.find(item => item.id.endsWith('.remove')), undefined);
+  assert.equal(s.target.querySelectorAll('[role=treeitem][aria-selected=true]').length, 0);
+  assert.deepEqual(resolve(contexts[1]).map(item => item.id.split('.').at(-1)), ['newFile', 'newFolder', 'refresh']);
+  rightClick(s.target.querySelector('.lm-explorer-tree')); await settle();
+  assert.equal(contexts[2].kind, 'background'); assert.equal(contexts[2].path, null); assert.equal(contexts[2].destination, '');
+  assert.deepEqual(resolve(contexts[2]).map(item => item.id.split('.').at(-1)), ['newFile', 'newFolder', 'refresh']);
+  mounted.value.update({ ...props, selection: ['a.md'] }); await settle();
+  s.target.querySelector('.lm-explorer-tree').click(); await settle();
+  assert.equal(s.target.querySelectorAll('[role=treeitem][aria-selected=true]').length, 0);
+  s.target.querySelector('[role=tree]').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'ContextMenu', bubbles: true, cancelable: true })); await settle();
+  assert.equal(contexts[3].kind, 'root'); assert.deepEqual(contexts[3].selection, []);
+  await s.stop();
+});
+
+test('Shift-click keeps range selection without enabling navigation focus chrome; arrows and pointer input switch modality', async () => {
+  const s = await setup(); await s.start(); const selections = [];
+  s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 320);
+  s.components.mount('lunaris.file-explorer', s.target, explorerFixture({ onSelection: paths => selections.push(paths) }), s.ctx.signal); await settle();
+  const explorer = s.target.querySelector('.lm-explorer'); const tree = s.target.querySelector('[role=tree]');
+  const folder = s.target.querySelector('[title=folder]').closest('[role=treeitem]');
+  const file = s.target.querySelector('[title="a.md"]').closest('[role=treeitem]');
+  folder.click(); await settle();
+  tree.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Shift', shiftKey: true, bubbles: true })); await settle();
+  assert.equal(explorer.hasAttribute('data-keyboard-navigation'), false);
+  file.dispatchEvent(new s.dom.window.MouseEvent('pointerdown', { shiftKey: true, bubbles: true }));
+  file.dispatchEvent(new s.dom.window.MouseEvent('click', { shiftKey: true, bubbles: true })); await settle();
+  assert.deepEqual(selections.at(-1), ['folder', 'folder/note.md', 'a.md']); assert.equal(explorer.hasAttribute('data-keyboard-navigation'), false);
+  tree.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Home', bubbles: true, cancelable: true })); await settle();
+  assert.equal(explorer.hasAttribute('data-keyboard-navigation'), true);
+  file.dispatchEvent(new s.dom.window.MouseEvent('pointerdown', { shiftKey: true, bubbles: true })); await settle();
+  assert.equal(explorer.hasAttribute('data-keyboard-navigation'), false); await s.stop();
+});
 test('Arborist renders a virtualized, escaped tree and preserves owned roots across theme/props updates', async () => {
   const s = await setup(); await s.start();
   const props = explorerFixture({ data: Array.from({ length: 10000 }, (_, i) => ({ id: 'file-' + i, name: '<img src=x>' + i, kind: 'file' })) });
@@ -169,15 +243,16 @@ test('Arborist renders a virtualized, escaped tree and preserves owned roots acr
   await owner.dispose(); assert.equal(s.target.querySelector('[role=tree]'), null); await s.stop();
 });
 
-test('explorer create form uses Mantine, preserves drafts and confirms permanent deletion before calling controller', async () => {
+test('explorer creates in a tree row, preserves drafts and confirms permanent deletion before calling controller', async () => {
   const s = await setup(); await s.start(); const calls = [];
   const props = explorerFixture({ onCreate: async (...args) => { calls.push(['create', ...args]); return true; }, onRemove: async paths => { calls.push(['remove', paths]); return true; } });
   const result = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); assert.equal(result.ok, true, s.logs.map(log => log[3]?.error?.stack).filter(Boolean).join('\n'));
   s.target.querySelector('[role=tree]').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'n', ctrlKey: true, bubbles: true, cancelable: true })); await settle();
   const input = s.target.querySelector('input'); assert.ok(input.classList.contains('mantine-TextInput-input'));
+  assert.ok(input.closest('[role=treeitem]')); assert.equal(s.target.querySelector('form'), null);
   typeInput(input, 'draft.md'); await settle();
-  result.value.update({ ...props, degraded: 'Watch unavailable' }); await settle(); assert.equal(s.target.querySelector('input').value, 'draft.md');
-  s.target.querySelector('form').dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true })); await settle();
+  result.value.update({ ...props, degraded: 'Watch unavailable' }); await settle(); assert.equal(s.target.querySelector('input').value, 'draft');
+  input.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); await settle();
   assert.deepEqual(calls[0], ['create', '', 'draft.md', false]);
   result.value.update({ ...props, selection: ['a.md'] }); await settle();
   s.target.querySelector('[role=tree]').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Delete', bubbles: true, cancelable: true })); await settle();
@@ -200,22 +275,71 @@ test('explorer drafts and pending selection survive view replacement without fee
   second.value.dispose(); await s.stop();
 });
 
+test('inline creation opens its destination, guards repeated Enter, retains failed names and cancels with Escape', async () => {
+  const s = await setup(); await s.start(); const calls = []; const selections = []; let finish;
+  s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 320);
+  const props = explorerFixture({ expanded: [], selection: ['folder'], onSelection: paths => selections.push(paths),
+    onContextMenu: request => { request.entries.find(entry => entry.id.endsWith('.newFile')).run({}); },
+    onCreate: (...args) => { calls.push(args); return calls.length === 1 ? new Promise(resolve => { finish = resolve; }) : Promise.resolve(true); } });
+  s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); await settle();
+  s.target.querySelector('[title=folder]').dispatchEvent(new s.dom.window.MouseEvent('contextmenu', { bubbles: true, cancelable: true })); await settle();
+  const input = s.target.querySelector('.lm-explorer-create input'); assert.ok(input);
+  assert.equal(input.closest('[role=treeitem]').getAttribute('aria-level'), '3'); assert.equal(s.target.querySelector('form'), null);
+  typeInput(input, 'pending.md'); await settle();
+  const enter = () => input.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+  enter(); enter(); await settle(); assert.equal(calls.length, 1); assert.equal(input.disabled, true);
+  finish(false); await settle(); assert.equal(input.value, 'pending'); assert.equal(input.disabled, false); assert.equal(s.dom.window.document.activeElement, input);
+  enter(); await settle(); assert.deepEqual(calls, [['folder', 'pending.md', false], ['folder', 'pending.md', false]]); assert.equal(s.target.querySelector('input'), null);
+  s.target.querySelector('[role=tree]').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'n', ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true })); await settle();
+  s.target.querySelector('.lm-explorer-create input').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); await settle();
+  assert.equal(s.target.querySelector('input'), null); assert.equal(calls.length, 2); assert.ok(selections.every(paths => !paths.some(path => path.startsWith('/'))));
+  await s.stop();
+});
 
-test('explorer restores visible selection, submits F2 rename, handles copy and keeps menus in its root', async () => {
+test('real menu editors keep initial focus, sort named drafts after folders and finish when clicking away', async () => {
+  const s = await setup(); await s.start(); const created = [];
+  s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 320);
+  const outside = s.dom.window.document.createElement('button'); outside.textContent = 'Outside'; s.target.append(outside);
+  const props = explorerFixture({ expanded: [], selection: ['Zulu.md'],
+    data: [{ id: 'folder', name: 'Folder', kind: 'directory', children: [] }, { id: 'Alpha.md', name: 'Alpha.md', kind: 'file' }, { id: 'Zulu.md', name: 'Zulu.md', kind: 'file' }],
+    onContextMenu: request => s.menus.open({ ...request, context: { source: 'lunaris.file-explorer', target: request.kind, data: {} } }, s.ctx.signal).value,
+    onCreate: async (...args) => { created.push(args); return true; } });
+  const mounted = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); await settle();
+  const rightClick = element => element.dispatchEvent(new s.dom.window.MouseEvent('contextmenu', { bubbles: true, cancelable: true }));
+  const choose = label => [...s.dom.window.document.querySelectorAll('[role=menuitem]')].find(item => item.textContent === label).click();
+  rightClick(s.target.querySelector('[data-root]')); await settle(); choose('New file'); await settle();
+  let input = s.target.querySelector('input'); assert.ok(input); assert.equal(s.dom.window.document.activeElement, input);
+  assert.equal(input.value, 'Unnamed'); assert.equal(input.selectionStart, 0); assert.equal(input.selectionEnd, 'Unnamed'.length);
+  const position = () => [...s.target.querySelectorAll('[role=treeitem]')].indexOf(input.closest('[role=treeitem]'));
+  assert.equal(position(), 3); typeInput(input, 'A new name.md'); await settle(); assert.equal(position(), 3);
+  outside.focus(); await settle(); assert.deepEqual(created, [['', 'A new name.md', false]]); assert.equal(s.target.querySelector('input'), null);
+  assert.equal(s.dom.window.document.activeElement, outside);
+  rightClick(s.target.querySelector('[title="Zulu.md"]')); await settle(); choose('Rename'); await settle();
+  input = s.target.querySelector('input'); assert.ok(input); assert.equal(s.dom.window.document.activeElement, input);
+  outside.focus(); await settle(); assert.equal(s.target.querySelector('input'), null);
+  mounted.value.update({ ...props, data: [...props.data, { id: 'Unnamed.md', name: 'Unnamed.md', kind: 'file' }] }); await settle();
+  s.target.querySelector('[role=tree]').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'n', ctrlKey: true, bubbles: true, cancelable: true })); await settle();
+  input = s.target.querySelector('input'); assert.equal(input.value, 'Unnamed 2'); typeInput(input, ''); await settle();
+  outside.focus(); await settle(); assert.equal(s.target.querySelector('input'), null); assert.equal(created.length, 1);
+  outside.remove(); await s.stop();
+});
+
+
+test('explorer restores selection, submits F2 rename, handles copy and opens the shared menu', async () => {
   const s = await setup(); await s.start(); const renamed = []; const buffered = [];
   s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 320);
-  const props = explorerFixture({ selection: ['a.md'], onRename: async (...args) => { renamed.push(args); return true; }, onBuffer: (...args) => buffered.push(args) });
+  const props = explorerFixture({ selection: ['a.md'], onContextMenu: request => { const result = s.menus.open({ ...request, context: { source: 'lunaris.file-explorer', target: request.kind, data: {} } }, s.ctx.signal); assert.equal(result.ok, true); return result.value; }, onRename: async (...args) => { renamed.push(args); return true; }, onBuffer: (...args) => buffered.push(args) });
   const result = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); assert.equal(result.ok, true); await settle();
-  assert.equal(s.target.querySelector('[aria-selected=true]').textContent.includes('<img src=x>.md'), true);
+  assert.equal(s.target.querySelector('[aria-selected=true] .lm-explorer-filename').textContent, '<img src=x>');
   const tree = s.target.querySelector('[role=tree]');
   tree.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'c', ctrlKey: true, bubbles: true, cancelable: true }));
   assert.deepEqual(buffered, [[['a.md'], false]]);
   tree.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'F2', bubbles: true, cancelable: true })); await settle();
-  const input = s.target.querySelector('input'); assert.ok(input); typeInput(input, 'renamed.md');
+  const input = s.target.querySelector('input'); assert.ok(input); assert.equal(input.value, '<img src=x>'); typeInput(input, 'renamed');
   input.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); await settle();
   assert.deepEqual(renamed, [['a.md', 'renamed.md']]);
   tree.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'ContextMenu', bubbles: true, cancelable: true })); await settle();
-  assert.ok(s.target.querySelector('.lm-root [role=menu]')); assert.equal(s.dom.window.document.querySelector('[data-portal]'), null);
+  assert.ok(s.dom.window.document.querySelector('[data-lunaris-context-menu] .lm-root [role=menu]')); assert.equal(s.dom.window.document.querySelector('[data-portal]'), null);
   result.value.dispose(); await s.stop();
 });
 
@@ -296,5 +420,50 @@ test('explorer replaces header actions with a Files dropdown and protects the vi
   assert.equal(s.target.querySelector('[title="a.md"]'), null); assert.deepEqual(calls, []);
   root.querySelector('button').click(); await settle(); assert.ok(s.target.querySelector('[title="a.md"]'));
   mounted.value.update({ ...props, data: [] }); await settle(); assert.ok(s.target.querySelector('[title="My Vault"]'));
+  await s.stop();
+});
+
+
+test('extension policy accepts new formats and preserves dotted directories and dotfiles', async () => {
+  const s = await setup(); await s.start();
+  s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 480);
+  const props = explorerFixture({ supportedExtensions: ['md', 'txt'], expanded: [], data: [
+    { id: 'folder.md', name: 'folder.md', kind: 'directory', children: [] },
+    { id: 'note.MD', name: 'note.MD', kind: 'file' },
+    { id: 'readme.txt', name: 'readme.txt', kind: 'file' },
+    { id: 'archive.zip', name: 'archive.zip', kind: 'file' },
+    { id: '.md', name: '.md', kind: 'file' },
+  ] });
+  const mounted = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true); await settle();
+  const row = path => s.target.querySelector('[title="' + path + '"]');
+  assert.equal(row('note.MD').querySelector('.lm-explorer-filename').textContent, 'note');
+  assert.equal(row('note.MD').querySelector('.lm-explorer-extension'), null);
+  assert.equal(row('readme.txt').querySelector('.lm-explorer-filename').textContent, 'readme');
+  assert.equal(row('readme.txt').querySelector('.lm-explorer-extension'), null);
+  assert.equal(row('archive.zip').querySelector('.lm-explorer-filename').textContent, 'archive');
+  assert.equal(row('archive.zip').querySelector('.lm-explorer-extension').textContent, 'zip');
+  for (const path of ['folder.md', '.md']) {
+    assert.equal(row(path).querySelector('.lm-explorer-filename').textContent, path);
+    assert.equal(row(path).querySelector('.lm-explorer-extension'), null);
+  }
+  await s.stop();
+});
+
+
+test('active document marking survives cleared selection and focus outside the tree', async () => {
+  const s = await setup(); await s.start(); const opened = []; const selections = [];
+  s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 320);
+  const props = explorerFixture({ activePath: 'a.md', selection: ['a.md'], onOpen: async path => { opened.push(path); }, onSelection: paths => selections.push(paths) });
+  const mounted = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true); await settle();
+  s.target.querySelector('[title="a.md"]').closest('[role=treeitem]').click(); await settle();
+  assert.deepEqual(opened, ['a.md']);
+  s.target.querySelector('.lm-explorer-tree').click(); await settle();
+  assert.deepEqual(selections.at(-1), []);
+  mounted.value.update({ ...props, selection: [] }); await settle();
+  const outside = s.dom.window.document.createElement('button'); s.target.append(outside); outside.focus(); await settle();
+  assert.equal(s.dom.window.document.activeElement, outside);
+  assert.equal(s.target.querySelector('[data-active]').getAttribute('title'), 'a.md');
+  assert.equal(s.target.querySelector('[data-active]').getAttribute('aria-current'), 'page');
+  assert.equal(s.target.querySelector('[data-selected]'), null);
   await s.stop();
 });

@@ -6,8 +6,16 @@
 It registers a localized Files tab with `lunaris.file-explorer` as its Components
 role. The controller imports only public SDK contracts. It requires Logger,
 Sidebar, Filesystem, FilesystemObservation, Vault/VaultChanged,
-Localization/LocaleChanged and FileChanged. Permissions: `filesystem.access` and
+Localization/LocaleChanged, FileChanged and ActiveDocument/ActiveDocumentChanged. Permissions: `filesystem.access` and
 `vault.access`. It provides no API/events and needs no DOM permission.
+
+Context menus require the [ContextMenu API](context-menu.md). The controller
+supplies invocation metadata and built-in actions, while the shared provider
+adds contributions from other plugins and mounts the Mantine role in its owned
+overlay. `onContextMenu(request)` in renderer props returns an optional disposable
+menu session. The request carries target element, viewport position, localized
+label, entries, logical path/kind, selection and destination; the controller adds
+the source and Vault identity. All mutation callbacks remain controller-owned.
 
 Existing providers supply filesystem policy, native operations, active Vault,
 Sidebar geometry, localization, logging and themes. The explorer adds a portable
@@ -23,11 +31,30 @@ contract. No kernel runtime change was necessary.
 
 ## User operations
 
+Dot-prefixed directories (including `.lunaris` and `.git`) and their subtrees
+are excluded from the displayed tree. Dot-prefixed files remain visible.
+Right-clicking the root/background clears the old file selection before opening
+root commands. Clicking the background also clears selection. File targets show
+selection operations; creation/paste/refresh are offered only on a single folder,
+the root or background. Multi-selection offers only selection operations.
+
 - Expand folders on demand; folders sort before files, followed by name sorting.
 - Ctrl/Shift selection and Ctrl+A use Arborist's tree navigation/selection.
 - Create an empty file or folder through the context menu, Ctrl+N or Ctrl+Shift+N.
+  A protected draft row appears inside the destination directory; ancestors open
+  and the row scrolls into view. Enter submits, Escape cancels. There is no separate
+  creation form or action toolbar. A failed operation retains the entered name
+  for correction/retry; repeated Enter cannot submit parallel creations.
+  The localized default name is `Unnamed.md` for files and `Unnamed folder` for
+  folders; known sibling collisions get a numeric suffix before the extension.
+  The draft sorts folder-first by its initial name and keeps that position while
+  typing; the confirmed filesystem entry sorts by its final name. Initial focus
+  selects the basename while preserving the file extension. Leaving a nonempty
+  creation field submits it; leaving an empty field cancels it. Escape never
+  submits through the resulting blur event. Failed blur submissions keep the
+  editor available for correction.
 - F2 renames in place; Enter submits and Escape cancels. Enter on a folder toggles
-  it; file activation has no document-opening action yet.
+  it; Enter on a file activates it through ActiveDocument.
 - Drag selected items into a folder or the root to move them. Tree order is always
   filesystem-derived; dropping between siblings does not create manual ordering.
 - Ctrl+C/X/V copy, cut and paste inside the current Vault. The buffer is private
@@ -88,9 +115,10 @@ controller. Props:
   unloaded/empty folders.
 - `busy`, `loading`, `canPaste`, localized `error`/`degraded`, and the localized
   `text` map supplied by the controller catalog.
-- `initialDraft: { form, name }`, where form is null, `{ kind: file|folder, parent }`
+- `initialDraft: { form, name }`, where form is null, `{ kind: file|folder, parent, initialName? }`
   or `{ kind: delete, paths }`; `onDraft(draft)` retains logical drafts outside the
   mounted view. It captures data only and never calls rendering synchronously.
+  Optional `initialName` preserves the draft's sort position across remounts.
 - `onToggle(path, open)`, `onSelection(paths)`, `onBuffer(paths, cut)`, `onRefresh()`.
 - Async boolean-result callbacks `onCreate(parent, name, directory)`,
   `onRename(path, name)`, `onMove(paths, destination)`, `onPaste(destination)` and
@@ -98,8 +126,8 @@ controller. Props:
   by the controller, not interpreted by the renderer.
 
 Workspace injects its reserved context. SDK updates occur outside React effects.
-Theme and locale updates preserve input nodes/drafts. Mantine menus stay inside
-the owned root. Row truncation retains full paths in native tooltips; focus,
+Theme and locale updates preserve input nodes/drafts. The tab selector stays inside the explorer root; shared context menus stay inside
+the provider-owned overlay. Row truncation retains full paths in native tooltips; focus,
 selection, drop cursors and drag previews use semantic theme colors. Native
 scrollbar chrome stays hidden while scroll/keyboard access remains available.
 
@@ -133,4 +161,29 @@ collision/partial failure, explicit permanent-delete confirmation, external
 filesystem changes, panel collapse/reopen and Vault switching. Desktop automation
 is prohibited; JSDOM cannot verify physical drag/drop or WebView geometry.
 
-Folder rows select on a single click and toggle on double click or disclosure/Enter. Selection does not change folder geometry before dragging. The header contains a localized Tabs dropdown with Files as its sole current item, without a title or operation buttons. The Workspace Vault name appears in an initially expanded root directory row containing the controller tree. This renderer-owned row cannot be renamed, dragged, copied, cut or deleted and has no pointer context menu. Its synthetic identity never reaches controller selection, buffer or mutation callbacks; drop destinations map to the public empty root path. Root disclosure is local view state and resets to expanded on remount. A transient mismatch between Workspace context and controller Vault props shows loading without mounting the old tree or its operations.
+Folder rows select on a single click and toggle on double click or disclosure/Enter. Selection does not change folder geometry before dragging. The header contains a localized Tabs dropdown with Files as its sole current item, without a title or operation buttons. The Workspace Vault name appears in an initially expanded root directory row containing the controller tree. This renderer-owned row cannot be renamed, dragged, copied, cut or deleted and exposes only root-appropriate context-menu operations. Its synthetic identity never reaches controller selection, buffer or mutation callbacks; drop destinations map to the public empty root path. Root disclosure is local view state and resets to expanded on remount. A transient mismatch between Workspace context and controller Vault props shows loading without mounting the old tree or its operations.
+
+## File extension presentation
+
+The controller supplies supportedExtensions (currently ["md"]) through public
+lunaris.file-explorer component props. The optional list contains extensions
+without dots; matching ignores case. Additional formats require no rendering
+changes. This controls presentation, not document-opening support.
+File suffixes are hidden from names and inline create/rename fields and preserved
+in filesystem callbacks, including their original case. Supported formats have
+no badge. Only external (unsupported) files show their extension in a small,
+subdued right-aligned Mantine Badge. Omission of supportedExtensions treats all
+extensions as external. Full paths remain available in row tooltips. Directories,
+extensionless files, trailing dots and stemless dotfiles have no badge.
+Pasted full names do not duplicate suffixes. Empty names cannot submit.
+Existing Sidebar/Components callbacks carry full filenames; no driver or SDK
+API changes or additional plugin integrations are required.
+
+## Active file identity
+
+See [Active document](active-document.md). Shared state persists per Vault;
+plain file clicks/Enter and successful file creation activate a file. Tree
+selection, keyboard focus and background clicks do not clear the active mark.
+The renderer receives optional activePath/onOpen props; the controller reveals
+ancestors and notifies confirmed rename/move/delete operations through the SDK.
+Content editor integration remains outstanding.

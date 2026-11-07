@@ -17,7 +17,9 @@
 - [Vault-scoped filesystem](reference/filesystem.md): provider/driver APIs, relative paths, dialogs, writes, permissions and native verification.
 - [Application configuration directory](reference/application-storage.md): global file storage, owned roots and coordinated closure.
 - [Vault Manager](reference/vault.md): active context, opening/switching/closing, preparation hooks and events.
+- [Active document](reference/active-document.md): shared active file identity, restoration and persistent marking independent of focus.
 - [File explorer](reference/file-explorer.md): Arborist Sidebar tool, owned observation, file operations and document-layer integration status.
+- [Context menu](reference/context-menu.md): owned action contributions, nested groups, invocation context, Mantine rendering and File Explorer integration.
 - [Sidebar](reference/sidebar.md): independent icon rail, tab registration/selection, left panel and Workspace integration.
 - [Workspace](reference/workspace.md): content registration, Vault handoff, placeholders, ownership and integration.
 - [Vault selector](reference/vault-selector.md): implemented interface, resolved contract gaps, integration and manual visual acceptance.

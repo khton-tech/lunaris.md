@@ -1,5 +1,6 @@
 export const catalogs = {
   en: {
+    unnamedFile: "Unnamed.md", unnamedFolder: "Unnamed folder",
     PARTIAL_FAILURE: "Some items failed. Completed operations were retained.",
     tabs: "Tabs", title: "Files", newFile: "New file", newFolder: "New folder", rename: "Rename", copy: "Copy", cut: "Cut", paste: "Paste", remove: "Delete",
     refresh: "Refresh", actions: "Actions", name: "Name", create: "Create", cancel: "Cancel", empty: "No files", loading: "Loading", root: "Vault root",
@@ -11,6 +12,7 @@ export const catalogs = {
     DIRECTORY_NOT_EMPTY: "The folder is not empty", INVALID_ENCODING: "Unsupported text encoding",
   },
   ru: {
+    unnamedFile: "Без имени.md", unnamedFolder: "Папка без имени",
     PARTIAL_FAILURE: "Часть операций не выполнена. Успешные изменения сохранены.",
     tabs: "Вкладки", title: "Файлы", newFile: "Новый файл", newFolder: "Новая папка", rename: "Переименовать", copy: "Копировать", cut: "Вырезать", paste: "Вставить", remove: "Удалить",
     refresh: "Обновить", actions: "Действия", name: "Имя", create: "Создать", cancel: "Отмена", empty: "Нет файлов", loading: "Загрузка", root: "Корень хранилища",
