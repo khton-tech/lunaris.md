@@ -21,7 +21,7 @@ function appearance(theme: ThemeDefinition | null) {
     "&.cm-focused": { outline: "none" },
     ".cm-scroller": { overflow: "auto", fontFamily: "var(--vault-mono, ui-monospace, monospace)", lineHeight: String(typeof typography?.lineHeight === "number" ? typography.lineHeight : 1.6), scrollbarWidth: "none" },
     ".cm-scroller::-webkit-scrollbar": { display: "none" },
-    ".cm-content": { padding: "clamp(12px, 3cqi, 32px) 0", caretColor: color("caret"), minHeight: "100%" },
+    ".cm-content": { width: "100%", maxWidth: "780px", minWidth: "0", flexGrow: "0", margin: "0 auto", padding: "clamp(12px, 3cqi, 32px) 0", caretColor: color("caret"), minHeight: "100%" },
     ".cm-line": { padding: "0 clamp(12px, 3cqi, 40px)" },
     ".cm-cursor, .cm-dropCursor": { borderLeftColor: color("caret") },
     "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection": { backgroundColor: color("selection", "Highlight") },

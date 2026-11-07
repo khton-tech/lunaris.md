@@ -87,6 +87,16 @@ scrolling. Embedded roots remain transparent, with no enclosing card, border,
 shadow or shell. Semantic theme colors/typography apply. Native scrollbar chrome
 is hidden while wheel/touch/keyboard scrolling remains available.
 
+The Owner's Lunaris/Obsidian comparison defines the document geometry: a centered
+reading column within the available editor region, with left-aligned text. The
+CodeMirror content is at most 780px wide including its existing responsive line
+insets (up to 40px on each side, giving about 700px of text). It shrinks to the
+region width on narrow windows. CodeMirror owns this internal content width;
+Workspace/ActiveScreen and the Mantine target retain their full allocated size
+and surface. Quote rails and code remain within the same centered column. Existing
+public SDK integrations require no changes. Native wide/narrow window geometry,
+caret hit testing, selection and scrolling remain pending manual verification.
+
 Settings retains the hidden live view. Theme/locale updates reconfigure view
 compartments. Document switches and renderer replacement retain compatible
 EditorState history/selection in the controller. Live views preserve scrolling
