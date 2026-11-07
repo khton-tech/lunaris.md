@@ -148,6 +148,32 @@ test('Windows line endings survive editing, saving and theme reconfiguration', a
   await s.stop();
 });
 
+test('Live Preview toggles through the public Mantine role without edits or losing history', async () => {
+  const original = '# Heading\r\n\r\n**bold** and [label](https://example.com)\r\n';
+  const s = await setup({ initial: original });
+  const view = s.cm();
+  assert.ok(view.dom.querySelector('.cm-preview-strong'));
+  const mode = () => [...s.target.querySelectorAll('button')].find(button => button.hasAttribute('aria-pressed'));
+  assert.equal(mode().textContent, 'Live Preview');
+  mode().click(); await flush();
+  assert.equal(s.cm(), view);
+  assert.equal(mode().textContent, 'Source mode');
+  assert.equal(mode().getAttribute('aria-pressed'), 'false');
+  assert.equal(view.dom.querySelector('.cm-preview-strong'), null);
+  assert.equal(view.state.sliceDoc(), original);
+  assert.equal(s.calls.some(call => call[0] === 'write'), false);
+  view.dispatch({ changes: { from: view.state.doc.length, insert: 'New' }, selection: { anchor: 0 } });
+  mode().click(); await flush();
+  assert.ok(view.dom.querySelector('.cm-preview-strong'));
+  assert.equal(undo(view), true);
+  assert.equal(view.state.sliceDoc(), original);
+  await s.kernel.stop(mantine.manifest.id); await s.kernel.start(mantine.manifest.id); await flush();
+  assert.equal(mode().getAttribute('aria-pressed'), 'true');
+  assert.ok(s.cm().dom.querySelector('.cm-preview-strong'));
+  assert.ok(s.logs.some(log => log.includes('Editor mode changed')));
+  await s.stop();
+});
+
 test('desktop close bridge flushes the last keystrokes before shutdown and rejects a failed save', async () => {
   const options = {}; const s = await setup(options); s.edit('Last keystrokes');
   options.writeFailure = 'ACCESS_DENIED'; assert.equal(await s.beforeClose(), false);

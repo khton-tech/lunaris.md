@@ -72,8 +72,12 @@ tests establish behavior and DOM properties, not native visual acceptance.
 
 Native dark/light contrast, caret/selection/focus, narrow/short layouts, actual
 scrolling and recovery-state appearance remain manual in the real Workspace.
-Preview, tabs, formatting/search UI, merge/force-overwrite and durable recovery
+Tabs, formatting/search UI, merge/force-overwrite and durable recovery
 drafts are outside this initial scope. Forced shutdown, host recovery, plugin
 removal, process crashes and browser refresh do not promise draft persistence.
 Renderer replacement restores document/history/selection, not native scroll
 geometry; hiding/theming a live view preserves its existing scrolling.
+
+The subsequent [Live Preview foundation](live-preview.md) adds inline Markdown
+presentation and a Source mode toggle. Its supported syntax and outstanding
+Obsidian-specific renderers are documented separately.

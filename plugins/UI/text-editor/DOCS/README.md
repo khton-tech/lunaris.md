@@ -1,6 +1,6 @@
 # Text editor
 
-CodeMirror 6 Markdown source editor, integrated through public SDK contracts.
+CodeMirror 6 Markdown editor with Live Preview, integrated through public SDK contracts.
 Plugin: `lunaris.text-editor`; package: `@lunaris/text-editor`. Tauri starts it
 with ui.dom, vault.access and filesystem.access.
 
@@ -8,7 +8,10 @@ with ui.dom, vault.access and filesystem.access.
 
 Open a Markdown file in File Explorer. Wrapped lines, Markdown syntax, standard
 text shortcuts, undo/redo, multiple selections and Mod-S are enabled. Tab keeps
-normal keyboard navigation. No preview, formatting toolbar, gutter or CodeMirror
+normal keyboard navigation. Live Preview is the default; the header mode button
+toggles Source mode without replacing the document, selection or undo history.
+The mode lasts for the plugin activation and applies across documents; it is not
+persisted as a setting. No reading view, formatting toolbar, gutter or CodeMirror
 search panel is included. Unsupported extensions never decode as editable text.
 
 Autosave waits 2000 ms after the last edit. Mod-S and document/Vault/file
@@ -67,6 +70,10 @@ The plugin registers `lunaris.text-editor-host` for ActiveScreen and mounts
 - Booleans: ready, dirty, busy.
 - Callbacks: onSave(), onReload(), onTarget(HTMLElement | null).
 - Public presentation context: embedded/fill.
+- Optional mode group: preview (boolean), previewLabel/sourceLabel (localized
+  strings), onPreviewChange(). Supply the complete group to show the Mantine
+  mode button. Its aria-pressed state indicates Live Preview. The controller
+  owns the value; the role only displays it and invokes the callback.
 
 onTarget lends a stable owned element and releases it with null on disposal.
 Preserve its identity across status/theme updates. Mount CodeMirror after SDK
@@ -108,3 +115,46 @@ Native visual acceptance remains manual. Run `npm run tauri:dev` and check:
    Exercise retry and explicit discard/reload.
 6. Read-error, unsupported/missing-file states, long translations and keyboard
    focus/recovery actions inside the actual Workspace.
+7. Live Preview/Source mode toggle, inline syntax reveal by click and arrow keys,
+   nested formatting, multi-cursor/range selection, multiline paragraphs and
+   backspace at hidden-marker boundaries. Copy selections and inspect raw Markdown.
+8. Heading sizes, bullets, nested quotes, rules and code in dark/light themes;
+   check scrolling/wrapping in long documents and narrow/short windows. Mode button
+   focus/pressed state and long localized labels must remain usable. Native visual
+   acceptance of these states is pending; automated DOM tests do not establish it.
+
+## Live Preview behavior and limits
+
+Research and implementation contract: [Live Preview design](../../../../DOCS/design/live-preview.md).
+The adapter uses the Markdown syntax tree, not regular-expression replacement of
+document text. It visits visible ranges and rebuilds decorations for document,
+selection, viewport and asynchronous parser changes. A dedicated mode compartment
+enables/removes the extension without touching history or saving the document.
+All selection ranges reveal any intersecting inline construct, including at its
+boundaries. Heading/list/quote/rule markers reveal on their active source line.
+Nested constructs reveal with their selected outer construct. Focus changes alone
+do not alter rendering. Clicking a rendered label edits its source; no navigation
+handler or unsafe HTML rendering is introduced.
+
+Supported presentation: strong/emphasis/strikethrough, inline code, inline Markdown
+link labels, ATX/Setext headings, unordered bullets, quote markers and horizontal
+rules. Ordered list numbers remain literal. Code blocks receive a quiet code
+surface; their fences/info strings remain literal. Tasks retain editable `[ ]`/
+`[x]` text. Escaped syntax is interpreted by the parser. Images and HTML remain
+literal. Link labels may contain nested formatting; reference-style destinations
+are not resolved. Multiline syntax that cannot be safely hidden without replacing
+line breaks remains visible.
+
+This is the Markdown foundation, not full Obsidian parity. Rendered/editable
+tables, interactive tasks, attachment previews, wikilink navigation/transclusion,
+callouts, properties, footnotes, math, diagrams, HTML and highlight/comment
+extensions remain outstanding. They must use appropriate public SDK contracts;
+do not resolve files or navigate through private plugin state or raw platform APIs.
+No extra SDK service was required for the implemented presentation layer.
+
+Integration review: Text Editor passes additive mode props through Components to
+Mantine Components. The existing ActiveScreen, Workspace, Themes, Localization,
+Logger, ActiveDocument and Filesystem integrations remain connected. The role owns
+the mode control and target, while the adapter owns text presentation. No other
+plugin needs new wiring for this foundation. Optional feature integrations listed
+above have not been implemented and must not be reported as complete.

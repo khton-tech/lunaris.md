@@ -4,6 +4,8 @@ import { EditorView, drawSelection, keymap } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { markdown, markdownKeymap } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { Strikethrough } from "@lezer/markdown";
+import { livePreview, livePreviewTheme } from "./live-preview.js";
 import { tags } from "@lezer/highlight";
 import type { ThemeDefinition } from "@lunaris/themes";
 import type { DocumentSession } from "./session.js";
@@ -34,11 +36,12 @@ function appearance(theme: ThemeDefinition | null) {
 
 /** Reusable view adapter; cached states belong to the controller, not DOM roots. */
 export function mountEditor(target: HTMLElement, session: DocumentSession, cached: EditorState | undefined,
-  theme: ThemeDefinition | null, label: string, save: () => void, failed: (error: unknown) => void) {
+  theme: ThemeDefinition | null, label: string, save: () => void, failed: (error: unknown) => void, preview = true) {
+  const mode = new Compartment();
   const skin = new Compartment(); const access = new Compartment(); const attributes = new Compartment();
   // A cached state retains history/selection; replace view-specific compartments
   // and callbacks through a full reconfiguration without replacing the document.
-  const extensions = [EditorState.lineSeparator.of(session.text.includes("\r\n") ? "\r\n" : "\n"), history(), markdown(), EditorView.lineWrapping, drawSelection(),
+  const extensions = [EditorState.lineSeparator.of(session.text.includes("\r\n") ? "\r\n" : "\n"), history(), markdown({ extensions: [Strikethrough] }), mode.of(preview ? [livePreview, livePreviewTheme] : []), EditorView.lineWrapping, drawSelection(),
     EditorView.exceptionSink.of(failed),
     keymap.of([{ key: "Mod-s", run: () => { save(); return true; }, preventDefault: true }, ...markdownKeymap, ...defaultKeymap, ...historyKeymap]),
     EditorView.updateListener.of(update => { if (update.docChanged) session.edit(update.state.sliceDoc()); }),
@@ -50,11 +53,13 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
   if (!state) state = EditorState.create({ doc: session.text, extensions });
   else state = state.update({ effects: reconfigure(extensions) }).state;
   const view = new EditorView({ parent: target, state });
+  let lastPreview = preview;
   let lastTheme = theme; let lastLabel = label; let lastReadOnly = session.locks > 0 || session.missing || session.loading;
   return {
     view,
-    update(nextTheme: ThemeDefinition | null, nextLabel: string) {
+    update(nextTheme: ThemeDefinition | null, nextLabel: string, nextPreview = true) {
       const effects: Effect<unknown>[] = [];
+      if (nextPreview !== lastPreview) { effects.push(mode.reconfigure(nextPreview ? [livePreview, livePreviewTheme] : [])); lastPreview = nextPreview; }
       const readOnly = session.locks > 0 || session.missing || session.loading;
       if (nextTheme !== lastTheme) { effects.push(skin.reconfigure(appearance(nextTheme))); lastTheme = nextTheme; }
       if (readOnly !== lastReadOnly) {

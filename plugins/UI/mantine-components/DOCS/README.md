@@ -465,3 +465,12 @@ It confirms dirty reload before invoking onReload and preserves its target acros
 theme/status updates. It adds no card or background over Workspace main. See the
 [role props, integration and manual acceptance](../../text-editor/DOCS/README.md).
 Reference: existing Settings/open Workspace composition and Mantine UI catalog.
+
+The role also accepts the additive optional mode group `preview`, `previewLabel`,
+`sourceLabel`, `onPreviewChange`. A compact Mantine Button displays the current
+localized mode, exposes Live Preview through aria-pressed and requests a toggle.
+Controller-owned mode changes preserve the lent target. Existing compact editor
+buttons are the visual reference; [Mantine UI buttons](https://ui.mantine.dev/category/buttons/)
+was consulted. No dropdown, separate preview surface or new shell is introduced.
+Native focus, label overflow and dark/light appearance inside Workspace remain
+pending manual acceptance; see the editor checklist above.

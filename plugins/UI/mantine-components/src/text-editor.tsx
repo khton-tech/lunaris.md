@@ -4,6 +4,10 @@ import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
 
 interface EditorProps {
+  readonly preview?: boolean;
+  readonly previewLabel?: string;
+  readonly sourceLabel?: string;
+  readonly onPreviewChange?: () => void;
   readonly documentKey: string;
   readonly name: string;
   readonly status: string;
@@ -25,6 +29,8 @@ export function textEditorProps(value: ComponentProps): EditorProps {
     if (typeof value[key] !== "string") throw new TypeError(`Text editor requires ${key}.`);
   for (const key of ["ready", "dirty", "busy"]) if (typeof value[key] !== "boolean") throw new TypeError(`Text editor requires ${key}.`);
   for (const key of ["onSave", "onReload", "onTarget"]) if (typeof value[key] !== "function") throw new TypeError(`Text editor requires ${key}.`);
+  if (value.onPreviewChange !== undefined && (typeof value.onPreviewChange !== "function" || typeof value.preview !== "boolean" || typeof value.previewLabel !== "string" || typeof value.sourceLabel !== "string"))
+    throw new TypeError("Text editor mode requires preview, labels and onPreviewChange.");
   return value as unknown as EditorProps;
 }
 export function TextEditor({ props, theme }: { props: EditorProps; theme: ReturnType<typeof resolveTheme> }) {
@@ -36,6 +42,7 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
     <Group className="lm-editor-header" gap="xs" wrap="nowrap">
       <Text className="lm-editor-name" size="sm" title={props.name}>{props.name}</Text>
       <Text size="xs" c="dimmed" role="status" aria-live="polite">{props.status}</Text>
+      {props.ready && props.onPreviewChange && <Button size="compact-xs" variant="subtle" aria-pressed={props.preview} onClick={props.onPreviewChange}>{props.preview ? props.previewLabel : props.sourceLabel}</Button>}
       {props.ready && <Button size="compact-xs" onClick={props.onSave} disabled={props.busy || !props.dirty}>{props.saveLabel}</Button>}
     </Group>
     {props.error && <Group className="lm-editor-error" gap="xs">
