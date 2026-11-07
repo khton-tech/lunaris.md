@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef } from "react";
+import { useId, useLayoutEffect, useRef } from "react";
 import { Box, Button, NativeSelect, Stack, Text, Title } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
@@ -57,15 +57,18 @@ export function SettingsNavigation({ props, theme }: { props: NavigationProps; t
   </Stack>;
 }
 export function SettingsPage({ props, theme }: { props: PageProps; theme: ReturnType<typeof resolveTheme> }) {
+  const headingId = useId();
   const targets = useRef(new Map<string, HTMLElement>()); const publish = props.onTargets;
   const signature = JSON.stringify(props.sections.map(section => section.id));
   useLayoutEffect(() => { publish(new Map(targets.current)); }, [signature, publish]);
   useLayoutEffect(() => () => publish(null), [publish]);
-  return <Stack className="lm-settings-page" style={theme.contentStyle} gap="xl">
-    <Title order={1} size="h2">{props.title}</Title>
-    {props.sections.length ? props.sections.map(section => <Stack component="section" key={section.id} gap="sm">
-      <Title order={2} size="h4">{section.title}</Title>
-      {section.description && <Text size="sm" c="dimmed">{section.description}</Text>}
+  return <Stack className="lm-settings-page" style={theme.contentStyle} gap={0}>
+    <Box component="header" className="lm-settings-page-header"><Title order={1} size="h2">{props.title}</Title></Box>
+    {props.sections.length ? props.sections.map(section => <Stack component="section" className="lm-settings-group" key={section.id} gap={0} aria-labelledby={`${headingId}-${section.id}`}>
+      <Stack component="header" className="lm-settings-group-header" gap="xs">
+        <Title id={`${headingId}-${section.id}`} order={2} size="sm" fw={600}>{section.title}</Title>
+        {section.description && <Text size="sm" c="dimmed">{section.description}</Text>}
+      </Stack>
       <Box className="lm-settings-section" data-settings-section={section.id}
         ref={node => { if (node) targets.current.set(section.id, node); else targets.current.delete(section.id); }} />
     </Stack>) : <Text c="dimmed">{props.emptyLabel}</Text>}

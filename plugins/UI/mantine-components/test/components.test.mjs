@@ -85,9 +85,14 @@ test('settings roles escape labels, preserve borrowed targets and validate navig
   const s = await setup(); await s.start(); let targets;
   const props = { title: 'Example', emptyLabel: 'Empty', sections: [{ id: 'test.section', title: 'Controls' }], onTargets: value => { targets = value; } };
   const page = s.components.mount('lunaris.settings-page', s.target, props, s.ctx.signal); assert.equal(page.ok, true);
+  const group = s.target.querySelector('.lm-settings-group');
+  assert.equal(s.target.ownerDocument.getElementById(group.getAttribute('aria-labelledby')).textContent, 'Controls');
+  assert.ok(s.target.querySelector('.lm-settings-page-header h1'));
   const target = targets.get('test.section'); const input = s.dom.window.document.createElement('input'); input.value = 'Draft'; target.append(input);
   page.value.update({ ...props, title: 'Translated', sections: [{ id: 'test.section', title: 'Updated' }] });
   assert.equal(targets.get('test.section'), target); assert.equal(target.querySelector('input'), input);
+  assert.equal(s.target.querySelector('.lm-settings-group'), group);
+  assert.equal(s.target.ownerDocument.getElementById(group.getAttribute('aria-labelledby')).textContent, 'Updated');
   assert.equal(page.value.update({ ...props, sections: [props.sections[0], props.sections[0]] }).ok, false);
   let selected; const navProps = { title: 'Settings', emptyLabel: 'Empty', categories: [{ id: 'test.category', title: '<img src=x>' }], selectedId: null, onSelect: id => { selected = id; } };
   const nav = s.components.mount('lunaris.settings-navigation', s.target, navProps, s.ctx.signal); assert.equal(nav.ok, true);

@@ -3,6 +3,7 @@ import { Box, Button, NativeSelect, NumberInput, Stack, Switch, Text, TextInput 
 import type { ComponentProps } from "@lunaris/components";
 import type { SettingsItem } from "@lunaris/settings";
 import type { resolveTheme } from "./theme.js";
+import { Icon } from "./icons.js";
 
 interface Props { readonly items: readonly SettingsItem[]; readonly onChange: (id: string, value: unknown) => void; readonly onRetry: (id: string) => void }
 export function settingsItemsProps(value: ComponentProps): Props {
@@ -23,15 +24,17 @@ function SettingRow({ item, onChange, onRetry }: { item: SettingsItem; onChange:
   const shared = { id, "aria-label": item.title, "aria-describedby": describedBy, "aria-invalid": !!item.error, disabled: !!item.disabled };
   let control;
   switch (item.type) {
-    case "select": control = staticValue ? <Text size="sm" aria-describedby={describedBy}>{item.options[0]!.label}</Text> :
-      <NativeSelect {...shared} value={item.value} data={item.options.map(option => ({ ...option }))} disabled={!!item.disabled || !item.options.length} onChange={event => onChange(item.id, event.currentTarget.value)} />; break;
+    case "select": control = staticValue ? <Text className="lm-setting-static-value" size="sm" aria-describedby={describedBy}>{item.options[0]!.label}</Text> :
+      <NativeSelect {...shared} size="sm" classNames={{ input: "lm-input lm-setting-input lm-setting-select" }}
+        leftSection={<Icon name="vault-switch" />} leftSectionWidth={32} leftSectionPointerEvents="none" rightSection={<span />} rightSectionWidth={0}
+        value={item.value} data={item.options.map(option => ({ ...option }))} disabled={!!item.disabled || !item.options.length} onChange={event => onChange(item.id, event.currentTarget.value)} />; break;
     case "switch": control = <Switch {...shared} checked={item.value} onChange={event => onChange(item.id, event.currentTarget.checked)} />; break;
-    case "text": control = <TextInput {...shared} value={item.value} placeholder={item.placeholder} onChange={event => onChange(item.id, event.currentTarget.value)} />; break;
-    case "number": control = <NumberInput {...shared} value={item.value} {...(item.min === undefined ? {} : { min: item.min })} {...(item.max === undefined ? {} : { max: item.max })} {...(item.step === undefined ? {} : { step: item.step })} onChange={value => { if (typeof value === "number" && Number.isFinite(value)) onChange(item.id, value); }} />; break;
+    case "text": control = <TextInput {...shared} size="sm" classNames={{ input: "lm-input lm-setting-input" }} value={item.value} placeholder={item.placeholder} onChange={event => onChange(item.id, event.currentTarget.value)} />; break;
+    case "number": control = <NumberInput {...shared} size="sm" classNames={{ input: "lm-input lm-setting-input" }} value={item.value} {...(item.min === undefined ? {} : { min: item.min })} {...(item.max === undefined ? {} : { max: item.max })} {...(item.step === undefined ? {} : { step: item.step })} onChange={value => { if (typeof value === "number" && Number.isFinite(value)) onChange(item.id, value); }} />; break;
   }
   return <Box className="lm-setting-row" data-settings-item={item.id} data-layout={item.layout ?? "inline"}>
     <Stack className="lm-setting-label" gap={4}>
-      <Text component={staticValue ? "div" : "label"} htmlFor={staticValue ? undefined : id} size="sm" fw={500}>{item.title}</Text>
+      <Text component={staticValue ? "div" : "label"} htmlFor={staticValue ? undefined : id} size="sm" fw={400}>{item.title}</Text>
       {item.description && <Text id={descriptionId} size="sm" c="dimmed">{item.description}</Text>}
     </Stack>
     <Stack className="lm-setting-control" gap="xs">
@@ -42,7 +45,7 @@ function SettingRow({ item, onChange, onRetry }: { item: SettingsItem; onChange:
   </Box>;
 }
 export function SettingsItems({ props, theme }: { props: Props; theme: ReturnType<typeof resolveTheme> }) {
-  return <Stack className="lm-settings-items" style={theme.contentStyle} gap="lg">
+  return <Stack className="lm-settings-items" style={theme.contentStyle} gap={0}>
     {props.items.map(item => <SettingRow key={item.id} item={item} onChange={props.onChange} onRetry={props.onRetry} />)}
   </Stack>;
 }

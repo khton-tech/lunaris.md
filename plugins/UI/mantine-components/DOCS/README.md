@@ -89,6 +89,18 @@ and retained root/input identity. Native geometry remains subject to manual chec
 
 ## Roles and props
 
+Settings visual hierarchy uses a page header, separately named group headers and
+indented rows with quiet separators. Header spacing and bounded content width keep
+groups legible without painting another card over Workspace. Group headings label
+their semantic sections with aria-labelledby; borrowed targets retain identity.
+Control rows wrap on narrow widths and inherit the existing embedded surface.
+Select/text/number fields use compact theme-sized controls, the same 22% semantic
+border treatment and corner radius as the Vault switcher reference. Selects use
+the shared Lucide up/down icon on the left and align the selected value at the end.
+Only interactive controls receive a field surface; sole select values remain text.
+The shared stylesheet imports Mantine InlineInput/Switch/NumberInput styles for
+the registered control types. Native visual acceptance remains manual.
+
 `lunaris.settings-items` is the primary embedded/content renderer for declarative
 Settings 1.1 items. Props: `items: SettingsItem[]`, `onChange(id, value)` and
 `onRetry(id)`. It interprets public `type`, `title`, `description`, `layout`, controlled

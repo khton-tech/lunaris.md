@@ -44,6 +44,11 @@ test('composed controls apply and persist explicit Vault preferences, preserve i
   const s = await setup(); await s.open(); await show(s);
   assert.deepEqual(s.reads, [{ id: 'lunaris.interface-settings', target: { scope: 'vault', vaultId: 'vault-1' } }]);
   const language = select(s, 0); const theme = select(s, 1);
+  const group = language.closest('.lm-settings-group');
+  assert.equal(s.dom.window.document.getElementById(group.getAttribute('aria-labelledby')).textContent, 'Interface');
+  const label = s.surface.querySelector(`label[for="${language.id}"]`); assert.equal(label.textContent, 'Language');
+  assert.equal(language.parentElement.querySelectorAll('[data-position="left"] svg').length, 1);
+  assert.equal(language.parentElement.querySelectorAll('[data-position="right"] svg').length, 0);
   assert.deepEqual([...theme.options].map(item => item.value), [base, 'test.alternate']);
   await change(s, 0, 'fr'); assert.equal(s.tools.localization.locale(), 'fr');
   assert.equal(select(s, 0), language); assert.equal(select(s, 1), theme);
