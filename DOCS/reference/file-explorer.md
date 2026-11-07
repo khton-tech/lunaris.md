@@ -6,7 +6,7 @@
 It registers a localized Files tab with `lunaris.file-explorer` as its Components
 role. The controller imports only public SDK contracts. It requires Logger,
 Sidebar, Filesystem, FilesystemObservation, Vault/VaultChanged,
-Localization/LocaleChanged and FileChanged. Permissions: `filesystem.access` and
+Localization/LocaleChanged, FileChanged and ActiveDocument/ActiveDocumentChanged. Permissions: `filesystem.access` and
 `vault.access`. It provides no API/events and needs no DOM permission.
 
 Context menus require the [ContextMenu API](context-menu.md). The controller
@@ -54,7 +54,7 @@ the root or background. Multi-selection offers only selection operations.
   submits through the resulting blur event. Failed blur submissions keep the
   editor available for correction.
 - F2 renames in place; Enter submits and Escape cancels. Enter on a folder toggles
-  it; file activation has no document-opening action yet.
+  it; Enter on a file activates it through ActiveDocument.
 - Drag selected items into a folder or the root to move them. Tree order is always
   filesystem-derived; dropping between siblings does not create manual ordering.
 - Ctrl+C/X/V copy, cut and paste inside the current Vault. The buffer is private
@@ -178,3 +178,12 @@ extensionless files, trailing dots and stemless dotfiles have no badge.
 Pasted full names do not duplicate suffixes. Empty names cannot submit.
 Existing Sidebar/Components callbacks carry full filenames; no driver or SDK
 API changes or additional plugin integrations are required.
+
+## Active file identity
+
+See [Active document](active-document.md). Shared state persists per Vault;
+plain file clicks/Enter and successful file creation activate a file. Tree
+selection, keyboard focus and background clicks do not clear the active mark.
+The renderer receives optional activePath/onOpen props; the controller reveals
+ancestors and notifies confirmed rename/move/delete operations through the SDK.
+Content editor integration remains outstanding.

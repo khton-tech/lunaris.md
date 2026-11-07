@@ -448,3 +448,22 @@ test('extension policy accepts new formats and preserves dotted directories and 
   }
   await s.stop();
 });
+
+
+test('active document marking survives cleared selection and focus outside the tree', async () => {
+  const s = await setup(); await s.start(); const opened = []; const selections = [];
+  s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 320);
+  const props = explorerFixture({ activePath: 'a.md', selection: ['a.md'], onOpen: async path => { opened.push(path); }, onSelection: paths => selections.push(paths) });
+  const mounted = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true); await settle();
+  s.target.querySelector('[title="a.md"]').closest('[role=treeitem]').click(); await settle();
+  assert.deepEqual(opened, ['a.md']);
+  s.target.querySelector('.lm-explorer-tree').click(); await settle();
+  assert.deepEqual(selections.at(-1), []);
+  mounted.value.update({ ...props, selection: [] }); await settle();
+  const outside = s.dom.window.document.createElement('button'); s.target.append(outside); outside.focus(); await settle();
+  assert.equal(s.dom.window.document.activeElement, outside);
+  assert.equal(s.target.querySelector('[data-active]').getAttribute('title'), 'a.md');
+  assert.equal(s.target.querySelector('[data-active]').getAttribute('aria-current'), 'page');
+  assert.equal(s.target.querySelector('[data-selected]'), null);
+  await s.stop();
+});

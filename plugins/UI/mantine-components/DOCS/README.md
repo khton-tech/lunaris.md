@@ -294,3 +294,15 @@ color on hover, with the default arrow cursor. Explicit background/color rules
 override Mantine hover properties because variant variables are inline styles.
 The containing row owns hover feedback; expansion and keyboard
 focus behavior remain provided by the existing component role.
+
+## Active document integration
+
+The controller consumes ActiveDocument/ActiveDocumentChanged through the public
+SDK. The renderer receives optional activePath and onOpen props. A plain file
+click or Enter opens it; Ctrl/Shift selection remains independent. activePath
+controls persistent row marking and aria-current even when focus or selection
+changes. Restored files reveal their ancestors without taking keyboard focus.
+Confirmed file creation activates the new file; rename/move update its identity
+and deletion/observation/manual refresh reconcile missing files. See
+[the active document reference](../../../../DOCS/reference/active-document.md).
+Content editor integration remains outstanding; no editor exists yet.

@@ -96,6 +96,12 @@
     },
     {
       "path": "../../plugins/UI/context-menu"
+    },
+    {
+      "path": "../../packages/active-document"
+    },
+    {
+      "path": "../../plugins/systems/active-document"
     }
   ]
 }

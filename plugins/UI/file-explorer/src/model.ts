@@ -19,7 +19,7 @@ export class ExplorerModel {
   private scans = new Map<string, number>();
   private sequence = 0;
   constructor(readonly vaultId: string, private fs: FilesystemApi, private alive: () => boolean,
-    private changed: () => void, private log: (level: "info" | "warn" | "error", message: string, error?: unknown) => void) {}
+    private changed: () => void, private log: (level: "info" | "warn" | "error", message: string, error?: unknown) => void, private relocated?: (source: string, destination: string) => Promise<void>) {}
   get active(): boolean { return this.alive(); }
   tree(path = "", ancestors = new Set<string>()): Entry[] {
     if (ancestors.has(path)) return [];
@@ -117,10 +117,10 @@ export class ExplorerModel {
       const destination = this.name(parentPath(path), name);
       if (path === destination) return;
       this.check(await this.fs.move(this.target(path), this.target(destination), false));
-      if (this.active) this.remap(path, destination);
+      if (this.active) await this.remap(path, destination);
     });
   }
-  private remap(source: string, destination: string): void {
+  private async remap(source: string, destination: string): Promise<void> {
     const map = (path: string) => inside(path, source) ? destination + path.slice(source.length) : path;
     const expanded = [...this.expanded].map(map);
     this.selection = this.selection.map(map);
@@ -129,6 +129,7 @@ export class ExplorerModel {
     // Reload expanded descendants after their names change.
     for (const path of expanded) if (inside(path, destination)) this.directories.set(path, []);
     if (this.clipboard) this.clipboard.paths = this.clipboard.paths.map(map);
+    await this.relocated?.(source, destination);
   }
   transfer(paths: readonly string[], destination: string, copy: boolean): Promise<boolean> {
     return this.mutate(async () => {
@@ -143,7 +144,7 @@ export class ExplorerModel {
         if (!copy && source === target) { completed.push(source); continue; }
         try {
           this.check(await this.fs[copy ? "copy" : "move"](this.target(source), this.target(target), false));
-          completed.push(target); if (this.active && !copy) this.remap(source, target);
+          completed.push(target); if (this.active && !copy) await this.remap(source, target);
         } catch (error) { failed.push(source); failures.push(error); }
       }
       if (this.active) {

@@ -16,6 +16,7 @@ type Form = { kind: "file" | "folder"; parent: string; initialName?: string } | 
 interface Draft { form: Form | null; name: string }
 interface ExplorerProps {
   supportedExtensions?: readonly string[];
+  activePath?: string | null; onOpen?: (path: string) => Promise<void>;
   vaultId: string; data: Entry[]; expanded: string[]; selection: string[]; busy: boolean; loading: boolean; error: string; degraded: string; canPaste: boolean;
   workspace?: { vaultId: string; vaultName?: string }; text: Record<string, string>;
   onToggle(path: string, open: boolean): void; onSelection(paths: string[]): void; onBuffer(paths: string[], cut: boolean): void;
@@ -37,6 +38,8 @@ export function explorerProps(value: ComponentProps): ExplorerProps {
     !value.text || typeof value.text !== "object" || Object.values(value.text).some(item => typeof item !== "string") ||
     !["onToggle", "onSelection", "onBuffer", "onCreate", "onRename", "onMove", "onPaste", "onRemove", "onRefresh", "onDraft", "onContextMenu"].every(key => typeof value[key] === "function")) throw new TypeError("Invalid file explorer props.");
   if (value.supportedExtensions !== undefined && (!Array.isArray(value.supportedExtensions) || value.supportedExtensions.some(item => typeof item !== "string" || !/^[a-z0-9]+$/i.test(item)))) throw new TypeError("Invalid supported extensions.");
+  if (value.activePath !== undefined && value.activePath !== null && typeof value.activePath !== "string") throw new TypeError("Invalid active document path.");
+  if (value.onOpen !== undefined && typeof value.onOpen !== "function") throw new TypeError("Invalid document activation callback.");
   const draft = value.initialDraft as Draft | undefined;
   if (!draft || typeof draft.name !== "string" || (draft.form !== null && (!draft.form ||
     (draft.form.kind === "delete" ? !Array.isArray(draft.form.paths) || draft.form.paths.some(path => typeof path !== "string") :
@@ -60,6 +63,7 @@ function ExtensionBadge({ extension }: { extension: string }) {
 interface Creation { name: string; kind: "file" | "folder"; pending: boolean; onName(name: string): void; submit(restoreFocus?: boolean): Promise<void>; cancel(restoreFocus?: boolean): void }
 const ExplorerContext = createContext<{ props: ExplorerProps; creation: Creation | null; surface(): HTMLElement | null; context(path: string, x: number, y: number): void } | null>(null);
 function ExplorerRow({ node, attrs, innerRef, children }: RowRendererProps<Entry>) {
+  const { props } = useContext(ExplorerContext)!;
   return <div {...attrs} ref={innerRef} style={{ ...attrs.style, minWidth: 0 }} onFocus={event => {
     event.stopPropagation();
     if (node.data.draft && event.target === event.currentTarget) event.currentTarget.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
@@ -68,7 +72,7 @@ function ExplorerRow({ node, attrs, innerRef, children }: RowRendererProps<Entry
       if (node.data.draft) return;
       // A plain click selects without changing the geometry under a drag source.
       if (event.ctrlKey || event.metaKey || event.shiftKey) node.handleClick(event);
-      else node.select();
+      else { node.select(); if (node.data.kind === "file" && !props.busy) void props.onOpen?.(node.id); }
     }} onDoubleClick={event => { if (!event.ctrlKey && !event.metaKey && !event.shiftKey) node.activate(); }}>{children}</div>;
 }
 function CreateInput() {
@@ -128,7 +132,7 @@ function RenameInput({ node }: NodeRendererProps<Entry>) {
 function ExplorerNode(payload: NodeRendererProps<Entry>) {
   const { node, tree, style, dragHandle } = payload; const { props, context } = useContext(ExplorerContext)!;
   const label = fileLabel(node.data.name, node.data.kind, props.supportedExtensions);
-  return <Box ref={dragHandle} style={style} className="lm-explorer-node" data-root={node.id === ROOT_ID || undefined} data-selected={node.isSelected || undefined} data-focused={node.isFocused || undefined} data-drop={node.willReceiveDrop || undefined}
+  return <Box ref={dragHandle} style={style} className="lm-explorer-node" data-root={node.id === ROOT_ID || undefined} data-active={props.activePath === node.id || undefined} aria-current={props.activePath === node.id ? "page" : undefined} data-selected={node.isSelected || undefined} data-focused={node.isFocused || undefined} data-drop={node.willReceiveDrop || undefined}
     title={node.id === ROOT_ID ? node.data.name : node.id} onContextMenu={event => { event.preventDefault(); event.stopPropagation(); context(node.id, event.clientX, event.clientY); }}>
     {node.level > 0 && <span className="lm-explorer-indent-guides" aria-hidden="true"
       style={{ width: node.level * tree.indent, backgroundSize: `${tree.indent}px 100%` }} />}
@@ -193,6 +197,13 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     try { tree.current?.setSelection({ ids: props.selection, anchor: props.selection[0] ?? null, mostRecent: props.selection.at(-1) ?? null }); }
     finally { synchronizing.current = false; initializing.current = false; }
   }, []);
+  const revealedDocument = useRef<string | null>(null);
+  useEffect(() => {
+    if (!props.activePath) { revealedDocument.current = null; return; }
+    if (revealedDocument.current !== props.activePath && tree.current?.get(props.activePath)) {
+      revealedDocument.current = props.activePath; void tree.current.scrollTo(props.activePath);
+    }
+  }, [props.activePath, props.data]);
   function selected(): string[] { return (tree.current ? [...tree.current.selectedIds] : props.selection).filter(path => path !== ROOT_ID && path !== DRAFT_ID); }
   function destination(): string {
     const api = tree.current; const paths = selected(); const node = paths.length === 1 ? api?.get(paths[0]!) : null;
@@ -256,6 +267,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
       event.preventDefault(); event.stopPropagation();
       const node = tree.current?.focusedNode;
       if (!props.busy && node?.isInternal) node.toggle();
+      else if (!props.busy && node?.data.kind === "file") void props.onOpen?.(node.id);
       return;
     }
     let action: string | undefined;

@@ -41,3 +41,7 @@ and the existing public services. Explorer/editor/document plugins remain future
 work. See the [Workspace reference](../../../../DOCS/reference/workspace.md) for
 the content API, lifecycle, limits and manual acceptance. Run
 `npm run workspace:check` and the Tauri frontend build.
+
+Active file identity and restoration belong to the independent
+[ActiveDocument service](../../../../DOCS/reference/active-document.md), not the
+Workspace registry. A future content editor must consume that SDK contract.

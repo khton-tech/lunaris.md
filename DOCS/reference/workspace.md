@@ -151,8 +151,8 @@ uses Vault, Startup, Slots/SlotDom, Components, Config, Localization and mandato
 Workspace uses Mantine roles `lunaris.workspace-empty` and `lunaris.workspace-layout`.
 The reusable `lunaris.workspace-header` role remains available for other consumers
 but is not mounted by the default Workspace. The independent Sidebar uses the new side regions.
-Selector hides while a Vault is open and returns after closing. No editor/document
-integration is claimed; those plugins do not exist yet. The file explorer is now
+Selector hides while a Vault is open and returns after closing. The shared [active-document service](active-document.md) now owns file identity
+and restoration; editor rendering remains outstanding because no editor plugin exists. The file explorer is now
 connected through Sidebar and does not occupy main. Future content
 plugins connect through Workspace registration and public component roles.
 

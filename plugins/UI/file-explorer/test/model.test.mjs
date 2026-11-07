@@ -5,7 +5,7 @@ import { ExplorerModel, topLevel } from '../dist/src/model.js';
 const info = (path, kind = 'file') => ({ path, kind, size: 0, modifiedAt: null });
 const ok = value => ({ ok: true, value });
 const fail = code => ({ ok: false, error: { code, message: code } });
-function setup(overrides = {}) {
+function setup(overrides = {}, relocated) {
   const entries = new Map([['folder', info('folder', 'directory')], ['folder/note.md', info('folder/note.md')], ['a.md', info('a.md')]]);
   const calls = []; const logs = []; let active = true;
   const fs = {
@@ -23,7 +23,7 @@ function setup(overrides = {}) {
     async remove(target, recursive) { calls.push(['remove', target, recursive]); entries.delete(target.path); return ok(null); },
     ...overrides,
   };
-  const model = new ExplorerModel('vault', fs, () => active, () => {}, (...args) => logs.push(args));
+  const model = new ExplorerModel('vault', fs, () => active, () => {}, (...args) => logs.push(args), relocated);
   return { model, calls, entries, logs, stop() { active = false; } };
 }
 test('lazy directories, folder-first sorting and portable create policy', async () => {
@@ -111,4 +111,18 @@ test('a late initial scan cannot restore a directory removed during expansion', 
   await model.refresh(); const expanding = model.load('folder'); root = []; await model.refresh();
   resolve(ok([info('folder/stale.md')])); await expanding;
   assert.equal(model.directories.has('folder'), false); assert.deepEqual(model.tree(), []);
+});
+
+
+test('active document relocation is notified only after confirmed moves, never copies or failures', async () => {
+  const relocated = []; const s = setup({}, async (...args) => { relocated.push(args); });
+  await s.model.refresh();
+  assert.equal(await s.model.rename('a.md', 'renamed.md'), true);
+  assert.deepEqual(relocated, [['a.md', 'renamed.md']]);
+  assert.equal(await s.model.transfer(['renamed.md'], 'folder', true), true);
+  assert.equal(relocated.length, 1);
+  assert.equal(await s.model.rename('renamed.md', 'folder'), false);
+  assert.equal(relocated.length, 1);
+  assert.equal(await s.model.transfer(['renamed.md'], 'folder', false), false);
+  assert.equal(relocated.length, 1);
 });

@@ -184,3 +184,5 @@
 @media(prefers-reduced-motion:reduce) { .lm-workspace-content>.mantine-Splitter-handle::after { transition:none } }
 
 .lm-explorer .lm-explorer-extension { flex-shrink:0;margin-inline-start:auto;max-width:40%;height:1.5em;min-width:0;padding-inline:0.45em;border-radius:999px;font-size:calc(var(--vault-font-size)*0.72 - 1.5pt);line-height:1;font-weight:400;letter-spacing:0;text-transform:none;color:var(--vault-secondary);background:color-mix(in srgb,var(--vault-hover) 25%,transparent);border:0;pointer-events:none }
+
+.lm-explorer-node[data-active] { background:var(--explorer-control-pressed) }
