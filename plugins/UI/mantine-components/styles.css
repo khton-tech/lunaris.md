@@ -243,8 +243,7 @@
 .lm-setting-row[data-layout=stacked] { flex-direction:column; align-items:stretch }
 .lm-setting-row[data-layout=stacked]>.lm-setting-label,.lm-setting-row[data-layout=stacked]>.lm-setting-control { flex:0 0 auto; min-width:0 }
 .lm-text-editor { display:flex;flex:1;flex-direction:column;min-width:0;min-height:0;background:transparent }
-.lm-editor-header { flex:0 0 auto;min-width:0;padding:calc(var(--vault-space)*2) clamp(12px,3cqi,40px);user-select:none }
-.lm-editor-name { flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
+.lm-editor-placeholder { padding:calc(var(--vault-space)*2) clamp(12px,3cqi,40px);user-select:none;overflow-wrap:anywhere }
 .lm-editor-error { flex:0 0 auto;padding:calc(var(--vault-space)*2) clamp(12px,3cqi,40px);color:var(--vault-error);user-select:none }
 .lm-editor-target { display:flex;flex:1 1 0%;min-width:0;min-height:0;overflow:hidden;background:transparent }
 .lm-editor-target[hidden] { display:none }

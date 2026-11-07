@@ -458,7 +458,7 @@ reviewed against [Mantine UI navbars](https://ui.mantine.dev/category/navbars/).
 
 ## Text editor role
 
-lunaris.text-editor supplies the embedded editor header/status/recovery controls
+lunaris.text-editor supplies unavailable-state messages and editor recovery controls
 and a stable owned CodeMirror target. Strings and callbacks come from the editor
 controller through Components; this role contains no filesystem or editor state.
 It confirms dirty reload before invoking onReload and preserves its target across
@@ -466,11 +466,10 @@ theme/status updates. It adds no card or background over Workspace main. See the
 [role props, integration and manual acceptance](../../text-editor/DOCS/README.md).
 Reference: existing Settings/open Workspace composition and Mantine UI catalog.
 
-The role also accepts the additive optional mode group `preview`, `previewLabel`,
-`sourceLabel`, `onPreviewChange`. A compact Mantine Button displays the current
-localized mode, exposes Live Preview through aria-pressed and requests a toggle.
-Controller-owned mode changes preserve the lent target. Existing compact editor
-buttons are the visual reference; [Mantine UI buttons](https://ui.mantine.dev/category/buttons/)
-was consulted. No dropdown, separate preview surface or new shell is introduced.
-Native focus, label overflow and dark/light appearance inside Workspace remain
-pending manual acceptance; see the editor checklist above.
+The editor is headerless at the Owner's request. Filename, saved status, mode
+switch and Save controls are removed; only unavailable/loading messages and
+conditional error recovery remain above the stable CodeMirror target. Autosave
+and Mod-S belong to the controller/adapter and remain connected. The Owner's
+highlighted Workspace screenshot defines the region to remove. No layout or SDK
+contract additions are required. Verify the headerless composition and error
+recovery manually in Workspace; native visual acceptance remains pending.

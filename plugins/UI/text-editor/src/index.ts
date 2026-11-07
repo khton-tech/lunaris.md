@@ -15,7 +15,6 @@ import { mountEditor } from "./codemirror.js";
 import manifest from "../manifest.json" with { type: "json" };
 
 const catalogs = { en: {
-  livePreview: "Live Preview", source: "Source mode",
   empty: "Open a Markdown file", loading: "Loading", unsupported: "This file type is not supported", saved: "Saved", unsaved: "Unsaved", saving: "Saving",
   save: "Save", retry: "Retry save", reload: "Reload from disk", discard: "Discard changes and reload", cancel: "Cancel", editor: "Markdown editor",
   conflict: "The file changed outside the editor. Your changes are retained.", missing: "The file was removed. Your text is retained.",
@@ -32,7 +31,6 @@ export default definePlugin({ manifest, activate(ctx) {
   const sessions = new Map<string, DocumentSession>(); const states = new Map<DocumentSession, EditorState>();
   const views = new Set<{ render(): void; removed(): void }>();
   const screenId = `${ctx.pluginId}.screen`;
-  let preview = true;
   let current: DocumentSession | null = null; let unsupported = false; let scheduled = false;
   const messages = localization.register(ctx.pluginId, catalogs, ctx.signal);
   if (!messages.ok) throw new Error("Cannot register editor messages.", { cause: messages.error });
@@ -115,12 +113,6 @@ export default definePlugin({ manifest, activate(ctx) {
     const owner = ctx.scope.child(); let props = initial; let mounted: MountedComponent | undefined;
     let disposed = false; let editorTarget: HTMLElement | null = null;
     let editor: ReturnType<typeof mountEditor> | undefined; let rendered: DocumentSession | null = null;
-    const onPreviewChange = () => {
-      if (disposed || signal.aborted || ctx.signal.aborted) return;
-      preview = !preview;
-      logger.info(ctx.pluginId, "Editor mode changed", { data: { mode: preview ? "live-preview" : "source" } });
-      changed();
-    };
     const onTarget = (value: HTMLElement | null) => { editorTarget = value; };
     function clearEditor(): void { if (editor && rendered) states.set(rendered, editor.dispose()); editor = undefined; rendered = null; }
     const onSave = () => { if (!disposed && !signal.aborted && current?.active && !current.locks) void current.flush(); };
@@ -140,7 +132,6 @@ export default definePlugin({ manifest, activate(ctx) {
       const error = session?.error ? text(session.error.code === "CONFLICT" ? "conflict" : session.missing ? "missing" : session.loaded ? "saveFailed" : "readFailed") : "";
       const next = { documentKey: session ? key(session.target) : "", name: session?.target.path ?? text(unsupported ? "unsupported" : "empty"),
         status: session?.loading ? text("loading") : session?.saving ? text("saving") : session?.loaded ? text(session.dirty ? "unsaved" : "saved") : "",
-        preview, previewLabel: text("livePreview"), sourceLabel: text("source"), onPreviewChange,
         error, ready, dirty: session?.dirty ?? false, busy: !!session && (session.loading || session.saving || session.locks > 0),
         saveLabel: text("save"), retryLabel: text("retry"), reloadLabel: text("reload"), discardLabel: text("discard"), cancelLabel: text("cancel"), onSave, onReload, onTarget,
         presentation: { mode: "embedded", sizing: "fill" } };
@@ -159,8 +150,8 @@ export default definePlugin({ manifest, activate(ctx) {
         if (!editor) {
           rendered = session;
           editor = mountEditor(editorTarget, session, states.get(session), themes.current(), text("editor"), onSave,
-            error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "CodeMirror operation failed", { error }); }, preview);
-        } else editor.update(themes.current(), text("editor"), preview);
+            error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "CodeMirror operation failed", { error }); });
+        } else editor.update(themes.current(), text("editor"));
       }
     }
     const view = { render, removed() { clearEditor(); mounted = undefined; editorTarget = null; } };

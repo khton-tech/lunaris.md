@@ -8,10 +8,10 @@ with ui.dom, vault.access and filesystem.access.
 
 Open a Markdown file in File Explorer. Wrapped lines, Markdown syntax, standard
 text shortcuts, undo/redo, multiple selections and Mod-S are enabled. Tab keeps
-normal keyboard navigation. Live Preview is the default; the header mode button
-toggles Source mode without replacing the document, selection or undo history.
-The mode lasts for the plugin activation and applies across documents; it is not
-persisted as a setting. No reading view, formatting toolbar, gutter or CodeMirror
+normal keyboard navigation. Live Preview is enabled. The editor has no persistent
+header, filename, saved status, mode toggle or Save button. Autosave and Mod-S
+remain available. Source mode remains an internal adapter capability with no
+product control. No reading view, formatting toolbar, gutter or CodeMirror
 search panel is included. Unsupported extensions never decode as editable text.
 
 Autosave waits 2000 ms after the last edit. Mod-S and document/Vault/file
@@ -70,10 +70,6 @@ The plugin registers `lunaris.text-editor-host` for ActiveScreen and mounts
 - Booleans: ready, dirty, busy.
 - Callbacks: onSave(), onReload(), onTarget(HTMLElement | null).
 - Public presentation context: embedded/fill.
-- Optional mode group: preview (boolean), previewLabel/sourceLabel (localized
-  strings), onPreviewChange(). Supply the complete group to show the Mantine
-  mode button. Its aria-pressed state indicates Live Preview. The controller
-  owns the value; the role only displays it and invokes the callback.
 
 onTarget lends a stable owned element and releases it with null on disposal.
 Preserve its identity across status/theme updates. Mount CodeMirror after SDK
@@ -85,7 +81,7 @@ discard before invoking onReload. Controller callbacks become inert on cancellat
 Reference: the existing open Workspace main region and Settings inside
 ActiveScreen. Composition catalog consulted: [Mantine UI](https://ui.mantine.dev/).
 Workspace owns external spacing and the main surface; ActiveScreen owns screen
-geometry and hidden/inert behavior. Mantine owns the header, status, recovery
+geometry and hidden/inert behavior. Mantine owns unavailable-state messages, recovery
 controls and stable text target. CodeMirror owns text, selection, caret and local
 scrolling. Embedded roots remain transparent, with no enclosing card, border,
 shadow or shell. Semantic theme colors/typography apply. Native scrollbar chrome
@@ -115,12 +111,11 @@ Native visual acceptance remains manual. Run `npm run tauri:dev` and check:
    Exercise retry and explicit discard/reload.
 6. Read-error, unsupported/missing-file states, long translations and keyboard
    focus/recovery actions inside the actual Workspace.
-7. Live Preview/Source mode toggle, inline syntax reveal by click and arrow keys,
+7. Headerless Live Preview, inline syntax reveal by click and arrow keys,
    nested formatting, multi-cursor/range selection, multiline paragraphs and
    backspace at hidden-marker boundaries. Copy selections and inspect raw Markdown.
 8. Heading sizes, bullets, nested quotes, rules and code in dark/light themes;
-   check scrolling/wrapping in long documents and narrow/short windows. Mode button
-   focus/pressed state and long localized labels must remain usable. Native visual
+   check scrolling/wrapping in long documents and narrow/short windows. Recovery control focus and long localized labels must remain usable. Native visual
    acceptance of these states is pending; automated DOM tests do not establish it.
 
 ## Live Preview behavior and limits
@@ -165,9 +160,9 @@ extensions remain outstanding. They must use appropriate public SDK contracts;
 do not resolve files or navigate through private plugin state or raw platform APIs.
 No extra SDK service was required for the implemented presentation layer.
 
-Integration review: Text Editor passes additive mode props through Components to
-Mantine Components. The existing ActiveScreen, Workspace, Themes, Localization,
+Integration review: Text Editor mounts the headerless public role through Components
+to Mantine Components. The existing ActiveScreen, Workspace, Themes, Localization,
 Logger, ActiveDocument and Filesystem integrations remain connected. The role owns
-the mode control and target, while the adapter owns text presentation. No other
+recovery controls and the target, while the adapter owns text presentation. No other
 plugin needs new wiring for this foundation. Optional feature integrations listed
 above have not been implemented and must not be reported as complete.

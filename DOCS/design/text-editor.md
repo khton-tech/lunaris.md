@@ -79,5 +79,5 @@ Renderer replacement restores document/history/selection, not native scroll
 geometry; hiding/theming a live view preserves its existing scrolling.
 
 The subsequent [Live Preview foundation](live-preview.md) adds inline Markdown
-presentation and a Source mode toggle. Its supported syntax and outstanding
+presentation. The editor header was subsequently removed at the Owner's request. Its supported syntax and outstanding
 Obsidian-specific renderers are documented separately.

@@ -1,7 +1,7 @@
 # Live Preview Markdown foundation
 
 Researched on 2026-11-07. Implementation is in the Text Editor's CodeMirror adapter;
-the existing public Mantine editor role owns its localized mode control.
+the existing public Mantine editor role owns recovery controls and the stable target.
 
 ## Reference behavior
 
@@ -45,11 +45,11 @@ than claims about Obsidian internals.
 
 The [plugin guide](../../plugins/UI/text-editor/DOCS/README.md#live-preview-behavior-and-limits)
 specifies exact supported syntax, source fallbacks and integration status. This
-delivery establishes common Markdown presentation and a Source mode escape hatch;
+delivery establishes common Markdown presentation; Source mode remains available internally in the adapter;
 it does not claim all Obsidian renderers or editing interactions.
 
 Tests cover syntax/escape/nesting behavior, multiple selections, literal code and
-HTML, structural markers, edit-driven updates, composed mode control, no writes on
-mode changes, history/CRLF and renderer replacement. Native pointer hit testing,
+HTML, structural markers, edit-driven updates, headerless composition, no writes on
+rendering, history/CRLF and renderer replacement. Native pointer hit testing,
 caret geometry, scrolling, themes and narrow layouts require manual acceptance in
 the actual Tauri Workspace. Desktop automation is prohibited by repository policy.
