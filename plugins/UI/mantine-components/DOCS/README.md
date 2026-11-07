@@ -288,3 +288,7 @@ extensionless files, trailing dots and stemless dotfiles have no badge.
 Pasted full names do not duplicate suffixes. Empty names cannot submit.
 Existing Sidebar/Components callbacks carry full filenames; no driver or SDK
 API changes or additional plugin integrations are required.
+
+Explorer disclosure arrows keep a transparent background and their resting icon
+color on hover. The containing row owns hover feedback; expansion and keyboard
+focus behavior remain provided by the existing component role.
