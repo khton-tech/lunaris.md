@@ -33,8 +33,10 @@ contract. No kernel runtime change was necessary.
 
 The footer below the file tree shows the current Vault name. Open it to select
 one of up to four latest Vaults, ordered by the history provider, or choose
-Switch vault to open the native folder picker. Cancellation and failed preparation
-preserve the current Vault. Failed requests show a localized inline error and can
+Switch vault to close the current Vault through `Vault.close` and return to the
+startup selection screen with Create/Select actions. Direct recent switches
+preserve the current Vault on cancellation or failed preparation. Failed closure
+also preserves the current Vault. Failed requests show a localized inline error and can
 be retried; unavailable history offers Retry without blocking folder selection.
 Requests are serialized, and shutdown ignores pending results.
 

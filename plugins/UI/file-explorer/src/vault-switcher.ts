@@ -28,7 +28,7 @@ export function createVaultSwitcher(ctx: PluginContext, changed: () => void) {
     try {
       const result = await work();
       if (ctx.signal.aborted) return;
-      if ((!result.ok && result.error.code === "CANCELLED") || (result.ok && result.value === null)) return;
+      if (!result.ok && result.error.code === "CANCELLED") return;
       if (!result.ok) {
         error = "switchFailed";
         logger.warn(ctx.pluginId, "Cannot switch Vault", { code: result.error.code, error: result.error });
@@ -52,7 +52,7 @@ export function createVaultSwitcher(ctx: PluginContext, changed: () => void) {
           if (!entries.slice(0, 4).some(entry => entry.location.reference === reference) || reference === activeReference) return;
           void run(() => history.open(reference));
         },
-        onChange() { void run(() => vaults.open()); },
+        onChange() { void run(() => vaults.close()); },
         onRetry() { if (!busy && !ctx.signal.aborted) void load(); },
       };
     },

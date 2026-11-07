@@ -47,7 +47,7 @@ function setup(options = {}) {
       await ctx.events.emit(VaultHistoryChanged, { entries });
       return ok(current);
     }
-    ctx.provide(Vault, { current: () => current, open: () => open(location), async close() { current = null; return ok(null); } });
+    ctx.provide(Vault, { current: () => current, open: () => open(location), async close() { const previous = current; current = null; await ctx.events.emit(VaultChanged, { kind: 'closed', previous, current }); return ok(null); } });
     ctx.provide(VaultCreation, { create: (parent, name) => open({ reference: parent.reference + '/' + name, label: parent.label + '/' + name }, { name }) });
     ctx.provide(VaultLocations, { async describe(reference) { return ok({ reference, label: reference }); }, async select() { calls.push({ operation: 'select' }); return selections.length ? await selections.shift() : ok(location); }, open });
     ctx.provide(VaultHistory, { async list() { return options.historyFailure ? fail('HISTORY_UNAVAILABLE') : ok(entries); }, async open(reference) {
@@ -55,8 +55,8 @@ function setup(options = {}) {
       return entry ? open(entry.location) : fail('NOT_FOUND');
     } });
   } });
-  const toolPlugin = definePlugin({ manifest: manifest('test.tools', [], [Components, Themes, Localization], ['ui.dom']), activate(ctx) {
-    context = ctx; tools = { components: ctx.use(Components), themes: ctx.use(Themes), localization: ctx.use(Localization) };
+  const toolPlugin = definePlugin({ manifest: manifest('test.tools', [], [Components, Themes, Localization, Vault], ['ui.dom', 'vault.access']), activate(ctx) {
+    context = ctx; tools = { vaults: ctx.use(Vault), components: ctx.use(Components), themes: ctx.use(Themes), localization: ctx.use(Localization) };
     tools.themes.select('lunaris.base-theme-engine.monochrome');
   } });
   const slow = definePlugin({ manifest: manifest('test.slow'), async activate() { entered.resolve(); await finish.promise; } });
@@ -65,7 +65,7 @@ function setup(options = {}) {
   const session = new HostSession({ scheduler: new TestScheduler(), load: async () => ({ ...layout, startup,
     plugins: [logger, config, services, localization, componentProvider, kit, themes, baseTheme, toolPlugin, startup.plugin, runner, selector, slow, ...layout.plugins],
     entrypoints: [startup.plugin.manifest.id, baseTheme.manifest.id, ...(options.noKit ? [] : [kit.manifest.id]), 'test.tools', runner.manifest.id, selector.manifest.id, 'test.slow'],
-    grants: { ...layout.grants, [componentProvider.manifest.id]: ['ui.dom'], [kit.manifest.id]: ['ui.dom'], 'test.tools': ['ui.dom'],
+    grants: { ...layout.grants, [componentProvider.manifest.id]: ['ui.dom'], [kit.manifest.id]: ['ui.dom'], 'test.tools': ['ui.dom', 'vault.access'],
       [runner.manifest.id]: ['ui.dom', 'config.access'], [selector.manifest.id]: options.denied ? ['ui.dom'] : ['ui.dom', 'vault.access'] },
   }) });
   const starting = session.start();
@@ -228,5 +228,14 @@ test('failed startup restoration shows selection without trying older Vaults', a
   assert.deepEqual(s.calls.map(c => c.operation), ['recent', 'open']);
   assert.ok(s.surface.querySelector('.ln-vault'));
   assert.match(s.surface.textContent, /This folder is unavailable/);
+  await s.stop();
+});
+
+test('closing a Vault restores the start screen without reopening the latest Vault or a native picker', async () => {
+  const s = setup({ hideWhenVaultOpen: true, entries: [{ location, name: 'Latest' }] }); await s.ready();
+  assert.equal(s.surface.querySelector('.ln-vault'), null);
+  const before = s.calls.length; assert.equal((await s.tools.vaults.close()).ok, true); await flush();
+  assert.ok(s.surface.querySelector('.ln-vault')); assert.ok(find(s, 'Create vault')); assert.ok(find(s, 'Select vault'));
+  assert.equal(s.calls.length, before); assert.equal(s.tools.vaults.current(), null);
   await s.stop();
 });

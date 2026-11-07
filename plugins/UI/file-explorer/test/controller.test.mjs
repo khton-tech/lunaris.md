@@ -29,13 +29,13 @@ async function setup(options = {}) {
   });
   kernel.installMock(FilesystemObservation, { watch: async (target, owner) => { watches.push({ target, owner }); return { ok: true, value: `watch-${target.vaultId}` }; } });
   kernel.installMock(ActiveDocument, { current: () => document, async open(target) { document = target; await emit(ActiveDocumentChanged, { current: document }); return { ok: true, value: null }; }, async close() { return { ok: true, value: null }; }, async relocate() { return { ok: true, value: null }; }, async reconcile() { return { ok: true, value: null }; } });
-  kernel.installMock(Vault, { current: () => current, open: options.open ?? (async () => ({ ok: true, value: null })), close: async () => ({ ok: true, value: null }) });
+  kernel.installMock(Vault, { current: () => current, open: options.open ?? (async () => ({ ok: true, value: null })), close: options.close ?? (async () => { const previous = current; current = null; await emit(VaultChanged, { kind: 'closed', previous, current }); return { ok: true, value: null }; }) });
   kernel.installMock(VaultHistory, { list: options.list ?? (async () => ({ ok: true, value: options.entries ?? [] })), open: options.recent ?? (async () => ({ ok: true, value: current })) });
   kernel.register(definePlugin({ manifest: manifest('test.events', [FileChanged, VaultChanged, ActiveDocumentChanged, VaultHistoryChanged].map(token => ({ kind: 'event', id: token.id, version: token.version }))), activate(ctx) { emit = (token, value) => ctx.events.emit(token, value); } }));
   kernel.register(componentProvider); kernel.register(contextMenuProvider); kernel.register(sidebarProvider); kernel.register(localization); kernel.register(explorer);
   kernel.register(definePlugin({ manifest: manifest('test.inspect', [], [Sidebar, Localization, ContextMenu, Components].map(token => ({ kind: 'api', id: token.id, range: '^1.0.0' })), ['ui.dom']), activate(ctx) { side = ctx.use(Sidebar); locales = ctx.use(Localization); menus = ctx.use(ContextMenu); components = ctx.use(Components); inspect = ctx; } }));
   await kernel.start('test.events'); await kernel.start('test.inspect'); await kernel.start(explorer.manifest.id); await flush();
-  return { kernel, logs, watches, lists, side, locales, menus, components, inspect, emit, tab: () => side.snapshot().tabs[0], async switch(root) { const previous = current; current = root; await emit(VaultChanged, { kind: root ? 'switched' : 'closed', previous, current }); await flush(); } };
+  return { kernel, logs, watches, lists, side, locales, menus, components, inspect, emit, tab: () => side.snapshot().tabs[0], async switch(root) { const previous = current; current = root; await emit(VaultChanged, { kind: root ? (previous ? 'switched' : 'opened') : 'closed', previous, current }); await flush(); } };
 }
 test('SDK controller registers a localized sidebar tool, preserves collapsed state and refreshes only its own watch', async () => {
   const s = await setup();
@@ -99,7 +99,7 @@ test('active document events reveal its parents and selection clearing does not 
 });
 
 const recents = Array.from({ length: 6 }, (_, i) => ({ name: 'Vault ' + i, location: { reference: 'ref-' + i, label: 'Folder ' + i } }));
-test('Vault switcher limits history, guards concurrent requests and keeps the current tree on failure/cancel', async () => {
+test('Vault switcher limits history, guards concurrent requests and keeps the current tree on failure and closes it for the start screen', async () => {
   let complete; const calls = [];
   const s = await setup({ entries: recents, recent: reference => { calls.push(reference); return new Promise(resolve => { complete = resolve; }); } });
   const props = () => s.tab().props.vaultSwitcher;
@@ -109,7 +109,7 @@ test('Vault switcher limits history, guards concurrent requests and keeps the cu
   assert.deepEqual(calls, ['ref-1']); assert.equal(props().busy, true);
   complete({ ok: false, error: { code: 'NOT_FOUND', message: 'Unavailable' } }); await flush();
   assert.equal(props().busy, false); assert.equal(props().error, 'switchFailed'); assert.equal(s.tab().props.vaultId, 'a');
-  props().onChange(); await flush(); assert.equal(props().error, ''); assert.equal(props().name, 'A');
+  props().onChange(); await flush(); assert.equal(props().error, ''); assert.equal(props().name, ''); assert.equal(s.tab().props.vaultId, '');
   await s.emit(VaultHistoryChanged, { entries: recents.slice().reverse() }); await flush();
   assert.equal(props().entries[0].reference, 'ref-5');
   await s.switch({ id: 'b', name: 'B' }); assert.equal(props().name, 'B');
@@ -117,7 +117,7 @@ test('Vault switcher limits history, guards concurrent requests and keeps the cu
 });
 test('Vault switcher rejects stale history loads and ignores pending results after shutdown', async () => {
   let resolveList; let resolveOpen;
-  const s = await setup({ list: () => new Promise(resolve => { resolveList = resolve; }), open: () => new Promise(resolve => { resolveOpen = resolve; }) });
+  const s = await setup({ list: () => new Promise(resolve => { resolveList = resolve; }), close: () => new Promise(resolve => { resolveOpen = resolve; }) });
   await s.emit(VaultHistoryChanged, { entries: recents }); await flush();
   resolveList({ ok: true, value: [] }); await flush(); assert.equal(s.tab().props.vaultSwitcher.entries.length, 4);
   s.tab().props.vaultSwitcher.onChange(); await flush(); await s.kernel.stopAll();

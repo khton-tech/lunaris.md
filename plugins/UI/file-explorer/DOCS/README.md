@@ -37,8 +37,9 @@ Run `npm run file-explorer:check` and the Tauri frontend build.
 
 The file panel footer displays the current Vault name. Its upward-opening Mantine
 menu shows at most four most-recent-first history entries and Switch vault.
-`VaultHistory.list/open` supplies recents; `Vault.open` selects and prepares another
-folder without closing the current Vault on cancellation or failure. The dedicated
+`VaultHistory.list/open` supplies direct recent switches; Switch vault calls
+`Vault.close` to return to the startup selector with Create/Select actions. Failed
+closure preserves the current Vault and displays a retryable error. The dedicated
 navigation controller survives file-tree session replacement. It guards duplicate
 requests and stopped scopes, ignores stale history reads after history events,
 and exposes localized failure/retry UI. History failures do not block folder selection.
