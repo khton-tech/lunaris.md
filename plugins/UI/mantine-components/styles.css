@@ -134,10 +134,12 @@
 .lm-explorer-drag-preview span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
 .lm-explorer-node { position:relative;display:flex;align-items:center;gap:calc(var(--vault-space)*1.5);height:calc(100% - var(--vault-space)*0.5);margin-block:calc(var(--vault-space)*0.25);padding-inline-end:calc(var(--vault-space)*2);min-width:0;border-radius:calc(var(--vault-radius)*0.5);cursor:default;color:var(--vault-text);transition:background-color var(--vault-motion-fast) var(--vault-motion-easing) }
 .lm-explorer-indent-guides { position:absolute;inset-inline-start:0;inset-block:calc(var(--vault-space)*-0.25);pointer-events:none;background-image:linear-gradient(to right,color-mix(in srgb,var(--vault-secondary) 18%,transparent) var(--vault-border),transparent var(--vault-border));background-position:calc(0.625em - var(--vault-border)*0.5) 0;background-repeat:repeat-x }
-.lm-explorer-node>svg { width:1.1em;height:1.1em;flex-shrink:0;color:var(--vault-secondary) }
+.lm-explorer-entry-icon { position:relative;display:flex;align-items:center;width:1.1em;height:1.1em;flex-shrink:0;color:var(--vault-secondary) }
+.lm-explorer-entry-icon>svg { width:100%;height:100% }
+.lm-explorer-node[data-directory][data-selected] .lm-explorer-entry-icon::before { content:"";position:absolute;inset-inline-start:calc(var(--vault-space)*-1);inset-block:0.1em;width:calc(var(--vault-border)*2);border-radius:var(--vault-radius);background:color-mix(in srgb,var(--vault-secondary) 55%,transparent);pointer-events:none }
 .lm-explorer-node[data-root] .lm-explorer-filename { font-weight:500 }
-.lm-explorer-node[data-selected] { background:color-mix(in srgb,var(--vault-selection) 75%,var(--vault-panel)) }
-.lm-explorer:not([aria-busy=true]) .lm-explorer-node:active { background:var(--explorer-control-pressed) }
+.lm-explorer-node[data-selected]:not([data-directory]) { background:color-mix(in srgb,var(--vault-selection) 75%,var(--vault-panel)) }
+.lm-explorer:not([aria-busy=true]) .lm-explorer-node:not([data-directory]):active { background:var(--explorer-control-pressed) }
 .lm-explorer-node[data-drop] { outline:var(--vault-border) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-border)) }
 .lm-explorer[data-keyboard-navigation] .lm-explorer-row:focus-visible .lm-explorer-node { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
 .lm-explorer-tree [role=tree] { outline:none }

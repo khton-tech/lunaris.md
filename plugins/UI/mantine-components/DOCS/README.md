@@ -306,3 +306,9 @@ Confirmed file creation activates the new file; rename/move update its identity
 and deletion/observation/manual refresh reconcile missing files. See
 [the active document reference](../../../../DOCS/reference/active-document.md).
 Content editor integration remains outstanding; no editor exists yet.
+
+Selected directories, including the Vault root, use a subtle vertical marker
+before their icon instead of a persistent row background. The marker is
+positioned within the icon wrapper and does not shift tree indentation or row
+geometry. Files retain independent selection/active-document highlighting.
+No SDK/controller integration changes are required.
