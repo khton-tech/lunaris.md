@@ -12,12 +12,17 @@ theme selector and the underlying replaceable theme/localization services.
 Requires Logger, Config/ConfigChanged, Settings 1.1, Localization/
 LocaleChanged, Themes/ThemeChanged and Vault/VaultChanged through `ctx.use` and
 SDK events. Grants: `config.access`, `vault.access`. Provides no API/events and
-registers no Components role. Registers category `lunaris.interface-settings.general`,
+registers no Components role. Registers category `lunaris.interface-settings.customization`,
 group `lunaris.interface-settings.preferences` and two `select` items:
 `lunaris.interface-settings.locale` and `lunaris.interface-settings.theme`.
-The hierarchy is General / Interface / Language and Theme. Each item declares
+The hierarchy is Customization / Interface / Language and Theme. Each item declares
 its title, type, inline layout, order, value, options, disabled/error state and
 change handler through Settings registration; none of this structure is in Config.
+
+The category replaces the former General UI contribution; no other shipped plugin
+references that category ID. The Config namespace and `locale`/`theme` keys are
+unchanged, so saved choices require no migration. The controller still requires
+no Components dependency or DOM permission.
 
 The plugin reads/writes only its own namespace with explicit
 `{ scope: "vault", vaultId }` targets. It never reads global/effective preferences.
@@ -71,7 +76,7 @@ Workspace owns the surrounding geometry/surfaces. Settings owns category navigat
 the main page and group targets/headings. The embedded/content Mantine role owns
 only labeled controls, internal spacing and inline errors. It paints no outer
 surface, card or border. A single available choice is rendered as text instead of
-an input with no meaningful alternatives; multiple choices use Mantine NativeSelect.
+an input with no meaningful alternatives; multiple choices use the shared themed Mantine Select.
 Inputs survive locale/theme/item presentation updates. Rows wrap on narrow
 containers; registered `inline` layout puts labels and controls beside each other
 when space permits. This follows the
@@ -92,7 +97,7 @@ public-export audit. Tests exercise the composed Settings page, persistence,
 live application, Vault isolation, stale reads/writes, errors/retry, restored values,
 theme availability, retained inputs and inherited surfaces.
 
-Native visual acceptance remains manual: open Settings > General in a disposable
+Native visual acceptance remains manual: open Settings > Customization in a disposable
 Vault; verify Language/Theme and the available values, narrow/short windows, long
 labels, focus and inherited surfaces. With additional registered catalogs/themes,
 verify immediate selection and restoration across Vault changes/restart. Desktop

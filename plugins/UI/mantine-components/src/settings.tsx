@@ -1,7 +1,9 @@
 import { useId, useLayoutEffect, useRef } from "react";
-import { Box, Button, NativeSelect, Stack, Text, Title } from "@mantine/core";
+import { Box, Button, Stack, Text, Title } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
+import { SettingsSelect } from "./settings-select.js";
+import { ToolNavigationItem, ToolPanelHeader } from "./tool-navigation.js";
 
 interface Item { readonly id: string; readonly title: string; readonly description?: string }
 interface ChoiceField { readonly id: string; readonly label: string; readonly value: string; readonly options: readonly { readonly value: string; readonly label: string }[] }
@@ -23,9 +25,9 @@ export function SettingsChoices({ props, theme }: { props: ChoicesProps; theme: 
   return <Stack className="lm-settings-choices" style={theme.contentStyle} gap="md">
     {props.fields.map(field => field.options.length === 1 ? <Stack key={field.id} gap={4}>
       <Text size="sm" fw={500}>{field.label}</Text><Text size="sm">{field.options[0]!.label}</Text>
-    </Stack> : <NativeSelect key={field.id} label={field.label} value={field.value}
-      data={field.options.map(option => ({ ...option }))} disabled={props.disabled || field.options.length === 0}
-      onChange={event => props.onChange(field.id, event.currentTarget.value)} />)}
+    </Stack> : <SettingsSelect key={field.id} label={field.label} value={field.value}
+      options={field.options} disabled={props.disabled || field.options.length === 0}
+      onChange={value => props.onChange(field.id, value)} />)}
     {props.error && <Text role="alert" c="var(--vault-error)" size="sm">{props.error}</Text>}
     {props.canRetry && <Button variant="subtle" disabled={props.disabled} onClick={props.onRetry}>{props.retryLabel}</Button>}
   </Stack>;
@@ -49,11 +51,12 @@ export function settingsPageProps(value: ComponentProps): PageProps {
   return value as unknown as PageProps;
 }
 export function SettingsNavigation({ props, theme }: { props: NavigationProps; theme: ReturnType<typeof resolveTheme> }) {
-  return <Stack component="nav" className="lm-settings-navigation" aria-label={props.title} style={theme.contentStyle} gap="xs">
-    <Title order={2} size="sm">{props.title}</Title>
-    {props.categories.length ? props.categories.map(item => <Button key={item.id} variant="subtle" justify="start"
-      className="lm-settings-category lm-focus" aria-current={item.id === props.selectedId ? "page" : undefined}
-      onClick={() => props.onSelect(item.id)}>{item.title}</Button>) : <Text size="sm" c="dimmed">{props.emptyLabel}</Text>}
+  return <Stack component="nav" className="lm-settings-navigation" aria-label={props.title} style={theme.contentStyle} gap={0}>
+    <ToolPanelHeader title={props.title} />
+    <Stack className="lm-settings-categories" gap={0}>
+      {props.categories.length ? props.categories.map(item => <ToolNavigationItem key={item.id} title={item.title} selected={item.id === props.selectedId}
+        onSelect={() => props.onSelect(item.id)} />) : <Text size="sm" c="dimmed">{props.emptyLabel}</Text>}
+    </Stack>
   </Stack>;
 }
 export function SettingsPage({ props, theme }: { props: PageProps; theme: ReturnType<typeof resolveTheme> }) {

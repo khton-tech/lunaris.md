@@ -89,6 +89,24 @@ and retained root/input identity. Native geometry remains subject to manual chec
 
 ## Roles and props
 
+Settings consistency reference: the Owner's Files panel/header and Vault-footer
+screenshots, implemented by `explorer.tsx`, `vault-switcher.tsx` and the shared
+component stylesheet. Settings navigation now uses a compact tool-header menu and
+icon-bearing category rows instead of a separate large-button scheme. Header
+geometry and states share CSS rules with the existing Files header; the Files
+renderer/controller is unchanged. Category rows use a generic settings icon;
+category-specific icon registration is not introduced by this change.
+
+Both declarative and legacy settings dropdowns use `SettingsSelect`, built on
+Mantine Select/Combobox. Its trigger, listbox, selected/hovered options and check
+indicator remain within the owned themed root (`withinPortal: false`). Opening
+the list never invokes a native select popup. The list supports keyboard arrows,
+Enter, Escape, no deselection, disabled controls and bounded local scrolling.
+Standard Combobox CSS is explicitly included. These behavior/DOM properties are
+tested; native menu placement, visual matching and focus appearance remain manual.
+Intentional differences from Files: settings rows are category actions rather
+than a filesystem tree, so they do not expose folder disclosure or file operations.
+
 Settings visual hierarchy uses a page header, separately named group headers and
 indented rows with quiet separators. Header spacing and bounded content width keep
 groups legible without painting another card over Workspace. Group headings label
@@ -106,7 +124,7 @@ Settings 1.1 items. Props: `items: SettingsItem[]`, `onChange(id, value)` and
 `onRetry(id)`. It interprets public `type`, `title`, `description`, `layout`, controlled
 `value`, options/constraints, `disabled`, `error` and retry presentation. It calls
 the supplied host callbacks, never the contributed item callbacks directly.
-Select/switch/text/number map to Mantine NativeSelect/Switch/TextInput/NumberInput.
+Select/switch/text/number map to the shared themed Mantine Select/Switch/TextInput/NumberInput.
 A sole matching select option is plain text. Item IDs retain row/input identity;
 labels, descriptions and errors are linked accessibly. Inline rows wrap naturally;
 `stacked` puts the control below its label. The container owns surrounding surfaces
@@ -116,11 +134,11 @@ and group headings. The role owns internal controls/spacing only.
 must use the declarative registration contract. Its props:
 `fields: { id, label, value, options: { value, label }[] }[]`, `disabled`, localized
 `error`, `retryLabel`, `canRetry`, `onChange(id, value)` and `onRetry()`. Field/option
-IDs are unique; values/labels are strings. Multiple choices use Mantine NativeSelect;
+IDs are unique; values/labels are strings. Multiple choices use the shared themed Mantine Select;
 a single choice is plain labeled text. Errors use an alert and optional Retry.
 The role owns internal spacing/controls only, preserves input identity on updates
-and inherits Settings' surface. Persistence and lifetime checks stay in the
-[Settings container](../../settings/DOCS/README.md) owns current declarative
+and inherits Settings' surface. Persistence stays in the contributing controller.
+The [Settings container](../../settings/DOCS/README.md) owns current declarative
 callback lifetimes; interface-settings no longer registers a custom host role.
 
 Mount through ctx.use(Components), never import a renderer from a consumer:

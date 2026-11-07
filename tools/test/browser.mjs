@@ -6,6 +6,8 @@ export function useBrowser(dom) {
   const view = dom.window;
   view.matchMedia ??= query => ({ matches: false, media: query, onchange: null, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent() { return true; } });
   view.ResizeObserver ??= class { observe() {} unobserve() {} disconnect() {} };
+  // JSDOM has no layout/scrolling implementation; Combobox calls this browser API.
+  view.HTMLElement.prototype.scrollIntoView ??= function () {};
   view.requestAnimationFrame ??= callback => view.setTimeout(() => callback(view.performance.now()), 16);
   view.cancelAnimationFrame ??= id => view.clearTimeout(id);
   for (const [key, value] of Object.entries({ addEventListener: view.addEventListener.bind(view), removeEventListener: view.removeEventListener.bind(view), window: view, document: view.document, AbortController: view.AbortController, AbortSignal: view.AbortSignal, navigator: view.navigator, HTMLElement: view.HTMLElement, Image: view.Image, Element: view.Element, Node: view.Node, getComputedStyle: view.getComputedStyle.bind(view), ResizeObserver: view.ResizeObserver, requestAnimationFrame: view.requestAnimationFrame.bind(view), cancelAnimationFrame: view.cancelAnimationFrame.bind(view) })) {

@@ -55,8 +55,12 @@ change requires a fresh owned registration. Existing validation/result/error rul
 below apply to all contributions.
 
 Settings renders groups using its existing ordered page headings and stable targets.
+Navigation follows the existing tool-panel header and compact icon-row scheme.
+The shipped interface contribution appears under Customization -> Interface.
 Mantine's `lunaris.settings-items` role supplies responsive label/control rows and
-select/switch/text/number controls. `inline` places label and control beside each
+select/switch/text/number controls. Select triggers and opened options use the
+shared themed Mantine Select/Combobox, including legacy choice contributions;
+native option popups are not used. `inline` places label and control beside each
 other when space permits and wraps on narrow widths; `stacked` places the control
 below its label. A sole matching select option is rendered as plain text. Item
 labels/descriptions/errors use accessible associations. The group host provides
@@ -223,3 +227,12 @@ owned groups/items, malformed typed descriptors, all four controls, declared ord
 and layout, retained inputs, canceled item/Vault contexts, callback failures and
 language/theme persistence. Tauri production frontend build, public-export/docs
 audit and CI scope-selection test passed. Native visual acceptance remains pending.
+
+UIKit consistency evidence, 2026-11-07: Mantine, Settings UI, interface-settings and
+affected Tauri checks passed 113 tests, zero skipped. Coverage includes actual
+Select listbox options in the owned themed root, pointer/keyboard selection,
+Escape, disabled state, header/category icons, unchanged input identity, Vault
+isolation and saved-choice restoration. Production Tauri frontend build and
+public-export/docs audit passed. Manual acceptance must still check the opened
+menu's placement/theme/focus, the Settings/Files panel comparison and narrow/short
+windows. Automated DOM checks do not establish that visual match.

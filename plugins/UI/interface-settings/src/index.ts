@@ -11,10 +11,10 @@ import manifest from "../manifest.json" with { type: "json" };
 
 type Key = "locale" | "theme";
 interface Session { readonly vaultId: string; readonly epoch: number; revision: number; reload: boolean; loading: boolean; busy: boolean; error: string; errorKey: Key; locale: string; theme: string }
-const categoryId = "lunaris.interface-settings.general";
+const categoryId = "lunaris.interface-settings.customization";
 const groupId = "lunaris.interface-settings.preferences";
 
-const catalogs = { en: { general: "General", interface: "Interface", locale: "Language", theme: "Theme",
+const catalogs = { en: { customization: "Customization", interface: "Interface", locale: "Language", theme: "Theme",
   unavailable: "Saved choice is unavailable.", readFailed: "Cannot read preferences. Retry to load them.",
   saveFailed: "Cannot save the change. Try again.", applyFailed: "Cannot apply the selected choice.", retry: "Retry" } };
 
@@ -54,7 +54,7 @@ export function createInterfaceSettings(options: { readonly defaultThemeId: stri
     }
     function publish(): void {
       if (ctx.signal.aborted) return;
-      ensure(settings.updateCategory(categoryId, { title: text("general") }));
+      ensure(settings.updateCategory(categoryId, { title: text("customization") }));
       ensure(settings.updateGroup(groupId, { title: text("interface") }));
       for (const key of ["locale", "theme"] as const) ensure(settings.updateItem(`${ctx.pluginId}.${key}`, presentation(key)));
     }
@@ -104,7 +104,7 @@ export function createInterfaceSettings(options: { readonly defaultThemeId: stri
         }
       } finally { if (alive(current)) { current.busy = false; if (current.reload) { current.reload = false; void load(current); } changed(); } }
     }
-    ensure(settings.registerCategory({ id: categoryId, title: text("general"), order: 10 }, ctx.signal));
+    ensure(settings.registerCategory({ id: categoryId, title: text("customization"), order: 10 }, ctx.signal));
     ensure(settings.registerGroup({ id: groupId, categoryId, title: text("interface"), order: 10 }, ctx.signal));
     for (const [order, key] of (["locale", "theme"] as const).entries()) ensure(settings.registerItem({ id: `${ctx.pluginId}.${key}`, groupId, order, ...presentation(key) }, ctx.signal));
     function switchVault(): void {

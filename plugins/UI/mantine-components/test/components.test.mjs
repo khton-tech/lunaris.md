@@ -96,6 +96,8 @@ test('settings roles escape labels, preserve borrowed targets and validate navig
   assert.equal(page.value.update({ ...props, sections: [props.sections[0], props.sections[0]] }).ok, false);
   let selected; const navProps = { title: 'Settings', emptyLabel: 'Empty', categories: [{ id: 'test.category', title: '<img src=x>' }], selectedId: null, onSelect: id => { selected = id; } };
   const nav = s.components.mount('lunaris.settings-navigation', s.target, navProps, s.ctx.signal); assert.equal(nav.ok, true);
+  assert.ok(s.target.querySelector('.lm-settings-navigation .lm-tool-panel-header svg'));
+  assert.ok(s.target.querySelector('.lm-settings-category .mantine-Button-section svg'));
   s.target.querySelector('.lm-settings-category').click(); assert.equal(selected, 'test.category'); assert.equal(s.target.querySelector('img'), null);
   assert.equal(nav.value.update({ ...navProps, selectedId: 'test.missing' }).ok, false);
   assert.equal(input.value, 'Draft'); page.value.dispose(); assert.equal(targets, null); nav.value.dispose(); await s.stop();
@@ -131,12 +133,15 @@ test('settings choices validate data, render single values as text and retain li
   const mounted = s.components.mount('lunaris.settings-choices', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true);
   assert.equal(s.target.querySelector('select'), null); assert.match(s.target.textContent, /LanguageEnglish/);
   const multiple = { ...props, fields: [{ ...props.fields[0], options: [...props.fields[0].options, { value: 'fr', label: '<French>' }] }] };
-  assert.equal(mounted.value.update(multiple).ok, true); const input = s.target.querySelector('select');
-  input.value = 'fr'; input.dispatchEvent(new s.dom.window.Event('change', { bubbles: true })); assert.deepEqual(changes, [['locale', 'fr']]);
+  assert.equal(mounted.value.update(multiple).ok, true); const input = s.target.querySelector('[role=combobox]');
+  input.click(); await new Promise(resolve => setImmediate(resolve));
+  const choice = [...s.target.querySelectorAll('[role=option]')].find(option => option.textContent.trim() === '<French>');
+  assert.ok(choice); choice.click(); await new Promise(resolve => setImmediate(resolve)); assert.deepEqual(changes, [['locale', 'fr']]);
   assert.equal(mounted.value.update({ ...multiple, fields: [{ ...multiple.fields[0], value: 'fr', label: 'Langue' }], error: 'Save failed' }).ok, true);
-  assert.equal(s.target.querySelector('select'), input); assert.equal(input.value, 'fr'); assert.equal(s.target.querySelector('img'), null);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(s.target.querySelector('[role=combobox]'), input); assert.equal(input.value, '<French>'); assert.equal(s.target.querySelector('img'), null);
   assert.equal(mounted.value.update({ ...multiple, fields: [...multiple.fields, ...multiple.fields] }).ok, false);
-  assert.equal(s.target.querySelector('select'), input); assert.match(s.target.querySelector('[role=alert]').textContent, /Save failed/);
+  assert.equal(s.target.querySelector('[role=combobox]'), input); assert.match(s.target.querySelector('[role=alert]').textContent, /Save failed/);
   assert.equal(s.target.querySelector('.lm-root').style.backgroundColor, 'transparent');
   assert.equal(s.target.querySelector('.lm-root').style.containerType, 'inline-size'); await s.stop();
 });
@@ -161,6 +166,25 @@ test('declarative item role renders typed Mantine controls, forwards typed value
   assert.equal(text.getAttribute('aria-label'), 'Updated Name');
   assert.equal(s.target.querySelector('[data-settings-item="test.text"]').dataset.layout, 'stacked');
   assert.equal(mounted.value.update({ ...props, items: [{ ...fields[1], value: 'bad' }] }).ok, false); await s.stop();
+});
+
+test('Settings Select opens themed options, supports keyboard selection and Escape, and respects disabled state', async () => {
+  const s = await setup(); await s.start(); const changes = []; const settle = async () => { for (let i = 0; i < 4; i++) await new Promise(resolve => setImmediate(resolve)); };
+  const props = { fields: [{ id: 'locale', label: 'Language', value: 'en', options: [{ value: 'en', label: 'English' }, { value: 'fr', label: 'French' }] }],
+    disabled: false, error: '', canRetry: false, retryLabel: 'Retry', onChange: (...args) => changes.push(args), onRetry() {} };
+  const mounted = s.components.mount('lunaris.settings-choices', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true);
+  const trigger = s.target.querySelector('[role=combobox]'); assert.equal(s.target.querySelector('select'), null);
+  trigger.focus(); trigger.click(); await settle(); assert.equal(trigger.getAttribute('aria-expanded'), 'true');
+  const list = s.dom.window.document.getElementById(trigger.getAttribute('aria-controls'));
+  assert.ok(list.closest('.lm-setting-dropdown')); assert.equal(list.closest('.lm-root'), trigger.closest('.lm-root'));
+  assert.deepEqual([...list.querySelectorAll('[role=option]')].map(option => option.textContent.trim()), ['English', 'French']);
+  trigger.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'ArrowDown', code: 'ArrowDown', bubbles: true })); await settle();
+  trigger.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true })); await settle();
+  assert.deepEqual(changes, [['locale', 'fr']]); assert.equal(trigger.getAttribute('aria-expanded'), 'false');
+  trigger.click(); await settle(); trigger.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await settle();
+  assert.equal(trigger.getAttribute('aria-expanded'), 'false'); assert.equal(s.dom.window.document.activeElement, trigger); assert.equal(changes.length, 1);
+  mounted.value.update({ ...props, disabled: true }); await settle(); trigger.click(); await settle();
+  assert.equal(trigger.disabled, true); assert.notEqual(trigger.getAttribute('aria-expanded'), 'true'); await s.stop();
 });
 
 test('theme replacement and clearing update mounted roots without affecting the document or stored preferences', async () => {

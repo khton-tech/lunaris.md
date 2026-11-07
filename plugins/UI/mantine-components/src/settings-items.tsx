@@ -1,9 +1,9 @@
 import { useId } from "react";
-import { Box, Button, NativeSelect, NumberInput, Stack, Switch, Text, TextInput } from "@mantine/core";
+import { Box, Button, NumberInput, Stack, Switch, Text, TextInput } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { SettingsItem } from "@lunaris/settings";
 import type { resolveTheme } from "./theme.js";
-import { Icon } from "./icons.js";
+import { SettingsSelect } from "./settings-select.js";
 
 interface Props { readonly items: readonly SettingsItem[]; readonly onChange: (id: string, value: unknown) => void; readonly onRetry: (id: string) => void }
 export function settingsItemsProps(value: ComponentProps): Props {
@@ -25,9 +25,7 @@ function SettingRow({ item, onChange, onRetry }: { item: SettingsItem; onChange:
   let control;
   switch (item.type) {
     case "select": control = staticValue ? <Text className="lm-setting-static-value" size="sm" aria-describedby={describedBy}>{item.options[0]!.label}</Text> :
-      <NativeSelect {...shared} size="sm" classNames={{ input: "lm-input lm-setting-input lm-setting-select" }}
-        leftSection={<Icon name="vault-switch" />} leftSectionWidth={32} leftSectionPointerEvents="none" rightSection={<span />} rightSectionWidth={0}
-        value={item.value} data={item.options.map(option => ({ ...option }))} disabled={!!item.disabled || !item.options.length} onChange={event => onChange(item.id, event.currentTarget.value)} />; break;
+      <SettingsSelect {...shared} value={item.value} options={item.options} disabled={!!item.disabled || !item.options.length} onChange={value => onChange(item.id, value)} />; break;
     case "switch": control = <Switch {...shared} checked={item.value} onChange={event => onChange(item.id, event.currentTarget.checked)} />; break;
     case "text": control = <TextInput {...shared} size="sm" classNames={{ input: "lm-input lm-setting-input" }} value={item.value} placeholder={item.placeholder} onChange={event => onChange(item.id, event.currentTarget.value)} />; break;
     case "number": control = <NumberInput {...shared} size="sm" classNames={{ input: "lm-input lm-setting-input" }} value={item.value} {...(item.min === undefined ? {} : { min: item.min })} {...(item.max === undefined ? {} : { max: item.max })} {...(item.step === undefined ? {} : { step: item.step })} onChange={value => { if (typeof value === "number" && Number.isFinite(value)) onChange(item.id, value); }} />; break;

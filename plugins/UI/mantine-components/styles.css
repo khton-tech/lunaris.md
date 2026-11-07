@@ -13,6 +13,7 @@
 @import '@mantine/core/styles/Text.css';
 @import '@mantine/core/styles/Title.css';
 @import '@mantine/core/styles/Popover.css';
+@import '@mantine/core/styles/Combobox.css';
 @import '@mantine/core/styles/Menu.css';
 @import '@mantine/core/styles/Splitter.css';
 
@@ -122,13 +123,13 @@
 }
 @media(prefers-reduced-motion:reduce) { .lm-root .lm-button,.lm-root .lm-input,.lm-root .ln-vault-disclosure { transition:none } }
 .lm-explorer { --explorer-control-hover:color-mix(in srgb,var(--vault-hover) 35%,var(--vault-panel));--explorer-control-pressed:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel));position:relative;display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;overflow:auto;user-select:none }
-.lm-explorer-toolbar { flex-shrink:0;padding:calc(var(--vault-space)*2);position:relative }
-.lm-root .lm-explorer-tabs { width:100%;max-width:100%;min-width:0;min-height:calc(var(--vault-space)*8);padding:var(--vault-space) calc(var(--vault-space)*3);border:0;border-radius:var(--vault-radius);background:transparent;color:var(--vault-text);font-weight:500 }
-.lm-root .lm-explorer-tabs .mantine-Button-label { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;text-align:start }
-.lm-explorer-tabs .mantine-Button-section { transform:rotate(90deg);flex-shrink:0;color:var(--vault-secondary) }
-.lm-root .lm-explorer-tabs[aria-expanded=true] { background:var(--explorer-control-hover) }
-@media(hover:hover) { .lm-root .lm-explorer-tabs:enabled:hover:not(:active) { background:var(--explorer-control-hover) } }
-.lm-root .lm-explorer-tabs:enabled:active { background:var(--explorer-control-pressed) }
+.lm-explorer-toolbar,.lm-tool-panel-toolbar { flex-shrink:0;padding:calc(var(--vault-space)*2);position:relative }
+.lm-root :is(.lm-explorer-tabs,.lm-tool-panel-header) { width:100%;max-width:100%;min-width:0;min-height:calc(var(--vault-space)*8);padding:var(--vault-space) calc(var(--vault-space)*3);border:0;border-radius:var(--vault-radius);background:transparent;color:var(--vault-text);font-weight:500 }
+.lm-root :is(.lm-explorer-tabs,.lm-tool-panel-header) .mantine-Button-label { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;text-align:start }
+:is(.lm-explorer-tabs,.lm-tool-panel-header) .mantine-Button-section { transform:rotate(90deg);flex-shrink:0;color:var(--vault-secondary) }
+.lm-root :is(.lm-explorer-tabs,.lm-tool-panel-header)[aria-expanded=true] { background:var(--tool-hover,var(--explorer-control-hover)) }
+@media(hover:hover) { .lm-root :is(.lm-explorer-tabs,.lm-tool-panel-header):enabled:hover:not(:active) { background:var(--tool-hover,var(--explorer-control-hover)) } }
+.lm-root :is(.lm-explorer-tabs,.lm-tool-panel-header):enabled:active { background:var(--tool-pressed,var(--explorer-control-pressed)) }
 .lm-explorer-menu-anchor { position:absolute;inset-inline-start:0;bottom:0;width:1px;height:1px }
 .lm-explorer-tree { flex:1;min-height:3em;min-width:0;padding-inline:calc(var(--vault-space)*2);overflow:hidden }
 .lm-explorer-row { min-width:0;outline:none }
@@ -170,7 +171,7 @@
 .lm-explorer-tab-menu .mantine-Menu-itemSection { flex-shrink:0;color:var(--vault-secondary) }
 .lm-explorer-tab-menu [role=menuitem][data-hovered]:not([data-disabled]) { background:var(--explorer-control-hover) }
 .lm-explorer-tab-menu [role=menuitem]:not([data-disabled]):active { background:var(--explorer-control-pressed) }
-@media(prefers-reduced-motion:reduce) { .lm-root .lm-explorer-tabs,.lm-explorer-menu [role=menuitem],.lm-explorer-node,.lm-explorer-disclosure span { transition:none } }
+@media(prefers-reduced-motion:reduce) { .lm-root :is(.lm-explorer-tabs,.lm-tool-panel-header),.lm-explorer-menu [role=menuitem],.lm-explorer-node,.lm-explorer-disclosure span { transition:none } }
 @media(hover:hover) { .lm-explorer:not([aria-busy=true]) .lm-explorer-node:not([data-selected]):hover:not(:active) { background:var(--explorer-control-hover) } }
 @container(max-height:44rem) {
  .lm-root .ln-vault-main { padding:calc(var(--vault-space)*4) }
@@ -205,7 +206,19 @@
 .lm-sidebar-end { margin-block-start:auto; padding-block-start:var(--vault-space); flex-shrink:0 }
 .lm-sidebar-end:empty { display:none }
 
-.lm-settings-navigation { flex:1; min-width:0; min-height:0; overflow:auto; padding:calc(var(--vault-space)*2) }
+.lm-settings-navigation { --tool-hover:color-mix(in srgb,var(--vault-hover) 35%,var(--vault-panel));--tool-pressed:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel));flex:1; min-width:0; min-height:0; overflow:auto; padding:0;user-select:none }
+.lm-settings-categories { padding-inline:calc(var(--vault-space)*2) }
+.lm-root .lm-tool-navigation-item { min-height:calc(var(--vault-space)*7);padding:var(--vault-space) calc(var(--vault-space)*2);border:0;border-radius:calc(var(--vault-radius)*0.5);font-weight:400;color:var(--vault-text) }
+.lm-tool-navigation-item .mantine-Button-section { color:var(--vault-secondary);flex-shrink:0;margin-inline-end:calc(var(--vault-space)*1.5) }
+.lm-tool-navigation-item .mantine-Button-label { white-space:normal;overflow-wrap:anywhere }
+.lm-root .lm-tool-navigation-item[aria-current=page] { background:color-mix(in srgb,var(--vault-selection) 75%,var(--vault-panel)) }
+.lm-root .lm-tool-navigation-item:enabled:active { background:var(--tool-pressed) }
+@media(hover:hover) { .lm-root .lm-tool-navigation-item:enabled:hover { background:var(--tool-hover) } }
+.lm-root .lm-tool-panel-menu,.lm-root .lm-setting-dropdown { background:var(--vault-panel);color:var(--vault-text);border:var(--vault-border) solid color-mix(in srgb,var(--vault-control-border) 22%,transparent);border-radius:var(--vault-radius);padding:var(--vault-space);box-shadow:none;max-width:calc(100vw - 16px);overflow:auto }
+.lm-tool-panel-menu [role=menuitem],.lm-setting-dropdown [role=option] { min-height:calc(var(--vault-space)*7);padding:var(--vault-space) calc(var(--vault-space)*2);font:inherit;color:var(--vault-text);border-radius:calc(var(--vault-radius)*0.5);white-space:normal;overflow-wrap:anywhere }
+.lm-tool-panel-menu [role=menuitem][data-hovered],.lm-setting-dropdown [role=option][data-combobox-selected] { background:color-mix(in srgb,var(--vault-hover) 35%,var(--vault-panel)) }
+.lm-setting-dropdown [role=option][data-checked] { font-weight:500;background:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel)) }
+.lm-setting-options { max-height:min(18rem,50dvh);overflow:auto }
 .lm-settings-page { flex:1; min-width:0; min-height:0; overflow:auto; padding:clamp(0.75rem, 3cqi, 2rem);--settings-divider:color-mix(in srgb,var(--vault-control-border) 12%,transparent) }
 .lm-settings-page>*,.lm-settings-navigation>* { flex-shrink:0 }
 .lm-settings-page-header { width:100%;max-width:60rem;padding-block-end:calc(var(--vault-space)*5);margin-block-end:calc(var(--vault-space)*6);border-bottom:var(--vault-border) solid var(--settings-divider) }
@@ -224,10 +237,7 @@
 .lm-setting-control .mantine-Input-section { color:var(--vault-secondary) }
 .lm-setting-static-value { min-height:calc(var(--vault-space)*8);display:flex;align-items:center;justify-content:flex-end;padding-inline:calc(var(--vault-space)*3);font-weight:500 }
 .lm-setting-control .mantine-Switch-root { align-self:flex-end }
-.lm-root select.lm-setting-input:focus { outline:none;border-color:var(--vault-focus) }
+.lm-root .lm-setting-select:focus { outline:none;border-color:var(--vault-focus) }
 .lm-root .lm-setting-input:disabled { cursor:default }
 .lm-setting-row[data-layout=stacked] { flex-direction:column; align-items:stretch }
 .lm-setting-row[data-layout=stacked]>.lm-setting-label,.lm-setting-row[data-layout=stacked]>.lm-setting-control { flex:0 0 auto; min-width:0 }
-.lm-settings-category { color:var(--vault-secondary); height:auto; min-height:2rem; padding-block:var(--vault-space); text-align:start }
-.lm-settings-category .mantine-Button-label { white-space:normal; overflow-wrap:anywhere }
-.lm-settings-category[aria-current=page] { color:var(--vault-text); background:var(--vault-selection) }
