@@ -6,6 +6,8 @@ import { markdown, markdownKeymap } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting, indentUnit, syntaxTree } from "@codemirror/language";
 import { Strikethrough } from "@lezer/markdown";
 import { livePreview, livePreviewTheme } from "./live-preview.js";
+import { tabIndentedLists } from "./markdown.js";
+import { continueTabIndentedList } from "./markdown-commands.js";
 import { tags } from "@lezer/highlight";
 import type { ThemeDefinition } from "@lunaris/themes";
 import type { DocumentSession } from "./session.js";
@@ -23,14 +25,6 @@ const insertIndent: StateCommand = target => {
     return null;
   });
   if (!contexts.some(Boolean)) return insertTab(target);
-  // A first item has no preceding sibling to become its parent. Indenting it
-  // would produce an indented code block, not a nested Markdown list.
-  for (const item of contexts) {
-    if (!item) continue;
-    const previous = item.prevSibling;
-    if (previous?.name !== "ListItem" || state.selection.ranges.some(range =>
-      state.doc.lineAt(range.from).from <= previous.from && range.to > previous.from)) return true;
-  }
   return indentMore(target);
 };
 
@@ -66,9 +60,9 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
   const skin = new Compartment(); const access = new Compartment(); const attributes = new Compartment();
   // A cached state retains history/selection; replace view-specific compartments
   // and callbacks through a full reconfiguration without replacing the document.
-  const extensions = [EditorState.lineSeparator.of(session.text.includes("\r\n") ? "\r\n" : "\n"), indentUnit.of("\t"), EditorState.tabSize.of(4), history(), markdown({ extensions: [Strikethrough] }), mode.of(preview ? [livePreview, livePreviewTheme] : []), EditorView.lineWrapping, drawSelection(),
+  const extensions = [EditorState.lineSeparator.of(session.text.includes("\r\n") ? "\r\n" : "\n"), indentUnit.of("\t"), EditorState.tabSize.of(4), history(), markdown({ addKeymap: false, extensions: [Strikethrough, tabIndentedLists] }), mode.of(preview ? [livePreview, livePreviewTheme] : []), EditorView.lineWrapping, drawSelection(),
     EditorView.exceptionSink.of(failed),
-    keymap.of([{ key: "Mod-s", run: () => { save(); return true; }, preventDefault: true }, { key: "Tab", run: insertIndent, shift: indentLess, preventDefault: true }, ...markdownKeymap, ...defaultKeymap, ...historyKeymap]),
+    keymap.of([{ key: "Mod-s", run: () => { save(); return true; }, preventDefault: true }, { key: "Tab", run: insertIndent, shift: indentLess, preventDefault: true }, { key: "Enter", run: continueTabIndentedList }, ...markdownKeymap, ...defaultKeymap, ...historyKeymap]),
     EditorView.updateListener.of(update => { if (update.docChanged) session.edit(update.state.sliceDoc()); }),
     skin.of(appearance(theme)), access.of([EditorState.readOnly.of(session.locks > 0 || session.missing || session.loading), EditorView.editable.of(!session.locks && !session.missing && !session.loading)]),
     attributes.of(EditorView.contentAttributes.of({ "aria-label": label, spellcheck: "true" })),

@@ -270,32 +270,29 @@ test('Tab nests bullet, ordered and task items from the text and Enter continues
   }
 });
 
-test('Tab cannot turn an isolated or first list item into an indented code block', async () => {
-  for (const original of ['Text\n\n- Example', 'Text\n\n1. Example', 'Text\n\n- [ ] Example', '- First\n- Second']) {
-    const s = await setup({ initial: original, withLayout: true }); const view = s.cm(); view.focus();
-    const anchor = original.indexOf('Example') >= 0 ? original.indexOf('Example') + 3 : original.indexOf('First') + 2;
-    view.dispatch({ selection: { anchor } });
-    const tab = () => view.contentDOM.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', {
-      key: 'Tab', keyCode: 9, bubbles: true, cancelable: true,
+test('repeated hard tabs retain standalone and nested lists and Shift-Tab reverses every level', async () => {
+  for (const [prefix, item] of [['Text\n\n', '- Example'], ['- Parent\n', '- Child'], ['1. Parent\n', '2. Child'], ['- [ ] Parent\n', '- [ ] Child']]) {
+    const s = await setup({ initial: prefix + item, withLayout: true }); const view = s.cm(); view.focus();
+    view.dispatch({ selection: { anchor: view.state.doc.length } });
+    const press = (key, keyCode, shiftKey = false) => view.contentDOM.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', {
+      key, keyCode, shiftKey, bubbles: true, cancelable: true,
     }));
-    tab(); await flush();
-    assert.equal(view.state.doc.toString(), original);
-    assert.ok(!syntaxTree(view.state).toString().includes('CodeBlock'));
-    assert.equal(view.dom.querySelector('.cm-preview-code-block'), null);
-    if (original.startsWith('- First')) {
-      view.dispatch({ selection: { anchor: 0, head: view.state.doc.length } });
-      tab(); await flush(); assert.equal(view.state.doc.toString(), original);
+    for (let depth = 1; depth <= 4; depth++) {
+      press('Tab', 9); await flush();
+      assert.equal(view.state.doc.toString(), prefix + '\t'.repeat(depth) + item);
+      assert.ok(!syntaxTree(view.state).toString().includes('CodeBlock'));
+      assert.ok(syntaxTree(view.state).toString().includes('ListItem'));
+      assert.equal(view.dom.querySelector('.cm-preview-code-block'), null);
+    }
+    await s.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
+    assert.equal(s.disk.get('a/note.md').text, prefix + '\t'.repeat(4) + item);
+    press('Enter', 13); await flush();
+    assert.ok(view.state.doc.line(view.state.doc.lines).text.startsWith('\t'.repeat(4)), view.state.doc.toString());
+    undo(view); await flush();
+    for (let depth = 3; depth >= 0; depth--) {
+      press('Tab', 9, true); await flush();
+      assert.equal(view.state.doc.toString(), prefix + '\t'.repeat(depth) + item);
     }
     await s.stop();
   }
-  const s = await setup({ initial: 'Text\n\n\t- Example', withLayout: true }); const view = s.cm();
-  view.focus(); view.dispatch({ selection: { anchor: view.state.doc.length } });
-  assert.ok(syntaxTree(view.state).toString().includes('CodeBlock'));
-  view.contentDOM.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', {
-    key: 'Tab', keyCode: 9, shiftKey: true, bubbles: true, cancelable: true,
-  }));
-  await flush(); assert.equal(view.state.doc.toString(), 'Text\n\n- Example');
-  assert.ok(syntaxTree(view.state).toString().includes('BulletList'));
-  assert.equal(view.dom.querySelector('.cm-preview-code-block'), null);
-  await s.stop();
 });

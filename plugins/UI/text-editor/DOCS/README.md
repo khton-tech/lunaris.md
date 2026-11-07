@@ -15,12 +15,22 @@ four columns. Fenced/indented code retains ordinary caret insertion. Markdown's
 Enter binding continues nested bullets, ordered lists and task syntax. Escape followed by Tab uses
 CodeMirror's temporary focus-navigation mode to leave the editor by keyboard.
 
-A list item can only indent beneath a preceding sibling that is not part of the
-same selected block. Tab on the first/isolated item is handled without changing
-the document: a leading tab there would create a Markdown indented code block,
-not a nested list. This guard also prevents indenting an entire top-level list
-into code. Shift-Tab can remove an existing erroneous leading tab and restore
-the list. Legitimate code blocks retain their code surface and editing behavior.
+List indentation is unrestricted: repeated Tab adds a literal tab on each press,
+including first/isolated items and skipped intermediate levels. Shift-Tab removes
+one level on each press. The editor's public Lezer Markdown extension consumes
+hard-tab list indentation in composite TabListIndent nodes before the indented-code
+rule, retaining standard ListItem/BulletList/OrderedList nodes for editing and
+preview. Deep markers also end preceding lazy paragraph continuations. Enter
+delegates marker/task/number continuation to CodeMirror and preserves the explicit
+tab prefix that its CommonMark-only command cannot represent.
+
+This is a Lunaris editing dialect: strict CommonMark readers may interpret a
+standalone hard-tab-indented list as code. Space-only indented examples, ordinary
+indented code and fenced code retain their existing interpretation. Regression
+tests cover four consecutive indentation/dedentation steps, standalone items,
+bullets, ordered/task lists, grouped siblings, inline formatting, Enter and disk
+persistence. No new SDK contract or cross-plugin wiring is required; native
+caret/wrapping acceptance remains manual in the actual Workspace.
 Live Preview is enabled. The editor has no persistent
 header, filename, saved status, mode toggle or Save button. Autosave and Mod-S
 remain available. Source mode remains an internal adapter capability with no
