@@ -1,14 +1,10 @@
-import { Box, Button, Menu, Text } from "@mantine/core";
+import { Box, Button, Text } from "@mantine/core";
 import { Icon } from "./icons.js";
 
 /** Match the existing Files panel's tool header and compact icon-row hierarchy. */
 export function ToolPanelHeader({ title }: { title: string }) {
   return <Box className="lm-tool-panel-toolbar">
-    <Menu withinPortal={false} position="bottom-start" width="target" offset={4} returnFocus transitionProps={{ duration: 0 }}>
-      <Menu.Target><Button variant="subtle" fullWidth justify="space-between" className="lm-tool-panel-header" aria-label={title}
-        rightSection={<Icon name="expand" />}>{title}</Button></Menu.Target>
-      <Menu.Dropdown className="lm-tool-panel-menu"><Menu.Item aria-current="page" rightSection={<Icon name="check" />}>{title}</Menu.Item></Menu.Dropdown>
-    </Menu>
+    <Text component="h2" className="lm-tool-panel-title" size="sm" fw={500} m={0}>{title}</Text>
   </Box>;
 }
 export function ToolNavigationItem({ title, selected, onSelect }: { title: string; selected: boolean; onSelect: () => void }) {

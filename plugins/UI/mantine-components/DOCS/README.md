@@ -91,9 +91,10 @@ and retained root/input identity. Native geometry remains subject to manual chec
 
 Settings consistency reference: the Owner's Files panel/header and Vault-footer
 screenshots, implemented by `explorer.tsx`, `vault-switcher.tsx` and the shared
-component stylesheet. Settings navigation now uses a compact tool-header menu and
+component stylesheet. Settings navigation uses a compact static tool heading and
 icon-bearing category rows instead of a separate large-button scheme. Header
-geometry and states share CSS rules with the existing Files header; the Files
+geometry follows the existing Files header; Settings has no header menu or chevron.
+The Files
 renderer/controller is unchanged. Category rows use a generic settings icon;
 category-specific icon registration is not introduced by this change.
 

@@ -96,7 +96,9 @@ test('settings roles escape labels, preserve borrowed targets and validate navig
   assert.equal(page.value.update({ ...props, sections: [props.sections[0], props.sections[0]] }).ok, false);
   let selected; const navProps = { title: 'Settings', emptyLabel: 'Empty', categories: [{ id: 'test.category', title: '<img src=x>' }], selectedId: null, onSelect: id => { selected = id; } };
   const nav = s.components.mount('lunaris.settings-navigation', s.target, navProps, s.ctx.signal); assert.equal(nav.ok, true);
-  assert.ok(s.target.querySelector('.lm-settings-navigation .lm-tool-panel-header svg'));
+  const header = s.target.querySelector('.lm-settings-navigation .lm-tool-panel-toolbar');
+  assert.equal(header.querySelector('h2').textContent, 'Settings');
+  assert.equal(header.querySelector('button, svg, [aria-haspopup]'), null);
   assert.ok(s.target.querySelector('.lm-settings-category .mantine-Button-section svg'));
   s.target.querySelector('.lm-settings-category').click(); assert.equal(selected, 'test.category'); assert.equal(s.target.querySelector('img'), null);
   assert.equal(nav.value.update({ ...navProps, selectedId: 'test.missing' }).ok, false);
