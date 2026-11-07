@@ -188,7 +188,14 @@ WorkspaceLayout uses Mantine Splitter between stable left-panel/main targets.
 
 By temporary Owner instruction, WorkspaceLayout prevents Tab/Shift+Tab traversal
 through an owned document-capture listener. It covers body and overlay events,
-retains pointer/arrow/editor interactions, and is removed on layout disposal.
+retains pointer/arrow interactions, and is removed on layout disposal. Editable
+content owns Tab input: the listener allows events whose nearest explicit
+contenteditable boundary in the composed event path is true, empty or plaintext-only.
+An explicit false boundary remains subject to the traversal policy. This uses
+standard HTML semantics rather than editor plugin IDs or private selectors, so
+replacement editors can receive Tab/Shift-Tab through the same public target.
+The real WorkspaceLayout/Text Editor integration regression covers indentation,
+reverse indentation and persistence within this container.
 Selector/recovery outside Workspace retain their existing keyboard behavior.
 Optional `panelWidth`, `resizeLabel` and `onPanelWidth(width)` props keep preference
 ownership in the SDK consumer. Resizing changes view geometry only; pointer drag,

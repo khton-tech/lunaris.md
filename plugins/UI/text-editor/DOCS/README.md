@@ -110,34 +110,21 @@ verify keyboard Tab/Shift-Tab behavior and focused selection CSS precedence unde
 dark/light themes; native selection geometry and the top inset require manual
 acceptance in Workspace. No public SDK or cross-plugin wiring changes are needed.
 
-## Temporary Tab diagnostics
+## Tab routing in Workspace
 
-To investigate the Owner-reported native Tab failure, the adapter traces its first
-five Tab keydowns per mounted view through the controller's required SDK Logger.
-The window capture listener observes events before document handlers and CodeMirror's focus/composition
-gates without handling or cancelling them, including when focus is outside the
-editor. `EDITOR_TAB_TRACE` emits at info level
-so the default logger threshold includes it. Each attempt produces `received`
-(modifiers, focus, composition, editability and session locks) and `settled`
-(command execution, default prevention, document identity and length/caret deltas).
-Version 3 first emits `ready` on installation with `diagnosticVersion: 3`, and a
-single `first-key` record containing only focus and Tab-identification booleans.
-Tab detection accepts key, code and legacy keyCode, and `inEditor` distinguishes
-the input target. Bounded `focus` records identify focus changes on the actual
-editor content; `keyup` records distinguish keydown interception from completely
-missing Tab delivery. No document content, paths or other key values are logged. Disposal removes the listener
-and suppresses queued records after scope closure. Filter the DevTools console by
-`EDITOR_TAB_TRACE` after reproducing Tab. The bounded primitive fields also appear
-in the message itself so a plain-text console copy preserves them without
-expanding DevTools objects. These traces
-diagnose native input; passing simulated-key tests does not establish the reported
-WebView failure's cause or resolution. Remove this bounded instrumentation once
-the native cause is established.
+WorkspaceLayout's temporary chrome traversal policy allows Tab/Shift-Tab events
+from editable content to reach the contributing editor. It uses standard HTML
+contenteditable semantics along the composed event path, without editor IDs,
+private CSS classes or cross-plugin imports. Noneditable descendants retain the
+chrome traversal policy. CodeMirror owns indentation, Shift-Tab and its Escape/Tab
+focus-navigation mode. Temporary EDITOR_TAB_TRACE listeners have been removed.
 
-Settings retains the hidden live view. Theme/locale updates reconfigure view
-compartments. Document switches and renderer replacement retain compatible
-EditorState history/selection in the controller. Live views preserve scrolling
-when hidden/themed; renderer replacement does not restore native scroll geometry.
+The integration regression mounts the real public WorkspaceLayout role around
+ActiveScreen and the editor. It verifies caret insertion, selected-line indentation,
+Shift-Tab, explicit focus-navigation mode and saving, while a separate check
+preserves suppression outside editable content. The regression failed with the
+old document-capture suppression and passes with the semantic exception. Native
+visual/keyboard acceptance remains manual in the actual Tauri window.
 
 ## Verification and manual acceptance
 

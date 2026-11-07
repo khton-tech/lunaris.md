@@ -82,7 +82,16 @@ async function setup(options = {}) {
   kernel.grant(closeGuard.plugin.manifest.id, 'vault.access');
   await kernel.start('test.consumer'); await kernel.start(mantine.manifest.id); await kernel.start(screenHost.manifest.id); await kernel.start(editor.manifest.id); await kernel.start(closeGuard.plugin.manifest.id);
   await api.vault.open(); await flush();
-  host = api.components.mount(content.componentId, target, { workspace: { vaultId: 'a', vaultName: 'A' } }, api.ctx.signal);
+  let editorTarget = target;
+  if (options.withLayout) {
+    let regions;
+    const layout = api.components.mount('lunaris.workspace-layout', target, {
+      railVisible: true, panelVisible: true, mainLabel: 'Editor', panelLabel: 'Files',
+      onTargets(value) { regions = value; }, onDismiss() {},
+    }, api.ctx.signal);
+    assert.equal(layout.ok, true); assert.ok(regions?.main); editorTarget = regions.main;
+  }
+  host = api.components.mount(content.componentId, editorTarget, { workspace: { vaultId: 'a', vaultName: 'A' } }, api.ctx.signal);
   assert.equal(host.ok, true); await api.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
   return { ...api, target, dom, disk, calls, logs, kernel, beforeClose: closeGuard.beforeClose,
     cm() { const node = target.querySelector('.cm-editor'); assert.ok(node, target.textContent); return EditorView.findFromDOM(node); },
@@ -177,7 +186,7 @@ test('desktop close bridge flushes the last keystrokes before shutdown and rejec
 });
 
 test('Tab inserts at the caret, indents selected lines and Shift-Tab removes indentation', async () => {
-  const s = await setup({ initial: 'alpha\nbeta' });
+  const s = await setup({ initial: 'alpha\nbeta', withLayout: true });
   const view = s.cm();
   view.focus();
   const tab = (shiftKey = false) => {
@@ -199,18 +208,6 @@ test('Tab inserts at the caret, indents selected lines and Shift-Tab removes ind
   view.dispatch({ selection: { anchor: 0 } }); tab(); await flush();
   await s.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
   assert.equal(s.disk.get('a/note.md').text, '    alpha\nbeta');
-  const traces = s.logs.filter(log => log[3]?.code === 'EDITOR_TAB_TRACE').map(log => log[3].data);
-  assert.equal(traces.filter(trace => trace.phase === 'received').length, 5);
-  const outcomes = traces.filter(trace => trace.phase === 'settled');
-  assert.equal(outcomes.length, 5);
-  assert.equal(outcomes[0].commandRan, true); assert.equal(outcomes[0].lengthDelta, 2);
-  assert.equal(outcomes[3].commandRan, false); assert.equal(outcomes[3].documentChanged, false);
-  tab(); await flush();
-  assert.equal(s.logs.filter(log => log[3]?.code === 'EDITOR_TAB_TRACE' && ['received', 'settled'].includes(log[3].data.phase)).length, 10);
-  assert.ok(traces.some(trace => trace.phase === 'ready' && trace.diagnosticVersion === 3));
-  assert.ok(traces.some(trace => trace.phase === 'focus' && trace.focused));
-  assert.ok(traces.some(trace => trace.phase === 'first-key' && trace.inEditor && trace.focused));
-  assert.ok(s.logs.some(log => log[3]?.code === 'EDITOR_TAB_TRACE' && log[2].includes('phase=settled') && log[2].includes('commandRan=true')));
   await s.stop();
 });
 
@@ -232,16 +229,13 @@ test('focused selection layer uses the active theme instead of the CodeMirror de
   marker.remove(); await s.stop();
 });
 
-test('Tab diagnostics distinguish a different focus target without intercepting its navigation', async () => {
-  const s = await setup(); const view = s.cm();
+test('Workspace retains temporary Tab traversal suppression outside editable content', async () => {
+  const s = await setup({ withLayout: true }); const view = s.cm();
   const button = s.dom.window.document.createElement('button');
   s.dom.window.document.body.append(button); button.focus();
   const event = new s.dom.window.KeyboardEvent('keydown', { key: 'Tab', code: 'Tab', keyCode: 9, bubbles: true, cancelable: true });
   button.dispatchEvent(event); await flush();
-  assert.equal(event.defaultPrevented, false);
-  const traces = s.logs.filter(log => log[3]?.code === 'EDITOR_TAB_TRACE').map(log => log[3].data);
-  assert.ok(traces.some(trace => trace.phase === 'received' && !trace.inEditor && !trace.focused));
-  assert.ok(traces.some(trace => trace.phase === 'settled' && !trace.commandRan && !trace.documentChanged));
+  assert.equal(event.defaultPrevented, true);
   assert.equal(view.state.doc.toString(), '# Note');
   button.remove(); await s.stop();
 });

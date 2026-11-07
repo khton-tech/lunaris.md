@@ -51,20 +51,14 @@ function appearance(theme: ThemeDefinition | null) {
 
 /** Reusable view adapter; cached states belong to the controller, not DOM roots. */
 export function mountEditor(target: HTMLElement, session: DocumentSession, cached: EditorState | undefined,
-  theme: ThemeDefinition | null, label: string, save: () => void, failed: (error: unknown) => void, preview = true,
-  traceTab: (data: Readonly<Record<string, unknown>>) => void = () => {}) {
+  theme: ThemeDefinition | null, label: string, save: () => void, failed: (error: unknown) => void, preview = true) {
   const mode = new Compartment();
   const skin = new Compartment(); const access = new Compartment(); const attributes = new Compartment();
-  let pendingTab: { commandRan: boolean } | undefined;
-  const tabCommand = (view: EditorView, backwards = false) => {
-    if (pendingTab) pendingTab.commandRan = true;
-    return backwards ? indentLess(view) : insertIndent(view);
-  };
   // A cached state retains history/selection; replace view-specific compartments
   // and callbacks through a full reconfiguration without replacing the document.
   const extensions = [EditorState.lineSeparator.of(session.text.includes("\r\n") ? "\r\n" : "\n"), indentUnit.of("    "), EditorState.tabSize.of(4), history(), markdown({ extensions: [Strikethrough] }), mode.of(preview ? [livePreview, livePreviewTheme] : []), EditorView.lineWrapping, drawSelection(),
     EditorView.exceptionSink.of(failed),
-    keymap.of([{ key: "Mod-s", run: () => { save(); return true; }, preventDefault: true }, { key: "Tab", run: view => tabCommand(view), shift: view => tabCommand(view, true), preventDefault: true }, ...markdownKeymap, ...defaultKeymap, ...historyKeymap]),
+    keymap.of([{ key: "Mod-s", run: () => { save(); return true; }, preventDefault: true }, { key: "Tab", run: insertIndent, shift: indentLess, preventDefault: true }, ...markdownKeymap, ...defaultKeymap, ...historyKeymap]),
     EditorView.updateListener.of(update => { if (update.docChanged) session.edit(update.state.sliceDoc()); }),
     skin.of(appearance(theme)), access.of([EditorState.readOnly.of(session.locks > 0 || session.missing || session.loading), EditorView.editable.of(!session.locks && !session.missing && !session.loading)]),
     attributes.of(EditorView.contentAttributes.of({ "aria-label": label, spellcheck: "true" })),
@@ -74,49 +68,6 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
   if (!state) state = EditorState.create({ doc: session.text, extensions });
   else state = state.update({ effects: reconfigure(extensions) }).state;
   const view = new EditorView({ parent: target, state });
-  let disposed = false; let attempts = 0; let firstKey = true;
-  // Bounded native-event tracing runs before CodeMirror's composition/focus-mode
-  // gates. Never log note text, paths or arbitrary keyboard input.
-  const observeTab = (event: KeyboardEvent) => {
-    const inEditor = event.target instanceof view.dom.ownerDocument.defaultView!.Node && view.dom.contains(event.target);
-    const isTab = event.key === "Tab" || event.code === "Tab" || event.keyCode === 9;
-    if (firstKey) {
-      firstKey = false;
-      traceTab({ phase: "first-key", inEditor, focused: view.hasFocus, tabByKey: event.key === "Tab", tabByCode: event.code === "Tab", tabByKeyCode: event.keyCode === 9 });
-    }
-    if (!isTab || attempts >= 5) return;
-    const attempt = ++attempts; const before = view.state;
-    const outcome = { commandRan: false }; pendingTab = outcome;
-    const details = { attempt, shift: event.shiftKey, ctrl: event.ctrlKey, alt: event.altKey, meta: event.metaKey,
-      keyCode: event.keyCode, repeat: event.repeat, composing: event.isComposing, viewComposing: view.composing,
-      inEditor, tabByKey: event.key === "Tab", tabByCode: event.code === "Tab",
-      focused: view.hasFocus, readOnly: before.readOnly, editable: before.facet(EditorView.editable),
-      locks: session.locks, loading: session.loading, missing: session.missing };
-    traceTab({ phase: "received", ...details });
-    queueMicrotask(() => {
-      if (disposed) return;
-      traceTab({ phase: "settled", attempt, commandRan: outcome.commandRan, prevented: event.defaultPrevented,
-        documentChanged: before.doc !== view.state.doc, lengthDelta: view.state.doc.length - before.doc.length,
-        caretDelta: view.state.selection.main.head - before.selection.main.head, focused: view.hasFocus });
-    });
-  };
-  // Window capture runs before document listeners; keyup distinguishes a native
-  // keydown interception from missing keyboard delivery altogether.
-  const inputDocument = view.dom.ownerDocument;
-  const inputWindow = inputDocument.defaultView!;
-  let releases = 0; let focusChanges = 0;
-  const observeRelease = (event: KeyboardEvent) => {
-    if ((event.key === "Tab" || event.code === "Tab" || event.keyCode === 9) && releases++ < 5)
-      traceTab({ phase: "keyup", focused: view.hasFocus, keyCode: event.keyCode, tabByKey: event.key === "Tab", tabByCode: event.code === "Tab" });
-  };
-  const observeFocus = () => {
-    if (focusChanges++ < 6) traceTab({ phase: "focus", focused: view.hasFocus, documentFocused: inputDocument.hasFocus() });
-  };
-  inputWindow.addEventListener("keydown", observeTab, { capture: true });
-  inputWindow.addEventListener("keyup", observeRelease, { capture: true });
-  view.contentDOM.addEventListener("focus", observeFocus);
-  view.contentDOM.addEventListener("blur", observeFocus);
-  traceTab({ phase: "ready", diagnosticVersion: 3, editable: view.state.facet(EditorView.editable), readOnly: view.state.readOnly });
   let lastPreview = preview;
   let lastTheme = theme; let lastLabel = label; let lastReadOnly = session.locks > 0 || session.missing || session.loading;
   return {
@@ -134,14 +85,7 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
       }
       if (effects.length) view.dispatch({ effects });
     },
-    dispose(): EditorState {
-      disposed = true;
-      inputWindow.removeEventListener("keydown", observeTab, { capture: true });
-      inputWindow.removeEventListener("keyup", observeRelease, { capture: true });
-      view.contentDOM.removeEventListener("focus", observeFocus);
-      view.contentDOM.removeEventListener("blur", observeFocus);
-      const state = view.state; view.destroy(); return state;
-    },
+    dispose(): EditorState { const state = view.state; view.destroy(); return state; },
   };
 }
 
