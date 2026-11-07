@@ -16,7 +16,7 @@ import manifest from "../manifest.json" with { type: "json" };
 const role = "lunaris.vault-selector";
 type Mode = "create" | "select";
 
-export function createVaultSelector(options: { readonly art: string; readonly hideWhenVaultOpen?: boolean }) {
+export function createVaultSelector(options: { readonly art: string; readonly hideWhenVaultOpen?: boolean; readonly restoreLastVault?: boolean }) {
   const art = options.art;
   if (typeof art !== "string" || !art.trim()) throw new TypeError("Selector artwork is required.");
   return definePlugin({ manifest, async activate(ctx) {
@@ -153,6 +153,26 @@ export function createVaultSelector(options: { readonly art: string; readonly hi
         else refresh();
       });
       await loadHistory(); ctx.signal.throwIfAborted();
+      // Restore once before startup handoff; history is ordered most-recent-first.
+      const last = entries[0];
+      if (options.restoreLastVault !== false && !vaults.current() && last) {
+        try {
+          const result = await history.open(last.location.reference);
+          ctx.signal.throwIfAborted();
+          if (result.ok) {
+            current = vaults.current();
+            activeReference = current?.id === result.value.id ? last.location.reference : null;
+            logger.info(ctx.pluginId, "Last Vault restored", { code: "SELECTOR_VAULT_RESTORED" });
+          } else {
+            errorKey = failure(result.error);
+            logger.warn(ctx.pluginId, "Cannot restore last Vault; showing selector", { code: result.error.code, error: result.error });
+          }
+        } catch (error) {
+          ctx.signal.throwIfAborted();
+          errorKey = "error";
+          logger.error(ctx.pluginId, "Last Vault restoration failed; showing selector", { code: "SELECTOR_RESTORE_FAILED", error });
+        }
+      }
       latest = startup.snapshot(); refresh();
       if (!components.has(role)) logger.warn(ctx.pluginId, "Waiting for selector component", { code: "SELECTOR_COMPONENT_MISSING" });
       logger.info(ctx.pluginId, "Vault selector ready", { code: "SELECTOR_READY" });

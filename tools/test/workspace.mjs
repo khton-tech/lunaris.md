@@ -74,7 +74,7 @@ export async function setupWorkspace(options = {}) {
     options.onActivate?.(tools, context);
     options.beforeLoaded?.(surface);
   } });
-  const startup = createStartupProvider(); const layout = composeSlotSurface(surface); const selector = createVaultSelector({ art: 'ASCII', hideWhenVaultOpen: true });
+  const startup = createStartupProvider(); const layout = composeSlotSurface(surface); const selector = createVaultSelector({ art: 'ASCII', hideWhenVaultOpen: true, restoreLastVault: false });
   const session = new HostSession({ scheduler: new TestScheduler(), load: async () => ({ ...layout, startup,
     plugins: [...(options.sidebar ? [sidebarPlugin, sidebarProvider] : []), config, logger, vaults, localization, componentProvider, kit, themes, baseTheme, consumer, startup.plugin, selector, workspacePlugin, workspaceProvider, ...layout.plugins],
     entrypoints: [startup.plugin.manifest.id, baseTheme.manifest.id, ...(options.noKit ? [] : [kit.manifest.id]), selector.manifest.id, workspacePlugin.manifest.id, ...(options.sidebar ? [sidebarPlugin.manifest.id] : []), consumer.manifest.id],
