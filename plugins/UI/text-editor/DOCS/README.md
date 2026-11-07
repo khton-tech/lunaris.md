@@ -110,6 +110,22 @@ verify keyboard Tab/Shift-Tab behavior and focused selection CSS precedence unde
 dark/light themes; native selection geometry and the top inset require manual
 acceptance in Workspace. No public SDK or cross-plugin wiring changes are needed.
 
+## Temporary Tab diagnostics
+
+To investigate the Owner-reported native Tab failure, the adapter traces its first
+five Tab keydowns per mounted view through the controller's required SDK Logger.
+The native capture listener observes events before CodeMirror's focus/composition
+gates without handling or cancelling them. `EDITOR_TAB_TRACE` emits at info level
+so the default logger threshold includes it. Each attempt produces `received`
+(modifiers, focus, composition, editability and session locks) and `settled`
+(command execution, default prevention, document identity and length/caret deltas).
+No document content, paths or other keys are logged. Disposal removes the listener
+and suppresses queued records after scope closure. Filter the DevTools console by
+`EDITOR_TAB_TRACE` and expand both data objects after reproducing Tab. These traces
+diagnose native input; passing simulated-key tests does not establish the reported
+WebView failure's cause or resolution. Remove this bounded instrumentation once
+the native cause is established.
+
 Settings retains the hidden live view. Theme/locale updates reconfigure view
 compartments. Document switches and renderer replacement retain compatible
 EditorState history/selection in the controller. Live views preserve scrolling
