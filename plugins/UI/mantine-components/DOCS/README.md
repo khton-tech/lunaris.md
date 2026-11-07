@@ -16,6 +16,23 @@ copied verbatim, and no broad gallery catalog is registered without a consumer.
 
 ## SDK integration and lifetime
 
+Visual composition must follow [architectural UI ownership](../../../../DOCS/UI_GUIDELINES.md#7-architectural-ownership-and-composition).
+For each role, document whether it owns a region/surface or supplies embedded
+content. Region owners apply outer geometry and surfaces once; embedded roots
+inherit them. Theme adaptation exposes tokens, typography and control styling
+without automatically painting a standalone page background. Check general theme
+style objects before spreading them onto embedded roots.
+
+Sidebar rail and selected tool panel surfaces belong to WorkspaceLayout. Sidebar
+tools, including Settings navigation, supply content inside those regions. Settings
+sections receive borrowed targets inside the separate main screen. Preserve those
+boundaries through theme updates, content replacement and empty/failure states.
+Any necessary standalone/embedded distinction must be part of the public role
+contract, never inferred from target classes, DOM ancestors or consumer identity.
+Validate the role inside its real container; record native visual checks as pending
+until performed. These are normative requirements; existing implementations must
+be reviewed against them when touched.
+
 Requires Logger, Components, Themes, ThemeChanged and the `ui.dom` permission.
 Registers `lunaris.startup-screen`, `lunaris.vault-selector`,
 `lunaris.workspace-header`, `lunaris.workspace-empty`, `lunaris.workspace-layout`
