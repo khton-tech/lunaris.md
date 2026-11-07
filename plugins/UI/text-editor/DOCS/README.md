@@ -14,6 +14,13 @@ whitespace inside the item label; Shift-Tab removes one level. Tabs display at
 four columns. Fenced/indented code retains ordinary caret insertion. Markdown's
 Enter binding continues nested bullets, ordered lists and task syntax. Escape followed by Tab uses
 CodeMirror's temporary focus-navigation mode to leave the editor by keyboard.
+
+A list item can only indent beneath a preceding sibling that is not part of the
+same selected block. Tab on the first/isolated item is handled without changing
+the document: a leading tab there would create a Markdown indented code block,
+not a nested list. This guard also prevents indenting an entire top-level list
+into code. Shift-Tab can remove an existing erroneous leading tab and restore
+the list. Legitimate code blocks retain their code surface and editing behavior.
 Live Preview is enabled. The editor has no persistent
 header, filename, saved status, mode toggle or Save button. Autosave and Mod-S
 remain available. Source mode remains an internal adapter capability with no

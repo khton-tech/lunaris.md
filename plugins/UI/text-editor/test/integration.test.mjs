@@ -269,3 +269,33 @@ test('Tab nests bullet, ordered and task items from the text and Enter continues
     await s.stop();
   }
 });
+
+test('Tab cannot turn an isolated or first list item into an indented code block', async () => {
+  for (const original of ['Text\n\n- Example', 'Text\n\n1. Example', 'Text\n\n- [ ] Example', '- First\n- Second']) {
+    const s = await setup({ initial: original, withLayout: true }); const view = s.cm(); view.focus();
+    const anchor = original.indexOf('Example') >= 0 ? original.indexOf('Example') + 3 : original.indexOf('First') + 2;
+    view.dispatch({ selection: { anchor } });
+    const tab = () => view.contentDOM.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', {
+      key: 'Tab', keyCode: 9, bubbles: true, cancelable: true,
+    }));
+    tab(); await flush();
+    assert.equal(view.state.doc.toString(), original);
+    assert.ok(!syntaxTree(view.state).toString().includes('CodeBlock'));
+    assert.equal(view.dom.querySelector('.cm-preview-code-block'), null);
+    if (original.startsWith('- First')) {
+      view.dispatch({ selection: { anchor: 0, head: view.state.doc.length } });
+      tab(); await flush(); assert.equal(view.state.doc.toString(), original);
+    }
+    await s.stop();
+  }
+  const s = await setup({ initial: 'Text\n\n\t- Example', withLayout: true }); const view = s.cm();
+  view.focus(); view.dispatch({ selection: { anchor: view.state.doc.length } });
+  assert.ok(syntaxTree(view.state).toString().includes('CodeBlock'));
+  view.contentDOM.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', {
+    key: 'Tab', keyCode: 9, shiftKey: true, bubbles: true, cancelable: true,
+  }));
+  await flush(); assert.equal(view.state.doc.toString(), 'Text\n\n- Example');
+  assert.ok(syntaxTree(view.state).toString().includes('BulletList'));
+  assert.equal(view.dom.querySelector('.cm-preview-code-block'), null);
+  await s.stop();
+});

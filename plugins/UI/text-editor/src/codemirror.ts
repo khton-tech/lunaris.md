@@ -14,15 +14,24 @@ import type { DocumentSession } from "./session.js";
 const insertIndent: StateCommand = target => {
   const { state } = target;
   if (state.readOnly) return false;
-  const inList = state.selection.ranges.some(range => {
-    const cursor = syntaxTree(state).resolveInner(range.head, -1).cursor();
+  const contexts = state.selection.ranges.map(range => {
+    const cursor = syntaxTree(state).resolveInner(range.empty ? range.head : range.from, range.empty ? -1 : 1).cursor();
     do {
-      if (["FencedCode", "CodeBlock", "InlineCode"].includes(cursor.name)) return false;
-      if (cursor.name === "ListItem") return true;
+      if (["FencedCode", "CodeBlock"].includes(cursor.name)) return null;
+      if (cursor.name === "ListItem") return cursor.node;
     } while (cursor.parent());
-    return false;
+    return null;
   });
-  return inList ? indentMore(target) : insertTab(target);
+  if (!contexts.some(Boolean)) return insertTab(target);
+  // A first item has no preceding sibling to become its parent. Indenting it
+  // would produce an indented code block, not a nested Markdown list.
+  for (const item of contexts) {
+    if (!item) continue;
+    const previous = item.prevSibling;
+    if (previous?.name !== "ListItem" || state.selection.ranges.some(range =>
+      state.doc.lineAt(range.from).from <= previous.from && range.to > previous.from)) return true;
+  }
+  return indentMore(target);
 };
 
 function appearance(theme: ThemeDefinition | null) {
