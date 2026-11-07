@@ -114,16 +114,18 @@ acceptance in Workspace. No public SDK or cross-plugin wiring changes are needed
 
 To investigate the Owner-reported native Tab failure, the adapter traces its first
 five Tab keydowns per mounted view through the controller's required SDK Logger.
-The document capture listener observes events before CodeMirror's focus/composition
+The window capture listener observes events before document handlers and CodeMirror's focus/composition
 gates without handling or cancelling them, including when focus is outside the
 editor. `EDITOR_TAB_TRACE` emits at info level
 so the default logger threshold includes it. Each attempt produces `received`
 (modifiers, focus, composition, editability and session locks) and `settled`
 (command execution, default prevention, document identity and length/caret deltas).
-Version 2 first emits `ready` on installation with `diagnosticVersion: 2`, and a
+Version 3 first emits `ready` on installation with `diagnosticVersion: 3`, and a
 single `first-key` record containing only focus and Tab-identification booleans.
 Tab detection accepts key, code and legacy keyCode, and `inEditor` distinguishes
-the input target. No document content, paths or other key values are logged. Disposal removes the listener
+the input target. Bounded `focus` records identify focus changes on the actual
+editor content; `keyup` records distinguish keydown interception from completely
+missing Tab delivery. No document content, paths or other key values are logged. Disposal removes the listener
 and suppresses queued records after scope closure. Filter the DevTools console by
 `EDITOR_TAB_TRACE` after reproducing Tab. The bounded primitive fields also appear
 in the message itself so a plain-text console copy preserves them without

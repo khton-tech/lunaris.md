@@ -100,11 +100,23 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
         caretDelta: view.state.selection.main.head - before.selection.main.head, focused: view.hasFocus });
     });
   };
-  // Observe at the document boundary without intercepting input or manipulating
-  // other regions. This also diagnoses Tab going to a different focus target.
+  // Window capture runs before document listeners; keyup distinguishes a native
+  // keydown interception from missing keyboard delivery altogether.
   const inputDocument = view.dom.ownerDocument;
-  inputDocument.addEventListener("keydown", observeTab, { capture: true });
-  traceTab({ phase: "ready", diagnosticVersion: 2, editable: view.state.facet(EditorView.editable), readOnly: view.state.readOnly });
+  const inputWindow = inputDocument.defaultView!;
+  let releases = 0; let focusChanges = 0;
+  const observeRelease = (event: KeyboardEvent) => {
+    if ((event.key === "Tab" || event.code === "Tab" || event.keyCode === 9) && releases++ < 5)
+      traceTab({ phase: "keyup", focused: view.hasFocus, keyCode: event.keyCode, tabByKey: event.key === "Tab", tabByCode: event.code === "Tab" });
+  };
+  const observeFocus = () => {
+    if (focusChanges++ < 6) traceTab({ phase: "focus", focused: view.hasFocus, documentFocused: inputDocument.hasFocus() });
+  };
+  inputWindow.addEventListener("keydown", observeTab, { capture: true });
+  inputWindow.addEventListener("keyup", observeRelease, { capture: true });
+  view.contentDOM.addEventListener("focus", observeFocus);
+  view.contentDOM.addEventListener("blur", observeFocus);
+  traceTab({ phase: "ready", diagnosticVersion: 3, editable: view.state.facet(EditorView.editable), readOnly: view.state.readOnly });
   let lastPreview = preview;
   let lastTheme = theme; let lastLabel = label; let lastReadOnly = session.locks > 0 || session.missing || session.loading;
   return {
@@ -122,7 +134,14 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
       }
       if (effects.length) view.dispatch({ effects });
     },
-    dispose(): EditorState { disposed = true; inputDocument.removeEventListener("keydown", observeTab, { capture: true }); const state = view.state; view.destroy(); return state; },
+    dispose(): EditorState {
+      disposed = true;
+      inputWindow.removeEventListener("keydown", observeTab, { capture: true });
+      inputWindow.removeEventListener("keyup", observeRelease, { capture: true });
+      view.contentDOM.removeEventListener("focus", observeFocus);
+      view.contentDOM.removeEventListener("blur", observeFocus);
+      const state = view.state; view.destroy(); return state;
+    },
   };
 }
 
