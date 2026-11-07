@@ -22,6 +22,7 @@
 - [Interface settings](../plugins/UI/interface-settings/DOCS/README.md): immediate Vault-local language/theme preferences, live application, persistence and selection limits.
 - [Active screen](reference/active-screen.md): one selected screen in Workspace main, lazy mounting, retained hidden instances and Vault lifecycle.
 - [Active document](reference/active-document.md): shared active file identity, restoration and persistent marking independent of focus.
+- [Text editor integration proposal](design/text-editor.md): CodeMirror 6 scope, visual ownership and required SDK lifecycle changes before implementation.
 - [File explorer](reference/file-explorer.md): Arborist Sidebar tool, owned observation, file operations and document-layer integration status.
 - [Context menu](reference/context-menu.md): owned action contributions, nested groups, invocation context, Mantine rendering and File Explorer integration.
 - [Sidebar](reference/sidebar.md): independent icon rail, tab registration/selection, left panel and Workspace integration.
