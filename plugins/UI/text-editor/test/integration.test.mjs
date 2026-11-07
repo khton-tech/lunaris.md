@@ -294,6 +294,32 @@ test('Workspace editor auto-pairs Markdown input and saves the unchanged closing
   } finally { await s.stop(); }
 });
 
+test('Workspace code cards retain source, theme inheritance and saving through fence edits', async () => {
+  const original = 'Note\r\n\r\n```js\r\nconst value = 1;\r\n```';
+  const s = await setup({ withLayout: true, initial: original });
+  try {
+    const view = s.cm();
+    for (const [appearance, text, secondary] of [['light', '#222222', '#555555'], ['dark', '#eeeeee', '#aaaaaa']]) {
+      s.themes.register({ id: `code.${appearance}`, name: appearance, properties: { appearance, colors: { text, textSecondary: secondary } } }, s.ctx.signal);
+      s.themes.select(`code.${appearance}`); await flush();
+      assert.equal(s.cm(), view);
+      const label = view.dom.querySelector('.cm-preview-code-language');
+      assert.equal(label.textContent, 'js');
+      assert.equal(s.dom.window.getComputedStyle(label).color, appearance === 'light' ? 'rgb(85, 85, 85)' : 'rgb(170, 170, 170)');
+      assert.equal(view.dom.querySelectorAll('.cm-preview-code-block').length, 3);
+      assert.equal(s.target.querySelector('.lm-text-editor').style.backgroundColor, '');
+      assert.equal(view.state.sliceDoc(), original);
+    }
+    const info = view.state.doc.line(3).from + 3;
+    view.dispatch({ changes: { from: info, to: info + 2, insert: 'typescript' }, selection: { anchor: 0 } });
+    assert.equal(view.dom.querySelector('.cm-preview-code-language').textContent, 'typescript');
+    await s.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
+    assert.equal(s.disk.get('a/note.md').text, original.replace('```js', '```typescript'));
+    assert.equal(undo(view), true);
+    assert.equal(view.state.sliceDoc(), original);
+  } finally { await s.stop(); }
+});
+
 test('focused selection layer uses the active theme instead of the CodeMirror default', async () => {
   const s = await setup(); const view = s.cm(); view.focus();
   // Geometry is unavailable in JSDOM. Supply a rectangle in CM's real selection
