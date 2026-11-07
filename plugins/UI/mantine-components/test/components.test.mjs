@@ -467,3 +467,22 @@ test('active document marking survives cleared selection and focus outside the t
   assert.equal(s.target.querySelector('[data-selected]'), null);
   await s.stop();
 });
+
+test('Vault footer opens an upward recent menu with safe names, selection, callbacks and busy state', async () => {
+  const s = await setup(); await s.start(); const chosen = []; let changed = 0;
+  const vaultSwitcher = { name: 'Current vault', entries: Array.from({ length: 6 }, (_, i) => ({ reference: 'ref-' + i, name: '<img src=x> Vault ' + i, label: 'Folder ' + i })), activeReference: 'ref-0', busy: false, error: '', historyError: false, onRecent: ref => chosen.push(ref), onChange: () => changed++, onRetry() {} };
+  const base = explorerFixture();
+  const props = { ...base, vaultSwitcher, text: { ...base.text, switchVault: 'Switch vault', recentVaults: 'Recent vaults' } };
+  const mounted = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true); await settle();
+  const footer = s.target.querySelector('.lm-vault-switcher'); assert.equal(footer.previousElementSibling.className.includes('lm-explorer-tree'), true);
+  const toggle = footer.querySelector('button'); assert.equal(toggle.textContent, 'Current vault');
+  toggle.click(); await settle();
+  assert.equal(toggle.getAttribute('aria-expanded'), 'true'); assert.equal(footer.querySelectorAll('[role=menuitem]').length, 5);
+  assert.equal(footer.querySelector('[aria-current=true]').textContent, '<img src=x> Vault 0'); assert.equal(footer.querySelector('img'), null);
+  assert.equal(footer.querySelector('[role=menuitem]').title, 'Folder 0');
+  footer.querySelectorAll('[role=menuitem]')[1].click(); await settle(); assert.deepEqual(chosen, ['ref-1']);
+  toggle.click(); await settle(); [...footer.querySelectorAll('[role=menuitem]')].at(-1).click(); await settle(); assert.equal(changed, 1);
+  mounted.value.update({ ...props, vaultSwitcher: { ...vaultSwitcher, busy: true } }); assert.equal(toggle.disabled, true);
+  assert.equal(mounted.value.update({ ...props, vaultSwitcher: { ...vaultSwitcher, onChange: null } }).ok, false);
+  await s.stop();
+});

@@ -5,8 +5,8 @@ Package `@lunaris/file-explorer`, plugin `lunaris.file-explorer`. Tauri starts i
 default. Require `filesystem.access` and `vault.access`; no DOM permission.
 
 Provides no API/event contracts. Consumes Logger, Sidebar, Filesystem,
-FilesystemObservation, Vault and Localization APIs; subscribes to FileChanged,
-VaultChanged and LocaleChanged. Registers its localized tab using ctx.signal.
+FilesystemObservation, Vault, VaultHistory and Localization APIs; subscribes to FileChanged,
+VaultChanged, VaultHistoryChanged and LocaleChanged. Registers its localized tab using ctx.signal.
 Calls filesystem list/createDirectory/writeText/move/copy/remove and the owned
 observation watch method. All native access remains behind providers/drivers.
 
@@ -32,6 +32,24 @@ See the [full reference](../../../../DOCS/reference/file-explorer.md) for keyboa
 commands, public component props, cancellation, operation/error semantics,
 completed integrations, outstanding document opening and manual acceptance.
 Run `npm run file-explorer:check` and the Tauri frontend build.
+
+## Vault switching
+
+The file panel footer displays the current Vault name. Its upward-opening Mantine
+menu shows at most four most-recent-first history entries and Switch vault.
+`VaultHistory.list/open` supplies recents; `Vault.open` selects and prepares another
+folder without closing the current Vault on cancellation or failure. The dedicated
+navigation controller survives file-tree session replacement. It guards duplicate
+requests and stopped scopes, ignores stale history reads after history events,
+and exposes localized failure/retry UI. History failures do not block folder selection.
+Names and display labels are presentation only; references stay opaque and are never logged.
+
+Integration is complete through the public Vault/VaultHistory, Sidebar, Mantine
+Components and Localization contracts. Existing VaultChanged handling rebuilds
+the tree and ActiveDocument restores the selected file per Vault. Tauri already
+registers the required providers and grants vault.access; no driver changes are
+needed. Native picker appearance and narrow/short desktop layout acceptance
+require manual Owner testing; desktop automation is prohibited.
 
 ## File extension presentation
 

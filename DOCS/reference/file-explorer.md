@@ -5,7 +5,7 @@
 `lunaris.file-explorer` (`plugins/UI/file-explorer`) is the default Sidebar tool.
 It registers a localized Files tab with `lunaris.file-explorer` as its Components
 role. The controller imports only public SDK contracts. It requires Logger,
-Sidebar, Filesystem, FilesystemObservation, Vault/VaultChanged,
+Sidebar, Filesystem, FilesystemObservation, Vault/VaultChanged, VaultHistory/VaultHistoryChanged,
 Localization/LocaleChanged, FileChanged and ActiveDocument/ActiveDocumentChanged. Permissions: `filesystem.access` and
 `vault.access`. It provides no API/events and needs no DOM permission.
 
@@ -30,6 +30,23 @@ shutdown. Other driver implementations need the additive observation-driver
 contract. No kernel runtime change was necessary.
 
 ## User operations
+
+The footer below the file tree shows the current Vault name. Open it to select
+one of up to four latest Vaults, ordered by the history provider, or choose
+Switch vault to open the native folder picker. Cancellation and failed preparation
+preserve the current Vault. Failed requests show a localized inline error and can
+be retried; unavailable history offers Retry without blocking folder selection.
+Requests are serialized, and shutdown ignores pending results.
+
+The optional `vaultSwitcher` component prop contains `name`, `entries` (reference,
+name, label), `activeReference` (string or null), `busy`, `error` (localization key),
+`historyError`, and `onRecent(reference)`, `onChange()`, `onRetry()` callbacks.
+The renderer validates this object, displays at most four entries and delegates
+all operations to its controller. Display labels are tooltips. Current-entry
+marking uses only a known location reference from observed VaultChanged events;
+names are never used to infer location identity. All labels are supplied through
+the existing localized text map. The footer retains Mantine keyboard navigation,
+Escape dismissal, focus return and inherited theme styling.
 
 Dot-prefixed directories (including `.lunaris` and `.git`) and their subtrees
 are excluded from the displayed tree. Dot-prefixed files remain visible.

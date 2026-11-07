@@ -295,6 +295,18 @@ override Mantine hover properties because variant variables are inline styles.
 The containing row owns hover feedback; expansion and keyboard
 focus behavior remain provided by the existing component role.
 
+## File panel Vault footer
+
+The existing `lunaris.file-explorer` role accepts optional `vaultSwitcher` props;
+see the [component contract](../../../../DOCS/reference/file-explorer.md#user-operations).
+The footer composes Mantine Button/Menu with Lucide icons, opens upward, limits
+recents to four and delegates navigation to the SDK consumer. It shares panel
+styling without a second card and uses intrinsic flex space below the scrollable
+tree. Long names truncate with full display labels in tooltips. Busy controls are
+disabled; failures use a localized alert. The reference catalog consulted was
+[Mantine UI navbars](https://ui.mantine.dev/category/navbars/); no runtime gallery
+dependency or copied composition was added.
+
 ## Active document integration
 
 The controller consumes ActiveDocument/ActiveDocumentChanged through the public

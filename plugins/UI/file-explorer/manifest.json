@@ -66,6 +66,16 @@
       "kind": "event",
       "id": "lunaris.active-document-changed",
       "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.vault-history",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.vault-history-changed",
+      "range": "^1.0.0"
     }
   ],
   "permissions": [

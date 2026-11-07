@@ -7,6 +7,8 @@ import type { ComponentProps } from "@lunaris/components";
 import type { MenuOpenRequest, MenuSession } from "@lunaris/context-menu";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
+import { VaultSwitcher, validVaultSwitcher } from "./vault-switcher.js";
+import type { VaultSwitcherProps } from "./vault-switcher.js";
 
 // Absolute paths never occur in the Vault-relative controller tree.
 const ROOT_ID = "/";
@@ -15,6 +17,7 @@ interface Entry { id: string; name: string; kind: string; children?: Entry[]; dr
 type Form = { kind: "file" | "folder"; parent: string; initialName?: string } | { kind: "delete"; paths: string[] };
 interface Draft { form: Form | null; name: string }
 interface ExplorerProps {
+  vaultSwitcher?: VaultSwitcherProps;
   supportedExtensions?: readonly string[];
   activePath?: string | null; onOpen?: (path: string) => Promise<void>;
   vaultId: string; data: Entry[]; expanded: string[]; selection: string[]; busy: boolean; loading: boolean; error: string; degraded: string; canPaste: boolean;
@@ -27,6 +30,7 @@ interface ExplorerProps {
   onContextMenu(request: Omit<MenuOpenRequest, "context"> & { path: string | null; kind: string; selection: readonly string[]; destination: string }): MenuSession | undefined;
 }
 export function explorerProps(value: ComponentProps): ExplorerProps {
+  if (value.vaultSwitcher !== undefined && !validVaultSwitcher(value.vaultSwitcher)) throw new TypeError("Invalid Vault switcher props.");
   const validEntries = (items: unknown, ids = new Set<string>()): boolean => Array.isArray(items) && items.every(item => {
     if (!item || typeof item.id !== "string" || !item.id || ids.has(item.id) || typeof item.name !== "string" || !["file", "directory", "symlink", "other"].includes(item.kind)) return false;
     ids.add(item.id);
@@ -261,6 +265,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
   }
   function keyboard(event: KeyboardEvent): void {
     const target = event.target as HTMLElement;
+    if (target.closest(".lm-vault-switcher")) return;
     if (target.closest("input,textarea,[contenteditable=true]") || form) return;
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key) && target.closest("[role=tree]")) setKeyboardNavigation(true);
     if (event.key === "Enter" && target.closest("[role=tree]")) {
@@ -333,5 +338,6 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
           onMove={async ({ dragIds, parentId }) => { if (!dragIds.includes(ROOT_ID)) await props.onMove(dragIds, parentId === ROOT_ID ? "" : parentId ?? ""); }}>{ExplorerNode}</Tree>
       </ExplorerContext.Provider>
     </Box>
+    {props.vaultSwitcher && <VaultSwitcher props={props.vaultSwitcher} text={t} />}
   </Box>;
 }
