@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
 import { useBrowser } from '../../../../tools/test/browser.mjs';
 import { EditorView } from '@codemirror/view';
-import { undo } from '@codemirror/commands';
+import { undo, redo } from '@codemirror/commands';
+import { StateEffect, EditorState, Prec } from '@codemirror/state';
 import { syntaxTree } from '@codemirror/language';
 import { createTestKernel } from '@lunaris/test';
 import { definePlugin } from '@lunaris/sdk';
@@ -210,6 +211,68 @@ test('Tab inserts at the caret, indents selected lines and Shift-Tab removes ind
   await s.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
   assert.equal(s.disk.get('a/note.md').text, '\talpha\nbeta');
   await s.stop();
+});
+
+test('Workspace tasks toggle real Mantine checkboxes, retain focus/history and save CRLF source', async () => {
+  const original = '# Tasks\r\n\r\n- [ ] First\r\n- [X] Second\r\n';
+  const s = await setup({ initial: original, withLayout: true });
+  try {
+    const view = s.cm();
+    const checkboxes = () => [...view.dom.querySelectorAll('input[type=checkbox]')];
+    assert.deepEqual(checkboxes().map(input => input.checked), [false, true]);
+    assert.equal(checkboxes()[0].getAttribute('aria-label'), 'First');
+    assert.equal(s.calls.length, 0);
+    assert.ok(checkboxes()[0].closest('.mantine-Checkbox-root'));
+    const selection = view.state.selection;
+    checkboxes()[0].focus(); checkboxes()[0].click(); await flush();
+    assert.equal(view.state.sliceDoc(), original.replace('[ ]', '[x]'));
+    assert.equal(view.state.selection.eq(selection), true);
+    assert.equal(s.dom.window.document.activeElement, checkboxes()[0]);
+    assert.equal(undo(view), true); await flush(); assert.equal(view.state.sliceDoc(), original);
+    assert.equal(redo(view), true); await flush(); assert.equal(checkboxes()[0].checked, true);
+    checkboxes()[1].click(); await flush(); assert.equal(checkboxes()[1].checked, false);
+    await s.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
+    assert.equal(s.disk.get('a/note.md').text, original.replace('[ ]', '[x]').replace('[X]', '[ ]'));
+  } finally { await s.stop(); }
+});
+
+test('task source reveals at the marker, task text remains editable, and code/escapes remain literal', async () => {
+  const original = '# Tasks\n\n- [ ] First\n\t\t- [x] Deep\n\n1. [ ] Ordered\n\n```md\n- [ ] Code\n```\n\n\\- [ ] Escaped\n\n`- [ ] Inline`';
+  const s = await setup({ initial: original, withLayout: true });
+  try {
+    const view = s.cm();
+    const boxes = () => [...view.dom.querySelectorAll('input[type=checkbox]')];
+    await flush();
+    assert.deepEqual(boxes().map(input => input.getAttribute('aria-label')), ['First', 'Deep', 'Ordered']);
+    view.dispatch({ selection: { anchor: original.indexOf('First') + 2 } });
+    assert.equal(boxes().length, 3);
+    view.dispatch({ selection: { anchor: original.indexOf('[ ]') + 1 } });
+    assert.equal(boxes().length, 2); assert.ok(view.contentDOM.textContent.includes('- [ ] First'));
+    view.dispatch({ selection: { anchor: 0 } });
+    view.dispatch({ changes: { from: 0, insert: 'Intro\n\n' } });
+    boxes()[2].click(); await flush();
+    assert.equal(view.state.sliceDoc(), 'Intro\n\n' + original.replace('1. [ ] Ordered', '1. [x] Ordered'));
+    view.dispatch({ effects: StateEffect.appendConfig.of(Prec.highest([EditorState.readOnly.of(true), EditorView.editable.of(false)])) });
+    assert.ok(boxes().every(input => input.disabled));
+    const locked = view.state.sliceDoc(); boxes()[0].click(); await flush(); assert.equal(view.state.sliceDoc(), locked);
+  } finally { await s.stop(); }
+});
+
+test('task renderer replacement preserves edits and checkbox save failures retain the buffer', async () => {
+  const options = { initial: '# Tasks\n\n- [ ] Keep' };
+  const s = await setup(options);
+  try {
+    s.target.querySelector('input[type=checkbox]').click(); await flush();
+    const edited = '# Tasks\n\n- [x] Keep';
+    await s.kernel.stop(mantine.manifest.id); await s.kernel.start(mantine.manifest.id); await flush();
+    assert.equal(s.cm().state.sliceDoc(), edited);
+    assert.equal(s.target.querySelector('input[type=checkbox]').checked, true);
+    options.writeFailure = 'IO_ERROR';
+    assert.equal((await s.documents.open({ vaultId: 'a', path: 'other.md' })).ok, false); await flush();
+    assert.equal(s.cm().state.sliceDoc(), edited);
+    assert.equal(s.disk.get('a/note.md').text, options.initial);
+    assert.equal(s.documents.current().path, 'note.md');
+  } finally { await s.stop(); }
 });
 
 test('Workspace editor auto-pairs Markdown input and saves the unchanged closing delimiters', async () => {

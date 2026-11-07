@@ -5,6 +5,8 @@ import { defaultKeymap, history, historyKeymap, indentMore, indentLess, insertTa
 import { markdown, markdownKeymap } from "@codemirror/lang-markdown";
 import { HighlightStyle, syntaxHighlighting, indentUnit, syntaxTree } from "@codemirror/language";
 import { Strikethrough } from "@lezer/markdown";
+import { taskControls } from "./task-checkbox.js";
+import type { TaskControls } from "./task-checkbox.js";
 import { livePreview, livePreviewTheme } from "./live-preview.js";
 import { tabIndentedLists } from "./markdown.js";
 import { continueTabIndentedList } from "./markdown-commands.js";
@@ -56,12 +58,12 @@ function appearance(theme: ThemeDefinition | null) {
 
 /** Reusable view adapter; cached states belong to the controller, not DOM roots. */
 export function mountEditor(target: HTMLElement, session: DocumentSession, cached: EditorState | undefined,
-  theme: ThemeDefinition | null, label: string, save: () => void, failed: (error: unknown) => void, preview = true) {
+  theme: ThemeDefinition | null, label: string, save: () => void, failed: (error: unknown) => void, preview = true, tasks?: TaskControls) {
   const mode = new Compartment();
   const skin = new Compartment(); const access = new Compartment(); const attributes = new Compartment();
   // A cached state retains history/selection; replace view-specific compartments
   // and callbacks through a full reconfiguration without replacing the document.
-  const extensions = [EditorState.lineSeparator.of(session.text.includes("\r\n") ? "\r\n" : "\n"), indentUnit.of("\t"), EditorState.tabSize.of(4), history(), markdown({ addKeymap: false, extensions: [Strikethrough, tabIndentedLists] }), mode.of(preview ? [livePreview, livePreviewTheme] : []), EditorView.lineWrapping, drawSelection(),
+  const extensions = [EditorState.lineSeparator.of(session.text.includes("\r\n") ? "\r\n" : "\n"), indentUnit.of("\t"), EditorState.tabSize.of(4), history(), markdown({ addKeymap: false, extensions: [Strikethrough, tabIndentedLists] }), tasks ? taskControls.of(tasks) : [], mode.of(preview ? [livePreview, livePreviewTheme] : []), EditorView.lineWrapping, drawSelection(),
     EditorView.exceptionSink.of(failed),
     pairedInput,
     keymap.of([{ key: "Mod-s", run: () => { save(); return true; }, preventDefault: true }, { key: "Tab", run: insertIndent, shift: indentLess, preventDefault: true }, { key: "Enter", run: continueTabIndentedList }, ...markdownKeymap, ...defaultKeymap, ...historyKeymap]),

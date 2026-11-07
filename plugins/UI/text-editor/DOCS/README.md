@@ -209,8 +209,8 @@ handler or unsafe HTML rendering is introduced.
 Supported presentation: strong/emphasis/strikethrough, inline code, inline Markdown
 link labels, ATX/Setext headings, unordered bullets, quote markers and horizontal
 rules. Ordered list numbers remain literal. Code blocks receive a quiet code
-surface; their fences/info strings remain literal. Tasks retain editable `[ ]`/
-`[x]` text. Escaped syntax is interpreted by the parser. Images and HTML remain
+surface; their fences/info strings remain literal. Tasks render interactive
+checkboxes as described below. Escaped syntax is interpreted by the parser. Images and HTML remain
 literal. Link labels may contain nested formatting; reference-style destinations
 are not resolved. Multiline syntax that cannot be safely hidden without replacing
 line breaks remains visible.
@@ -229,7 +229,7 @@ empty lines, nested quotes and inline-code wrapping/caret contrast in the actual
 Workspace in both themes. Native visual acceptance remains pending.
 
 This is the Markdown foundation, not full Obsidian parity. Rendered/editable
-tables, interactive tasks, attachment previews, wikilink navigation/transclusion,
+tables, attachment previews, wikilink navigation/transclusion,
 callouts, properties, footnotes, math, diagrams, HTML and highlight/comment
 extensions remain outstanding. They must use appropriate public SDK contracts;
 do not resolve files or navigate through private plugin state or raw platform APIs.
@@ -241,3 +241,48 @@ Logger, ActiveDocument and Filesystem integrations remain connected. The role ow
 recovery controls and the target, while the adapter owns text presentation. No other
 plugin needs new wiring for this foundation. Optional feature integrations listed
 above have not been implemented and must not be reported as complete.
+
+## Interactive task checkboxes
+
+Parsed list items beginning with `[ ]`, `[x]` or `[X]` render the public
+`lunaris.task-checkbox` role from Mantine Components. Recognition is limited to
+the prefix immediately after a parsed ListMark, including ordered lists, quotes
+and the hard-tab nesting dialect. It does not interpret code, escaped list
+markers, HTML or arbitrary bracketed text as tasks. A narrow prefix check also
+covers parent tasks whose paragraph is interrupted by a deep hard-tab child.
+
+Clicking the checkbox (or activating its focused native input with Space) changes
+only the character inside the brackets, using lowercase `x` for completion and a
+space for reopening. Each change uses the normal CodeMirror transaction/history
+and DocumentSession autosave path; CRLF, version checks, conflicts and recovery
+retain their existing behavior. Rendering never writes to disk. The control keeps
+its DOM identity/focus when checked state changes; caret and selections do not
+move. Text remains editable. Touching the task marker with any source selection
+reveals its raw syntax; moving away restores the checkbox. Empty task labels use
+the editor's localized Task message for their accessible name.
+
+Workspace and ActiveScreen retain region geometry/surfaces. CodeMirror owns task
+placement and text; Mantine owns only the embedded checkbox control, its theme,
+disabled/focus/hover states. The control uses an embedded/content public
+presentation context and does not add a background or card. The existing inline
+list preview is the placement reference; the shared Mantine settings controls
+define theme/focus conventions. [Mantine UI inputs](https://ui.mantine.dev/category/inputs/)
+and the [controlled Checkbox API](https://mantine.dev/core/checkbox/) were consulted.
+
+The Text Editor connects the new role through Components and observes
+ComponentsChanged for renderer removal/replacement. Missing renderers retain
+readable task markers and report degraded behavior; re-registration restores
+controls. Read-only/loading/missing/locked documents disable the controls, and
+queued actions recheck scope lifetime, document state and marker identity.
+Disposal after owner cancellation relies on SDK-owned component cleanup and does
+not access retained SDK handles. Successful toggles log at debug without task
+text. No new SDK service or platform access is needed. Required Text Editor /
+Mantine integration is connected; no other plugin needs additional wiring.
+
+Targeted tests cover real Mantine controls within Workspace, checked/unchecked
+and uppercase markers, focus/selection, undo/redo, deep and ordered items,
+literal-code/escape exclusions, source reveal, shifted positions, read-only state,
+renderer restart, CRLF persistence and save-failure retention. Native visual and
+keyboard acceptance remains pending: manually verify click and Space, source
+editing and Enter continuation, long wrapped/nested tasks, checkbox alignment,
+focus and disabled contrast in light/dark themes and narrow/short Workspace views.

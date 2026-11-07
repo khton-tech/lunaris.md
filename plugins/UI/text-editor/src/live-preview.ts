@@ -2,6 +2,7 @@ import type { EditorState, Range } from "@codemirror/state";
 import { syntaxTree } from "@codemirror/language";
 import { Decoration, EditorView, ViewPlugin, WidgetType } from "@codemirror/view";
 import type { DecorationSet, ViewUpdate } from "@codemirror/view";
+import { TaskCheckbox, taskControls } from "./task-checkbox.js";
 
 /** Presentation only: replacements never change Markdown or clipboard contents. */
 class Marker extends WidgetType {
@@ -32,6 +33,7 @@ function decorations(view: EditorView): DecorationSet {
       ranges.push(Decoration.replace({}).range(from, to));
   };
   const tree = syntaxTree(state);
+  const controls = state.facet(taskControls);
   for (const visible of view.visibleRanges) tree.iterate({ from: visible.from, to: visible.to, enter(node) {
     const { name, from, to } = node;
     const line = state.doc.lineAt(from);
@@ -83,10 +85,25 @@ function decorations(view: EditorView): DecorationSet {
       }
     }
     if (["EmphasisMark", "StrikethroughMark", "CodeMark"].includes(name)) hide(from, to);
+    if (name === "ListMark" && controls) {
+      // Recognize task syntax only directly after a parsed list marker. This also
+      // covers parent tasks interrupted by the hard-tab list dialect's parser.
+      const task = /^[ \t]+(\[[ xX]\])(?=[ \t]|$)/.exec(state.sliceDoc(to, line.to));
+      if (task) {
+        const markerFrom = to + task[0].length - 3;
+        const markerTo = markerFrom + 3;
+        if (!selected(state, markerFrom, markerTo)) {
+          ranges.push(Decoration.replace({ widget: new TaskCheckbox(markerFrom, task[1]!,
+            state.readOnly || !state.facet(EditorView.editable), state.sliceDoc(markerTo, line.to).trim() || controls.label, controls) }).range(markerFrom, markerTo));
+          if (/^[-+*]$/.test(state.sliceDoc(from, to))) hide(from, markerFrom);
+        }
+        return;
+      }
+    }
     if (["HeaderMark", "QuoteMark", "ListMark"].includes(name) && !selected(state, line.from, line.to)) {
       const end = state.sliceDoc(to, to + 1) === " " ? to + 1 : to;
       if (name === "ListMark") {
-        // Task items retain their literal, directly editable checkbox syntax.
+        // Without a component renderer, retain editable task source.
         if (/^\s*\[[ xX]\]/.test(state.sliceDoc(to, line.to))) return;
         const text = state.sliceDoc(from, to);
         if (/^[-+*]$/.test(text)) ranges.push(Decoration.replace({ widget: new Marker("• ", "bullet") }).range(from, end));
@@ -112,7 +129,9 @@ export const livePreview = ViewPlugin.fromClass(class {
   decorations: DecorationSet;
   constructor(view: EditorView) { this.decorations = decorations(view); }
   update(update: ViewUpdate) {
-    if (update.docChanged || update.selectionSet || update.viewportChanged || syntaxTree(update.startState) !== syntaxTree(update.state))
+    if (update.docChanged || update.selectionSet || update.viewportChanged || syntaxTree(update.startState) !== syntaxTree(update.state)
+      || update.startState.readOnly !== update.state.readOnly || update.startState.facet(EditorView.editable) !== update.state.facet(EditorView.editable)
+      || update.startState.facet(taskControls) !== update.state.facet(taskControls))
       this.decorations = decorations(update.view);
   }
 }, { decorations: plugin => plugin.decorations });
@@ -129,6 +148,7 @@ export const livePreviewTheme = EditorView.baseTheme({
   ".cm-preview-h5": { fontSize: "1.25em" }, ".cm-preview-h6": { fontSize: "1.1em" },
   ".cm-preview-link": { textDecoration: "underline" },
   ".cm-preview-bullet": { whiteSpace: "pre" },
+  ".cm-preview-task": { display: "inline-flex", verticalAlign: "middle", lineHeight: "1" },
   ".cm-line.cm-preview-quote": { paddingLeft: "calc(clamp(12px, 3cqi, 40px) + 0.6em + var(--cm-preview-quote-depth) * 0.85em)", backgroundSize: "2px 100%", backgroundRepeat: "no-repeat" },
   ".cm-preview-rule": { display: "inline-block", width: "100%", borderTop: "1px solid currentColor", opacity: "0.25", verticalAlign: "middle" },
 });

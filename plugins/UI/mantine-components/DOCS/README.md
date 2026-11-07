@@ -465,6 +465,24 @@ reviewed against [Mantine UI navbars](https://ui.mantine.dev/category/navbars/).
 
 ## Text editor role
 
+`lunaris.task-checkbox` provides a controlled Mantine Core Checkbox for inline
+Markdown tasks. Required public props: `checked: boolean`, `disabled: boolean`,
+nonempty localized `label: string` (accessible name), and
+`onChange(checked: boolean)`. Its default presentation is embedded/content. The
+owned root uses inline-flex and normal containment so it adds no page surface or
+extra region geometry. The consumer owns task text and document changes; the
+role owns only the checkbox, active theme colors, hover/focus and disabled state.
+State updates preserve input identity and keyboard focus. Checkbox CSS is included
+in the shared styles entry point. No document, file or persistence access exists
+in this renderer. Reference: shared settings-control theme conventions and
+[Mantine UI inputs](https://ui.mantine.dev/category/inputs/), using the
+[controlled Checkbox](https://mantine.dev/core/checkbox/). Text Editor mounts this
+role through Components and handles renderer replacement through ComponentsChanged.
+Targeted role and composed editor tests pass; native Space activation, visual
+alignment, light/dark/disabled contrast, focus and wrapped task layouts remain
+manual acceptance inside Workspace. See the
+[task integration guide](../../text-editor/DOCS/README.md#interactive-task-checkboxes).
+
 lunaris.text-editor supplies unavailable-state messages and editor recovery controls
 and a stable owned CodeMirror target. Strings and callbacks come from the editor
 controller through Components; this role contains no filesystem or editor state.

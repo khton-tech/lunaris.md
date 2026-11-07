@@ -35,6 +35,30 @@ async function setup() {
 }
 const startup = { art: '<img src=x> ASCII', logoLabel: 'Lunaris', status: 'Loading' };
 
+test('task checkbox role validates controlled state, forwards changes and inherits the embedded theme', async () => {
+  const s = await setup(); await s.start();
+  try {
+    const changes = [];
+    const props = { checked: false, disabled: false, label: '<Task>', onChange: checked => changes.push(checked) };
+    const mounted = s.components.mount('lunaris.task-checkbox', s.target, props, s.ctx.signal);
+    assert.equal(mounted.ok, true);
+    const input = s.target.querySelector('input[type=checkbox]');
+    assert.equal(input.getAttribute('aria-label'), '<Task>');
+    assert.equal(input.closest('.lm-root').style.backgroundColor, 'transparent');
+    assert.equal(input.closest('.lm-root').style.containerType, 'normal');
+    input.click(); assert.deepEqual(changes, [true]);
+    mounted.value.update({ ...props, checked: true, disabled: true });
+    assert.equal(s.target.querySelector('input'), input); assert.equal(input.checked, true); assert.equal(input.disabled, true);
+    input.click(); assert.deepEqual(changes, [true]);
+    s.themes.register({ id: 'test.tasks', name: 'Tasks', properties: { appearance: 'light', colors: { accent: '#123456', onAccent: '#ffffff', controlBorder: '#777777' } } }, s.ctx.signal);
+    s.themes.select('test.tasks');
+    assert.equal(input.closest('.lm-task-checkbox').style.getPropertyValue('--vault-accent'), '#123456');
+    assert.equal(mounted.value.update({ ...props, checked: 'yes' }).ok, false);
+    assert.equal(mounted.value.update({ ...props, label: '' }).ok, false);
+    assert.equal(mounted.value.update({ ...props, onChange: null }).ok, false);
+  } finally { await s.stop(); }
+});
+
 test('editor role preserves its borrowed target through status/theme changes and confirms destructive reload', async () => {
   const s = await setup(); await s.start(); let target; let reloads = 0;
   const props = { documentKey: 'note', name: '<draft>.md', status: 'Unsaved', error: 'Conflict', ready: true, dirty: true, busy: false,
@@ -133,7 +157,7 @@ test('workspace header retains intrinsic block sizing while full-height surfaces
 
 test('registers the replaceable roles, renders real Mantine controls, preserves siblings and releases roots', async () => {
   const s = await setup(); await s.start();
-  assert.deepEqual(s.components.list(), ['lunaris.active-screen', 'lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.settings-choices', 'lunaris.settings-items', 'lunaris.settings-navigation', 'lunaris.settings-page', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.text-editor', 'lunaris.vault-selector', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
+  assert.deepEqual(s.components.list(), ['lunaris.active-screen', 'lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.settings-choices', 'lunaris.settings-items', 'lunaris.settings-navigation', 'lunaris.settings-page', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.task-checkbox', 'lunaris.text-editor', 'lunaris.vault-selector', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
   const owner = s.ctx.scope.child();
   const mounted = s.components.mount('lunaris.vault-selector', s.target, selector, owner.signal); assert.equal(mounted.ok, true);
   assert.ok(s.target.querySelector('.mantine-Button-root')); assert.ok(s.target.querySelector('.mantine-TextInput-input'));

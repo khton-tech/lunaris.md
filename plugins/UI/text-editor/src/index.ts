@@ -16,7 +16,7 @@ import manifest from "../manifest.json" with { type: "json" };
 
 const catalogs = { en: {
   empty: "Open a Markdown file", loading: "Loading", unsupported: "This file type is not supported", saved: "Saved", unsaved: "Unsaved", saving: "Saving",
-  save: "Save", retry: "Retry save", reload: "Reload from disk", discard: "Discard changes and reload", cancel: "Cancel", editor: "Markdown editor",
+  save: "Save", retry: "Retry save", reload: "Reload from disk", discard: "Discard changes and reload", cancel: "Cancel", editor: "Markdown editor", task: "Task",
   conflict: "The file changed outside the editor. Your changes are retained.", missing: "The file was removed. Your text is retained.",
   readFailed: "Cannot read this file.", saveFailed: "Cannot save changes. Your text is retained.",
 } };
@@ -29,7 +29,7 @@ export default definePlugin({ manifest, activate(ctx) {
   const screens = ctx.use(ActiveScreen); const components = ctx.use(Components); const localization = ctx.use(Localization);
   const vaults = ctx.use(Vault); const themes = ctx.use(Themes);
   const sessions = new Map<string, DocumentSession>(); const states = new Map<DocumentSession, EditorState>();
-  const views = new Set<{ render(): void; removed(): void }>();
+  const views = new Set<{ render(): void; removed(): void; refreshControls(): void }>();
   const screenId = `${ctx.pluginId}.screen`;
   let current: DocumentSession | null = null; let unsupported = false; let scheduled = false;
   const messages = localization.register(ctx.pluginId, catalogs, ctx.signal);
@@ -112,6 +112,7 @@ export default definePlugin({ manifest, activate(ctx) {
   const registration = components.register({ id: "lunaris.text-editor-host", mount(target, initial, signal) {
     const owner = ctx.scope.child(); let props = initial; let mounted: MountedComponent | undefined;
     let disposed = false; let editorTarget: HTMLElement | null = null;
+    let taskUnavailableReported = false;
     let editor: ReturnType<typeof mountEditor> | undefined; let rendered: DocumentSession | null = null;
     const onTarget = (value: HTMLElement | null) => { editorTarget = value; };
     function clearEditor(): void { if (editor && rendered) states.set(rendered, editor.dispose()); editor = undefined; rendered = null; }
@@ -150,11 +151,25 @@ export default definePlugin({ manifest, activate(ctx) {
         if (!editor) {
           rendered = session;
           editor = mountEditor(editorTarget, session, states.get(session), themes.current(), text("editor"), onSave,
-            error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "CodeMirror operation failed", { error }); });
+            error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "CodeMirror operation failed", { error }); }, true, {
+              label: text("task"), active: () => !disposed && !owner.signal.aborted && !ctx.signal.aborted,
+              toggled(checked) { if (!ctx.signal.aborted) logger.debug(ctx.pluginId, "Task checkbox toggled", { data: { checked } }); },
+              mount(target, props) {
+                if (disposed || owner.signal.aborted || ctx.signal.aborted) return null;
+                if (!components.has("lunaris.task-checkbox")) {
+                  if (!taskUnavailableReported) logger.warn(ctx.pluginId, "Task checkbox role unavailable; retaining task syntax", { code: "TASK_CHECKBOX_UNAVAILABLE" });
+                  taskUnavailableReported = true; return null;
+                }
+                const result = components.mount("lunaris.task-checkbox", target, props, owner.signal);
+                if (result.ok) { taskUnavailableReported = false; return result.value; }
+                logger.warn(ctx.pluginId, "Cannot mount task checkbox; retaining Markdown source", { error: result.error });
+                return null;
+              },
+            });
         } else editor.update(themes.current(), text("editor"));
       }
     }
-    const view = { render, removed() { clearEditor(); mounted = undefined; editorTarget = null; } };
+    const view = { render, refreshControls: clearEditor, removed() { clearEditor(); mounted = undefined; editorTarget = null; } };
     function dispose(): void {
       if (disposed) return; disposed = true; signal.removeEventListener("abort", dispose); views.delete(view); clearEditor();
       void owner.dispose().catch(() => {});
@@ -193,7 +208,10 @@ export default definePlugin({ manifest, activate(ctx) {
     }
   });
   ctx.events.on(ThemeChanged, changed); ctx.events.on(LocaleChanged, changed);
-  ctx.events.on(ComponentsChanged, change => { if (change.componentId === "lunaris.text-editor") { if (change.kind === "removed") for (const view of views) view.removed(); changed(); } });
+  ctx.events.on(ComponentsChanged, change => {
+    if (change.componentId === "lunaris.task-checkbox") { for (const view of views) view.refreshControls(); changed(); }
+    if (change.componentId === "lunaris.text-editor") { if (change.kind === "removed") for (const view of views) view.removed(); changed(); }
+  });
   ctx.scope.own({ dispose() { for (const session of sessions.values()) session.dispose(); sessions.clear(); states.clear(); } });
   choose(documents.current()); if (documents.current()) selectScreen();
   logger.info(ctx.pluginId, "Text editor ready", { data: { autosaveDelay: 2000 } });
