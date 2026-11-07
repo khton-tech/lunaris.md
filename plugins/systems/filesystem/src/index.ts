@@ -5,6 +5,8 @@ import { Logger } from "@lunaris/logging";
 import manifest from "../manifest.json" with { type: "json" };
 import { createObservation } from "./observation.js";
 import { createRootLifecycle } from "./roots.js";
+import { BeforeFileMutation } from "@lunaris/filesystem";
+import type { FileMutation } from "@lunaris/filesystem";
 
 export default definePlugin({ manifest, activate(ctx) {
   const logger = ctx.use(Logger);
@@ -17,6 +19,30 @@ export default definePlugin({ manifest, activate(ctx) {
   const locations = ctx.use(FilesystemLocationsDriver);
   const roots = createRootLifecycle(ctx, id => call("closeVault", () => driver.closeVault(id)));
   const snapshot = (target: FileTarget): FileTarget => Object.freeze({ vaultId: target.vaultId, path: target.path });
+  let mutations: Promise<unknown> = Promise.resolve();
+  function mutate(input: Omit<FileMutation, "error" | "onSettled">, work: () => Promise<FsResult<null>>): Promise<FsResult<null>> {
+    const run = async (): Promise<FsResult<null>> => {
+      const listeners: ((result: FsResult<null>) => void | Promise<void>)[] = [];
+      let result: FsResult<null> = failure("CANCELLED", "Mutation did not complete.");
+      try {
+        if (ctx.signal.aborted) return result;
+        const guard = await ctx.hooks.run(BeforeFileMutation, Object.freeze({ ...input, error: null,
+          onSettled: (listener: (result: FsResult<null>) => void | Promise<void>) => { listeners.push(listener); } }));
+        if (guard.error) result = { ok: false, error: guard.error };
+        else if (!ctx.signal.aborted) result = await work();
+        return result;
+      } catch (error) {
+        if (!ctx.signal.aborted) logger.error(ctx.pluginId, "File mutation guard failed", { error });
+        result = failure("IO_ERROR", "File mutation failed."); return result;
+      } finally {
+        for (const listener of listeners) {
+          try { await listener(result); }
+          catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "File mutation completion failed", { error }); }
+        }
+      }
+    };
+    const task = mutations.then(run); mutations = task.catch(() => {}); return task;
+  }
   async function call<T>(operation: string, work: () => Promise<FsResult<T>>, target?: FileTarget): Promise<FsResult<T>> {
     let result: FsResult<T>;
     try { result = await work(); }
@@ -47,7 +73,8 @@ export default definePlugin({ manifest, activate(ctx) {
   const transfer = (operation: "move" | "copy", source: FileTarget, destination: FileTarget, overwrite = false) =>
     onTarget(operation, source, false, copy => {
       if (!validTarget(destination) || destination.vaultId !== copy.vaultId) return Promise.resolve(failure("INVALID_PATH", "Transfers must stay within one Vault."));
-      return driver[operation](copy, snapshot(destination), overwrite);
+      const next = snapshot(destination);
+      return mutate({ operation, source: copy, destination: next, overwrite }, () => driver[operation](copy, next, overwrite));
     });
   const observation = createObservation(ctx, (target, recursive) => onTarget("watch", target, true, copy => observationDriver.watch(copy, ctx.signal, recursive)),
     (vaultId, watchId) => roots.run(vaultId, () => call("unwatch", () => driver.unwatch(vaultId, watchId))),
@@ -82,7 +109,7 @@ export default definePlugin({ manifest, activate(ctx) {
     stat: target => onTarget("stat", target, true, copy => driver.stat(copy)),
     list: target => onTarget("list", target, true, copy => driver.list(copy)),
     createDirectory: (target, recursive = false) => onTarget("createDirectory", target, false, copy => driver.createDirectory(copy, recursive)),
-    remove: (target, recursive = false) => onTarget("remove", target, false, copy => driver.remove(copy, recursive)),
+    remove: (target, recursive = false) => onTarget("remove", target, false, copy => mutate({ operation: "remove", source: copy, destination: null, overwrite: false }, () => driver.remove(copy, recursive))),
     move: (source, destination, overwrite = false) => transfer("move", source, destination, overwrite),
     copy: (source, destination, overwrite = false) => transfer("copy", source, destination, overwrite),
     watch: (target, recursive = true) => onTarget("watch", target, true, copy => driver.watch(copy, recursive)),

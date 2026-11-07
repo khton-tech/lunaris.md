@@ -40,6 +40,11 @@
       "kind": "api",
       "id": "lunaris.directory-locations",
       "version": "1.0.0"
+    },
+    {
+      "kind": "hook",
+      "id": "lunaris.before-file-mutation",
+      "version": "1.0.0"
     }
   ],
   "requires": [

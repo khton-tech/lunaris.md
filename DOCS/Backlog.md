@@ -197,3 +197,12 @@ Global application config and `.lunaris/config.toml` expose per-plugin namespace
 through SDK read/get/set/remove methods. Effective reads prioritize local values;
 explicit writes, version checks and serialized mutations preserve unrelated data.
 See [the config reference](reference/config.md) for format, errors and limits.
+
+## CodeMirror text editor
+
+Implemented on 2026-11-07: Markdown source editing, two-second autosave, Mod-S,
+version conflict recovery, retained history/selection and public SDK integration
+with ActiveDocument, Filesystem/File Explorer, Vault, ActiveScreen, Themes,
+Localization, Components and Logger. Normal desktop closure flushes through Vault.
+Native visual acceptance remains pending; crash recovery and merge are outside
+this initial scope. See the [plugin guide](../plugins/UI/text-editor/DOCS/README.md).

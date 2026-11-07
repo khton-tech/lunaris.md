@@ -6,6 +6,7 @@
 @import '@mantine/core/styles/Input.css';
 @import '@mantine/core/styles/InlineInput.css';
 @import '@mantine/core/styles/Switch.css';
+@import '@mantine/core/styles/Checkbox.css';
 @import '@mantine/core/styles/NumberInput.css';
 @import '@mantine/core/styles/Paper.css';
 @import '@mantine/core/styles/Stack.css';
@@ -17,6 +18,13 @@
 @import '@mantine/core/styles/Menu.css';
 @import '@mantine/core/styles/Splitter.css';
 
+.lm-task-checkbox .mantine-Checkbox-input { background:transparent;border-color:var(--vault-control-border);cursor:pointer;transition:background-color var(--vault-motion-fast) var(--vault-motion-easing),border-color var(--vault-motion-fast) var(--vault-motion-easing) }
+.lm-task-checkbox .mantine-Checkbox-input:enabled:hover { border-color:var(--vault-accent) }
+.lm-task-checkbox .mantine-Checkbox-input:checked { background:var(--vault-accent);border-color:var(--vault-accent) }
+.lm-task-checkbox .mantine-Checkbox-input:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset) }
+.lm-task-checkbox .mantine-Checkbox-input:disabled { background:var(--vault-selection);border-color:var(--vault-separator);cursor:default }
+.lm-task-checkbox .mantine-Checkbox-input:disabled:checked { background:var(--vault-secondary) }
+@media(prefers-reduced-motion:reduce) { .lm-task-checkbox .mantine-Checkbox-input { transition:none } }
 .lm-context-surface { position:fixed;inset:0;pointer-events:none;user-select:none }
 .lm-context-anchor { position:fixed;width:0;height:0;pointer-events:none }
 .lm-root .lm-context-menu { pointer-events:auto;max-width:calc(100vw - 8px);max-height:calc(100dvh - 8px);overflow:auto;width:max-content;min-width:min(12rem,calc(100vw - 8px));padding:var(--vault-space);background:var(--vault-panel);color:var(--vault-text);border:var(--vault-border) solid color-mix(in srgb,var(--vault-control-border) 12%,transparent);border-radius:var(--vault-radius);box-shadow:none }
@@ -242,3 +250,8 @@
 .lm-root .lm-setting-input:disabled { cursor:default }
 .lm-setting-row[data-layout=stacked] { flex-direction:column; align-items:stretch }
 .lm-setting-row[data-layout=stacked]>.lm-setting-label,.lm-setting-row[data-layout=stacked]>.lm-setting-control { flex:0 0 auto; min-width:0 }
+.lm-text-editor { display:flex;flex:1;flex-direction:column;min-width:0;min-height:0;background:transparent }
+.lm-editor-placeholder { padding:calc(var(--vault-space)*2) clamp(12px,3cqi,40px);user-select:none;overflow-wrap:anywhere }
+.lm-editor-error { flex:0 0 auto;padding:calc(var(--vault-space)*2) clamp(12px,3cqi,40px);color:var(--vault-error);user-select:none }
+.lm-editor-target { display:flex;flex:1 1 0%;min-width:0;min-height:0;overflow:hidden;background:transparent }
+.lm-editor-target[hidden] { display:none }

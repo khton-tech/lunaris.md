@@ -30,6 +30,11 @@
       "kind": "api",
       "id": "lunaris.vault-creation",
       "version": "1.0.0"
+    },
+    {
+      "kind": "hook",
+      "id": "lunaris.before-vault-release",
+      "version": "1.0.0"
     }
   ],
   "requires": [

@@ -188,7 +188,14 @@ WorkspaceLayout uses Mantine Splitter between stable left-panel/main targets.
 
 By temporary Owner instruction, WorkspaceLayout prevents Tab/Shift+Tab traversal
 through an owned document-capture listener. It covers body and overlay events,
-retains pointer/arrow/editor interactions, and is removed on layout disposal.
+retains pointer/arrow interactions, and is removed on layout disposal. Editable
+content owns Tab input: the listener allows events whose nearest explicit
+contenteditable boundary in the composed event path is true, empty or plaintext-only.
+An explicit false boundary remains subject to the traversal policy. This uses
+standard HTML semantics rather than editor plugin IDs or private selectors, so
+replacement editors can receive Tab/Shift-Tab through the same public target.
+The real WorkspaceLayout/Text Editor integration regression covers indentation,
+reverse indentation and persistence within this container.
 Selector/recovery outside Workspace retain their existing keyboard behavior.
 Optional `panelWidth`, `resizeLabel` and `onPanelWidth(width)` props keep preference
 ownership in the SDK consumer. Resizing changes view geometry only; pointer drag,
@@ -417,7 +424,8 @@ changes. Restored files reveal their ancestors without taking keyboard focus.
 Confirmed file creation activates the new file; rename/move update its identity
 and deletion/observation/manual refresh reconcile missing files. See
 [the active document reference](../../../../DOCS/reference/active-document.md).
-Content editor integration remains outstanding; no editor exists yet.
+The CodeMirror editor is integrated through the public ActiveDocument transition
+contract and ActiveScreen; see the [editor guide](../../text-editor/DOCS/README.md).
 
 The active file uses a visible vertical marker before its icon instead of a
 persistent row background. The marker uses 80% theme text color with a 1.75-space
@@ -454,3 +462,39 @@ Section control roots use intrinsic block sizing inside targets owned by this se
 No concrete settings, storage or theme controls are supplied. See
 [the settings reference](../../../../DOCS/reference/settings.md). Compositions were
 reviewed against [Mantine UI navbars](https://ui.mantine.dev/category/navbars/).
+
+## Text editor role
+
+`lunaris.task-checkbox` provides a controlled Mantine Core Checkbox for inline
+Markdown tasks. Required public props: `checked: boolean`, `disabled: boolean`,
+nonempty localized `label: string` (accessible name), and
+`onChange(checked: boolean)`. Its default presentation is embedded/content. The
+owned root uses inline-flex and normal containment so it adds no page surface or
+extra region geometry. The consumer owns task text and document changes; the
+role owns only the checkbox, active theme colors, hover/focus and disabled state.
+State updates preserve input identity and keyboard focus. Checkbox CSS is included
+in the shared styles entry point. No document, file or persistence access exists
+in this renderer. Reference: shared settings-control theme conventions and
+[Mantine UI inputs](https://ui.mantine.dev/category/inputs/), using the
+[controlled Checkbox](https://mantine.dev/core/checkbox/). Text Editor mounts this
+role through Components and handles renderer replacement through ComponentsChanged.
+Targeted role and composed editor tests pass; native Space activation, visual
+alignment, light/dark/disabled contrast, focus and wrapped task layouts remain
+manual acceptance inside Workspace. See the
+[task integration guide](../../text-editor/DOCS/README.md#interactive-task-checkboxes).
+
+lunaris.text-editor supplies unavailable-state messages and editor recovery controls
+and a stable owned CodeMirror target. Strings and callbacks come from the editor
+controller through Components; this role contains no filesystem or editor state.
+It confirms dirty reload before invoking onReload and preserves its target across
+theme/status updates. It adds no card or background over Workspace main. See the
+[role props, integration and manual acceptance](../../text-editor/DOCS/README.md).
+Reference: existing Settings/open Workspace composition and Mantine UI catalog.
+
+The editor is headerless at the Owner's request. Filename, saved status, mode
+switch and Save controls are removed; only unavailable/loading messages and
+conditional error recovery remain above the stable CodeMirror target. Autosave
+and Mod-S belong to the controller/adapter and remain connected. The Owner's
+highlighted Workspace screenshot defines the region to remove. No layout or SDK
+contract additions are required. Verify the headerless composition and error
+recovery manually in Workspace; native visual acceptance remains pending.

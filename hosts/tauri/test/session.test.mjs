@@ -13,6 +13,18 @@ const setup = (definition, extra = {}) => {
   return { scheduler, session: new HostSession({ scheduler, load: async () => definition, ...extra }) };
 };
 
+test('normal window close waits for the product save gate before aborting live plugin scopes', async () => {
+  let allowed = false; let signal; let disposed = false;
+  const service = plugin('test.close-gate', ctx => { signal = ctx.signal; return { dispose() { disposed = true; } }; });
+  const { session } = setup({ plugins: [service], entrypoints: [service.manifest.id], async beforeClose() {
+    assert.equal(signal.aborted, false); assert.equal(disposed, false); return allowed;
+  } });
+  await session.start(); assert.equal(await session.requestClose(), false);
+  assert.equal(session.snapshot().phase, 'running'); assert.equal(signal.aborted, false);
+  allowed = true; assert.equal(await session.requestClose(), true);
+  assert.equal(session.snapshot().phase, 'stopped'); assert.equal(disposed, true);
+});
+
 test('empty host is useful without reference plugins or a product UI', async () => {
   const { session, scheduler } = setup({ plugins: [], entrypoints: [] });
   await session.start();

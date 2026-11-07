@@ -242,3 +242,14 @@ tabs are registered by default, so empty Sidebar adds no width or demo UI.
 See [Sidebar](../reference/sidebar.md) for tool registration and manual acceptance.
 
 The main WebView sets `dragDropEnabled: false` so Windows delivers HTML5 drag/drop to React Arborist. Tauri's default native file-drop handler intercepts those events. This host-level setting does not grant plugins native access or add OS-file import. Restart `tauri:dev` after changing native window configuration. See [Tauri WindowConfig](https://v2.tauri.app/reference/config/#windowconfig).
+
+## Saving before normal window closure
+
+The host's lunaris.desktop-close bridge requires the public Vault and Logger APIs
+and vault.access. composeApplication registers/starts it with the editor.
+HostSession.requestClose invokes ApplicationDefinition.beforeClose while scopes
+are live. The bridge calls Vault.close, which awaits editor release guards. A
+rejected save leaves the window and application running; subsequent close attempts
+remain possible. bindWindowClose waits for this gate before kernel cleanup.
+HostSession.stop and fault recovery remain forced cleanup operations and do not
+promise draft persistence. The bridge exposes no product API or event contract.

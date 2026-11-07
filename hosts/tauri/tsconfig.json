@@ -117,6 +117,12 @@
     },
     {
       "path": "../../plugins/UI/interface-settings"
+    },
+    {
+      "path": "../../plugins/UI/text-editor"
+    },
+    {
+      "path": "../../packages/vault"
     }
   ]
 }

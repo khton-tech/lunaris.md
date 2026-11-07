@@ -1,3 +1,5 @@
+import { textEditorProps, TextEditor } from "./text-editor.js";
+import { taskCheckboxProps, TaskCheckbox } from "./task-checkbox.js";
 import { settingsChoicesProps, SettingsChoices, settingsNavigationProps, settingsPageProps, SettingsNavigation, SettingsPage } from "./settings.js";
 import { settingsItemsProps, SettingsItems } from "./settings-items.js";
 import { readPresentation } from "./presentation.js";
@@ -30,8 +32,8 @@ export default definePlugin({ manifest, activate(ctx) {
   ctx.events.on(ThemeChanged, () => {
     for (const instance of instances) instance.applyTheme();
   });
-  for (const id of ["lunaris.settings-items", "lunaris.settings-choices", "lunaris.settings-navigation", "lunaris.settings-page", "lunaris.active-screen", "lunaris.startup-screen", "lunaris.vault-selector", "lunaris.workspace-header", "lunaris.workspace-empty", "lunaris.workspace-layout", "lunaris.sidebar-rail", "lunaris.file-explorer", "lunaris.context-menu"] as const) {
-    const validate = { "lunaris.settings-items": settingsItemsProps, "lunaris.settings-choices": settingsChoicesProps, "lunaris.settings-navigation": settingsNavigationProps, "lunaris.settings-page": settingsPageProps, "lunaris.active-screen": activeScreenProps, "lunaris.startup-screen": startupProps, "lunaris.vault-selector": selectorProps,
+  for (const id of ["lunaris.task-checkbox", "lunaris.text-editor", "lunaris.settings-items", "lunaris.settings-choices", "lunaris.settings-navigation", "lunaris.settings-page", "lunaris.active-screen", "lunaris.startup-screen", "lunaris.vault-selector", "lunaris.workspace-header", "lunaris.workspace-empty", "lunaris.workspace-layout", "lunaris.sidebar-rail", "lunaris.file-explorer", "lunaris.context-menu"] as const) {
+    const validate = { "lunaris.task-checkbox": taskCheckboxProps, "lunaris.text-editor": textEditorProps, "lunaris.settings-items": settingsItemsProps, "lunaris.settings-choices": settingsChoicesProps, "lunaris.settings-navigation": settingsNavigationProps, "lunaris.settings-page": settingsPageProps, "lunaris.active-screen": activeScreenProps, "lunaris.startup-screen": startupProps, "lunaris.vault-selector": selectorProps,
       "lunaris.workspace-header": workspaceHeaderProps, "lunaris.workspace-empty": workspaceEmptyProps,
       "lunaris.workspace-layout": layoutProps, "lunaris.sidebar-rail": railProps, "lunaris.file-explorer": explorerProps, "lunaris.context-menu": contextMenuProps }[id];
     const registration = components.register({ id, mount(target, initial, signal): ComponentInstance {
@@ -57,9 +59,11 @@ export default definePlugin({ manifest, activate(ctx) {
         container.dataset.presentation = presentation.mode; container.dataset.sizing = presentation.sizing;
         // The context-menu role owns its overlay geometry, independently of its target.
         if (id === "lunaris.context-menu") Object.assign(container.style, { containerType: "normal", position: "fixed", inset: "0", pointerEvents: "none" });
+        if (id === "lunaris.task-checkbox") Object.assign(container.style, { display: "inline-flex", containerType: "normal", verticalAlign: "middle" });
         // A provider per SDK-owned React root scopes color scheme and variables to its owned DOM.
-        const view = id === "lunaris.settings-items" ? createElement(SettingsItems, { props: settingsItemsProps(props), theme }) : id === "lunaris.settings-choices" ? createElement(SettingsChoices, { props: settingsChoicesProps(props), theme }) : id === "lunaris.settings-navigation" ? createElement(SettingsNavigation, { props: settingsNavigationProps(props), theme }) : id === "lunaris.settings-page" ? createElement(SettingsPage, { props: settingsPageProps(props), theme }) : id === "lunaris.active-screen" ? createElement(ActiveScreenView, { props: activeScreenProps(props), theme }) : id === "lunaris.startup-screen"
+        const view = id === "lunaris.text-editor" ? createElement(TextEditor, { props: textEditorProps(props), theme }) : id === "lunaris.settings-items" ? createElement(SettingsItems, { props: settingsItemsProps(props), theme }) : id === "lunaris.settings-choices" ? createElement(SettingsChoices, { props: settingsChoicesProps(props), theme }) : id === "lunaris.settings-navigation" ? createElement(SettingsNavigation, { props: settingsNavigationProps(props), theme }) : id === "lunaris.settings-page" ? createElement(SettingsPage, { props: settingsPageProps(props), theme }) : id === "lunaris.active-screen" ? createElement(ActiveScreenView, { props: activeScreenProps(props), theme }) : id === "lunaris.startup-screen"
           ? createElement(StartupScreen, { props: startupProps(props), theme })
+          : id === "lunaris.task-checkbox" ? createElement(TaskCheckbox, { props: taskCheckboxProps(props), theme })
           : id === "lunaris.vault-selector" ? createElement(VaultSelector, { props: selectorProps(props), theme })
           : id === "lunaris.workspace-header" ? createElement(WorkspaceHeader, { props: workspaceHeaderProps(props), theme })
           : id === "lunaris.workspace-empty" ? createElement(WorkspaceEmpty, { props: workspaceEmptyProps(props), theme })

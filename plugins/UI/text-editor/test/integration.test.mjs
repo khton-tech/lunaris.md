@@ -1,0 +1,380 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { JSDOM } from 'jsdom';
+import { useBrowser } from '../../../../tools/test/browser.mjs';
+import { EditorView } from '@codemirror/view';
+import { undo, redo } from '@codemirror/commands';
+import { StateEffect, EditorState, Prec } from '@codemirror/state';
+import { syntaxTree } from '@codemirror/language';
+import { createTestKernel } from '@lunaris/test';
+import { definePlugin } from '@lunaris/sdk';
+import { Logger } from '@lunaris/logging';
+import { Config } from '@lunaris/config';
+import { Filesystem, FilesystemDriver, FilesystemRootsDriver, FilesystemObservationDriver, FilesystemLocationsDriver, DirectoryLocationsDriver, ApplicationDirectoryDriver, DriverFileChanged, filesystemMethods } from '@lunaris/filesystem';
+import { Vault } from '@lunaris/vault';
+import { ActiveDocument } from '@lunaris/active-document';
+import { ActiveScreen } from '@lunaris/active-screen';
+import { Components } from '@lunaris/components';
+import { Themes } from '@lunaris/themes';
+import { Workspace } from '@lunaris/workspace';
+import filesystem from '@lunaris/filesystem-provider';
+import vault from '@lunaris/vault-manager';
+import documents from '@lunaris/active-document-provider';
+import screenProvider from '@lunaris/active-screen-provider';
+import screenHost from '@lunaris/active-screen-plugin';
+import components from '@lunaris/component-provider';
+import themes from '@lunaris/theme-provider';
+import localization from '@lunaris/localization-manager';
+import mantine from '@lunaris/mantine-components';
+import editor from '@lunaris/text-editor';
+import { createCloseGuard } from '../../../../hosts/tauri/dist/close-guard.js';
+
+const ok = value => ({ ok: true, value });
+const fail = code => ({ ok: false, error: { code, message: code } });
+const flush = async () => { for (let i = 0; i < 5; i++) await new Promise(setImmediate); };
+const metadata = (id, provides, requires = [], permissions = []) => ({ manifestVersion: 1, id, version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides, requires, permissions, optionalPermissions: [] });
+async function setup(options = {}) {
+  const dom = useBrowser(new JSDOM('<div id="target"></div>', { pretendToBeVisual: true }));
+  Object.defineProperty(globalThis, 'Window', { configurable: true, value: dom.window.Window });
+  Object.defineProperty(globalThis, 'MutationObserver', { configurable: true, value: dom.window.MutationObserver });
+  // JSDOM supplies no text geometry. These stubs exercise behavior, not layout.
+  dom.window.Range.prototype.getClientRects = () => [];
+  dom.window.Range.prototype.getBoundingClientRect = () => ({ left: 0, right: 0, top: 0, bottom: 0, width: 0, height: 0 });
+  const target = dom.window.document.getElementById('target');
+  const kernel = createTestKernel(); const closeGuard = createCloseGuard(); const logs = []; const calls = []; const closed = new Set(); let selected = 0; let watchContext;
+  const disk = new Map([['a/note.md', { text: options.initial ?? '# Note', version: 'v1' }], ['a/other.md', { text: 'Other', version: 'v1' }], ['a/image.png', { text: 'binary', version: 'v1' }], ['b/note.md', { text: '# B', version: 'v1' }]]);
+  const store = new Map(); let content; let api; let host;
+  kernel.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push([level, ...args]); return true; }])));
+  kernel.installMock(Config, { async get(id, name, scope) { return ok(store.get(scope.vaultId)); }, async set(id, name, value, scope) { store.set(scope.vaultId, value); return ok(null); }, async remove(id, name, scope) { store.delete(scope.vaultId); return ok(true); }, async read() { return ok({}); } });
+  kernel.installMock(Workspace, { register(value) { content = value; return ok(null); }, update() { return ok(null); }, list() { return content ? [content] : []; } });
+  const methods = Object.fromEntries(filesystemMethods.map(name => [name, async () => ok(null)]));
+  Object.assign(methods, {
+    capabilities: () => ({ watch: false, atomicReplace: true, versionCheck: 'optimistic', trash: false, maxFileBytes: 1024 }),
+    async stat(t) { return disk.has(`${t.vaultId}/${t.path}`) ? ok({ path: t.path, kind: 'file', size: 1, modifiedAt: 1 }) : fail('NOT_FOUND'); },
+    async readText(t) { if (options.read) { const result = await options.read(t); if (result) return result; } return closed.has(t.vaultId) ? fail('VAULT_CLOSED') : disk.has(`${t.vaultId}/${t.path}`) ? ok({ ...disk.get(`${t.vaultId}/${t.path}`) }) : fail('NOT_FOUND'); },
+    async writeText(t, text, policy) {
+      calls.push(['write', { ...t }, text, policy]); const previous = disk.get(`${t.vaultId}/${t.path}`);
+      if (options.writeFailure) return fail(options.writeFailure);
+      if (closed.has(t.vaultId)) return fail('VAULT_CLOSED'); if (!previous) return fail('NOT_FOUND');
+      if (previous.version !== policy.expectedVersion) return fail('CONFLICT');
+      const version = `${previous.version}+`; disk.set(`${t.vaultId}/${t.path}`, { text, version }); return ok({ version });
+    },
+    async move(from, to) {
+      calls.push(['move', from, to]);
+      for (const [id, value] of [...disk]) if (id === `${from.vaultId}/${from.path}` || id.startsWith(`${from.vaultId}/${from.path}/`)) {
+        disk.delete(id); disk.set(`${to.vaultId}/${to.path}` + id.slice(`${from.vaultId}/${from.path}`.length), value);
+      }
+      return ok(null);
+    },
+    async remove(t) { calls.push(['remove', t]); disk.delete(`${t.vaultId}/${t.path}`); return ok(null); },
+    async closeVault(id) { calls.push(['close', id]); closed.add(id); return ok(null); },
+  });
+  kernel.register(definePlugin({ manifest: metadata('test.driver', [{ kind: 'api', id: FilesystemDriver.id, version: FilesystemDriver.version }, { kind: 'event', id: DriverFileChanged.id, version: DriverFileChanged.version }], [], ['filesystem.native']), activate(ctx) { watchContext = ctx; ctx.provide(FilesystemDriver, methods); } }));
+  kernel.installMock(FilesystemRootsDriver, { async selectVault() { return ok({ id: ++selected === 1 ? 'a' : 'b', name: 'Vault' }); } }, { grants: ['filesystem.native'] });
+  kernel.installMock(FilesystemObservationDriver, { async watch() { return ok('watch'); } }, { grants: ['filesystem.native'] });
+  kernel.installMock(FilesystemLocationsDriver, { async select() { return ok(null); }, async describe() { return fail('NOT_FOUND'); }, async attach() { return fail('NOT_FOUND'); } }, { grants: ['filesystem.native'] });
+  kernel.installMock(DirectoryLocationsDriver, { async create() { return fail('UNSUPPORTED'); } }, { grants: ['filesystem.native'] });
+  kernel.installMock(ApplicationDirectoryDriver, { async openConfig() { return fail('UNSUPPORTED'); } }, { grants: ['filesystem.native'] });
+  for (const plugin of [filesystem, vault, documents, screenProvider, screenHost, components, themes, localization, mantine, editor, closeGuard.plugin]) kernel.register(plugin);
+
+  kernel.register(definePlugin({ manifest: metadata('test.consumer', [], [Filesystem, Vault, ActiveDocument, ActiveScreen, Components, Themes].map(t => ({ kind: t.kind, id: t.id, range: '^' + t.version })), ['vault.access', 'filesystem.access', 'ui.dom']), activate(ctx) {
+    api = { ctx, fs: ctx.use(Filesystem), vault: ctx.use(Vault), documents: ctx.use(ActiveDocument), screens: ctx.use(ActiveScreen), components: ctx.use(Components), themes: ctx.use(Themes) };
+  } }));
+  for (const [id, grants] of Object.entries({ 'test.driver': ['filesystem.native'], 'lunaris.filesystem-provider': ['filesystem.access', 'filesystem.app-config'], 'lunaris.vault-manager': ['filesystem.access'], 'lunaris.active-document-provider': ['vault.access', 'config.access', 'filesystem.access'], 'lunaris.active-screen-provider': ['vault.access'], [screenHost.manifest.id]: ['ui.dom'], 'lunaris.component-provider': ['ui.dom'], 'lunaris.mantine-components': ['ui.dom'], 'lunaris.text-editor': ['ui.dom', 'vault.access', 'filesystem.access'], 'test.consumer': ['vault.access', 'filesystem.access', 'ui.dom'] })) for (const grant of grants) kernel.grant(id, grant);
+  kernel.grant(closeGuard.plugin.manifest.id, 'vault.access');
+  await kernel.start('test.consumer'); await kernel.start(mantine.manifest.id); await kernel.start(screenHost.manifest.id); await kernel.start(editor.manifest.id); await kernel.start(closeGuard.plugin.manifest.id);
+  await api.vault.open(); await flush();
+  let editorTarget = target;
+  if (options.withLayout) {
+    let regions;
+    const layout = api.components.mount('lunaris.workspace-layout', target, {
+      railVisible: true, panelVisible: true, mainLabel: 'Editor', panelLabel: 'Files',
+      onTargets(value) { regions = value; }, onDismiss() {},
+    }, api.ctx.signal);
+    assert.equal(layout.ok, true); assert.ok(regions?.main); editorTarget = regions.main;
+  }
+  host = api.components.mount(content.componentId, editorTarget, { workspace: { vaultId: 'a', vaultName: 'A' } }, api.ctx.signal);
+  assert.equal(host.ok, true); await api.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
+  return { ...api, target, dom, disk, calls, logs, kernel, beforeClose: closeGuard.beforeClose,
+    cm() { const node = target.querySelector('.cm-editor'); assert.ok(node, target.textContent); return EditorView.findFromDOM(node); },
+    edit(text) { const view = this.cm(); view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } }); },
+    async stop() { await flush(); await kernel.stopAll(); await flush(); kernel.assertNoResources(); assert.equal(target.childElementCount, 0); assert.ok(!kernel.diagnostics().some(d => d.code === 'CLEANUP_FAILED')); dom.window.close(); },
+  };
+}
+
+test('composed editor retains history and selection through Settings, theme changes and renderer replacement', async () => {
+  const s = await setup(); s.edit('# Draft'); await flush(); const view = s.cm(); view.dispatch({ selection: { anchor: 3 } });
+  s.themes.register({ id: 'test.light', name: 'Light', properties: { appearance: 'light', colors: { background: '#ffffff', text: '#222222', selection: '#cccccc', caret: '#111111' } } }, s.ctx.signal);
+  s.themes.select('test.light'); await flush(); assert.equal(s.cm(), view); assert.equal(view.state.selection.main.head, 3);
+  const root = s.target.querySelector('.lm-text-editor'); assert.equal(root.style.backgroundColor, '');
+  s.screens.register({ id: 'test.settings', componentId: 'lunaris.workspace-empty', props: { title: 'Settings', detail: '' } }, s.ctx.signal);
+  s.screens.select('test.settings'); await flush(); assert.equal(view.dom.closest('[data-screen-id]').hidden, true);
+  await s.documents.open({ vaultId: 'a', path: 'note.md' }); await flush(); assert.equal(s.screens.snapshot().activeId, 'lunaris.text-editor.screen'); assert.equal(s.cm(), view);
+  assert.equal(s.disk.get('a/note.md').text, '# Draft');
+  await s.kernel.stop(mantine.manifest.id); await s.kernel.start(mantine.manifest.id); await flush();
+  assert.equal(s.cm().state.doc.toString(), '# Draft'); assert.equal(s.cm().state.selection.main.head, 3); assert.equal(undo(s.cm()), true);
+  assert.equal(s.cm().state.doc.toString(), '# Note'); await s.stop();
+});
+
+test('conflicts block document and Vault departure, retain the buffer and recover by explicit reload', async () => {
+  const s = await setup(); s.edit('Local draft'); await flush(); s.disk.set('a/note.md', { text: 'External change', version: 'external' });
+  assert.equal((await s.documents.open({ vaultId: 'a', path: 'other.md' })).error.code, 'CONFLICT'); await flush();
+  assert.equal(s.documents.current().path, 'note.md'); assert.equal(s.cm().state.doc.toString(), 'Local draft'); assert.match(s.target.textContent, /outside the editor/);
+  assert.equal((await s.vault.close()).error.code, 'CONFLICT'); assert.equal(s.vault.current().id, 'a');
+  assert.equal((await s.vault.open()).error.code, 'CONFLICT'); assert.equal(s.vault.current().id, 'a');
+  assert.ok(!s.calls.some(call => call[0] === 'close' && call[1] === 'a')); assert.ok(s.calls.some(call => call[0] === 'close' && call[1] === 'b'));
+  const button = name => [...s.target.querySelectorAll('button')].find(button => button.textContent === name);
+  button('Reload from disk').click(); await flush(); assert.equal(s.cm().state.doc.toString(), 'Local draft');
+  button('Discard changes and reload').click(); await flush(); assert.equal(s.cm().state.doc.toString(), 'External change');
+  assert.equal((await s.vault.close()).ok, true); await s.stop();
+});
+
+test('file moves and deletion flush first, preserve buffer history and never recreate removed files', async () => {
+  const s = await setup(); s.edit('Before move'); await flush();
+  const source = { vaultId: 'a', path: 'note.md' }; const destination = { vaultId: 'a', path: 'renamed.md' };
+  assert.equal((await s.fs.move(source, destination)).ok, true); await s.documents.relocate(source, destination); await flush();
+  assert.equal(s.cm().state.doc.toString(), 'Before move'); assert.equal(s.documents.current().path, 'renamed.md');
+  s.edit('After move'); await s.documents.open(destination); await flush();
+  assert.equal(s.disk.get('a/renamed.md').text, 'After move'); assert.equal(s.disk.has('a/note.md'), false);
+  assert.deepEqual(s.calls.slice(0, 2).map(call => call[0]), ['write', 'move']);
+  s.edit('Before deletion'); assert.equal((await s.fs.remove(destination)).ok, true); await s.documents.reconcile(); await flush();
+  assert.equal(s.disk.has('a/renamed.md'), false); assert.equal(s.documents.current(), null);
+  assert.equal(s.calls.at(-1)[0], 'remove'); await s.stop();
+});
+
+test('unsupported files are not read as text and read failures never substitute an editable empty buffer', async () => {
+  const options = {}; const s = await setup(options);
+  await s.documents.open({ vaultId: 'a', path: 'image.png' }); await flush(); assert.equal(s.target.querySelector('.cm-editor'), null); assert.match(s.target.textContent, /not supported/);
+  options.read = t => t.path === 'other.md' ? fail('ACCESS_DENIED') : undefined;
+  await s.documents.open({ vaultId: 'a', path: 'other.md' }); await flush(); assert.equal(s.target.querySelector('.cm-editor'), null); assert.match(s.target.textContent, /Cannot read/);
+  await s.stop();
+});
+
+test('Windows line endings survive editing, saving and theme reconfiguration', async () => {
+  const s = await setup({ initial: '# Note\r\n\r\nParagraph\r\n' });
+  assert.equal(s.cm().state.sliceDoc(), '# Note\r\n\r\nParagraph\r\n');
+  s.cm().dispatch({ changes: { from: 0, insert: 'New\r\n' } });
+  await s.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
+  assert.equal(s.disk.get('a/note.md').text, 'New\r\n# Note\r\n\r\nParagraph\r\n');
+  await s.stop();
+});
+
+test('headerless Live Preview retains the composed editor, source and history', async () => {
+  const original = '# Heading\r\n\r\n**bold** and [label](https://example.com)\r\n';
+  const s = await setup({ initial: original });
+  const view = s.cm();
+  assert.ok(view.dom.querySelector('.cm-preview-strong'));
+  assert.equal(s.target.querySelector('.lm-editor-header'), null);
+  assert.equal(s.target.querySelector('[aria-pressed]'), null);
+  assert.equal(s.target.querySelector('button'), null);
+  assert.equal(view.state.sliceDoc(), original);
+  assert.equal(s.calls.some(call => call[0] === 'write'), false);
+  view.dispatch({ changes: { from: view.state.doc.length, insert: 'New' }, selection: { anchor: 0 } });
+  assert.ok(view.dom.querySelector('.cm-preview-strong'));
+  assert.equal(undo(view), true);
+  assert.equal(view.state.sliceDoc(), original);
+  await s.kernel.stop(mantine.manifest.id); await s.kernel.start(mantine.manifest.id); await flush();
+  assert.ok(s.cm().dom.querySelector('.cm-preview-strong'));
+  await s.stop();
+});
+
+test('desktop close bridge flushes the last keystrokes before shutdown and rejects a failed save', async () => {
+  const options = {}; const s = await setup(options); s.edit('Last keystrokes');
+  options.writeFailure = 'ACCESS_DENIED'; assert.equal(await s.beforeClose(), false);
+  assert.equal(s.vault.current().id, 'a'); assert.equal(s.cm().state.sliceDoc(), 'Last keystrokes');
+  options.writeFailure = null; assert.equal(await s.beforeClose(), true);
+  assert.equal(s.disk.get('a/note.md').text, 'Last keystrokes'); assert.equal(s.vault.current(), null);
+  await s.kernel.stopAll(); await s.stop();
+});
+
+test('Tab inserts at the caret, indents selected lines and Shift-Tab removes indentation', async () => {
+  const s = await setup({ initial: 'alpha\nbeta', withLayout: true });
+  const view = s.cm();
+  view.focus();
+  const tab = (shiftKey = false) => {
+    const event = new s.dom.window.KeyboardEvent('keydown', { key: 'Tab', code: 'Tab', keyCode: 9, shiftKey, bubbles: true, cancelable: true });
+    view.contentDOM.dispatchEvent(event);
+    assert.equal(event.defaultPrevented, true);
+  };
+  view.dispatch({ selection: { anchor: 2 } }); tab(); await flush();
+  assert.equal(view.state.doc.toString(), 'al\tpha\nbeta');
+  assert.equal(view.state.selection.main.head, 3);
+  undo(view);
+  view.dispatch({ selection: { anchor: 0, head: view.state.doc.length } }); tab(); await flush();
+  assert.equal(view.state.doc.toString(), '\talpha\n\tbeta');
+  tab(true); await flush(); assert.equal(view.state.doc.toString(), 'alpha\nbeta');
+  view.setTabFocusMode(true);
+  const escape = new s.dom.window.KeyboardEvent('keydown', { key: 'Tab', keyCode: 9, bubbles: true, cancelable: true });
+  view.contentDOM.dispatchEvent(escape); assert.equal(escape.defaultPrevented, false); await flush();
+  view.setTabFocusMode(false);
+  view.dispatch({ selection: { anchor: 0 } }); tab(); await flush();
+  await s.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
+  assert.equal(s.disk.get('a/note.md').text, '\talpha\nbeta');
+  await s.stop();
+});
+
+test('Workspace tasks toggle real Mantine checkboxes, retain focus/history and save CRLF source', async () => {
+  const original = '# Tasks\r\n\r\n- [ ] First\r\n- [X] Second\r\n';
+  const s = await setup({ initial: original, withLayout: true });
+  try {
+    const view = s.cm();
+    const checkboxes = () => [...view.dom.querySelectorAll('input[type=checkbox]')];
+    assert.deepEqual(checkboxes().map(input => input.checked), [false, true]);
+    assert.equal(checkboxes()[0].getAttribute('aria-label'), 'First');
+    assert.equal(s.calls.length, 0);
+    assert.ok(checkboxes()[0].closest('.mantine-Checkbox-root'));
+    const selection = view.state.selection;
+    checkboxes()[0].focus(); checkboxes()[0].click(); await flush();
+    assert.equal(view.state.sliceDoc(), original.replace('[ ]', '[x]'));
+    assert.equal(view.state.selection.eq(selection), true);
+    assert.equal(s.dom.window.document.activeElement, checkboxes()[0]);
+    assert.equal(undo(view), true); await flush(); assert.equal(view.state.sliceDoc(), original);
+    assert.equal(redo(view), true); await flush(); assert.equal(checkboxes()[0].checked, true);
+    checkboxes()[1].click(); await flush(); assert.equal(checkboxes()[1].checked, false);
+    await s.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
+    assert.equal(s.disk.get('a/note.md').text, original.replace('[ ]', '[x]').replace('[X]', '[ ]'));
+  } finally { await s.stop(); }
+});
+
+test('task source reveals at the marker, task text remains editable, and code/escapes remain literal', async () => {
+  const original = '# Tasks\n\n- [ ] First\n\t\t- [x] Deep\n\n1. [ ] Ordered\n\n```md\n- [ ] Code\n```\n\n\\- [ ] Escaped\n\n`- [ ] Inline`';
+  const s = await setup({ initial: original, withLayout: true });
+  try {
+    const view = s.cm();
+    const boxes = () => [...view.dom.querySelectorAll('input[type=checkbox]')];
+    await flush();
+    assert.deepEqual(boxes().map(input => input.getAttribute('aria-label')), ['First', 'Deep', 'Ordered']);
+    view.dispatch({ selection: { anchor: original.indexOf('First') + 2 } });
+    assert.equal(boxes().length, 3);
+    view.dispatch({ selection: { anchor: original.indexOf('[ ]') + 1 } });
+    assert.equal(boxes().length, 2); assert.ok(view.contentDOM.textContent.includes('- [ ] First'));
+    view.dispatch({ selection: { anchor: 0 } });
+    view.dispatch({ changes: { from: 0, insert: 'Intro\n\n' } });
+    boxes()[2].click(); await flush();
+    assert.equal(view.state.sliceDoc(), 'Intro\n\n' + original.replace('1. [ ] Ordered', '1. [x] Ordered'));
+    view.dispatch({ effects: StateEffect.appendConfig.of(Prec.highest([EditorState.readOnly.of(true), EditorView.editable.of(false)])) });
+    assert.ok(boxes().every(input => input.disabled));
+    const locked = view.state.sliceDoc(); boxes()[0].click(); await flush(); assert.equal(view.state.sliceDoc(), locked);
+  } finally { await s.stop(); }
+});
+
+test('task renderer replacement preserves edits and checkbox save failures retain the buffer', async () => {
+  const options = { initial: '# Tasks\n\n- [ ] Keep' };
+  const s = await setup(options);
+  try {
+    s.target.querySelector('input[type=checkbox]').click(); await flush();
+    const edited = '# Tasks\n\n- [x] Keep';
+    await s.kernel.stop(mantine.manifest.id); await s.kernel.start(mantine.manifest.id); await flush();
+    assert.equal(s.cm().state.sliceDoc(), edited);
+    assert.equal(s.target.querySelector('input[type=checkbox]').checked, true);
+    options.writeFailure = 'IO_ERROR';
+    assert.equal((await s.documents.open({ vaultId: 'a', path: 'other.md' })).ok, false); await flush();
+    assert.equal(s.cm().state.sliceDoc(), edited);
+    assert.equal(s.disk.get('a/note.md').text, options.initial);
+    assert.equal(s.documents.current().path, 'note.md');
+  } finally { await s.stop(); }
+});
+
+test('Workspace editor auto-pairs Markdown input and saves the unchanged closing delimiters', async () => {
+  const s = await setup({ initial: '', withLayout: true });
+  try {
+    const view = s.cm();
+    const type = text => {
+      const { from, to } = view.state.selection.main;
+      const handled = view.state.facet(EditorView.inputHandler).some(handler => handler(view, from, to, text,
+        () => view.state.update(view.state.replaceSelection(text))));
+      if (!handled) view.dispatch(view.state.update(view.state.replaceSelection(text), { userEvent: 'input.type' }));
+    };
+    type('('); type('['); type('{'); type('`'); type('code'); type('`'); type('}'); type(']'); type(')');
+    type(' '); type('*'); type('*'); type('bold'); type('*'); type('*');
+    assert.equal(view.state.sliceDoc(), '([{`code`}]) **bold**');
+    assert.equal(view.state.selection.main.head, view.state.doc.length);
+    await s.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
+    assert.equal(s.disk.get('a/note.md').text, '([{`code`}]) **bold**');
+  } finally { await s.stop(); }
+});
+
+test('focused selection layer uses the active theme instead of the CodeMirror default', async () => {
+  const s = await setup(); const view = s.cm(); view.focus();
+  // Geometry is unavailable in JSDOM. Supply a rectangle in CM's real selection
+  // layer to verify stylesheet precedence rather than native range measurement.
+  const marker = s.dom.window.document.createElement('div'); marker.className = 'cm-selectionBackground';
+  view.scrollDOM.querySelector('.cm-selectionLayer').append(marker);
+  for (const [id, appearance, selection, expected] of [
+    ['dark', 'dark', '#4c4c4c', 'rgb(76, 76, 76)'],
+    ['light', 'light', '#cccccc', 'rgb(204, 204, 204)'],
+  ]) {
+    s.themes.register({ id: `test.${id}`, name: id, properties: { appearance, colors: { selection } } }, s.ctx.signal);
+    s.themes.select(`test.${id}`); await flush();
+    assert.equal(s.dom.window.getComputedStyle(marker).backgroundColor, expected);
+    assert.equal(s.cm(), view);
+  }
+  marker.remove(); await s.stop();
+});
+
+test('Workspace retains temporary Tab traversal suppression outside editable content', async () => {
+  const s = await setup({ withLayout: true }); const view = s.cm();
+  const button = s.dom.window.document.createElement('button');
+  s.dom.window.document.body.append(button); button.focus();
+  const event = new s.dom.window.KeyboardEvent('keydown', { key: 'Tab', code: 'Tab', keyCode: 9, bubbles: true, cancelable: true });
+  button.dispatchEvent(event); await flush();
+  assert.equal(event.defaultPrevented, true);
+  assert.equal(view.state.doc.toString(), '# Note');
+  button.remove(); await s.stop();
+});
+
+test('Tab nests bullet, ordered and task items from the text and Enter continues the nested list', async () => {
+  for (const [first, second, continuation] of [
+    ['- Parent', '- Child', '- '], ['1. Parent', '2. Child', '3. '], ['- [ ] Parent', '- [ ] Child', '- [ ] '],
+  ]) {
+    const original = `${first}\n${second}`;
+    const s = await setup({ initial: original, withLayout: true }); const view = s.cm(); view.focus();
+    const press = (key, keyCode, shiftKey = false) => {
+      const event = new s.dom.window.KeyboardEvent('keydown', { key, keyCode, shiftKey, bubbles: true, cancelable: true });
+      view.contentDOM.dispatchEvent(event); assert.equal(event.defaultPrevented, true);
+    };
+    view.dispatch({ selection: { anchor: view.state.doc.length } });
+    press('Tab', 9); await flush();
+    assert.equal(view.state.doc.toString(), `${first}\n\t${second}`);
+    let listDepth = 0;
+    for (let node = syntaxTree(view.state).resolveInner(view.state.selection.main.head, -1); node; node = node.parent)
+      if (['BulletList', 'OrderedList'].includes(node.name)) listDepth++;
+    assert.equal(listDepth, 2);
+    press('Tab', 9, true); await flush();
+    assert.equal(view.state.doc.toString(), original);
+    press('Tab', 9); await flush();
+    press('Enter', 13); await flush();
+    assert.equal(view.state.doc.line(3).text.trimStart(), continuation);
+    assert.match(view.state.doc.line(3).text, /^\t/);
+    await s.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
+    assert.ok(s.disk.get('a/note.md').text.includes(`\n\t${second}`));
+    await s.stop();
+  }
+});
+
+test('repeated hard tabs retain standalone and nested lists and Shift-Tab reverses every level', async () => {
+  for (const [prefix, item] of [['Text\n\n', '- Example'], ['- Parent\n', '- Child'], ['1. Parent\n', '2. Child'], ['- [ ] Parent\n', '- [ ] Child']]) {
+    const s = await setup({ initial: prefix + item, withLayout: true }); const view = s.cm(); view.focus();
+    view.dispatch({ selection: { anchor: view.state.doc.length } });
+    const press = (key, keyCode, shiftKey = false) => view.contentDOM.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', {
+      key, keyCode, shiftKey, bubbles: true, cancelable: true,
+    }));
+    for (let depth = 1; depth <= 4; depth++) {
+      press('Tab', 9); await flush();
+      assert.equal(view.state.doc.toString(), prefix + '\t'.repeat(depth) + item);
+      assert.ok(!syntaxTree(view.state).toString().includes('CodeBlock'));
+      assert.ok(syntaxTree(view.state).toString().includes('ListItem'));
+      assert.equal(view.dom.querySelector('.cm-preview-code-block'), null);
+    }
+    await s.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
+    assert.equal(s.disk.get('a/note.md').text, prefix + '\t'.repeat(4) + item);
+    press('Enter', 13); await flush();
+    assert.ok(view.state.doc.line(view.state.doc.lines).text.startsWith('\t'.repeat(4)), view.state.doc.toString());
+    undo(view); await flush();
+    for (let depth = 3; depth >= 0; depth--) {
+      press('Tab', 9, true); await flush();
+      assert.equal(view.state.doc.toString(), prefix + '\t'.repeat(depth) + item);
+    }
+    await s.stop();
+  }
+});

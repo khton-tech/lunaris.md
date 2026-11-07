@@ -58,6 +58,19 @@ export interface VaultApi {
   open(): Promise<VaultResult<VaultRoot | null>>;
   close(): Promise<VaultResult<null>>;
 }
+/** Awaited while the previous root is still writable. Never recursively transition.
+ * onSettled releases editor locks on success, rejection, or handler failure. */
+export interface VaultRelease {
+  readonly previous: VaultRoot;
+  readonly next: VaultRoot | null;
+  readonly error: FsFailure | null;
+  readonly onSettled: (listener: () => void) => void;
+}
+export const BeforeVaultRelease = defineHook<VaultRelease>({
+  id: "lunaris.before-vault-release", version: "1.0.0", consumePermission: "vault.access",
+  validate: input => { const value = input as VaultRelease | null; return !!value && validRoot(value.previous) && (value.next === null || validRoot(value.next)) &&
+    (value.error === null || typeof value.error?.code === "string") && typeof value.onSettled === "function"; },
+});
 export interface VaultChange {
   readonly kind: "opened" | "switched" | "closed";
   readonly previous: VaultRoot | null;

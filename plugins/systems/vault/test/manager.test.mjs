@@ -4,7 +4,7 @@ import { definePlugin } from '@lunaris/sdk';
 import { createTestKernel } from '@lunaris/test';
 import { Logger } from '@lunaris/logging';
 import { Filesystem, filesystemMethods } from '@lunaris/filesystem';
-import { Vault, VaultCreation, VaultLocations, VaultChanged, PrepareVault } from '@lunaris/vault';
+import { BeforeVaultRelease, Vault, VaultCreation, VaultLocations, VaultChanged, PrepareVault } from '@lunaris/vault';
 import filesystem from '@lunaris/filesystem-provider';
 import vaultManager from '@lunaris/vault-manager';
 import { createTauriFilesystemDriver } from '@lunaris/tauri-filesystem';
@@ -14,6 +14,25 @@ const deferred = () => { let resolve; let reject; const promise = new Promise((y
 const flush = () => new Promise(resolve => setImmediate(resolve));
 const ok = value => ({ ok: true, value });
 const failure = (code, message = code) => ({ ok: false, error: { code, message } });
+
+test('release guards run before closing roots and reject close/switch without losing the active Vault', async () => {
+  const s = await setup(); s.select('a'); await s.manager.open(); let settled = 0;
+  const registration = s.context.hooks.register(BeforeVaultRelease, async value => {
+    assert.equal(s.manager.current().id, 'a');
+    assert.equal(s.calls.some(call => call[0] === 'closeVault' && call[1] === 'a'), false);
+    value.onSettled(() => { settled++; });
+    await s.fs.writeText({ vaultId: 'a', path: 'note.md' }, 'draft', { mode: 'replace', expectedVersion: 'v1' });
+    return { ...value, error: { code: 'CONFLICT', message: 'Keep current Vault' } };
+  });
+  assert.equal((await s.manager.close()).error.code, 'CONFLICT'); assert.equal(s.manager.current().id, 'a');
+  s.select('b'); assert.equal((await s.manager.open()).error.code, 'CONFLICT');
+  assert.equal(s.manager.current().id, 'a'); assert.equal(settled, 2);
+  assert.ok(s.calls.some(call => call[0] === 'closeVault' && call[1] === 'b'));
+  registration.dispose();
+  s.context.hooks.register(BeforeVaultRelease, value => { value.onSettled(() => { settled++; }); throw new Error('Broken guard'); });
+  assert.equal((await s.manager.close()).ok, false); assert.equal(s.manager.current().id, 'a'); assert.equal(settled, 3);
+  await s.host.stopAll(); s.host.assertNoResources();
+});
 
 async function setup(options = {}) {
   const calls = []; const logs = []; const changes = []; const selections = [];
@@ -43,7 +62,7 @@ async function setup(options = {}) {
     return methods[operation](args.target);
   } }));
   host.register(filesystem); host.register(vaultManager);
-  host.register(definePlugin({ manifest: manifest('test.consumer', [], [Vault, VaultCreation, VaultLocations, VaultChanged, PrepareVault, Filesystem].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' })), ['vault.access', 'filesystem.access']), activate(ctx) {
+  host.register(definePlugin({ manifest: manifest('test.consumer', [], [BeforeVaultRelease, Vault, VaultCreation, VaultLocations, VaultChanged, PrepareVault, Filesystem].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' })), ['vault.access', 'filesystem.access']), activate(ctx) {
     context = ctx; manager = ctx.use(Vault); creation = ctx.use(VaultCreation); locations = ctx.use(VaultLocations); fs = ctx.use(Filesystem);
     ctx.events.on(VaultChanged, async change => { changes.push(change); await options.onChange?.(change, manager); });
     if (options.prepare) ctx.hooks.register(PrepareVault, value => options.prepare(value, manager, fs));

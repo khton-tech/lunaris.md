@@ -1,3 +1,5 @@
+import { createCloseGuard } from "./close-guard.js";
+import textEditor from "@lunaris/text-editor";
 import { createInterfaceSettings } from "@lunaris/interface-settings";
 import settingsProvider from "@lunaris/settings-provider";
 import settings from "@lunaris/settings-plugin";
@@ -42,14 +44,18 @@ export function composeApplication(target: HTMLElement): ApplicationDefinition {
   const runner = createRunner({ art, hideWhenLoaded: true });
   const selector = createVaultSelector({ art, hideWhenVaultOpen: true });
   const startup = createStartupProvider();
+  const closeGuard = createCloseGuard();
   const layout = composeSlotSurface(target);
   return {
     ...layout,
     startup,
-    plugins: [interfaceSettings, settingsProvider, settings, activeScreenProvider, activeScreen, activeDocument, contextMenu, fileExplorer, sidebar, sidebarProvider, runner, selector, workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
-    entrypoints: [startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, selector.manifest.id, workspace.manifest.id, activeScreen.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id, settings.manifest.id, interfaceSettings.manifest.id],
+    beforeClose: closeGuard.beforeClose,
+    plugins: [closeGuard.plugin, textEditor, interfaceSettings, settingsProvider, settings, activeScreenProvider, activeScreen, activeDocument, contextMenu, fileExplorer, sidebar, sidebarProvider, runner, selector, workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
+    entrypoints: [closeGuard.plugin.manifest.id, textEditor.manifest.id, startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, selector.manifest.id, workspace.manifest.id, activeScreen.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id, settings.manifest.id, interfaceSettings.manifest.id],
     grants: {
       ...layout.grants,
+      [closeGuard.plugin.manifest.id]: ["vault.access"],
+      [textEditor.manifest.id]: ["ui.dom", "filesystem.access", "vault.access"],
       [interfaceSettings.manifest.id]: ["config.access", "vault.access"],
       [settings.manifest.id]: ["ui.dom", "vault.access"],
       [activeScreenProvider.manifest.id]: ["vault.access"],
