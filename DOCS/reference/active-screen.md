@@ -104,13 +104,15 @@ are added.
 
 Completed: SDK registry, container, Workspace registration, Mantine role, Vault
 lifecycle and Tauri composition. Sidebar and File Explorer retain their existing
-behavior. Future Settings will register its own screen and select it through this
-API. Future editor integration must connect ActiveDocument/ActiveDocumentChanged
-to an editor screen. Neither Settings nor an editor exists in this milestone;
-opening file contents is still outstanding. No demonstration screen ships.
+behavior. [Settings foundation](settings.md) now registers its own screen and
+selects it through this API. Future editor integration must connect
+ActiveDocument/ActiveDocumentChanged to an editor screen. The container itself
+implements no settings controls or editor; opening file contents is still outstanding.
+No demonstration screen ships.
 
 Future user settings apply immediately and exclusively to the current Vault;
-their registry, Sidebar bottom placement and theme-engine UI remain later work.
+the registry and Sidebar bottom placement now exist in Settings foundation. Concrete
+settings and theme-engine UI remain later work.
 
 ## Verification
 

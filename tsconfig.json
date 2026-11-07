@@ -144,6 +144,15 @@
     },
     {
       "path": "plugins/UI/active-screen"
+    },
+    {
+      "path": "packages/settings"
+    },
+    {
+      "path": "plugins/UI/settings-provider"
+    },
+    {
+      "path": "plugins/UI/settings"
     }
   ]
 }

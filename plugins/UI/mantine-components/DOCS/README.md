@@ -343,3 +343,15 @@ role. See [Active screen](../../../../DOCS/reference/active-screen.md).
 Sidebar API 1.1 supports `placement: "start" | "end"` (default start). End tabs
 form a bottom group; numeric order stays local to each group. Snapshot and keyboard
 order follow visual order. Updates preserve placement; existing consumers remain compatible.
+
+## Settings foundation roles
+
+`lunaris.settings-navigation` renders owned category buttons with wrapping labels,
+localized title/emptyLabel, categories, selectedId and onSelect.
+`lunaris.settings-page` renders title, emptyLabel and section headings, lending
+stable targets through onTargets(map or null). Both use the active theme and local
+scrolling. The page has no enclosing card; the Sidebar view inherits its surface.
+Section control roots use intrinsic block sizing inside targets owned by this set.
+No concrete settings, storage or theme controls are supplied. See
+[the settings reference](../../../../DOCS/reference/settings.md). Compositions were
+reviewed against [Mantine UI navbars](https://ui.mantine.dev/category/navbars/).

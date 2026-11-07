@@ -58,6 +58,21 @@ test('active screen role lends stable targets, hides inactive content and valida
   mounted.value.dispose(); assert.equal(targets, null); assert.equal(s.target.textContent, 'Sibling'); await s.stop();
 });
 
+test('settings roles escape labels, preserve borrowed targets and validate navigation and section identity', async () => {
+  const s = await setup(); await s.start(); let targets;
+  const props = { title: 'Example', emptyLabel: 'Empty', sections: [{ id: 'test.section', title: 'Controls' }], onTargets: value => { targets = value; } };
+  const page = s.components.mount('lunaris.settings-page', s.target, props, s.ctx.signal); assert.equal(page.ok, true);
+  const target = targets.get('test.section'); const input = s.dom.window.document.createElement('input'); input.value = 'Draft'; target.append(input);
+  page.value.update({ ...props, title: 'Translated', sections: [{ id: 'test.section', title: 'Updated' }] });
+  assert.equal(targets.get('test.section'), target); assert.equal(target.querySelector('input'), input);
+  assert.equal(page.value.update({ ...props, sections: [props.sections[0], props.sections[0]] }).ok, false);
+  let selected; const navProps = { title: 'Settings', emptyLabel: 'Empty', categories: [{ id: 'test.category', title: '<img src=x>' }], selectedId: null, onSelect: id => { selected = id; } };
+  const nav = s.components.mount('lunaris.settings-navigation', s.target, navProps, s.ctx.signal); assert.equal(nav.ok, true);
+  s.target.querySelector('.lm-settings-category').click(); assert.equal(selected, 'test.category'); assert.equal(s.target.querySelector('img'), null);
+  assert.equal(nav.value.update({ ...navProps, selectedId: 'test.missing' }).ok, false);
+  assert.equal(input.value, 'Draft'); page.value.dispose(); assert.equal(targets, null); nav.value.dispose(); await s.stop();
+});
+
 test('workspace header retains intrinsic block sizing while full-height surfaces retain size containment', async () => {
   const s = await setup(); await s.start();
   const props = { name: 'A long Vault name that can wrap', closeLabel: 'Close vault', busy: false, error: '', onClose() {} };
@@ -72,7 +87,7 @@ test('workspace header retains intrinsic block sizing while full-height surfaces
 
 test('registers the replaceable roles, renders real Mantine controls, preserves siblings and releases roots', async () => {
   const s = await setup(); await s.start();
-  assert.deepEqual(s.components.list(), ['lunaris.active-screen', 'lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.vault-selector', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
+  assert.deepEqual(s.components.list(), ['lunaris.active-screen', 'lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.settings-navigation', 'lunaris.settings-page', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.vault-selector', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
   const owner = s.ctx.scope.child();
   const mounted = s.components.mount('lunaris.vault-selector', s.target, selector, owner.signal); assert.equal(mounted.ok, true);
   assert.ok(s.target.querySelector('.mantine-Button-root')); assert.ok(s.target.querySelector('.mantine-TextInput-input'));

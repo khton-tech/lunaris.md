@@ -1,3 +1,4 @@
+import { settingsNavigationProps, settingsPageProps, SettingsNavigation, SettingsPage } from "./settings.js";
 import { activeScreenProps, ActiveScreenView } from "./active-screen.js";
 import { createElement } from "react";
 import { createRoot } from "react-dom/client";
@@ -27,8 +28,8 @@ export default definePlugin({ manifest, activate(ctx) {
   ctx.events.on(ThemeChanged, () => {
     for (const instance of instances) instance.applyTheme();
   });
-  for (const id of ["lunaris.active-screen", "lunaris.startup-screen", "lunaris.vault-selector", "lunaris.workspace-header", "lunaris.workspace-empty", "lunaris.workspace-layout", "lunaris.sidebar-rail", "lunaris.file-explorer", "lunaris.context-menu"] as const) {
-    const validate = { "lunaris.active-screen": activeScreenProps, "lunaris.startup-screen": startupProps, "lunaris.vault-selector": selectorProps,
+  for (const id of ["lunaris.settings-navigation", "lunaris.settings-page", "lunaris.active-screen", "lunaris.startup-screen", "lunaris.vault-selector", "lunaris.workspace-header", "lunaris.workspace-empty", "lunaris.workspace-layout", "lunaris.sidebar-rail", "lunaris.file-explorer", "lunaris.context-menu"] as const) {
+    const validate = { "lunaris.settings-navigation": settingsNavigationProps, "lunaris.settings-page": settingsPageProps, "lunaris.active-screen": activeScreenProps, "lunaris.startup-screen": startupProps, "lunaris.vault-selector": selectorProps,
       "lunaris.workspace-header": workspaceHeaderProps, "lunaris.workspace-empty": workspaceEmptyProps,
       "lunaris.workspace-layout": layoutProps, "lunaris.sidebar-rail": railProps, "lunaris.file-explorer": explorerProps, "lunaris.context-menu": contextMenuProps }[id];
     const registration = components.register({ id, mount(target, initial, signal): ComponentInstance {
@@ -37,7 +38,7 @@ export default definePlugin({ manifest, activate(ctx) {
       catch (error) { logger.error(ctx.pluginId, "Invalid Mantine component props", { code: "MANTINE_PROPS_INVALID", data: { componentId: id }, error }); throw error; }
       const container = target.ownerDocument.createElement("div");
       container.id = `lunaris-mantine-${++nextId}`; container.className = "lm-root";
-      const intrinsicHeight = id === "lunaris.workspace-header";
+      const intrinsicHeight = id === "lunaris.workspace-header" || target.classList.contains("lm-settings-section");
       // Size containment suppresses intrinsic height in the non-growing header slot.
       Object.assign(container.style, { display: "flex", flex: intrinsicHeight ? "0 0 auto" : "1 1 0%", minWidth: "0", minHeight: "0", containerType: intrinsicHeight ? "inline-size" : "size" });
       if (id === "lunaris.context-menu") Object.assign(container.style, { containerType: "normal", position: "fixed", inset: "0", pointerEvents: "none" });
@@ -51,7 +52,7 @@ export default definePlugin({ manifest, activate(ctx) {
         failed = false;
         const theme = resolveTheme(themes.current());
         // A provider per SDK-owned React root scopes color scheme and variables to its owned DOM.
-        const view = id === "lunaris.active-screen" ? createElement(ActiveScreenView, { props: activeScreenProps(props), theme }) : id === "lunaris.startup-screen"
+        const view = id === "lunaris.settings-navigation" ? createElement(SettingsNavigation, { props: settingsNavigationProps(props), theme }) : id === "lunaris.settings-page" ? createElement(SettingsPage, { props: settingsPageProps(props), theme }) : id === "lunaris.active-screen" ? createElement(ActiveScreenView, { props: activeScreenProps(props), theme }) : id === "lunaris.startup-screen"
           ? createElement(StartupScreen, { props: startupProps(props), theme })
           : id === "lunaris.vault-selector" ? createElement(VaultSelector, { props: selectorProps(props), theme })
           : id === "lunaris.workspace-header" ? createElement(WorkspaceHeader, { props: workspaceHeaderProps(props), theme })

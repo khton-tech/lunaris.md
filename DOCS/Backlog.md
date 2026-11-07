@@ -8,10 +8,12 @@ show one selected screen, retain hidden instances within a Vault, and release
 views/reset selection on Vault changes. Tauri and Mantine integration are complete.
 See [Active screen](reference/active-screen.md).
 
-Next milestone remains to be defined with the Owner: extensible Settings UI,
-bottom Sidebar entry, categories/internal sections and theme-engine integration.
-Settings apply immediately and exclusively to the current Vault. No Settings UI,
-editor or file-content renderer is implemented by the container milestone.
+Settings foundation is IMPLEMENTED on 2026-11-07: separate category/section
+registry, bottom Sidebar placement, category navigation and the Settings active
+screen. There are no built-in categories, controls, Config writes or theme/system
+integrations. Future user settings apply immediately and exclusively to the current
+Vault. See [Settings foundation](reference/settings.md). Concrete contributions
+remain a separate milestone.
 
 ## Context menu
 

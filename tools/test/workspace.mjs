@@ -1,3 +1,6 @@
+import { Settings } from "@lunaris/settings";
+import settingsProvider from "@lunaris/settings-provider";
+import settingsPlugin from "@lunaris/settings-plugin";
 import { ActiveScreen } from "@lunaris/active-screen";
 import activeScreenProvider from "@lunaris/active-screen-provider";
 import activeScreenPlugin from "@lunaris/active-screen-plugin";
@@ -35,6 +38,7 @@ const manifest = (id, provides = [], requires = [], permissions = []) => ({ mani
   provides: provides.map(t => ({ kind: t.kind, id: t.id, version: t.version })), requires: requires.map(t => ({ kind: t.kind, id: t.id, range: `^${t.version}` })), permissions, optionalPermissions: [] });
 
 export async function setupWorkspace(options = {}) {
+  if (options.settings) options = { ...options, activeScreen: true, sidebar: true };
   const dom = useBrowser(new JSDOM('<div id="app"></div>')); const surface = dom.window.document.getElementById('app');
   const logs = []; let current = options.current ?? null; let serial = 0; let ctx; let tools; let service;
   const preferences = options.preferences ?? new Map(); const preferenceWrites = [];
@@ -71,17 +75,17 @@ export async function setupWorkspace(options = {}) {
     context.provide(VaultLocations, { describe: async reference => ok({ reference, label: 'Folder' }), select: async () => ok({ reference: 'saved', label: 'Folder' }), open });
     context.provide(VaultHistory, { list: async () => ok([{ location: { reference: 'saved', label: 'Folder' }, name: 'Notes' }]), open: () => service.open() });
   } });
-  const consumer = definePlugin({ manifest: manifest('test.consumer', [], [Workspace, Components, Themes, Localization, ...(options.activeScreen ? [ActiveScreen] : []), ...(options.sidebar ? [Sidebar] : [])], ['ui.dom']), activate(context) {
-    ctx = context; tools = { ...(options.activeScreen ? { screens: context.use(ActiveScreen) } : {}), ...(options.sidebar ? { sidebar: context.use(Sidebar) } : {}), workspace: context.use(Workspace), components: context.use(Components), themes: context.use(Themes), localization: context.use(Localization) };
+  const consumer = definePlugin({ manifest: manifest('test.consumer', [], [Workspace, Components, Themes, Localization, ...(options.settings ? [Settings] : []), ...(options.activeScreen ? [ActiveScreen] : []), ...(options.sidebar ? [Sidebar] : [])], ['ui.dom']), activate(context) {
+    ctx = context; tools = { ...(options.settings ? { settings: context.use(Settings) } : {}), ...(options.activeScreen ? { screens: context.use(ActiveScreen) } : {}), ...(options.sidebar ? { sidebar: context.use(Sidebar) } : {}), workspace: context.use(Workspace), components: context.use(Components), themes: context.use(Themes), localization: context.use(Localization) };
     tools.themes.select('lunaris.base-theme-engine.monochrome');
     options.onActivate?.(tools, context);
     options.beforeLoaded?.(surface);
   } });
   const startup = createStartupProvider(); const layout = composeSlotSurface(surface); const selector = createVaultSelector({ art: 'ASCII', hideWhenVaultOpen: true, restoreLastVault: false });
   const session = new HostSession({ scheduler: new TestScheduler(), load: async () => ({ ...layout, startup,
-    plugins: [...(options.activeScreen ? [activeScreenProvider, activeScreenPlugin] : []), ...(options.sidebar ? [sidebarPlugin, sidebarProvider] : []), config, logger, vaults, localization, componentProvider, kit, themes, baseTheme, consumer, startup.plugin, selector, workspacePlugin, workspaceProvider, ...layout.plugins],
-    entrypoints: [startup.plugin.manifest.id, baseTheme.manifest.id, ...(options.noKit ? [] : [kit.manifest.id]), selector.manifest.id, workspacePlugin.manifest.id, ...(options.sidebar ? [sidebarPlugin.manifest.id] : []), ...(options.activeScreen ? [activeScreenPlugin.manifest.id] : []), consumer.manifest.id],
-    grants: { ...layout.grants, ...(options.activeScreen ? { [activeScreenProvider.manifest.id]: ["vault.access"], [activeScreenPlugin.manifest.id]: ["ui.dom"] } : {}), [componentProvider.manifest.id]: ['ui.dom'], [kit.manifest.id]: ['ui.dom'], 'test.consumer': ['ui.dom'], ...(options.sidebar ? { [sidebarPlugin.manifest.id]: ['ui.dom'] } : {}),
+    plugins: [...(options.settings ? [settingsProvider, settingsPlugin] : []), ...(options.activeScreen ? [activeScreenProvider, activeScreenPlugin] : []), ...(options.sidebar ? [sidebarPlugin, sidebarProvider] : []), config, logger, vaults, localization, componentProvider, kit, themes, baseTheme, consumer, startup.plugin, selector, workspacePlugin, workspaceProvider, ...layout.plugins],
+    entrypoints: [startup.plugin.manifest.id, baseTheme.manifest.id, ...(options.noKit ? [] : [kit.manifest.id]), selector.manifest.id, workspacePlugin.manifest.id, ...(options.sidebar ? [sidebarPlugin.manifest.id] : []), ...(options.activeScreen ? [activeScreenPlugin.manifest.id] : []), ...(options.settings ? [settingsPlugin.manifest.id] : []), consumer.manifest.id],
+    grants: { ...layout.grants, ...(options.settings ? { [settingsPlugin.manifest.id]: ["ui.dom", "vault.access"] } : {}), ...(options.activeScreen ? { [activeScreenProvider.manifest.id]: ["vault.access"], [activeScreenPlugin.manifest.id]: ["ui.dom"] } : {}), [componentProvider.manifest.id]: ['ui.dom'], [kit.manifest.id]: ['ui.dom'], 'test.consumer': ['ui.dom'], ...(options.sidebar ? { [sidebarPlugin.manifest.id]: ['ui.dom'] } : {}),
       [selector.manifest.id]: ['ui.dom', 'vault.access'], [workspacePlugin.manifest.id]: options.denied ? ['ui.dom', 'config.access'] : ['ui.dom', 'vault.access', 'config.access'] },
   }) });
   await session.start(); await flush();

@@ -17,6 +17,7 @@
 - [Vault-scoped filesystem](reference/filesystem.md): provider/driver APIs, relative paths, dialogs, writes, permissions and native verification.
 - [Application configuration directory](reference/application-storage.md): global file storage, owned roots and coordinated closure.
 - [Vault Manager](reference/vault.md): active context, opening/switching/closing, preparation hooks and events.
+- [Settings foundation](reference/settings.md): bottom Sidebar navigation, owned categories/sections and Vault-scoped extension contracts, without concrete settings.
 - [Active screen](reference/active-screen.md): one selected screen in Workspace main, lazy mounting, retained hidden instances and Vault lifecycle.
 - [Active document](reference/active-document.md): shared active file identity, restoration and persistent marking independent of focus.
 - [File explorer](reference/file-explorer.md): Arborist Sidebar tool, owned observation, file operations and document-layer integration status.

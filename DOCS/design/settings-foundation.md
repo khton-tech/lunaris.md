@@ -1,5 +1,8 @@
 # Settings foundation
 
+Status: implemented on 2026-11-07. See the
+[public reference](../reference/settings.md) for shipped APIs and verification.
+
 Scope authorized by the Owner on 2026-11-07: an extensible settings foundation,
 without concrete settings, theme integration or other system integrations.
 

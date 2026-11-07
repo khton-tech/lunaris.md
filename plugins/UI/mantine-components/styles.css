@@ -197,7 +197,15 @@
 .lm-active-screen { display: flex; flex: 1 1 0%; min-width: 0; min-height: 0; }
 .lm-screen-target[hidden] { display: none; }
 
-.lm-sidebar-rail { display:flex; flex-direction:column; gap:var(--vault-space) }
-.lm-sidebar-start { flex-shrink:0 }
+.lm-sidebar-rail { display:flex; flex-direction:column; gap:var(--vault-space); overflow:hidden }
+.lm-sidebar-start { flex:0 1 auto; min-height:0; overflow:auto }
 .lm-sidebar-end { margin-block-start:auto; padding-block-start:var(--vault-space); flex-shrink:0 }
 .lm-sidebar-end:empty { display:none }
+
+.lm-settings-navigation { flex:1; min-width:0; min-height:0; overflow:auto; padding:calc(var(--vault-space)*2) }
+.lm-settings-page { flex:1; min-width:0; min-height:0; overflow:auto; padding:clamp(0.75rem, 3cqi, 2rem) }
+.lm-settings-page>*,.lm-settings-navigation>* { flex-shrink:0 }
+.lm-settings-section { display:flex; min-width:0; flex-direction:column }
+.lm-settings-category { color:var(--vault-secondary); height:auto; min-height:2rem; padding-block:var(--vault-space); text-align:start }
+.lm-settings-category .mantine-Button-label { white-space:normal; overflow-wrap:anywhere }
+.lm-settings-category[aria-current=page] { color:var(--vault-text); background:var(--vault-selection) }

@@ -49,7 +49,8 @@
     "file-explorer:check": "node tools/scripts/check.mjs file-explorer mantine-components sidebar-plugin",
     "context-menu:check": "node tools/scripts/check.mjs context-menu context-menu-provider file-explorer mantine-components",
     "active-document:check": "node tools/scripts/check.mjs active-document active-document-provider file-explorer mantine-components",
-    "active-screen:check": "node tools/scripts/check.mjs active-screen active-screen-provider active-screen-plugin mantine-components"
+    "active-screen:check": "node tools/scripts/check.mjs active-screen active-screen-provider active-screen-plugin mantine-components",
+    "settings:check": "node tools/scripts/check.mjs settings settings-provider settings-plugin"
   },
   "devDependencies": {
     "@types/node": "26.6.6",
