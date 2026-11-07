@@ -179,21 +179,26 @@ test('desktop close bridge flushes the last keystrokes before shutdown and rejec
 test('Tab inserts at the caret, indents selected lines and Shift-Tab removes indentation', async () => {
   const s = await setup({ initial: 'alpha\nbeta' });
   const view = s.cm();
+  view.focus();
   const tab = (shiftKey = false) => {
     const event = new s.dom.window.KeyboardEvent('keydown', { key: 'Tab', code: 'Tab', keyCode: 9, shiftKey, bubbles: true, cancelable: true });
     view.contentDOM.dispatchEvent(event);
     assert.equal(event.defaultPrevented, true);
   };
   view.dispatch({ selection: { anchor: 2 } }); tab();
-  assert.equal(view.state.doc.toString(), 'al\tpha\nbeta');
-  assert.equal(view.state.selection.main.head, 3);
+  assert.equal(view.state.doc.toString(), 'al  pha\nbeta');
+  assert.equal(view.state.selection.main.head, 4);
   undo(view);
   view.dispatch({ selection: { anchor: 0, head: view.state.doc.length } }); tab();
-  assert.equal(view.state.doc.toString(), '\talpha\n\tbeta');
+  assert.equal(view.state.doc.toString(), '    alpha\n    beta');
   tab(true); assert.equal(view.state.doc.toString(), 'alpha\nbeta');
   view.setTabFocusMode(true);
   const escape = new s.dom.window.KeyboardEvent('keydown', { key: 'Tab', keyCode: 9, bubbles: true, cancelable: true });
   view.contentDOM.dispatchEvent(escape); assert.equal(escape.defaultPrevented, false);
+  view.setTabFocusMode(false);
+  view.dispatch({ selection: { anchor: 0 } }); tab();
+  await s.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
+  assert.equal(s.disk.get('a/note.md').text, '    alpha\nbeta');
   await s.stop();
 });
 

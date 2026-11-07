@@ -8,8 +8,9 @@ with ui.dom, vault.access and filesystem.access.
 
 Open a Markdown file in File Explorer. Wrapped lines, Markdown syntax, standard
 text shortcuts, undo/redo, multiple selections and Mod-S are enabled. Tab inserts
-a tab at the caret or indents selected lines; Shift-Tab removes indentation.
-Indentation uses tabs displayed at four columns. Escape followed by Tab uses
+a space-based indent to the next four-column tab stop at the caret or indents
+selected lines by four spaces; Shift-Tab removes indentation, including existing
+hard tabs. Escape followed by Tab uses
 CodeMirror's temporary focus-navigation mode to leave the editor by keyboard.
 Live Preview is enabled. The editor has no persistent
 header, filename, saved status, mode toggle or Save button. Autosave and Mod-S
