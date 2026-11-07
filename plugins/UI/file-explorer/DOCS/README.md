@@ -32,3 +32,17 @@ See the [full reference](../../../../DOCS/reference/file-explorer.md) for keyboa
 commands, public component props, cancellation, operation/error semantics,
 completed integrations, outstanding document opening and manual acceptance.
 Run `npm run file-explorer:check` and the Tauri frontend build.
+
+## File extension presentation
+
+The controller supplies supportedExtensions (currently ["md"]) through public
+lunaris.file-explorer component props. This optional list contains extensions
+without dots; omission disables suffix presentation. Matching ignores case.
+Additional formats require no rendering changes. This controls presentation,
+not document-opening support. Supported suffixes appear in a compact Mantine
+Badge on the right instead of the name or inline create/rename field. Full paths
+remain in row tooltips. Callbacks retain the original suffix including case;
+pasted full names do not duplicate it. Unsupported files, stemless dotfiles and
+directories retain full names without badges. Empty names cannot submit.
+Existing Sidebar/Components callbacks carry full filenames; no driver or SDK
+API changes or additional plugin integrations are required.

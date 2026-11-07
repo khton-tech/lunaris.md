@@ -272,3 +272,17 @@ region surface without adding nested cards. Narrow overlays retain external
 spacing and rounded corners; region scrolling, stable SDK targets and Escape
 behavior are preserved. Individual tab buttons remain controls inside the rail
 card. No SDK contracts or controller integrations change.
+
+## File extension presentation
+
+The controller supplies supportedExtensions (currently ["md"]) through public
+lunaris.file-explorer component props. This optional list contains extensions
+without dots; omission disables suffix presentation. Matching ignores case.
+Additional formats require no rendering changes. This controls presentation,
+not document-opening support. Supported suffixes appear in a compact Mantine
+Badge on the right instead of the name or inline create/rename field. Full paths
+remain in row tooltips. Callbacks retain the original suffix including case;
+pasted full names do not duplicate it. Unsupported files, stemless dotfiles and
+directories retain full names without badges. Empty names cannot submit.
+Existing Sidebar/Components callbacks carry full filenames; no driver or SDK
+API changes or additional plugin integrations are required.

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { ActionIcon, Box, Button, Group, Menu, Paper, Stack, Text, TextInput } from "@mantine/core";
+import { ActionIcon, Badge, Box, Button, Group, Menu, Paper, Stack, Text, TextInput } from "@mantine/core";
 import { Tree } from "react-arborist";
 import type { CursorProps, DragPreviewProps, NodeRendererProps, RowRendererProps, TreeApi } from "react-arborist";
 import type { ComponentProps } from "@lunaris/components";
@@ -15,6 +15,7 @@ interface Entry { id: string; name: string; kind: string; children?: Entry[]; dr
 type Form = { kind: "file" | "folder"; parent: string; initialName?: string } | { kind: "delete"; paths: string[] };
 interface Draft { form: Form | null; name: string }
 interface ExplorerProps {
+  supportedExtensions?: readonly string[];
   vaultId: string; data: Entry[]; expanded: string[]; selection: string[]; busy: boolean; loading: boolean; error: string; degraded: string; canPaste: boolean;
   workspace?: { vaultId: string; vaultName?: string }; text: Record<string, string>;
   onToggle(path: string, open: boolean): void; onSelection(paths: string[]): void; onBuffer(paths: string[], cut: boolean): void;
@@ -35,12 +36,25 @@ export function explorerProps(value: ComponentProps): ExplorerProps {
     !["expanded", "selection"].every(key => Array.isArray(value[key]) && (value[key] as unknown[]).every(item => typeof item === "string")) ||
     !value.text || typeof value.text !== "object" || Object.values(value.text).some(item => typeof item !== "string") ||
     !["onToggle", "onSelection", "onBuffer", "onCreate", "onRename", "onMove", "onPaste", "onRemove", "onRefresh", "onDraft", "onContextMenu"].every(key => typeof value[key] === "function")) throw new TypeError("Invalid file explorer props.");
+  if (value.supportedExtensions !== undefined && (!Array.isArray(value.supportedExtensions) || value.supportedExtensions.some(item => typeof item !== "string" || !/^[a-z0-9]+$/i.test(item)))) throw new TypeError("Invalid supported extensions.");
   const draft = value.initialDraft as Draft | undefined;
   if (!draft || typeof draft.name !== "string" || (draft.form !== null && (!draft.form ||
     (draft.form.kind === "delete" ? !Array.isArray(draft.form.paths) || draft.form.paths.some(path => typeof path !== "string") :
       !["file", "folder"].includes(draft.form.kind) || typeof draft.form.parent !== "string")))) throw new TypeError("Invalid explorer draft.");
   if (draft.form && draft.form.kind !== "delete" && draft.form.initialName !== undefined && typeof draft.form.initialName !== "string") throw new TypeError("Invalid initial draft name.");
   return value as unknown as ExplorerProps;
+}
+function fileLabel(name: string, kind: string, extensions: readonly string[] = []) {
+  const dot = name.lastIndexOf(".");
+  const suffix = name.slice(dot);
+  const supported = kind === "file" && dot > 0 && extensions.some(extension => extension.toLowerCase() === suffix.slice(1).toLowerCase());
+  return supported ? { name: name.slice(0, dot), suffix, badge: suffix.slice(1).toLowerCase() } : { name, suffix: "", badge: "" };
+}
+function withSuffix(name: string, suffix: string): string {
+  return suffix && name.toLowerCase().endsWith(suffix.toLowerCase()) ? name.slice(0, -suffix.length) + suffix : name + suffix;
+}
+function ExtensionBadge({ extension }: { extension: string }) {
+  return extension ? <Badge className="lm-explorer-extension" size="xs" radius="xl" variant="light">{extension}</Badge> : null;
 }
 interface Creation { name: string; kind: "file" | "folder"; pending: boolean; onName(name: string): void; submit(restoreFocus?: boolean): Promise<void>; cancel(restoreFocus?: boolean): void }
 const ExplorerContext = createContext<{ props: ExplorerProps; creation: Creation | null; surface(): HTMLElement | null; context(path: string, x: number, y: number): void } | null>(null);
@@ -58,19 +72,20 @@ function ExplorerRow({ node, attrs, innerRef, children }: RowRendererProps<Entry
 }
 function CreateInput() {
   const { props, creation } = useContext(ExplorerContext)!; const input = useRef<HTMLInputElement>(null); const wasPending = useRef(false);
+  const suffix = useRef(fileLabel(creation?.name ?? "", creation?.kind ?? "", props.supportedExtensions).suffix).current;
+  const visibleName = creation?.name && suffix && creation.name.endsWith(suffix) ? creation.name.slice(0, -suffix.length) : creation?.name ?? "";
   useLayoutEffect(() => {
     const field = input.current; if (!field) return;
     field.focus({ preventScroll: true });
-    const extension = creation?.kind === "file" ? field.value.lastIndexOf(".") : -1;
-    field.setSelectionRange(0, extension > 0 ? extension : field.value.length);
+    field.select();
   }, []);
   useLayoutEffect(() => {
     if (wasPending.current && !creation?.pending && !props.busy) { input.current?.focus(); wasPending.current = false; }
     if (creation?.pending) wasPending.current = true;
   }, [creation?.pending, props.busy]);
   if (!creation) return null;
-  return <TextInput ref={input} className="lm-explorer-rename lm-explorer-create" aria-label={creation.kind === "folder" ? props.text.newFolder : props.text.newFile}
-    value={creation.name} disabled={props.busy || creation.pending} onChange={event => creation.onName(event.currentTarget.value)}
+  return <><TextInput ref={input} className="lm-explorer-rename lm-explorer-create" aria-label={creation.kind === "folder" ? props.text.newFolder : props.text.newFile}
+    value={visibleName} disabled={props.busy || creation.pending} onChange={event => { const value = event.currentTarget.value; creation.onName(value.trim() ? withSuffix(value, suffix) : ""); }}
     onBlur={event => {
       const row = event.currentTarget.closest("[role=treeitem]");
       if (event.relatedTarget && row?.contains(event.relatedTarget as Node)) return;
@@ -82,7 +97,7 @@ function CreateInput() {
       event.stopPropagation();
       if (event.key === "Escape") { event.preventDefault(); if (!props.busy && !creation.pending) creation.cancel(); }
       if (event.key === "Enter") { event.preventDefault(); void creation.submit(); }
-    }} />;
+    }} /><ExtensionBadge extension={suffix.slice(1).toLowerCase()} /></>;
 }
 function ExplorerCursor({ top, left, indent }: CursorProps) {
   return <Box className="lm-explorer-cursor" style={{ top, left, right: indent }} />;
@@ -99,17 +114,19 @@ function ExplorerDragPreview({ isDragging, mouse, dragIds }: DragPreviewProps) {
 }
 function RenameInput({ node }: NodeRendererProps<Entry>) {
   const { props } = useContext(ExplorerContext)!; const input = useRef<HTMLInputElement>(null); const submitted = useRef(false);
+  const label = fileLabel(node.data.name, node.data.kind, props.supportedExtensions);
   useLayoutEffect(() => { input.current?.focus(); input.current?.select(); }, []);
-  return <TextInput ref={input} className="lm-explorer-rename" aria-label={props.text.rename} defaultValue={node.data.name} disabled={props.busy}
+  return <><TextInput ref={input} className="lm-explorer-rename" aria-label={props.text.rename} defaultValue={label.name} disabled={props.busy}
     onClick={event => event.stopPropagation()} onBlur={() => { if (!submitted.current) node.reset(); }}
     onKeyDown={event => {
       event.stopPropagation();
       if (event.key === "Escape") { event.preventDefault(); node.reset(); }
-      if (event.key === "Enter" && !props.busy && !submitted.current) { event.preventDefault(); submitted.current = true; node.submit(event.currentTarget.value); }
-    }} />;
+      if (event.key === "Enter" && !props.busy && !submitted.current) { event.preventDefault(); if (!event.currentTarget.value.trim()) return; submitted.current = true; node.submit(withSuffix(event.currentTarget.value, label.suffix)); }
+    }} /><ExtensionBadge extension={label.badge} /></>;
 }
 function ExplorerNode(payload: NodeRendererProps<Entry>) {
   const { node, tree, style, dragHandle } = payload; const { props, context } = useContext(ExplorerContext)!;
+  const label = fileLabel(node.data.name, node.data.kind, props.supportedExtensions);
   return <Box ref={dragHandle} style={style} className="lm-explorer-node" data-root={node.id === ROOT_ID || undefined} data-selected={node.isSelected || undefined} data-focused={node.isFocused || undefined} data-drop={node.willReceiveDrop || undefined}
     title={node.id === ROOT_ID ? node.data.name : node.id} onContextMenu={event => { event.preventDefault(); event.stopPropagation(); context(node.id, event.clientX, event.clientY); }}>
     {node.level > 0 && <span className="lm-explorer-indent-guides" aria-hidden="true"
@@ -118,7 +135,7 @@ function ExplorerNode(payload: NodeRendererProps<Entry>) {
       disabled={props.busy} onClick={event => { event.stopPropagation(); node.toggle(); }}><span data-open={node.isOpen || undefined}><Icon name="expand" /></span></ActionIcon>
       : <span className="lm-explorer-spacer" />}
     <Icon name={node.data.draft ? node.data.kind === "directory" ? "folder" : "file" : node.isInternal ? node.isOpen ? "browse" : "folder" : "file"} />
-    {node.data.draft ? <CreateInput /> : node.isEditing ? <RenameInput {...payload} /> : <Text component="span" className="lm-explorer-filename">{node.data.name}</Text>}
+    {node.data.draft ? <CreateInput /> : node.isEditing ? <RenameInput {...payload} /> : <><Text component="span" className="lm-explorer-filename">{label.name}</Text><ExtensionBadge extension={label.badge} /></>}
   </Box>;
 }
 export function FileExplorer({ props, theme }: { props: ExplorerProps; theme: ReturnType<typeof resolveTheme> }) {

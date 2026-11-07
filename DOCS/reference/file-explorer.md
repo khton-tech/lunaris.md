@@ -162,3 +162,17 @@ filesystem changes, panel collapse/reopen and Vault switching. Desktop automatio
 is prohibited; JSDOM cannot verify physical drag/drop or WebView geometry.
 
 Folder rows select on a single click and toggle on double click or disclosure/Enter. Selection does not change folder geometry before dragging. The header contains a localized Tabs dropdown with Files as its sole current item, without a title or operation buttons. The Workspace Vault name appears in an initially expanded root directory row containing the controller tree. This renderer-owned row cannot be renamed, dragged, copied, cut or deleted and exposes only root-appropriate context-menu operations. Its synthetic identity never reaches controller selection, buffer or mutation callbacks; drop destinations map to the public empty root path. Root disclosure is local view state and resets to expanded on remount. A transient mismatch between Workspace context and controller Vault props shows loading without mounting the old tree or its operations.
+
+## File extension presentation
+
+The controller supplies supportedExtensions (currently ["md"]) through public
+lunaris.file-explorer component props. This optional list contains extensions
+without dots; omission disables suffix presentation. Matching ignores case.
+Additional formats require no rendering changes. This controls presentation,
+not document-opening support. Supported suffixes appear in a compact Mantine
+Badge on the right instead of the name or inline create/rename field. Full paths
+remain in row tooltips. Callbacks retain the original suffix including case;
+pasted full names do not duplicate it. Unsupported files, stemless dotfiles and
+directories retain full names without badges. Empty names cannot submit.
+Existing Sidebar/Components callbacks carry full filenames; no driver or SDK
+API changes or additional plugin integrations are required.

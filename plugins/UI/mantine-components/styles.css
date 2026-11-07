@@ -180,3 +180,5 @@
 @media(prefers-reduced-motion:reduce) { .lm-context-menu [role=menuitem] { transition:none } }
 
 @media(prefers-reduced-motion:reduce) { .lm-workspace-content>.mantine-Splitter-handle::after { transition:none } }
+
+.lm-explorer .lm-explorer-extension { flex-shrink:0;margin-inline-start:auto;max-width:40%;text-transform:none;font-weight:500;color:var(--vault-secondary);background:var(--vault-hover);border:0;pointer-events:none }

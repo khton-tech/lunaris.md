@@ -26,7 +26,7 @@ export default definePlugin({ manifest, activate(ctx) {
     if (ctx.signal.aborted) return;
     menu?.dispose(); menu = undefined;
     const current = model;
-    const props = { vaultId: current?.vaultId ?? "", data: current?.tree() ?? [], expanded: [...(current?.expanded ?? [])], selection: current?.selection ?? [],
+    const props = { supportedExtensions: ["md"], vaultId: current?.vaultId ?? "", data: current?.tree() ?? [], expanded: [...(current?.expanded ?? [])], selection: current?.selection ?? [],
       busy: current?.busy ?? false, loading: (current?.loading ?? 0) > 0, error: current?.error ? text(current.error) : "",
       degraded: current?.degraded ? text("unwatched") : "", canPaste: !!current?.clipboard?.paths.length,
       initialDraft: current?.draft ?? { form: null, name: "" },
