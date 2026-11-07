@@ -10,6 +10,8 @@ export interface SidebarTab {
   readonly componentId: string;
   readonly props?: Readonly<Record<string, unknown>>;
   readonly order?: number;
+  /** End pins the tab group to the bottom of the rail. */
+  readonly placement?: "start" | "end";
 }
 export interface SidebarSnapshot { readonly tabs: readonly SidebarTab[]; readonly activeId: string | null }
 export type SidebarResult = { readonly ok: true; readonly value: null } | {
@@ -24,7 +26,7 @@ export interface SidebarApi {
   snapshot(): SidebarSnapshot;
 }
 export const Sidebar = defineApi<SidebarApi>({
-  id: "lunaris.sidebar", version: "1.0.0",
+  id: "lunaris.sidebar", version: "1.1.0",
   validate: value => !!value && typeof value === "object" && ["register", "update", "select", "snapshot"].every(key => typeof Object.getOwnPropertyDescriptor(value, key)?.value === "function"),
 });
 export const SidebarChanged = defineEvent<SidebarSnapshot>({

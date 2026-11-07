@@ -23,7 +23,7 @@ export default definePlugin({ manifest, activate(ctx) {
     if (!snapshot.tabs.length || !components.has("lunaris.sidebar-rail")) {
       release(panel); panel = undefined; panelKey = ""; release(rail); rail = undefined; return;
     }
-    const props = { label: text("label"), activeId: snapshot.activeId, tabs: snapshot.tabs.map(tab => ({ id: tab.id, title: tab.title, icon: tab.icon })),
+    const props = { label: text("label"), activeId: snapshot.activeId, tabs: snapshot.tabs.map(tab => ({ id: tab.id, title: tab.title, icon: tab.icon, placement: tab.placement ?? "start" })),
       onSelect(id: string) { if (!ctx.signal.aborted) { const current = sidebar.snapshot(); sidebar.select(current.activeId === id ? null : id); } } };
     if (!rail) {
       rail = ctx.scope.child();

@@ -15,7 +15,7 @@
     {
       "kind": "api",
       "id": "lunaris.sidebar",
-      "range": "^1.0.0"
+      "range": "^1.1.0"
     },
     {
       "kind": "event",

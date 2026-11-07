@@ -18,6 +18,11 @@ the public Components contract, including borrowed composite layout targets.
 
 ## Tab API
 
+Sidebar API 1.1 adds optional `placement: "start" | "end"` (default start).
+End tabs form a bottom-aligned rail group, independent of numeric order. Order is
+local to each group; snapshot and keyboard order follow visual start/end order.
+Presentation updates preserve placement. Existing 1.0 consumers remain compatible.
+
 Import `Sidebar` from `@lunaris/sidebar` and require
 `api:lunaris.sidebar@^1.0.0`. Registration needs no DOM permission. All product
 consumers must also require Logger and use it with their own plugin ID.

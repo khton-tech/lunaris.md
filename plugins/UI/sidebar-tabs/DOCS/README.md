@@ -22,3 +22,7 @@ The separate Sidebar controller consumes these public contracts; tools register
 without DOM permission. See the [full API reference](../../../../DOCS/reference/sidebar.md)
 for input rules, examples and integration. Run `npm run sidebar:check` for provider,
 consumer, UI/host, type and boundary checks.
+
+Sidebar API 1.1 supports `placement: "start" | "end"` (default start). End tabs
+form a bottom group; numeric order stays local to each group. Snapshot and keyboard
+order follow visual order. Updates preserve placement; existing consumers remain compatible.

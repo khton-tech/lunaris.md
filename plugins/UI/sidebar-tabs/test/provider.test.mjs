@@ -25,6 +25,16 @@ async function setup() {
   } };
 }
 const tab = (id, extra = {}) => ({ id, componentId: 'test.content', title: id, icon: 'files', ...extra });
+
+test('bottom placement is independent of numeric order and survives presentation updates', async () => {
+  const s = await setup();
+  s.api.register(tab('test.settings', { placement: 'end', order: -100 }), s.ctx.signal);
+  s.api.register(tab('test.files', { order: 100 }), s.ctx.signal);
+  assert.deepEqual(s.api.snapshot().tabs.map(item => item.id), ['test.files', 'test.settings']);
+  s.api.update('test.settings', { title: 'Settings', icon: 'settings' });
+  assert.equal(s.api.snapshot().tabs.at(-1).placement, 'end');
+  assert.equal(s.api.register(tab('test.bad', { placement: 'bottom' }), s.ctx.signal).error.code, 'INVALID_ARGUMENT'); await s.stop();
+});
 test('sidebar owns ordered immutable tabs, selection, collapse and deterministic removal fallback', async () => {
   const s = await setup(); const one = s.ctx.scope.child(); const two = s.ctx.scope.child(); const props = { filter: 'initial' };
   assert.equal(s.api.register(tab('test.one', { order: 20, props }), one.signal).ok, true); props.filter = 'changed';

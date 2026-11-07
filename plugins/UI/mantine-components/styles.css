@@ -196,3 +196,8 @@
 
 .lm-active-screen { display: flex; flex: 1 1 0%; min-width: 0; min-height: 0; }
 .lm-screen-target[hidden] { display: none; }
+
+.lm-sidebar-rail { display:flex; flex-direction:column; gap:var(--vault-space) }
+.lm-sidebar-start { flex-shrink:0 }
+.lm-sidebar-end { margin-block-start:auto; padding-block-start:var(--vault-space); flex-shrink:0 }
+.lm-sidebar-end:empty { display:none }

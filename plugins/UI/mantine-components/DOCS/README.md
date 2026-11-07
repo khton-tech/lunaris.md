@@ -339,3 +339,7 @@ The callback only lends owned targets; mount other SDK components after the
 parent mount/update returns, as with WorkspaceLayout. Do not reparent or restyle
 targets. The controller reserves an internal target for the shared empty/failure
 role. See [Active screen](../../../../DOCS/reference/active-screen.md).
+
+Sidebar API 1.1 supports `placement: "start" | "end"` (default start). End tabs
+form a bottom group; numeric order stays local to each group. Snapshot and keyboard
+order follow visual order. Updates preserve placement; existing consumers remain compatible.

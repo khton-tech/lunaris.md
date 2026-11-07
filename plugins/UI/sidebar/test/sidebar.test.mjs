@@ -5,6 +5,15 @@ const setup = options => setupWorkspace({ sidebar: true, ...options });
 const tab = (id, componentId, extra = {}) => ({ id, componentId, title: id === 'test.files' ? 'Files' : 'Search', icon: id === 'test.files' ? 'files' : 'search', ...extra });
 const button = (s, title) => s.surface.querySelector(`.lm-sidebar-tab[aria-label="${title}"]`);
 
+test('bottom tabs occupy a separate end group and keyboard order follows visual order', async () => {
+  const s = await setup(); panel(s, 'test.content'); await s.open();
+  s.tools.sidebar.register({ id: 'test.settings', componentId: 'test.content', title: 'Settings', icon: 'settings', placement: 'end', order: -100 }, s.ctx.signal);
+  s.tools.sidebar.register(tab('test.files', 'test.content', { order: 100 }), s.ctx.signal); await flush();
+  assert.equal(button(s, 'Settings').parentElement.classList.contains('lm-sidebar-end'), true);
+  button(s, 'Files').focus(); button(s, 'Files').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'End', bubbles: true }));
+  assert.equal(s.dom.window.document.activeElement, button(s, 'Settings')); await s.stop();
+});
+
 test('separate sidebar is invisible without tabs and does not replace the main workspace placeholder', async () => {
   const s = await setup(); await s.open();
   assert.ok(s.session.snapshot().kernel.plugins.some(plugin => plugin.manifest.id === 'lunaris.sidebar' && plugin.state === 'active'));
