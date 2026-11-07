@@ -74,15 +74,22 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
   if (!state) state = EditorState.create({ doc: session.text, extensions });
   else state = state.update({ effects: reconfigure(extensions) }).state;
   const view = new EditorView({ parent: target, state });
-  let disposed = false; let attempts = 0;
+  let disposed = false; let attempts = 0; let firstKey = true;
   // Bounded native-event tracing runs before CodeMirror's composition/focus-mode
   // gates. Never log note text, paths or arbitrary keyboard input.
   const observeTab = (event: KeyboardEvent) => {
-    if (event.key !== "Tab" || attempts >= 5) return;
+    const inEditor = event.target instanceof view.dom.ownerDocument.defaultView!.Node && view.dom.contains(event.target);
+    const isTab = event.key === "Tab" || event.code === "Tab" || event.keyCode === 9;
+    if (firstKey) {
+      firstKey = false;
+      traceTab({ phase: "first-key", inEditor, focused: view.hasFocus, tabByKey: event.key === "Tab", tabByCode: event.code === "Tab", tabByKeyCode: event.keyCode === 9 });
+    }
+    if (!isTab || attempts >= 5) return;
     const attempt = ++attempts; const before = view.state;
     const outcome = { commandRan: false }; pendingTab = outcome;
     const details = { attempt, shift: event.shiftKey, ctrl: event.ctrlKey, alt: event.altKey, meta: event.metaKey,
       keyCode: event.keyCode, repeat: event.repeat, composing: event.isComposing, viewComposing: view.composing,
+      inEditor, tabByKey: event.key === "Tab", tabByCode: event.code === "Tab",
       focused: view.hasFocus, readOnly: before.readOnly, editable: before.facet(EditorView.editable),
       locks: session.locks, loading: session.loading, missing: session.missing };
     traceTab({ phase: "received", ...details });
@@ -93,7 +100,11 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
         caretDelta: view.state.selection.main.head - before.selection.main.head, focused: view.hasFocus });
     });
   };
-  view.contentDOM.addEventListener("keydown", observeTab, { capture: true });
+  // Observe at the document boundary without intercepting input or manipulating
+  // other regions. This also diagnoses Tab going to a different focus target.
+  const inputDocument = view.dom.ownerDocument;
+  inputDocument.addEventListener("keydown", observeTab, { capture: true });
+  traceTab({ phase: "ready", diagnosticVersion: 2, editable: view.state.facet(EditorView.editable), readOnly: view.state.readOnly });
   let lastPreview = preview;
   let lastTheme = theme; let lastLabel = label; let lastReadOnly = session.locks > 0 || session.missing || session.loading;
   return {
@@ -111,7 +122,7 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
       }
       if (effects.length) view.dispatch({ effects });
     },
-    dispose(): EditorState { disposed = true; view.contentDOM.removeEventListener("keydown", observeTab, { capture: true }); const state = view.state; view.destroy(); return state; },
+    dispose(): EditorState { disposed = true; inputDocument.removeEventListener("keydown", observeTab, { capture: true }); const state = view.state; view.destroy(); return state; },
   };
 }
 

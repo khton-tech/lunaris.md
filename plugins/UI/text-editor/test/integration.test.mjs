@@ -206,7 +206,9 @@ test('Tab inserts at the caret, indents selected lines and Shift-Tab removes ind
   assert.equal(outcomes[0].commandRan, true); assert.equal(outcomes[0].lengthDelta, 2);
   assert.equal(outcomes[3].commandRan, false); assert.equal(outcomes[3].documentChanged, false);
   tab(); await flush();
-  assert.equal(s.logs.filter(log => log[3]?.code === 'EDITOR_TAB_TRACE').length, 10);
+  assert.equal(s.logs.filter(log => log[3]?.code === 'EDITOR_TAB_TRACE').length, 12);
+  assert.ok(traces.some(trace => trace.phase === 'ready' && trace.diagnosticVersion === 2));
+  assert.ok(traces.some(trace => trace.phase === 'first-key' && trace.inEditor && trace.focused));
   await s.stop();
 });
 
@@ -226,4 +228,18 @@ test('focused selection layer uses the active theme instead of the CodeMirror de
     assert.equal(s.cm(), view);
   }
   marker.remove(); await s.stop();
+});
+
+test('Tab diagnostics distinguish a different focus target without intercepting its navigation', async () => {
+  const s = await setup(); const view = s.cm();
+  const button = s.dom.window.document.createElement('button');
+  s.dom.window.document.body.append(button); button.focus();
+  const event = new s.dom.window.KeyboardEvent('keydown', { key: 'Tab', code: 'Tab', keyCode: 9, bubbles: true, cancelable: true });
+  button.dispatchEvent(event); await flush();
+  assert.equal(event.defaultPrevented, false);
+  const traces = s.logs.filter(log => log[3]?.code === 'EDITOR_TAB_TRACE').map(log => log[3].data);
+  assert.ok(traces.some(trace => trace.phase === 'received' && !trace.inEditor && !trace.focused));
+  assert.ok(traces.some(trace => trace.phase === 'settled' && !trace.commandRan && !trace.documentChanged));
+  assert.equal(view.state.doc.toString(), '# Note');
+  button.remove(); await s.stop();
 });
