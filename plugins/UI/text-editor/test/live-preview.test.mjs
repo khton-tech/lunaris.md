@@ -63,3 +63,30 @@ test('block markers remain editable and decorations react to edits without chang
   s.view.dispatch({ changes: { from: 7, to: 8, insert: '##' }, selection: { anchor: 0 } });
   assert.ok(s.view.dom.querySelector('.cm-preview-h2'));
 });
+
+test('quote rails cover consecutive, empty, lazy and nested lines while source markers reveal', t => {
+  const doc = 'start\n\n> first\n> second\n>\n> paragraph\nlazy continuation\n> > nested\n\noutside';
+  const s = setup(doc);
+  t.after(() => s.close());
+  const quoted = () => [...s.view.dom.querySelectorAll('.cm-line.cm-preview-quote')];
+  assert.equal(quoted().length, 6);
+  assert.ok(quoted().every(line => line.style.backgroundImage.includes('linear-gradient')));
+  assert.equal(quoted().at(-1).style.getPropertyValue('--cm-preview-quote-depth'), '2');
+  assert.equal(s.view.dom.textContent.includes('│'), false);
+  assert.ok(!s.view.dom.querySelector('.cm-preview-quote .cm-preview-quote'));
+  s.view.dispatch({ selection: { anchor: doc.indexOf('second') } });
+  assert.equal(quoted().length, 6);
+  assert.ok(quoted()[1].textContent.startsWith('> second'));
+  assert.equal(s.view.state.doc.toString(), doc);
+  assert.equal([...s.view.dom.querySelectorAll('.cm-line')].at(-1).classList.contains('cm-preview-quote'), false);
+});
+
+test('inline code retains its presentation when delimiters reveal for editing', t => {
+  const doc = 'start\n\n`some code`';
+  const s = setup(doc);
+  t.after(() => s.close());
+  assert.equal(s.view.dom.querySelector('.cm-preview-code').textContent, 'some code');
+  s.view.dispatch({ selection: { anchor: doc.indexOf('code') } });
+  assert.equal(s.view.dom.querySelector('.cm-preview-code').textContent, '`some code`');
+  assert.equal(s.view.state.doc.toString(), doc);
+});

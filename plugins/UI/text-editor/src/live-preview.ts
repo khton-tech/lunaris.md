@@ -25,6 +25,7 @@ function decorations(view: EditorView): DecorationSet {
   const { state } = view;
   const ranges: Range<Decoration>[] = [];
   const lines = new Set<number>();
+  const quoteLines = new Map<number, number>();
   const hide = (from: number, to: number) => {
     // View plugins must not replace line breaks (vertical layout belongs to CM).
     if (from < to && state.doc.lineAt(from).number === state.doc.lineAt(to).number)
@@ -34,6 +35,17 @@ function decorations(view: EditorView): DecorationSet {
   for (const visible of view.visibleRanges) tree.iterate({ from: visible.from, to: visible.to, enter(node) {
     const { name, from, to } = node;
     const line = state.doc.lineAt(from);
+    if (name === "Blockquote") {
+      let depth = 1;
+      for (let parent = node.node.parent; parent; parent = parent.parent) if (parent.name === "Blockquote") depth++;
+      // Decorate whole source lines, including lazy continuations and empty quote
+      // lines. A line background stays continuous through wrapping and selection.
+      for (let number = Math.max(line.number, state.doc.lineAt(visible.from).number);
+        number <= state.doc.lineAt(Math.min(to, visible.to)).number; number++) {
+        const start = state.doc.line(number).from;
+        quoteLines.set(start, Math.max(depth, quoteLines.get(start) ?? 0));
+      }
+    }
     if (/^(ATX|Setext)Heading[1-6]$/.test(name) && !lines.has(line.from)) {
       lines.add(line.from);
       ranges.push(Decoration.line({ class: `cm-preview-heading cm-preview-h${name.at(-1)}` }).range(line.from));
@@ -52,7 +64,10 @@ function decorations(view: EditorView): DecorationSet {
       return false;
     }
     if (["StrongEmphasis", "Emphasis", "Strikethrough", "InlineCode", "Link"].includes(name)) {
-      if (selected(state, from, to)) return false;
+      if (selected(state, from, to)) {
+        if (name === "InlineCode") ranges.push(Decoration.mark({ class: "cm-preview-code" }).range(from, to));
+        return false;
+      }
       const style = { StrongEmphasis: "strong", Emphasis: "emphasis", Strikethrough: "strike", InlineCode: "code", Link: "link" }[name];
       ranges.push(Decoration.mark({ class: `cm-preview-${style}` }).range(from, to));
       if (name === "Link") {
@@ -75,14 +90,20 @@ function decorations(view: EditorView): DecorationSet {
         if (/^\s*\[[ xX]\]/.test(state.sliceDoc(to, line.to))) return;
         const text = state.sliceDoc(from, to);
         if (/^[-+*]$/.test(text)) ranges.push(Decoration.replace({ widget: new Marker("• ", "bullet") }).range(from, end));
-      } else if (name === "QuoteMark") ranges.push(Decoration.replace({ widget: new Marker("│ ", "quote") }).range(from, end));
-      else hide(from, end);
+      } else hide(from, end);
     }
     if (name === "HorizontalRule" && !selected(state, line.from, line.to)) {
       ranges.push(Decoration.replace({ widget: new Marker("", "rule") }).range(from, to));
       return false;
     }
   } });
+  for (const [from, depth] of quoteLines) {
+    const bars = Array.from({ length: depth }, () => "linear-gradient(color-mix(in srgb, currentColor 35%, transparent), color-mix(in srgb, currentColor 35%, transparent))").join(",");
+    const positions = Array.from({ length: depth }, (_, index) => `calc(clamp(12px, 3cqi, 40px) + 0.35em + ${index * 0.85}em) 0`).join(",");
+    ranges.push(Decoration.line({ class: "cm-preview-quote", attributes: {
+      style: `--cm-preview-quote-depth:${depth};background-image:${bars};background-position:${positions}`,
+    } }).range(from));
+  }
   return Decoration.set(ranges, true);
 }
 
@@ -100,11 +121,14 @@ export const livePreviewTheme = EditorView.baseTheme({
   ".cm-preview-strong": { fontWeight: "600" },
   ".cm-preview-emphasis": { fontStyle: "italic" },
   ".cm-preview-strike": { textDecoration: "line-through" },
-  ".cm-preview-code, .cm-preview-code-block": { fontFamily: "var(--vault-mono, ui-monospace, monospace)", backgroundColor: "color-mix(in srgb, currentColor 5%, transparent)" },
+  ".cm-preview-code, .cm-preview-code-block": { fontFamily: "var(--vault-mono, 'Cascadia Code', Consolas, ui-monospace, monospace)", backgroundColor: "color-mix(in srgb, currentColor 5%, transparent)" },
+  ".cm-preview-code": { fontSize: "0.95em", fontWeight: "500", padding: "0.05em 0.3em", border: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderRadius: "0.3em", backgroundColor: "color-mix(in srgb, currentColor 10%, transparent)", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone" },
   ".cm-preview-heading": { fontWeight: "600", lineHeight: "1.4" },
-  ".cm-preview-h1": { fontSize: "1.8em" }, ".cm-preview-h2": { fontSize: "1.5em" },
-  ".cm-preview-h3": { fontSize: "1.3em" }, ".cm-preview-h4": { fontSize: "1.15em" },
+  ".cm-preview-h1": { fontSize: "2.4em" }, ".cm-preview-h2": { fontSize: "2em" },
+  ".cm-preview-h3": { fontSize: "1.7em" }, ".cm-preview-h4": { fontSize: "1.45em" },
+  ".cm-preview-h5": { fontSize: "1.25em" }, ".cm-preview-h6": { fontSize: "1.1em" },
   ".cm-preview-link": { textDecoration: "underline" },
-  ".cm-preview-bullet, .cm-preview-quote": { whiteSpace: "pre" },
+  ".cm-preview-bullet": { whiteSpace: "pre" },
+  ".cm-line.cm-preview-quote": { paddingLeft: "calc(clamp(12px, 3cqi, 40px) + 0.6em + var(--cm-preview-quote-depth) * 0.85em)", backgroundSize: "2px 100%", backgroundRepeat: "no-repeat" },
   ".cm-preview-rule": { display: "inline-block", width: "100%", borderTop: "1px solid currentColor", opacity: "0.25", verticalAlign: "middle" },
 });

@@ -145,6 +145,19 @@ literal. Link labels may contain nested formatting; reference-style destinations
 are not resolved. Multiline syntax that cannot be safely hidden without replacing
 line breaks remains visible.
 
+The Owner's Workspace screenshot is the visual reference for the typography
+refinement: H1–H6 use 2.4/2/1.7/1.45/1.25/1.1 times the editor font size.
+Quote lines have an inset, full-height theme-derived rail rather than a text
+glyph; adjacent lines, empty quoted lines, lazy continuations and wrapped text
+share a continuous rail. Nested quotes add rails and indentation. Source markers
+still reveal on the active line while rails remain visible. Inline code has a
+monospaced font, subtle background, rounded outline and local padding, including
+while its backticks are exposed. These are CodeMirror document decorations, not
+additional UIKit controls; ownership and public SDK wiring are unchanged.
+Manually verify the larger headings, quote continuity across soft wraps and
+empty lines, nested quotes and inline-code wrapping/caret contrast in the actual
+Workspace in both themes. Native visual acceptance remains pending.
+
 This is the Markdown foundation, not full Obsidian parity. Rendered/editable
 tables, interactive tasks, attachment previews, wikilink navigation/transclusion,
 callouts, properties, footnotes, math, diagrams, HTML and highlight/comment
