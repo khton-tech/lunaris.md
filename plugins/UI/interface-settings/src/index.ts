@@ -3,18 +3,17 @@ import type { CancellationSignal } from "@lunaris/sdk";
 import { Logger } from "@lunaris/logging";
 import { Config, ConfigChanged } from "@lunaris/config";
 import { Settings } from "@lunaris/settings";
-import { Components } from "@lunaris/components";
-import type { ComponentProps, MountedComponent } from "@lunaris/components";
+import type { SettingsItemContext, SettingsItemUpdate } from "@lunaris/settings";
 import { Localization, LocaleChanged } from "@lunaris/localization";
 import { Themes, ThemeChanged } from "@lunaris/themes";
 import { Vault, VaultChanged } from "@lunaris/vault";
 import manifest from "../manifest.json" with { type: "json" };
 
 type Key = "locale" | "theme";
-interface Session { readonly vaultId: string; readonly epoch: number; revision: number; reload: boolean; loading: boolean; busy: boolean; error: string; locale: string; theme: string }
+interface Session { readonly vaultId: string; readonly epoch: number; revision: number; reload: boolean; loading: boolean; busy: boolean; error: string; errorKey: Key; locale: string; theme: string }
 const categoryId = "lunaris.interface-settings.general";
-const sectionId = "lunaris.interface-settings.preferences";
-const hostRole = "lunaris.interface-settings-controls";
+const groupId = "lunaris.interface-settings.preferences";
+
 const catalogs = { en: { general: "General", interface: "Interface", locale: "Language", theme: "Theme",
   unavailable: "Saved choice is unavailable.", readFailed: "Cannot read preferences. Retry to load them.",
   saveFailed: "Cannot save the change. Try again.", applyFailed: "Cannot apply the selected choice.", retry: "Retry" } };
@@ -24,7 +23,7 @@ export function createInterfaceSettings(options: { readonly defaultThemeId: stri
   if (typeof options.defaultThemeId !== "string" || !options.defaultThemeId) throw new TypeError("A default theme ID is required.");
   return definePlugin({ manifest, activate(ctx) {
     const logger = ctx.use(Logger); const config = ctx.use(Config); const settings = ctx.use(Settings);
-    const components = ctx.use(Components); const language = ctx.use(Localization); const themes = ctx.use(Themes); const vaults = ctx.use(Vault);
+    const language = ctx.use(Localization); const themes = ctx.use(Themes); const vaults = ctx.use(Vault);
     const ensure = (result: { ok: boolean; error?: unknown }) => { if (!result.ok) throw new Error("Cannot register interface preferences.", { cause: result.error }); };
     ensure(language.register(ctx.pluginId, catalogs, ctx.signal));
     // Catalogs are registered during activation. Runtime language-pack discovery is outside this contract.
@@ -42,19 +41,22 @@ export function createInterfaceSettings(options: { readonly defaultThemeId: stri
       } catch (error) { logger.error(ctx.pluginId, "Interface preference application failed", { data: { key }, error }); return false; }
     }
     function baseline(): void { apply("locale", "en"); apply("theme", options.defaultThemeId); }
-    function props(): ComponentProps {
+    function presentation(key: Key): SettingsItemUpdate {
       const current = session;
       const names = new Intl.DisplayNames([language.locale()], { type: "language" });
-      return { fields: [
-        { id: "locale", label: text("locale"), value: current?.locale ?? "en", options: locales.map(value => ({ value, label: names.of(value) ?? value })) },
-        { id: "theme", label: text("theme"), value: current?.theme ?? options.defaultThemeId, options: compatibleThemes().map(theme => ({ value: theme.id, label: theme.name })) },
-      ], disabled: !current || current.loading || current.busy, error: current?.error ? text(current.error) : "",
-      retryLabel: text("retry"), canRetry: current?.error === "readFailed" };
+      const error = current?.errorKey === key ? current.error : "";
+      return { type: "select", title: text(key), layout: "inline", value: current?.[key] ?? (key === "locale" ? "en" : options.defaultThemeId),
+        options: key === "locale" ? locales.map(value => ({ value, label: names.of(value) ?? value })) : compatibleThemes().map(theme => ({ value: theme.id, label: theme.name })),
+        disabled: !current || current.loading || current.busy, error: error ? text(error) : "",
+        ...(error === "readFailed" ? { retryLabel: text("retry"), onRetry: async (context: SettingsItemContext) => { const current = session; if (current && !context.signal.aborted && context.vaultId === current.vaultId) await load(current); } } : {}),
+        onChange: async (value, context) => { const current = session; if (current && context.vaultId === current.vaultId) await choose(current, key, value, context.signal); },
+      };
     }
     function publish(): void {
       if (ctx.signal.aborted) return;
       ensure(settings.updateCategory(categoryId, { title: text("general") }));
-      ensure(settings.updateSection(sectionId, { title: text("interface"), props: props() }));
+      ensure(settings.updateGroup(groupId, { title: text("interface") }));
+      for (const key of ["locale", "theme"] as const) ensure(settings.updateItem(`${ctx.pluginId}.${key}`, presentation(key)));
     }
     function changed(): void {
       if (scheduled || ctx.signal.aborted) return; scheduled = true;
@@ -75,19 +77,19 @@ export function createInterfaceSettings(options: { readonly defaultThemeId: stri
           const value = result.value[key]; const fallback = key === "locale" ? "en" : options.defaultThemeId;
           if (value === undefined) { current[key] = fallback; apply(key, fallback); continue; }
           if (typeof value !== "string" || !available(key, value)) {
-            current.error = "unavailable"; current[key] = fallback; apply(key, fallback);
+            current.error = "unavailable"; current.errorKey = key; current[key] = fallback; apply(key, fallback);
             logger.warn(ctx.pluginId, "Saved interface preference unavailable; using Vault default", { data: { key } });
           } else if (apply(key, value)) current[key] = value;
-          else current.error = "applyFailed";
+          else { current.error = "applyFailed"; current.errorKey = key; }
         }
         logger.info(ctx.pluginId, "Vault interface preferences restored");
       } catch (error) {
-        if (alive(current) && current.revision === revision) { current.error = "readFailed"; logger.error(ctx.pluginId, "Cannot read Vault interface preferences", { error }); }
+        if (alive(current) && current.revision === revision) { current.error = "readFailed"; current.errorKey = "locale"; logger.error(ctx.pluginId, "Cannot read Vault interface preferences", { error }); }
       } finally { if (alive(current) && current.revision === revision) { current.loading = false; changed(); } }
     }
     async function choose(current: Session, key: Key, value: string, view: CancellationSignal): Promise<void> {
       if (view.aborted || !alive(current) || current.loading || current.busy || !available(key, value) || current[key] === value) return;
-      const previous = current[key]; current.busy = true; current.error = "";
+      const previous = current[key]; current.busy = true; current.error = ""; current.errorKey = key;
       if (!apply(key, value)) { current.busy = false; current.error = "applyFailed"; changed(); return; }
       current[key] = value; changed();
       try {
@@ -102,31 +104,14 @@ export function createInterfaceSettings(options: { readonly defaultThemeId: stri
         }
       } finally { if (alive(current)) { current.busy = false; if (current.reload) { current.reload = false; void load(current); } changed(); } }
     }
-    ensure(components.register({ id: hostRole, mount(target, initial, signal) {
-      const owner = ctx.scope.child(); let mounted: MountedComponent | undefined; let disposed = false;
-      const current = session; const context = initial.workspace as { vaultId?: string } | undefined;
-      const valid = () => !disposed && !signal.aborted && !!current && alive(current) && context?.vaultId === current.vaultId;
-      const onChange = (key: string, value: string) => { if (valid() && (key === "locale" || key === "theme")) void choose(current!, key, value, signal); };
-      const onRetry = () => { if (valid()) void load(current!); };
-      function render(next: ComponentProps): void {
-        const value = { ...next, onChange, onRetry, presentation: { mode: "embedded", sizing: "content" } };
-        if (mounted) { ensure(mounted.update(value)); return; }
-        const result = components.mount("lunaris.settings-choices", target, value, owner.signal);
-        if (!result.ok) throw new Error("Cannot mount interface preferences.", { cause: result.error });
-        mounted = result.value;
-      }
-      function dispose(): void { if (disposed) return; disposed = true; signal.removeEventListener("abort", dispose); void owner.dispose().catch(() => {}); }
-      signal.addEventListener("abort", dispose, { once: true });
-      try { render(initial); } catch (error) { dispose(); throw error; }
-      return { update: render, dispose };
-    } }, ctx.signal));
     ensure(settings.registerCategory({ id: categoryId, title: text("general"), order: 10 }, ctx.signal));
-    ensure(settings.registerSection({ id: sectionId, categoryId, title: text("interface"), componentId: hostRole, props: props() }, ctx.signal));
+    ensure(settings.registerGroup({ id: groupId, categoryId, title: text("interface"), order: 10 }, ctx.signal));
+    for (const [order, key] of (["locale", "theme"] as const).entries()) ensure(settings.registerItem({ id: `${ctx.pluginId}.${key}`, groupId, order, ...presentation(key) }, ctx.signal));
     function switchVault(): void {
       const vaultId = vaults.current()?.id;
       if (vaultId === session?.vaultId) return;
       epoch++; session = undefined; baseline();
-      if (vaultId) { session = { vaultId, epoch, revision: 0, reload: false, loading: true, busy: false, error: "", locale: "en", theme: options.defaultThemeId }; void load(session); }
+      if (vaultId) { session = { vaultId, epoch, revision: 0, reload: false, loading: true, busy: false, error: "", errorKey: "locale", locale: "en", theme: options.defaultThemeId }; void load(session); }
       changed();
     }
     ctx.events.on(VaultChanged, switchVault);

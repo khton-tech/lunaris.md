@@ -89,14 +89,27 @@ and retained root/input identity. Native geometry remains subject to manual chec
 
 ## Roles and props
 
-`lunaris.settings-choices` renders embedded/content preference controls. Props:
+`lunaris.settings-items` is the primary embedded/content renderer for declarative
+Settings 1.1 items. Props: `items: SettingsItem[]`, `onChange(id, value)` and
+`onRetry(id)`. It interprets public `type`, `title`, `description`, `layout`, controlled
+`value`, options/constraints, `disabled`, `error` and retry presentation. It calls
+the supplied host callbacks, never the contributed item callbacks directly.
+Select/switch/text/number map to Mantine NativeSelect/Switch/TextInput/NumberInput.
+A sole matching select option is plain text. Item IDs retain row/input identity;
+labels, descriptions and errors are linked accessibly. Inline rows wrap naturally;
+`stacked` puts the control below its label. The container owns surrounding surfaces
+and group headings. The role owns internal controls/spacing only.
+
+`lunaris.settings-choices` remains as a legacy embedded/content role. New settings
+must use the declarative registration contract. Its props:
 `fields: { id, label, value, options: { value, label }[] }[]`, `disabled`, localized
 `error`, `retryLabel`, `canRetry`, `onChange(id, value)` and `onRetry()`. Field/option
 IDs are unique; values/labels are strings. Multiple choices use Mantine NativeSelect;
 a single choice is plain labeled text. Errors use an alert and optional Retry.
 The role owns internal spacing/controls only, preserves input identity on updates
 and inherits Settings' surface. Persistence and lifetime checks stay in the
-[interface settings controller](../../interface-settings/DOCS/README.md).
+[Settings container](../../settings/DOCS/README.md) owns current declarative
+callback lifetimes; interface-settings no longer registers a custom host role.
 
 Mount through ctx.use(Components), never import a renderer from a consumer:
 

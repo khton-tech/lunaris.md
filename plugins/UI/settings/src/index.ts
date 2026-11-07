@@ -8,10 +8,11 @@ import type { ComponentProps, MountedComponent } from "@lunaris/components";
 import { Localization, LocaleChanged } from "@lunaris/localization";
 import { Vault, VaultChanged } from "@lunaris/vault";
 import { mountSettingsPage } from "./page.js";
+import { mountSettingsGroup } from "./group.js";
 import manifest from "../manifest.json" with { type: "json" };
 
 const catalogs = { en: { settings: "Settings", empty: "No settings available", select: "Select a category",
-  emptyCategory: "No settings in this category", unavailable: "Section unavailable", unavailableDetail: "This settings section could not be displayed." } };
+  emptyCategory: "No settings in this category", unavailable: "Section unavailable", unavailableDetail: "This settings section could not be displayed.", itemFailed: "Cannot update this setting. Try again." } };
 
 export default definePlugin({ manifest, activate(ctx) {
   const logger = ctx.use(Logger); const registry = ctx.use(Settings); const sidebar = ctx.use(Sidebar);
@@ -50,6 +51,7 @@ export default definePlugin({ manifest, activate(ctx) {
     return { update(next: ComponentProps) { props = next; render(); }, dispose };
   } }, ctx.signal), "Cannot register settings navigation host.");
   ensure(components.register({ id: "lunaris.settings-host", mount: (target, props, signal) => mountSettingsPage(ctx, components, logger, target, props, signal) }, ctx.signal), "Cannot register settings screen host.");
+  ensure(components.register({ id: "lunaris.settings-group-host", mount: (target, props, signal) => mountSettingsGroup(ctx, registry, components, logger, target, props, signal) }, ctx.signal), "Cannot register settings group host.");
   ensure(screens.register({ id: screenId, componentId: "lunaris.settings-host", props: { title: text("settings"), emptyLabel: text("select"), sections: [] } }, ctx.signal), "Cannot register settings screen.");
   ensure(sidebar.register({ id: tabId, title: text("settings"), icon: "settings", placement: "end", componentId: "lunaris.settings-navigation-host",
     props: { title: text("settings"), emptyLabel: text("empty"), categories: [], selectedId: null } }, ctx.signal), "Cannot register settings tab.");
@@ -68,13 +70,16 @@ export default definePlugin({ manifest, activate(ctx) {
         title: text("settings"), emptyLabel: text("empty"), categories: snapshot.categories.map(item => ({ id: item.id, title: item.title })), selectedId: categoryId,
       } }), "Cannot update settings navigation.");
       ensure(screens.update(screenId, { title: category?.title ?? text("settings"), emptyLabel: text(category ? "emptyCategory" : "select"),
-        sections: category ? snapshot.sections.filter(item => item.categoryId === category.id) : [], unavailable: text("unavailable"), unavailableDetail: text("unavailableDetail"),
+        sections: category ? [...snapshot.sections.filter(item => item.categoryId === category.id),
+          ...snapshot.groups.filter(group => group.categoryId === category.id).map(group => ({ id: group.id, title: group.title, description: group.description, order: group.order,
+            componentId: "lunaris.settings-group-host", props: { groupId: group.id, items: snapshot.items.filter(item => item.groupId === group.id), failureLabel: text("itemFailed") } }))]
+          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [], unavailable: text("unavailable"), unavailableDetail: text("unavailableDetail"),
       }), "Cannot update settings screen.");
     } while (pending && !ctx.signal.aborted); }
     catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot refresh settings", { error }); throw error; }
     finally { refreshing = false; }
   }
   ctx.events.on(SettingsChanged, refresh); ctx.events.on(LocaleChanged, refresh); ctx.events.on(VaultChanged, refresh);
-  ctx.events.on(ComponentsChanged, change => { if (change.componentId !== "lunaris.settings-host" && change.componentId !== "lunaris.settings-navigation-host") refresh(); });
+  ctx.events.on(ComponentsChanged, change => { if (!["lunaris.settings-host", "lunaris.settings-navigation-host", "lunaris.settings-group-host"].includes(change.componentId)) refresh(); });
   refresh(); logger.info(ctx.pluginId, "Settings foundation ready");
 } });

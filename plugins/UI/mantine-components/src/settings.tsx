@@ -3,7 +3,7 @@ import { Box, Button, NativeSelect, Stack, Text, Title } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
 
-interface Item { readonly id: string; readonly title: string }
+interface Item { readonly id: string; readonly title: string; readonly description?: string }
 interface ChoiceField { readonly id: string; readonly label: string; readonly value: string; readonly options: readonly { readonly value: string; readonly label: string }[] }
 interface ChoicesProps {
   readonly fields: readonly ChoiceField[]; readonly disabled: boolean; readonly error: string;
@@ -38,7 +38,7 @@ interface PageProps {
   readonly title: string; readonly emptyLabel: string; readonly sections: readonly Item[];
   readonly onTargets: (targets: ReadonlyMap<string, HTMLElement> | null) => void;
 }
-const items = (value: unknown): value is readonly Item[] => Array.isArray(value) && value.every(item => item && typeof item.id === "string" && typeof item.title === "string") && new Set(value.map(item => item.id)).size === value.length;
+const items = (value: unknown): value is readonly Item[] => Array.isArray(value) && value.every(item => item && typeof item.id === "string" && typeof item.title === "string" && (item.description === undefined || typeof item.description === "string")) && new Set(value.map(item => item.id)).size === value.length;
 export function settingsNavigationProps(value: ComponentProps): NavigationProps {
   if (typeof value.title !== "string" || typeof value.emptyLabel !== "string" || !items(value.categories) ||
       (value.selectedId !== null && (typeof value.selectedId !== "string" || !value.categories.some(item => item.id === value.selectedId))) || typeof value.onSelect !== "function") throw new TypeError("Invalid settings navigation props.");
@@ -65,6 +65,7 @@ export function SettingsPage({ props, theme }: { props: PageProps; theme: Return
     <Title order={1} size="h2">{props.title}</Title>
     {props.sections.length ? props.sections.map(section => <Stack component="section" key={section.id} gap="sm">
       <Title order={2} size="h4">{section.title}</Title>
+      {section.description && <Text size="sm" c="dimmed">{section.description}</Text>}
       <Box className="lm-settings-section" data-settings-section={section.id}
         ref={node => { if (node) targets.current.set(section.id, node); else targets.current.delete(section.id); }} />
     </Stack>) : <Text c="dimmed">{props.emptyLabel}</Text>}

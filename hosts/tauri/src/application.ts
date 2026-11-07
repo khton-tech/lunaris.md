@@ -50,7 +50,7 @@ export function composeApplication(target: HTMLElement): ApplicationDefinition {
     entrypoints: [startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, selector.manifest.id, workspace.manifest.id, activeScreen.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id, settings.manifest.id, interfaceSettings.manifest.id],
     grants: {
       ...layout.grants,
-      [interfaceSettings.manifest.id]: ["config.access", "vault.access", "ui.dom"],
+      [interfaceSettings.manifest.id]: ["config.access", "vault.access"],
       [settings.manifest.id]: ["ui.dom", "vault.access"],
       [activeScreenProvider.manifest.id]: ["vault.access"],
       [activeScreen.manifest.id]: ["ui.dom"],

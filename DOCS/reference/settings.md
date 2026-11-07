@@ -54,6 +54,20 @@ Omitted optional update fields reset their presentation defaults. A control-type
 change requires a fresh owned registration. Existing validation/result/error rules
 below apply to all contributions.
 
+Settings renders groups using its existing ordered page headings and stable targets.
+Mantine's `lunaris.settings-items` role supplies responsive label/control rows and
+select/switch/text/number controls. `inline` places label and control beside each
+other when space permits and wraps on narrow widths; `stacked` places the control
+below its label. A sole matching select option is rendered as plain text. Item
+labels/descriptions/errors use accessible associations. The group host provides
+per-item scopes: item removal cancels pending contexts without releasing siblings;
+group/category removal or view/Vault changes cancel descendants. Retained hidden
+screens preserve contexts and input identity. Pending invocations cannot repeat;
+late failures after cancellation cannot alter another view. Unexpected callback
+errors are logged with their original error and shown as localized field failures.
+Registration requires neither Config nor a DOM/component-role dependency.
+Controllers declare the services needed to apply and persist their own values.
+
 Status: implemented on 2026-11-07; native visual acceptance remains manual.
 
 Settings is an extensible UI foundation. A Settings icon in the bottom group of
@@ -64,11 +78,12 @@ are hardcoded into the foundation. With no contributions, navigation shows
 The separate [interface settings controller](../../plugins/UI/interface-settings/DOCS/README.md)
 now contributes Vault-local language and theme selection in Tauri.
 
-## Public contribution API
+## Legacy custom-section contribution API
 
 Import `Settings` and optionally `SettingsChanged` from `@lunaris/settings`.
 Declare `api:lunaris.settings@^1.0.0` and the event if observing registry changes.
-Product contributors must also declare and use Logger. Registration needs no DOM,
+Product contributors must also declare and use Logger. New settings should use
+declarative groups/items instead of authoring custom sections. Registration needs no DOM,
 filesystem or config permissions.
 
 ```ts
@@ -108,7 +123,7 @@ multiple section contributors.
 | `registerSection({ id, categoryId, title, componentId, props?, order? }, owner)` | Add an owned section; its category may appear later. |
 | `updateCategory(id, { title })` | Replace localized presentation, preserving order/identity/owner. |
 | `updateSection(id, { title, props? })` | Replace title and custom props, preserving category/role/order/identity/owner. Omitted props become empty. |
-| `snapshot()` | Frozen `{ categories, sections }`, each sorted by order then registration order. |
+| `snapshot()` | Frozen `{ categories, sections, groups, items }`, each sorted by order then registration order. |
 
 Mutations return `{ ok: true, value: null }` or `{ ok: false, error: { code,
 message } }`. Codes: `INVALID_ARGUMENT`, `ALREADY_REGISTERED`, `NOT_FOUND`.
@@ -200,3 +215,11 @@ Local evidence, 2026-11-07: targeted Settings, Sidebar, Mantine and affected con
 checks passed 131 tests with zero skipped, including build, boundaries and type
 fixtures. Production Tauri frontend build, public-export/documentation audit and
 CI scope-selection test passed. Native visual acceptance was not run.
+
+Declarative registration evidence, 2026-11-07: targeted Settings SDK/provider/UI,
+Mantine, interface-settings and affected Tauri checks passed 118 tests, zero skipped,
+including builds, boundaries and type fixtures. Coverage includes independently
+owned groups/items, malformed typed descriptors, all four controls, declared order
+and layout, retained inputs, canceled item/Vault contexts, callback failures and
+language/theme persistence. Tauri production frontend build, public-export/docs
+audit and CI scope-selection test passed. Native visual acceptance remains pending.

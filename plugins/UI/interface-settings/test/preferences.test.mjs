@@ -11,7 +11,7 @@ async function setup(options = {}) {
   const plugin = createInterfaceSettings({ defaultThemeId: base });
   const reads = []; const writes = []; const values = options.values ?? new Map();
   const s = await setupWorkspace({ settings: true, plugins: [plugin], entrypoints: [plugin.manifest.id],
-    grants: { [plugin.manifest.id]: ['ui.dom', 'vault.access', 'config.access'] },
+    grants: { [plugin.manifest.id]: ['vault.access', 'config.access'] },
     onActivate(tools, ctx) {
       tools.localization.register('test.languages', { en: { label: 'English' }, fr: { label: 'Français' } }, ctx.signal);
       const original = tools.themes.get(base);
@@ -35,7 +35,7 @@ async function show(s) {
   const button = [...s.surface.querySelectorAll('.lm-settings-category')].find(node => node.textContent === 'General');
   assert.ok(button); button.click(); await flush();
 }
-const select = (s, index) => s.surface.querySelectorAll('.lm-settings-choices select')[index];
+const select = (s, index) => s.surface.querySelectorAll('.lm-settings-items select')[index];
 async function change(s, index, value) {
   const node = select(s, index); node.value = value; node.dispatchEvent(new s.dom.window.Event('change', { bubbles: true })); await flush();
 }
@@ -49,7 +49,7 @@ test('composed controls apply and persist explicit Vault preferences, preserve i
   assert.equal(select(s, 0), language); assert.equal(select(s, 1), theme);
   await change(s, 1, 'test.alternate'); assert.equal(s.tools.themes.current().id, 'test.alternate');
   assert.deepEqual(s.writes.map(item => item.target), [{ scope: 'vault', vaultId: 'vault-1' }, { scope: 'vault', vaultId: 'vault-1' }]);
-  assert.equal(s.surface.querySelector('.lm-settings-choices').closest('.lm-root').style.backgroundColor, 'transparent');
+  assert.equal(s.surface.querySelector('.lm-settings-items').closest('.lm-root').style.backgroundColor, 'transparent');
   s.tools.screens.select(null); await flush(); await show(s); assert.equal(select(s, 0), language);
   await s.stop();
 });
@@ -75,7 +75,7 @@ test('save failure rolls back immediate behavior and leaves the form usable for 
 test('failed reads support retry; unavailable or malformed saved choices preserve storage', async () => {
   let fail = true; const s = await setup({ read: async () => fail ? failure : ok({ locale: 'xx', theme: 42 }) });
   await s.open(); await show(s); assert.match(s.surface.querySelector('[role=alert]').textContent, /Cannot read/);
-  fail = false; [...s.surface.querySelectorAll('.lm-settings-choices button')].find(node => node.textContent === 'Retry').click(); await flush();
+  fail = false; [...s.surface.querySelectorAll('.lm-settings-items button')].find(node => node.textContent === 'Retry').click(); await flush();
   assert.match(s.surface.querySelector('[role=alert]').textContent, /unavailable/);
   assert.equal(select(s, 0).value, 'en'); assert.equal(select(s, 1).value, base); assert.equal(s.writes.length, 0); await s.stop();
 });
@@ -93,18 +93,13 @@ test('late reads and accepted writes cannot change a replacement Vault', async (
   assert.equal(s.writes[0].target.vaultId, 'vault-2'); await s.stop();
 });
 
-test('callbacks from released sections are inert; replacing a theme updates choices', async () => {
+test('replacing a theme updates the registered item and composed choice list', async () => {
   const s = await setup(); await s.open(); await show(s);
-  const target = s.dom.window.document.createElement('div'); const owner = s.ctx.scope.child();
-  const section = s.tools.settings.snapshot().sections[0];
-  // A separate host-role mount uses the real Mantine renderer, then its released native node is inert.
-  const mounted = s.tools.components.mount(section.componentId, target, { ...section.props, workspace: { vaultId: 'vault-1', vaultName: 'Notes' } }, owner.signal);
-  assert.equal(mounted.ok, true); const node = target.querySelector('select');
-  await owner.dispose(); node.value = 'fr'; node.dispatchEvent(new s.dom.window.Event('change', { bubbles: true })); await flush();
-  assert.equal(s.writes.length, 0);
+  assert.equal(s.tools.settings.snapshot().sections.length, 0);
+  assert.equal(s.tools.settings.snapshot().groups.length, 1);
+  assert.deepEqual(s.tools.settings.snapshot().items.map(item => item.type), ['select', 'select']);
   const original = s.tools.themes.get('test.alternate'); s.tools.themes.update({ ...original, name: 'Renamed' }); await flush();
-  assert.ok([...select(s, 1).options].some(option => option.textContent === 'Renamed'));
-  await s.stop();
+  assert.ok([...select(s, 1).options].some(option => option.textContent === 'Renamed')); await s.stop();
 });
 
 test('saved preferences survive controller restart and unavailable themes recover without rewriting values', async () => {

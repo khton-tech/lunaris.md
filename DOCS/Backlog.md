@@ -19,6 +19,12 @@ Vault-local persistence and restoration. Only English and Monochrome ship; new
 catalogs/palettes are separate work. File Explorer settings are deferred by Owner
 instruction. Native visual acceptance remains manual.
 
+Settings SDK 1.1 now adds declarative groups and typed items (select/switch/text/
+number), explicit order and inline/stacked placement. Settings/Mantine render the
+hierarchy and own per-item callback lifetimes. Interface settings registers two
+select items and requires neither Components nor a DOM grant. Config continues
+to contain values only; legacy custom sections remain compatible.
+
 ## Context menu
 
 Status: IMPLEMENTED on 2026-11-06; native hover/placement acceptance remains manual.

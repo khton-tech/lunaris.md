@@ -7,6 +7,7 @@ export const presentationDefaults: Readonly<Record<string, Required<ComponentPre
   "lunaris.workspace-layout": { mode: "standalone", sizing: "fill" },
   "lunaris.workspace-header": { mode: "embedded", sizing: "content" },
   "lunaris.settings-choices": { mode: "embedded", sizing: "content" },
+  "lunaris.settings-items": { mode: "embedded", sizing: "content" },
 };
 const embedded: Required<ComponentPresentation> = Object.freeze({ mode: "embedded", sizing: "fill" });
 

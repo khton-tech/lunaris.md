@@ -11,6 +11,11 @@ with its own Vault namespace, preserving the existing startup theme controller.
 Its documentation supersedes the proposed controller placement and delivery order
 below. Explorer candidates remain deferred, regardless of their technical readiness.
 
+The Owner subsequently approved Settings SDK 1.1 declarative category/group/item
+registration. Interface settings now registers its two select items directly;
+Settings/Mantine owns their views and callback lifetimes. The previous custom
+interface control role and its Components/DOM dependency have been removed.
+
 ## Scope and existing foundation
 
 The [Settings reference](../reference/settings.md) and

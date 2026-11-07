@@ -3,7 +3,7 @@ import path from 'node:path';
 import ts from 'typescript';
 
 export const dependencies = {
-  'interface-settings': ['sdk', 'logging', 'config', 'settings', 'components', 'localization', 'themes', 'vault'],
+  'interface-settings': ['sdk', 'logging', 'config', 'settings', 'localization', 'themes', 'vault'],
   settings: ['sdk'],
   'settings-provider': ['sdk', 'logging', 'settings'],
   'settings-plugin': ['sdk', 'logging', 'settings', 'sidebar', 'active-screen', 'components', 'localization', 'vault'],
@@ -29,7 +29,7 @@ export const dependencies = {
   'theme-provider': ['sdk', 'logging', 'themes'],
   startup: ['sdk'],
   'startup-provider': ['sdk', 'logging', 'startup'],
-  'mantine-components': ['sdk', 'logging', 'components', 'themes', 'context-menu'],
+  'mantine-components': ['settings', 'sdk', 'logging', 'components', 'themes', 'context-menu'],
   'components-kit': ['sdk', 'logging', 'components', 'themes'],
   components: ['sdk'],
   'component-provider': ['sdk', 'logging', 'components'],

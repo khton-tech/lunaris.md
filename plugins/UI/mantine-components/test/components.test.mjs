@@ -110,7 +110,7 @@ test('workspace header retains intrinsic block sizing while full-height surfaces
 
 test('registers the replaceable roles, renders real Mantine controls, preserves siblings and releases roots', async () => {
   const s = await setup(); await s.start();
-  assert.deepEqual(s.components.list(), ['lunaris.active-screen', 'lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.settings-choices', 'lunaris.settings-navigation', 'lunaris.settings-page', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.vault-selector', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
+  assert.deepEqual(s.components.list(), ['lunaris.active-screen', 'lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.settings-choices', 'lunaris.settings-items', 'lunaris.settings-navigation', 'lunaris.settings-page', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.vault-selector', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
   const owner = s.ctx.scope.child();
   const mounted = s.components.mount('lunaris.vault-selector', s.target, selector, owner.signal); assert.equal(mounted.ok, true);
   assert.ok(s.target.querySelector('.mantine-Button-root')); assert.ok(s.target.querySelector('.mantine-TextInput-input'));
@@ -134,6 +134,28 @@ test('settings choices validate data, render single values as text and retain li
   assert.equal(s.target.querySelector('select'), input); assert.match(s.target.querySelector('[role=alert]').textContent, /Save failed/);
   assert.equal(s.target.querySelector('.lm-root').style.backgroundColor, 'transparent');
   assert.equal(s.target.querySelector('.lm-root').style.containerType, 'inline-size'); await s.stop();
+});
+
+test('declarative item role renders typed Mantine controls, forwards typed values and preserves layout/input identity', async () => {
+  const s = await setup(); await s.start(); const changes = [];
+  const fields = [
+    { id: 'test.select', title: 'Theme', type: 'select', value: 'mono', options: [{ value: 'mono', label: 'Monochrome' }] },
+    { id: 'test.switch', title: 'Enabled', type: 'switch', value: false },
+    { id: 'test.text', title: 'Name', description: 'Visible label', type: 'text', value: 'Old', layout: 'stacked' },
+    { id: 'test.number', title: 'Size', type: 'number', value: 2, min: 1, max: 8, step: 1 },
+  ];
+  const props = { items: fields, onChange: (...args) => changes.push(args), onRetry() {} };
+  const mounted = s.components.mount('lunaris.settings-items', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true);
+  assert.equal(s.target.querySelector('select'), null); assert.match(s.target.textContent, /Monochrome/);
+  const text = s.target.querySelector('[data-settings-item="test.text"] input');
+  s.target.querySelector('[data-settings-item="test.switch"] input').click(); typeInput(text, 'New');
+  typeInput(s.target.querySelector('[data-settings-item="test.number"] input'), '4');
+  assert.deepEqual(changes, [['test.switch', true], ['test.text', 'New'], ['test.number', 4]]);
+  assert.equal(mounted.value.update({ ...props, items: fields.map(item => ({ ...item, title: `Updated ${item.title}` })) }).ok, true);
+  assert.equal(s.target.querySelector('[data-settings-item="test.text"] input'), text);
+  assert.equal(text.getAttribute('aria-label'), 'Updated Name');
+  assert.equal(s.target.querySelector('[data-settings-item="test.text"]').dataset.layout, 'stacked');
+  assert.equal(mounted.value.update({ ...props, items: [{ ...fields[1], value: 'bad' }] }).ok, false); await s.stop();
 });
 
 test('theme replacement and clearing update mounted roots without affecting the document or stored preferences', async () => {

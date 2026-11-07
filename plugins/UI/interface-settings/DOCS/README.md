@@ -9,11 +9,15 @@ theme selector and the underlying replaceable theme/localization services.
 
 ## Contracts and persistence
 
-Requires Logger, Config/ConfigChanged, Settings, Components, Localization/
+Requires Logger, Config/ConfigChanged, Settings 1.1, Localization/
 LocaleChanged, Themes/ThemeChanged and Vault/VaultChanged through `ctx.use` and
-SDK events. Grants: `config.access`, `vault.access`, `ui.dom`. Provides no API/events.
-Registers category `lunaris.interface-settings.general` and section
-`lunaris.interface-settings.preferences`, displayed as General / Interface.
+SDK events. Grants: `config.access`, `vault.access`. Provides no API/events and
+registers no Components role. Registers category `lunaris.interface-settings.general`,
+group `lunaris.interface-settings.preferences` and two `select` items:
+`lunaris.interface-settings.locale` and `lunaris.interface-settings.theme`.
+The hierarchy is General / Interface / Language and Theme. Each item declares
+its title, type, inline layout, order, value, options, disabled/error state and
+change handler through Settings registration; none of this structure is in Config.
 
 The plugin reads/writes only its own namespace with explicit
 `{ scope: "vault", vaultId }` targets. It never reads global/effective preferences.
@@ -56,28 +60,32 @@ view closes; it cannot update another Vault. Cleanup makes no SDK calls.
 
 ## Rendering and ownership
 
-The controller registers `lunaris.interface-settings-controls` as an orchestration
-role. It receives Settings' explicit Workspace context and mount signal, delegates
-to `lunaris.settings-choices`, and binds change/retry callbacks to that view and
-Vault lifetime. Released callbacks cannot write settings. No React/Mantine or
+The controller updates group/item presentation through `updateGroup`/`updateItem`.
+Settings supplies the explicit `{ vaultId, signal }` context to change/retry
+handlers and owns item-view cancellation, type validation and callback invocation.
+The controller checks that context before using its current Vault session.
+Released callbacks cannot start writes. No Components, React/Mantine, DOM or
 another plugin implementation is imported.
 
 Workspace owns the surrounding geometry/surfaces. Settings owns category navigation,
-the main page and section targets/headings. The embedded/content Mantine role owns
+the main page and group targets/headings. The embedded/content Mantine role owns
 only labeled controls, internal spacing and inline errors. It paints no outer
 surface, card or border. A single available choice is rendered as text instead of
 an input with no meaningful alternatives; multiple choices use Mantine NativeSelect.
-Inputs survive locale/theme/section props updates. This follows the
+Inputs survive locale/theme/item presentation updates. Rows wrap on narrow
+containers; registered `inline` layout puts labels and controls beside each other
+when space permits. This follows the
 [Mantine UI input compositions](https://ui.mantine.dev/category/inputs/) without
 adding flags, decorative cards or a parallel component system.
 
 ## Integration and verification
 
-Completed SDK connections: Settings registry/UI, Components/Mantine, Config,
+Completed SDK connections: Settings 1.1 registry/UI, Config,
 Vault lifecycle, Themes, Localization and required Logger; Tauri registers, starts
 and grants the controller. The startup theme plugin remains separate. File Explorer
-is unchanged. Additional translations/palettes and runtime catalog discovery are
-not implemented by this integration.
+is unchanged. The Settings container supplies the Components/Mantine connection;
+the preference controller requires no DOM grant. Additional translations/palettes
+and runtime catalog discovery are not implemented by this integration.
 
 Run `npm run interface-settings:check`, the Tauri frontend build and documentation/
 public-export audit. Tests exercise the composed Settings page, persistence,
@@ -90,8 +98,6 @@ labels, focus and inherited surfaces. With additional registered catalogs/themes
 verify immediate selection and restoration across Vault changes/restart. Desktop
 automation is prohibited; automated DOM tests do not prove WebView geometry.
 
-Local evidence, 2026-11-07: targeted interface-settings, Settings UI, Mantine and
-affected Tauri checks passed 108 tests, zero skipped, including builds, import
-boundaries and type fixtures. Tauri production frontend build, documentation/
-public-export audit and CI scope-selection test passed. Native visual acceptance
-has not been performed.
+Verification evidence for declarative registration is recorded in the
+[Settings reference](../../../../DOCS/reference/settings.md). Native visual
+acceptance has not been performed.
