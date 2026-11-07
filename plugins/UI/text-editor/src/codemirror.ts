@@ -1,27 +1,28 @@
-import { Compartment, EditorSelection, EditorState, StateEffect, countColumn } from "@codemirror/state";
+import { Compartment, EditorState, StateEffect } from "@codemirror/state";
 import type { Extension, StateCommand, StateEffect as Effect } from "@codemirror/state";
 import { EditorView, drawSelection, keymap } from "@codemirror/view";
-import { defaultKeymap, history, historyKeymap, indentMore, indentLess } from "@codemirror/commands";
+import { defaultKeymap, history, historyKeymap, indentMore, indentLess, insertTab } from "@codemirror/commands";
 import { markdown, markdownKeymap } from "@codemirror/lang-markdown";
-import { HighlightStyle, syntaxHighlighting, indentUnit } from "@codemirror/language";
+import { HighlightStyle, syntaxHighlighting, indentUnit, syntaxTree } from "@codemirror/language";
 import { Strikethrough } from "@lezer/markdown";
 import { livePreview, livePreviewTheme } from "./live-preview.js";
 import { tags } from "@lezer/highlight";
 import type { ThemeDefinition } from "@lunaris/themes";
 import type { DocumentSession } from "./session.js";
 
-/** Use explicit spaces so the inserted indentation has ordinary text geometry. */
-const insertIndent: StateCommand = ({ state, dispatch }) => {
+/** Lists change indentation at the line start, regardless of caret position. */
+const insertIndent: StateCommand = target => {
+  const { state } = target;
   if (state.readOnly) return false;
-  if (state.selection.ranges.some(range => !range.empty)) return indentMore({ state, dispatch });
-  const changes = state.changeByRange(range => {
-    const line = state.doc.lineAt(range.head);
-    const column = countColumn(state.sliceDoc(line.from, range.head), state.tabSize);
-    const text = " ".repeat(state.tabSize - column % state.tabSize);
-    return { changes: { from: range.head, insert: text }, range: EditorSelection.cursor(range.head + text.length) };
+  const inList = state.selection.ranges.some(range => {
+    const cursor = syntaxTree(state).resolveInner(range.head, -1).cursor();
+    do {
+      if (["FencedCode", "CodeBlock", "InlineCode"].includes(cursor.name)) return false;
+      if (cursor.name === "ListItem") return true;
+    } while (cursor.parent());
+    return false;
   });
-  dispatch(state.update(changes, { scrollIntoView: true, userEvent: "input.indent" }));
-  return true;
+  return inList ? indentMore(target) : insertTab(target);
 };
 
 function appearance(theme: ThemeDefinition | null) {
@@ -56,7 +57,7 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
   const skin = new Compartment(); const access = new Compartment(); const attributes = new Compartment();
   // A cached state retains history/selection; replace view-specific compartments
   // and callbacks through a full reconfiguration without replacing the document.
-  const extensions = [EditorState.lineSeparator.of(session.text.includes("\r\n") ? "\r\n" : "\n"), indentUnit.of("    "), EditorState.tabSize.of(4), history(), markdown({ extensions: [Strikethrough] }), mode.of(preview ? [livePreview, livePreviewTheme] : []), EditorView.lineWrapping, drawSelection(),
+  const extensions = [EditorState.lineSeparator.of(session.text.includes("\r\n") ? "\r\n" : "\n"), indentUnit.of("\t"), EditorState.tabSize.of(4), history(), markdown({ extensions: [Strikethrough] }), mode.of(preview ? [livePreview, livePreviewTheme] : []), EditorView.lineWrapping, drawSelection(),
     EditorView.exceptionSink.of(failed),
     keymap.of([{ key: "Mod-s", run: () => { save(); return true; }, preventDefault: true }, { key: "Tab", run: insertIndent, shift: indentLess, preventDefault: true }, ...markdownKeymap, ...defaultKeymap, ...historyKeymap]),
     EditorView.updateListener.of(update => { if (update.docChanged) session.edit(update.state.sliceDoc()); }),

@@ -4,6 +4,7 @@ import { JSDOM } from 'jsdom';
 import { useBrowser } from '../../../../tools/test/browser.mjs';
 import { EditorView } from '@codemirror/view';
 import { undo } from '@codemirror/commands';
+import { syntaxTree } from '@codemirror/language';
 import { createTestKernel } from '@lunaris/test';
 import { definePlugin } from '@lunaris/sdk';
 import { Logger } from '@lunaris/logging';
@@ -195,11 +196,11 @@ test('Tab inserts at the caret, indents selected lines and Shift-Tab removes ind
     assert.equal(event.defaultPrevented, true);
   };
   view.dispatch({ selection: { anchor: 2 } }); tab(); await flush();
-  assert.equal(view.state.doc.toString(), 'al  pha\nbeta');
-  assert.equal(view.state.selection.main.head, 4);
+  assert.equal(view.state.doc.toString(), 'al\tpha\nbeta');
+  assert.equal(view.state.selection.main.head, 3);
   undo(view);
   view.dispatch({ selection: { anchor: 0, head: view.state.doc.length } }); tab(); await flush();
-  assert.equal(view.state.doc.toString(), '    alpha\n    beta');
+  assert.equal(view.state.doc.toString(), '\talpha\n\tbeta');
   tab(true); await flush(); assert.equal(view.state.doc.toString(), 'alpha\nbeta');
   view.setTabFocusMode(true);
   const escape = new s.dom.window.KeyboardEvent('keydown', { key: 'Tab', keyCode: 9, bubbles: true, cancelable: true });
@@ -207,7 +208,7 @@ test('Tab inserts at the caret, indents selected lines and Shift-Tab removes ind
   view.setTabFocusMode(false);
   view.dispatch({ selection: { anchor: 0 } }); tab(); await flush();
   await s.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
-  assert.equal(s.disk.get('a/note.md').text, '    alpha\nbeta');
+  assert.equal(s.disk.get('a/note.md').text, '\talpha\nbeta');
   await s.stop();
 });
 
@@ -238,4 +239,33 @@ test('Workspace retains temporary Tab traversal suppression outside editable con
   assert.equal(event.defaultPrevented, true);
   assert.equal(view.state.doc.toString(), '# Note');
   button.remove(); await s.stop();
+});
+
+test('Tab nests bullet, ordered and task items from the text and Enter continues the nested list', async () => {
+  for (const [first, second, continuation] of [
+    ['- Parent', '- Child', '- '], ['1. Parent', '2. Child', '3. '], ['- [ ] Parent', '- [ ] Child', '- [ ] '],
+  ]) {
+    const original = `${first}\n${second}`;
+    const s = await setup({ initial: original, withLayout: true }); const view = s.cm(); view.focus();
+    const press = (key, keyCode, shiftKey = false) => {
+      const event = new s.dom.window.KeyboardEvent('keydown', { key, keyCode, shiftKey, bubbles: true, cancelable: true });
+      view.contentDOM.dispatchEvent(event); assert.equal(event.defaultPrevented, true);
+    };
+    view.dispatch({ selection: { anchor: view.state.doc.length } });
+    press('Tab', 9); await flush();
+    assert.equal(view.state.doc.toString(), `${first}\n\t${second}`);
+    let listDepth = 0;
+    for (let node = syntaxTree(view.state).resolveInner(view.state.selection.main.head, -1); node; node = node.parent)
+      if (['BulletList', 'OrderedList'].includes(node.name)) listDepth++;
+    assert.equal(listDepth, 2);
+    press('Tab', 9, true); await flush();
+    assert.equal(view.state.doc.toString(), original);
+    press('Tab', 9); await flush();
+    press('Enter', 13); await flush();
+    assert.equal(view.state.doc.line(3).text.trimStart(), continuation);
+    assert.match(view.state.doc.line(3).text, /^\t/);
+    await s.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
+    assert.ok(s.disk.get('a/note.md').text.includes(`\n\t${second}`));
+    await s.stop();
+  }
 });
