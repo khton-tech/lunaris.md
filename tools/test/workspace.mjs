@@ -1,3 +1,6 @@
+import { ActiveScreen } from "@lunaris/active-screen";
+import activeScreenProvider from "@lunaris/active-screen-provider";
+import activeScreenPlugin from "@lunaris/active-screen-plugin";
 import { useBrowser } from './browser.mjs';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
@@ -68,17 +71,17 @@ export async function setupWorkspace(options = {}) {
     context.provide(VaultLocations, { describe: async reference => ok({ reference, label: 'Folder' }), select: async () => ok({ reference: 'saved', label: 'Folder' }), open });
     context.provide(VaultHistory, { list: async () => ok([{ location: { reference: 'saved', label: 'Folder' }, name: 'Notes' }]), open: () => service.open() });
   } });
-  const consumer = definePlugin({ manifest: manifest('test.consumer', [], [Workspace, Components, Themes, Localization, ...(options.sidebar ? [Sidebar] : [])], ['ui.dom']), activate(context) {
-    ctx = context; tools = { ...(options.sidebar ? { sidebar: context.use(Sidebar) } : {}), workspace: context.use(Workspace), components: context.use(Components), themes: context.use(Themes), localization: context.use(Localization) };
+  const consumer = definePlugin({ manifest: manifest('test.consumer', [], [Workspace, Components, Themes, Localization, ...(options.activeScreen ? [ActiveScreen] : []), ...(options.sidebar ? [Sidebar] : [])], ['ui.dom']), activate(context) {
+    ctx = context; tools = { ...(options.activeScreen ? { screens: context.use(ActiveScreen) } : {}), ...(options.sidebar ? { sidebar: context.use(Sidebar) } : {}), workspace: context.use(Workspace), components: context.use(Components), themes: context.use(Themes), localization: context.use(Localization) };
     tools.themes.select('lunaris.base-theme-engine.monochrome');
     options.onActivate?.(tools, context);
     options.beforeLoaded?.(surface);
   } });
   const startup = createStartupProvider(); const layout = composeSlotSurface(surface); const selector = createVaultSelector({ art: 'ASCII', hideWhenVaultOpen: true, restoreLastVault: false });
   const session = new HostSession({ scheduler: new TestScheduler(), load: async () => ({ ...layout, startup,
-    plugins: [...(options.sidebar ? [sidebarPlugin, sidebarProvider] : []), config, logger, vaults, localization, componentProvider, kit, themes, baseTheme, consumer, startup.plugin, selector, workspacePlugin, workspaceProvider, ...layout.plugins],
-    entrypoints: [startup.plugin.manifest.id, baseTheme.manifest.id, ...(options.noKit ? [] : [kit.manifest.id]), selector.manifest.id, workspacePlugin.manifest.id, ...(options.sidebar ? [sidebarPlugin.manifest.id] : []), consumer.manifest.id],
-    grants: { ...layout.grants, [componentProvider.manifest.id]: ['ui.dom'], [kit.manifest.id]: ['ui.dom'], 'test.consumer': ['ui.dom'], ...(options.sidebar ? { [sidebarPlugin.manifest.id]: ['ui.dom'] } : {}),
+    plugins: [...(options.activeScreen ? [activeScreenProvider, activeScreenPlugin] : []), ...(options.sidebar ? [sidebarPlugin, sidebarProvider] : []), config, logger, vaults, localization, componentProvider, kit, themes, baseTheme, consumer, startup.plugin, selector, workspacePlugin, workspaceProvider, ...layout.plugins],
+    entrypoints: [startup.plugin.manifest.id, baseTheme.manifest.id, ...(options.noKit ? [] : [kit.manifest.id]), selector.manifest.id, workspacePlugin.manifest.id, ...(options.sidebar ? [sidebarPlugin.manifest.id] : []), ...(options.activeScreen ? [activeScreenPlugin.manifest.id] : []), consumer.manifest.id],
+    grants: { ...layout.grants, ...(options.activeScreen ? { [activeScreenProvider.manifest.id]: ["vault.access"], [activeScreenPlugin.manifest.id]: ["ui.dom"] } : {}), [componentProvider.manifest.id]: ['ui.dom'], [kit.manifest.id]: ['ui.dom'], 'test.consumer': ['ui.dom'], ...(options.sidebar ? { [sidebarPlugin.manifest.id]: ['ui.dom'] } : {}),
       [selector.manifest.id]: ['ui.dom', 'vault.access'], [workspacePlugin.manifest.id]: options.denied ? ['ui.dom', 'config.access'] : ['ui.dom', 'vault.access', 'config.access'] },
   }) });
   await session.start(); await flush();

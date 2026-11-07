@@ -1,7 +1,7 @@
 # Active screen
 
-Status: proposed SDK contract; implementation is blocked pending Owner acceptance
-under the repository's Strict SDK Dependency rule.
+Status: accepted by the Owner and implemented on 2026-11-07. See the
+[public reference](../reference/active-screen.md) for shipped behavior and limits.
 
 ## Accepted scope
 
@@ -73,7 +73,8 @@ interface ActiveScreenApi {
 ## Plugin boundaries
 
 1. `plugins/UI/active-screen-provider`: portable registration/selection service,
-   requiring Logger. It provides the new SDK API/event and owns no DOM or storage.
+   requiring Logger, Vault and VaultChanged with `vault.access` for selection reset. It
+   provides the new SDK API/event and owns no DOM or storage.
 2. `plugins/UI/active-screen`: container controller, requiring Logger,
    ActiveScreen/ActiveScreenChanged, Workspace, Components/ComponentsChanged and
    Localization/LocaleChanged. It registers one main component through Workspace.

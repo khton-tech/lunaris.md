@@ -193,3 +193,6 @@
 .lm-root .lm-vault-switcher-toggle { border:var(--vault-border) solid color-mix(in srgb,var(--vault-control-border) 22%,transparent) }
 .lm-vault-switcher-toggle .mantine-Button-section { transform:none }
 .lm-vault-switcher .mantine-Menu-divider { border-color:color-mix(in srgb,var(--vault-control-border) 22%,transparent) }
+
+.lm-active-screen { display: flex; flex: 1 1 0%; min-width: 0; min-height: 0; }
+.lm-screen-target[hidden] { display: none; }

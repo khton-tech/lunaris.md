@@ -41,6 +41,23 @@ const selector = {
   onMode() {}, onName() {}, onBrowse() {}, onNext() {}, onRecent() {}, onRetry() {},
 };
 
+test('active screen role lends stable targets, hides inactive content and validates selection without removing siblings', async () => {
+  const s = await setup(); await s.start(); let targets;
+  const onTargets = value => { targets = value; };
+  const props = { ids: ['test.one', 'test.two'], activeId: 'test.one', onTargets };
+  const mounted = s.components.mount('lunaris.active-screen', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true);
+  const first = targets.get('test.one'); const second = targets.get('test.two');
+  const input = s.dom.window.document.createElement('input'); first.append(input); input.value = 'Draft';
+  assert.equal(first.hidden, false); assert.equal(second.hidden, true); assert.equal(second.hasAttribute('inert'), true);
+  mounted.value.update({ ...props, activeId: 'test.two' });
+  assert.equal(targets.get('test.one'), first); assert.equal(targets.get('test.two'), second);
+  assert.equal(first.hidden, true); assert.equal(first.querySelector('input'), input);
+  assert.equal(mounted.value.update({ ...props, activeId: 'test.missing' }).ok, false);
+  assert.equal(mounted.value.update({ ...props, ids: ['test.one', 'test.one'] }).ok, false);
+  assert.equal(second.hidden, false); assert.equal(input.value, 'Draft');
+  mounted.value.dispose(); assert.equal(targets, null); assert.equal(s.target.textContent, 'Sibling'); await s.stop();
+});
+
 test('workspace header retains intrinsic block sizing while full-height surfaces retain size containment', async () => {
   const s = await setup(); await s.start();
   const props = { name: 'A long Vault name that can wrap', closeLabel: 'Close vault', busy: false, error: '', onClose() {} };
@@ -55,7 +72,7 @@ test('workspace header retains intrinsic block sizing while full-height surfaces
 
 test('registers the replaceable roles, renders real Mantine controls, preserves siblings and releases roots', async () => {
   const s = await setup(); await s.start();
-  assert.deepEqual(s.components.list(), ['lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.vault-selector', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
+  assert.deepEqual(s.components.list(), ['lunaris.active-screen', 'lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.vault-selector', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
   const owner = s.ctx.scope.child();
   const mounted = s.components.mount('lunaris.vault-selector', s.target, selector, owner.signal); assert.equal(mounted.ok, true);
   assert.ok(s.target.querySelector('.mantine-Button-root')); assert.ok(s.target.querySelector('.mantine-TextInput-input'));

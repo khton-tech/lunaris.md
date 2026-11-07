@@ -1,3 +1,5 @@
+import activeScreenProvider from "@lunaris/active-screen-provider";
+import activeScreen from "@lunaris/active-screen-plugin";
 import activeDocument from "@lunaris/active-document-provider";
 import fileExplorer from "@lunaris/file-explorer";
 import contextMenu from "@lunaris/context-menu-provider";
@@ -40,10 +42,12 @@ export function composeApplication(target: HTMLElement): ApplicationDefinition {
   return {
     ...layout,
     startup,
-    plugins: [activeDocument, contextMenu, fileExplorer, sidebar, sidebarProvider, runner, selector, workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
-    entrypoints: [startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, selector.manifest.id, workspace.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id],
+    plugins: [activeScreenProvider, activeScreen, activeDocument, contextMenu, fileExplorer, sidebar, sidebarProvider, runner, selector, workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, tauriFilesystem, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
+    entrypoints: [startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, selector.manifest.id, workspace.manifest.id, activeScreen.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id],
     grants: {
       ...layout.grants,
+      [activeScreenProvider.manifest.id]: ["vault.access"],
+      [activeScreen.manifest.id]: ["ui.dom"],
       [activeDocument.manifest.id]: ["vault.access", "config.access", "filesystem.access"],
       [runner.manifest.id]: ["config.access", "ui.dom"],
       [selector.manifest.id]: ["vault.access", "ui.dom"],

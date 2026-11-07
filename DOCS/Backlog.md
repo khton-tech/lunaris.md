@@ -1,5 +1,18 @@
 # Product backlog
 
+## Active screen and user settings
+
+Status: active-screen container IMPLEMENTED on 2026-11-07; native visual/focus
+acceptance remains manual. The separate SDK registry/provider and UI container
+show one selected screen, retain hidden instances within a Vault, and release
+views/reset selection on Vault changes. Tauri and Mantine integration are complete.
+See [Active screen](reference/active-screen.md).
+
+Next milestone remains to be defined with the Owner: extensible Settings UI,
+bottom Sidebar entry, categories/internal sections and theme-engine integration.
+Settings apply immediately and exclusively to the current Vault. No Settings UI,
+editor or file-content renderer is implemented by the container milestone.
+
 ## Context menu
 
 Status: IMPLEMENTED on 2026-11-06; native hover/placement acceptance remains manual.

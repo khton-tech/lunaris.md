@@ -143,6 +143,10 @@ screen consumers, so cleanup never invokes rendering or required services direct
 Provider/screen scope closure prevents subsequent SDK calls. Cleanup failures are
 covered by independent kernel diagnostics.
 
+The separate [active-screen container](active-screen.md) now registers as the default
+main consumer in Tauri. It owns one selected screen and retains hidden views;
+Workspace retains its existing concurrent registration and layout contracts.
+
 ## Integration and verification
 
 Completed: Tauri registers both plugins, starts the screen, grants it `ui.dom` and

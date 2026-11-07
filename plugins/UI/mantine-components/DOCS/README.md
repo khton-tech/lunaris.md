@@ -325,3 +325,17 @@ persistent row background. The marker uses 80% theme text color with a 1.75-spac
 offset from the icon. It remains anchored to the icon wrapper without shifting
 indentation. Folders and temporary operation selection retain normal row feedback.
 No SDK/controller integration changes are required.
+
+## Active screen role
+
+Added on 2026-11-07: `lunaris.active-screen` supplies a borderless full-size Mantine
+Box composition, with no tab strip, header or card shell. Props: `ids` (unique
+strings), `activeId` (one of those IDs or null), and `onTargets(map | null)`.
+Targets retain DOM identity on selection, props and theme updates. Inactive targets
+are hidden, inert, excluded from accessibility navigation and removed from layout.
+The active-screen controller owns lazy child mounting and releases hidden focus.
+
+The callback only lends owned targets; mount other SDK components after the
+parent mount/update returns, as with WorkspaceLayout. Do not reparent or restyle
+targets. The controller reserves an internal target for the shared empty/failure
+role. See [Active screen](../../../../DOCS/reference/active-screen.md).
