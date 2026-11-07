@@ -1,5 +1,59 @@
 # Settings foundation
 
+## Declarative registration (SDK 1.1)
+
+The primary model is **category -> group -> item**. Categories are navigation
+entries; groups organize settings inside a category; items declare individual
+typed controls. UI structure belongs to registration, never to saved Config data.
+The existing category/section APIs remain available for older custom contributions.
+
+`Settings` and `SettingsChanged` now use version 1.1.0. Consumers of declarative
+registration must require `api:lunaris.settings@^1.1.0`; observers of its expanded
+snapshot require `event:lunaris.settings-changed@^1.1.0`.
+
+- `registerGroup({ id, categoryId, title, description?, order? }, owner)`.
+- `registerItem({ id, groupId, title, type, value, onChange, ... }, owner)`.
+- `updateGroup(id, { title, description? })` replaces localized group presentation.
+- `updateItem(id, presentation)` replaces the complete typed presentation/value,
+  preserving ID, group, order, control type and original owner.
+- `snapshot()` adds frozen `groups` and `items` arrays, each ordered by `order`
+  and registration order. Parents and children have independent owners; missing
+  parents hide children without deleting them. Groups and legacy sections share
+  a page namespace, so their IDs must not collide.
+
+Item types: `select` (string value, unique `{ value, label }[]` options), `switch`
+(boolean), `text` (string, optional placeholder), and `number` (finite number,
+optional finite min/max and positive step). Numeric values must be within bounds.
+An unavailable select value is allowed for explicit degraded presentation; it
+must never be silently replaced or persisted by the renderer.
+
+Common fields: nonempty `title`, optional `description`, `disabled`, localized
+`error`, `order`, and `layout: "inline" | "stacked"` (default inline). Layout
+describes label/control placement inside the responsive row, not coordinates or
+container geometry. Optional `onRetry(context)` and nonempty `retryLabel` must
+appear together. Every control requires `onChange(value, context)`; callbacks may
+return void or a Promise. The context is `{ vaultId, signal }`, with the explicit
+rendered Vault and view lifetime. Controllers own validation, live application,
+storage and accepted-operation lifetime. Settings owns invocation lifetime and
+contains asynchronous callback failures. The registry is not a value store.
+
+```ts
+settings.registerGroup({ id: "example.display", categoryId: "example.general",
+  title: displayTitle, order: 10 }, ctx.signal);
+settings.registerItem({ id: "example.theme", groupId: "example.display",
+  title: themeTitle, type: "select", layout: "inline", order: 20,
+  value: selectedTheme, options: availableThemes,
+  onChange: (value, context) => controller.selectTheme(value, context),
+}, ctx.signal);
+```
+
+Descriptors are plain data-property records; accessors, symbols, unexpected keys,
+invalid IDs, sparse/unsafe option arrays and mismatched types are rejected without
+mutation. Option arrays/records are copied and frozen. Callbacks retain identity.
+Omitted optional update fields reset their presentation defaults. A control-type
+change requires a fresh owned registration. Existing validation/result/error rules
+below apply to all contributions.
+
 Status: implemented on 2026-11-07; native visual acceptance remains manual.
 
 Settings is an extensible UI foundation. A Settings icon in the bottom group of

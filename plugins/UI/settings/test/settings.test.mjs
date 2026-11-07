@@ -39,7 +39,7 @@ test('foundation adds a bottom settings entry and shows empty navigation without
   // The sole tab may already be active; explicitly open it after a toggle.
   s.tools.sidebar.select('lunaris.settings.navigation'); await flush();
   assert.match(s.surface.querySelector('.lm-workspace-panel').textContent, /No settings available/);
-  assert.deepEqual(s.tools.settings.snapshot(), { categories: [], sections: [] });
+  assert.deepEqual(s.tools.settings.snapshot(), { categories: [], sections: [], groups: [], items: [] });
   assert.equal(s.tools.screens.snapshot().activeId, null); assert.deepEqual(s.preferenceWrites, []); await s.stop();
 });
 test('categories open one settings screen and section views survive props, locale, theme and Sidebar updates', async () => {
