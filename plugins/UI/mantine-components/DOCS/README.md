@@ -286,3 +286,7 @@ pasted full names do not duplicate it. Unsupported files, stemless dotfiles and
 directories retain full names without badges. Empty names cannot submit.
 Existing Sidebar/Components callbacks carry full filenames; no driver or SDK
 API changes or additional plugin integrations are required.
+
+Extension badges load Mantine Badge styles explicitly and use smaller regular
+text, a pill radius and a subdued theme-derived background. Their geometry is
+independent of the surrounding filename size; no SDK contract changes apply.
