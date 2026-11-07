@@ -50,7 +50,7 @@ test('runner and theme settings use persisted TOML via the real config/filesyste
   } });
   await session.start(); assert.equal(session.snapshot().phase, 'running');
   assert.equal(surface.querySelector('[role=status]').textContent, 'System Loaded');
-  assert.equal(surface.querySelector('section').style.backgroundColor, 'rgb(15, 15, 15)');
+  assert.equal(surface.querySelector('section').closest('.lm-root').style.backgroundColor, 'rgb(15, 15, 15)');
   assert.equal(configText, toml); assert.equal(calls.includes('writeText'), false); assert.equal(calls.includes('selectVault'), false);
   const old = surface.querySelector('section'); await session.disable(kit.manifest.id);
   assert.equal(session.snapshot().phase, 'fallback'); assert.equal(surface.childElementCount, 0); assert.equal(old.isConnected, false);

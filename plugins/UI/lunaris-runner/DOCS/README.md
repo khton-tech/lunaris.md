@@ -103,3 +103,7 @@ Native WebView appearance is not verified by JSDOM. Manual acceptance: run
 through startup config and restart, resize to a narrow/short window, and check
 full-window product rendering without a host header, plus recovery after a failure. Desktop automation
 is prohibited by repository policy and is not used.
+
+This standalone page explicitly supplies `presentation: { mode: "standalone",
+sizing: "fill" }` through its public Components role. The component set owns the
+page background separately from theme tokens and typography.

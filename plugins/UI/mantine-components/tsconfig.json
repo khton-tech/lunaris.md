@@ -37,6 +37,9 @@
     },
     {
       "path": "../../../packages/context-menu"
+    },
+    {
+      "path": "../../../packages/settings"
     }
   ]
 }

@@ -50,7 +50,10 @@ export function resolveTheme(theme: ThemeDefinition | null) {
   };
   return {
     scheme: props?.appearance === "light" ? "light" as const : "dark" as const,
-    style: { ...variables, backgroundColor: color("background", "transparent"), color: color("text"), fontFamily: font, fontSize, lineHeight: number(field(typography, "lineHeight"), 1.5) } as CSSProperties,
+    // Tokens and typography are safe to apply to embedded content. Painting a
+    // surface is a separate decision made from the public presentation context.
+    contentStyle: { ...variables, color: color("text"), fontFamily: font, fontSize, lineHeight: number(field(typography, "lineHeight"), 1.5) } as CSSProperties,
+    pageBackground: color("background", "transparent"),
     cssVariables: { variables: semantic, light: semantic, dark: semantic },
     startup: {
       padding: dimension(field(startup, "padding"), number(field(field(geometry, "spacing"), "step"), 4) * 4),

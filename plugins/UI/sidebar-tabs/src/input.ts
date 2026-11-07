@@ -14,10 +14,11 @@ export function presentation(value: unknown): Pick<Required<SidebarTab>, "title"
   return Object.freeze({ title, icon, props: Object.freeze(Object.fromEntries(Object.entries(props).map(([key, field]) => [key, field.value]))) });
 }
 export function readTab(value: unknown): Required<SidebarTab> | undefined {
-  const data = fields(value, ["id", "title", "icon", "componentId", "order", "props"]); if (!data) return;
+  const data = fields(value, ["id", "title", "icon", "componentId", "order", "props", "placement"]); if (!data) return;
   const id: unknown = data.id?.value; const componentId: unknown = data.componentId?.value; const order: unknown = data.order?.value === undefined ? 0 : data.order.value;
+  const placement: unknown = data.placement?.value === undefined ? "start" : data.placement.value;
   const copy = presentation({ title: data.title?.value, icon: data.icon?.value, props: data.props?.value });
   const validId = (item: unknown): item is string => typeof item === "string" && /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/.test(item);
-  if (!validId(id) || !validId(componentId) || !copy || !Number.isSafeInteger(order)) return;
-  return Object.freeze({ id, componentId, order: order as number, ...copy });
+  if (!validId(id) || !validId(componentId) || !copy || !Number.isSafeInteger(order) || !["start", "end"].includes(placement as string)) return;
+  return Object.freeze({ id, componentId, order: order as number, placement: placement as "start" | "end", ...copy });
 }

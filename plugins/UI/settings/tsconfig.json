@@ -1,0 +1,44 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "resolveJsonModule": true,
+    "lib": [
+      "ES2022",
+      "ESNext.Disposable",
+      "DOM",
+      "DOM.Iterable"
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "manifest.json"
+  ],
+  "references": [
+    {
+      "path": "../../../packages/sdk"
+    },
+    {
+      "path": "../../../packages/logging"
+    },
+    {
+      "path": "../../../packages/settings"
+    },
+    {
+      "path": "../../../packages/sidebar"
+    },
+    {
+      "path": "../../../packages/active-screen"
+    },
+    {
+      "path": "../../../packages/components"
+    },
+    {
+      "path": "../../../packages/localization"
+    },
+    {
+      "path": "../../../packages/vault"
+    }
+  ]
+}

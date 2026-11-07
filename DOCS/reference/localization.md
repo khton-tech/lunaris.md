@@ -108,6 +108,12 @@ not call the product localization service. No visible layout changes are made.
 
 ## Composition and verification
 
+The separate [interface settings controller](../../plugins/UI/interface-settings/DOCS/README.md)
+now persists and applies a Vault-local locale through this API. Localization
+itself remains independent of Config/Settings; only English ships by default.
+The controller uses an activation-time locale snapshot, without claiming a
+catalog-availability event or runtime language-pack discovery.
+
 Tauri registers and starts localization alongside Config Manager. Logger starts
 as a dependency. Future consumers import contracts, never the provider or host.
 

@@ -128,7 +128,7 @@ export default definePlugin({ manifest, activate(ctx) {
       let result;
       try {
         result = components.mount("lunaris.context-menu", overlay, {
-          items: inner.items, x: request.x, y: request.y, label: request.label,
+          presentation: { mode: "embedded", sizing: "fill" }, items: inner.items, x: request.x, y: request.y, label: request.label,
           onAction: (id: string) => { void view.execute(id); }, onClose: () => view.dispose(),
         }, owner);
       } catch (error) {

@@ -1,0 +1,16 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "composite": false,
+    "noEmit": true,
+    "lib": [
+      "ES2022",
+      "ESNext.Disposable",
+      "DOM",
+      "DOM.Iterable"
+    ]
+  },
+  "include": [
+    "types.ts"
+  ]
+}

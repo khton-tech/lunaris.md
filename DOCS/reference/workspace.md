@@ -82,6 +82,10 @@ Each role receives its registered props plus a reserved, frozen context:
 ```
 
 Treat `workspace.vaultId` as the explicit target for document/filesystem services.
+Workspace also supplies `presentation: { mode: "embedded", sizing: "fill" }` after
+custom content props. The layout itself is standalone/fill and owns the application
+background and both supporting card surfaces. Child roles inherit those surfaces;
+their contribution props cannot override the container's presentation context.
 The role's mount signal owns its current view. Switching Vaults cancels every old
 view before creating fresh instances; callbacks and asynchronous work must honor
 that signal. Registrations persist across Vault switches, but rendered instances
@@ -142,6 +146,10 @@ the existing Components/Themes provider pattern. SDK dispatch skips stopping
 screen consumers, so cleanup never invokes rendering or required services directly.
 Provider/screen scope closure prevents subsequent SDK calls. Cleanup failures are
 covered by independent kernel diagnostics.
+
+The separate [active-screen container](active-screen.md) now registers as the default
+main consumer in Tauri. It owns one selected screen and retains hidden views;
+Workspace retains its existing concurrent registration and layout contracts.
 
 ## Integration and verification
 

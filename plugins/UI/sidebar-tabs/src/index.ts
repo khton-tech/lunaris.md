@@ -9,7 +9,7 @@ const done: SidebarResult = Object.freeze({ ok: true, value: null });
 export default definePlugin({ manifest, activate(ctx) {
   const logger = ctx.use(Logger); const tabs = new Map<string, { tab: Required<SidebarTab>; detach(): void }>();
   let activeId: string | null = null;
-  function snapshot(): SidebarSnapshot { return Object.freeze({ tabs: Object.freeze([...tabs.values()].map(entry => entry.tab).sort((a, b) => a.order - b.order)), activeId }); }
+  function snapshot(): SidebarSnapshot { return Object.freeze({ tabs: Object.freeze([...tabs.values()].map(entry => entry.tab).sort((a, b) => Number(a.placement === "end") - Number(b.placement === "end") || a.order - b.order)), activeId }); }
   function notify(cleanup = false): Promise<void> {
     if (ctx.signal.aborted) return Promise.resolve();
     return ctx.events.emit(SidebarChanged, snapshot()).catch(error => {

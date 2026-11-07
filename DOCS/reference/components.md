@@ -31,6 +31,37 @@ attribution, not caller authentication; this is a cooperative local registry.
 Each role's props are documented by the set that defines it. The provider does
 not validate prop semantics; see "Props" below.
 
+## Presentation ownership
+
+`@lunaris/components` exports the shared `ComponentPresentation` type for roles
+that support `presentation: { mode?, sizing? }`:
+
+- `mode`: `embedded` inherits the region's surface; `standalone` owns a page
+  background. Embedded content must not paint over the region owner.
+- `sizing`: `fill` fills the allocated region; `content` uses intrinsic block
+  height for controls/forms inside a section.
+
+The provider only transports these props; component sets validate them and
+document defaults. No registry method or kernel behavior changes. Presentation
+context comes from the public props, never target classes or DOM ancestry.
+Workspace, ActiveScreen and Settings supply their child roles' presentation after
+custom props because geometry and surface ownership belong to those containers.
+Do not rely on contribution props to override that context.
+
+Mantine defaults startup, Vault selector and Workspace layout to standalone/fill,
+Workspace header to embedded/content, and other roles to embedded/fill. The role's
+owned overlay geometry still applies to context menus. These defaults describe
+role responsibilities rather than identifying or inspecting a consumer.
+
+Integration evidence, 2026-11-07: Workspace, ActiveScreen, Settings, Runner,
+Vault selector and Context Menu now supply explicit presentation to borrowed
+roles. The Mantine adapter separates content tokens from page backgrounds; no
+presentation or sizing is inferred from target classes. Sidebar and File Explorer
+inherit their Workspace panel surfaces. Targeted checks passed 169 tests with no
+skips, including types, boundaries and affected consumers. Production frontend
+build, export/docs audit and CI scope test passed. Native visual acceptance remains
+manual, including the Settings panel card, theme changes and short/narrow windows.
+
 ## Registering components (component sets)
 
 Declare `api:lunaris.components@^1.0.0`, the `ui.dom` permission, and Logger.

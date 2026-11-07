@@ -1,0 +1,66 @@
+{
+  "manifestVersion": 1,
+  "id": "lunaris.interface-settings",
+  "version": "0.1.0",
+  "engine": "^0.1.0",
+  "sdk": "^0.1.0",
+  "entry": "./dist/src/index.js",
+  "provides": [],
+  "requires": [
+    {
+      "kind": "api",
+      "id": "lunaris.logger",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.config",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.settings",
+      "range": "^1.1.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.localization",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.themes",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.vault",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.config-changed",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.locale-changed",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.theme-changed",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.vault-changed",
+      "range": "^1.0.0"
+    }
+  ],
+  "permissions": [
+    "config.access",
+    "vault.access"
+  ],
+  "optionalPermissions": []
+}

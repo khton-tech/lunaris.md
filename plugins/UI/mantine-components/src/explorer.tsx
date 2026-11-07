@@ -150,7 +150,7 @@ function ExplorerNode(payload: NodeRendererProps<Entry>) {
 export function FileExplorer({ props, theme }: { props: ExplorerProps; theme: ReturnType<typeof resolveTheme> }) {
   // Workspace can mount the new Vault before Sidebar receives fresh controller
   // props. Never show the previous Vault's tree or callbacks in that interval.
-  if (props.workspace && props.workspace.vaultId !== props.vaultId) return <Box className="lm-explorer" style={{ ...theme.style, backgroundColor: "transparent" }}><Text role="status" className="lm-explorer-message">{props.text.loading}</Text></Box>;
+  if (props.workspace && props.workspace.vaultId !== props.vaultId) return <Box className="lm-explorer" style={theme.contentStyle}><Text role="status" className="lm-explorer-message">{props.text.loading}</Text></Box>;
   return <ExplorerView key={props.vaultId} props={props} theme={theme} />;
 }
 function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnType<typeof resolveTheme> }) {
@@ -185,7 +185,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     };
     const observer = new ResizeObserver(measure); observer.observe(element); measure();
     return () => { alive.current = false; observer.disconnect(); };
-  }, [theme.style.fontSize]);
+  }, [theme.contentStyle.fontSize]);
   useLayoutEffect(() => {
     const api = tree.current; if (!api) return;
     synchronizing.current = true;
@@ -301,7 +301,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     else if (form) { tree.current?.openParents(DRAFT_ID); tree.current?.focus(DRAFT_ID, { scroll: false }); void tree.current?.scrollTo(DRAFT_ID); }
   }, [form, props.data]);
   const empty = !props.data.length && (!form || form.kind === "delete");
-  return <Box className="lm-explorer" style={{ ...theme.style, backgroundColor: "transparent" }} onKeyDownCapture={keyboard}
+  return <Box className="lm-explorer" style={theme.contentStyle} onKeyDownCapture={keyboard}
     onPointerDownCapture={() => setKeyboardNavigation(false)} data-keyboard-navigation={keyboardNavigation || undefined} aria-label={t.title} aria-busy={props.busy || props.loading}>
     <Group className="lm-explorer-toolbar" gap={0} wrap="nowrap">
       <Menu withinPortal={false} position="bottom-start" width="target" offset={6} transitionProps={{ transition: "fade" }} returnFocus>

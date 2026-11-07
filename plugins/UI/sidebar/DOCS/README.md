@@ -22,3 +22,7 @@ Localization/Logger are integrated. Explorer/search/document tools are not suppl
 future tools use the Sidebar API. See the [full reference](../../../../DOCS/reference/sidebar.md)
 for API examples, lifecycle, keyboard behavior, overlay and manual acceptance.
 Run `npm run sidebar:check` and the Tauri frontend build.
+
+Sidebar API 1.1 supports `placement: "start" | "end"` (default start). End tabs
+form a bottom group; numeric order stays local to each group. Snapshot and keyboard
+order follow visual order. Updates preserve placement; existing consumers remain compatible.

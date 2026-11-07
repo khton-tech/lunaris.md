@@ -4,6 +4,11 @@ Purpose: read startup theme preferences and select a registered theme through
 public SDK contracts. Separate from the theme registry, theme engine and loading
 screen. Provides no API/events and subscribes to no events.
 
+Vault-local selection in the Settings screen belongs to the separate
+[interface settings controller](../../interface-settings/DOCS/README.md), which
+starts later. This plugin remains startup policy and does not read that controller's
+namespace or participate in its writes.
+
 `createThemeSettings({ defaultThemeId })` accepts host policy, never imports a
 specific engine. Requires Logger, Config, Themes and the `config.access` grant.
 Start the selected theme engine before this plugin. Tauri starts the base engine

@@ -102,6 +102,21 @@
     },
     {
       "path": "../../plugins/systems/active-document"
+    },
+    {
+      "path": "../../plugins/UI/active-screen-provider"
+    },
+    {
+      "path": "../../plugins/UI/active-screen"
+    },
+    {
+      "path": "../../plugins/UI/settings-provider"
+    },
+    {
+      "path": "../../plugins/UI/settings"
+    },
+    {
+      "path": "../../plugins/UI/interface-settings"
     }
   ]
 }

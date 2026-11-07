@@ -16,6 +16,23 @@ copied verbatim, and no broad gallery catalog is registered without a consumer.
 
 ## SDK integration and lifetime
 
+Visual composition must follow [architectural UI ownership](../../../../DOCS/UI_GUIDELINES.md#7-architectural-ownership-and-composition).
+For each role, document whether it owns a region/surface or supplies embedded
+content. Region owners apply outer geometry and surfaces once; embedded roots
+inherit them. Theme adaptation exposes tokens, typography and control styling
+without automatically painting a standalone page background. Check general theme
+style objects before spreading them onto embedded roots.
+
+Sidebar rail and selected tool panel surfaces belong to WorkspaceLayout. Sidebar
+tools, including Settings navigation, supply content inside those regions. Settings
+sections receive borrowed targets inside the separate main screen. Preserve those
+boundaries through theme updates, content replacement and empty/failure states.
+Any necessary standalone/embedded distinction must be part of the public role
+contract, never inferred from target classes, DOM ancestors or consumer identity.
+Validate the role inside its real container; record native visual checks as pending
+until performed. These are normative requirements; existing implementations must
+be reviewed against them when touched.
+
 Requires Logger, Components, Themes, ThemeChanged and the `ui.dom` permission.
 Registers `lunaris.startup-screen`, `lunaris.vault-selector`,
 `lunaris.workspace-header`, `lunaris.workspace-empty`, `lunaris.workspace-layout`
@@ -41,7 +58,89 @@ The Workspace header uses inline-size containment and intrinsic flex sizing so i
 non-growing slot retains the full height of wrapped names, actions and errors.
 Full-height screen/content roots continue to use size containment.
 
+## Presentation and surface owners
+
+All roles accept the public `presentation` prop, typed by `ComponentPresentation`
+from `@lunaris/components`: optional `mode: "embedded" | "standalone"` and
+`sizing: "fill" | "content"`. Invalid modes, sizing, extra presentation fields or
+accessors reject the update before changing the current view. Valid updates retain
+the root and apply the new presentation; theme updates preserve the chosen mode.
+
+The theme adapter's `contentStyle` contains tokens, colors and typography without
+a background. A separate `pageBackground` is applied only to the owned mount root
+in standalone mode. Embedded roots remain transparent. Views never paint their
+outer page surface independently of that contract. Borrowed targets are untouched.
+
+| Role | Default presentation | Owned surface/layout responsibility |
+|---|---|---|
+| Startup / Vault selector | standalone, fill | Standalone page background and internal content |
+| Workspace layout | standalone, fill | Application background, region geometry, rail/panel cards |
+| Workspace header | embedded, content | Header content and internal spacing |
+| Sidebar rail / File Explorer / Settings navigation | embedded, fill | Content inside the owning panel surface |
+| Active screen / Settings page / empty state | embedded, fill | Main/section content inside borrowed targets |
+| Context menu | embedded, fill | Transparent overlay and its intentional local menu surfaces |
+
+Composition owners pass presentation explicitly. Settings passes embedded/content
+to section roles and their fallbacks; it never determines sizing from target classes.
+Internal event handling may locate controls within an owned view, but those lookups
+must not infer a parent's presentation or layout contract. Tests verify ownership
+inside composed views, target-class independence, theme switching, prop validation
+and retained root/input identity. Native geometry remains subject to manual checks.
+
 ## Roles and props
+
+Settings consistency reference: the Owner's Files panel/header and Vault-footer
+screenshots, implemented by `explorer.tsx`, `vault-switcher.tsx` and the shared
+component stylesheet. Settings navigation uses a compact static tool heading and
+icon-bearing category rows instead of a separate large-button scheme. Header
+geometry follows the existing Files header; Settings has no header menu or chevron.
+The Files
+renderer/controller is unchanged. Category rows use a generic settings icon;
+category-specific icon registration is not introduced by this change.
+
+Both declarative and legacy settings dropdowns use `SettingsSelect`, built on
+Mantine Select/Combobox. Its trigger, listbox, selected/hovered options and check
+indicator remain within the owned themed root (`withinPortal: false`). Opening
+the list never invokes a native select popup. The list supports keyboard arrows,
+Enter, Escape, no deselection, disabled controls and bounded local scrolling.
+Standard Combobox CSS is explicitly included. These behavior/DOM properties are
+tested; native menu placement, visual matching and focus appearance remain manual.
+Intentional differences from Files: settings rows are category actions rather
+than a filesystem tree, so they do not expose folder disclosure or file operations.
+
+Settings visual hierarchy uses a page header, separately named group headers and
+indented rows with quiet separators. Header spacing and bounded content width keep
+groups legible without painting another card over Workspace. Group headings label
+their semantic sections with aria-labelledby; borrowed targets retain identity.
+Control rows wrap on narrow widths and inherit the existing embedded surface.
+Select/text/number fields use compact theme-sized controls, the same 22% semantic
+border treatment and corner radius as the Vault switcher reference. Selects use
+the shared Lucide up/down icon on the left and align the selected value at the end.
+Only interactive controls receive a field surface; sole select values remain text.
+The shared stylesheet imports Mantine InlineInput/Switch/NumberInput styles for
+the registered control types. Native visual acceptance remains manual.
+
+`lunaris.settings-items` is the primary embedded/content renderer for declarative
+Settings 1.1 items. Props: `items: SettingsItem[]`, `onChange(id, value)` and
+`onRetry(id)`. It interprets public `type`, `title`, `description`, `layout`, controlled
+`value`, options/constraints, `disabled`, `error` and retry presentation. It calls
+the supplied host callbacks, never the contributed item callbacks directly.
+Select/switch/text/number map to the shared themed Mantine Select/Switch/TextInput/NumberInput.
+A sole matching select option is plain text. Item IDs retain row/input identity;
+labels, descriptions and errors are linked accessibly. Inline rows wrap naturally;
+`stacked` puts the control below its label. The container owns surrounding surfaces
+and group headings. The role owns internal controls/spacing only.
+
+`lunaris.settings-choices` remains as a legacy embedded/content role. New settings
+must use the declarative registration contract. Its props:
+`fields: { id, label, value, options: { value, label }[] }[]`, `disabled`, localized
+`error`, `retryLabel`, `canRetry`, `onChange(id, value)` and `onRetry()`. Field/option
+IDs are unique; values/labels are strings. Multiple choices use the shared themed Mantine Select;
+a single choice is plain labeled text. Errors use an alert and optional Retry.
+The role owns internal spacing/controls only, preserves input identity on updates
+and inherits Settings' surface. Persistence stays in the contributing controller.
+The [Settings container](../../settings/DOCS/README.md) owns current declarative
+callback lifetimes; interface-settings no longer registers a custom host role.
 
 Mount through ctx.use(Components), never import a renderer from a consumer:
 
@@ -325,3 +424,33 @@ persistent row background. The marker uses 80% theme text color with a 1.75-spac
 offset from the icon. It remains anchored to the icon wrapper without shifting
 indentation. Folders and temporary operation selection retain normal row feedback.
 No SDK/controller integration changes are required.
+
+## Active screen role
+
+Added on 2026-11-07: `lunaris.active-screen` supplies a borderless full-size Mantine
+Box composition, with no tab strip, header or card shell. Props: `ids` (unique
+strings), `activeId` (one of those IDs or null), and `onTargets(map | null)`.
+Targets retain DOM identity on selection, props and theme updates. Inactive targets
+are hidden, inert, excluded from accessibility navigation and removed from layout.
+The active-screen controller owns lazy child mounting and releases hidden focus.
+
+The callback only lends owned targets; mount other SDK components after the
+parent mount/update returns, as with WorkspaceLayout. Do not reparent or restyle
+targets. The controller reserves an internal target for the shared empty/failure
+role. See [Active screen](../../../../DOCS/reference/active-screen.md).
+
+Sidebar API 1.1 supports `placement: "start" | "end"` (default start). End tabs
+form a bottom group; numeric order stays local to each group. Snapshot and keyboard
+order follow visual order. Updates preserve placement; existing consumers remain compatible.
+
+## Settings foundation roles
+
+`lunaris.settings-navigation` renders owned category buttons with wrapping labels,
+localized title/emptyLabel, categories, selectedId and onSelect.
+`lunaris.settings-page` renders title, emptyLabel and section headings, lending
+stable targets through onTargets(map or null). Both use the active theme and local
+scrolling. The page has no enclosing card; the Sidebar view inherits its surface.
+Section control roots use intrinsic block sizing inside targets owned by this set.
+No concrete settings, storage or theme controls are supplied. See
+[the settings reference](../../../../DOCS/reference/settings.md). Compositions were
+reviewed against [Mantine UI navbars](https://ui.mantine.dev/category/navbars/).

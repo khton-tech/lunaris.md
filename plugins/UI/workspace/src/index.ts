@@ -112,7 +112,7 @@ export default definePlugin({ manifest, async activate(ctx) {
     const entries = workspace.list();
     const available = entries.filter(entry => components.has(entry.componentId));
     if (!show(layout, { railVisible: available.some(entry => entry.region === "left-rail"), panelVisible: available.some(entry => entry.region === "left-panel"),
-      mainLabel: text("main"), panelLabel: text("panel"), panelWidth, resizeLabel: text("resizePanel"), onPanelWidth, onTargets, onDismiss })) {
+      presentation: { mode: "standalone", sizing: "fill" }, mainLabel: text("main"), panelLabel: text("panel"), panelWidth, resizeLabel: text("resizePanel"), onPanelWidth, onTargets, onDismiss })) {
       releaseContent(); release(layout.owner); layout = undefined; regions = undefined; return;
     }
     if (!regions) return;
@@ -129,18 +129,18 @@ export default definePlugin({ manifest, async activate(ctx) {
       const region = content.region ?? "main";
       let view = views.get(content.id);
       if (!view) { view = { owner: screen!.child(), target: regions[region], componentId: content.componentId, region }; views.set(content.id, view); }
-      if (show(view, { ...content.props, workspace: context })) { if (region === "main") visible++; if (region === "left-panel") sideVisible = true; }
+      if (show(view, { ...content.props, workspace: context, presentation: { mode: "embedded", sizing: "fill" } })) { if (region === "main") visible++; if (region === "left-panel") sideVisible = true; }
       else { release(view.owner); views.delete(content.id); }
     }
     if (sideVisible || !available.some(entry => entry.region === "left-panel")) { release(sideEmpty?.owner); sideEmpty = undefined; }
     else {
       sideEmpty ??= { owner: screen!.child(), target: regions["left-panel"], componentId: "lunaris.workspace-empty" };
-      if (!show(sideEmpty, { title: text("unavailable"), detail: text("unavailableDetail") })) { release(sideEmpty.owner); sideEmpty = undefined; }
+      if (!show(sideEmpty, { title: text("unavailable"), detail: text("unavailableDetail"), presentation: { mode: "embedded", sizing: "fill" } })) { release(sideEmpty.owner); sideEmpty = undefined; }
     }
     if (visible) { if (empty) release(empty.owner); empty = undefined; }
     else {
       empty ??= { owner: screen!.child(), target: regions.main, componentId: "lunaris.workspace-empty" };
-      if (!show(empty, { title: text("empty"), detail: text("emptyDetail") })) { release(empty.owner); empty = undefined; }
+      if (!show(empty, { title: text("empty"), detail: text("emptyDetail"), presentation: { mode: "embedded", sizing: "fill" } })) { release(empty.owner); empty = undefined; }
     }
   }
   // A layout role lends stable targets; this callback only captures local data.

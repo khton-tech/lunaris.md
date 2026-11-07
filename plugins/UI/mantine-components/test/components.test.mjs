@@ -41,6 +41,70 @@ const selector = {
   onMode() {}, onName() {}, onBrowse() {}, onNext() {}, onRecent() {}, onRetry() {},
 };
 
+test('presentation uses public props rather than target classes and separates embedded surfaces from page themes', async () => {
+  const s = await setup(); await s.start();
+  s.target.className = 'lm-settings-section'; s.target.style.backgroundColor = '#123456';
+  s.themes.register({ id: 'test.palette', name: 'Palette', properties: { colors: { background: '#abcdef', text: '#101010' } } }, s.ctx.signal);
+  s.themes.select('test.palette');
+  // A role's default sizing must not change because its target happens to have a class.
+  const first = s.components.mount('lunaris.startup-screen', s.target, startup, s.ctx.signal); assert.equal(first.ok, true);
+  let root = s.target.querySelector('.lm-root'); assert.equal(root.style.containerType, 'size');
+  assert.equal(root.style.backgroundColor, 'rgb(171, 205, 239)');
+  const embedded = { ...startup, presentation: { mode: 'embedded', sizing: 'content' } };
+  assert.equal(first.value.update(embedded).ok, true);
+  assert.equal(root.style.backgroundColor, 'transparent'); assert.equal(root.style.containerType, 'inline-size'); assert.equal(root.style.flexBasis, 'auto');
+  assert.equal(s.target.querySelector('.lm-startup').style.backgroundColor, '');
+  s.target.className = 'unrelated-container'; s.themes.select(null);
+  assert.equal(root.style.containerType, 'inline-size'); assert.equal(root.style.backgroundColor, 'transparent');
+  assert.equal(s.target.style.backgroundColor, 'rgb(18, 52, 86)');
+  for (const presentation of [null, { mode: 'panel' }, { sizing: 'auto' }, { unexpected: true }, { get mode() { throw new Error('Getter invoked'); } }]) {
+    assert.equal(first.value.update({ ...startup, presentation }).ok, false);
+    assert.equal(root.style.containerType, 'inline-size'); assert.equal(root.style.backgroundColor, 'transparent');
+  }
+  first.value.dispose(); s.target.removeAttribute('class'); s.target.removeAttribute('style'); await s.stop();
+});
+
+test('active screen role lends stable targets, hides inactive content and validates selection without removing siblings', async () => {
+  const s = await setup(); await s.start(); let targets;
+  const onTargets = value => { targets = value; };
+  const props = { ids: ['test.one', 'test.two'], activeId: 'test.one', onTargets };
+  const mounted = s.components.mount('lunaris.active-screen', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true);
+  const first = targets.get('test.one'); const second = targets.get('test.two');
+  const input = s.dom.window.document.createElement('input'); first.append(input); input.value = 'Draft';
+  assert.equal(first.hidden, false); assert.equal(second.hidden, true); assert.equal(second.hasAttribute('inert'), true);
+  mounted.value.update({ ...props, activeId: 'test.two' });
+  assert.equal(targets.get('test.one'), first); assert.equal(targets.get('test.two'), second);
+  assert.equal(first.hidden, true); assert.equal(first.querySelector('input'), input);
+  assert.equal(mounted.value.update({ ...props, activeId: 'test.missing' }).ok, false);
+  assert.equal(mounted.value.update({ ...props, ids: ['test.one', 'test.one'] }).ok, false);
+  assert.equal(second.hidden, false); assert.equal(input.value, 'Draft');
+  mounted.value.dispose(); assert.equal(targets, null); assert.equal(s.target.textContent, 'Sibling'); await s.stop();
+});
+
+test('settings roles escape labels, preserve borrowed targets and validate navigation and section identity', async () => {
+  const s = await setup(); await s.start(); let targets;
+  const props = { title: 'Example', emptyLabel: 'Empty', sections: [{ id: 'test.section', title: 'Controls' }], onTargets: value => { targets = value; } };
+  const page = s.components.mount('lunaris.settings-page', s.target, props, s.ctx.signal); assert.equal(page.ok, true);
+  const group = s.target.querySelector('.lm-settings-group');
+  assert.equal(s.target.ownerDocument.getElementById(group.getAttribute('aria-labelledby')).textContent, 'Controls');
+  assert.ok(s.target.querySelector('.lm-settings-page-header h1'));
+  const target = targets.get('test.section'); const input = s.dom.window.document.createElement('input'); input.value = 'Draft'; target.append(input);
+  page.value.update({ ...props, title: 'Translated', sections: [{ id: 'test.section', title: 'Updated' }] });
+  assert.equal(targets.get('test.section'), target); assert.equal(target.querySelector('input'), input);
+  assert.equal(s.target.querySelector('.lm-settings-group'), group);
+  assert.equal(s.target.ownerDocument.getElementById(group.getAttribute('aria-labelledby')).textContent, 'Updated');
+  assert.equal(page.value.update({ ...props, sections: [props.sections[0], props.sections[0]] }).ok, false);
+  let selected; const navProps = { title: 'Settings', emptyLabel: 'Empty', categories: [{ id: 'test.category', title: '<img src=x>' }], selectedId: null, onSelect: id => { selected = id; } };
+  const nav = s.components.mount('lunaris.settings-navigation', s.target, navProps, s.ctx.signal); assert.equal(nav.ok, true);
+  const header = s.target.querySelector('.lm-settings-navigation .lm-tool-panel-toolbar');
+  assert.equal(header.querySelector('h2').textContent, 'Settings');
+  assert.equal(header.querySelector('button, svg, [aria-haspopup]'), null);
+  assert.ok(s.target.querySelector('.lm-settings-category .mantine-Button-section svg'));
+  s.target.querySelector('.lm-settings-category').click(); assert.equal(selected, 'test.category'); assert.equal(s.target.querySelector('img'), null);
+  assert.equal(nav.value.update({ ...navProps, selectedId: 'test.missing' }).ok, false);
+  assert.equal(input.value, 'Draft'); page.value.dispose(); assert.equal(targets, null); nav.value.dispose(); await s.stop();
+});
+
 test('workspace header retains intrinsic block sizing while full-height surfaces retain size containment', async () => {
   const s = await setup(); await s.start();
   const props = { name: 'A long Vault name that can wrap', closeLabel: 'Close vault', busy: false, error: '', onClose() {} };
@@ -55,13 +119,74 @@ test('workspace header retains intrinsic block sizing while full-height surfaces
 
 test('registers the replaceable roles, renders real Mantine controls, preserves siblings and releases roots', async () => {
   const s = await setup(); await s.start();
-  assert.deepEqual(s.components.list(), ['lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.vault-selector', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
+  assert.deepEqual(s.components.list(), ['lunaris.active-screen', 'lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.settings-choices', 'lunaris.settings-items', 'lunaris.settings-navigation', 'lunaris.settings-page', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.vault-selector', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
   const owner = s.ctx.scope.child();
   const mounted = s.components.mount('lunaris.vault-selector', s.target, selector, owner.signal); assert.equal(mounted.ok, true);
   assert.ok(s.target.querySelector('.mantine-Button-root')); assert.ok(s.target.querySelector('.mantine-TextInput-input'));
   assert.equal(s.target.querySelector('img'), null); assert.equal(s.target.firstElementChild.textContent, 'Sibling');
   assert.ok(s.logs.some(log => log[0] === 'info' && log[1] === plugin.manifest.id && log[3]?.code === 'MANTINE_COMPONENTS_READY'));
   await owner.dispose(); assert.equal(s.target.querySelector('.lm-root'), null); await s.stop();
+});
+
+test('settings choices validate data, render single values as text and retain live controls on updates', async () => {
+  const s = await setup(); await s.start(); const changes = [];
+  const props = { fields: [{ id: 'locale', label: 'Language', value: 'en', options: [{ value: 'en', label: 'English' }] }],
+    disabled: false, error: '', canRetry: false, retryLabel: 'Retry', onChange: (...args) => changes.push(args), onRetry() {} };
+  const mounted = s.components.mount('lunaris.settings-choices', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true);
+  assert.equal(s.target.querySelector('select'), null); assert.match(s.target.textContent, /LanguageEnglish/);
+  const multiple = { ...props, fields: [{ ...props.fields[0], options: [...props.fields[0].options, { value: 'fr', label: '<French>' }] }] };
+  assert.equal(mounted.value.update(multiple).ok, true); const input = s.target.querySelector('[role=combobox]');
+  input.click(); await new Promise(resolve => setImmediate(resolve));
+  const choice = [...s.target.querySelectorAll('[role=option]')].find(option => option.textContent.trim() === '<French>');
+  assert.ok(choice); choice.click(); await new Promise(resolve => setImmediate(resolve)); assert.deepEqual(changes, [['locale', 'fr']]);
+  assert.equal(mounted.value.update({ ...multiple, fields: [{ ...multiple.fields[0], value: 'fr', label: 'Langue' }], error: 'Save failed' }).ok, true);
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(s.target.querySelector('[role=combobox]'), input); assert.equal(input.value, '<French>'); assert.equal(s.target.querySelector('img'), null);
+  assert.equal(mounted.value.update({ ...multiple, fields: [...multiple.fields, ...multiple.fields] }).ok, false);
+  assert.equal(s.target.querySelector('[role=combobox]'), input); assert.match(s.target.querySelector('[role=alert]').textContent, /Save failed/);
+  assert.equal(s.target.querySelector('.lm-root').style.backgroundColor, 'transparent');
+  assert.equal(s.target.querySelector('.lm-root').style.containerType, 'inline-size'); await s.stop();
+});
+
+test('declarative item role renders typed Mantine controls, forwards typed values and preserves layout/input identity', async () => {
+  const s = await setup(); await s.start(); const changes = [];
+  const fields = [
+    { id: 'test.select', title: 'Theme', type: 'select', value: 'mono', options: [{ value: 'mono', label: 'Monochrome' }] },
+    { id: 'test.switch', title: 'Enabled', type: 'switch', value: false },
+    { id: 'test.text', title: 'Name', description: 'Visible label', type: 'text', value: 'Old', layout: 'stacked' },
+    { id: 'test.number', title: 'Size', type: 'number', value: 2, min: 1, max: 8, step: 1 },
+  ];
+  const props = { items: fields, onChange: (...args) => changes.push(args), onRetry() {} };
+  const mounted = s.components.mount('lunaris.settings-items', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true);
+  assert.equal(s.target.querySelector('select'), null); assert.match(s.target.textContent, /Monochrome/);
+  const text = s.target.querySelector('[data-settings-item="test.text"] input');
+  s.target.querySelector('[data-settings-item="test.switch"] input').click(); typeInput(text, 'New');
+  typeInput(s.target.querySelector('[data-settings-item="test.number"] input'), '4');
+  assert.deepEqual(changes, [['test.switch', true], ['test.text', 'New'], ['test.number', 4]]);
+  assert.equal(mounted.value.update({ ...props, items: fields.map(item => ({ ...item, title: `Updated ${item.title}` })) }).ok, true);
+  assert.equal(s.target.querySelector('[data-settings-item="test.text"] input'), text);
+  assert.equal(text.getAttribute('aria-label'), 'Updated Name');
+  assert.equal(s.target.querySelector('[data-settings-item="test.text"]').dataset.layout, 'stacked');
+  assert.equal(mounted.value.update({ ...props, items: [{ ...fields[1], value: 'bad' }] }).ok, false); await s.stop();
+});
+
+test('Settings Select opens themed options, supports keyboard selection and Escape, and respects disabled state', async () => {
+  const s = await setup(); await s.start(); const changes = []; const settle = async () => { for (let i = 0; i < 4; i++) await new Promise(resolve => setImmediate(resolve)); };
+  const props = { fields: [{ id: 'locale', label: 'Language', value: 'en', options: [{ value: 'en', label: 'English' }, { value: 'fr', label: 'French' }] }],
+    disabled: false, error: '', canRetry: false, retryLabel: 'Retry', onChange: (...args) => changes.push(args), onRetry() {} };
+  const mounted = s.components.mount('lunaris.settings-choices', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true);
+  const trigger = s.target.querySelector('[role=combobox]'); assert.equal(s.target.querySelector('select'), null);
+  trigger.focus(); trigger.click(); await settle(); assert.equal(trigger.getAttribute('aria-expanded'), 'true');
+  const list = s.dom.window.document.getElementById(trigger.getAttribute('aria-controls'));
+  assert.ok(list.closest('.lm-setting-dropdown')); assert.equal(list.closest('.lm-root'), trigger.closest('.lm-root'));
+  assert.deepEqual([...list.querySelectorAll('[role=option]')].map(option => option.textContent.trim()), ['English', 'French']);
+  trigger.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'ArrowDown', code: 'ArrowDown', bubbles: true })); await settle();
+  trigger.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true })); await settle();
+  assert.deepEqual(changes, [['locale', 'fr']]); assert.equal(trigger.getAttribute('aria-expanded'), 'false');
+  trigger.click(); await settle(); trigger.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await settle();
+  assert.equal(trigger.getAttribute('aria-expanded'), 'false'); assert.equal(s.dom.window.document.activeElement, trigger); assert.equal(changes.length, 1);
+  mounted.value.update({ ...props, disabled: true }); await settle(); trigger.click(); await settle();
+  assert.equal(trigger.disabled, true); assert.notEqual(trigger.getAttribute('aria-expanded'), 'true'); await s.stop();
 });
 
 test('theme replacement and clearing update mounted roots without affecting the document or stored preferences', async () => {
@@ -71,7 +196,7 @@ test('theme replacement and clearing update mounted roots without affecting the 
   const input = s.target.querySelector('input'); const roots = [...s.target.querySelectorAll('.lm-root')];
   const theme = { id: 'test.theme', name: 'Custom', properties: { appearance: 'light', colors: { background: '#ffffff', text: '#202020', caret: '#234567', error: '#ff0000' }, geometry: { radius: { medium: 12 } }, typography: { fontFamily: ['Arial', 'sans-serif'], fontSize: 16 } } };
   s.themes.register(theme, s.ctx.signal); s.themes.select(theme.id);
-  assert.equal(s.target.querySelector('section').style.backgroundColor, 'rgb(255, 255, 255)');
+  assert.equal(s.target.querySelector('section').closest('.lm-root').style.backgroundColor, 'rgb(255, 255, 255)');
   assert.equal(s.target.querySelector('.ln-vault').style.getPropertyValue('--vault-caret'), '#234567');
   assert.equal(s.target.querySelector('input'), input); assert.equal(input.value, 'Draft');
   for (const root of roots) {
@@ -83,7 +208,7 @@ test('theme replacement and clearing update mounted roots without affecting the 
   assert.equal(s.dom.window.localStorage.length, 0);
   s.themes.select(null);
   assert.equal(s.target.querySelector('.ln-vault').style.getPropertyValue('--vault-caret'), 'currentColor');
-  assert.equal(s.target.querySelector('section').style.backgroundColor, 'transparent');
+  assert.equal(s.target.querySelector('section').closest('.lm-root').style.backgroundColor, 'transparent');
   await s.stop();
 });
 
@@ -160,7 +285,7 @@ test('shared context menu opens nested folders by keyboard, executes once and re
   const context = { source: 'lunaris.file-explorer', target: 'file', data: { path: 'a.md' } };
   const opened = s.menus.open({ target: source, x: 15, y: 25, label: 'File actions', context }, s.ctx.signal); assert.equal(opened.ok, true); await settle();
   const doc = s.dom.window.document;
-  assert.equal(doc.querySelector('.lm-context-surface').style.backgroundColor, 'transparent');
+  assert.equal(doc.querySelector('.lm-context-surface').closest('.lm-root').style.backgroundColor, 'transparent');
   assert.ok(doc.querySelector('[role=menuitem] .mantine-Menu-itemSection[data-position=left] svg[aria-hidden=true]'));
   const item = label => [...doc.querySelectorAll('[role=menuitem]')].find(node => node.textContent === label);
   item('Tools').focus(); item('Tools').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })); await settle();
