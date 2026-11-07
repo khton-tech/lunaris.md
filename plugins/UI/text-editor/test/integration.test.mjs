@@ -175,3 +175,42 @@ test('desktop close bridge flushes the last keystrokes before shutdown and rejec
   assert.equal(s.disk.get('a/note.md').text, 'Last keystrokes'); assert.equal(s.vault.current(), null);
   await s.kernel.stopAll(); await s.stop();
 });
+
+test('Tab inserts at the caret, indents selected lines and Shift-Tab removes indentation', async () => {
+  const s = await setup({ initial: 'alpha\nbeta' });
+  const view = s.cm();
+  const tab = (shiftKey = false) => {
+    const event = new s.dom.window.KeyboardEvent('keydown', { key: 'Tab', code: 'Tab', keyCode: 9, shiftKey, bubbles: true, cancelable: true });
+    view.contentDOM.dispatchEvent(event);
+    assert.equal(event.defaultPrevented, true);
+  };
+  view.dispatch({ selection: { anchor: 2 } }); tab();
+  assert.equal(view.state.doc.toString(), 'al\tpha\nbeta');
+  assert.equal(view.state.selection.main.head, 3);
+  undo(view);
+  view.dispatch({ selection: { anchor: 0, head: view.state.doc.length } }); tab();
+  assert.equal(view.state.doc.toString(), '\talpha\n\tbeta');
+  tab(true); assert.equal(view.state.doc.toString(), 'alpha\nbeta');
+  view.setTabFocusMode(true);
+  const escape = new s.dom.window.KeyboardEvent('keydown', { key: 'Tab', keyCode: 9, bubbles: true, cancelable: true });
+  view.contentDOM.dispatchEvent(escape); assert.equal(escape.defaultPrevented, false);
+  await s.stop();
+});
+
+test('focused selection layer uses the active theme instead of the CodeMirror default', async () => {
+  const s = await setup(); const view = s.cm(); view.focus();
+  // Geometry is unavailable in JSDOM. Supply a rectangle in CM's real selection
+  // layer to verify stylesheet precedence rather than native range measurement.
+  const marker = s.dom.window.document.createElement('div'); marker.className = 'cm-selectionBackground';
+  view.scrollDOM.querySelector('.cm-selectionLayer').append(marker);
+  for (const [id, appearance, selection, expected] of [
+    ['dark', 'dark', '#4c4c4c', 'rgb(76, 76, 76)'],
+    ['light', 'light', '#cccccc', 'rgb(204, 204, 204)'],
+  ]) {
+    s.themes.register({ id: `test.${id}`, name: id, properties: { appearance, colors: { selection } } }, s.ctx.signal);
+    s.themes.select(`test.${id}`); await flush();
+    assert.equal(s.dom.window.getComputedStyle(marker).backgroundColor, expected);
+    assert.equal(s.cm(), view);
+  }
+  marker.remove(); await s.stop();
+});

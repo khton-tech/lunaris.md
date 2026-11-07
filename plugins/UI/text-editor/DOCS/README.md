@@ -7,8 +7,11 @@ with ui.dom, vault.access and filesystem.access.
 ## Usage and saving
 
 Open a Markdown file in File Explorer. Wrapped lines, Markdown syntax, standard
-text shortcuts, undo/redo, multiple selections and Mod-S are enabled. Tab keeps
-normal keyboard navigation. Live Preview is enabled. The editor has no persistent
+text shortcuts, undo/redo, multiple selections and Mod-S are enabled. Tab inserts
+a tab at the caret or indents selected lines; Shift-Tab removes indentation.
+Indentation uses tabs displayed at four columns. Escape followed by Tab uses
+CodeMirror's temporary focus-navigation mode to leave the editor by keyboard.
+Live Preview is enabled. The editor has no persistent
 header, filename, saved status, mode toggle or Save button. Autosave and Mod-S
 remain available. Source mode remains an internal adapter capability with no
 product control. No reading view, formatting toolbar, gutter or CodeMirror
@@ -96,6 +99,15 @@ Workspace/ActiveScreen and the Mantine target retain their full allocated size
 and surface. Quote rails and code remain within the same centered column. Existing
 public SDK integrations require no changes. Native wide/narrow window geometry,
 caret hit testing, selection and scrolling remain pending manual verification.
+
+The document top inset is responsive from 24px to 56px; the bottom inset retains
+its previous 12–32px range. Selection rectangles use the SDK theme's selection
+color in focused and unfocused states, with sufficient selector specificity to
+override CodeMirror's built-in dark teal/light purple defaults. Native selection
+is still suppressed by drawSelection to avoid painting two highlights. Tests
+verify keyboard Tab/Shift-Tab behavior and focused selection CSS precedence under
+dark/light themes; native selection geometry and the top inset require manual
+acceptance in Workspace. No public SDK or cross-plugin wiring changes are needed.
 
 Settings retains the hidden live view. Theme/locale updates reconfigure view
 compartments. Document switches and renderer replacement retain compatible

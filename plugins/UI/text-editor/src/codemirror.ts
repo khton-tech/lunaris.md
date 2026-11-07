@@ -1,9 +1,9 @@
 import { Compartment, EditorState, StateEffect } from "@codemirror/state";
 import type { Extension, StateEffect as Effect } from "@codemirror/state";
 import { EditorView, drawSelection, keymap } from "@codemirror/view";
-import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
+import { defaultKeymap, history, historyKeymap, insertTab, indentLess } from "@codemirror/commands";
 import { markdown, markdownKeymap } from "@codemirror/lang-markdown";
-import { HighlightStyle, syntaxHighlighting } from "@codemirror/language";
+import { HighlightStyle, syntaxHighlighting, indentUnit } from "@codemirror/language";
 import { Strikethrough } from "@lezer/markdown";
 import { livePreview, livePreviewTheme } from "./live-preview.js";
 import { tags } from "@lezer/highlight";
@@ -21,10 +21,11 @@ function appearance(theme: ThemeDefinition | null) {
     "&.cm-focused": { outline: "none" },
     ".cm-scroller": { overflow: "auto", fontFamily: "var(--vault-mono, ui-monospace, monospace)", lineHeight: String(typeof typography?.lineHeight === "number" ? typography.lineHeight : 1.6), scrollbarWidth: "none" },
     ".cm-scroller::-webkit-scrollbar": { display: "none" },
-    ".cm-content": { width: "100%", maxWidth: "780px", minWidth: "0", flexGrow: "0", margin: "0 auto", padding: "clamp(12px, 3cqi, 32px) 0", caretColor: color("caret"), minHeight: "100%" },
+    ".cm-content": { width: "100%", maxWidth: "780px", minWidth: "0", flexGrow: "0", margin: "0 auto", padding: "clamp(24px, 5cqi, 56px) 0 clamp(12px, 3cqi, 32px)", caretColor: color("caret"), minHeight: "100%" },
     ".cm-line": { padding: "0 clamp(12px, 3cqi, 40px)" },
     ".cm-cursor, .cm-dropCursor": { borderLeftColor: color("caret") },
-    "&.cm-focused .cm-selectionBackground, .cm-selectionBackground, .cm-content ::selection": { backgroundColor: color("selection", "Highlight") },
+    // Match the focused layer's specificity so CM's default dark teal cannot win.
+    "&.cm-editor .cm-selectionBackground, &.cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": { backgroundColor: color("selection", `color-mix(in srgb, ${color("text")} 25%, transparent)`) },
   }, { dark: properties?.appearance !== "light" }), syntaxHighlighting(HighlightStyle.define([
     { tag: tags.heading, color: color("text"), fontWeight: "600" },
     { tag: tags.emphasis, fontStyle: "italic" }, { tag: tags.strong, fontWeight: "600" },
@@ -41,9 +42,9 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
   const skin = new Compartment(); const access = new Compartment(); const attributes = new Compartment();
   // A cached state retains history/selection; replace view-specific compartments
   // and callbacks through a full reconfiguration without replacing the document.
-  const extensions = [EditorState.lineSeparator.of(session.text.includes("\r\n") ? "\r\n" : "\n"), history(), markdown({ extensions: [Strikethrough] }), mode.of(preview ? [livePreview, livePreviewTheme] : []), EditorView.lineWrapping, drawSelection(),
+  const extensions = [EditorState.lineSeparator.of(session.text.includes("\r\n") ? "\r\n" : "\n"), indentUnit.of("\t"), EditorState.tabSize.of(4), history(), markdown({ extensions: [Strikethrough] }), mode.of(preview ? [livePreview, livePreviewTheme] : []), EditorView.lineWrapping, drawSelection(),
     EditorView.exceptionSink.of(failed),
-    keymap.of([{ key: "Mod-s", run: () => { save(); return true; }, preventDefault: true }, ...markdownKeymap, ...defaultKeymap, ...historyKeymap]),
+    keymap.of([{ key: "Mod-s", run: () => { save(); return true; }, preventDefault: true }, { key: "Tab", run: insertTab, shift: indentLess, preventDefault: true }, ...markdownKeymap, ...defaultKeymap, ...historyKeymap]),
     EditorView.updateListener.of(update => { if (update.docChanged) session.edit(update.state.sliceDoc()); }),
     skin.of(appearance(theme)), access.of([EditorState.readOnly.of(session.locks > 0 || session.missing || session.loading), EditorView.editable.of(!session.locks && !session.missing && !session.loading)]),
     attributes.of(EditorView.contentAttributes.of({ "aria-label": label, spellcheck: "true" })),
