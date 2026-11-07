@@ -212,6 +212,25 @@ test('Tab inserts at the caret, indents selected lines and Shift-Tab removes ind
   await s.stop();
 });
 
+test('Workspace editor auto-pairs Markdown input and saves the unchanged closing delimiters', async () => {
+  const s = await setup({ initial: '', withLayout: true });
+  try {
+    const view = s.cm();
+    const type = text => {
+      const { from, to } = view.state.selection.main;
+      const handled = view.state.facet(EditorView.inputHandler).some(handler => handler(view, from, to, text,
+        () => view.state.update(view.state.replaceSelection(text))));
+      if (!handled) view.dispatch(view.state.update(view.state.replaceSelection(text), { userEvent: 'input.type' }));
+    };
+    type('('); type('['); type('{'); type('`'); type('code'); type('`'); type('}'); type(']'); type(')');
+    type(' '); type('*'); type('*'); type('bold'); type('*'); type('*');
+    assert.equal(view.state.sliceDoc(), '([{`code`}]) **bold**');
+    assert.equal(view.state.selection.main.head, view.state.doc.length);
+    await s.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
+    assert.equal(s.disk.get('a/note.md').text, '([{`code`}]) **bold**');
+  } finally { await s.stop(); }
+});
+
 test('focused selection layer uses the active theme instead of the CodeMirror default', async () => {
   const s = await setup(); const view = s.cm(); view.focus();
   // Geometry is unavailable in JSDOM. Supply a rectangle in CM's real selection

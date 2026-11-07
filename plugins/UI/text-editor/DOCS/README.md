@@ -15,6 +15,28 @@ four columns. Fenced/indented code retains ordinary caret insertion. Markdown's
 Enter binding continues nested bullets, ordered lists and task syntax. Escape followed by Tab uses
 CodeMirror's temporary focus-navigation mode to leave the editor by keyboard.
 
+Typing `(`, `[` or `{` inserts its closing delimiter and leaves the caret inside.
+Inline emphasis (`*text*`), strong emphasis (`**text**`) and backtick code spans
+use the same behavior. A second star inside an empty emphasis pair expands `**`
+to `****`, with the caret between the two delimiter runs. Typing an auto-inserted
+closing character advances over it without modifying the document (one character
+per press, including the two closing stars). Backspace removes an empty generated
+pair, including both sides of empty strong emphasis. Selected text is wrapped;
+multiple cursors track their own pairs. Undo/redo retains generated-pair tracking.
+Escaped openers, inline markers inside words/code, multi-character paste and
+read-only/composition input do not generate pairs. Ordinary `* ` bullets remove
+the empty generated closing star. Loaded or manually inserted delimiters remain
+literal and are not treated as generated closers.
+
+The existing CodeMirror adapter owns this input behavior in `paired-input.ts`;
+it uses public CodeMirror extensions within the existing SDK-mounted text target.
+Workspace, ActiveScreen and Mantine keep their existing geometry/surface/content
+ownership. No SDK extension or additional plugin integration is required.
+Targeted input tests and a composed Workspace regression cover pairing, skipping
+and persistence. Native keyboard/IME, caret and Live Preview acceptance remains
+manual: in Workspace type each pair, enter text, type its closer, and check
+single/double-star emphasis, backticks and empty-pair Backspace.
+
 List indentation is unrestricted: repeated Tab adds a literal tab on each press,
 including first/isolated items and skipped intermediate levels. Shift-Tab removes
 one level on each press. The editor's public Lezer Markdown extension consumes
