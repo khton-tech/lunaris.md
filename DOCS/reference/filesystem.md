@@ -221,3 +221,15 @@ Native unwatch failures are diagnosed by the live provider; session/Vault cleanu
 remains the safety net. The original unowned watch API remains compatible.
 
 The provider requires `api:lunaris.filesystem-observation-driver@1.0.0` and passes its own activation signal to it. The Tauri driver releases native watches on provider-only shutdown, including late watch creation, and suppresses callbacks immediately on cancellation. Explicit unwatch and Vault closure detach driver ownership listeners. Driver shutdown uses its native session cleanup. Replacement filesystem drivers must implement this additive contract.
+# Structural mutation coordination
+
+BeforeFileMutation 1.0 is an awaited provider-owned hook for move/copy/remove.
+It carries frozen source/destination targets, overwrite, error and onSettled.
+Handlers preserve earlier errors, register completion before awaiting, then flush
+pending writes or return an FsFailure. Completion receives the mutation result
+even if another handler throws. Structural operations serialize; text writes do
+not enter that queue, so a hook may safely save before a move/delete. Completion
+must not await another structural operation. File creation and version-checked
+text writes retain their existing semantics; this hook does not coordinate
+external OS writes. SDK access remains forbidden after scope cancellation.
+

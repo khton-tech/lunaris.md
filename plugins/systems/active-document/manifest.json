@@ -15,6 +15,16 @@
       "kind": "event",
       "id": "lunaris.active-document-changed",
       "version": "1.0.0"
+    },
+    {
+      "kind": "hook",
+      "id": "lunaris.before-active-document-change",
+      "version": "1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.active-document-transitioned",
+      "version": "1.0.0"
     }
   ],
   "requires": [

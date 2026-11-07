@@ -5,6 +5,7 @@ import type { FolderLocation, VaultRoot } from "@lunaris/filesystem";
 import { Vault, VaultCreation, VaultLocations, VaultChanged, PrepareVault, validVaultName } from "@lunaris/vault";
 import type { VaultChange, VaultResult } from "@lunaris/vault";
 import { Logger } from "@lunaris/logging";
+import { BeforeVaultRelease } from "@lunaris/vault";
 import manifest from "../manifest.json" with { type: "json" };
 
 interface Attachment { readonly vault: VaultRoot; readonly scope: ResourceScope }
@@ -19,6 +20,16 @@ export default definePlugin({ manifest, activate(ctx) {
   const locations = ctx.use(FilesystemLocations);
   let active: Attachment | null = null;
   let busy = false;
+  let releaseListeners: (() => void)[] = [];
+  async function guardRelease(previous: VaultRoot, next: VaultRoot | null) {
+    try {
+      const guard = await ctx.hooks.run(BeforeVaultRelease, { previous, next, error: null, onSettled: listener => { releaseListeners.push(listener); } });
+      return guard.error ? { ok: false as const, error: guard.error } : { ok: true as const, value: null };
+    } catch (error) {
+      if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Vault release guard failed", { error });
+      return failed("PREPARATION_FAILED", "Cannot safely release the current Vault.");
+    }
+  }
   ctx.scope.own({ dispose() { active = null; } });
 
   function changed(change: VaultChange): void {
@@ -40,7 +51,12 @@ export default definePlugin({ manifest, activate(ctx) {
       if (ctx.signal.aborted) return failed("STOPPED", "The Vault Manager is stopped.");
       logger.error(ctx.pluginId, "Unexpected Vault transition failure", { code: "VAULT_TRANSITION_FAILED", error, data: { operation } });
       throw error;
-    } finally { busy = false; }
+    } finally {
+      const listeners = releaseListeners; releaseListeners = []; busy = false;
+      for (const listener of listeners) {
+        try { listener(); } catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Vault release completion failed", { error }); }
+      }
+    }
   }
   async function discard(candidate: Attachment): Promise<void> {
     try {
@@ -92,6 +108,9 @@ export default definePlugin({ manifest, activate(ctx) {
         }
         const previous = active;
         if (previous) {
+          const guard = await guardRelease(previous.vault, candidate.vault);
+          if (!guard.ok) return guard;
+          if (ctx.signal.aborted) return failed("STOPPED", "The Vault Manager is stopped.");
           const closed = await fs.closeVault(previous.vault.id);
           if (ctx.signal.aborted) return failed("STOPPED", "The Vault Manager is stopped.");
           if (!closed.ok && closed.error.code !== "VAULT_CLOSED") return closed;
@@ -149,6 +168,9 @@ export default definePlugin({ manifest, activate(ctx) {
       const result = await transition<null>("close", async () => {
         if (!active) return { ok: true, value: null };
         const previous = active;
+        const guard = await guardRelease(previous.vault, null);
+        if (!guard.ok) return guard;
+        if (ctx.signal.aborted) return failed("STOPPED", "The Vault Manager is stopped.");
         const result = await fs.closeVault(previous.vault.id);
         if (ctx.signal.aborted) return failed("STOPPED", "The Vault Manager is stopped.");
         if (!result.ok && result.error.code !== "VAULT_CLOSED") return result;

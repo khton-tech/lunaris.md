@@ -1,4 +1,4 @@
-import { defineApi, defineEvent } from "@lunaris/sdk";
+import { defineApi, defineEvent, defineHook } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
 
 export type FsErrorCode = "CANCELLED" | "INVALID_PATH" | "INVALID_ARGUMENT" | "VAULT_CLOSED" | "NOT_FOUND" | "ALREADY_EXISTS" | "NOT_FILE" | "NOT_DIRECTORY" | "DIRECTORY_NOT_EMPTY" | "ACCESS_DENIED" | "CONFLICT" | "UNSUPPORTED" | "TOO_LARGE" | "INVALID_ENCODING" | "IO_ERROR";
@@ -11,6 +11,23 @@ export interface FsFailure {
 }
 export type FsResult<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: FsFailure };
 export interface FileTarget { readonly vaultId: string; readonly path: string }
+/** Structural mutations are serialized by the provider. Hooks may flush writes.
+ * Register completion before awaiting; it runs even when a later handler throws.
+ * Completion must not initiate another structural mutation. */
+export interface FileMutation {
+  readonly operation: "move" | "copy" | "remove";
+  readonly source: FileTarget;
+  readonly destination: FileTarget | null;
+  readonly overwrite: boolean;
+  readonly error: FsFailure | null;
+  readonly onSettled: (listener: (result: FsResult<null>) => void | Promise<void>) => void;
+}
+export const BeforeFileMutation = defineHook<FileMutation>({
+  id: "lunaris.before-file-mutation", version: "1.0.0", consumePermission: "filesystem.access",
+  validate: input => { const value = input as FileMutation | null; return !!value && ["move", "copy", "remove"].includes(value.operation) && validTarget(value.source) &&
+    (value.destination === null || validTarget(value.destination)) && typeof value.overwrite === "boolean" &&
+    (value.error === null || typeof value.error.code === "string") && typeof value.onSettled === "function"; },
+});
 export interface VaultRoot { readonly id: string; readonly name: string }
 /** Durable driver-owned reference, not a path or an attached root ID. */
 export interface FolderLocation { readonly reference: string; readonly label: string }

@@ -61,3 +61,18 @@ file-explorer mantine-components. Tests cover persisted restoration, per-Vault
 isolation, missing files, permission/storage failures, folder relocation, stale
 asynchronous operations, active marking after focus/selection changes, revealing
 ancestors and stale controller callbacks.
+# Editor transitions
+
+The existing 1.0 snapshot API/event remains unchanged. The additional
+ActiveDocumentTransitioned 1.0 event carries previous/current and reason:
+open, close, restore, relocate, reconcile or vault. Repeated successful open emits
+the transition even when identity is unchanged, allowing a return from Settings.
+Relocate identifies the same buffer at its committed new target; open loads a
+different buffer. Reconciliation and Vault changes are notifications, not vetoes.
+
+BeforeActiveDocumentChange 1.0 guards voluntary open/close before identity or
+persisted selection changes. Handlers register onSettled(listener) before awaiting
+and return the input with a nullable FsFailure, preserving earlier errors. A
+failure retains the previous document; a thrown handler also releases registered
+completion listeners. Never recursively call open/close from this serialized hook.
+

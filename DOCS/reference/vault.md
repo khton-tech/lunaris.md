@@ -179,3 +179,13 @@ a later cancellation/preparation/attachment failure can leave the new directory;
 there is no unsafe recursive rollback. The user can select it explicitly or use
 a different name. Existing VaultLocations.open display-name behavior remains
 compatible; the Create UI uses this dedicated creation contract.
+# Editor-safe release
+
+BeforeVaultRelease 1.0 runs before the previous root is closed on every close or
+switch route. It carries previous, next, nullable FsFailure and onSettled(listener).
+Handlers may finish writes while the root is usable and preserve an earlier
+failure. Rejection/throw retains the active Vault and releases the uncommitted
+candidate. Completion runs on both success and failure, allowing temporary edit
+locks to be released. Do not recursively request a Vault transition in a handler.
+Forced shutdown and process crashes do not run this product transition guard.
+

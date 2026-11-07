@@ -3,11 +3,28 @@ import assert from 'node:assert/strict';
 import { definePlugin } from '@lunaris/sdk';
 import { createTestKernel } from '@lunaris/test';
 import { Logger } from '@lunaris/logging';
-import { DirectoryLocations, DirectoryLocationsDriver, Filesystem, FilesystemObservation, FilesystemObservationDriver, FilesystemDriver, FilesystemRoots, FilesystemRootsDriver, FilesystemLocationsDriver, ApplicationDirectory, ApplicationDirectoryDriver, DriverFileChanged, FileChanged, filesystemMethods } from '@lunaris/filesystem';
+import { BeforeFileMutation, DirectoryLocations, DirectoryLocationsDriver, Filesystem, FilesystemObservation, FilesystemObservationDriver, FilesystemDriver, FilesystemRoots, FilesystemRootsDriver, FilesystemLocationsDriver, ApplicationDirectory, ApplicationDirectoryDriver, DriverFileChanged, FileChanged, filesystemMethods } from '@lunaris/filesystem';
 import filesystem from '@lunaris/filesystem-provider';
 
 const manifest = (id, provides = [], requires = [], permissions = []) => ({ manifestVersion: 1, id, version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides, requires, permissions, optionalPermissions: [] });
-const requires = [FilesystemObservation, Filesystem, FilesystemRoots, ApplicationDirectory, FileChanged].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' }));
+const requires = [BeforeFileMutation, FilesystemObservation, Filesystem, FilesystemRoots, ApplicationDirectory, FileChanged].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' }));
+
+test('mutation guard can flush writes, rejects safely and settles even after a later handler throws', async () => {
+  const s = await setup(); const order = []; let reject = false;
+  s.consumerContext.hooks.register(BeforeFileMutation, async value => {
+    value.onSettled(result => { order.push(result.ok ? 'settled' : 'rejected'); });
+    await s.api.writeText(value.source, 'flush', { mode: 'replace', expectedVersion: 'v1' });
+    order.push('flushed'); return reject ? { ...value, error: { code: 'CONFLICT', message: 'Unsaved' } } : value;
+  });
+  const source = { vaultId: 'v', path: 'a.md' }; const destination = { vaultId: 'v', path: 'b.md' };
+  assert.equal((await s.api.move(source, destination)).ok, true);
+  assert.deepEqual(s.calls.map(call => call[0]), ['writeText', 'move']); assert.deepEqual(order, ['flushed', 'settled']);
+  reject = true; assert.equal((await s.api.remove(source)).error.code, 'CONFLICT');
+  assert.equal(s.calls.some(call => call[0] === 'remove'), false);
+  s.consumerContext.hooks.register(BeforeFileMutation, () => { throw new Error('Guard failed'); });
+  assert.equal((await s.api.move(source, destination)).ok, false); assert.equal(order.at(-1), 'rejected');
+  await s.host.stopAll(); s.host.assertNoResources();
+});
 
 async function setup(implementation = {}, options = {}) {
   const logs = []; const calls = []; const changes = []; let api; let observation; let ownedRoots; let directories; let consumerContext; let driverContext;

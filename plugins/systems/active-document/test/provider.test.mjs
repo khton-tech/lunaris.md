@@ -6,13 +6,31 @@ import { Logger } from '@lunaris/logging';
 import { Config } from '@lunaris/config';
 import { Filesystem, filesystemMethods } from '@lunaris/filesystem';
 import { Vault, VaultChanged } from '@lunaris/vault';
-import { ActiveDocument, ActiveDocumentChanged } from '@lunaris/active-document';
+import { ActiveDocument, BeforeActiveDocumentChange, ActiveDocumentTransitioned, ActiveDocumentChanged } from '@lunaris/active-document';
 import provider from '@lunaris/active-document-provider';
 const ok = value => ({ ok: true, value });
 const fail = code => ({ ok: false, error: { code, message: code } });
+
+test('document guards retain identity and settle failures; repeated open and relocation have explicit reasons', async () => {
+  const s = await setup(); const target = { vaultId: 'a', path: 'note.md' };
+  await s.api.open(target); await s.api.open(target);
+  assert.deepEqual(s.transitions.map(value => value.reason), ['open', 'open']); assert.equal(s.changes.length, 1);
+  let settled = 0;
+  const registration = s.context.hooks.register(BeforeActiveDocumentChange, value => {
+    value.onSettled(() => { settled++; }); return { ...value, error: { code: 'CONFLICT', message: 'Unsaved' } };
+  });
+  assert.equal((await s.api.close()).error.code, 'CONFLICT');
+  assert.equal((await s.api.open({ ...target, path: 'other.md' })).ok, false);
+  assert.equal(s.api.current().path, 'note.md'); assert.equal(settled, 2); registration.dispose();
+  await s.api.relocate(target, { ...target, path: 'renamed.md' });
+  assert.equal(s.transitions.at(-1).reason, 'relocate'); assert.equal(s.transitions.at(-1).previous.path, 'note.md');
+  s.context.hooks.register(BeforeActiveDocumentChange, value => { value.onSettled(() => { settled++; }); throw new Error('Broken guard'); });
+  assert.equal((await s.api.close()).ok, false); assert.equal(s.api.current().path, 'renamed.md'); assert.equal(settled, 3);
+  await s.stop();
+});
 async function setup(options = {}) {
   const store = options.store ?? {}; const logs = []; const changes = []; const stats = [];
-  let root = { id: 'a', name: 'A' }; let api; let emit;
+  let root = { id: 'a', name: 'A' }; let api; let emit; let context; const transitions = [];
   const kernel = createTestKernel({ initialGrants: { [provider.manifest.id]: ['vault.access', 'config.access', 'filesystem.access'], 'test.consumer': ['vault.access'] } });
   kernel.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push([level, ...args]); return true; }])));
   kernel.installMock(Config, {
@@ -27,9 +45,9 @@ async function setup(options = {}) {
   const manifest = (id, provides, requires = [], permissions = []) => ({ manifestVersion: 1, id, version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides, requires, permissions, optionalPermissions: [] });
   kernel.register(definePlugin({ manifest: manifest('test.events', [{ kind: 'event', id: VaultChanged.id, version: VaultChanged.version }]), activate(ctx) { emit = change => ctx.events.emit(VaultChanged, change); } }));
   kernel.register(provider);
-  kernel.register(definePlugin({ manifest: manifest('test.consumer', [], [ActiveDocument, ActiveDocumentChanged].map(t => ({ kind: t.kind, id: t.id, range: '^' + t.version })), ['vault.access']), activate(ctx) { api = ctx.use(ActiveDocument); ctx.events.on(ActiveDocumentChanged, value => { changes.push(value.current); }); } }));
+  kernel.register(definePlugin({ manifest: manifest('test.consumer', [], [ActiveDocument, BeforeActiveDocumentChange, ActiveDocumentTransitioned, ActiveDocumentChanged].map(t => ({ kind: t.kind, id: t.id, range: '^' + t.version })), ['vault.access']), activate(ctx) { context = ctx; api = ctx.use(ActiveDocument); ctx.events.on(ActiveDocumentTransitioned, value => { transitions.push(value); }); ctx.events.on(ActiveDocumentChanged, value => { changes.push(value.current); }); } }));
   await kernel.start('test.events'); await kernel.start('test.consumer');
-  return { api, store, logs, stats, changes, async switch(id) { const previous = root; root = id ? { id, name: id } : null; await emit({ kind: root ? 'switched' : 'closed', previous, current: root }); }, async stop() { await kernel.stopAll(); kernel.assertNoResources(); } };
+  return { api, context, transitions, store, logs, stats, changes, async switch(id) { const previous = root; root = id ? { id, name: id } : null; await emit({ kind: root ? 'switched' : 'closed', previous, current: root }); }, async stop() { await kernel.stopAll(); kernel.assertNoResources(); } };
 }
 test('persists and restores the last file independently per Vault and across provider restarts', async () => {
   const store = {}; let s = await setup({ store });
