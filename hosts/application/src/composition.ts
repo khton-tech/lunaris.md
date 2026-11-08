@@ -53,6 +53,7 @@ export function composeApplication(target: HTMLElement, options: {
   readonly platformPlugins?: readonly PluginDefinition[];
   readonly extensions?: { readonly plugins: readonly PluginDefinition[]; readonly entrypoints: readonly string[]; readonly grants: Readonly<Record<string, readonly string[]>>; readonly beforeClose?: () => Promise<boolean> };
 }): ApplicationDefinition {
+  if (options.features && !options.features.includes("files")) throw Error("The files feature currently owns required Vault navigation.");
   const art = options.art;
   const navigation = options.mode === "browser" ? createBrowserNavigation() : null;
   const updateService = options.mode === "browser" && options.buildId && options.buildId !== "development" ? createClientUpdates(options.buildId) : null;
