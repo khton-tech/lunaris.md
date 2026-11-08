@@ -18,6 +18,19 @@
 @import '@mantine/core/styles/Menu.css';
 @import '@mantine/core/styles/Splitter.css';
 
+.lm-root .lm-window-titlebar { display:flex;flex:none;align-items:stretch;min-height:max(2.25em,calc(var(--vault-space)*8));margin:calc(var(--vault-space)*2);margin-bottom:0;background:var(--vault-panel);border-radius:var(--vault-radius);border:0;box-shadow:none;user-select:none;overflow:hidden }
+.lm-window-titlebar-drag { display:flex;flex:1;align-items:center;padding-inline:calc(var(--vault-space)*3);overflow:hidden;cursor:default }
+.lm-root .lm-window-titlebar-title { font:inherit;font-size:.9em;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
+.lm-window-titlebar[data-focused=false] .lm-window-titlebar-title { color:var(--vault-secondary) }
+.lm-window-titlebar-actions { display:flex;flex:none;align-items:stretch }
+.lm-root .lm-window-action { width:max(2.75em,calc(var(--vault-space)*10));height:auto;min-height:2.25em;flex:none;border:0;border-radius:0;color:inherit;background:transparent;transition:background-color var(--vault-motion-fast) var(--vault-motion-easing) }
+.lm-root .lm-window-action:not(:disabled):hover { background:var(--vault-hover) }
+.lm-root .lm-window-action:not(:disabled):active { background:var(--vault-selection) }
+.lm-root .lm-window-action:disabled { color:var(--vault-secondary);cursor:default }
+.lm-root .lm-window-action:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
+.lm-root .lm-window-titlebar[data-chrome=true] { background:var(--vault-caption-background,var(--vault-panel));color:var(--vault-caption-text,var(--vault-text)) }
+@media(prefers-reduced-motion:reduce) { .lm-root .lm-window-action { transition:none } }
+
 .lm-task-checkbox .mantine-Checkbox-input { background:transparent;border-color:var(--vault-control-border);cursor:pointer;transition:background-color var(--vault-motion-fast) var(--vault-motion-easing),border-color var(--vault-motion-fast) var(--vault-motion-easing) }
 .lm-task-checkbox .mantine-Checkbox-input:enabled:hover { border-color:var(--vault-accent) }
 .lm-task-checkbox .mantine-Checkbox-input:checked { background:var(--vault-accent);border-color:var(--vault-accent) }
