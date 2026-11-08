@@ -57,6 +57,7 @@ export default definePlugin({ manifest, activate(ctx) {
         Object.assign(container.style, { display: "flex", flex: intrinsicHeight ? "0 0 auto" : "1 1 0%", minWidth: "0", minHeight: "0",
           containerType: intrinsicHeight ? "inline-size" : "size", backgroundColor: presentation.mode === "standalone" ? theme.pageBackground : "transparent" });
         container.dataset.presentation = presentation.mode; container.dataset.sizing = presentation.sizing;
+        container.dataset.windowChrome = String(theme.windowChrome);
         // The context-menu role owns its overlay geometry, independently of its target.
         if (id === "lunaris.context-menu") Object.assign(container.style, { containerType: "normal", position: "fixed", inset: "0", pointerEvents: "none" });
         if (id === "lunaris.task-checkbox") Object.assign(container.style, { display: "inline-flex", containerType: "normal", verticalAlign: "middle" });

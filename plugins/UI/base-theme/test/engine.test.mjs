@@ -24,7 +24,7 @@ test('engine supplies the immutable Monochrome preset without selecting it', asy
   const s = await setup(); assert.deepEqual(s.themes.list(), []);
   await s.host.start(engine.manifest.id);
   const theme = s.themes.get(presetId);
-  assert.equal(theme.name, 'Monochrome'); assert.equal(s.themes.list().length, 1);
+  assert.equal(theme.name, 'Monochrome'); assert.equal(s.themes.list().length, 2);
   assert.equal(theme.properties.appearance, 'dark');
   assert.equal(theme.properties.schema, 'lunaris.base-theme'); assert.equal(theme.properties.schemaVersion, 1);
   assert.ok(Object.isFrozen(theme.properties.colors)); assert.ok(Object.isFrozen(theme.properties.typography.fontFamily));
@@ -45,6 +45,20 @@ function luminance(hex) {
     .map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
   return r * 0.2126 + g * 0.7152 + b * 0.0722;
 }
+test('XP preset uses the compatible light schema and can be selected independently', async () => {
+  const s = await setup(); await s.host.start(engine.manifest.id);
+  const xp = s.themes.get('lunaris.base-theme-engine.windows-xp');
+  assert.equal(xp.properties.schema, 'lunaris.base-theme');
+  assert.equal(xp.properties.schemaVersion, 1);
+  assert.equal(xp.properties.appearance, 'light');
+  assert.equal(xp.properties.typography.fontFamily[0], 'Tahoma');
+  assert.equal(s.themes.select(xp.id).ok, true);
+  assert.equal(s.themes.current(), xp);
+  await s.host.stop(engine.manifest.id);
+  assert.equal(s.themes.current(), null);
+  assert.deepEqual(s.themes.list(), []);
+  await s.stop();
+});
 const contrast = (a, b) => (Math.max(luminance(a), luminance(b)) + 0.05) / (Math.min(luminance(a), luminance(b)) + 0.05);
 test('text and meaningful controls meet contrast thresholds across their intended states', async () => {
   const s = await setup(); await s.host.start(engine.manifest.id);
@@ -65,7 +79,7 @@ test('registration and restart preserve an existing selection and remove only en
   await s.host.start(engine.manifest.id); assert.equal(s.themes.current().id, foreign.id);
   s.themes.select(presetId); await s.host.stop(engine.manifest.id);
   assert.equal(s.themes.current(), null); assert.deepEqual(s.themes.list().map(theme => theme.id), [foreign.id]);
-  await s.host.start(engine.manifest.id); assert.equal(s.themes.list().length, 2); assert.equal(s.themes.current(), null);
+  await s.host.start(engine.manifest.id); assert.equal(s.themes.list().length, 3); assert.equal(s.themes.current(), null);
   s.themes.select(presetId); assert.equal(s.themes.current().name, 'Monochrome');
   await s.stop();
 });
@@ -76,7 +90,7 @@ test('a registration collision preserves another owner; retry succeeds', async (
   await assert.rejects(s.host.start(engine.manifest.id));
   assert.equal(s.themes.get(presetId).name, 'Existing owner'); assert.equal(s.themes.current().id, presetId);
   assert.ok(s.logs.some(([level, source, , details]) => level === 'error' && source === engine.manifest.id && details.error.cause.code === 'ALREADY_REGISTERED'));
-  await owner.dispose(); await s.host.start(engine.manifest.id); assert.equal(s.themes.list().length, 1);
+  await owner.dispose(); await s.host.start(engine.manifest.id); assert.equal(s.themes.list().length, 2);
   await s.host.stopAll(); s.host.assertNoResources();
   assert.ok(!s.host.diagnostics().some(item => ['CLEANUP_FAILED', 'API_CALL_FAILED'].includes(item.code)));
 });
@@ -86,5 +100,5 @@ test('provider shutdown stops its dependent engine; a new provider generation ge
   await s.host.stop(provider.manifest.id); s.host.assertState(engine.manifest.id, 'stopped');
   assert.throws(() => stale.list());
   await s.host.start(engine.manifest.id); await s.host.start('test.observer');
-  assert.equal(s.themes.list().length, 1); assert.equal(s.themes.current(), null); await s.stop();
+  assert.equal(s.themes.list().length, 2); assert.equal(s.themes.current(), null); await s.stop();
 });

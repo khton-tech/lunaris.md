@@ -34,7 +34,33 @@ export function resolveTheme(theme: ThemeDefinition | null) {
   variables["--vault-motion-normal"] = `${number(field(motion, "normal"), 200)}ms`;
   variables["--vault-motion-easing"] = text(field(motion, "easing"), "cubic-bezier(0.2, 0, 0, 1)");
   const startup = field(props?.components, "startupScreen");
+  const chrome = field(props?.components, "windowChrome");
+  const windowChrome = field(chrome, "enabled") === true;
+  if (windowChrome) {
+    for (const [key, variable] of Object.entries({
+      captionBackground: "caption-background", captionText: "caption-text", frameColor: "frame-color",
+      surfaceShadow: "surface-shadow", insetShadow: "inset-shadow", menuBorder: "menu-border",
+    })) {
+      const value = field(chrome, key);
+      if (typeof value === "string") variables[`--vault-${variable}`] = value;
+    }
+  }
+  // Optional control finishes stay inside UIKit; embedded content gains no surface.
+  const controls = field(props?.components, "controls");
+  for (const [key, variable] of Object.entries({
+    buttonBackground: "button-image", buttonHoverBackground: "button-hover-image",
+    buttonPressedBackground: "button-pressed-image", buttonBorder: "button-border",
+    buttonShadow: "button-shadow", primaryBackground: "primary-image",
+    primaryHoverBackground: "primary-hover-image", primaryPressedBackground: "primary-pressed-image",
+    inputShadow: "input-shadow",
+  })) {
+    const value = field(controls, key);
+    if (typeof value === "string") variables[`--vault-${variable}`] = value;
+  }
   const semantic = {
+    "--mantine-font-family": font, "--mantine-font-family-headings": font,
+    "--mantine-font-size-sm": fontSize, "--mantine-font-size-md": fontSize,
+    "--mantine-line-height": String(number(field(typography, "lineHeight"), 1.5)),
     "--mantine-color-body": color("background", "transparent"),
     "--mantine-color-text": color("text"), "--mantine-color-dimmed": color("textSecondary"),
     "--mantine-color-placeholder": color("textSecondary"), "--mantine-color-error": color("error"),
@@ -49,6 +75,7 @@ export function resolveTheme(theme: ThemeDefinition | null) {
     "--mantine-primary-color-light": color("selection", "transparent"), "--mantine-primary-color-light-hover": color("hover", "transparent"),
   };
   return {
+    windowChrome,
     scheme: props?.appearance === "light" ? "light" as const : "dark" as const,
     // Tokens and typography are safe to apply to embedded content. Painting a
     // surface is a separate decision made from the public presentation context.

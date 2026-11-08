@@ -43,7 +43,7 @@ test('parser respects escaped syntax, nested marks, code, images and HTML', t =>
   const doc = 'start\n\n\\*literal\\* **outer *inner*** `**code**`\n\n```md\n**literal**\n```\n\n![alt](file.png)\n\n<div>**html**</div>';
   const s = setup(doc);
   t.after(() => s.close());
-  assert.deepEqual(hidden(s.view), ['**', '*', '*', '**', '`', '`']);
+  assert.deepEqual(hidden(s.view), ['**', '*', '*', '**', '`', '`', '```', '```']);
   assert.equal(s.view.dom.querySelector('img[src]'), null);
   assert.equal(s.view.dom.querySelector('script'), null);
   assert.equal(s.view.state.sliceDoc(), doc);
@@ -89,4 +89,39 @@ test('inline code retains its presentation when delimiters reveal for editing', 
   s.view.dispatch({ selection: { anchor: doc.indexOf('code') } });
   assert.equal(s.view.dom.querySelector('.cm-preview-code').textContent, '`some code`');
   assert.equal(s.view.state.doc.toString(), doc);
+});
+
+test('fenced code forms a continuous card with an optional language and editable fences', t => {
+  const doc = 'start\n\n```typescript title=example\nconst text = "**literal**";\n\nnext();\n```\n\noutside';
+  const s = setup(doc);
+  t.after(() => s.close());
+  const card = () => [...s.view.dom.querySelectorAll('.cm-preview-code-block')];
+  assert.equal(card().length, 5);
+  assert.ok(card()[0].classList.contains('cm-preview-code-start'));
+  assert.ok(card().at(-1).classList.contains('cm-preview-code-end'));
+  assert.equal(s.view.dom.querySelector('.cm-preview-code-language').textContent, 'typescript');
+  assert.ok(hidden(s.view).includes(' title=example'));
+  assert.equal(s.view.dom.querySelector('.cm-preview-strong'), null);
+  s.view.dispatch({ selection: EditorSelection.create([
+    EditorSelection.cursor(doc.indexOf('typescript')), EditorSelection.cursor(doc.lastIndexOf('```')),
+  ]) });
+  assert.deepEqual(hidden(s.view), []);
+  assert.equal(s.view.dom.querySelector('.cm-preview-code-language'), null);
+  assert.equal(card().length, 5);
+  s.view.dispatch({ selection: { anchor: doc.indexOf('next') } });
+  assert.equal(s.view.dom.querySelector('.cm-preview-code-language').textContent, 'typescript');
+  assert.equal(s.view.state.sliceDoc(), doc);
+});
+
+test('empty, unlabelled, unclosed and tilde fences keep distinct card boundaries after edits', t => {
+  const s = setup('start\n\n```\n```\n\n~~~js\ncode\n~~~\n\n```\nlast');
+  t.after(() => s.close());
+  assert.equal(s.view.dom.querySelectorAll('.cm-preview-code-start').length, 3);
+  assert.equal(s.view.dom.querySelectorAll('.cm-preview-code-end').length, 3);
+  assert.equal(s.view.dom.querySelectorAll('.cm-preview-code-language').length, 1);
+  assert.equal(s.view.dom.querySelector('.cm-preview-code-language').textContent, 'js');
+  s.view.dispatch({ changes: { from: s.view.state.doc.length, insert: '\n```\n\nafter' } });
+  const last = [...s.view.dom.querySelectorAll('.cm-line')].at(-1);
+  assert.equal(last.textContent, 'after');
+  assert.equal(last.classList.contains('cm-preview-code-block'), false);
 });

@@ -208,8 +208,13 @@ handler or unsafe HTML rendering is introduced.
 
 Supported presentation: strong/emphasis/strikethrough, inline code, inline Markdown
 link labels, ATX/Setext headings, unordered bullets, quote markers and horizontal
-rules. Ordered list numbers remain literal. Code blocks receive a quiet code
-surface; their fences/info strings remain literal. Tasks render interactive
+rules. Ordered list numbers remain literal. Code blocks receive a continuous,
+rounded outline, quiet surface and monospaced text. Inactive fenced blocks show
+the first info-string token as a subdued language label above the code; absent
+languages add no label. Fence markers and remaining metadata hide without changing
+line breaks or source. Selecting a fence line reveals its complete source for
+editing; selecting the body retains the card. Empty, unclosed and tilde-fenced
+blocks use the same presentation. Tasks render interactive
 checkboxes as described below. Escaped syntax is interpreted by the parser. Images and HTML remain
 literal. Link labels may contain nested formatting; reference-style destinations
 are not resolved. Multiline syntax that cannot be safely hidden without replacing
@@ -234,6 +239,25 @@ callouts, properties, footnotes, math, diagrams, HTML and highlight/comment
 extensions remain outstanding. They must use appropriate public SDK contracts;
 do not resolve files or navigate through private plugin state or raw platform APIs.
 No extra SDK service was required for the implemented presentation layer.
+
+### Code block cards
+
+Reference: the existing outlined inline-code presentation, extended to the Owner's
+requested bordered code card with a language caption. CodeMirror owns these
+document-line decorations, including local borders, padding and wrapping; this
+is not a new UIKit control or an enclosing editor surface. Workspace, ActiveScreen
+and the Mantine editor target keep their existing geometry and surface ownership.
+Colors follow theme text/secondary text; the caption is document content and
+requires no translation. There are no new SDK contracts or plugin connections.
+Text Editor remains integrated with Mantine Components, Themes and persistence
+through the existing public contracts.
+
+Targeted preview and composed Workspace tests cover fence reveal, multiple
+selections, literal code contents, optional captions, empty/unclosed blocks,
+language edits, theme changes, undo and CRLF saving. Native visual acceptance
+remains pending: check the continuous outline/corners, caption placement, empty
+blocks, caret/selection, long wrapped lines, nested lists/quotes and scrolling in
+light/dark themes and narrow/short Workspace windows.
 
 Integration review: Text Editor mounts the headerless public role through Components
 to Mantine Components. The existing ActiveScreen, Workspace, Themes, Localization,

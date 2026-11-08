@@ -27,6 +27,7 @@ function decorations(view: EditorView): DecorationSet {
   const ranges: Range<Decoration>[] = [];
   const lines = new Set<number>();
   const quoteLines = new Map<number, number>();
+  const fences = new Set<number>();
   const hide = (from: number, to: number) => {
     // View plugins must not replace line breaks (vertical layout belongs to CM).
     if (from < to && state.doc.lineAt(from).number === state.doc.lineAt(to).number)
@@ -55,11 +56,37 @@ function decorations(view: EditorView): DecorationSet {
     // Raw HTML, images and code bodies stay literal; never interpret embedded markup.
     if (["FencedCode", "CodeBlock", "HTMLBlock", "HTMLTag", "Image"].includes(name)) {
       if (name === "FencedCode" || name === "CodeBlock") {
+        const last = state.doc.lineAt(to);
+        const marks = node.node.getChildren("CodeMark");
+        const info = node.node.getChild("CodeInfo");
+        // Keep source positions and line breaks intact: only inactive fence text
+        // is hidden. Selecting either fence exposes it for normal editing.
+        if (name === "FencedCode") {
+          for (const mark of marks) {
+            if (mark.from < visible.from || mark.from > visible.to || fences.has(mark.from)) continue;
+            fences.add(mark.from);
+            const fence = state.doc.lineAt(mark.from);
+            if (selected(state, fence.from, fence.to)) continue;
+            if (mark === marks[0] && info) {
+              const language = /^\S+/.exec(state.sliceDoc(info.from, info.to));
+              if (language) {
+                hide(mark.from, info.from);
+                ranges.push(Decoration.mark({ class: "cm-preview-code-language" }).range(info.from, info.from + language[0].length));
+                hide(info.from + language[0].length, fence.to);
+                continue;
+              }
+            }
+            hide(mark.from, fence.to);
+          }
+        }
         for (let number = Math.max(line.number, state.doc.lineAt(visible.from).number);
           number <= state.doc.lineAt(Math.min(to, visible.to)).number; number++) {
           const start = state.doc.line(number).from;
           if (start >= visible.from && start <= visible.to && !lines.has(start)) {
-            lines.add(start); ranges.push(Decoration.line({ class: "cm-preview-code-block" }).range(start));
+            const classes = ["cm-preview-code-block"];
+            if (number === line.number) classes.push("cm-preview-code-start");
+            if (number === last.number) classes.push("cm-preview-code-end");
+            lines.add(start); ranges.push(Decoration.line({ class: classes.join(" ") }).range(start));
           }
         }
       }
@@ -142,6 +169,10 @@ export const livePreviewTheme = EditorView.baseTheme({
   ".cm-preview-strike": { textDecoration: "line-through" },
   ".cm-preview-code, .cm-preview-code-block": { fontFamily: "var(--vault-mono, 'Cascadia Code', Consolas, ui-monospace, monospace)", backgroundColor: "color-mix(in srgb, currentColor 5%, transparent)" },
   ".cm-preview-code": { fontSize: "0.95em", fontWeight: "500", padding: "0.05em 0.3em", border: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderRadius: "0.3em", backgroundColor: "color-mix(in srgb, currentColor 10%, transparent)", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone" },
+  ".cm-line.cm-preview-code-block": { margin: "0 clamp(12px, 3cqi, 40px)", padding: "0 0.9em", borderLeft: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderRight: "1px solid color-mix(in srgb, currentColor 25%, transparent)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" },
+  ".cm-line.cm-preview-code-start": { borderTop: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderTopLeftRadius: "0.4em", borderTopRightRadius: "0.4em", paddingTop: "0.45em" },
+  ".cm-line.cm-preview-code-end": { borderBottom: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderBottomLeftRadius: "0.4em", borderBottomRightRadius: "0.4em", paddingBottom: "0.45em" },
+  ".cm-preview-code-language": { fontSize: "0.8em", fontWeight: "500" },
   ".cm-preview-heading": { fontWeight: "600", lineHeight: "1.4" },
   ".cm-preview-h1": { fontSize: "2.4em" }, ".cm-preview-h2": { fontSize: "2em" },
   ".cm-preview-h3": { fontSize: "1.7em" }, ".cm-preview-h4": { fontSize: "1.45em" },
