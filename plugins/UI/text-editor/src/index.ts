@@ -2,7 +2,8 @@ import { definePlugin } from "@lunaris/sdk";
 import { Logger } from "@lunaris/logging";
 import { ActiveDocument, ActiveDocumentTransitioned, BeforeActiveDocumentChange } from "@lunaris/active-document";
 import { ActiveScreen } from "@lunaris/active-screen";
-import { BeforeFileMutation, Filesystem, FileChanged } from "@lunaris/filesystem";
+import { BeforeFileMutation, Filesystem, FileChanged, FilesystemSources } from "@lunaris/filesystem";
+import { Drafts, ConnectionChanged } from "@lunaris/remote";
 import type { FileTarget, FsFailure } from "@lunaris/filesystem";
 import { Vault, BeforeVaultRelease, VaultChanged } from "@lunaris/vault";
 import { Components, ComponentsChanged } from "@lunaris/components";
@@ -19,6 +20,8 @@ const catalogs = { en: {
   save: "Save", retry: "Retry save", reload: "Reload from disk", discard: "Discard changes and reload", cancel: "Cancel", editor: "Markdown editor", task: "Task",
   conflict: "The file changed outside the editor. Your changes are retained.", missing: "The file was removed. Your text is retained.",
   readFailed: "Cannot read this file.", saveFailed: "Cannot save changes. Your text is retained.",
+  offline: "Server unavailable. Changes are saved on this device and will be retried after reconnection.",
+  draftFailed: "Local recovery could not be saved. Keep this document open until saving succeeds.",
 } };
 const key = (target: FileTarget) => JSON.stringify([target.vaultId, target.path]);
 const inside = (target: FileTarget, parent: FileTarget) => target.vaultId === parent.vaultId && (target.path === parent.path || target.path.startsWith(parent.path + "/"));
@@ -28,6 +31,7 @@ export default definePlugin({ manifest, activate(ctx) {
   const logger = ctx.use(Logger); const fs = ctx.use(Filesystem); const documents = ctx.use(ActiveDocument);
   const screens = ctx.use(ActiveScreen); const components = ctx.use(Components); const localization = ctx.use(Localization);
   const vaults = ctx.use(Vault); const themes = ctx.use(Themes);
+  const drafts = ctx.permissions.has("drafts.access") ? ctx.optional(Drafts) : undefined; const sources = ctx.optional(FilesystemSources);
   const sessions = new Map<string, DocumentSession>(); const states = new Map<DocumentSession, EditorState>();
   const views = new Set<{ render(): void; removed(): void; refreshControls(): void }>();
   const screenId = `${ctx.pluginId}.screen`;
@@ -47,8 +51,15 @@ export default definePlugin({ manifest, activate(ctx) {
   function sessionFor(target: FileTarget): DocumentSession {
     let session = sessions.get(key(target));
     if (!session) {
+      const identity = sources?.remoteIdentity(target.vaultId);
+      const draftKey = () => identity?.ok ? { ...identity.value, path: session!.target.path } : null;
       session = new DocumentSession({ ...target }, fs, () => !ctx.signal.aborted && vaults.current()?.id === target.vaultId, changed,
-        (level, message, error) => { if (!ctx.signal.aborted) logger[level](ctx.pluginId, message, error === undefined ? {} : { error }); });
+        (level, message, error) => { if (!ctx.signal.aborted) logger[level](ctx.pluginId, message, error === undefined ? {} : { error }); }, undefined,
+        drafts && identity?.ok ? {
+          load: () => drafts.load(draftKey()!),
+          save: (text, expectedVersion, revision) => drafts.save({ key: draftKey()!, text, expectedVersion, revision, updatedAt: Date.now() }),
+          remove: revision => drafts.remove(draftKey()!, revision),
+        } : undefined);
       sessions.set(key(target), session);
     }
     return session;
@@ -64,11 +75,15 @@ export default definePlugin({ manifest, activate(ctx) {
     const result = screens.select(screenId);
     if (!result.ok) logger.error(ctx.pluginId, "Cannot select editor screen", { error: result.error });
   }
-  async function flushSessions(items: readonly DocumentSession[], settle: (listener: () => void) => void): Promise<FsFailure | null> {
+  async function flushSessions(items: readonly DocumentSession[], settle: (listener: () => void) => void, allowLocalRecovery = false): Promise<FsFailure | null> {
     for (const session of items) settle(session.hold());
     for (const session of items) {
       if (session.loading) await session.load();
       const result = await session.flush();
+      if (!result.ok && allowLocalRecovery && ["OFFLINE", "SERVER_UNAVAILABLE", "SESSION_EXPIRED", "UNAUTHENTICATED"].includes(result.error.code)) {
+        const preserved = await session.persistDraft();
+        if (preserved.ok) continue;
+      }
       if (!result.ok) { if (!ctx.signal.aborted) { current = session; unsupported = false; changed(); selectScreen(); } return result.error; }
     }
     return null;
@@ -76,11 +91,15 @@ export default definePlugin({ manifest, activate(ctx) {
   ctx.hooks.register(BeforeActiveDocumentChange, async guard => {
     if (guard.error) return guard;
     const items = [...sessions.values()].filter(session => session.dirty && session.target.vaultId === guard.previous?.vaultId);
-    return { ...guard, error: await flushSessions(items, guard.onSettled) };
+    return { ...guard, error: await flushSessions(items, guard.onSettled, true) };
   });
   ctx.hooks.register(BeforeVaultRelease, async guard => {
     if (guard.error) return guard;
-    return { ...guard, error: await flushSessions([...sessions.values()].filter(session => session.target.vaultId === guard.previous.id), guard.onSettled) };
+    return { ...guard, error: await flushSessions([...sessions.values()].filter(session => session.target.vaultId === guard.previous.id), guard.onSettled, true) };
+  });
+  if (drafts && sources && ctx.permissions.has("account.access")) ctx.events.on(ConnectionChanged, change => {
+    if (change.state !== "connected") return;
+    for (const session of sessions.values()) if (session.active && session.dirty && session.error && ["OFFLINE", "SERVER_UNAVAILABLE"].includes(session.error.code)) void session.flush();
   });
   ctx.hooks.register(BeforeFileMutation, async guard => {
     if (guard.error) return guard;
@@ -130,7 +149,7 @@ export default definePlugin({ manifest, activate(ctx) {
       const context = props.workspace as { vaultId?: string } | undefined;
       const session = current?.target.vaultId === context?.vaultId ? current : null;
       const ready = !!session?.loaded;
-      const error = session?.error ? text(session.error.code === "CONFLICT" ? "conflict" : session.missing ? "missing" : session.loaded ? "saveFailed" : "readFailed") : "";
+      const error = session?.draftError ? text("draftFailed") : session?.error ? text(session.error.code === "CONFLICT" ? "conflict" : session.missing ? "missing" : session.draftSaved && ["OFFLINE", "SERVER_UNAVAILABLE"].includes(session.error.code) ? "offline" : session.loaded ? "saveFailed" : "readFailed") : "";
       const next = { documentKey: session ? key(session.target) : "", name: session?.target.path ?? text(unsupported ? "unsupported" : "empty"),
         status: session?.loading ? text("loading") : session?.saving ? text("saving") : session?.loaded ? text(session.dirty ? "unsaved" : "saved") : "",
         error, ready, dirty: session?.dirty ?? false, busy: !!session && (session.loading || session.saving || session.locks > 0),

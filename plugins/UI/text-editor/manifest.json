@@ -91,6 +91,24 @@
       "kind": "event",
       "id": "lunaris.theme-changed",
       "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.drafts",
+      "range": "^1.0.0",
+      "optional": true
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.filesystem-sources",
+      "range": "^1.0.0",
+      "optional": true
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.connection-changed",
+      "range": "^1.0.0",
+      "optional": true
     }
   ],
   "permissions": [
@@ -98,5 +116,8 @@
     "vault.access",
     "filesystem.access"
   ],
-  "optionalPermissions": []
+  "optionalPermissions": [
+    "drafts.access",
+    "account.access"
+  ]
 }

@@ -14,7 +14,7 @@ export const dependencies = {
   window: ['sdk'],
   'window-provider': ['sdk', 'logging', 'window'],
   'tauri-window': ['sdk', 'logging', 'window'],
-  'text-editor': ['sdk', 'logging', 'active-document', 'active-screen', 'filesystem', 'vault', 'components', 'localization', 'themes'],
+  'text-editor': ['remote', 'sdk', 'logging', 'active-document', 'active-screen', 'filesystem', 'vault', 'components', 'localization', 'themes'],
   'interface-settings': ['sdk', 'logging', 'config', 'settings', 'localization', 'themes', 'vault'],
   settings: ['sdk'],
   'settings-provider': ['sdk', 'logging', 'settings'],
