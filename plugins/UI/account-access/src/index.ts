@@ -41,6 +41,12 @@ export function createAccountAccess(options: { readonly defaultOpen?: boolean; r
       const result = await vaults.list(mode === "trash" ? "trashed" : "active"); if (ctx.signal.aborted) return;
       if (result.ok) entries = result.value; else error = errorKey(result.error.code);
     }
+    async function openEntry(entry: RemoteVault, created = false) {
+      const location = sources.location("remote", entry.location);
+      if (!location.ok) { error = "error"; return; }
+      const opened = await locations.open(location.value, created ? { name: entry.name } : undefined);
+      if (!ctx.signal.aborted && !opened.ok) error = errorKey(opened.error.code);
+    }
     function render() {
       if (unavailable || ctx.signal.aborted) return;
       try { renderView(); } catch (error) { if (isSdkUnavailable(error)) unavailable = true; else throw error; }
@@ -61,7 +67,7 @@ export function createAccountAccess(options: { readonly defaultOpen?: boolean; r
         onField(field: keyof typeof fields, value: string) { if (!busy && Object.hasOwn(fields, field)) { fields[field] = value; error = ""; render(); } },
         onSubmit: submit, onToggleAuth() { if (!busy) { mode = mode === "login" ? "register" : "login"; fields.password = ""; error = ""; render(); } },
         onLocal() { if (!busy) setVisible(false); }, onLogout: () => run(async () => { const result = await session.logout(); if (!result.ok) error = errorKey(result.error.code); else { entries = []; mode = "login"; } }),
-        onOpen: (id: string) => run(async () => { const entry = entries.find(v => v.id === id); if (!entry) return; const location = sources.location("remote", entry.location); if (!location.ok) { error = "error"; return; } const opened = await locations.open(location.value); if (!opened.ok) error = errorKey(opened.error.code); }),
+        onOpen: (id: string) => run(async () => { const entry = entries.find(v => v.id === id); if (entry) await openEntry(entry); }),
         onTrash: (id: string) => run(async () => { const result = await vaults.trash(id); if (ctx.signal.aborted) return; if (!result.ok) error = errorKey(result.error.code); else await list(); }),
         onRestore: (id: string) => run(async () => { const result = await vaults.restore(id); if (ctx.signal.aborted) return; if (!result.ok) error = errorKey(result.error.code); else await list(); }),
         onToggleTrash: () => run(async () => { mode = mode === "trash" ? "vaults" : "trash"; await list(); }),
@@ -82,7 +88,7 @@ export function createAccountAccess(options: { readonly defaultOpen?: boolean; r
     }
     function submit() { run(async () => {
       if (mode === "connect") return connect();
-      if (mode === "vaults") { const result = await vaults.create(fields.name.trim()); if (ctx.signal.aborted) return; if (!result.ok) error = errorKey(result.error.code); else { fields.name = ""; await list(); } return; }
+      if (mode === "vaults") { const result = await vaults.create(fields.name.trim()); if (ctx.signal.aborted) return; if (!result.ok) error = errorKey(result.error.code); else { fields.name = ""; entries = [...entries, result.value]; await openEntry(result.value, true); } return; }
       const password = fields.password; fields.password = "";
       if (mode === "register") { const created = await session.register(fields.login, password, fields.invitation); if (!created.ok) { error = errorKey(created.error.code); return; } }
       if (ctx.signal.aborted) return;
