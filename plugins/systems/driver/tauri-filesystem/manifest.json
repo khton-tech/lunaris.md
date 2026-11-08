@@ -40,6 +40,16 @@
       "kind": "api",
       "id": "lunaris.directory-locations-driver",
       "version": "1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.local-filesystem-backend",
+      "version": "1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.local-filesystem-backend-changed",
+      "version": "1.0.0"
     }
   ],
   "requires": [

@@ -1,7 +1,7 @@
 import { definePlugin } from "@lunaris/sdk";
-import { DirectoryLocationsDriver, validDirectoryName, FilesystemDriver, FilesystemObservationDriver, FilesystemRootsDriver, FilesystemLocationsDriver, ApplicationDirectoryDriver, DriverFileChanged, failure, validFolderLocation } from "@lunaris/filesystem";
+import { LocalFilesystemBackend, DirectoryLocationsDriver, validDirectoryName, FilesystemDriver, FilesystemObservationDriver, FilesystemRootsDriver, FilesystemLocationsDriver, ApplicationDirectoryDriver, DriverFileChanged, failure, validFolderLocation } from "@lunaris/filesystem";
 import type { CancellationSignal } from "@lunaris/sdk";
-import type { FileChange, FolderLocation, FsResult, FsCapabilities } from "@lunaris/filesystem";
+import type { FileChange, FolderLocation, FsResult, FsCapabilities, FilesystemApi, DirectoryLocationsApi, FilesystemLocationsApi } from "@lunaris/filesystem";
 import { Logger } from "@lunaris/logging";
 import { nativeFilesystem, createSessionId } from "./native.js";
 import type { NativeFilesystem } from "./native.js";
@@ -19,7 +19,7 @@ export function createTauriFilesystemDriver(native: NativeFilesystem = nativeFil
     const watches = new Map<string, string>();
     const events = (change: FileChange): void => {
       if (ctx.signal.aborted || watches.get(change.watchId) !== change.vaultId) return;
-      void ctx.events.emit(DriverFileChanged, change).catch(error => {
+      void Promise.all([ctx.events.emit(DriverFileChanged, change), ctx.events.emit(LocalFilesystemBackend.changed, change)]).catch(error => {
         if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot deliver native filesystem change", { code: "FILESYSTEM_EVENT_FAILED", error });
       });
     };
@@ -68,15 +68,16 @@ export function createTauriFilesystemDriver(native: NativeFilesystem = nativeFil
     function liveOwner(owner: CancellationSignal): boolean {
       return !!owner && typeof owner.aborted === "boolean" && typeof owner.addEventListener === "function" && typeof owner.removeEventListener === "function";
     }
-    ctx.provide(DirectoryLocationsDriver, { async create(parent, name, owner) {
+    const directoryLocations: DirectoryLocationsApi = { async create(parent, name, owner) {
       if (!validFolderLocation(parent) || !validDirectoryName(name) || !liveOwner(owner)) return failure("INVALID_ARGUMENT", "A valid parent, name and cancellation signal are required.");
       if (owner.aborted || ctx.signal.aborted) return failure("CANCELLED", "Directory creation was cancelled.");
       const result = await request<FolderLocation>("createLocation", { reference: parent.reference, name });
       if (owner.aborted || ctx.signal.aborted) return failure("CANCELLED", "Directory creation was cancelled.");
       if (result.ok && !validFolderLocation(result.value)) return failure("IO_ERROR", "The driver returned an invalid location.");
       return result;
-    } });
-    ctx.provide(FilesystemLocationsDriver, {
+    } };
+    ctx.provide(DirectoryLocationsDriver, directoryLocations);
+    const locationApi: FilesystemLocationsApi = {
       async describe(reference) {
         if (typeof reference !== "string" || !reference.length || reference.length > 512) return failure("INVALID_ARGUMENT", "A valid location reference is required.");
         if (ctx.signal.aborted) return failure("VAULT_CLOSED", "The driver is stopped.");
@@ -97,9 +98,10 @@ export function createTauriFilesystemDriver(native: NativeFilesystem = nativeFil
         if (!validFolderLocation(location)) return Promise.resolve(failure("INVALID_ARGUMENT", "A valid folder location is required."));
         return roots.acquire(owner, () => request("attachLocation", { reference: location.reference }));
       },
-    });
+    };
+    ctx.provide(FilesystemLocationsDriver, locationApi);
     ctx.provide(FilesystemObservationDriver, { watch: (target, owner, recursive) => observation.watch({ ...target }, owner, recursive) });
-    ctx.provide(FilesystemDriver, {
+    const files: FilesystemApi = {
       capabilities: () => capabilities,
       selectVault: () => request("selectVault"),
       closeVault: vaultId => request("closeVault", { vaultId }),
@@ -118,6 +120,16 @@ export function createTauriFilesystemDriver(native: NativeFilesystem = nativeFil
       copy: (source, destination, overwrite = false) => request("copy", { source, destination, overwrite }),
       watch: (target, recursive = true) => request("watch", { target, recursive }),
       unwatch: (vaultId, watchId) => request("unwatch", { vaultId, watchId }),
+    };
+    ctx.provide(FilesystemDriver, files);
+    ctx.provide(LocalFilesystemBackend.api, { ...files,
+      openConfig: owner => roots.acquire(owner, () => request("openConfig")),
+      selectOwned: owner => roots.acquire(owner, () => request("selectVault")),
+      describeLocation: reference => locationApi.describe(reference),
+      selectLocation: owner => locationApi.select(owner),
+      attachLocation: (location, owner) => locationApi.attach(location, owner),
+      createLocation: (parent, name, owner) => directoryLocations.create(parent, name, owner),
+      watchOwned: (target, owner, recursive) => observation.watch({ ...target }, owner, recursive),
     });
     logger.info(ctx.pluginId, "Native filesystem driver ready", { code: "FILESYSTEM_DRIVER_READY" });
   } });

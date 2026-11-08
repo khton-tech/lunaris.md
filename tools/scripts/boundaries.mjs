@@ -3,6 +3,7 @@ import path from 'node:path';
 import ts from 'typescript';
 
 export const dependencies = {
+  'filesystem-router': ['sdk', 'filesystem', 'logging'],
   remote: ['sdk', 'filesystem'],
   'window-titlebar': ['sdk', 'logging', 'window', 'slots', 'slot-dom', 'components', 'localization'],
   window: ['sdk'],
@@ -66,6 +67,7 @@ export const dependencies = {
 };
 
 export const packagePath = scope => {
+  if (scope === 'filesystem-router') return 'plugins/systems/filesystem-router';
   if (scope === 'window-titlebar') return 'plugins/UI/window-titlebar';
   if (scope === 'window-provider') return 'plugins/systems/window';
   if (scope === 'tauri-window') return 'plugins/systems/driver/tauri-window';

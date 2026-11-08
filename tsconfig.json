@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
+    { "path": "plugins/systems/filesystem-router" },
     { "path": "packages/remote" },
     {
       "path": "plugins/UI/base-theme"
