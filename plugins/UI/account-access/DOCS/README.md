@@ -52,3 +52,13 @@ state. AccountSession, AccountVaults and VaultLocations remain the operation own
 No host-specific DOM selectors, private imports or new SDK APIs are required.
 The shared role applies to web and the desktop server sign-in flow; local Vault
 Selector and the Customization settings page are unchanged.
+
+Browser acceptance (2026-11-08): inspected the served production bundle in the
+in-app browser with the test account. Verified sign-in, registration form, empty
+and populated catalogs, opened account/Vault menus, recoverable trash/restore,
+create disclosure and narrow-window composition with the Monochrome theme.
+The trash name is display-only; Restore is its explicit action. Invitation-only
+registration, alternate themes and the native desktop WebView remain manual
+acceptance cases. Behavioral coverage includes escaped names, stable password
+inputs, create cancellation/focus, trash/restore callbacks and real-server login,
+creation, editing, draft recovery and shutdown.

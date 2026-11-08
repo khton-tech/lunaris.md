@@ -58,6 +58,15 @@ test('account access uses controlled Mantine password fields, escaped catalog na
   await new Promise(setImmediate);
   assert.equal(s.target.querySelector('.lm-account-disclosure').getAttribute('aria-hidden'), 'true');
   assert.equal(s.dom.window.document.activeElement, toggle);
+  s.target.querySelector('[aria-label="vaultActions: <script>bad</script>"]').click(); await settle();
+  const trashAction = s.target.querySelector('[role=menuitem]'); assert.ok(trashAction);
+  trashAction.click(); await new Promise(setImmediate);
+  assert.ok(calls.some(call => call[0] === 'onTrash' && call[1] === 'v'));
+  mounted.value.update({ ...props, mode: 'trash', entries: [{ id: 'v', name: 'Archived', detail: 'Until tomorrow' }] });
+  assert.equal(s.target.querySelector('.lm-account-row .lm-card-row'), null);
+  assert.ok(s.target.querySelector('.lm-account-trash-entry').textContent.includes('Until tomorrow'));
+  s.target.querySelector('.lm-account-row button').click();
+  assert.ok(calls.some(call => call[0] === 'onRestore' && call[1] === 'v'));
   assert.equal(s.target.querySelector('.lm-root').dataset.presentation, 'standalone');
   mounted.value.update({ ...props, presentation: { mode: 'embedded', sizing: 'content' } }); assert.equal(s.target.querySelector('.lm-root').style.backgroundColor, 'transparent');
   await s.stop();

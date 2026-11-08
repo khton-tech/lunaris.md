@@ -64,7 +64,8 @@ export function AccountAccessView({ props: p, theme }: { props: AccountAccessPro
         </Box>}
         {p.entries.length > 0 && <Stack component="ul" className="lm-account-list" gap={0}>
           {p.entries.map(entry => <Box component="li" key={entry.id} className="lm-account-row">
-            <CardRow label={entry.name} detail={entry.detail} icon={<Icon name="folder" />} disabled={p.busy} onClick={() => p.mode === "trash" ? p.onRestore(entry.id) : p.onOpen(entry.id)} />
+            {p.mode === "trash" ? <Box className="lm-account-trash-entry"><Icon name="folder" /><Box><Text>{entry.name}</Text><Text className="lm-account-context" size="sm">{entry.detail}</Text></Box></Box> :
+              <CardRow label={entry.name} detail={entry.detail} icon={<Icon name="folder" />} disabled={p.busy} onClick={() => p.onOpen(entry.id)} />}
             {p.mode === "trash" ? <Button disabled={p.busy} leftSection={<Icon name="restore" />} onClick={() => p.onRestore(entry.id)}>{p.text.restore}</Button> :
               <Menu withinPortal={false} position="bottom-end" offset={6} returnFocus transitionProps={{ transition: "fade" }}>
                 <Menu.Target><ActionIcon className="lm-account-icon" variant="subtle" size="lg" disabled={p.busy} aria-label={`${p.text.vaultActions}: ${entry.name}`} title={p.text.vaultActions}><Icon name="actions" /></ActionIcon></Menu.Target>

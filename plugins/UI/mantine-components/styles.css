@@ -332,6 +332,8 @@
 .lm-account-row { display:flex;gap:calc(var(--vault-space)*2);align-items:center;min-width:0;padding:calc(var(--vault-space)*1) }
 .lm-account-row+.lm-account-row { border-top:var(--vault-border) solid var(--vault-separator) }
 .lm-account-row>.lm-card-row { flex:1;min-width:0 }
+.lm-account-trash-entry { display:flex;align-items:center;gap:calc(var(--vault-space)*3);flex:1;padding:calc(var(--vault-space)*2) calc(var(--vault-space)*3);overflow-wrap:anywhere }
+.lm-account-trash-entry>svg { flex-shrink:0 }
 .lm-account-row .lm-card-row { border:0;background:transparent }
 .lm-root .lm-account-icon { color:var(--vault-secondary);--ai-hover:var(--vault-hover);--ai-hover-color:var(--vault-text);flex-shrink:0 }
 .lm-root .lm-account-icon:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset) }
