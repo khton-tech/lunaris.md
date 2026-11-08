@@ -1,6 +1,6 @@
 import { definePlugin } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { ServerTransport, AccountSessionChanged, validRemoteVault } from "@lunaris/remote";
 import type { RemoteVault } from "@lunaris/remote";
 import { RemoteFilesystemBackend, failure, validTarget, validFolderLocation } from "@lunaris/filesystem";
@@ -13,7 +13,7 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: "lunaris.remot
   provides: [RemoteFilesystemBackend.api, RemoteFilesystemBackend.changed].map(t => ({ kind: t.kind, id: t.id, version: t.version })),
   requires: [Logger, ServerTransport, AccountSessionChanged].map(t => ({ kind: t.kind, id: t.id, range: `^${t.version}` })),
   permissions: ["account.network", "account.access", "filesystem.native"], optionalPermissions: [] }, activate(ctx) {
-  const logger = ctx.use(Logger); const transport = ctx.use(ServerTransport);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal); const transport = ctx.use(ServerTransport);
   const roots = new Map<string, Root>(); const watches = new Map<string, Watch>(); const cursors = new Map<string, string>();
   let sequence = 0; let polling = false;
   const next = () => `${ctx.activationId}:${++sequence}`;

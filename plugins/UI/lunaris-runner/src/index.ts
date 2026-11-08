@@ -1,5 +1,5 @@
 import { definePlugin } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Config } from "@lunaris/config";
 import { Localization, LocaleChanged } from "@lunaris/localization";
 import { Slots } from "@lunaris/slots";
@@ -19,7 +19,7 @@ export function createRunner(options: { readonly art: string; readonly hideWhenL
   const hideWhenLoaded = options.hideWhenLoaded === true;
   if (typeof art !== "string" || art.trim().length === 0) throw new TypeError("Runner artwork is required.");
   return definePlugin({ manifest, async activate(ctx) {
-    const logger = ctx.use(Logger);
+    const logger = scopeLogger(ctx.use(Logger), ctx.signal);
     try {
       logger.debug(ctx.pluginId, "Reading runner startup settings");
       const read = await ctx.use(Config).read(ctx.pluginId);

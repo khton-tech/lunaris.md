@@ -1,6 +1,6 @@
 import { definePlugin } from "@lunaris/sdk";
 import type { ResourceScope } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Config } from "@lunaris/config";
 import { Localization, LocaleChanged } from "@lunaris/localization";
 import { Slots } from "@lunaris/slots";
@@ -17,7 +17,7 @@ interface View { readonly owner: ResourceScope; readonly target: HTMLElement; re
 type Regions = Readonly<Record<"main" | "left-rail" | "left-panel", HTMLElement>>;
 
 export default definePlugin({ manifest, async activate(ctx) {
-  const logger = ctx.use(Logger);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal);
   const config = ctx.use(Config); let panelWidth = 288; let saveWidth = Promise.resolve();
   const validWidth = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value) && value >= 120 && value <= 4096;
   try {

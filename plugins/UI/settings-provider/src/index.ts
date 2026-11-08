@@ -1,6 +1,6 @@
 import { definePlugin, LunarisError } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Settings, SettingsChanged } from "@lunaris/settings";
 import type { SettingsCategory, SettingsSection, SettingsGroup, SettingsItem, SettingsResult } from "@lunaris/settings";
 import { readCategory, readSection, readGroup, readItem, itemKeys, record, validTitle } from "./input.js";
@@ -9,7 +9,7 @@ import manifest from "../manifest.json" with { type: "json" };
 interface Entry<T> { value: T; detach(): void }
 const done: SettingsResult = Object.freeze({ ok: true, value: null });
 export default definePlugin({ manifest, activate(ctx) {
-  const logger = ctx.use(Logger);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal);
   const categories = new Map<string, Entry<SettingsCategory>>(); const sections = new Map<string, Entry<SettingsSection>>();
   const groups = new Map<string, Entry<SettingsGroup>>(); const items = new Map<string, Entry<SettingsItem>>();
   const ordered = <T extends SettingsCategory>(entries: Map<string, Entry<T>>) => Object.freeze([...entries.values()].map(entry => entry.value).sort((a, b) => (a.order ?? 0) - (b.order ?? 0)));

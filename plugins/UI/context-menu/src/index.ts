@@ -1,6 +1,6 @@
 import { definePlugin } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Components, ComponentsChanged } from "@lunaris/components";
 import type { MountedComponent } from "@lunaris/components";
 import { ContextMenu } from "@lunaris/context-menu";
@@ -12,7 +12,7 @@ const idValid = (id: unknown): id is string => typeof id === "string" && id.trim
 const done = { ok: true, value: null } as const;
 
 export default definePlugin({ manifest, activate(ctx) {
-  const logger = ctx.use(Logger);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal);
   const components = ctx.use(Components);
   let active: MenuSession | undefined;
   const registrations = new Map<string, { build: MenuContribution["build"]; owner: CancellationSignal; dispose(): void }>();

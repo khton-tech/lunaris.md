@@ -1,6 +1,6 @@
 import { definePlugin } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Config, ConfigChanged } from "@lunaris/config";
 import { Settings } from "@lunaris/settings";
 import type { SettingsItemContext, SettingsItemUpdate } from "@lunaris/settings";
@@ -22,7 +22,7 @@ const catalogs = { en: { customization: "Customization", interface: "Interface",
 export function createInterfaceSettings(options: { readonly defaultThemeId: string }) {
   if (typeof options.defaultThemeId !== "string" || !options.defaultThemeId) throw new TypeError("A default theme ID is required.");
   return definePlugin({ manifest, activate(ctx) {
-    const logger = ctx.use(Logger); const config = ctx.use(Config); const settings = ctx.use(Settings);
+    const logger = scopeLogger(ctx.use(Logger), ctx.signal); const config = ctx.use(Config); const settings = ctx.use(Settings);
     const language = ctx.use(Localization); const themes = ctx.use(Themes); const vaults = ctx.use(Vault);
     const ensure = (result: { ok: boolean; error?: unknown }) => { if (!result.ok) throw new Error("Cannot register interface preferences.", { cause: result.error }); };
     ensure(language.register(ctx.pluginId, catalogs, ctx.signal));

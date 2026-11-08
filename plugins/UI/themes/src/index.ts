@@ -1,5 +1,5 @@
 import { definePlugin, LunarisError } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Themes, ThemeChanged } from "@lunaris/themes";
 import type { ThemeDefinition, ThemeResult, ThemeErrorCode, ThemeChange } from "@lunaris/themes";
 import { copyTheme, isThemeId } from "./definition.js";
@@ -9,7 +9,7 @@ const ok: ThemeResult = Object.freeze({ ok: true, value: null });
 interface Registration { theme: ThemeDefinition; readonly detach: () => void }
 
 export default definePlugin({ manifest, activate(ctx) {
-  const logger = ctx.use(Logger);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal);
   const registrations = new Map<string, Registration>();
   let selected: string | null = null;
   function reject(code: ThemeErrorCode, message: string): ThemeResult {

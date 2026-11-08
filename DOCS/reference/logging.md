@@ -6,8 +6,8 @@ Required: a platform-neutral logging API, one replaceable output sink, native
 DevTools severity/filtering, readable error records and the supplied startup art.
 Existing: SDK API contracts, owned registration, dependency resolution and host
 provider selection. New: `@lunaris/logging` shared contracts, `@lunaris/logger`
-service and `@lunaris/dev-tools-logger` console driver. No SDK/kernel changes or
-native Tauri APIs are needed. All inter-plugin calls go through the public SDK.
+service and `@lunaris/dev-tools-logger` console driver. Existing SDK/kernel lifecycle
+semantics remain unchanged. All inter-plugin calls go through the public SDK.
 
 The Logger does not import a driver or detect the platform. The DevTools driver
 owns console access and presentation; it works in the Tauri WebView and other
@@ -20,6 +20,17 @@ Every product plugin must declare the Logger API as a required dependency and
 acquire it through `ctx.use(Logger)`. Use `ctx.pluginId` as the source. Logging is
 part of the plugin's implementation and review acceptance, not an optional
 development aid. This policy applies to new plugins and changes to existing ones.
+
+Use `scopeLogger(ctx.use(Logger), ctx.signal)` for product continuations that may
+finish during shutdown. The helper retains source attribution and original errors,
+returns false after owner cancellation without invoking SDK, and contains only
+SCOPE_CLOSED/PROVIDER_UNAVAILABLE from a retiring Logger endpoint. Permission and
+other programming errors still propagate. A provider enters stopping before all
+required consumers finish, so checking the consumer signal alone is insufficient
+to guarantee Logger availability. Sink/Logger implementations do not use this
+helper to report their own output failures; independent kernel cleanup diagnostics
+remain authoritative. The additive SDK isSdkUnavailable classifier distinguishes
+endpoint retirement from permission denial.
 
 - Log activation progress at `debug` and successful readiness at `info`.
 - Log meaningful operation outcomes and state changes with enough context to

@@ -1,7 +1,7 @@
 import { definePlugin } from "@lunaris/sdk";
 import { DirectoryLocations, DirectoryLocationsDriver, validDirectoryName, Filesystem, FilesystemObservation, FilesystemObservationDriver, FilesystemDriver, FilesystemRoots, FilesystemRootsDriver, FilesystemLocations, FilesystemLocationsDriver, ApplicationDirectory, ApplicationDirectoryDriver, FileChanged, DriverFileChanged, failure, validTarget, validFolderLocation } from "@lunaris/filesystem";
 import type { FileTarget, FsResult, WriteOptions } from "@lunaris/filesystem";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import manifest from "../manifest.json" with { type: "json" };
 import { createObservation } from "./observation.js";
 import { createRootLifecycle } from "./roots.js";
@@ -9,7 +9,7 @@ import { BeforeFileMutation } from "@lunaris/filesystem";
 import type { FileMutation } from "@lunaris/filesystem";
 
 export default definePlugin({ manifest, activate(ctx) {
-  const logger = ctx.use(Logger);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal);
   logger.debug(ctx.pluginId, "Activating filesystem provider");
   const directoryLocations = ctx.use(DirectoryLocationsDriver);
   const driver = ctx.use(FilesystemDriver);

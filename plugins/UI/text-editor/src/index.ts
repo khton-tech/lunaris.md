@@ -1,5 +1,5 @@
-import { definePlugin } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { definePlugin, isSdkUnavailable } from "@lunaris/sdk";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { ActiveDocument, ActiveDocumentTransitioned, BeforeActiveDocumentChange, DocumentProtection } from "@lunaris/active-document";
 import { ActiveScreen } from "@lunaris/active-screen";
 import { BeforeFileMutation, Filesystem, FileChanged, FilesystemSources } from "@lunaris/filesystem";
@@ -28,7 +28,7 @@ const inside = (target: FileTarget, parent: FileTarget) => target.vaultId === pa
 const markdownFile = (target: FileTarget) => /\.md$/i.test(target.path);
 
 export default definePlugin({ manifest, activate(ctx) {
-  const logger = ctx.use(Logger); const fs = ctx.use(Filesystem); const documents = ctx.use(ActiveDocument);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal); const fs = ctx.use(Filesystem); const documents = ctx.use(ActiveDocument);
   const screens = ctx.use(ActiveScreen); const components = ctx.use(Components); const localization = ctx.use(Localization);
   const vaults = ctx.use(Vault); const themes = ctx.use(Themes);
   const drafts = ctx.permissions.has("drafts.access") ? ctx.optional(Drafts) : undefined; const sources = ctx.optional(FilesystemSources);
@@ -54,7 +54,10 @@ export default definePlugin({ manifest, activate(ctx) {
     if (!session) {
       const identity = sources?.remoteIdentity(target.vaultId);
       const draftKey = () => identity?.ok ? { ...identity.value, path: session!.target.path } : null;
-      session = new DocumentSession({ ...target }, fs, () => !ctx.signal.aborted && vaults.current()?.id === target.vaultId, changed,
+      session = new DocumentSession({ ...target }, fs, () => {
+        if (ctx.signal.aborted) return false;
+        try { return vaults.current()?.id === target.vaultId; } catch (error) { if (isSdkUnavailable(error)) return false; throw error; }
+      }, changed,
         (level, message, error) => { if (!ctx.signal.aborted) logger[level](ctx.pluginId, message, error === undefined ? {} : { error }); }, undefined,
         drafts && identity?.ok ? {
           load: () => drafts.load(draftKey()!),

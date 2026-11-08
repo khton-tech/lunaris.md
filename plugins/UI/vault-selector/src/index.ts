@@ -1,5 +1,5 @@
 import { definePlugin } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { AccountAccess, AccountAccessChanged } from "@lunaris/remote";
 import { Localization, LocaleChanged } from "@lunaris/localization";
 import { Slots } from "@lunaris/slots";
@@ -21,7 +21,7 @@ export function createVaultSelector(options: { readonly art: string; readonly hi
   const art = options.art;
   if (typeof art !== "string" || !art.trim()) throw new TypeError("Selector artwork is required.");
   return definePlugin({ manifest, async activate(ctx) {
-    const logger = ctx.use(Logger);
+    const logger = scopeLogger(ctx.use(Logger), ctx.signal);
     try {
       const localization = ctx.use(Localization);
       const registered = localization.register(ctx.pluginId, catalogs, ctx.signal);

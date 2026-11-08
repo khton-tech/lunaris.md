@@ -1,5 +1,5 @@
-import { definePlugin } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { definePlugin, isSdkUnavailable } from "@lunaris/sdk";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { AccountAccess, AccountAccessChanged, AccountSession, AccountSessionChanged, AccountVaults } from "@lunaris/remote";
 import type { RemoteVault, ServerInfo } from "@lunaris/remote";
 import { FilesystemSources } from "@lunaris/filesystem";
@@ -27,11 +27,11 @@ export function createAccountAccess(options: { readonly defaultOpen?: boolean; r
   return definePlugin({ manifest: { manifestVersion: 1, id: "lunaris.account-access", version: "0.1.0", engine: "^0.1.0", sdk: "^0.1.0", entry: "./dist/index.js",
     provides: provides.map(t => ({ kind: t.kind, id: t.id, version: t.version })), requires: requires.map(t => ({ kind: t.kind, id: t.id, range: `^${t.version}` })),
     permissions: ["account.access", "filesystem.access", "vault.access", "ui.dom"], optionalPermissions: [] }, activate(ctx) {
-    const logger = ctx.use(Logger); const session = ctx.use(AccountSession); const vaults = ctx.use(AccountVaults); const sources = ctx.use(FilesystemSources);
+    const logger = scopeLogger(ctx.use(Logger), ctx.signal); const session = ctx.use(AccountSession); const vaults = ctx.use(AccountVaults); const sources = ctx.use(FilesystemSources);
     const active = ctx.use(Vault); const locations = ctx.use(VaultLocations); const components = ctx.use(Components); const slots = ctx.use(Slots); const targets = ctx.use(SlotDom);
     const localization = ctx.use(Localization); const startup = ctx.use(Startup);
     const registered = localization.register(ctx.pluginId, catalog, ctx.signal); if (!registered.ok) throw Error("Cannot register account messages.");
-    let visible = options.defaultOpen ?? false; let mode: Mode = "connect"; let info: ServerInfo | null = null; let busy = false; let error = ""; let entries: readonly RemoteVault[] = [];
+    let visible = options.defaultOpen ?? false; let mode: Mode = "connect"; let info: ServerInfo | null = null; let busy = false; let error = ""; let entries: readonly RemoteVault[] = []; let unavailable = false;
     const fields = { address: options.defaultAddress ?? "", login: "", password: "", invitation: "", name: "" };
     let screen = ctx.scope.child(); let mounted: MountedComponent | undefined; let allocated = false; let autoConnected = false;
     const slotId = "lunaris.account-access.screen";
@@ -42,6 +42,10 @@ export function createAccountAccess(options: { readonly defaultOpen?: boolean; r
       if (result.ok) entries = result.value; else error = errorKey(result.error.code);
     }
     function render() {
+      if (unavailable || ctx.signal.aborted) return;
+      try { renderView(); } catch (error) { if (isSdkUnavailable(error)) unavailable = true; else throw error; }
+    }
+    function renderView() {
       if (ctx.signal.aborted) return;
       if (!visible || active.current() || startup.snapshot().state !== "loaded") {
         mounted = undefined; allocated = false; void screen.dispose().catch(() => {}); return;
@@ -68,8 +72,8 @@ export function createAccountAccess(options: { readonly defaultOpen?: boolean; r
       const result = components.mount("lunaris.account-access", target, props, screen.signal); if (!result.ok) throw Error("Cannot mount account role."); mounted = result.value;
     }
     function run(work: () => Promise<void>) {
-      if (busy || ctx.signal.aborted) return; busy = true; error = ""; render();
-      void work().catch(failure => { if (!ctx.signal.aborted) { error = "error"; logger.error(ctx.pluginId, "Account operation failed", { error: failure }); } }).finally(() => { busy = false; if (!ctx.signal.aborted) render(); });
+      if (busy || unavailable || ctx.signal.aborted) return; busy = true; error = ""; render();
+      void work().catch(failure => { if (isSdkUnavailable(failure)) { unavailable = true; return; } if (!ctx.signal.aborted) { error = "error"; logger.error(ctx.pluginId, "Account operation failed", { error: failure }); } }).finally(() => { busy = false; if (!ctx.signal.aborted) render(); });
     }
     async function connect() {
       const result = await session.connect(fields.address, ctx.signal); if (ctx.signal.aborted) return;

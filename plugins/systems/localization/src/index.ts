@@ -1,6 +1,6 @@
 import { definePlugin } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Localization, LocaleChanged } from "@lunaris/localization";
 import type { Messages, LocalizationResult } from "@lunaris/localization";
 import { canonicalLocale, copyCatalogs, format, validName } from "./catalogs.js";
@@ -11,7 +11,7 @@ const fail = (code: "INVALID_ARGUMENT" | "ALREADY_REGISTERED" | "UNSUPPORTED_LOC
 interface Registration { readonly catalogs: ReadonlyMap<string, Messages>; readonly detach: () => void }
 
 export default definePlugin({ manifest, activate(ctx) {
-  const logger = ctx.use(Logger);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal);
   logger.debug(ctx.pluginId, "Activating localization service");
   const registrations = new Map<string, Registration>();
   const warnings = new Set<string>();

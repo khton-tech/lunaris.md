@@ -1,12 +1,12 @@
 import { definePlugin } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Slots, SlotDriver, ROOT_SLOT, normalizeSlot, isLiveOwner, slotFailure } from "@lunaris/slots";
 import type { SlotInfo } from "@lunaris/slots";
 import manifest from "../manifest.json" with { type: "json" };
 
 export default definePlugin({ manifest, activate(ctx) {
-  const logger = ctx.use(Logger);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal);
   const driver = ctx.use(SlotDriver);
   const slots = new Map<string, { info: SlotInfo; detach: () => void }>([[ROOT_SLOT.id, { info: ROOT_SLOT, detach() {} }]]);
   function remove(id: string): void {

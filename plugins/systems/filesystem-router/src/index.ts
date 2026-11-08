@@ -1,6 +1,6 @@
 import { definePlugin } from "@lunaris/sdk";
 import type { CancellationSignal, ApiToken, EventToken } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { FilesystemDriver, FilesystemRootsDriver, FilesystemLocationsDriver, DirectoryLocationsDriver, ApplicationDirectoryDriver,
   FilesystemObservationDriver, DriverFileChanged, FilesystemSources, failure, validFolderLocation, validTarget } from "@lunaris/filesystem";
 import type { FilesystemBackendApi, FileChange, FsResult, VaultRoot, FolderLocation, FsCapabilities, FileTarget } from "@lunaris/filesystem";
@@ -25,7 +25,7 @@ export function createFilesystemRouter(sources: readonly BackendSource[], defaul
     requires: [Logger, ...bindings.flatMap(s => [s.api, s.changed])].map(token => ({ kind: token.kind, id: token.id, range: `^${token.version}` })),
     permissions: ["filesystem.native", "filesystem.access", "filesystem.app-config"], optionalPermissions: [],
   }, activate(ctx) {
-    const logger = ctx.use(Logger);
+    const logger = scopeLogger(ctx.use(Logger), ctx.signal);
     const backends = new Map(bindings.map(source => [source.id, ctx.use(source.api)]));
     const primary = backends.get(defaultSource)!;
     const roots = new Map<string, Attachment>();

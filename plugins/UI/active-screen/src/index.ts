@@ -1,6 +1,6 @@
 import { definePlugin } from "@lunaris/sdk";
 import type { ResourceScope } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { ActiveScreen, ActiveScreenChanged } from "@lunaris/active-screen";
 import { Workspace } from "@lunaris/workspace";
 import type { WorkspaceContext } from "@lunaris/workspace";
@@ -20,7 +20,7 @@ const catalogs = { en: {
 } };
 
 export default definePlugin({ manifest, activate(ctx) {
-  const logger = ctx.use(Logger); const screens = ctx.use(ActiveScreen);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal); const screens = ctx.use(ActiveScreen);
   const components = ctx.use(Components); const workspace = ctx.use(Workspace); const localization = ctx.use(Localization);
   const messages = localization.register(ctx.pluginId, catalogs, ctx.signal);
   if (!messages.ok) throw new Error("Cannot register active screen messages.", { cause: messages.error });

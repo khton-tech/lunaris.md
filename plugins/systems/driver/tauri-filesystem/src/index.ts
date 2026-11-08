@@ -2,7 +2,7 @@ import { definePlugin } from "@lunaris/sdk";
 import { LocalFilesystemBackend, DirectoryLocationsDriver, validDirectoryName, FilesystemDriver, FilesystemObservationDriver, FilesystemRootsDriver, FilesystemLocationsDriver, ApplicationDirectoryDriver, DriverFileChanged, failure, validFolderLocation } from "@lunaris/filesystem";
 import type { CancellationSignal } from "@lunaris/sdk";
 import type { FileChange, FolderLocation, FsResult, FsCapabilities, FilesystemApi, DirectoryLocationsApi, FilesystemLocationsApi } from "@lunaris/filesystem";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { nativeFilesystem, createSessionId } from "./native.js";
 import type { NativeFilesystem } from "./native.js";
 import manifest from "../manifest.json" with { type: "json" };
@@ -14,7 +14,7 @@ const capabilities: FsCapabilities = Object.freeze({ watch: true, atomicReplace:
 export function createTauriFilesystemDriver(native: NativeFilesystem = nativeFilesystem, options: { readonly backendOnly?: boolean } = {}) {
   const selectedManifest = options.backendOnly ? { ...manifest, provides: manifest.provides.filter(item => item.id === LocalFilesystemBackend.api.id || item.id === LocalFilesystemBackend.changed.id) } : manifest;
   return definePlugin({ manifest: selectedManifest, async activate(ctx) {
-    const logger = ctx.use(Logger);
+    const logger = scopeLogger(ctx.use(Logger), ctx.signal);
     const provideLegacy: typeof ctx.provide = (token, implementation) => options.backendOnly ? { dispose() {} } : ctx.provide(token, implementation);
     logger.debug(ctx.pluginId, "Activating native filesystem driver");
     const sessionId = createSessionId();

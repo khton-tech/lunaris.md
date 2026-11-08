@@ -1,5 +1,5 @@
 import { definePlugin, LunarisError } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Workspace, WorkspaceChanged } from "@lunaris/workspace";
 import type { WorkspaceContent, WorkspaceResult, WorkspaceChange } from "@lunaris/workspace";
 import { readContent, readProps } from "./input.js";
@@ -9,7 +9,7 @@ interface Entry { content: Required<WorkspaceContent>; readonly detach: () => vo
 const done: WorkspaceResult = Object.freeze({ ok: true, value: null });
 
 export default definePlugin({ manifest, activate(ctx) {
-  const logger = ctx.use(Logger); const entries = new Map<string, Entry>();
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal); const entries = new Map<string, Entry>();
   function notify(kind: WorkspaceChange["kind"], id: string, cleanup = false): Promise<void> {
     if (ctx.signal.aborted) return Promise.resolve();
     // Publish only through this provider's live context. Dispatch skips stopping

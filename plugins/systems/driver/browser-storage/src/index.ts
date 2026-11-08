@@ -1,5 +1,5 @@
 import { definePlugin } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { DraftStorage } from "@lunaris/remote";
 import type { DraftKey, DraftRecord } from "@lunaris/remote";
 import { LocalFilesystemBackend, failure, validTarget } from "@lunaris/filesystem";
@@ -11,7 +11,7 @@ export function createBrowserStorage(options: { readonly databaseName?: string; 
   return definePlugin({ manifest: { manifestVersion: 1, id: "lunaris.browser-storage", version: "0.1.0", engine: "^0.1.0", sdk: "^0.1.0", entry: "./dist/index.js",
     provides: [DraftStorage, ...(options.config === false ? [] : [LocalFilesystemBackend.api, LocalFilesystemBackend.changed])].map(t => ({ kind: t.kind, id: t.id, version: t.version })),
     requires: [{ kind: Logger.kind, id: Logger.id, range: "^1.0.0" }], permissions: ["drafts.storage", ...(options.config === false ? [] : ["filesystem.native"])], optionalPermissions: [] }, async activate(ctx) {
-    const logger = ctx.use(Logger); const factory = options.indexedDB ?? globalThis.indexedDB;
+    const logger = scopeLogger(ctx.use(Logger), ctx.signal); const factory = options.indexedDB ?? globalThis.indexedDB;
     if (!factory) throw Error("Persistent browser storage is unavailable.");
     let closed = false; let database: IDBDatabase | undefined;
     const roots = new Map<string, () => void>(); let sequence = 0;

@@ -1,5 +1,5 @@
 import { definePlugin } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Vault } from "@lunaris/vault";
 import { AccountSession, AccountVaults, ServerTransport, validRemoteVault } from "@lunaris/remote";
 import type { RemoteResult, RemoteVault } from "@lunaris/remote";
@@ -7,7 +7,7 @@ import type { RemoteResult, RemoteVault } from "@lunaris/remote";
 export default definePlugin({ manifest: { manifestVersion: 1, id: "lunaris.account-session", version: "0.1.0", engine: "^0.1.0", sdk: "^0.1.0", entry: "./dist/index.js",
   provides: [AccountSession, AccountVaults].map(t => ({ kind: t.kind, id: t.id, version: t.version })),
   requires: [Logger, Vault, ServerTransport].map(t => ({ kind: t.kind, id: t.id, range: `^${t.version}` })), permissions: ["vault.access", "account.network"], optionalPermissions: [] }, activate(ctx) {
-  const logger = ctx.use(Logger); const transport = ctx.use(ServerTransport); const vaults = ctx.use(Vault);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal); const transport = ctx.use(ServerTransport); const vaults = ctx.use(Vault);
   const cancelled = () => ({ ok: false as const, error: { code: "CANCELLED" as const, message: "The account service stopped." } });
   const incompatible = () => ({ ok: false as const, error: { code: "PROTOCOL_MISMATCH" as const, message: "Invalid server Vault response." } });
   const presented = (vault: RemoteVault): RemoteVault => Object.freeze({ ...vault, location: Object.freeze({ ...vault.location, label: `${transport.current()?.server ?? ""} · ${vault.name}` }) });

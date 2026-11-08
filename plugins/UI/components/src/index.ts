@@ -1,6 +1,6 @@
 import { definePlugin, LunarisError } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Components, ComponentsChanged } from "@lunaris/components";
 import type { ComponentChange, ComponentDefinition, ComponentErrorCode, ComponentInstance, ComponentProps, ComponentResult, MountedComponent } from "@lunaris/components";
 import { isComponentId, isElement, isLiveOwner, readDefinition, readInstance, readProps } from "./input.js";
@@ -22,7 +22,7 @@ function releaseAll(instances: Iterable<Instance>): void {
 }
 
 export default definePlugin({ manifest, activate(ctx) {
-  const logger = ctx.use(Logger);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal);
   const registrations = new Map<string, Registration>();
   function reject(code: ComponentErrorCode, message: string, data?: Record<string, unknown>): Failure {
     if (!ctx.signal.aborted) logger.warn(ctx.pluginId, message, { code, ...(data ? { data } : {}) });

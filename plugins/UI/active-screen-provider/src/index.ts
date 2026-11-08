@@ -1,5 +1,5 @@
 import { definePlugin, LunarisError } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Vault, VaultChanged } from "@lunaris/vault";
 import { ActiveScreen, ActiveScreenChanged } from "@lunaris/active-screen";
 import type { ScreenDefinition, ScreenResult } from "@lunaris/active-screen";
@@ -8,7 +8,7 @@ import manifest from "../manifest.json" with { type: "json" };
 
 const done: ScreenResult = Object.freeze({ ok: true, value: null });
 export default definePlugin({ manifest, activate(ctx) {
-  const logger = ctx.use(Logger);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal);
   const vaults = ctx.use(Vault); let vaultId = vaults.current()?.id ?? null;
   const entries = new Map<string, { screen: ScreenDefinition; detach(): void }>();
   let activeId: string | null = null;

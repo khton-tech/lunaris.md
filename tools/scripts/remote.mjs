@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process';
 import { checkEnvironment } from './environment.mjs';
 import { checkBoundaries, dependencies } from './boundaries.mjs';
 const tests = [
+  'packages/logging/test/contracts.test.mjs',
   'packages/remote/test/contracts.test.mjs', 'packages/filesystem/test/contracts.test.mjs',
   'plugins/systems/filesystem-router/test/router.test.mjs', 'plugins/systems/driver/server-transport/test/transport.test.mjs',
   'plugins/systems/driver/remote-filesystem/test/remote.test.mjs', 'plugins/systems/driver/browser-storage/test/storage.test.mjs',

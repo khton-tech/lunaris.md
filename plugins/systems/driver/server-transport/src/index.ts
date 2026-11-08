@@ -1,6 +1,6 @@
 import { definePlugin } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { ServerTransport, REMOTE_PROTOCOL, AccountSessionChanged, ConnectionChanged } from "@lunaris/remote";
 import type { AccountState, Account, RemoteResult, ServerInfo } from "@lunaris/remote";
 
@@ -9,7 +9,7 @@ export function createServerTransport(options: { readonly mode: "browser" | "des
   return definePlugin({ manifest: { manifestVersion: 1, id: "lunaris.server-transport", version: "0.1.0", engine: "^0.1.0", sdk: "^0.1.0", entry: "./dist/index.js",
     provides: [ServerTransport, AccountSessionChanged, ConnectionChanged].map(t => ({ kind: t.kind, id: t.id, version: t.version })),
     requires: [{ kind: "api", id: Logger.id, range: "^1.0.0" }], permissions: [], optionalPermissions: [] }, activate(ctx) {
-    const logger = ctx.use(Logger); let address = ""; let bearer: string | undefined; let current: AccountState | null = null;
+    const logger = scopeLogger(ctx.use(Logger), ctx.signal); let address = ""; let bearer: string | undefined; let current: AccountState | null = null;
     let epoch = 0; let connection: "connected" | "offline" | "expired" = "connected";
     const controllers = new Set<AbortController>(); let unbindOwner = () => {};
     const failed = <T>(code: string, message: string): RemoteResult<T> => ({ ok: false, error: { code, message } } as RemoteResult<T>);

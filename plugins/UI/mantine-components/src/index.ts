@@ -14,7 +14,7 @@ import { MantineProvider } from "@mantine/core";
 import type { ComponentInstance, ComponentProps } from "@lunaris/components";
 import { Components } from "@lunaris/components";
 import { definePlugin } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Themes, ThemeChanged } from "@lunaris/themes";
 import { explorerProps, FileExplorer } from "./explorer.js";
 import { contextMenuProps, ContextMenuView } from "./context-menu.js";
@@ -29,7 +29,7 @@ let nextId = 0;
 const colorSchemeManager = { get: () => "dark" as const, set() {}, subscribe() {}, unsubscribe() {}, clear() {} };
 
 export default definePlugin({ manifest, activate(ctx) {
-  const logger = ctx.use(Logger); const components = ctx.use(Components); const themes = ctx.use(Themes);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal); const components = ctx.use(Components); const themes = ctx.use(Themes);
   logger.debug(ctx.pluginId, "Activating Mantine components");
   const instances = new Set<{ applyTheme(): void }>();
   ctx.events.on(ThemeChanged, () => {

@@ -2,7 +2,7 @@ import { definePlugin } from "@lunaris/sdk";
 import { ApplicationDirectory, Filesystem } from "@lunaris/filesystem";
 import type { FileTarget } from "@lunaris/filesystem";
 import { Vault, PrepareVault, validVaultName } from "@lunaris/vault";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Config, ConfigChanged, validConfigKey, validPluginId } from "@lunaris/config";
 import type { ConfigChange, ConfigReadOptions, ConfigResult, ConfigTable, ConfigTarget, ConfigValue } from "@lunaris/config";
 import { ConfigDataError, merge, snapshot } from "./codec.js";
@@ -12,7 +12,7 @@ import manifest from "../manifest.json" with { type: "json" };
 const invalid = (): Extract<ConfigResult<never>, { ok: false }> => ({ ok: false, error: { code: "INVALID_ARGUMENT", message: "A canonical plugin ID, valid key and explicit configuration scope are required." } });
 
 export default definePlugin({ manifest, async activate(ctx) {
-  const logger = ctx.use(Logger);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal);
   logger.debug(ctx.pluginId, "Activating config manager");
   const fs = ctx.use(Filesystem);
   const vaults = ctx.use(Vault);

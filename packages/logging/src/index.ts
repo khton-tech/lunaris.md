@@ -1,4 +1,5 @@
-import { defineApi } from "@lunaris/sdk";
+import { defineApi, isSdkUnavailable } from "@lunaris/sdk";
+import type { CancellationSignal } from "@lunaris/sdk";
 
 export type LogLevel = "debug" | "info" | "warn" | "error";
 
@@ -28,6 +29,22 @@ export interface LoggerApi {
   info(source: string, message: string, details?: LogDetails): boolean;
   warn(source: string, message: string, details?: LogDetails): boolean;
   error(source: string, message: string, details?: LogDetails): boolean;
+}
+
+/** Async continuations may outlive Logger's endpoint during ordered shutdown.
+ * Never access SDK after owner cancellation, never recurse on output failure. */
+export function scopeLogger(logger: LoggerApi, owner: CancellationSignal): LoggerApi {
+  function call(work: () => boolean): boolean {
+    if (owner.aborted) return false;
+    try { return work(); } catch (error) { if (isSdkUnavailable(error)) return false; throw error; }
+  }
+  return Object.freeze({
+    log: (input: LogInput) => call(() => logger.log(input)),
+    debug: (source: string, message: string, details?: LogDetails) => call(() => logger.debug(source, message, details)),
+    info: (source: string, message: string, details?: LogDetails) => call(() => logger.info(source, message, details)),
+    warn: (source: string, message: string, details?: LogDetails) => call(() => logger.warn(source, message, details)),
+    error: (source: string, message: string, details?: LogDetails) => call(() => logger.error(source, message, details)),
+  });
 }
 
 export interface LogSinkApi {

@@ -4,7 +4,7 @@ import { DirectoryLocations, validDirectoryName, Filesystem, FilesystemRoots, Fi
 import type { FolderLocation, VaultRoot } from "@lunaris/filesystem";
 import { Vault, VaultCreation, VaultLocations, VaultChanged, PrepareVault, validVaultName } from "@lunaris/vault";
 import type { VaultChange, VaultResult } from "@lunaris/vault";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { BeforeVaultRelease } from "@lunaris/vault";
 import manifest from "../manifest.json" with { type: "json" };
 
@@ -12,7 +12,7 @@ interface Attachment { readonly vault: VaultRoot; readonly scope: ResourceScope 
 const failed = (code: "BUSY" | "PREPARATION_FAILED" | "STOPPED", message: string): VaultResult<never> => ({ ok: false, error: { code, message } });
 
 export default definePlugin({ manifest, activate(ctx) {
-  const logger = ctx.use(Logger);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal);
   logger.debug(ctx.pluginId, "Activating Vault Manager");
   const directoryLocations = ctx.use(DirectoryLocations);
   const fs = ctx.use(Filesystem);

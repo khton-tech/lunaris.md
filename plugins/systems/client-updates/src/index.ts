@@ -1,5 +1,5 @@
 import { definePlugin } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { ClientUpdates, ClientUpdateChanged, ServerTransport, AccountSessionChanged } from "@lunaris/remote";
 import type { RemoteResult } from "@lunaris/remote";
 
@@ -7,7 +7,7 @@ export function createClientUpdates(currentBuild: string) {
   return definePlugin({ manifest: { manifestVersion: 1, id: "lunaris.client-updates", version: "0.1.0", engine: "^0.1.0", sdk: "^0.1.0", entry: "./dist/index.js",
     provides: [ClientUpdates, ClientUpdateChanged].map(t => ({ kind: t.kind, id: t.id, version: t.version })),
     requires: [Logger, ServerTransport, AccountSessionChanged].map(t => ({ kind: t.kind, id: t.id, range: `^${t.version}` })), permissions: ["account.network", "account.access"], optionalPermissions: [] }, activate(ctx) {
-    const logger = ctx.use(Logger); const transport = ctx.use(ServerTransport); let available: string | null = null;
+    const logger = scopeLogger(ctx.use(Logger), ctx.signal); const transport = ctx.use(ServerTransport); let available: string | null = null;
     let pending: Promise<RemoteResult<string | null>> | undefined;
     function check(): Promise<RemoteResult<string | null>> {
       if (pending) return pending;

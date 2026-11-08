@@ -1,5 +1,5 @@
 import { definePlugin, LunarisError } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Sidebar, SidebarChanged } from "@lunaris/sidebar";
 import type { SidebarTab, SidebarResult, SidebarSnapshot } from "@lunaris/sidebar";
 import { readTab, presentation } from "./input.js";
@@ -7,7 +7,7 @@ import manifest from "../manifest.json" with { type: "json" };
 
 const done: SidebarResult = Object.freeze({ ok: true, value: null });
 export default definePlugin({ manifest, activate(ctx) {
-  const logger = ctx.use(Logger); const tabs = new Map<string, { tab: Required<SidebarTab>; detach(): void }>();
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal); const tabs = new Map<string, { tab: Required<SidebarTab>; detach(): void }>();
   let activeId: string | null = null;
   function snapshot(): SidebarSnapshot { return Object.freeze({ tabs: Object.freeze([...tabs.values()].map(entry => entry.tab).sort((a, b) => Number(a.placement === "end") - Number(b.placement === "end") || a.order - b.order)), activeId }); }
   function notify(cleanup = false): Promise<void> {

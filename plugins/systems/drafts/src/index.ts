@@ -1,5 +1,5 @@
 import { definePlugin } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Drafts, DraftStorage } from "@lunaris/remote";
 import type { DraftKey, DraftRecord } from "@lunaris/remote";
 import { failure, validPath } from "@lunaris/filesystem";
@@ -10,7 +10,7 @@ const validKey = (key: DraftKey): boolean => !!key && typeof key.server === "str
 export default definePlugin({ manifest: { manifestVersion: 1, id: "lunaris.drafts-provider", version: "0.1.0", engine: "^0.1.0", sdk: "^0.1.0", entry: "./dist/index.js",
   provides: [{ kind: Drafts.kind, id: Drafts.id, version: Drafts.version }], requires: [Logger, DraftStorage].map(t => ({ kind: t.kind, id: t.id, range: `^${t.version}` })),
   permissions: ["drafts.access"], optionalPermissions: [] }, activate(ctx) {
-  const logger = ctx.use(Logger); const storage = ctx.use(DraftStorage);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal); const storage = ctx.use(DraftStorage);
   async function invoke<T>(operation: string, work: () => Promise<FsResult<T>>): Promise<FsResult<T>> {
     try { const result = await work(); if (!result.ok && !ctx.signal.aborted) logger.error(ctx.pluginId, "Local draft operation failed", { error: result.error, data: { operation } }); return result; }
     catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Local draft storage failed", { error, data: { operation } }); return failure("IO_ERROR", "The local draft could not be persisted."); }

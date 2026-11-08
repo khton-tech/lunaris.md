@@ -1,5 +1,5 @@
 import { definePlugin } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Config } from "@lunaris/config";
 import { VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged, validRecentVault } from "@lunaris/vault";
 import type { RecentVault, VaultHistoryResult } from "@lunaris/vault";
@@ -12,7 +12,7 @@ function snapshot(entries: readonly RecentVault[]): readonly RecentVault[] {
 }
 
 export default definePlugin({ manifest, activate(ctx) {
-  const logger = ctx.use(Logger);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal);
   const config = ctx.use(Config);
   const locations = ctx.use(VaultLocations);
   let queue: Promise<unknown> = Promise.resolve();
