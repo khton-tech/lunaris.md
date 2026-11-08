@@ -34,6 +34,18 @@ export function resolveTheme(theme: ThemeDefinition | null) {
   variables["--vault-motion-normal"] = `${number(field(motion, "normal"), 200)}ms`;
   variables["--vault-motion-easing"] = text(field(motion, "easing"), "cubic-bezier(0.2, 0, 0, 1)");
   const startup = field(props?.components, "startupScreen");
+  // Optional control finishes stay inside UIKit; embedded content gains no surface.
+  const controls = field(props?.components, "controls");
+  for (const [key, variable] of Object.entries({
+    buttonBackground: "button-image", buttonHoverBackground: "button-hover-image",
+    buttonPressedBackground: "button-pressed-image", buttonBorder: "button-border",
+    buttonShadow: "button-shadow", primaryBackground: "primary-image",
+    primaryHoverBackground: "primary-hover-image", primaryPressedBackground: "primary-pressed-image",
+    inputShadow: "input-shadow",
+  })) {
+    const value = field(controls, key);
+    if (typeof value === "string") variables[`--vault-${variable}`] = value;
+  }
   const semantic = {
     "--mantine-color-body": color("background", "transparent"),
     "--mantine-color-text": color("text"), "--mantine-color-dimmed": color("textSecondary"),

@@ -35,6 +35,33 @@ async function setup() {
 }
 const startup = { art: '<img src=x> ASCII', logoLabel: 'Lunaris', status: 'Loading' };
 
+test('optional control finishes reset on theme replacement without repainting embedded surfaces', async () => {
+  const s = await setup(); await s.start();
+  s.target.style.backgroundColor = '#123456';
+  s.themes.register({ id: 'test.finishes', name: 'Finishes', properties: {
+    appearance: 'light', components: { controls: {
+      buttonBackground: 'linear-gradient(#ffffff, #ece9d8)', buttonBorder: '#003C74',
+      inputShadow: 'inset 1px 1px 2px #D6D2C2',
+    } },
+  } }, s.ctx.signal);
+  assert.equal(s.components.mount('lunaris.startup-screen', s.target, {
+    ...startup, presentation: { mode: 'embedded', sizing: 'content' },
+  }, s.ctx.signal).ok, true);
+  s.themes.select('test.finishes');
+  const root = s.target.querySelector('.lm-root');
+  const content = root.querySelector('.lm-startup');
+  assert.equal(content.style.getPropertyValue('--vault-button-border'), '#003C74');
+  assert.match(content.style.getPropertyValue('--vault-button-image'), /linear-gradient/);
+  assert.equal(root.style.backgroundColor, 'transparent');
+  assert.equal(s.target.style.backgroundColor, 'rgb(18, 52, 86)');
+  s.themes.select(null);
+  assert.equal(s.target.querySelector('.lm-root'), root);
+  assert.equal(content.style.getPropertyValue('--vault-button-image'), '');
+  assert.equal(content.style.getPropertyValue('--vault-button-border'), '');
+  assert.equal(content.style.getPropertyValue('--vault-input-shadow'), '');
+  await s.stop();
+});
+
 test('task checkbox role validates controlled state, forwards changes and inherits the embedded theme', async () => {
   const s = await setup(); await s.start();
   try {

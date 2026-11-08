@@ -370,6 +370,17 @@ file commands or cross-plugin integrations change.
 
 ## Global region surfaces
 
+The experimental Windows XP Luna preset is received through Themes/ThemeChanged.
+Optional components.controls tokens add button images, borders, inset shadows
+and input shadows in the adapter; see the [theme reference](../../../../DOCS/reference/base-theme.md#experimental-windows-xp-luna)
+for the public data fields. They are removed on theme replacement and do not
+paint embedded roots or alter region geometry. Card rows retain their navigation
+appearance; disabled buttons suppress gradients/shadows. The reference is the
+existing shared controls, Windows XP Luna and [Mantine UI buttons](https://ui.mantine.dev/category/buttons/).
+No new composition was copied. Consumers still use public component roles;
+theme-settings/interface-settings own selection and persistence. Native visual
+acceptance, including opened menus, focus and narrow layouts, remains pending.
+
 WorkspaceLayout owns one Mantine Paper card per supporting region (navigation
 rail and selected tool panel), using the active theme panel surface, radius and
 spacing. Main remains an open workspace with no card or outer inset. Rail,

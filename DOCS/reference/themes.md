@@ -155,9 +155,9 @@ No registration, selection or update survives a provider restart.
 ## Composition and verification
 
 The provider itself starts empty. Tauri now also starts the separate
-[base theme engine](base-theme.md), which registers Monochrome
+[base theme engine](base-theme.md), which registers Monochrome and Windows XP Luna
 without selecting a default itself. The separate theme-settings plugin reads
-startup config and selects Monochrome by default in Tauri. Recovery/System UI remains independent of themes.
+startup config and selects Windows XP Luna by default in this experimental Tauri branch. Recovery/System UI remains independent of themes.
 Persistence, installed theme discovery, theme compatibility negotiation, platform
 application and selection UI remain outside the provider. This plugin follows
 [the UI guidelines](../UI_GUIDELINES.md) by adding no visible elements.

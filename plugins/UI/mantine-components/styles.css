@@ -84,6 +84,15 @@
 .lm-root .lm-button:enabled:active { background:var(--vault-selection) }
 .lm-root .lm-focus:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset) }
 .lm-root .lm-button:disabled { cursor:default }
+/* Optional theme finishes apply only to controls, never borrowed region surfaces. */
+.lm-root .lm-button:not(.lm-card-row) { background-image:var(--vault-button-image,none);border-color:var(--vault-button-border,var(--button-bd));box-shadow:var(--vault-button-shadow,none) }
+.lm-root .lm-button:not(.lm-card-row):enabled:hover { background-image:var(--vault-button-hover-image,none) }
+.lm-root .lm-button:not(.lm-card-row):enabled:active { background-image:var(--vault-button-pressed-image,none) }
+.lm-root .lm-button:not(.lm-card-row)[data-variant=filled] { background-image:var(--vault-primary-image,none);box-shadow:none }
+.lm-root .lm-button:not(.lm-card-row)[data-variant=filled]:enabled:hover { background-image:var(--vault-primary-hover-image,none) }
+.lm-root .lm-button:not(.lm-card-row)[data-variant=filled]:enabled:active { background-image:var(--vault-primary-pressed-image,none) }
+.lm-root .lm-button:not(.lm-card-row):disabled { background-image:none;box-shadow:none }
+.lm-root .lm-input:not(:disabled) { box-shadow:var(--vault-input-shadow,none) }
 .lm-root .lm-input { --input-bd:color-mix(in srgb,var(--vault-control-border) 35%,var(--vault-content));--input-bg:var(--vault-content);--input-bd-focus:var(--vault-focus);--input-disabled-bg:var(--vault-selection);--input-disabled-color:var(--vault-secondary);caret-color:var(--vault-caret);border-width:var(--vault-border);transition:border-color var(--vault-motion-fast) var(--vault-motion-easing),background-color var(--vault-motion-fast) var(--vault-motion-easing) }
 .lm-root input.lm-input:focus,.lm-root button.lm-input:focus-visible { outline:none;border-color:var(--vault-focus) }
 .lm-root .lm-input::selection { background:var(--vault-selection);color:var(--vault-text) }

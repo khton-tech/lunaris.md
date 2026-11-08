@@ -39,8 +39,8 @@ const logger = createLogger();
 
 /** Host composition point. Product plugins import only the public SDK. */
 export function composeApplication(target: HTMLElement): ApplicationDefinition {
-  const themeSettings = createThemeSettings({ defaultThemeId: "lunaris.base-theme-engine.monochrome" });
-  const interfaceSettings = createInterfaceSettings({ defaultThemeId: "lunaris.base-theme-engine.monochrome" });
+  const themeSettings = createThemeSettings({ defaultThemeId: "lunaris.base-theme-engine.windows-xp" });
+  const interfaceSettings = createInterfaceSettings({ defaultThemeId: "lunaris.base-theme-engine.windows-xp" });
   const runner = createRunner({ art, hideWhenLoaded: true });
   const selector = createVaultSelector({ art, hideWhenVaultOpen: true });
   const startup = createStartupProvider();

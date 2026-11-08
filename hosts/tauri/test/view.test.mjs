@@ -45,10 +45,10 @@ test('first HTML paint contains the runner artwork and hides recovery before Jav
   assert.equal(document.querySelector('#startup-root pre').textContent, readFileSync(new URL('../../../resources/ascii_art.txt', import.meta.url), 'utf8').replaceAll('\r\n', '\n'));
   assert.equal(document.querySelector('#startup-root [role=status]').textContent, 'Loading system');
   const native = JSON.parse(readFileSync(new URL('../src-tauri/tauri.conf.json', import.meta.url), 'utf8'));
-  assert.equal(native.app.windows[0].backgroundColor, '#0F0F0F');
+  assert.equal(native.app.windows[0].backgroundColor, '#FFFFFF');
   const style = document.createElement('style'); style.textContent = readFileSync(new URL('../assets/shell.css', import.meta.url), 'utf8'); document.head.append(style);
-  assert.equal(dom.window.getComputedStyle(document.documentElement).backgroundColor, 'rgb(15, 15, 15)');
-  assert.equal(dom.window.getComputedStyle(document.getElementById('startup-root')).backgroundColor, 'rgb(15, 15, 15)');
+  assert.equal(dom.window.getComputedStyle(document.documentElement).backgroundColor, 'rgb(255, 255, 255)');
+  assert.equal(dom.window.getComputedStyle(document.getElementById('startup-root')).backgroundColor, 'rgb(255, 255, 255)');
   dom.window.close();
 });
 
