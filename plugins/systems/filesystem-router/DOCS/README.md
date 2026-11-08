@@ -1,5 +1,9 @@
 # Filesystem router
 
+FilesystemSources.locationVisible delegates source visibility without exposing
+backend authority or requiring consumers to decode references. A description
+refresh retains the exact input reference, including native legacy history keys.
+
 Host factory `createFilesystemRouter(sources, defaultSource)` implements the
 standard filesystem driver APIs and FilesystemSources. Each source declares
 explicit backend API/event tokens, acquired exclusively through ctx.use and SDK

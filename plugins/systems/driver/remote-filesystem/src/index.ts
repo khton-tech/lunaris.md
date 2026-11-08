@@ -1,7 +1,7 @@
 import { definePlugin } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
-import { ServerTransport, AccountSessionChanged, validRemoteVault } from "@lunaris/remote";
+import { ServerTransport, AccountSessionChanged, validRemoteVault, decodeRemoteReference } from "@lunaris/remote";
 import type { RemoteVault } from "@lunaris/remote";
 import { RemoteFilesystemBackend, failure, validTarget, validFolderLocation } from "@lunaris/filesystem";
 import type { FsResult, FsCapabilities, FileTarget, RemoteRootIdentity } from "@lunaris/filesystem";
@@ -29,13 +29,15 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: "lunaris.remot
   ctx.events.on(AccountSessionChanged, () => { for (const id of watches.keys()) unwatch(id); cursors.clear(); });
   async function describe(reference: string): Promise<FsResult<RemoteVault>> {
     const state = transport.current(); if (!state) return failure("UNAUTHENTICATED", "Sign in to continue.");
-    const parts = reference.split('/');
+    const decoded = decodeRemoteReference(reference);
+    if (!decoded || decoded.server !== state.server) return failure("NOT_FOUND", "The location belongs to another server.");
+    const parts = decoded.reference.split('/');
     if (parts.length !== 2 || parts[0] !== state.account.id || !/^[a-f0-9-]{36}$/.test(parts[1]!)) return failure("NOT_FOUND", "The location belongs to another account.");
     const result = await transport.request("GET", "vaults"); if (!result.ok) return result as FsResult<never>;
     if (ctx.signal.aborted || transport.current()?.epoch !== state.epoch) return failure("CANCELLED", "The account session changed.");
     if (!Array.isArray(result.value) || !result.value.every(validRemoteVault)) return failure("PROTOCOL_MISMATCH", "Invalid Vault catalog.");
-    const vault = (result.value as RemoteVault[]).find(vault => vault.id === parts[1] && vault.location?.reference === reference);
-    return vault ? { ok: true, value: vault } : failure("NOT_FOUND", "Vault not found.");
+    const vault = (result.value as RemoteVault[]).find(vault => vault.id === parts[1] && vault.location?.reference === decoded.reference);
+    return vault ? { ok: true, value: { ...vault, location: { reference, label: `${state.server} · ${vault.name}` } } } : failure("NOT_FOUND", "Vault not found.");
   }
   async function file<T>(target: FileTarget, operation: string, args: object = {}): Promise<FsResult<T>> {
     if (!validTarget(target, true)) return failure("INVALID_PATH", "A Vault-relative target is required.");
@@ -72,6 +74,7 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: "lunaris.remot
   }, 1500);
   ctx.scope.own({ dispose() { clearInterval(timer); for (const id of roots.keys()) close(id); } });
   ctx.provide(RemoteFilesystemBackend.api, {
+    locationVisible(reference) { const state = transport.current(); const decoded = decodeRemoteReference(reference); return !!state && decoded?.server === state.server && decoded.reference.split('/')[0] === state.account.id; },
     capabilities: () => capabilities,
     remoteIdentity: id => { const root = roots.get(id); return root ? { ok: true, value: root.identity } : failure("VAULT_CLOSED", "Attachment closed."); },
     openConfig: unsupported, selectOwned: unsupported, selectVault: unsupported, selectLocation: unsupported, createLocation: unsupported,

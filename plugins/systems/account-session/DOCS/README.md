@@ -1,5 +1,11 @@
 # account-session
 
+Requires FilesystemSources to distinguish active remote attachments through public
+identity contracts. Connection/login/logout release remote Vaults through Vault
+guards; local Vaults stay open. Trash closes only a matching remote Vault. Catalog
+locations are namespaced by the exact connected origin and account, and requests
+reject stale session epochs before publishing data. No credential leaves transport.
+
 Provides the AccountSession public SDK contract. See [remote contracts](../../../../DOCS/reference/remote.md) for API methods and ownership.
 
 Required Logger reports readiness, meaningful state changes, degradation and failures

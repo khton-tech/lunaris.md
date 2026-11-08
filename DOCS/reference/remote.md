@@ -1,5 +1,18 @@
 # Remote service contracts
 
+Durable remote locations include the exact selected server origin and the
+account/Vault reference. Only the remote adapter encodes/decodes that format;
+consumers keep references opaque. Identical IDs restored on a different server
+cannot redirect history to that server. FilesystemSources.locationVisible delegates
+history visibility to each backend. Remote history is hidden on logout and for
+other accounts/origins, while native unavailable-folder history remains visible.
+
+Account transitions release an active remote Vault through normal guards and keep
+a local Vault open. Trash releases only its matching remote Vault. Every successful
+login advances the session epoch; stale catalog responses and attachments cannot
+survive an account replacement. Optional History integration refreshes cached
+visibility through AccountSessionChanged and retains saved references unchanged.
+
 `@lunaris/remote` defines AccountSession, AccountVaults, Drafts and DraftStorage.
 These are additive public SDK tokens; they do not implement a server or grant
 network access. Account consumers declare `account.access`; draft consumers declare

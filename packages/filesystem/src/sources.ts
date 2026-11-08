@@ -5,6 +5,7 @@ import { validPath } from "./index.js";
 
 /** Flat methods retain SDK mediation; implementations never escape in results. */
 export interface FilesystemBackendApi extends FilesystemApi {
+  locationVisible(reference: string): boolean;
   remoteIdentity(rootId: string): FsResult<RemoteRootIdentity>;
   openConfig(owner: CancellationSignal): Promise<FsResult<VaultRoot>>;
   selectOwned(owner: CancellationSignal): Promise<FsResult<VaultRoot | null>>;
@@ -17,6 +18,7 @@ export interface FilesystemBackendApi extends FilesystemApi {
 
 export const backendMethods = Object.freeze([
   "remoteIdentity",
+  "locationVisible",
   "capabilities", "selectVault", "closeVault", "pickFile", "pickDirectory", "pickSaveLocation",
   "readText", "readFile", "writeText", "writeFile", "stat", "list", "createDirectory", "remove",
   "move", "copy", "watch", "unwatch", "openConfig", "selectOwned", "describeLocation",
@@ -38,6 +40,7 @@ export const LocalFilesystemBackend = defineFilesystemBackend("lunaris.local-fil
 export const RemoteFilesystemBackend = defineFilesystemBackend("lunaris.remote-filesystem-backend");
 
 export interface FilesystemSourcesApi {
+  locationVisible(location: FolderLocation): boolean;
   list(): readonly string[];
   /** Wrap a durable backend reference for VaultLocations; labels grant no access. */
   location(sourceId: string, location: FolderLocation): FsResult<FolderLocation>;
@@ -46,4 +49,4 @@ export interface FilesystemSourcesApi {
 }
 export interface RemoteRootIdentity { readonly server: string; readonly accountId: string; readonly vaultId: string }
 export const FilesystemSources = defineApi<FilesystemSourcesApi>({ id: "lunaris.filesystem-sources", version: "1.0.0", consumePermission: "filesystem.access",
-  validate: value => value !== null && typeof value === "object" && ["list", "location", "capabilitiesFor", "remoteIdentity"].every(method => typeof Object.getOwnPropertyDescriptor(value, method)?.value === "function") });
+  validate: value => value !== null && typeof value === "object" && ["list", "location", "capabilitiesFor", "remoteIdentity", "locationVisible"].every(method => typeof Object.getOwnPropertyDescriptor(value, method)?.value === "function") });

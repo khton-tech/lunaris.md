@@ -86,7 +86,7 @@ export function composeApplication(target: HTMLElement, options: {
       ...Object.fromEntries(updates.map(plugin => [plugin.manifest.id, plugin.manifest.permissions])),
       [device.manifest.id]: device.manifest.permissions,
       [transport.manifest.id]: [],
-      [accountSession.manifest.id]: ["vault.access", "account.network"],
+      [accountSession.manifest.id]: ["vault.access", "filesystem.access", "account.network"],
       [account.manifest.id]: ["account.access", "filesystem.access", "vault.access", "ui.dom"],
       [remoteFilesystem.manifest.id]: ["filesystem.native", "account.network", "account.access"],
       [draftsProvider.manifest.id]: ["drafts.access"],
@@ -108,7 +108,7 @@ export function composeApplication(target: HTMLElement, options: {
       [mantineComponents.manifest.id]: ["ui.dom"],
       [filesystem.manifest.id]: ["filesystem.access", "filesystem.app-config"],
       [vaultManager.manifest.id]: ["filesystem.access"],
-      [vaultHistory.manifest.id]: ["config.access", "vault.access"],
+      [vaultHistory.manifest.id]: ["config.access", "vault.access", "filesystem.access", "account.access"],
       [configManager.manifest.id]: ["filesystem.access", "filesystem.app-config", "vault.access"],
     },
   };

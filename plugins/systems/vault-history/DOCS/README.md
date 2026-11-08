@@ -1,5 +1,14 @@
 # Recent Vault history provider
 
+With optional FilesystemSources and AccountSession integration, require host grants
+for filesystem.access/account.access. Lists, reopen requests and changed events
+filter locations through the backend's public locationVisible contract. Account
+changes immediately republish filtered cached history, without exposing another
+account's names. Storage retains device history for future matching logins. Native
+unavailable folders retain the original recovery behavior. Consumers do not parse
+references or infer a source from plugin IDs. Description refreshes labels while
+preserving the exact persisted reference.
+
 Purpose: persist and reopen recent Vault locations without coupling product UI
 to filesystem drivers. Lives in `plugins/systems/vault-history`; provides
 `VaultHistory` and `VaultHistoryChanged` from `@lunaris/vault`. Requires Logger,

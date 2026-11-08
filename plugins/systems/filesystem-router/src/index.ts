@@ -88,6 +88,7 @@ export function createFilesystemRouter(sources: readonly BackendSource[], defaul
         maxFileBytes: Math.min(...all.map(c => c.maxFileBytes)) });
     };
     ctx.provide(FilesystemSources, { list: () => Object.freeze([...backends.keys()]), location: wrap,
+      locationVisible: location => { const route = validFolderLocation(location) ? unwrap(location.reference) : null; return route ? route.backend.locationVisible(route.reference) === true : false; },
       remoteIdentity: id => { const entry = roots.get(id); return entry ? entry.backend.remoteIdentity(entry.nativeId) : closed(); },
       capabilitiesFor: id => { const entry = roots.get(id); return entry ? { ok: true, value: Object.freeze({ ...entry.backend.capabilities() }) } : closed(); } });
     for (const source of bindings) {

@@ -17,6 +17,7 @@ test('desktop bearer stays in transport; late responses cannot restore a cancell
   host.register(consumer([ServerTransport], context => { ctx = context; api = ctx.use(ServerTransport); }, ['account.network']));
   await host.start('test.consumer'); const owner = ctx.scope.child(); await api.connect('http://localhost:3100', owner.signal);
   await api.login('alice', 'password'); assert.equal(api.current().account.login, 'alice'); assert.equal(JSON.stringify(api.current()).includes('secret-token'), false);
+  const previousEpoch = api.current().epoch; await api.login('alice', 'password'); assert.notEqual(api.current().epoch, previousEpoch);
   const pending = api.request('GET', 'vaults'); assert.equal(calls.at(-1)[1].headers.Authorization, 'Bearer secret-token');
   await owner.dispose(); delayed(json([])); assert.equal((await pending).error.code, 'CANCELLED'); assert.equal(api.current(), null);
   await host.stopAll(); host.assertNoResources(); assert.deepEqual(host.diagnostics(), []);

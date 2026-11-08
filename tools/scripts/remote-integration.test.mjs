@@ -15,7 +15,7 @@ import { createDevToolsLogger } from '@lunaris/dev-tools-logger';
 import { createBrowserNavigation } from '@lunaris/browser-navigation';
 import { AccountSession, AccountVaults, AccountAccess, ClientUpdates } from '@lunaris/remote';
 import { Filesystem, FilesystemSources } from '@lunaris/filesystem';
-import { Vault, VaultLocations } from '@lunaris/vault';
+import { Vault, VaultLocations, VaultHistory } from '@lunaris/vault';
 import { ActiveDocument, DocumentProtection } from '@lunaris/active-document';
 
 async function until(condition, label) {
@@ -61,7 +61,7 @@ test('real server browser composition recovers drafts, gates updates and retires
   dom.window.Range.prototype.getClientRects = () => [];
   dom.window.Range.prototype.getBoundingClientRect = () => ({ left: 0, right: 0, top: 0, bottom: 0, width: 0, height: 0 });
   const target = dom.window.document.getElementById('application'); let api; let reloaded = 0;
-  const tokens = { account: AccountSession, catalog: AccountVaults, access: AccountAccess, updates: ClientUpdates, fs: Filesystem, sources: FilesystemSources, vault: Vault, locations: VaultLocations, document: ActiveDocument };
+  const tokens = { account: AccountSession, catalog: AccountVaults, access: AccountAccess, updates: ClientUpdates, fs: Filesystem, sources: FilesystemSources, vault: Vault, locations: VaultLocations, history: VaultHistory, document: ActiveDocument };
   const bridge = definePlugin({ manifest: { manifestVersion: 1, id: 'test.web-bridge', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides: [],
     requires: Object.values(tokens).map(token => ({ kind: token.kind, id: token.id, range: `^${token.version}` })), permissions: ['account.access', 'application.update', 'filesystem.access', 'vault.access'], optionalPermissions: [] },
     activate(ctx) { api = Object.fromEntries(Object.entries(tokens).map(([key, token]) => [key, ctx.use(token)])); api.owner = ctx.signal; } });
@@ -116,6 +116,13 @@ test('real server browser composition recovers drafts, gates updates and retires
   assert.equal(api.vault.current(), null);
   await until(() => target.querySelector('.lm-account-access'), 'account catalog returns after Vault close');
   await session.refresh(); assert.equal(session.snapshot().phase, 'running', JSON.stringify(session.snapshot().incidents));
+  assert.ok((await api.history.list()).value.some(entry => entry.location.reference === wrapped.value.reference));
+  assert.equal((await api.account.logout()).ok, true); assert.equal((await api.history.list()).value.length, 0);
+  assert.equal((await api.account.register('bob', 'correct horse battery staple')).ok, true);
+  assert.equal((await api.account.login('bob', 'correct horse battery staple')).ok, true);
+  assert.equal((await api.history.list()).value.length, 0); assert.equal((await api.history.open(wrapped.value.reference)).error.code, 'NOT_FOUND');
+  await api.account.logout(); await api.account.login('alice', 'correct horse battery staple');
+  assert.ok((await api.history.list()).value.some(entry => entry.location.reference === wrapped.value.reference));
   holdReads = true; holdShutdown = true;
   assert.equal((await api.locations.open(wrapped.value)).ok, true);
   await until(() => readEntered, 'pending note read');

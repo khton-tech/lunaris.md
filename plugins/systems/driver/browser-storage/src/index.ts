@@ -66,6 +66,7 @@ export function createBrowserStorage(options: { readonly databaseName?: string; 
         }); return { version }; }); return declined ?? saved;
       }
       ctx.provide(LocalFilesystemBackend.api, {
+        locationVisible: () => false,
         capabilities: () => Object.freeze({ watch: false, atomicReplace: true, versionCheck: "optimistic", trash: false, maxFileBytes: Number.MAX_SAFE_INTEGER }),
         remoteIdentity: () => failure("UNSUPPORTED", "Device configuration has no remote identity."),
         async openConfig(owner) {

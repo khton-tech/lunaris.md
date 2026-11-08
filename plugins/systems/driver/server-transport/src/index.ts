@@ -86,8 +86,9 @@ export function createServerTransport(options: { readonly mode: "browser" | "des
         if (version !== epoch) return failed("CANCELLED", "The account session changed.");
         const value = result.value as { account: Account; token?: string };
         if (!value?.account || typeof value.account.id !== "string" || typeof value.account.login !== "string" || (options.mode === "desktop" && typeof value.token !== "string")) return failed("PROTOCOL_MISMATCH", "The server returned an invalid account.");
+        retire(); const committedEpoch = epoch;
         bearer = value.token; current = Object.freeze({ server: address, account: Object.freeze({ ...value.account }), epoch: `${ctx.activationId}:${epoch}` }); await publish();
-        if (ctx.signal.aborted || version !== epoch || !current) return failed("CANCELLED", "The account session changed.");
+        if (ctx.signal.aborted || committedEpoch !== epoch || !current) return failed("CANCELLED", "The account session changed.");
         logger.info(ctx.pluginId, "Account signed in"); return { ok: true, value: current.account };
       },
       async logout() {

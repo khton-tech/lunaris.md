@@ -1,6 +1,8 @@
 import { definePlugin } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
 import { Config } from "@lunaris/config";
+import { FilesystemSources } from "@lunaris/filesystem";
+import { AccountSession, AccountSessionChanged } from "@lunaris/remote";
 import { VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged, validRecentVault } from "@lunaris/vault";
 import type { RecentVault, VaultHistoryResult } from "@lunaris/vault";
 import manifest from "../manifest.json" with { type: "json" };
@@ -15,6 +17,11 @@ export default definePlugin({ manifest, activate(ctx) {
   const logger = scopeLogger(ctx.use(Logger), ctx.signal);
   const config = ctx.use(Config);
   const locations = ctx.use(VaultLocations);
+  const sources = ctx.permissions.has("filesystem.access") ? ctx.optional(FilesystemSources) : undefined;
+  const account = ctx.permissions.has("account.access") ? ctx.optional(AccountSession) : undefined;
+  let cached: readonly RecentVault[] = [];
+  const visible = (entries: readonly RecentVault[]) => snapshot(entries.filter(entry => !sources || sources.locationVisible(entry.location)));
+  if (sources && account) ctx.events.on(AccountSessionChanged, () => ctx.events.emit(VaultHistoryChanged, { entries: visible(cached) }));
   let queue: Promise<unknown> = Promise.resolve();
   async function read(): Promise<VaultHistoryResult<readonly RecentVault[]>> {
     if (ctx.signal.aborted) return { ok: false, error: { code: "STOPPED", message: "The history provider is stopped." } };
@@ -33,7 +40,8 @@ export default definePlugin({ manifest, activate(ctx) {
     for (const entry of entries as unknown as readonly RecentVault[]) {
       if (!unique.has(entry.location.reference)) unique.set(entry.location.reference, entry);
     }
-    return { ok: true, value: snapshot([...unique.values()].slice(0, limit)) };
+    cached = snapshot([...unique.values()].slice(0, limit));
+    return { ok: true, value: cached };
   }
   async function record(entry: RecentVault): Promise<void> {
     if (ctx.signal.aborted) return;
@@ -51,7 +59,8 @@ export default definePlugin({ manifest, activate(ctx) {
       return;
     }
     logger.info(ctx.pluginId, "Recent Vault history saved", { data: { count: entries.length } });
-    void ctx.events.emit(VaultHistoryChanged, Object.freeze({ entries })).catch(error => {
+    cached = entries;
+    void ctx.events.emit(VaultHistoryChanged, Object.freeze({ entries: visible(entries) })).catch(error => {
       if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot publish recent Vault history", { code: "HISTORY_EVENT_FAILED", error });
     });
   }
@@ -69,7 +78,7 @@ export default definePlugin({ manifest, activate(ctx) {
       const result = await read();
       if (!result.ok) return result;
       const entries: RecentVault[] = [];
-      for (const entry of result.value) {
+      for (const entry of visible(result.value)) {
         if (ctx.signal.aborted) return { ok: false, error: { code: "STOPPED", message: "The history provider is stopped." } };
         const described = await locations.describe(entry.location.reference);
         if (ctx.signal.aborted) return { ok: false, error: { code: "STOPPED", message: "The history provider is stopped." } };
@@ -83,7 +92,7 @@ export default definePlugin({ manifest, activate(ctx) {
       await queue;
       const history = await read();
       if (!history.ok) return history;
-      const entry = history.value.find(item => item.location.reference === reference);
+      const entry = visible(history.value).find(item => item.location.reference === reference);
       if (!entry) return { ok: false, error: { code: "NOT_FOUND", message: "The recent Vault entry does not exist." } };
       // Restore current persisted Vault metadata; history names are only presentation.
       return locations.open(entry.location);

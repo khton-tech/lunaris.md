@@ -1,6 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { AccountSessionChanged, ConnectionChanged, Drafts } from '@lunaris/remote';
+import { AccountSessionChanged, ConnectionChanged, Drafts, encodeRemoteReference, decodeRemoteReference } from '@lunaris/remote';
+test('durable remote references distinguish identical account and Vault IDs on different origins', () => {
+  const reference = 'account/vault'; const first = encodeRemoteReference('https://first.example', reference); const second = encodeRemoteReference('https://second.example', reference);
+  assert.notEqual(first, second); assert.deepEqual(decodeRemoteReference(first), { server: 'https://first.example', reference });
+  assert.equal(decodeRemoteReference(reference), null); assert.equal(decodeRemoteReference('["lunaris-remote-v1","", "account/vault"]'), null);
+});
 test('session and connection events reject malformed state', () => {
   assert.equal(AccountSessionChanged.validate({ current: null }), true);
   assert.equal(AccountSessionChanged.validate({ current: { server: 'https://s', epoch: 'e', account: { id: 'a', login: 'alice' } } }), true);

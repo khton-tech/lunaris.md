@@ -4,6 +4,12 @@ import type { FolderLocation, FsFailure, FsResult } from "@lunaris/filesystem";
 import { validFolderLocation } from "@lunaris/filesystem";
 
 export const REMOTE_PROTOCOL = 1;
+/** Durable remote authority includes the exact selected origin and account reference. */
+export function encodeRemoteReference(server: string, reference: string): string { return JSON.stringify(["lunaris-remote-v1", server, reference]); }
+export function decodeRemoteReference(reference: string): { readonly server: string; readonly reference: string } | null {
+  try { const value: unknown = JSON.parse(reference); return Array.isArray(value) && value.length === 3 && value[0] === "lunaris-remote-v1" && typeof value[1] === "string" && !!value[1] && typeof value[2] === "string" && !!value[2] ? { server: value[1], reference: value[2] } : null; }
+  catch { return null; }
+}
 export interface ServerInfo { readonly protocol: number; readonly buildId: string; readonly registration: "open" | "invitation" }
 export interface Account { readonly id: string; readonly login: string }
 export interface AccountState { readonly server: string; readonly account: Account; readonly epoch: string }
