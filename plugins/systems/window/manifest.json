@@ -1,0 +1,41 @@
+{
+  "manifestVersion": 1,
+  "id": "lunaris.window-provider",
+  "version": "0.1.0",
+  "engine": "^0.1.0",
+  "sdk": "^0.1.0",
+  "entry": "./dist/src/index.js",
+  "provides": [
+    {
+      "kind": "api",
+      "id": "lunaris.window",
+      "version": "1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.window-changed",
+      "version": "1.0.0"
+    }
+  ],
+  "requires": [
+    {
+      "kind": "api",
+      "id": "lunaris.logger",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.window-driver",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.driver-window-changed",
+      "range": "^1.0.0"
+    }
+  ],
+  "permissions": [
+    "window.control"
+  ],
+  "optionalPermissions": []
+}

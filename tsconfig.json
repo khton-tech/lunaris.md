@@ -159,6 +159,15 @@
     },
     {
       "path": "plugins/UI/text-editor"
+    },
+    {
+      "path": "packages/window"
+    },
+    {
+      "path": "plugins/systems/window"
+    },
+    {
+      "path": "plugins/systems/driver/tauri-window"
     }
   ]
 }
