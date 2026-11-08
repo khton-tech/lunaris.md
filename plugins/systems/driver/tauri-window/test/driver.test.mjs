@@ -58,6 +58,17 @@ test('exclusive titlebar ownership restores native controls on cancellation and 
   await s.stop(); assert.equal(s.decorations, true);
 });
 
+test('native resize notifications with unchanged public state do not emit or remount the caption', async () => {
+  const s = await setup(); const sequence = s.api.snapshot().sequence;
+  s.changed(); s.changed();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(s.api.snapshot().sequence, sequence); assert.equal(s.changes.length, 0);
+  s.state.focused = false; s.changed();
+  await new Promise(resolve => setImmediate(resolve));
+  assert.equal(s.changes.length, 1); assert.equal(s.changes[0].focused, false);
+  await s.stop();
+});
+
 test('cancellation during native chrome change queues restoration after the pending hide', async () => {
   let release; const hidden = new Promise(resolve => { release = resolve; }); const operations = [];
   const s = await setup({ async setDecorations(value) { if (!value) await hidden; operations.push(value); } });
@@ -76,4 +87,29 @@ test('unsupported browser platform keeps native chrome untouched and errors are 
   assert.equal((await s.api.minimize()).error.code, 'NATIVE_FAILED');
   assert.equal(s.logs.find(entry => entry[0] === 'error')[3].error, original);
   assert.equal((await s.api.toggleMaximize()).ok, true); await s.stop();
+});
+
+test('a window-change listener can await another window operation without blocking the native queue', { timeout: 2000 }, async () => {
+  const s = await setup(); const finished = Promise.withResolvers();
+  s.context.events.on(WindowChanged, async state => {
+    if (state.title === 'Outer') {
+      assert.equal((await s.api.setTitle('Inner')).ok, true); finished.resolve();
+    }
+  });
+  await s.api.setTitle('Outer'); await finished.promise;
+  assert.equal(s.api.snapshot().title, 'Inner'); await s.stop();
+});
+
+test('a rejected chrome hide still restores native controls after concurrent owner cancellation', async () => {
+  const pending = Promise.withResolvers(); const operations = []; let fail = true;
+  const s = await setup({ async setDecorations(value) {
+    operations.push(value);
+    if (!value && fail) { await pending.promise; throw new Error('Hide failed'); }
+  } });
+  const owner = s.context.scope.child(); const acquired = s.api.acquireTitlebar(owner.signal);
+  await owner.dispose(); pending.resolve();
+  assert.equal((await acquired).error.code, 'NATIVE_FAILED');
+  fail = false;
+  assert.equal((await s.api.acquireTitlebar(s.context.signal)).ok, true);
+  await s.stop(); assert.deepEqual(operations, [false, true, false, true]);
 });

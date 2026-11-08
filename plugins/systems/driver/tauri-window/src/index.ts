@@ -1,4 +1,4 @@
-import { definePlugin } from "@lunaris/sdk";
+import { definePlugin, LunarisError } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
 import { Logger } from "@lunaris/logging";
 import { WindowDriver, DriverWindowChanged, windowFailure, validWindowOwner } from "@lunaris/window";
@@ -21,9 +21,15 @@ export function createTauriWindowDriver(port?: NativeWindowPort | null) {
       if (!native || ctx.signal.aborted) return;
       const next = await native.read();
       if (ctx.signal.aborted) return;
-      if (JSON.stringify({ ...state, sequence: 0 }) === JSON.stringify({ ...next, sequence: 0 })) return;
+      if (state.title === next.title && state.focused === next.focused && state.maximized === next.maximized &&
+        (Object.keys(state.capabilities) as (keyof WindowCapabilities)[]).every(key => state.capabilities[key] === next.capabilities[key])) return;
       state = Object.freeze({ ...next, capabilities: Object.freeze({ ...next.capabilities }), sequence: state.sequence + 1 });
-      if (publishing) await ctx.events.emit(DriverWindowChanged, state);
+      // Do not make the native queue wait for consumers: a listener may issue
+      // another window command or request shutdown from inside this event.
+      if (publishing) void ctx.events.emit(DriverWindowChanged, state).catch(error => {
+        if (ctx.signal.aborted || (error instanceof LunarisError && ["SCOPE_CLOSED", "CONTRACT_UNAVAILABLE", "PROVIDER_UNAVAILABLE"].includes(error.code))) return;
+        logger.error(ctx.pluginId, "Cannot publish native window state", { error });
+      });
     }
     function scheduleRefresh(): Promise<void> {
       refreshTail = refreshTail.then(refresh).catch(error => {
@@ -34,7 +40,8 @@ export function createTauriWindowDriver(port?: NativeWindowPort | null) {
     function restore(): void {
       const previous = lease; lease = undefined;
       previous?.owner.removeEventListener("abort", previous.release);
-      chromeTail = chromeTail.then(async () => { if (native) await native.setDecorations(decorated); });
+      const restoreNative = async () => { if (native) await native.setDecorations(decorated); };
+      chromeTail = chromeTail.then(restoreNative, restoreNative);
       // Keep rejection observed until awaited by scope cleanup or the next acquisition.
       void chromeTail.catch(error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot restore native window chrome", { error }); });
     }
@@ -44,15 +51,21 @@ export function createTauriWindowDriver(port?: NativeWindowPort | null) {
       await chromeTail;
       await refreshTail;
     } });
-    if (native) {
-      decorated = await native.isDecorated();
-      ctx.signal.throwIfAborted();
-      const remove = await native.listen(() => { void scheduleRefresh(); });
-      if (ctx.signal.aborted) { remove(); return; }
-      unlisten = remove;
-      await refresh();
-      ctx.signal.throwIfAborted();
-    } else logger.warn(ctx.pluginId, "Native window controls unavailable; keeping platform chrome");
+    try {
+      if (native) {
+        decorated = await native.isDecorated();
+        ctx.signal.throwIfAborted();
+        const remove = await native.listen(() => { void scheduleRefresh(); });
+        if (ctx.signal.aborted) { remove(); return; }
+        unlisten = remove;
+        refreshTail = refreshTail.then(refresh);
+        await refreshTail;
+        ctx.signal.throwIfAborted();
+      } else logger.warn(ctx.pluginId, "Native window controls unavailable; keeping platform chrome");
+    } catch (error) {
+      if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot initialize native window driver", { error });
+      throw error;
+    }
     async function run(capability: keyof WindowCapabilities, operation: () => Promise<void>): Promise<WindowResult> {
       if (!native || !state.capabilities[capability]) return windowFailure("UNSUPPORTED", "This platform does not support the window operation.");
       try {
@@ -79,7 +92,8 @@ export function createTauriWindowDriver(port?: NativeWindowPort | null) {
         lease = { owner, release: restore };
         owner.addEventListener("abort", restore, { once: true });
         // Serialize hide/restore across owner cancellation and replacement.
-        const pending = chromeTail.then(() => native.setDecorations(false));
+        const hideNative = () => native.setDecorations(false);
+        const pending = chromeTail.then(hideNative, hideNative);
         chromeTail = pending;
         try {
           await pending;
@@ -87,8 +101,8 @@ export function createTauriWindowDriver(port?: NativeWindowPort | null) {
           logger.info(ctx.pluginId, "Custom window chrome enabled");
           return { ok: true, value: null };
         } catch (error) {
-          // A failed hide must not poison future restoration attempts.
-          chromeTail = Promise.resolve();
+          // Restoration also runs after a rejected hide, including cancellation
+          // that has already queued restoration while this operation was pending.
           if (lease?.owner === owner) restore();
           if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot enable custom window chrome", { error });
           return windowFailure("NATIVE_FAILED", "Cannot enable custom window chrome.");
