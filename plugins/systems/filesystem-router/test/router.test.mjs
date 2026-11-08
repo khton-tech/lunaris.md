@@ -23,6 +23,7 @@ async function setup() {
         capabilities: () => ({ watch: true, atomicReplace: true, versionCheck: 'optimistic', trash: false, maxFileBytes: name === 'local' ? 100 : 200 }),
         attachLocation: async (...args) => { calls.push([name, 'attachLocation', ...args]); return overrides[name] ? overrides[name](...args) : ok({ id: 'same-native-id', name }); },
         openConfig: async () => ok({ id: 'config', name: 'Config' }),
+        describeLocation: async reference => ok({ reference, label: `${name} refreshed` }),
         readText: async target => { calls.push([name, 'readText', target]); return ok({ text: name, version: 'v' }); },
         watchOwned: async () => ok('same-watch-id'),
       });
@@ -76,6 +77,13 @@ test('unknown explicit source never falls back to local', async () => {
   assert.equal(result.error.code, 'NOT_FOUND'); assert.equal(s.calls.length, 0);
   const malformed = await s.locations.attach({ reference: JSON.stringify(['lunaris-source-v1', 'local', 'ref', 'extra']), label: 'fake' }, s.ctx.signal);
   assert.equal(malformed.error.code, 'NOT_FOUND'); assert.equal(s.calls.length, 0);
+  await s.host.stopAll(); s.host.assertNoResources();
+});
+test('describing a legacy or routed location refreshes its label without changing history identity', async () => {
+  const s = await setup();
+  const legacy = await s.locations.describe('legacy-native-reference'); assert.equal(legacy.value.reference, 'legacy-native-reference'); assert.equal(legacy.value.label, 'local refreshed');
+  const remote = s.sources.location('remote', { reference: 'durable', label: 'Old label' }).value;
+  const described = await s.locations.describe(remote.reference); assert.equal(described.value.reference, remote.reference); assert.equal(described.value.label, 'remote refreshed');
   await s.host.stopAll(); s.host.assertNoResources();
 });
 test('router shutdown releases owner listeners even while an attachment is closing', async () => {

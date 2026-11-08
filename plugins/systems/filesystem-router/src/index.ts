@@ -120,7 +120,11 @@ export function createFilesystemRouter(sources: readonly BackendSource[], defaul
       async describe(reference) {
         const route = unwrap(reference); if (!route) return failure("NOT_FOUND", "Filesystem source unavailable.");
         const result = await route.backend.describeLocation(route.reference);
-        return result.ok ? wrap(route.sourceId, result.value) : result;
+        if (!result.ok) return result;
+        if (!validFolderLocation(result.value) || result.value.reference !== route.reference) return failure("CONFLICT", "The backend changed the durable location identity.");
+        // Description refreshes presentation only. History reopens the exact
+        // persisted reference, including legacy default-source references.
+        return { ok: true, value: Object.freeze({ reference, label: result.value.label }) };
       },
       attach(location, owner) {
         const route = validFolderLocation(location) ? unwrap(location.reference) : null;
