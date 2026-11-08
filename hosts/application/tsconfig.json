@@ -143,6 +143,15 @@
     },
     {
       "path": "../../packages/filesystem"
+    },
+    {
+      "path": "../../plugins/systems/client-updates"
+    },
+    {
+      "path": "../../plugins/systems/driver/browser-navigation"
+    },
+    {
+      "path": "../../plugins/UI/client-update"
     }
   ]
 }

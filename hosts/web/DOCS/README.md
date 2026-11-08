@@ -20,3 +20,9 @@ activates it separately. Do not edit these build variables from untrusted input.
 checkout and tests real HTTP/SQLite/files, composed browser Workspace/CodeMirror,
 offline local drafts, reopen/recovery and conditional remote saving. It uses JSDOM
 for behavior, not appearance; native rendering, focus and geometry remain manual.
+
+Production bundles compare their build ID with the active server release every
+minute. A Mantine update notice closes the Vault through normal save/draft guards
+before reloading. The browser navigation driver queries DocumentProtection before
+unload and warns only when edits lack remote persistence and an acknowledged local
+draft. Pending storage is never presented as durable recovery.

@@ -1,3 +1,6 @@
+import { createClientUpdates } from "@lunaris/client-updates";
+import { createBrowserNavigation } from "@lunaris/browser-navigation";
+import clientUpdateUI from "@lunaris/client-update-ui";
 import type { PluginDefinition } from "@lunaris/sdk";
 import { createBrowserStorage } from "@lunaris/browser-storage";
 import { createServerTransport } from "@lunaris/server-transport";
@@ -38,18 +41,22 @@ import vaultHistory from "@lunaris/vault-history";
 import configManager from "@lunaris/config-manager";
 import localizationManager from "@lunaris/localization-manager";
 
-// Reuse this definition across recovery attempts to print the banner once per page load.
+// Reuse logging definitions across recovery attempts.
 const devTools = createDevToolsLogger();
 const logger = createLogger();
 
 /** Host composition point. Product plugins import only the public SDK. */
 export function composeApplication(target: HTMLElement, options: {
   readonly art: string; readonly mode: "browser" | "desktop"; readonly defaultServer?: string;
+  readonly buildId?: string;
   readonly features?: readonly ("editor" | "files" | "settings")[];
   readonly platformPlugins?: readonly PluginDefinition[];
   readonly extensions?: { readonly plugins: readonly PluginDefinition[]; readonly entrypoints: readonly string[]; readonly grants: Readonly<Record<string, readonly string[]>>; readonly beforeClose?: () => Promise<boolean> };
 }): ApplicationDefinition {
   const art = options.art;
+  const navigation = options.mode === "browser" ? createBrowserNavigation() : null;
+  const updateService = options.mode === "browser" && options.buildId && options.buildId !== "development" ? createClientUpdates(options.buildId) : null;
+  const updates = [...(navigation ? [navigation] : []), ...(updateService ? [updateService, clientUpdateUI] : [])];
   const device = createBrowserStorage({ config: options.mode === "browser" });
   const transport = createServerTransport({ mode: options.mode });
   const account = createAccountAccess({ defaultOpen: options.mode === "browser", allowLocal: options.mode === "desktop", ...(options.defaultServer ? { defaultAddress: options.defaultServer } : {}) });
@@ -71,11 +78,12 @@ export function composeApplication(target: HTMLElement, options: {
     ...layout,
     startup,
     ...(extra.beforeClose ? { beforeClose: extra.beforeClose } : {}),
-    plugins: [...extra.plugins, device, transport, accountSession, account, remoteFilesystem, draftsProvider, router, ...(options.platformPlugins ?? []), textEditor, interfaceSettings, settingsProvider, settings, activeScreenProvider, activeScreen, activeDocument, contextMenu, fileExplorer, sidebar, sidebarProvider, runner, ...(options.mode === "desktop" ? [selector] : []), workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
-    entrypoints: [...extra.entrypoints, account.manifest.id, textEditor.manifest.id, startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, ...(options.mode === "desktop" ? [selector.manifest.id] : []), workspace.manifest.id, activeScreen.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id, settings.manifest.id, interfaceSettings.manifest.id],
+    plugins: [...extra.plugins, ...updates, device, transport, accountSession, account, remoteFilesystem, draftsProvider, router, ...(options.platformPlugins ?? []), textEditor, interfaceSettings, settingsProvider, settings, activeScreenProvider, activeScreen, activeDocument, contextMenu, fileExplorer, sidebar, sidebarProvider, runner, ...(options.mode === "desktop" ? [selector] : []), workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
+    entrypoints: [...extra.entrypoints, ...updates.map(plugin => plugin.manifest.id), account.manifest.id, textEditor.manifest.id, startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, ...(options.mode === "desktop" ? [selector.manifest.id] : []), workspace.manifest.id, activeScreen.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id, settings.manifest.id, interfaceSettings.manifest.id],
     grants: {
       ...layout.grants,
       ...extra.grants,
+      ...Object.fromEntries(updates.map(plugin => [plugin.manifest.id, plugin.manifest.permissions])),
       [device.manifest.id]: device.manifest.permissions,
       [transport.manifest.id]: [],
       [accountSession.manifest.id]: ["vault.access", "account.network"],

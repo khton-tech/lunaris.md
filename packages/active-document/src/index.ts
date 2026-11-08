@@ -1,4 +1,8 @@
 import { defineApi, defineEvent, defineHook } from "@lunaris/sdk";
+
+/** Synchronous unload query; no document text or privileged handles are exposed. */
+export const DocumentProtection = defineApi<{ hasUnprotectedChanges(): boolean }>({ id: "lunaris.document-protection", version: "1.0.0", consumePermission: "vault.access",
+  validate: value => value !== null && typeof value === "object" && typeof Object.getOwnPropertyDescriptor(value, "hasUnprotectedChanges")?.value === "function" });
 import { validPath } from "@lunaris/filesystem";
 import type { FileTarget, FsResult, FsFailure } from "@lunaris/filesystem";
 export type ActiveDocumentState = Readonly<FileTarget> | null;

@@ -1,6 +1,6 @@
 import { definePlugin } from "@lunaris/sdk";
 import { Logger } from "@lunaris/logging";
-import { ActiveDocument, ActiveDocumentTransitioned, BeforeActiveDocumentChange } from "@lunaris/active-document";
+import { ActiveDocument, ActiveDocumentTransitioned, BeforeActiveDocumentChange, DocumentProtection } from "@lunaris/active-document";
 import { ActiveScreen } from "@lunaris/active-screen";
 import { BeforeFileMutation, Filesystem, FileChanged, FilesystemSources } from "@lunaris/filesystem";
 import { Drafts, ConnectionChanged } from "@lunaris/remote";
@@ -33,6 +33,7 @@ export default definePlugin({ manifest, activate(ctx) {
   const vaults = ctx.use(Vault); const themes = ctx.use(Themes);
   const drafts = ctx.permissions.has("drafts.access") ? ctx.optional(Drafts) : undefined; const sources = ctx.optional(FilesystemSources);
   const sessions = new Map<string, DocumentSession>(); const states = new Map<DocumentSession, EditorState>();
+  ctx.provide(DocumentProtection, { hasUnprotectedChanges: () => [...sessions.values()].some(session => session.dirty && !session.draftSaved) });
   const views = new Set<{ render(): void; removed(): void; refreshControls(): void }>();
   const screenId = `${ctx.pluginId}.screen`;
   let current: DocumentSession | null = null; let unsupported = false; let scheduled = false;

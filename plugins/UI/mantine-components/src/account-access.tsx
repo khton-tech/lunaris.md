@@ -63,7 +63,7 @@ export function AccountAccessView({ props: p, theme }: { props: AccountAccessPro
           <Button type="submit" variant="filled" disabled={p.busy}>{p.text[p.mode]}</Button>
           {p.mode !== "connect" && <Group justify="space-between" wrap="wrap">
             <Button disabled={p.busy} onClick={p.onToggleAuth}>{p.text[p.mode === "login" ? "register" : "login"]}</Button>
-            <Button disabled={p.busy} onClick={p.onChangeServer}>{p.text.changeServer}</Button>
+            {p.allowLocal && <Button disabled={p.busy} onClick={p.onChangeServer}>{p.text.changeServer}</Button>}
           </Group>}
         </Stack>
       </Box>}

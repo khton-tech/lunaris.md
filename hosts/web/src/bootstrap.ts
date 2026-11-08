@@ -10,7 +10,7 @@ document.addEventListener("contextmenu", event => event.preventDefault(), { capt
 const session = new HostSession({ scheduler: createWebviewScheduler(), async load(signal) {
   const target = document.createElement("div"); target.className = "application-surface";
   application.replaceChildren(target); signal.addEventListener("abort", () => target.remove(), { once: true });
-  return composeApplication(target, { art, mode: "browser", defaultServer: window.location.origin, features: __LUNARIS_FEATURES__ });
+  return composeApplication(target, { art, mode: "browser", defaultServer: window.location.origin, features: __LUNARIS_FEATURES__, buildId: __LUNARIS_BUILD_ID__ });
 } });
 mountSystemView(document.getElementById("system-root")!, application, session, { startup: document.getElementById("startup-root")! });
 const monitor = window.setInterval(session.refresh, 250);

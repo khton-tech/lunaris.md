@@ -1,6 +1,7 @@
 import { defineApi, defineEvent } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
 import type { FolderLocation, FsFailure, FsResult } from "@lunaris/filesystem";
+import { validFolderLocation } from "@lunaris/filesystem";
 
 export const REMOTE_PROTOCOL = 1;
 export interface ServerInfo { readonly protocol: number; readonly buildId: string; readonly registration: "open" | "invitation" }
@@ -26,6 +27,13 @@ export const AccountAccess = defineApi<AccountAccessApi>({ id: "lunaris.account-
   validate: value => value !== null && typeof value === "object" && ["visible", "open", "close"].every(method => typeof Object.getOwnPropertyDescriptor(value, method)?.value === "function") });
 export const AccountAccessChanged = defineEvent<{ readonly visible: boolean }>({ id: "lunaris.account-access-changed", version: "1.0.0", consumePermission: "account.access",
   validate: value => typeof (value as { visible?: unknown } | null)?.visible === "boolean" });
+export interface ClientUpdatesApi { available(): string | null; check(): Promise<RemoteResult<string | null>> }
+export const ClientUpdates = defineApi<ClientUpdatesApi>({ id: "lunaris.client-updates", version: "1.0.0", consumePermission: "application.update",
+  validate: value => value !== null && typeof value === "object" && ["available", "check"].every(method => typeof Object.getOwnPropertyDescriptor(value, method)?.value === "function") });
+export const ClientUpdateChanged = defineEvent<{ readonly buildId: string | null }>({ id: "lunaris.client-update-changed", version: "1.0.0", consumePermission: "application.update",
+  validate: value => !!value && ((value as { buildId?: unknown }).buildId === null || typeof (value as { buildId?: unknown }).buildId === "string") });
+export const ApplicationReload = defineApi<{ reload(): void }>({ id: "lunaris.application-reload", version: "1.0.0", providePermission: "application.native", consumePermission: "application.reload",
+  validate: value => value !== null && typeof value === "object" && typeof Object.getOwnPropertyDescriptor(value, "reload")?.value === "function" });
 export interface RemoteVault {
   readonly id: string;
   readonly name: string;
@@ -33,6 +41,12 @@ export interface RemoteVault {
   readonly deletedAt: number | null;
   readonly expiresAt: number | null;
   readonly location: FolderLocation;
+}
+export function validRemoteVault(input: unknown): input is RemoteVault {
+  const value = input as RemoteVault | null;
+  return !!value && typeof value.id === "string" && value.id.length > 0 && typeof value.name === "string" && value.name.length > 0 &&
+    validFolderLocation(value.location) && ((value.state === "active" && value.deletedAt === null && value.expiresAt === null) ||
+      (value.state === "trashed" && Number.isSafeInteger(value.deletedAt) && Number.isSafeInteger(value.expiresAt)));
 }
 export interface AccountVaultsApi {
   list(state?: "active" | "trashed"): Promise<RemoteResult<readonly RemoteVault[]>>;

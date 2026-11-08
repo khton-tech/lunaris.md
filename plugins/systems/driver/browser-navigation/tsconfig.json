@@ -1,0 +1,28 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": {
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "references": [
+    {
+      "path": "../../../../packages/sdk"
+    },
+    {
+      "path": "../../../../packages/remote"
+    },
+    {
+      "path": "../../../../packages/logging"
+    },
+    {
+      "path": "../../../../packages/active-document"
+    }
+  ]
+}

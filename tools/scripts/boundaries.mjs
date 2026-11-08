@@ -3,8 +3,11 @@ import path from 'node:path';
 import ts from 'typescript';
 
 export const dependencies = {
+  'client-update-ui': ["sdk","remote","logging","vault","components","slots","slot-dom","localization"],
+  'browser-navigation': ["sdk","remote","logging","active-document"],
+  'client-updates': ["sdk","remote","logging"],
   web: ['application-host', 'mantine-components'],
-  'application-host': ["filesystem-provider","logger","dev-tools-logger","kernel","sdk","vault-manager","config-manager","localization-manager","slot-provider","web-slot-driver","theme-provider","component-provider","base-theme-engine","startup","startup-provider","theme-settings","runner","vault-history","vault-selector","mantine-components","workspace-plugin","workspace-provider","sidebar-plugin","sidebar-provider","file-explorer","context-menu-provider","active-document","active-document-provider","active-screen-provider","active-screen-plugin","settings-provider","settings-plugin","interface-settings","text-editor","vault","browser-storage","server-transport","remote-filesystem","account-session","drafts-provider","account-access","filesystem-router","filesystem"],
+  'application-host': ['client-updates','client-update-ui','browser-navigation',"filesystem-provider","logger","dev-tools-logger","kernel","sdk","vault-manager","config-manager","localization-manager","slot-provider","web-slot-driver","theme-provider","component-provider","base-theme-engine","startup","startup-provider","theme-settings","runner","vault-history","vault-selector","mantine-components","workspace-plugin","workspace-provider","sidebar-plugin","sidebar-provider","file-explorer","context-menu-provider","active-document","active-document-provider","active-screen-provider","active-screen-plugin","settings-provider","settings-plugin","interface-settings","text-editor","vault","browser-storage","server-transport","remote-filesystem","account-session","drafts-provider","account-access","filesystem-router","filesystem"],
   'account-access': ['sdk', 'remote', 'filesystem', 'vault', 'logging', 'localization', 'components', 'slots', 'slot-dom', 'startup'],
   'drafts-provider': ['sdk', 'remote', 'filesystem', 'logging'],
   'browser-storage': ['sdk', 'remote', 'filesystem', 'logging'],
@@ -75,6 +78,9 @@ export const dependencies = {
 };
 
 export const packagePath = scope => {
+  if (scope === 'client-update-ui') return 'plugins/UI/client-update';
+  if (scope === 'browser-navigation') return 'plugins/systems/driver/browser-navigation';
+  if (scope === 'client-updates') return 'plugins/systems/client-updates';
   if (scope === 'web') return 'hosts/web';
   if (scope === 'application-host') return 'hosts/application';
   if (scope === 'account-access') return 'plugins/UI/account-access';

@@ -5,7 +5,13 @@
   "engine": "^0.1.0",
   "sdk": "^0.1.0",
   "entry": "./dist/src/index.js",
-  "provides": [],
+  "provides": [
+    {
+      "kind": "api",
+      "id": "lunaris.document-protection",
+      "version": "1.0.0"
+    }
+  ],
   "requires": [
     {
       "kind": "api",

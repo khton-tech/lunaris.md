@@ -6,6 +6,7 @@ const tests = [
   'plugins/systems/filesystem-router/test/router.test.mjs', 'plugins/systems/driver/server-transport/test/transport.test.mjs',
   'plugins/systems/driver/remote-filesystem/test/remote.test.mjs', 'plugins/systems/driver/browser-storage/test/storage.test.mjs',
   'plugins/systems/drafts/test/drafts.test.mjs', 'plugins/systems/account-session/test/account.test.mjs',
+  'plugins/systems/client-updates/test/updates.test.mjs', 'plugins/systems/driver/browser-navigation/test/navigation.test.mjs',
   'plugins/systems/driver/tauri-filesystem/test/driver.test.mjs', 'plugins/UI/text-editor/test/session.test.mjs',
   'tools/scripts/remote-integration.test.mjs',
 ];

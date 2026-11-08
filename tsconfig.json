@@ -2,6 +2,15 @@
   "files": [],
   "references": [
     {
+      "path": "plugins/UI/client-update"
+    },
+    {
+      "path": "plugins/systems/driver/browser-navigation"
+    },
+    {
+      "path": "plugins/systems/client-updates"
+    },
+    {
       "path": "hosts/web"
     },
     {

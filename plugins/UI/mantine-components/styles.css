@@ -315,3 +315,5 @@
 .lm-account-context { color:var(--vault-secondary);overflow-wrap:anywhere }
 
 .lm-root[data-presentation=standalone] .lm-account-content { padding:calc(var(--vault-space)*6);background:var(--vault-panel);border-radius:var(--vault-radius) }
+
+.lm-client-update { margin:calc(var(--vault-space)*2);padding:calc(var(--vault-space)*2) calc(var(--vault-space)*4);background:var(--vault-panel);border-radius:var(--vault-radius);min-width:0 }
