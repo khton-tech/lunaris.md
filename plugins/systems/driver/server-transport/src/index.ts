@@ -42,6 +42,7 @@ export function createServerTransport(options: { readonly mode: "browser" | "des
         try { result = await response.json() as RemoteResult<unknown>; }
         catch {
           if (version !== epoch || owner.aborted || ctx.signal.aborted) return failed("CANCELLED", "The account session changed.");
+          if (timedOut || response.status >= 500) { await status("offline"); return failed("SERVER_UNAVAILABLE", "The server response is unavailable or timed out."); }
           return failed(response.status >= 500 ? "SERVER_UNAVAILABLE" : "PROTOCOL_MISMATCH", "The server returned an unsupported response.");
         }
         if (version !== epoch || owner.aborted || ctx.signal.aborted) return failed("CANCELLED", "The account session changed.");
