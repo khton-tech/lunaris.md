@@ -701,9 +701,14 @@ test('window titlebar owns one surface, preserves controls on updates and separa
     assert.equal(header.querySelector('[aria-label=Close]'), close); assert.ok(header.querySelector('[aria-label=Restore]'));
     header.querySelector('[aria-label=Minimize]').click(); assert.equal(calls.length, 4);
     assert.equal(header.dataset.focused, 'false');
-    s.themes.register({ id: 'test.window', name: 'Window', properties: { appearance: 'light', colors: { panel: '#eeeeee' } } }, s.ctx.signal);
+    s.themes.register({ id: 'test.window', name: 'Window', properties: { appearance: 'light', colors: { background: '#dddddd', panel: '#eeeeee' } } }, s.ctx.signal);
     s.themes.select('test.window'); assert.equal(header.style.getPropertyValue('--vault-panel'), '#eeeeee');
     assert.equal(header.querySelector('[aria-label=Close]'), close);
+    const root = header.closest('.lm-root');
+    assert.equal(root.style.backgroundColor, 'rgb(221, 221, 221)');
+    mounted.value.update({ ...props, presentation: { mode: 'embedded', sizing: 'content' } });
+    assert.equal(root.style.backgroundColor, 'transparent', 'An explicitly embedded caption must inherit its container surface.');
+    mounted.value.update(props); assert.equal(root.style.backgroundColor, 'rgb(221, 221, 221)');
     assert.equal(mounted.value.update({ ...props, onClose: null }).ok, false);
   } finally { await s.stop(); }
 });

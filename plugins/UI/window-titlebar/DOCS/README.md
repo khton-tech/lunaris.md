@@ -9,6 +9,9 @@ operations are provided by the separate Window provider, not the view controller
 The plugin allocates an order -100, non-growing root caption slot, independently
 of startup, Vault selection and Workspace screens. Slots owns ordering/width;
 the `lunaris.window-titlebar` UIKit role owns caption surface, height and controls.
+The controller explicitly requests standalone/content presentation because this
+is an independent shell region. Its owned root paints the current theme page
+background behind caption margins; it does not repaint the host or other slots.
 The controller owns localization, native state and callbacks only. It never paints,
 reparents or resizes another plugin's region. See the [UIKit role](../../mantine-components/DOCS/README.md#window-titlebar-role).
 

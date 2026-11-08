@@ -55,7 +55,17 @@ test('real titlebar remains above selector and Workspace, tracks API titles, the
     header.querySelector('[aria-label=Maximize]').click(); await flush(); assert.ok(header.querySelector('[aria-label=Restore]'));
     await s.focus(false); assert.equal(header.dataset.focused, 'false');
     const names = s.tools.themes.list(); const luna = names.find(item => /Luna/.test(item.name));
+    const captionRoot = header.closest('.lm-root');
+    assert.equal(captionRoot.dataset.presentation, 'standalone');
+    assert.equal(captionRoot.style.backgroundColor, 'rgb(15, 15, 15)');
     assert.ok(luna); s.tools.themes.select(luna.id); await flush(); assert.equal(header.dataset.chrome, 'true');
+    const expectedBackground = s.dom.window.document.createElement('div');
+    expectedBackground.style.backgroundColor = s.tools.themes.current().properties.colors.background;
+    assert.equal(captionRoot.style.backgroundColor, expectedBackground.style.backgroundColor, 'Caption margins must show the current theme, not the host boot background.');
+    assert.notEqual(captionRoot.style.backgroundColor, 'rgb(15, 15, 15)');
+    s.tools.themes.select('lunaris.base-theme-engine.monochrome'); await flush();
+    assert.equal(captionRoot.style.backgroundColor, 'rgb(15, 15, 15)');
+    assert.equal(header.closest('.lm-root'), captionRoot);
     await s.open(); assert.equal(s.surface.querySelector('.lm-window-titlebar'), header);
     assert.ok(s.surface.querySelector('.lm-workspace-layout')); assert.equal(s.surface.querySelector('.ln-vault'), null);
     assert.equal(header.contains(s.surface.querySelector('.lm-workspace-layout')), false);

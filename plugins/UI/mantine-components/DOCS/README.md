@@ -540,7 +540,9 @@ Buttons are outside that area, with keyboard-only focus and distinct press state
 Ownership: the root Slots container supplies vertical ordering and available
 width. This role owns only titlebar surface, height, margin and internal controls;
 it neither covers nor recreates Workspace or startup screens. Its public default
-presentation is embedded/content. Theme windowChrome caption colors are applied
+presentation is standalone/content: the owned root paints the theme page background
+behind caption margins so no host boot color leaks through on theme changes. An
+explicit embedded context remains transparent. Theme windowChrome caption colors are applied
 only within this owned caption. The controller releases native chrome ownership
 when the role disappears. Automated role tests cover interaction, stable controls,
 localization props and theme updates. Native visual acceptance, dragging,

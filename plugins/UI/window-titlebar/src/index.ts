@@ -44,7 +44,7 @@ export default definePlugin({ manifest, async activate(ctx) {
       minimizeLabel: text("minimize"), maximizeLabel: text("maximize"), restoreLabel: text("restore"), closeLabel: text("close"),
       onMinimize: () => action(() => window.minimize()), onToggleMaximize: () => action(() => window.toggleMaximize()),
       onClose: () => action(() => window.close()), onDrag: () => action(() => window.startDragging()),
-      presentation: { mode: "embedded", sizing: "content" },
+      presentation: { mode: "standalone", sizing: "content" },
     };
   }
   function refresh(): void {
