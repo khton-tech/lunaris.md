@@ -26,3 +26,8 @@ minute. A Mantine update notice closes the Vault through normal save/draft guard
 before reloading. The browser navigation driver queries DocumentProtection before
 unload and warns only when edits lack remote persistence and an acknowledged local
 draft. Pending storage is never presented as durable recovery.
+
+The files feature is required in the current profile because File Explorer owns
+Vault switching. Editor/settings entrypoints may be selected by the administrator.
+Creation through the account UI immediately opens/prepares the new Vault, following
+the established local creation flow.

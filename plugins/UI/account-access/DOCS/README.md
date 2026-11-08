@@ -28,3 +28,7 @@ The existing product theme controls sizing, input/focus/selection and surfaces.
 Visual acceptance remains manual: check login/password visibility, registration
 with/without an invitation, populated/empty/trash lists, long translations, focus,
 themes, narrow/short windows and transition into the actual Workspace.
+
+Create immediately opens the new Vault through VaultLocations with the requested
+name, matching local creation. If preparation fails, the created catalog record
+remains available for retry rather than being destructively rolled back.

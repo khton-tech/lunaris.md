@@ -2,8 +2,9 @@
 
 Status: public contracts, filesystem routing, server foundation, real-disk Vaults,
 browser/desktop composition and durable editor drafts are implemented on feature
-branches. Browser bundle deployment and operational verification are in progress.
-Visual acceptance remains manual. See reference/remote.md and host/plugin guides.
+branches. Source builds, verified activation/rollback, browser update guards and
+verified disk snapshots are implemented. Manual browser/WebView acceptance and
+Docker execution remain pending. See [remote contracts](../reference/remote.md).
 
 ## Accepted product scope
 
@@ -26,12 +27,12 @@ Visual acceptance remains manual. See reference/remote.md and host/plugin guides
 - Administrators can build and activate an updated browser bundle. Updating the
   API or database remains a separate release/migration operation.
 
-Proposed defaults, not separately confirmed product requirements: trashed Vaults
-do not count toward the active limit; restore checks the limit; shortening
-retention affects existing trash. These rules must be explicit in server docs.
-No numeric retention or Vault-count default has been selected.
+Implementation policy: trashed Vaults do not count toward the active limit; restore
+checks that limit; shortening retention affects existing trash. Default retention
+and session lifetime are 30 days, and the Vault-count limit defaults to null.
+Administrators configure these values in the server config and restart to apply.
 
-## Existing architecture and implementation gate
+## Baseline inspection and resolved implementation gate
 
 The client working tree was clean on main at ef77277 before this work. The sibling
 lunaris-server directory was empty and was not a Git repository.
@@ -46,7 +47,7 @@ Existing reusable boundaries:
 - Workspace, ActiveScreen, ActiveDocument, File Explorer, Text Editor, Themes,
   Localization and Mantine Components: shared product behavior and presentation.
 
-Concrete gaps:
+The following gaps were present at the baseline and are now resolved:
 
 1. The filesystem provider captures a single FilesystemDriver, observation driver,
    location driver and directory driver at activation. Global provider selection
@@ -68,9 +69,29 @@ driver import, plugin-ID routing, fake parent folder or direct browser storage i
 a consuming plugin may bypass this gate. These are domain SDK contract changes;
 no kernel runtime redesign has been established as necessary.
 
-## Required public contracts
+## Implemented integration map
 
-Names below are proposed API names, not shipped tokens. Additive contracts should
+| Boundary | Delivered public contracts and composition |
+| --- | --- |
+| Root ownership and backend routing | FilesystemBackendApi, Local/RemoteFilesystemBackend, FilesystemSources and filesystem-router |
+| Account access and account Vault collection | AccountSession, AccountVaults, ServerTransport and account-access UI |
+| Source-aware creation/opening | AccountVaults.create, FilesystemSources.location and existing VaultLocations/PrepareVault |
+| Durable recovery | Drafts/DraftStorage, IndexedDB driver, stable remote root identity and Text Editor integration |
+| Account privacy | Origin/account-scoped references, locationVisible and optional History account-event integration |
+| Browser lifecycle | ClientUpdates/ClientUpdateChanged, ApplicationReload and DocumentProtection |
+| Shared product runtime | hosts/application, hosts/web and Tauri backend-only native composition |
+| Server persistence | SQLite metadata and actual userData/profile/vault_<id> directories with journaled trash lifecycle |
+| Operations | Staged bundle builds, content verification, atomic activation/rollback, offline checked snapshots and Docker recipe |
+
+The File Explorer currently owns the product Vault switcher. Build profiles must
+retain the files feature until an independent navigation owner is implemented.
+The default prebuilt profile includes editor, files and settings.
+
+## Original public-contract specification
+
+The following boundary specification informed implementation; the map above and
+reference/remote.md give the shipped token names. Some proposed service names
+were consolidated into existing public contracts. Additive contracts should
 preserve existing local consumers; publish a new version if semantics change.
 Every asynchronous operation returns a validated result and accepts scoped
 ownership where it can create or retain resources.
