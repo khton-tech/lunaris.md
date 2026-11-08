@@ -4,14 +4,16 @@ import { Logger, scopeLogger } from "@lunaris/logging";
 import { ServerTransport, REMOTE_PROTOCOL, AccountSessionChanged, ConnectionChanged } from "@lunaris/remote";
 import type { AccountState, Account, RemoteResult, ServerInfo } from "@lunaris/remote";
 
-export function createServerTransport(options: { readonly mode: "browser" | "desktop"; readonly fetch?: typeof fetch }) {
+export function createServerTransport(options: { readonly mode: "browser" | "desktop"; readonly fetch?: typeof fetch; readonly timeoutMs?: number }) {
   const fetcher = options.fetch ?? globalThis.fetch.bind(globalThis);
+  const timeoutMs = options.timeoutMs ?? 30000;
+  if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1) throw Error("A positive request timeout is required.");
   return definePlugin({ manifest: { manifestVersion: 1, id: "lunaris.server-transport", version: "0.1.0", engine: "^0.1.0", sdk: "^0.1.0", entry: "./dist/index.js",
     provides: [ServerTransport, AccountSessionChanged, ConnectionChanged].map(t => ({ kind: t.kind, id: t.id, version: t.version })),
     requires: [{ kind: "api", id: Logger.id, range: "^1.0.0" }], permissions: [], optionalPermissions: [] }, activate(ctx) {
     const logger = scopeLogger(ctx.use(Logger), ctx.signal); let address = ""; let bearer: string | undefined; let current: AccountState | null = null;
     let epoch = 0; let connection: "connected" | "offline" | "expired" = "connected";
-    const controllers = new Set<AbortController>(); let unbindOwner = () => {};
+    const controllers = new Set<AbortController>(); const deadlines = new Map<AbortController, ReturnType<typeof setTimeout>>(); let unbindOwner = () => {};
     const failed = <T>(code: string, message: string): RemoteResult<T> => ({ ok: false, error: { code, message } } as RemoteResult<T>);
     async function publish() { if (!ctx.signal.aborted) await ctx.events.emit(AccountSessionChanged, { current }); }
     async function status(state: typeof connection) {
@@ -21,30 +23,38 @@ export function createServerTransport(options: { readonly mode: "browser" | "des
       else logger.info(ctx.pluginId, "Server connection state changed", { data: { state } });
       await ctx.events.emit(ConnectionChanged, { state, epoch: `${ctx.activationId}:${epoch}` });
     }
-    function retire() { epoch++; current = null; bearer = undefined; for (const controller of controllers) controller.abort(); controllers.clear(); }
+    function retire() { epoch++; current = null; bearer = undefined; for (const controller of controllers) controller.abort(); controllers.clear(); for (const timer of deadlines.values()) clearTimeout(timer); deadlines.clear(); }
     ctx.scope.own({ dispose() { unbindOwner(); retire(); } });
     async function request(method: "GET" | "POST", route: string, body?: unknown, owner: CancellationSignal = ctx.signal): Promise<RemoteResult<unknown>> {
       if (!address) return failed("UNAUTHENTICATED", "Connect to a server first.");
       if (!/^[a-zA-Z0-9/?=&._%-]+$/.test(route) || route.startsWith("/") || route.includes("..")) return failed("INVALID_ARGUMENT", "A relative API route is required.");
       if (ctx.signal.aborted || owner.aborted) return failed("CANCELLED", "The request was cancelled.");
       const version = epoch; const controller = new AbortController(); const abort = () => controller.abort();
+      let timedOut = false;
+      const deadline = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs); deadlines.set(controller, deadline);
       controllers.add(controller); owner.addEventListener("abort", abort, { once: true });
       try {
         const response = await fetcher(`${address}/api/v1/${route}`, { method, signal: controller.signal,
           credentials: options.mode === "browser" ? "same-origin" : "omit", redirect: "error",
           headers: { "Content-Type": "application/json", "X-Lunaris-Request": "1", "X-Lunaris-Client": options.mode,
             ...(bearer ? { Authorization: `Bearer ${bearer}` } : {}) }, ...(body === undefined ? {} : { body: JSON.stringify(body) }) });
-        const result = await response.json() as RemoteResult<unknown>;
+        let result: RemoteResult<unknown>;
+        try { result = await response.json() as RemoteResult<unknown>; }
+        catch {
+          if (version !== epoch || owner.aborted || ctx.signal.aborted) return failed("CANCELLED", "The account session changed.");
+          return failed(response.status >= 500 ? "SERVER_UNAVAILABLE" : "PROTOCOL_MISMATCH", "The server returned an unsupported response.");
+        }
         if (version !== epoch || owner.aborted || ctx.signal.aborted) return failed("CANCELLED", "The account session changed.");
         if (!result || typeof result.ok !== "boolean" || (!result.ok && (typeof result.error?.code !== "string" || typeof result.error?.message !== "string"))) return failed("PROTOCOL_MISMATCH", "The server returned an unsupported response.");
         if (!result.ok && ["SESSION_EXPIRED", "UNAUTHENTICATED"].includes(result.error.code) && current) { retire(); await status("expired"); await publish(); }
         else await status("connected");
         return result;
       } catch (error) {
+        if (timedOut && !ctx.signal.aborted && !owner.aborted && version === epoch) { await status("offline"); return failed("SERVER_UNAVAILABLE", "The server request timed out. Your unsaved changes remain local."); }
         if (controller.signal.aborted || ctx.signal.aborted || version !== epoch) return failed("CANCELLED", "The request was cancelled.");
         if (!ctx.signal.aborted) logger.debug(ctx.pluginId, "Server request failed", { error });
         await status("offline"); return failed("OFFLINE", "The server is unavailable. Your unsaved changes remain local.");
-      } finally { owner.removeEventListener("abort", abort); controllers.delete(controller); }
+      } finally { clearTimeout(deadline); deadlines.delete(controller); owner.removeEventListener("abort", abort); controllers.delete(controller); }
     }
     ctx.provide(ServerTransport, {
       current: () => current,

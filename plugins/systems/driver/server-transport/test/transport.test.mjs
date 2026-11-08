@@ -28,3 +28,12 @@ test('incompatible discovery is rejected before authentication', async () => {
   await host.start('test.consumer'); assert.equal((await api.connect('http://localhost:3100', ctx.signal)).error.code, 'PROTOCOL_MISMATCH');
   await host.stopAll(); host.assertNoResources();
 });
+test('a stalled server times out explicitly so save and release guards can preserve drafts', async () => {
+  const host = testHost({ 'test.consumer': ['account.network'] }); let api, ctx;
+  host.register(createServerTransport({ mode: 'desktop', timeoutMs: 10, fetch: (_url, init) => new Promise((_resolve, reject) => {
+    init.signal.addEventListener('abort', () => reject(new DOMException('Request aborted', 'AbortError')), { once: true });
+  }) }));
+  host.register(consumer([ServerTransport], context => { ctx = context; api = ctx.use(ServerTransport); }, ['account.network']));
+  await host.start('test.consumer'); assert.equal((await api.connect('http://localhost:3100', ctx.signal)).error.code, 'SERVER_UNAVAILABLE');
+  await host.stopAll(); host.assertNoResources();
+});
