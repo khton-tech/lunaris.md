@@ -1,6 +1,11 @@
 {
   "files": [],
   "references": [
+    { "path": "plugins/systems/drafts" },
+    { "path": "plugins/systems/driver/browser-storage" },
+    { "path": "plugins/systems/driver/server-transport" },
+    { "path": "plugins/systems/driver/remote-filesystem" },
+    { "path": "plugins/systems/account-session" },
     { "path": "plugins/systems/filesystem-router" },
     { "path": "packages/remote" },
     {

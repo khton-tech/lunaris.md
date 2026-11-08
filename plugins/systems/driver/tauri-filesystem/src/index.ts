@@ -123,6 +123,7 @@ export function createTauriFilesystemDriver(native: NativeFilesystem = nativeFil
     };
     ctx.provide(FilesystemDriver, files);
     ctx.provide(LocalFilesystemBackend.api, { ...files,
+      remoteIdentity: () => failure("UNSUPPORTED", "This attachment is local."),
       openConfig: owner => roots.acquire(owner, () => request("openConfig")),
       selectOwned: owner => roots.acquire(owner, () => request("selectVault")),
       describeLocation: reference => locationApi.describe(reference),

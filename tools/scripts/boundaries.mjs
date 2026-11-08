@@ -3,6 +3,11 @@ import path from 'node:path';
 import ts from 'typescript';
 
 export const dependencies = {
+  'drafts-provider': ['sdk', 'remote', 'filesystem', 'logging'],
+  'browser-storage': ['sdk', 'remote', 'filesystem', 'logging'],
+  'server-transport': ['sdk', 'remote', 'logging'],
+  'remote-filesystem': ['sdk', 'remote', 'filesystem', 'logging'],
+  'account-session': ['sdk', 'remote', 'vault', 'logging'],
   'filesystem-router': ['sdk', 'filesystem', 'logging'],
   remote: ['sdk', 'filesystem'],
   'window-titlebar': ['sdk', 'logging', 'window', 'slots', 'slot-dom', 'components', 'localization'],
@@ -67,6 +72,11 @@ export const dependencies = {
 };
 
 export const packagePath = scope => {
+  if (scope === 'drafts-provider') return 'plugins/systems/drafts';
+  if (scope === 'browser-storage') return 'plugins/systems/driver/browser-storage';
+  if (scope === 'server-transport') return 'plugins/systems/driver/server-transport';
+  if (scope === 'remote-filesystem') return 'plugins/systems/driver/remote-filesystem';
+  if (scope === 'account-session') return 'plugins/systems/account-session';
   if (scope === 'filesystem-router') return 'plugins/systems/filesystem-router';
   if (scope === 'window-titlebar') return 'plugins/UI/window-titlebar';
   if (scope === 'window-provider') return 'plugins/systems/window';

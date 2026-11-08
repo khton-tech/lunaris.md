@@ -6,7 +6,7 @@ export const REMOTE_PROTOCOL = 1;
 export interface ServerInfo { readonly protocol: number; readonly buildId: string; readonly registration: "open" | "invitation" }
 export interface Account { readonly id: string; readonly login: string }
 export interface AccountState { readonly server: string; readonly account: Account; readonly epoch: string }
-export type RemoteFailure = FsFailure | { readonly code: "LIMIT_REACHED" | "INVALID_CREDENTIALS" | "INVITATION_REQUIRED" | "INVITATION_INVALID" | "LOGIN_TAKEN"; readonly message: string };
+export type RemoteFailure = FsFailure | { readonly code: "LIMIT_REACHED" | "INVALID_CREDENTIALS" | "INVITATION_REQUIRED" | "INVITATION_INVALID" | "LOGIN_TAKEN" | "BUSY" | "PREPARATION_FAILED" | "STOPPED"; readonly message: string };
 export type RemoteResult<T> = { readonly ok: true; readonly value: T } | { readonly ok: false; readonly error: RemoteFailure };
 export interface AccountSessionApi {
   current(): AccountState | null;
@@ -15,6 +15,17 @@ export interface AccountSessionApi {
   login(login: string, password: string): Promise<RemoteResult<Account>>;
   logout(): Promise<RemoteResult<null>>;
 }
+/** Only trusted account/filesystem providers receive general protocol access. */
+export interface ServerTransportApi extends AccountSessionApi {
+  request(method: "GET" | "POST", path: string, body?: unknown, owner?: CancellationSignal): Promise<RemoteResult<unknown>>;
+}
+export const ServerTransport = defineApi<ServerTransportApi>({ id: "lunaris.server-transport", version: "1.0.0", consumePermission: "account.network",
+  validate: value => value !== null && typeof value === "object" && ["current", "connect", "register", "login", "logout", "request"].every(method => typeof Object.getOwnPropertyDescriptor(value, method)?.value === "function") });
+export interface AccountAccessApi { visible(): boolean; open(): void; close(): void }
+export const AccountAccess = defineApi<AccountAccessApi>({ id: "lunaris.account-access", version: "1.0.0", consumePermission: "account.access",
+  validate: value => value !== null && typeof value === "object" && ["visible", "open", "close"].every(method => typeof Object.getOwnPropertyDescriptor(value, method)?.value === "function") });
+export const AccountAccessChanged = defineEvent<{ readonly visible: boolean }>({ id: "lunaris.account-access-changed", version: "1.0.0", consumePermission: "account.access",
+  validate: value => typeof (value as { visible?: unknown } | null)?.visible === "boolean" });
 export interface RemoteVault {
   readonly id: string;
   readonly name: string;
