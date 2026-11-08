@@ -28,5 +28,9 @@ contracts, so a router can acquire both through SDK mediation. FilesystemSources
 wraps explicit source locations and exposes capabilities for an attached root.
 It does not authorize access based on labels or source strings.
 
-Integration status: contracts only. Providers, drivers, server, browser host and
-desktop composition remain pending. See [the design](../design/web-server.md).
+Integration status: transport, account services, remote/backend routing,
+IndexedDB drafts, editor recovery and browser/desktop compositions are implemented.
+The sibling server stores real files in userData and metadata in SQLite. The
+real-server browser integration check exercises opening/editing/offline departure,
+draft restoration and conditional saving. Manual browser/WebView visual acceptance
+and Docker execution remain outstanding. See [the design](../design/web-server.md).

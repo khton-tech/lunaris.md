@@ -4,6 +4,7 @@
 @import '@mantine/core/styles/Badge.css';
 @import '@mantine/core/styles/ActionIcon.css';
 @import '@mantine/core/styles/Input.css';
+@import '@mantine/core/styles/PasswordInput.css';
 @import '@mantine/core/styles/InlineInput.css';
 @import '@mantine/core/styles/Switch.css';
 @import '@mantine/core/styles/Checkbox.css';
@@ -304,3 +305,13 @@
 .lm-root[data-window-chrome=true]>.lm-explorer .lm-explorer-tabs { min-height:26px;border-radius:0;box-shadow:var(--vault-surface-shadow);background:var(--vault-panel) }
 .lm-root[data-window-chrome=true]>.lm-explorer .lm-explorer-tree { margin-inline:4px;box-shadow:var(--vault-inset-shadow);background:var(--vault-content) }
 @container(max-width:40rem) { .lm-workspace-layout[data-window-chrome] .lm-workspace-panel { inset-block-start:calc(27px + var(--workspace-gap)) } }
+
+.lm-account-access { display:flex;flex:1 1 0%;min-width:0;min-height:0;overflow:auto;padding:calc(var(--vault-space)*6) }
+.lm-account-content { display:flex;flex-direction:column;gap:calc(var(--vault-space)*4);width:min(100%,42rem);margin:auto;min-width:0 }
+.lm-account-content h2 { font-size:1.2em;font-weight:500 }
+.lm-account-list { list-style:none;padding:0;margin:0;min-width:0 }
+.lm-account-row { display:flex;gap:calc(var(--vault-space)*2);align-items:center;min-width:0 }
+.lm-account-row>.lm-card-row { flex:1;min-width:0 }
+.lm-account-context { color:var(--vault-secondary);overflow-wrap:anywhere }
+
+.lm-root[data-presentation=standalone] .lm-account-content { padding:calc(var(--vault-space)*6);background:var(--vault-panel);border-radius:var(--vault-radius) }

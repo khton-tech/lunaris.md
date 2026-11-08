@@ -61,6 +61,8 @@ Provides `api:lunaris.directory-locations-driver@1.0.0`, using native `createLoc
 # Source routing
 
 The driver additionally provides LocalFilesystemBackend API and its changed event.
+`createTauriFilesystemDriver(native, { backendOnly: true })` publishes only those
+source contracts, avoiding duplicate standard-driver providers in a routed host.
 This flat, SDK-mediated contract reuses the same native session, owned roots and
 watches as the legacy driver APIs. A host may compose Filesystem Router above it
 without importing this implementation into a consumer. Legacy composition remains

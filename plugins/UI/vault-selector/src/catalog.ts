@@ -1,5 +1,6 @@
 /** Consumer-owned English-first copy; every visible string goes through localization. */
 export const catalogs = { en: {
+  server: "Sign in to server",
   logo: "Lunaris.md", recent: "Recent vaults", empty: "No recent vaults", create: "Create vault", select: "Select vault",
   parentFolder: "Parent folder", folder: "Folder", folderPlaceholder: "Choose a folder", browse: "Browse", name: "Vault name", next: "Next", retry: "Retry",
   opened: "{name}", working: "Opening vault…", choosing: "Choosing a folder…", refreshing: "Loading recent vaults…",

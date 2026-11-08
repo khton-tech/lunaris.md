@@ -1,0 +1,1 @@
+{ "name": "@lunaris/web", "version": "0.1.0", "private": true, "type": "module", "scripts": { "build": "tsc -b && vite build", "dev": "vite --host 127.0.0.1 --port 3101 --strictPort" }, "dependencies": { "@lunaris/application-host": "0.1.0", "@lunaris/mantine-components": "0.1.0" }, "devDependencies": { "vite": "8.3.5" } }

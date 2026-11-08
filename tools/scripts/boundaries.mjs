@@ -3,6 +3,9 @@ import path from 'node:path';
 import ts from 'typescript';
 
 export const dependencies = {
+  web: ['application-host', 'mantine-components'],
+  'application-host': ["filesystem-provider","logger","dev-tools-logger","kernel","sdk","vault-manager","config-manager","localization-manager","slot-provider","web-slot-driver","theme-provider","component-provider","base-theme-engine","startup","startup-provider","theme-settings","runner","vault-history","vault-selector","mantine-components","workspace-plugin","workspace-provider","sidebar-plugin","sidebar-provider","file-explorer","context-menu-provider","active-document","active-document-provider","active-screen-provider","active-screen-plugin","settings-provider","settings-plugin","interface-settings","text-editor","vault","browser-storage","server-transport","remote-filesystem","account-session","drafts-provider","account-access","filesystem-router","filesystem"],
+  'account-access': ['sdk', 'remote', 'filesystem', 'vault', 'logging', 'localization', 'components', 'slots', 'slot-dom', 'startup'],
   'drafts-provider': ['sdk', 'remote', 'filesystem', 'logging'],
   'browser-storage': ['sdk', 'remote', 'filesystem', 'logging'],
   'server-transport': ['sdk', 'remote', 'logging'],
@@ -36,7 +39,7 @@ export const dependencies = {
   'base-theme-engine': ['sdk', 'logging', 'themes'],
   'theme-settings': ['sdk', 'logging', 'themes', 'config'],
   runner: ['sdk', 'logging', 'config', 'localization', 'slots', 'slot-dom', 'components', 'startup'],
-  'vault-selector': ['sdk', 'logging', 'localization', 'slots', 'slot-dom', 'components', 'startup', 'vault', 'filesystem'],
+  'vault-selector': ['remote', 'sdk', 'logging', 'localization', 'slots', 'slot-dom', 'components', 'startup', 'vault', 'filesystem'],
   themes: ['sdk'],
   'theme-provider': ['sdk', 'logging', 'themes'],
   startup: ['sdk'],
@@ -68,10 +71,13 @@ export const dependencies = {
   test: ['sdk', 'kernel'],
   development: ['manifest', 'sdk', 'kernel'],
   cli: ['manifest', 'sdk', 'kernel', 'test', 'development'],
-  tauri: ['window-titlebar', 'window-provider', 'tauri-window', 'vault', 'logging', 'text-editor', 'interface-settings', 'settings-provider', 'settings-plugin', 'active-screen-provider', 'active-screen-plugin', 'active-document', 'active-document-provider', 'context-menu-provider', 'file-explorer', 'sidebar-plugin', 'sidebar-provider', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'mantine-components', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'],
+  tauri: ['application-host', 'window-titlebar', 'window-provider', 'tauri-window', 'vault', 'logging', 'text-editor', 'interface-settings', 'settings-provider', 'settings-plugin', 'active-screen-provider', 'active-screen-plugin', 'active-document', 'active-document-provider', 'context-menu-provider', 'file-explorer', 'sidebar-plugin', 'sidebar-provider', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'mantine-components', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'],
 };
 
 export const packagePath = scope => {
+  if (scope === 'web') return 'hosts/web';
+  if (scope === 'application-host') return 'hosts/application';
+  if (scope === 'account-access') return 'plugins/UI/account-access';
   if (scope === 'drafts-provider') return 'plugins/systems/drafts';
   if (scope === 'browser-storage') return 'plugins/systems/driver/browser-storage';
   if (scope === 'server-transport') return 'plugins/systems/driver/server-transport';
@@ -140,6 +146,8 @@ export function checkSource(source, filename, scope) {
     for (const name of ['react', 'react/jsx-runtime', 'react-dom', 'react-dom/client', '@mantine/core', 'lucide', 'react-arborist']) allowed.add(name);
   }
   if (scope === 'tauri' && path.resolve(filename) === path.resolve('hosts/tauri/src/application.ts')) allowed.add('@lunaris/mantine-components/styles.css');
+  if (scope === 'tauri') { allowed.add('@lunaris/application-host/session'); allowed.add('@lunaris/application-host/slots'); }
+  if (scope === 'web') for (const name of ['@lunaris/application-host/scheduler', '@lunaris/application-host/view', '@lunaris/application-host/shell.css', '@lunaris/mantine-components/styles.css']) allowed.add(name);
   function specifier(node) {
     if (!ts.isStringLiteral(node)) {
       errors.push(`${filename}: nonliteral imports are forbidden in core packages`);
@@ -149,6 +157,7 @@ export function checkSource(source, filename, scope) {
     if (['window-titlebar', 'window-provider', 'tauri-window', 'text-editor', 'interface-settings', 'settings-provider', 'settings-plugin', 'active-screen-provider', 'active-screen-plugin', 'active-document-provider', 'context-menu-provider', 'file-explorer', 'sidebar-provider', 'sidebar-plugin', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'components-kit', 'mantine-components', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'].includes(scope) &&
         path.resolve(filename) === path.resolve(packagePath(scope), 'src/index.ts') &&
         value === '../manifest.json') return;
+    if (scope === 'web' && path.resolve(filename) === path.resolve('hosts/web/src/bootstrap.ts') && value === '../../../resources/ascii_art.txt?raw') return;
     // The host owns startup artwork; plugins cannot reach outside their source roots.
     if (scope === 'tauri' && path.resolve(filename) === path.resolve('hosts/tauri/src/application.ts') &&
         value === '../../../resources/ascii_art.txt?raw') return;

@@ -36,7 +36,7 @@ try {
   totals(run(['--test', '--test-reporter=tap', 'tools/scripts/boundaries.test.mjs'], 'Boundary checker tests'));
   for (const scope of affected) {
     const tests = readdirSync(`${packagePath(scope)}/test`).filter(name => name.endsWith('.test.mjs'));
-    totals(run(['--test', '--test-reporter=tap', ...tests.map(name => `${packagePath(scope)}/test/${name}`)], `${scope} tests`));
+    if (tests.length) totals(run(['--test', '--test-reporter=tap', ...tests.map(name => `${packagePath(scope)}/test/${name}`)], `${scope} tests`));
     run(['node_modules/typescript/bin/tsc', '-p', `${packagePath(scope)}/test/tsconfig.json`], `${scope} type fixtures`);
   }
   if (skipped) throw new Error(`${skipped} required test(s) were skipped.`);

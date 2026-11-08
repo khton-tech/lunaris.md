@@ -15,6 +15,7 @@ export function workspaceEmptyProps(value: ComponentProps): WorkspaceEmptyProps 
   return value as unknown as WorkspaceEmptyProps;
 }
 export interface SelectorProps {
+  readonly onServer?: () => void;
   readonly art: string; readonly text: Readonly<Record<string, string>>;
   readonly mode: "create" | "select" | null; readonly folder: string; readonly name: string;
   readonly busy: boolean; readonly canContinue: boolean;

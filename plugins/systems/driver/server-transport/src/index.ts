@@ -65,6 +65,7 @@ export function createServerTransport(options: { readonly mode: "browser" | "des
           const restored = await request("GET", "account", undefined, owner);
           if (restored.ok && version === epoch) { const account = restored.value as Account; if (typeof account?.id === "string" && typeof account.login === "string") { current = Object.freeze({ server: address, account: Object.freeze({ ...account }), epoch: `${ctx.activationId}:${epoch}` }); await publish(); } }
         }
+        if (ctx.signal.aborted || version !== epoch) return failed("CANCELLED", "The connection owner stopped.");
         logger.info(ctx.pluginId, "Server connection ready"); return { ok: true, value: info };
       },
       register: async (login, password, invitation) => await request("POST", "auth/register", { login, password, invitation }) as RemoteResult<Account>,
@@ -75,11 +76,12 @@ export function createServerTransport(options: { readonly mode: "browser" | "des
         const value = result.value as { account: Account; token?: string };
         if (!value?.account || typeof value.account.id !== "string" || typeof value.account.login !== "string" || (options.mode === "desktop" && typeof value.token !== "string")) return failed("PROTOCOL_MISMATCH", "The server returned an invalid account.");
         bearer = value.token; current = Object.freeze({ server: address, account: Object.freeze({ ...value.account }), epoch: `${ctx.activationId}:${epoch}` }); await publish();
+        if (ctx.signal.aborted || version !== epoch || !current) return failed("CANCELLED", "The account session changed.");
         logger.info(ctx.pluginId, "Account signed in"); return { ok: true, value: current.account };
       },
       async logout() {
         const result = await request("POST", "auth/logout", {}); if (!result.ok) return result as RemoteResult<null>;
-        retire(); await publish(); logger.info(ctx.pluginId, "Account signed out"); return { ok: true, value: null };
+        retire(); await publish(); if (!ctx.signal.aborted) logger.info(ctx.pluginId, "Account signed out"); return { ok: true, value: null };
       }, request,
     });
     logger.info(ctx.pluginId, "Server transport ready");

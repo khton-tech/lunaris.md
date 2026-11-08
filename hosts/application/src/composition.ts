@@ -1,0 +1,111 @@
+import type { PluginDefinition } from "@lunaris/sdk";
+import { createBrowserStorage } from "@lunaris/browser-storage";
+import { createServerTransport } from "@lunaris/server-transport";
+import remoteFilesystem from "@lunaris/remote-filesystem";
+import accountSession from "@lunaris/account-session";
+import draftsProvider from "@lunaris/drafts-provider";
+import { createAccountAccess } from "@lunaris/account-access";
+import { createFilesystemRouter } from "@lunaris/filesystem-router";
+import { LocalFilesystemBackend, RemoteFilesystemBackend } from "@lunaris/filesystem";
+import textEditor from "@lunaris/text-editor";
+import { createInterfaceSettings } from "@lunaris/interface-settings";
+import settingsProvider from "@lunaris/settings-provider";
+import settings from "@lunaris/settings-plugin";
+import activeScreenProvider from "@lunaris/active-screen-provider";
+import activeScreen from "@lunaris/active-screen-plugin";
+import activeDocument from "@lunaris/active-document-provider";
+import fileExplorer from "@lunaris/file-explorer";
+import contextMenu from "@lunaris/context-menu-provider";
+import { createRunner } from "@lunaris/runner";
+import workspaceProvider from "@lunaris/workspace-provider";
+import sidebar from "@lunaris/sidebar-plugin";
+import sidebarProvider from "@lunaris/sidebar-provider";
+import workspace from "@lunaris/workspace-plugin";
+import { createVaultSelector } from "@lunaris/vault-selector";
+import { createThemeSettings } from "@lunaris/theme-settings";
+import mantineComponents from "@lunaris/mantine-components";
+import { createStartupProvider } from "@lunaris/startup-provider";
+import baseThemeEngine from "@lunaris/base-theme-engine";
+import themeProvider from "@lunaris/theme-provider";
+import componentProvider from "@lunaris/component-provider";
+import { composeSlotSurface } from "./slots.js";
+import type { ApplicationDefinition } from "./session.js";
+import { createLogger } from "@lunaris/logger";
+import { createDevToolsLogger } from "@lunaris/dev-tools-logger";
+import filesystem from "@lunaris/filesystem-provider";
+import vaultManager from "@lunaris/vault-manager";
+import vaultHistory from "@lunaris/vault-history";
+import configManager from "@lunaris/config-manager";
+import localizationManager from "@lunaris/localization-manager";
+
+// Reuse this definition across recovery attempts to print the banner once per page load.
+const devTools = createDevToolsLogger();
+const logger = createLogger();
+
+/** Host composition point. Product plugins import only the public SDK. */
+export function composeApplication(target: HTMLElement, options: {
+  readonly art: string; readonly mode: "browser" | "desktop"; readonly defaultServer?: string;
+  readonly features?: readonly ("editor" | "files" | "settings")[];
+  readonly platformPlugins?: readonly PluginDefinition[];
+  readonly extensions?: { readonly plugins: readonly PluginDefinition[]; readonly entrypoints: readonly string[]; readonly grants: Readonly<Record<string, readonly string[]>>; readonly beforeClose?: () => Promise<boolean> };
+}): ApplicationDefinition {
+  const art = options.art;
+  const device = createBrowserStorage({ config: options.mode === "browser" });
+  const transport = createServerTransport({ mode: options.mode });
+  const account = createAccountAccess({ defaultOpen: options.mode === "browser", allowLocal: options.mode === "desktop", ...(options.defaultServer ? { defaultAddress: options.defaultServer } : {}) });
+  const router = createFilesystemRouter([{ id: "local", ...LocalFilesystemBackend }, { id: "remote", ...RemoteFilesystemBackend }], "local");
+  const extra = options.extensions ?? { plugins: [], entrypoints: [], grants: {} };
+  const themeSettings = createThemeSettings({ defaultThemeId: "lunaris.base-theme-engine.monochrome" });
+  const interfaceSettings = createInterfaceSettings({ defaultThemeId: "lunaris.base-theme-engine.monochrome" });
+  const runner = createRunner({ art, hideWhenLoaded: true });
+  const selector = createVaultSelector({ art, hideWhenVaultOpen: true });
+  const startup = createStartupProvider();
+  const layout = composeSlotSurface(target);
+  const disabled = new Set<string>();
+  if (options.features) {
+    if (!options.features.includes("editor")) disabled.add(textEditor.manifest.id);
+    if (!options.features.includes("files")) disabled.add(fileExplorer.manifest.id);
+    if (!options.features.includes("settings")) disabled.add(settings.manifest.id);
+  }
+  const definition: ApplicationDefinition = {
+    ...layout,
+    startup,
+    ...(extra.beforeClose ? { beforeClose: extra.beforeClose } : {}),
+    plugins: [...extra.plugins, device, transport, accountSession, account, remoteFilesystem, draftsProvider, router, ...(options.platformPlugins ?? []), textEditor, interfaceSettings, settingsProvider, settings, activeScreenProvider, activeScreen, activeDocument, contextMenu, fileExplorer, sidebar, sidebarProvider, runner, ...(options.mode === "desktop" ? [selector] : []), workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
+    entrypoints: [...extra.entrypoints, account.manifest.id, textEditor.manifest.id, startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, ...(options.mode === "desktop" ? [selector.manifest.id] : []), workspace.manifest.id, activeScreen.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id, settings.manifest.id, interfaceSettings.manifest.id],
+    grants: {
+      ...layout.grants,
+      ...extra.grants,
+      [device.manifest.id]: device.manifest.permissions,
+      [transport.manifest.id]: [],
+      [accountSession.manifest.id]: ["vault.access", "account.network"],
+      [account.manifest.id]: ["account.access", "filesystem.access", "vault.access", "ui.dom"],
+      [remoteFilesystem.manifest.id]: ["filesystem.native", "account.network", "account.access"],
+      [draftsProvider.manifest.id]: ["drafts.access"],
+      [router.manifest.id]: ["filesystem.native", "filesystem.access", "filesystem.app-config"],
+      [textEditor.manifest.id]: ["ui.dom", "filesystem.access", "vault.access", "drafts.access", "account.access"],
+      [interfaceSettings.manifest.id]: ["config.access", "vault.access"],
+      [settings.manifest.id]: ["ui.dom", "vault.access"],
+      [activeScreenProvider.manifest.id]: ["vault.access"],
+      [activeScreen.manifest.id]: ["ui.dom"],
+      [activeDocument.manifest.id]: ["vault.access", "config.access", "filesystem.access"],
+      [runner.manifest.id]: ["config.access", "ui.dom"],
+      ...(options.mode === "desktop" ? { [selector.manifest.id]: ["vault.access", "ui.dom", "account.access"] } : {}),
+      [workspace.manifest.id]: ["vault.access", "ui.dom", "config.access"],
+      [fileExplorer.manifest.id]: ["filesystem.access", "vault.access"],
+      [sidebar.manifest.id]: ["ui.dom"],
+      [contextMenu.manifest.id]: ["ui.dom"],
+      [themeSettings.manifest.id]: ["config.access"],
+      [componentProvider.manifest.id]: ["ui.dom"],
+      [mantineComponents.manifest.id]: ["ui.dom"],
+      [filesystem.manifest.id]: ["filesystem.access", "filesystem.app-config"],
+      [vaultManager.manifest.id]: ["filesystem.access"],
+      [vaultHistory.manifest.id]: ["config.access", "vault.access"],
+      [configManager.manifest.id]: ["filesystem.access", "filesystem.app-config", "vault.access"],
+    },
+  };
+  const plugins = definition.plugins.filter(plugin => !disabled.has(plugin.manifest.id));
+  const registeredIds = new Set(plugins.map(plugin => plugin.manifest.id));
+  return { ...definition, plugins, entrypoints: definition.entrypoints.filter(id => registeredIds.has(id)),
+    grants: Object.fromEntries(Object.entries(definition.grants ?? {}).filter(([id]) => registeredIds.has(id))) };
+}

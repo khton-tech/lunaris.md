@@ -1,12 +1,16 @@
 # Web server and remote Vault foundation
 
-Status: requirements recorded; implementation blocked on public SDK domain
-contracts. No server, browser host, remote driver or migration is implemented.
+Status: public contracts, filesystem routing, server foundation, real-disk Vaults,
+browser/desktop composition and durable editor drafts are implemented on feature
+branches. Browser bundle deployment and operational verification are in progress.
+Visual acceptance remains manual. See reference/remote.md and host/plugin guides.
 
 ## Accepted product scope
 
 - An account workspace is its collection of owned Vaults, not the existing UI
   Workspace service. Sharing and collaborative text editing are outside v1.
+- Vault contents are actual files under userData/<canonical profile>/vault_<id>/.
+  SQLite stores metadata only; it must not become a virtual file-content store.
 - Registration is configured as open or invitation-only. An invitation token is
   single-use. Administrators reset passwords; email recovery is outside v1.
 - The server may limit active Vault count per account; null means unlimited.
@@ -217,7 +221,8 @@ after the native launch and recovery paths work.
 
 ## Delivery sequence and acceptance
 
-All steps below are pending; this document does not mark them implemented.
+The sequence below remains the delivery/acceptance checklist. Implementation does
+not imply manual visual acceptance or successful Docker execution.
 
 1. SDK foundation: implement routing, source-aware Vault creation/opening, remote
    failures and drafts contracts with owned cancellation and compatibility tests.

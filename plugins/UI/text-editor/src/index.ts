@@ -220,7 +220,7 @@ export default definePlugin({ manifest, activate(ctx) {
     // arrive during those operations; locked buffers must not reload early.
     for (const session of sessions.values()) {
       if (!session.active || session.locks || session.saving || session.loading || session.target.vaultId !== change.vaultId ||
-          !change.paths.some(path => path === "" || inside(session.target, { vaultId: change.vaultId, path }))) continue;
+          !(change.kind === "rescan" || change.paths.some(path => path === "" || inside(session.target, { vaultId: change.vaultId, path })))) continue;
       if (session.dirty) {
         if (change.kind === "removed") { session.missing = true; session.error = { code: "NOT_FOUND", message: "Document removed." }; session.cancelTimer(); changed(); }
       } else { states.delete(session); await session.load(); }
