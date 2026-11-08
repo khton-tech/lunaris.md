@@ -19,6 +19,7 @@ async function setup() {
     activate(ctx) {
       const methods = Object.fromEntries(backendMethods.map(method => [method, async (...args) => { calls.push([name, method, ...args]); return ok(null); }]));
       Object.assign(methods, {
+        closeVault: async (...args) => overrides.remoteClose && name === 'remote' ? overrides.remoteClose(...args) : ok(null),
         capabilities: () => ({ watch: true, atomicReplace: true, versionCheck: 'optimistic', trash: false, maxFileBytes: name === 'local' ? 100 : 200 }),
         attachLocation: async (...args) => { calls.push([name, 'attachLocation', ...args]); return overrides[name] ? overrides[name](...args) : ok({ id: 'same-native-id', name }); },
         openConfig: async () => ok({ id: 'config', name: 'Config' }),
@@ -73,5 +74,15 @@ test('unknown explicit source never falls back to local', async () => {
   const s = await setup();
   const result = await s.locations.attach({ reference: JSON.stringify(['lunaris-source-v1', 'missing', 'ref']), label: 'fake' }, s.ctx.signal);
   assert.equal(result.error.code, 'NOT_FOUND'); assert.equal(s.calls.length, 0);
+  const malformed = await s.locations.attach({ reference: JSON.stringify(['lunaris-source-v1', 'local', 'ref', 'extra']), label: 'fake' }, s.ctx.signal);
+  assert.equal(malformed.error.code, 'NOT_FOUND'); assert.equal(s.calls.length, 0);
   await s.host.stopAll(); s.host.assertNoResources();
+});
+test('router shutdown releases owner listeners even while an attachment is closing', async () => {
+  const s = await setup(); const listeners = new Set(); let resolve;
+  const owner = { aborted: false, addEventListener(_name, fn) { listeners.add(fn); }, removeEventListener(_name, fn) { listeners.delete(fn); }, throwIfAborted() {} };
+  const root = (await s.attach('remote', owner)).value; assert.equal(listeners.size, 1);
+  s.overrides.remoteClose = () => new Promise(yes => { resolve = yes; });
+  const pending = s.fs.closeVault(root.id); await s.host.stop('lunaris.filesystem-router'); assert.equal(listeners.size, 0);
+  resolve(ok(null)); assert.equal((await pending).error.code, 'VAULT_CLOSED'); await s.host.stopAll(); s.host.assertNoResources();
 });

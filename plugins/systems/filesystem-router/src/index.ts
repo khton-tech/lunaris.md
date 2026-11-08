@@ -29,14 +29,15 @@ export function createFilesystemRouter(sources: readonly BackendSource[], defaul
     const backends = new Map(bindings.map(source => [source.id, ctx.use(source.api)]));
     const primary = backends.get(defaultSource)!;
     const roots = new Map<string, Attachment>();
+    const attachments = new Set<Attachment>();
     const watches = new Map<string, { rootId: string; nativeId: string; detach: () => void }>();
     let sequence = 0;
     const nextId = () => `${ctx.activationId}:${++sequence}`;
     function forget(rootId: string) {
-      roots.get(rootId)?.detach(); roots.delete(rootId);
+      const entry = roots.get(rootId); entry?.detach(); if (entry) attachments.delete(entry); roots.delete(rootId);
       for (const [id, watch] of watches) if (watch.rootId === rootId) { watch.detach(); watches.delete(id); }
     }
-    ctx.scope.own({ dispose() { for (const id of roots.keys()) forget(id); watches.clear(); } });
+    ctx.scope.own({ dispose() { for (const entry of attachments) entry.detach(); attachments.clear(); roots.clear(); for (const watch of watches.values()) watch.detach(); watches.clear(); } });
     const closed = () => failure("VAULT_CLOSED", "The filesystem attachment is closed.");
     function rootWork<T>(rootId: string, work: (entry: Attachment) => Promise<FsResult<T>>): Promise<FsResult<T>> {
       const entry = roots.get(rootId);
@@ -54,7 +55,8 @@ export function createFilesystemRouter(sources: readonly BackendSource[], defaul
       if (!result.ok || result.value === null) return result;
       const rootId = nextId();
       const abort = () => forget(rootId);
-      roots.set(rootId, { backend, nativeId: result.value.id, owner, detach: () => owner.removeEventListener("abort", abort) });
+      const entry = { backend, nativeId: result.value.id, owner, detach: () => owner.removeEventListener("abort", abort) };
+      roots.set(rootId, entry); attachments.add(entry);
       owner.addEventListener("abort", abort, { once: true });
       logger.info(ctx.pluginId, "Filesystem source attached");
       return { ok: true, value: Object.freeze({ id: rootId, name: result.value.name }) };
@@ -72,7 +74,8 @@ export function createFilesystemRouter(sources: readonly BackendSource[], defaul
     function unwrap(reference: string): { sourceId: string; backend: FilesystemBackendApi; reference: string } | null {
       try {
         const parsed: unknown = JSON.parse(reference);
-        if (Array.isArray(parsed) && parsed.length === 3 && parsed[0] === "lunaris-source-v1" && typeof parsed[1] === "string" && typeof parsed[2] === "string") {
+        if (Array.isArray(parsed) && parsed[0] === "lunaris-source-v1") {
+          if (parsed.length !== 3 || typeof parsed[1] !== "string" || typeof parsed[2] !== "string") return null;
           const backend = backends.get(parsed[1]);
           return backend ? { sourceId: parsed[1], backend, reference: parsed[2] } : null;
         }
@@ -142,12 +145,12 @@ export function createFilesystemRouter(sources: readonly BackendSource[], defaul
         try { result = await entry.backend.closeVault(entry.nativeId); }
         catch (error) {
           if (!ctx.signal.aborted && !entry.owner.aborted) roots.set(id, entry);
-          else entry.detach();
+          else { entry.detach(); attachments.delete(entry); }
           throw error;
         }
-        if (ctx.signal.aborted) return closed();
+        if (ctx.signal.aborted) { entry.detach(); attachments.delete(entry); return closed(); }
         if (!result.ok && result.error.code !== "VAULT_CLOSED" && !entry.owner.aborted) { roots.set(id, entry); return result; }
-        entry.detach(); for (const [watchId, value] of watches) if (value.rootId === id) { value.detach(); watches.delete(watchId); }
+        entry.detach(); attachments.delete(entry); for (const [watchId, value] of watches) if (value.rootId === id) { value.detach(); watches.delete(watchId); }
         logger.info(ctx.pluginId, "Filesystem source released"); return result;
       }),
       pickFile: id => rootWork(id, entry => entry.backend.pickFile(entry.nativeId)),
