@@ -16,6 +16,9 @@
   },
   "packageManager": "npm@11.20.0",
   "scripts": {
+    "web:dev": "npm run dev --workspace @lunaris/web",
+    "web:build": "npm run build --workspace @lunaris/web",
+    "remote:check": "node tools/scripts/remote.mjs",
     "environment": "node tools/scripts/environment.mjs",
     "build": "tsc -b",
     "check": "node tools/scripts/check.mjs",

@@ -1,0 +1,19 @@
+import { spawnSync } from 'node:child_process';
+import { checkEnvironment } from './environment.mjs';
+import { checkBoundaries, dependencies } from './boundaries.mjs';
+const tests = [
+  'packages/remote/test/contracts.test.mjs', 'packages/filesystem/test/contracts.test.mjs',
+  'plugins/systems/filesystem-router/test/router.test.mjs', 'plugins/systems/driver/server-transport/test/transport.test.mjs',
+  'plugins/systems/driver/remote-filesystem/test/remote.test.mjs', 'plugins/systems/driver/browser-storage/test/storage.test.mjs',
+  'plugins/systems/drafts/test/drafts.test.mjs', 'plugins/systems/account-session/test/account.test.mjs',
+  'plugins/systems/driver/tauri-filesystem/test/driver.test.mjs', 'plugins/UI/text-editor/test/session.test.mjs',
+  'tools/scripts/remote-integration.test.mjs',
+];
+function run(args) { const result = spawnSync(process.execPath, args, { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 }); if (result.error || result.status !== 0) throw Error(result.error?.message ?? result.stdout + result.stderr); return result.stdout; }
+try {
+  checkEnvironment(); run(['node_modules/typescript/bin/tsc', '-b', 'hosts/web', 'hosts/tauri', 'packages/test']);
+  await checkBoundaries(Object.keys(dependencies));
+  const output = run(['--test', '--test-reporter=tap', ...tests]); const count = Number(output.match(/^# pass (\d+)/m)?.[1]);
+  if (!count || Number(output.match(/^# skipped (\d+)/m)?.[1])) throw Error('Required remote checks were absent or skipped.');
+  process.stdout.write(`Remote checks passed: ${count} tests; shared browser/desktop builds, boundaries, real server and offline recovery.\n`);
+} catch (error) { process.stderr.write(`Remote checks failed: ${error.message}\n`); process.exitCode = 1; }

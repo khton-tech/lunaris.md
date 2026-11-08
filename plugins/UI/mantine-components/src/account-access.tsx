@@ -21,7 +21,8 @@ export function accountAccessProps(value: ComponentProps): AccountAccessProps {
   for (const name of ["address", "login", "password", "invitation", "name", "account", "error"]) if (typeof value[name] !== "string") throw TypeError(`Account access requires ${name}.`);
   for (const name of ["busy", "allowLocal", "invitationRequired"]) if (typeof value[name] !== "boolean") throw TypeError(`Account access requires ${name}.`);
   for (const name of ["onField", "onSubmit", "onToggleAuth", "onLocal", "onLogout", "onOpen", "onTrash", "onRestore", "onToggleTrash", "onRefresh", "onChangeServer"]) if (typeof value[name] !== "function") throw TypeError(`Account access requires ${name}.`);
-  if (!value.text || typeof value.text !== "object" || !Array.isArray(value.entries) || value.entries.some(entry => !entry || ["id", "name", "detail"].some(key => typeof entry[key] !== "string"))) throw TypeError("Invalid account access content.");
+  const labels = ["connect", "login", "register", "vaults", "trash", "local", "address", "username", "password", "showPassword", "invitation", "name", "create", "restore", "delete", "logout", "refresh", "empty", "changeServer", "passwordReset"];
+  if (!value.text || typeof value.text !== "object" || labels.some(key => typeof (value.text as Record<string, unknown>)[key] !== "string") || !Array.isArray(value.entries) || value.entries.some(entry => !entry || ["id", "name", "detail"].some(key => typeof entry[key] !== "string"))) throw TypeError("Invalid account access content.");
   return value as unknown as AccountAccessProps;
 }
 export function AccountAccessView({ props: p, theme }: { props: AccountAccessProps; theme: ReturnType<typeof resolveTheme> }) {
@@ -55,7 +56,7 @@ export function AccountAccessView({ props: p, theme }: { props: AccountAccessPro
           {p.mode === "connect" ? <TextInput label={p.text.address} type="url" autoComplete="url" value={p.address} disabled={p.busy} required onChange={e => p.onField("address", e.currentTarget.value)} /> : <>
             <Text className="lm-account-context">{p.address}</Text>
             <TextInput label={p.text.username} autoComplete="username" value={p.login} maxLength={64} disabled={p.busy} required onChange={e => p.onField("login", e.currentTarget.value)} />
-            <PasswordInput label={p.text.password} autoComplete={p.mode === "register" ? "new-password" : "current-password"} value={p.password} minLength={8} maxLength={1024} disabled={p.busy} required
+            <PasswordInput size="md" label={p.text.password} autoComplete={p.mode === "register" ? "new-password" : "current-password"} value={p.password} minLength={8} maxLength={1024} disabled={p.busy} required
               visibilityToggleButtonProps={{ "aria-label": p.text.showPassword }} onChange={e => p.onField("password", e.currentTarget.value)} />
             {p.mode === "register" && p.invitationRequired && <TextInput label={p.text.invitation} value={p.invitation} autoComplete="off" disabled={p.busy} required onChange={e => p.onField("invitation", e.currentTarget.value)} />}
           </>}

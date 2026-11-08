@@ -35,6 +35,24 @@ async function setup() {
 }
 const startup = { art: '<img src=x> ASCII', logoLabel: 'Lunaris', status: 'Loading' };
 
+test('account access uses controlled Mantine password fields, escaped catalog names and owned presentation', async () => {
+  const s = await setup(); await s.start(); const calls = [];
+  const labels = ['connect', 'login', 'register', 'vaults', 'trash', 'local', 'address', 'username', 'password', 'showPassword', 'invitation', 'name', 'create', 'restore', 'delete', 'logout', 'refresh', 'empty', 'changeServer', 'passwordReset'];
+  const props = { mode: 'register', text: Object.fromEntries(labels.map(key => [key, key])), address: 'https://notes.example', login: 'alice', password: 'typed password', invitation: 'invite', name: '', account: '',
+    busy: false, error: '', allowLocal: true, invitationRequired: true, entries: [], onField: (...args) => calls.push(args),
+    ...Object.fromEntries(['onSubmit', 'onToggleAuth', 'onLocal', 'onLogout', 'onOpen', 'onTrash', 'onRestore', 'onToggleTrash', 'onRefresh', 'onChangeServer'].map(name => [name, (...args) => calls.push([name, ...args])])) };
+  const mounted = s.components.mount('lunaris.account-access', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true);
+  const password = s.target.querySelector('input[type=password]'); assert.ok(password); assert.equal(password.value, 'typed password');
+  assert.equal(password.getAttribute('autocomplete'), 'new-password');
+  mounted.value.update({ ...props, error: 'Try again' }); assert.equal(s.target.querySelector('input[type=password]'), password);
+  mounted.value.update({ ...props, mode: 'vaults', entries: [{ id: 'v', name: '<script>bad</script>', detail: 'Notes' }] });
+  assert.equal(s.target.querySelector('script'), null); assert.ok(s.target.textContent.includes('<script>bad</script>'));
+  [...s.target.querySelectorAll('button')].find(button => button.textContent.includes('<script>')).click(); assert.ok(calls.some(call => call[0] === 'onOpen' && call[1] === 'v'));
+  assert.equal(s.target.querySelector('.lm-root').dataset.presentation, 'standalone');
+  mounted.value.update({ ...props, presentation: { mode: 'embedded', sizing: 'content' } }); assert.equal(s.target.querySelector('.lm-root').style.backgroundColor, 'transparent');
+  await s.stop();
+});
+
 test('optional control finishes reset on theme replacement without repainting embedded surfaces', async () => {
   const s = await setup(); await s.start();
   s.target.style.backgroundColor = '#123456';
