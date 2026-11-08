@@ -47,15 +47,17 @@ The palette change does not change layout or typography.
 
 ID: `lunaris.base-theme-engine.windows-xp`; name: Windows XP Luna; appearance:
 light; schema: lunaris.base-theme version 1. The reference is Windows XP's blue
-Luna controls, cream dialog surfaces and Tahoma typography. This adapts the
+Luna controls, gray Paint tool surfaces and Tahoma typography. The Owner's
+second screenshot (XP desktop with Paint) supersedes the earlier palette-only
+interpretation. This adapts the
 reference to existing Lunaris roles: Lucide icons, supporting-region cards and
 the open editor workspace retain their existing composition and interaction.
 
-Luna uses #FFFFFF background/content, #ECE9D8 panels, #1A1A1A text, #444444
+Luna uses #FFFFFF background/content, #C0C0C0 panels, #1A1A1A text, #333333
 secondary text, #245EDB accent, #FFFFFF on-accent, #D4E3FC selection,
-#E5EFFF hover, #003C74 focus and #716F64 control borders. Selection stays pale
+#E5EFFF hover, #003C74 focus and #555555 control borders. Selection stays pale
 to retain semantic text contrast. Typography is 13px Tahoma/Segoe UI/sans-serif,
-radii are 3/4px and motion is 80/140ms. Other measurements reuse Monochrome.
+radii are 0/2px and motion is 80/140ms. Other measurements reuse Monochrome.
 
 Optional components.controls properties supply CSS background images for
 buttonBackground/buttonHoverBackground/buttonPressedBackground and
@@ -64,6 +66,20 @@ for buttonBorder and CSS box shadows for buttonShadow/inputShadow. Mantine
 maps these only to controls, excluding card rows. Missing tokens preserve the
 flat appearance; theme replacement removes old finishes. Disabled buttons
 have no gradients or shadows. No new SDK contract or provider is required.
+
+Optional components.windowChrome contains enabled (boolean), captionBackground
+(CSS background), captionText/frameColor/menuBorder (CSS colors) and
+surfaceShadow/insetShadow (CSS box shadows). Only enabled: true opts in.
+WorkspaceLayout owns the blue outer frame, compact grid and caption using the
+existing localized mainLabel. It adds no inactive window-operation buttons.
+Supporting regions retain stable borrowed targets; main remains an open white
+workspace. Each embedded role styles only its own headings, controls and local
+content. Settings supplies a blue section title, compact white fields and a
+right-hand picker button; menus retain Mantine interaction with beveled edges.
+No OS desktop, wallpaper, taskbar or window-management API is introduced.
+These remain intentional differences from the reference. Root-scoped explicit
+Mantine font variables keep headings and controls on Tahoma/system fallbacks.
+Switching to Monochrome removes the caption/frame and all chrome tokens.
 
 WorkspaceLayout owns region geometry and rail/panel surfaces; embedded Sidebar,
 Explorer and Settings content inherit them. The engine only registers data.

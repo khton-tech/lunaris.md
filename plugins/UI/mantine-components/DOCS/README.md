@@ -377,7 +377,16 @@ for the public data fields. They are removed on theme replacement and do not
 paint embedded roots or alter region geometry. Card rows retain their navigation
 appearance; disabled buttons suppress gradients/shadows. The reference is the
 existing shared controls, Windows XP Luna and [Mantine UI buttons](https://ui.mantine.dev/category/buttons/).
-No new composition was copied. Consumers still use public component roles;
+The Owner's second screenshot (XP Paint) now defines the chrome: WorkspaceLayout
+owns the blue outer frame/caption and compact region grid. Embedded role roots
+receive an explicit data-window-chrome flag from theme data, never DOM ancestry
+or plugin IDs. Settings owns its blue title and compact form content; the
+Explorer owns its toolbar and inset file list. Gray region surfaces stay with
+WorkspaceLayout. Targets remain mounted when toggling chrome, and main receives
+no enclosing card. Components.windowChrome fields are documented in the theme
+reference. No fake window controls, taskbar or desktop are added. Explicit
+root-scoped Mantine font variables preserve Tahoma in headings and controls.
+No gallery composition was copied. Consumers still use public component roles;
 theme-settings/interface-settings own selection and persistence. Native visual
 acceptance, including opened menus, focus and narrow layouts, remains pending.
 

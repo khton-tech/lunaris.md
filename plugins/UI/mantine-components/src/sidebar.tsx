@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
-import { ActionIcon, Box, Paper, Splitter, Stack } from "@mantine/core";
+import { ActionIcon, Box, Paper, Splitter, Stack, Text } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
@@ -53,10 +53,11 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
     publish(Object.freeze({ main: main.current!, "left-rail": rail.current!, "left-panel": panel.current! }));
     return () => publish(null);
   }, [publish]);
-  return <Box className="lm-workspace-layout" style={{ ...theme.contentStyle, "--workspace-panel-width": `${width}px` }} data-rail={props.railVisible || undefined} data-panel={props.panelVisible || undefined}
+  return <Box className="lm-workspace-layout" style={{ ...theme.contentStyle, "--workspace-panel-width": `${width}px` }} data-window-chrome={theme.windowChrome || undefined} data-rail={props.railVisible || undefined} data-panel={props.panelVisible || undefined}
     onKeyDown={event => { if (event.key === "Escape" && props.panelVisible) {
       event.preventDefault(); rail.current?.querySelector<HTMLButtonElement>("button[aria-pressed=true]")?.focus({ preventScroll: true }); props.onDismiss();
     } }}>
+    {theme.windowChrome && <Box component="header" className="lm-window-caption"><Icon name="file" /><Text component="span" inherit>{props.mainLabel}</Text></Box>}
     <Paper ref={rail} className="lm-workspace-rail lm-workspace-card" shadow="none" hidden={!props.railVisible} />
     <Splitter ref={content} className="lm-workspace-content" sizes={[`${fittedWidth}px`, 100]} withHandle={false} lineSize={8} step="8px" shiftStep="32px"
       attributes={{ handle: { "aria-label": props.resizeLabel ?? props.panelLabel } }}

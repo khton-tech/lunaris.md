@@ -71,11 +71,17 @@ test('composed controls apply and persist explicit Vault preferences, preserve i
 test('Luna selection updates composed controls and preserves container ownership when switched back', async () => {
   const s = await setup(); await s.open(); await show(s);
   const choice = select(s, 1);
+  const main = s.surface.querySelector('.lm-workspace-main');
+  const panel = s.surface.querySelector('.lm-workspace-panel');
   await change(s, 1, 'lunaris.base-theme-engine.windows-xp');
   assert.equal(s.tools.themes.current().properties.appearance, 'light');
   assert.equal(select(s, 1), choice);
   const content = s.surface.querySelector('.lm-settings-items');
-  assert.equal(content.style.getPropertyValue('--vault-panel'), '#ECE9D8');
+  assert.equal(content.style.getPropertyValue('--vault-panel'), '#C0C0C0');
+  assert.ok(s.surface.querySelector('.lm-window-caption'));
+  assert.equal(s.surface.querySelector('.lm-workspace-main'), main);
+  assert.equal(s.surface.querySelector('.lm-workspace-panel'), panel);
+  assert.equal(content.closest('.lm-root').dataset.windowChrome, 'true');
   assert.match(content.style.getPropertyValue('--vault-button-image'), /linear-gradient/);
   assert.equal(content.closest('.lm-root').style.backgroundColor, 'transparent');
   assert.equal(s.writes[0].value, 'lunaris.base-theme-engine.windows-xp');
@@ -83,6 +89,10 @@ test('Luna selection updates composed controls and preserves container ownership
   assert.equal(s.tools.themes.current().properties.appearance, 'dark');
   assert.equal(content.style.getPropertyValue('--vault-button-image'), '');
   assert.equal(content.style.getPropertyValue('--vault-panel'), '#1A1A1A');
+  assert.equal(s.surface.querySelector('.lm-window-caption'), null);
+  assert.equal(content.closest('.lm-root').dataset.windowChrome, 'false');
+  assert.equal(content.style.getPropertyValue('--vault-caption-background'), '');
+  assert.equal(s.surface.querySelector('.lm-workspace-main'), main);
   await s.stop();
 });
 
