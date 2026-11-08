@@ -7,6 +7,7 @@
 - [Product backlog](Backlog.md): product component status and deferred scope.
 - [Interface foundation proposal](design/interface-foundation.md): code-based design review, researched direction, interactive study and approval/implementation criteria (proposed, not yet adopted).
 - [UI slots](reference/slots.md): portable regions, scoped ownership, DOM targets and host composition.
+- [Window API and custom titlebar](reference/window.md): replaceable native-window provider/driver, title and controls, owned chrome and save-gated closure.
 - [Startup progress](reference/startup.md): read-only SDK milestones, host bridge and early loading surfaces.
 - [Lunaris Runner](../plugins/UI/lunaris-runner/DOCS/README.md): configured ASCII startup screen, milestones and retained loaded status.
 - [Theme settings](../plugins/UI/theme-settings/DOCS/README.md): startup theme preference, default selection and failure behavior.

@@ -46,3 +46,19 @@ closure require manual acceptance; desktop automation is prohibited.
 
 Platform reference: [Tauri window customization](https://v2.tauri.app/learn/window-customization/)
 and [Window API](https://v2.tauri.app/reference/javascript/api/namespacewindow/).
+
+## Verification recorded on 2026-11-08
+
+- `npm run window:check`: 79 tests passed, zero skipped; public type fixtures,
+  dependency boundaries, driver/provider, real titlebar/selector/Workspace composition
+  and host behavior included.
+- `node tools/scripts/check.mjs mantine-components`: 100 tests passed, zero skipped,
+  including caption props, button/drag separation, stable controls and theme updates.
+- `npm run build --workspace @lunaris/tauri`: TypeScript and production Vite build passed.
+- `cargo check --locked --manifest-path Cargo.toml` in the Tauri native directory:
+  passed, including native capability validation.
+- `npm run desktop:build --workspace @lunaris/tauri -- --debug -- --locked`: passed;
+  executable at `hosts/tauri/src-tauri/target/debug/lunaris-desktop.exe`.
+
+No native window was launched. Vite reports the existing large application-chunk
+warning; builds succeed. Native visual/pointer acceptance remains pending.
