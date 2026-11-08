@@ -581,3 +581,14 @@ The remaining width belongs to the title/drag area; controls align at the traili
 edge. No slot geometry, provider contracts or other plugin surfaces are changed.
 A composed regression loads the actual stylesheet and checks width-growth and
 content-height policy. Native geometry after this correction remains a manual check.
+
+## Server account screens
+
+lunaris.account-access uses the existing Vault Selector CardRow and Files footer
+menu conventions. The role owns the page layout, authentication panel and catalog
+list surface; its explicit embedded presentation stays transparent. AccountAccess
+owns data, localized copy and operations through the public role props. The role
+owns only create disclosure and Mantine menu state, including focus restoration.
+References: [Mantine UI authentication](https://ui.mantine.dev/category/authentication/)
+and [navbars](https://ui.mantine.dev/category/navbars/). There is no gallery runtime.
+See [the controller guide](../../account-access/DOCS/README.md) for the integration.

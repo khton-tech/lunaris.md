@@ -37,7 +37,7 @@ const startup = { art: '<img src=x> ASCII', logoLabel: 'Lunaris', status: 'Loadi
 
 test('account access uses controlled Mantine password fields, escaped catalog names and owned presentation', async () => {
   const s = await setup(); await s.start(); const calls = [];
-  const labels = ['connect', 'login', 'register', 'vaults', 'trash', 'local', 'address', 'username', 'password', 'showPassword', 'invitation', 'name', 'create', 'restore', 'delete', 'logout', 'refresh', 'empty', 'changeServer', 'passwordReset'];
+  const labels = ['connect', 'login', 'register', 'vaults', 'trash', 'local', 'address', 'username', 'password', 'showPassword', 'invitation', 'name', 'create', 'restore', 'delete', 'logout', 'refresh', 'empty', 'changeServer', 'passwordReset', 'cancel', 'accountMenu', 'vaultActions', 'loginDetail', 'registerDetail', 'connectDetail', 'vaultsDetail', 'trashDetail', 'emptyTrash', 'emptyDetail', 'emptyTrashDetail'];
   const props = { mode: 'register', text: Object.fromEntries(labels.map(key => [key, key])), address: 'https://notes.example', login: 'alice', password: 'typed password', invitation: 'invite', name: '', account: '',
     busy: false, error: '', allowLocal: true, invitationRequired: true, entries: [], onField: (...args) => calls.push(args),
     ...Object.fromEntries(['onSubmit', 'onToggleAuth', 'onLocal', 'onLogout', 'onOpen', 'onTrash', 'onRestore', 'onToggleTrash', 'onRefresh', 'onChangeServer'].map(name => [name, (...args) => calls.push([name, ...args])])) };
@@ -48,6 +48,16 @@ test('account access uses controlled Mantine password fields, escaped catalog na
   mounted.value.update({ ...props, mode: 'vaults', entries: [{ id: 'v', name: '<script>bad</script>', detail: 'Notes' }] });
   assert.equal(s.target.querySelector('script'), null); assert.ok(s.target.textContent.includes('<script>bad</script>'));
   [...s.target.querySelectorAll('button')].find(button => button.textContent.includes('<script>')).click(); assert.ok(calls.some(call => call[0] === 'onOpen' && call[1] === 'v'));
+  const toggle = s.target.querySelector('[aria-controls]');
+  assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+  assert.equal(s.target.querySelector('.lm-account-disclosure').getAttribute('aria-hidden'), 'true');
+  toggle.click(); await new Promise(setImmediate);
+  assert.equal(toggle.getAttribute('aria-expanded'), 'true');
+  assert.equal(s.target.querySelector('.lm-account-disclosure').getAttribute('aria-hidden'), 'false');
+  s.target.querySelector('form').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await new Promise(setImmediate);
+  assert.equal(s.target.querySelector('.lm-account-disclosure').getAttribute('aria-hidden'), 'true');
+  assert.equal(s.dom.window.document.activeElement, toggle);
   assert.equal(s.target.querySelector('.lm-root').dataset.presentation, 'standalone');
   mounted.value.update({ ...props, presentation: { mode: 'embedded', sizing: 'content' } }); assert.equal(s.target.querySelector('.lm-root').style.backgroundColor, 'transparent');
   await s.stop();

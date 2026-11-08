@@ -88,6 +88,8 @@ test('real server browser composition recovers drafts, gates updates and retires
   typeInput(target.querySelector('input[autocomplete="new-password"]'), 'correct horse battery staple');
   target.querySelector('.lm-account-access form').dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }));
   await until(() => api.account.current()?.account.login === 'alice' && [...target.querySelectorAll('.lm-account-access button')].some(button => button.textContent === 'Create vault') && !target.querySelector('.lm-account-access form input')?.disabled, 'registered account catalog');
+  target.querySelector('.lm-account-toolbar button[aria-expanded]').click();
+  await until(() => target.querySelector('.lm-account-disclosure').getAttribute('aria-hidden') === 'false', 'create form disclosure');
   typeInput(target.querySelector('.lm-account-access form input'), 'Web notes');
   target.querySelector('.lm-account-access form').dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }));
   await until(() => api.vault.current(), 'created Vault opens automatically');
