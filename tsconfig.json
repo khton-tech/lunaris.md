@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
+    { "path": "packages/remote" },
     {
       "path": "plugins/UI/base-theme"
     },

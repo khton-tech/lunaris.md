@@ -1,0 +1,32 @@
+# Remote service contracts
+
+`@lunaris/remote` defines AccountSession, AccountVaults, Drafts and DraftStorage.
+These are additive public SDK tokens; they do not implement a server or grant
+network access. Account consumers declare `account.access`; draft consumers declare
+`drafts.access`. Only a trusted storage driver provides `drafts.storage`.
+
+AccountSession owns connection/login lifetime; connect requires a cancellation
+signal. current() contains account and server identities and an epoch, never a
+credential. AccountVaults creates account-owned Vaults without a parent folder,
+and distinguishes active and trashed records. Catalog IDs are durable; filesystem
+attachment IDs remain transient. Consumers open returned locations through Vault.
+
+Drafts keys include server, account, stable Vault ID and relative path. remove
+requires the acknowledged revision, preventing late remote saves from deleting
+newer local edits. DraftStorage uses the same flat contract behind the provider;
+no storage implementation or privileged handles escape through SDK results.
+
+AccountSessionChanged reports identity changes. ConnectionChanged distinguishes
+connected/offline/expired for one epoch. Consumers ignore stale epochs. Remote
+filesystem failures add OFFLINE, SERVER_UNAVAILABLE, UNAUTHENTICATED,
+SESSION_EXPIRED and PROTOCOL_MISMATCH; they never imply successful persistence.
+
+`@lunaris/filesystem` adds defineFilesystemBackend for host-selected backend API
+and event tokens. Its flat API includes normal I/O and owned root/location/watch
+operations. LocalFilesystemBackend and RemoteFilesystemBackend are distinct
+contracts, so a router can acquire both through SDK mediation. FilesystemSources
+wraps explicit source locations and exposes capabilities for an attached root.
+It does not authorize access based on labels or source strings.
+
+Integration status: contracts only. Providers, drivers, server, browser host and
+desktop composition remain pending. See [the design](../design/web-server.md).

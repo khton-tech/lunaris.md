@@ -3,6 +3,7 @@ import path from 'node:path';
 import ts from 'typescript';
 
 export const dependencies = {
+  remote: ['sdk', 'filesystem'],
   'window-titlebar': ['sdk', 'logging', 'window', 'slots', 'slot-dom', 'components', 'localization'],
   window: ['sdk'],
   'window-provider': ['sdk', 'logging', 'window'],

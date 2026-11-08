@@ -1,7 +1,7 @@
 import { defineApi, defineEvent, defineHook } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
 
-export type FsErrorCode = "CANCELLED" | "INVALID_PATH" | "INVALID_ARGUMENT" | "VAULT_CLOSED" | "NOT_FOUND" | "ALREADY_EXISTS" | "NOT_FILE" | "NOT_DIRECTORY" | "DIRECTORY_NOT_EMPTY" | "ACCESS_DENIED" | "CONFLICT" | "UNSUPPORTED" | "TOO_LARGE" | "INVALID_ENCODING" | "IO_ERROR";
+export type FsErrorCode = "CANCELLED" | "INVALID_PATH" | "INVALID_ARGUMENT" | "VAULT_CLOSED" | "NOT_FOUND" | "ALREADY_EXISTS" | "NOT_FILE" | "NOT_DIRECTORY" | "DIRECTORY_NOT_EMPTY" | "ACCESS_DENIED" | "CONFLICT" | "UNSUPPORTED" | "TOO_LARGE" | "INVALID_ENCODING" | "IO_ERROR" | "OFFLINE" | "SERVER_UNAVAILABLE" | "UNAUTHENTICATED" | "SESSION_EXPIRED" | "PROTOCOL_MISMATCH";
 export interface FsFailure {
   readonly code: FsErrorCode;
   readonly message: string;
@@ -180,4 +180,6 @@ export function validPath(path: unknown, allowRoot = false): path is string {
 export function validTarget(target: FileTarget, allowRoot = false): boolean {
   return target !== null && typeof target === "object" && typeof target.vaultId === "string" && target.vaultId.length > 0 && validPath(target.path, allowRoot);
 }
+
+export * from "./sources.js";
 
