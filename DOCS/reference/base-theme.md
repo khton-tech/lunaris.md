@@ -88,15 +88,15 @@ and the existing selection contract. No controller or ownership changes are need
 
 ## Composition and saved preferences
 
-Tauri starts the engine before theme-settings and supplies the Luna ID as
-the experimental default. Saved startup and Vault preferences take priority;
+Tauri starts the engine before theme-settings and supplies the Monochrome ID as
+the default. Windows XP Luna remains available as an optional preset. Saved startup and Vault preferences take priority;
 choose Windows XP Luna under Settings > Customization for an existing Vault.
 Saved retired Light/Dark IDs follow the settings plugin's existing
 unavailable-theme fallback with a warning; saved configuration is not rewritten.
 Themes/ThemeChanged carry selected data to Mantine components. Runner and Vault
 selector continue mounting roles through Components without importing the engine.
-Native window and HTML first-paint backgrounds match #FFFFFF; boot text uses
-#1A1A1A. Host recovery UI remains independent.
+Native window and HTML first-paint backgrounds match #0F0F0F; boot text uses
+#E7E7E7. Host recovery UI remains independent.
 
 ## Verification
 

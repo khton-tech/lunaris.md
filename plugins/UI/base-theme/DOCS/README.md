@@ -13,8 +13,8 @@ selection and falls back from unavailable saved IDs without rewriting config.
 Extra error and colorful error colors are exposed for future consumers, with no
 colorful-mode UI added. Monochrome geometry, typography and motion remain unchanged.
 
-On this branch Tauri defaults to Luna, using gray panels, blue window captions, Tahoma
-and optional control finishes interpreted by Mantine. Saved startup and Vault
+Tauri defaults to Monochrome. Optional Windows XP Luna uses gray panels, blue
+window captions, Tahoma and control finishes interpreted by Mantine. Saved startup and Vault
 preferences still take priority; select Windows XP Luna under Customization
 for an existing Vault. Monochrome remains available for comparison.
 Themes/ThemeChanged connect Mantine and the editor; interface-settings exposes
