@@ -2,6 +2,7 @@ import type { ComponentPresentation, ComponentProps } from "@lunaris/components"
 
 /** Defaults describe the role itself, never the identity or DOM of its consumer. */
 export const presentationDefaults: Readonly<Record<string, Required<ComponentPresentation>>> = {
+  "lunaris.client-update": { mode: "standalone", sizing: "content" },
   "lunaris.account-access": { mode: "standalone", sizing: "fill" },
   "lunaris.window-titlebar": { mode: "standalone", sizing: "content" },
   "lunaris.task-checkbox": { mode: "embedded", sizing: "content" },
