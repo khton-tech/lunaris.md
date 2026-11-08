@@ -52,7 +52,10 @@
     "@lunaris/settings-plugin": "0.1.0",
     "@lunaris/interface-settings": "0.1.0",
     "@lunaris/text-editor": "0.1.0",
-    "@lunaris/vault": "0.1.0"
+    "@lunaris/vault": "0.1.0",
+    "@lunaris/window-titlebar": "0.1.0",
+    "@lunaris/window-provider": "0.1.0",
+    "@lunaris/tauri-window": "0.1.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.12.4",

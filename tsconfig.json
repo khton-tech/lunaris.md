@@ -168,6 +168,9 @@
     },
     {
       "path": "plugins/systems/driver/tauri-window"
+    },
+    {
+      "path": "plugins/UI/window-titlebar"
     }
   ]
 }

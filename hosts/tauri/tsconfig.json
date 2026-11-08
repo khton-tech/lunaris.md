@@ -123,6 +123,15 @@
     },
     {
       "path": "../../packages/vault"
+    },
+    {
+      "path": "../../plugins/UI/window-titlebar"
+    },
+    {
+      "path": "../../plugins/systems/window"
+    },
+    {
+      "path": "../../plugins/systems/driver/tauri-window"
     }
   ]
 }

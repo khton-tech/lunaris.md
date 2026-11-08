@@ -1,0 +1,23 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "window-controls",
+  "description": "Allow the main local window driver to read window state and operate custom titlebar controls. Closure remains gated by the host.",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:window:allow-title",
+    "core:window:allow-is-focused",
+    "core:window:allow-is-maximized",
+    "core:window:allow-is-minimizable",
+    "core:window:allow-is-maximizable",
+    "core:window:allow-is-closable",
+    "core:window:allow-is-decorated",
+    "core:window:allow-set-title",
+    "core:window:allow-minimize",
+    "core:window:allow-toggle-maximize",
+    "core:window:allow-start-dragging",
+    "core:window:allow-close",
+    "core:window:allow-set-decorations"
+  ]
+}
