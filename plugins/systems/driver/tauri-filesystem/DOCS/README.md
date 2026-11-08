@@ -66,4 +66,3 @@ watches as the legacy driver APIs. A host may compose Filesystem Router above it
 without importing this implementation into a consumer. Legacy composition remains
 supported. Host selection must route the filesystem provider consistently; merely
 registering both legacy drivers and router does not establish integration.
-
