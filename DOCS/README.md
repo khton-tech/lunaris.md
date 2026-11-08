@@ -5,6 +5,7 @@
 - [Tauri host and recovery shell](guides/tauri-host.md): first desktop target, diagnostic UI, recovery behavior, commands and manual acceptance.
 - [Logging contracts and composition](reference/logging.md): replaceable Logger/DevTools sink, record format, failure behavior and verification.
 - [Product backlog](Backlog.md): product component status and deferred scope.
+- [Web server foundation](design/web-server.md): accepted account/Vault requirements, SDK blockers, required public contracts, bundle releases and pending delivery sequence.
 - [Interface foundation proposal](design/interface-foundation.md): code-based design review, researched direction, interactive study and approval/implementation criteria (proposed, not yet adopted).
 - [UI slots](reference/slots.md): portable regions, scoped ownership, DOM targets and host composition.
 - [Window API and custom titlebar](reference/window.md): replaceable native-window provider/driver, title and controls, owned chrome and save-gated closure.
