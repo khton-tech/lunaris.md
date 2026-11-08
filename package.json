@@ -52,7 +52,8 @@
     "active-screen:check": "node tools/scripts/check.mjs active-screen active-screen-provider active-screen-plugin mantine-components",
     "settings:check": "node tools/scripts/check.mjs settings settings-provider settings-plugin",
     "interface-settings:check": "node tools/scripts/check.mjs interface-settings settings-plugin mantine-components",
-    "editor:check": "node tools/scripts/editor.mjs"
+    "editor:check": "node tools/scripts/editor.mjs",
+    "window:check": "node tools/scripts/check.mjs window window-provider tauri-window window-titlebar"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

@@ -1024,3 +1024,22 @@ traversal until the final keyboard focus design. Listener cleanup restores norma
 behavior outside Workspace. Targeted checks passed 121 tests, zero skipped,
 strict types and dependency boundaries. Native WebView focus/geometry acceptance
 remains manual.
+
+## Window API and custom titlebar — 2026-11-08
+
+Owner scope: replace the default native caption with an integrated custom caption
+and expose window operations through the public SDK. The missing contract was
+identified before implementation; the Owner authorized resolving that SDK blocker.
+
+| Task | Status | Delivered behavior / acceptance |
+|---|---|---|
+| Public window contract/provider | DONE | Window/WindowDriver, immutable snapshots, WindowChanged/DriverWindowChanged, title validation, capability-based unsupported behavior and window.control/window.native grants. |
+| Tauri driver | DONE | Native title/state/controls, scoped listeners, exclusive chrome ownership, serialized restoration and safe reentrant event handling. Close requests retain the host save gate. |
+| Shared Mantine role and UI controller | DONE | Theme/localization-aware caption in an independent root slot above selector and Workspace; stable buttons, drag area and renderer-loss fallback. No native/React imports in the consumer. |
+| Integration and automated verification | DONE | 79 window/host tests and 100 Mantine/host tests, zero skips; strict types/boundaries, production frontend, native cargo check and Windows debug executable build. |
+| Native visual/pointer acceptance | TODO | Owner checks startup/selector/Workspace, both themes, long/narrow layouts, focus, double-click, dragging, resize/snap and save-blocked closure. No automated desktop control or native appearance claim. |
+
+Branch: `feat/window-titlebar`. No merge or push. The title initially remains
+Lunaris; automatic Vault/document naming is outside this delivery. See
+[window contracts and verification](reference/window.md) and the
+[titlebar guide](../plugins/UI/window-titlebar/DOCS/README.md).

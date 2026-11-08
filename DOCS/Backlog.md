@@ -1,5 +1,18 @@
 # Product backlog
 
+## Window API and custom titlebar
+
+Status: IMPLEMENTED on 2026-11-08 in `feat/window-titlebar`; native visual and
+pointer acceptance remain manual. Public Window/WindowDriver contracts, a system
+provider, Tauri driver and separate UI controller expose title updates, native
+state, minimize/maximize/restore, drag and normal closure. A shared Mantine role
+occupies a root caption slot above product screens and inherits the selected theme.
+Scope-owned custom chrome restores native decorations on cancellation, role loss,
+plugin shutdown and host recovery. Closure retains the existing document-save gate.
+Tauri, Mantine, Logger, Localization, Slots and Themes integrations are implemented.
+Automatic document/Vault title naming is not supplied; consumers may set titles
+through the public API. See [Window](reference/window.md).
+
 ## Active screen and user settings
 
 Status: active-screen container IMPLEMENTED on 2026-11-07; native visual/focus

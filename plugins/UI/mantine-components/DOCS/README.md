@@ -518,3 +518,44 @@ and Mod-S belong to the controller/adapter and remain connected. The Owner's
 highlighted Workspace screenshot defines the region to remove. No layout or SDK
 contract additions are required. Verify the headerless composition and error
 recovery manually in Workspace; native visual acceptance remains pending.
+
+## Window titlebar role
+
+`lunaris.window-titlebar` renders the owner's highlighted native-caption region
+as a separate Mantine Paper with ActionIcon controls and Lucide minimize,
+maximize/restore and close icons. Reference: the Owner's Lunaris screenshot,
+existing shared quiet controls, and [Mantine UI buttons](https://ui.mantine.dev/category/buttons/).
+The intentional difference is theme-derived spacing, a rounded supporting surface
+and no OS-painted caption. No copied gallery composition or new runtime is added.
+
+Required props: title, focused, maximized, canMinimize, canMaximize, canClose,
+canDrag; localized minimizeLabel, maximizeLabel, restoreLabel, closeLabel;
+onMinimize(), onToggleMaximize(), onClose(), onDrag(). All callbacks are supplied
+by the SDK consumer; this renderer imports no window/native APIs. The title is
+plain text with ellipsis and a full title tooltip. Buttons remain stable across
+props/theme updates and unavailable actions are disabled. Drag starts only on the
+left mouse button over the title area; double-click requests maximize/restore.
+Buttons are outside that area, with keyboard-only focus and distinct press states.
+
+Ownership: the root Slots container supplies vertical ordering and available
+width. This role owns only titlebar surface, height, margin and internal controls;
+it neither covers nor recreates Workspace or startup screens. Its public default
+presentation is standalone/content: the owned root paints the theme page background
+behind caption margins so no host boot color leaks through on theme changes.
+In windowChrome mode the caption has no external margins or rounded cutouts: its
+blue themed surface fills the entire allocated row to the top and both side edges.
+Caption text uses captionText, overriding the normal content text color. An
+explicit embedded context remains transparent. Theme windowChrome caption colors are applied
+only within this owned caption. The controller releases native chrome ownership
+when the role disappears. Automated role tests cover interaction, stable controls,
+localization props and theme updates. Native visual acceptance, dragging,
+double-click, edge resize/snap, long titles, narrow/short windows and keyboard
+focus in both themes remain manual checks in the real host.
+
+Caption width correction: the Owner's follow-up screenshot exposed a caption
+shrunk to its contents. The caption now grows across the row inside the UIKit-owned
+flex root while retaining intrinsic height, theme-dependent margins and fixed-size actions.
+The remaining width belongs to the title/drag area; controls align at the trailing
+edge. No slot geometry, provider contracts or other plugin surfaces are changed.
+A composed regression loads the actual stylesheet and checks width-growth and
+content-height policy. Native geometry after this correction remains a manual check.

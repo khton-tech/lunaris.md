@@ -253,3 +253,27 @@ rejected save leaves the window and application running; subsequent close attemp
 remain possible. bindWindowClose waits for this gate before kernel cleanup.
 HostSession.stop and fault recovery remain forced cleanup operations and do not
 promise draft persistence. The bridge exposes no product API or event contract.
+
+## Custom window titlebar
+
+The composition now registers the replaceable Window provider, Tauri window
+driver and `lunaris.window-titlebar` controller. The caption occupies an ordered
+root slot above Runner, Vault Selector and Workspace, and renders exclusively
+through the public Mantine component role. Window title/controls are exposed by
+`@lunaris/window`; consumers require `window.control`. See the
+[window contract](../reference/window.md) and [titlebar guide](../../plugins/UI/window-titlebar/DOCS/README.md).
+
+The native configuration deliberately retains decorated windows. Only a mounted
+caption acquires exclusive custom-chrome ownership; cancellation, renderer loss
+and host recovery restore decorations. The `window-controls` capability grants
+only the main local WebView the required state/title/chrome/control commands.
+The UI's close button calls Tauri close(), which reaches bindWindowClose and the
+existing Vault/ActiveDocument save gate. It cannot bypass cleanup via destroy().
+The host's pre-existing lifecycle capability retains destroy for that final gate.
+
+Browser preview advertises unsupported native capabilities and keeps platform
+chrome unchanged. The main desktop target is Windows; no other native platform's
+visual behavior is claimed. `npm run window:check` runs targeted contracts,
+driver/provider, composed caption and host tests. Desktop appearance, drag,
+double-click, edge resize/snap, minimize/restore, theme/focus behavior, startup and
+recovery transitions remain manual acceptance; do not automate the desktop.

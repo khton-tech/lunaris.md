@@ -184,7 +184,7 @@ test('workspace header retains intrinsic block sizing while full-height surfaces
 
 test('registers the replaceable roles, renders real Mantine controls, preserves siblings and releases roots', async () => {
   const s = await setup(); await s.start();
-  assert.deepEqual(s.components.list(), ['lunaris.active-screen', 'lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.settings-choices', 'lunaris.settings-items', 'lunaris.settings-navigation', 'lunaris.settings-page', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.task-checkbox', 'lunaris.text-editor', 'lunaris.vault-selector', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
+  assert.deepEqual(s.components.list(), ['lunaris.active-screen', 'lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.settings-choices', 'lunaris.settings-items', 'lunaris.settings-navigation', 'lunaris.settings-page', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.task-checkbox', 'lunaris.text-editor', 'lunaris.vault-selector', 'lunaris.window-titlebar', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
   const owner = s.ctx.scope.child();
   const mounted = s.components.mount('lunaris.vault-selector', s.target, selector, owner.signal); assert.equal(mounted.ok, true);
   assert.ok(s.target.querySelector('.mantine-Button-root')); assert.ok(s.target.querySelector('.mantine-TextInput-input'));
@@ -675,4 +675,40 @@ test('Vault footer opens an upward recent menu with safe names, selection, callb
   mounted.value.update({ ...props, vaultSwitcher: { ...vaultSwitcher, busy: true } }); assert.equal(toggle.disabled, true);
   assert.equal(mounted.value.update({ ...props, vaultSwitcher: { ...vaultSwitcher, onChange: null } }).ok, false);
   await s.stop();
+});
+
+
+test('window titlebar owns one surface, preserves controls on updates and separates drag from button actions', async () => {
+  const s = await setup(); await s.start(); const calls = [];
+  try {
+    const props = { title: '<Note> — Lunaris', focused: true, maximized: false,
+      canMinimize: true, canMaximize: true, canClose: true, canDrag: true,
+      minimizeLabel: 'Minimize', maximizeLabel: 'Maximize', restoreLabel: 'Restore', closeLabel: 'Close',
+      onMinimize: () => calls.push('minimize'), onToggleMaximize: () => calls.push('maximize'), onClose: () => calls.push('close'), onDrag: () => calls.push('drag') };
+    const mounted = s.components.mount('lunaris.window-titlebar', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true);
+    const header = s.target.querySelector('header'); const close = header.querySelector('[aria-label=Close]');
+    assert.equal(s.target.firstChild.textContent, 'Sibling');
+    assert.equal(header.closest('.lm-root').style.backgroundColor, 'transparent');
+    assert.equal(header.closest('.lm-root').dataset.sizing, 'content');
+    assert.equal(header.querySelector('.lm-window-titlebar-title').textContent, props.title);
+    const drag = header.querySelector('.lm-window-titlebar-drag');
+    drag.dispatchEvent(new s.dom.window.MouseEvent('mousedown', { bubbles: true, button: 0, detail: 1 }));
+    drag.dispatchEvent(new s.dom.window.MouseEvent('mousedown', { bubbles: true, button: 2 }));
+    drag.dispatchEvent(new s.dom.window.MouseEvent('dblclick', { bubbles: true, button: 0 }));
+    close.click(); header.querySelector('[aria-label=Minimize]').click();
+    assert.deepEqual(calls, ['drag', 'maximize', 'close', 'minimize']);
+    mounted.value.update({ ...props, title: 'Other', maximized: true, focused: false, canMinimize: false });
+    assert.equal(header.querySelector('[aria-label=Close]'), close); assert.ok(header.querySelector('[aria-label=Restore]'));
+    header.querySelector('[aria-label=Minimize]').click(); assert.equal(calls.length, 4);
+    assert.equal(header.dataset.focused, 'false');
+    s.themes.register({ id: 'test.window', name: 'Window', properties: { appearance: 'light', colors: { background: '#dddddd', panel: '#eeeeee' } } }, s.ctx.signal);
+    s.themes.select('test.window'); assert.equal(header.style.getPropertyValue('--vault-panel'), '#eeeeee');
+    assert.equal(header.querySelector('[aria-label=Close]'), close);
+    const root = header.closest('.lm-root');
+    assert.equal(root.style.backgroundColor, 'rgb(221, 221, 221)');
+    mounted.value.update({ ...props, presentation: { mode: 'embedded', sizing: 'content' } });
+    assert.equal(root.style.backgroundColor, 'transparent', 'An explicitly embedded caption must inherit its container surface.');
+    mounted.value.update(props); assert.equal(root.style.backgroundColor, 'rgb(221, 221, 221)');
+    assert.equal(mounted.value.update({ ...props, onClose: null }).ok, false);
+  } finally { await s.stop(); }
 });
