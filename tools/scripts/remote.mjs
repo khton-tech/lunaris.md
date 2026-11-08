@@ -1,6 +1,6 @@
 import { spawnSync } from 'node:child_process';
 import { checkEnvironment } from './environment.mjs';
-import { checkBoundaries, dependencies } from './boundaries.mjs';
+import { checkBoundaries, dependencies, packagePath } from './boundaries.mjs';
 const tests = [
   'packages/logging/test/contracts.test.mjs',
   'packages/remote/test/contracts.test.mjs', 'packages/filesystem/test/contracts.test.mjs',
@@ -15,7 +15,10 @@ function run(args) { const result = spawnSync(process.execPath, args, { encoding
 try {
   checkEnvironment(); run(['node_modules/typescript/bin/tsc', '-b', 'hosts/web', 'hosts/tauri', 'packages/test']);
   await checkBoundaries(Object.keys(dependencies));
+  for (const scope of ['remote', 'filesystem', 'logging', 'filesystem-router', 'server-transport', 'remote-filesystem', 'browser-storage', 'drafts-provider', 'account-session', 'account-access', 'client-updates', 'client-update-ui', 'browser-navigation', 'vault-history', 'application-host', 'web']) {
+    run(['node_modules/typescript/bin/tsc', '-p', `${packagePath(scope)}/test/tsconfig.json`]);
+  }
   const output = run(['--test', '--test-reporter=tap', ...tests]); const count = Number(output.match(/^# pass (\d+)/m)?.[1]);
   if (!count || Number(output.match(/^# skipped (\d+)/m)?.[1])) throw Error('Required remote checks were absent or skipped.');
-  process.stdout.write(`Remote checks passed: ${count} tests; shared browser/desktop builds, boundaries, real server and offline recovery.\n`);
+  process.stdout.write(`Remote checks passed: ${count} tests; shared browser/desktop builds, type fixtures, boundaries, real server and offline recovery.\n`);
 } catch (error) { process.stderr.write(`Remote checks failed: ${error.message}\n`); process.exitCode = 1; }
