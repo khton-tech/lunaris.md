@@ -18,7 +18,7 @@
 @import '@mantine/core/styles/Menu.css';
 @import '@mantine/core/styles/Splitter.css';
 
-.lm-root .lm-window-titlebar { display:flex;flex:none;align-items:stretch;min-height:max(2.25em,calc(var(--vault-space)*8));margin:calc(var(--vault-space)*2);margin-bottom:0;background:var(--vault-panel);border-radius:var(--vault-radius);border:0;box-shadow:none;user-select:none;overflow:hidden }
+.lm-root .lm-window-titlebar { display:flex;flex:1 1 0%;align-items:stretch;min-height:max(2.25em,calc(var(--vault-space)*8));margin:calc(var(--vault-space)*2);margin-bottom:0;background:var(--vault-panel);border-radius:var(--vault-radius);border:0;box-shadow:none;user-select:none;overflow:hidden }
 .lm-window-titlebar-drag { display:flex;flex:1;align-items:center;padding-inline:calc(var(--vault-space)*3);overflow:hidden;cursor:default }
 .lm-root .lm-window-titlebar-title { font:inherit;font-size:.9em;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
 .lm-window-titlebar[data-focused=false] .lm-window-titlebar-title { color:var(--vault-secondary) }

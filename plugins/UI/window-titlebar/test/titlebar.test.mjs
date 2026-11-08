@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { definePlugin } from '@lunaris/sdk';
@@ -41,6 +42,12 @@ test('real titlebar remains above selector and Workspace, tracks API titles, the
   try {
     assert.equal(s.session.snapshot().phase, 'running');
     const header = s.surface.querySelector('.lm-window-titlebar'); assert.ok(header); assert.equal(s.decorated, false);
+    const style = s.dom.window.document.createElement('style');
+    style.textContent = readFileSync(new URL('../../mantine-components/styles.css', import.meta.url), 'utf8').replace(/^@import .*;$/gm, '');
+    s.dom.window.document.head.append(style);
+    assert.equal(s.dom.window.getComputedStyle(header).flexGrow, '1', 'The caption must fill its owned row rather than shrink to its controls.');
+    assert.equal(header.parentElement.style.display, 'flex');
+    assert.equal(header.closest('.lm-root').dataset.sizing, 'content', 'Full row width must retain intrinsic caption height.');
     assert.ok(s.surface.querySelector('.ln-vault'));
     assert.equal(header.closest('[data-lunaris-slot]').parentElement.firstElementChild, header.closest('[data-lunaris-slot]'));
     await s.api.setTitle('A very long document title — Lunaris'); await flush();

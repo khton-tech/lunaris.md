@@ -546,3 +546,11 @@ when the role disappears. Automated role tests cover interaction, stable control
 localization props and theme updates. Native visual acceptance, dragging,
 double-click, edge resize/snap, long titles, narrow/short windows and keyboard
 focus in both themes remain manual checks in the real host.
+
+Caption width correction: the Owner's follow-up screenshot exposed a caption
+shrunk to its contents. The caption now grows across the row inside the UIKit-owned
+flex root while retaining intrinsic height, themed margins and fixed-size actions.
+The remaining width belongs to the title/drag area; controls align at the trailing
+edge. No slot geometry, provider contracts or other plugin surfaces are changed.
+A composed regression loads the actual stylesheet and checks width-growth and
+content-height policy. Native geometry after this correction remains a manual check.
