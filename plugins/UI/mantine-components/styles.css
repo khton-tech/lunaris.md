@@ -28,7 +28,7 @@
 .lm-root .lm-window-action:not(:disabled):active { background:var(--vault-selection) }
 .lm-root .lm-window-action:disabled { color:var(--vault-secondary);cursor:default }
 .lm-root .lm-window-action:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
-.lm-root .lm-window-titlebar[data-chrome=true] { background:var(--vault-caption-background,var(--vault-panel));color:var(--vault-caption-text,var(--vault-text)) }
+.lm-root .lm-window-titlebar[data-chrome=true] { margin:0;border-radius:0;background:var(--vault-caption-background,var(--vault-panel));color:var(--vault-caption-text,var(--vault-text)) }
 @media(prefers-reduced-motion:reduce) { .lm-root .lm-window-action { transition:none } }
 
 .lm-task-checkbox .mantine-Checkbox-input { background:transparent;border-color:var(--vault-control-border);cursor:pointer;transition:background-color var(--vault-motion-fast) var(--vault-motion-easing),border-color var(--vault-motion-fast) var(--vault-motion-easing) }

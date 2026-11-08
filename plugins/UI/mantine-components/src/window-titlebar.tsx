@@ -25,7 +25,7 @@ export function windowTitlebarProps(value: ComponentProps): Props {
 /** Owns only the allocated titlebar region; never paints or reparents product screens. */
 export function WindowTitlebar({ props, theme }: { props: Props; theme: ReturnType<typeof resolveTheme> }) {
   const maximizeLabel = props.maximized ? props.restoreLabel : props.maximizeLabel;
-  return <Paper component="header" className="lm-window-titlebar" style={theme.contentStyle} data-focused={props.focused} data-chrome={theme.windowChrome}>
+  return <Paper component="header" className="lm-window-titlebar" style={{ ...theme.contentStyle, ...(theme.windowChrome ? { color: "var(--vault-caption-text,var(--vault-text))" } : {}) }} data-focused={props.focused} data-chrome={theme.windowChrome}>
     <Box className="lm-window-titlebar-drag" onMouseDown={event => {
       if (event.button === 0 && event.detail < 2 && props.canDrag) props.onDrag();
     }} onDoubleClick={event => { if (event.button === 0 && props.canMaximize) props.onToggleMaximize(); }}>

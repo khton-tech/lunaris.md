@@ -541,7 +541,10 @@ Ownership: the root Slots container supplies vertical ordering and available
 width. This role owns only titlebar surface, height, margin and internal controls;
 it neither covers nor recreates Workspace or startup screens. Its public default
 presentation is standalone/content: the owned root paints the theme page background
-behind caption margins so no host boot color leaks through on theme changes. An
+behind caption margins so no host boot color leaks through on theme changes.
+In windowChrome mode the caption has no external margins or rounded cutouts: its
+blue themed surface fills the entire allocated row to the top and both side edges.
+Caption text uses captionText, overriding the normal content text color. An
 explicit embedded context remains transparent. Theme windowChrome caption colors are applied
 only within this owned caption. The controller releases native chrome ownership
 when the role disappears. Automated role tests cover interaction, stable controls,
@@ -551,7 +554,7 @@ focus in both themes remain manual checks in the real host.
 
 Caption width correction: the Owner's follow-up screenshot exposed a caption
 shrunk to its contents. The caption now grows across the row inside the UIKit-owned
-flex root while retaining intrinsic height, themed margins and fixed-size actions.
+flex root while retaining intrinsic height, theme-dependent margins and fixed-size actions.
 The remaining width belongs to the title/drag area; controls align at the trailing
 edge. No slot geometry, provider contracts or other plugin surfaces are changed.
 A composed regression loads the actual stylesheet and checks width-growth and

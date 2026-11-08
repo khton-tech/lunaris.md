@@ -12,6 +12,8 @@ the `lunaris.window-titlebar` UIKit role owns caption surface, height and contro
 The controller explicitly requests standalone/content presentation because this
 is an independent shell region. Its owned root paints the current theme page
 background behind caption margins; it does not repaint the host or other slots.
+Native-style windowChrome themes remove these margins and corner cutouts so the
+caption surface covers the complete row. Ordinary themes retain their card spacing.
 The controller owns localization, native state and callbacks only. It never paints,
 reparents or resizes another plugin's region. See the [UIKit role](../../mantine-components/DOCS/README.md#window-titlebar-role).
 

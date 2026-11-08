@@ -58,7 +58,12 @@ test('real titlebar remains above selector and Workspace, tracks API titles, the
     const captionRoot = header.closest('.lm-root');
     assert.equal(captionRoot.dataset.presentation, 'standalone');
     assert.equal(captionRoot.style.backgroundColor, 'rgb(15, 15, 15)');
+    const normalMargin = s.dom.window.getComputedStyle(header).margin;
     assert.ok(luna); s.tools.themes.select(luna.id); await flush(); assert.equal(header.dataset.chrome, 'true');
+    const chromeStyle = s.dom.window.getComputedStyle(header);
+    for (const side of ['Top', 'Right', 'Bottom', 'Left']) assert.equal(chromeStyle['margin' + side], '0px', 'Native-style caption must reach every edge of its allocated region.');
+    assert.equal(chromeStyle.borderRadius, '0px');
+    assert.equal(header.style.color, 'var(--vault-caption-text,var(--vault-text))');
     const expectedBackground = s.dom.window.document.createElement('div');
     expectedBackground.style.backgroundColor = s.tools.themes.current().properties.colors.background;
     assert.equal(captionRoot.style.backgroundColor, expectedBackground.style.backgroundColor, 'Caption margins must show the current theme, not the host boot background.');
@@ -66,6 +71,7 @@ test('real titlebar remains above selector and Workspace, tracks API titles, the
     s.tools.themes.select('lunaris.base-theme-engine.monochrome'); await flush();
     assert.equal(captionRoot.style.backgroundColor, 'rgb(15, 15, 15)');
     assert.equal(header.closest('.lm-root'), captionRoot);
+    assert.equal(s.dom.window.getComputedStyle(header).margin, normalMargin, 'Leaving chrome mode restores normal theme spacing.');
     await s.open(); assert.equal(s.surface.querySelector('.lm-window-titlebar'), header);
     assert.ok(s.surface.querySelector('.lm-workspace-layout')); assert.equal(s.surface.querySelector('.ln-vault'), null);
     assert.equal(header.contains(s.surface.querySelector('.lm-workspace-layout')), false);
