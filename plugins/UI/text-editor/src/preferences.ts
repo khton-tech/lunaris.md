@@ -14,7 +14,7 @@ type Key = keyof Preferences;
 interface Session { vaultId: string; values: Preferences; loading: boolean; busy: boolean; reload: boolean; revision: number; error: string; errorKey: Key; ready: Promise<void> }
 const keys = Object.keys(defaults) as Key[];
 const itemId = (key: Key) => key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`);
-const catalogs = { en: { category: "Editor", group: "Display", fontSize: "Font size", lineHeight: "Line spacing", textWidth: "Text width", wrapLines: "Wrap long lines", theme: "Use theme", full: "Full width", invalid: "Saved value is unavailable. Using the default.", readFailed: "Cannot read preferences.", saveFailed: "Cannot save the change. Try again.", retry: "Retry" }, ru: { category: "Редактор", group: "Отображение", fontSize: "Размер шрифта", lineHeight: "Межстрочный интервал", textWidth: "Ширина текста", wrapLines: "Переносить длинные строки", theme: "Из темы", full: "На всю ширину", invalid: "Сохранённое значение недоступно. Используется значение по умолчанию.", readFailed: "Не удалось прочитать настройки.", saveFailed: "Не удалось сохранить изменение. Повторите попытку.", retry: "Повторить" } };
+const catalogs = { en: { category: "Editor", group: "Display", fontSize: "Font size", lineHeight: "Line spacing", textWidth: "Text width", wrapLines: "Wrap long lines", full: "Full width", invalid: "Saved value is unavailable. Using the default.", readFailed: "Cannot read preferences.", saveFailed: "Cannot save the change. Try again.", retry: "Retry" }, ru: { category: "Редактор", group: "Отображение", fontSize: "Размер шрифта", lineHeight: "Межстрочный интервал", textWidth: "Ширина текста", wrapLines: "Переносить длинные строки", full: "На всю ширину", invalid: "Сохранённое значение недоступно. Используется значение по умолчанию.", readFailed: "Не удалось прочитать настройки.", saveFailed: "Не удалось сохранить изменение. Повторите попытку.", retry: "Повторить" } };
 
 /** Own live preferences and explicit Vault persistence; rendering belongs to Settings. */
 export function createPreferences(ctx: PluginContext, changed: () => void) {
@@ -56,8 +56,6 @@ export function createPreferences(ctx: PluginContext, changed: () => void) {
         max: Math.max(key === "fontSize" ? 32 : 2, effective), step: key === "fontSize" ? 1 : 0.1,
         ...(key === "fontSize" ? { unit: "px" } : {}),
         onChange: (value, context) => choose(key, String(Number(value.toFixed(key === "fontSize" ? 0 : 1))), context.vaultId, context.signal),
-        resetLabel: text("theme"), resetDisabled: value === "theme",
-        onReset: context => choose(key, "theme", context.vaultId, context.signal),
       };
     }
     const options = textWidths.map(value => ({ value, label: value === "full" ? text(value) : `${value} px` }));

@@ -35,9 +35,9 @@ test('Editor settings use composed themed controls, retain inputs and inherit Wo
   assert.equal(s.surface.querySelector('.lm-workspace-main'), main);
   assert.equal(s.surface.querySelector('.lm-settings-items [role=combobox]'), combos[0]);
   assert.equal(s.surface.querySelector('[role=slider]'), sliders[0]);
-  const reset = s.surface.querySelector('.lm-setting-reset'); assert.equal(reset.disabled, false); reset.click(); await flush();
-  assert.equal(s.preferenceWrites.at(-1).value, 'theme'); assert.equal(sliders[0].getAttribute('aria-valuenow'), '13');
-  assert.equal(reset.disabled, true);
+  assert.equal(s.surface.querySelector('.lm-setting-reset'), null);
+  assert.equal(sliders[0].getAttribute('aria-valuenow'), '15');
+  assert.ok(s.tools.settings.snapshot().items.every(item => item.onReset === undefined));
   assert.equal(items.closest('.lm-root').style.backgroundColor, 'transparent');
   await s.stop();
 });

@@ -22,8 +22,8 @@ items require the corresponding 1.2 event. Existing 1.0/1.1 descriptors remain v
   a default or write Config; the owning controller performs the reset.
 
 Product categories use Palette for Customization, Editor for Editor, and Folder
-for Files. Font size and line spacing use sliders with a visible value and a
-Use theme reset. Other choices retain themed menus with native **button** triggers,
+for Files. Font size and line spacing use sliders with a visible value and no
+Use theme action. Other choices retain themed menus with native **button** triggers,
 not text inputs; there is no editable/searchable field or text caret. Category rows,
 setting rows and menu options use more generous theme-derived spacing. Workspace
 still owns region geometry/surfaces; Settings and Mantine own only internal content.

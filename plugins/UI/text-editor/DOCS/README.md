@@ -127,7 +127,8 @@ are 12–32 px (step 1) and 1.2–2 (step 0.1), extending to include an existing
 saved or inherited value. Config continues storing the same string values, so
 previous preferences need no migration. The readout updates locally during
 dragging; the controller applies/persists the value on release or keyboard change.
-The Use theme action writes `theme`; it is disabled while already inherited.
+No Use theme action is shown. Missing preferences still inherit theme typography
+until the user changes the corresponding slider; existing `theme` values remain valid.
 ThemeChanged republishes the effective values without replacing the slider thumb.
 
 Required SDK connections: Config/ConfigChanged, Settings 1.2, Vault/VaultChanged,
