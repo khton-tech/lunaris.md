@@ -35,7 +35,7 @@
 
 .lm-task-checkbox .mantine-Checkbox-input { background:transparent;border-color:var(--vault-control-border);cursor:pointer;transition:background-color var(--vault-motion-fast) var(--vault-motion-easing),border-color var(--vault-motion-fast) var(--vault-motion-easing) }
 .lm-task-checkbox .mantine-Checkbox-input:enabled:hover { border-color:var(--vault-accent) }
-.lm-task-checkbox .mantine-Checkbox-input:checked { background:var(--vault-accent);border-color:var(--vault-accent) }
+.lm-task-checkbox .mantine-Checkbox-input:checked { background:var(--vault-accent);border-color:var(--vault-control-border) }
 .lm-task-checkbox .mantine-Checkbox-input:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset) }
 .lm-task-checkbox .mantine-Checkbox-input:disabled { background:var(--vault-selection);border-color:var(--vault-separator);cursor:default }
 .lm-task-checkbox .mantine-Checkbox-input:disabled:checked { background:var(--vault-secondary) }
@@ -83,7 +83,7 @@
 .lm-workspace-content>.mantine-Splitter-handle:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
 .lm-sidebar-rail { flex:1;min-height:0;overflow:auto;padding:calc(var(--vault-space)*2);user-select:none }
 .lm-root .lm-sidebar-tab { flex-shrink:0;color:var(--vault-secondary);background:transparent;--ai-hover:var(--vault-hover);--ai-hover-color:var(--vault-text);border-radius:var(--vault-radius) }
-.lm-root .lm-sidebar-tab[aria-pressed=true] { color:var(--vault-accent);background:var(--vault-selection) }
+.lm-root .lm-sidebar-tab[aria-pressed=true] { color:var(--vault-text);background:var(--vault-selection) }
 .lm-root .lm-sidebar-tab:enabled:active { color:var(--vault-text);background:var(--vault-selection) }
 @container(max-width:40rem) {
  .lm-workspace-layout[data-panel] .lm-workspace-panel-pane { flex:0 0 0!important;overflow:visible }
@@ -100,13 +100,6 @@
 .lm-root .lm-focus:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset) }
 .lm-root .lm-button:disabled { cursor:default }
 /* Optional theme finishes apply only to controls, never borrowed region surfaces. */
-.lm-root .lm-button:not(.lm-card-row) { background-image:var(--vault-button-image,none);border-color:var(--vault-button-border,var(--button-bd));box-shadow:var(--vault-button-shadow,none) }
-.lm-root .lm-button:not(.lm-card-row):enabled:hover { background-image:var(--vault-button-hover-image,none) }
-.lm-root .lm-button:not(.lm-card-row):enabled:active { background-image:var(--vault-button-pressed-image,none) }
-.lm-root .lm-button:not(.lm-card-row)[data-variant=filled] { background-image:var(--vault-primary-image,none);box-shadow:none }
-.lm-root .lm-button:not(.lm-card-row)[data-variant=filled]:enabled:hover { background-image:var(--vault-primary-hover-image,none) }
-.lm-root .lm-button:not(.lm-card-row)[data-variant=filled]:enabled:active { background-image:var(--vault-primary-pressed-image,none) }
-.lm-root .lm-button:not(.lm-card-row):disabled { background-image:none;box-shadow:none }
 .lm-root .lm-input:not(:disabled) { box-shadow:var(--vault-input-shadow,none) }
 .lm-root .lm-input { --input-bd:color-mix(in srgb,var(--vault-control-border) 35%,var(--vault-content));--input-bg:var(--vault-content);--input-bd-focus:var(--vault-focus);--input-disabled-bg:var(--vault-selection);--input-disabled-color:var(--vault-secondary);caret-color:var(--vault-caret);border-width:var(--vault-border);transition:border-color var(--vault-motion-fast) var(--vault-motion-easing),background-color var(--vault-motion-fast) var(--vault-motion-easing) }
 .lm-root input.lm-input:focus,.lm-root button.lm-input:focus-visible { outline:none;border-color:var(--vault-focus) }
@@ -388,3 +381,59 @@
 @media(prefers-reduced-motion:reduce) { .lm-setting-slider .mantine-Slider-thumb { transition:none } }
 .lm-setting-slider-value { min-width:5ch;text-align:end;font-variant-numeric:tabular-nums;white-space:nowrap }
 .lm-setting-reset { align-self:flex-end;font-weight:400 }
+
+/* Apply finishes after state backgrounds so hover/press cannot erase the image.
+   Navigation retains its own selection surface instead of action-button chrome. */
+.lm-root .lm-button:not(.lm-card-row):not(.lm-tool-navigation-item):not(.lm-explorer-tabs) { background-image:var(--vault-button-image,none);border-color:var(--vault-button-border,var(--button-bd));box-shadow:var(--vault-button-shadow,none) }
+.lm-root .lm-button:not(.lm-card-row):not(.lm-tool-navigation-item):not(.lm-explorer-tabs):enabled:hover { background-image:var(--vault-button-hover-image,none) }
+.lm-root .lm-button:not(.lm-card-row):not(.lm-tool-navigation-item):not(.lm-explorer-tabs):enabled:active { background-image:var(--vault-button-pressed-image,none) }
+.lm-root .lm-button:not(.lm-card-row)[data-variant=filled] { background-image:var(--vault-primary-image,none);box-shadow:none }
+.lm-root .lm-button:not(.lm-card-row)[data-variant=filled]:enabled:hover { background-image:var(--vault-primary-hover-image,none) }
+.lm-root .lm-button:not(.lm-card-row)[data-variant=filled]:enabled:active { background-image:var(--vault-primary-pressed-image,none) }
+.lm-root .lm-button:not(.lm-card-row):disabled { background-image:none;box-shadow:none }
+
+/* Boolean controls use semantic surfaces even outside Windows presets. */
+.lm-settings-items .mantine-Switch-track { --switch-bg:var(--vault-content);border:var(--vault-border) solid var(--vault-control-border);transition:background-color var(--vault-motion-fast) var(--vault-motion-easing),border-color var(--vault-motion-fast) var(--vault-motion-easing) }
+.lm-settings-items .mantine-Switch-thumb { background:var(--vault-text);transition:inset-inline-start var(--vault-motion-fast) var(--vault-motion-easing) }
+.lm-settings-items .mantine-Switch-input:checked+.mantine-Switch-track { --switch-bg:var(--vault-accent) }
+.lm-settings-items .mantine-Switch-input:checked+.mantine-Switch-track .mantine-Switch-thumb { background:var(--vault-on-accent) }
+.lm-settings-items .mantine-Switch-input:disabled+.mantine-Switch-track { --switch-bg:var(--vault-selection);border-color:var(--vault-secondary);cursor:default }
+.lm-settings-items .mantine-Switch-input:disabled+.mantine-Switch-track .mantine-Switch-thumb { background:var(--vault-secondary) }
+.lm-settings-items .mantine-Switch-input:focus-visible+.mantine-Switch-track { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset) }
+
+/* Each role adapts only its owned controls, never a borrowed region surface. */
+.lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Switch-track { border-radius:var(--vault-radius);box-shadow:var(--vault-inset-shadow) }
+.lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Switch-thumb { border-radius:var(--vault-radius) }
+.lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Slider-track { --slider-track-bg:var(--vault-content);--slider-radius:var(--vault-radius);box-shadow:var(--vault-inset-shadow) }
+.lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Slider-bar { border:var(--vault-border) solid var(--vault-control-border) }
+.lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Slider-thumb { border-radius:var(--vault-radius);background:var(--vault-panel);background-image:var(--vault-button-image);border-color:var(--vault-control-border);box-shadow:var(--vault-button-shadow) }
+.lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Slider-thumb:not([data-disabled]):hover { background-image:var(--vault-button-hover-image) }
+.lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Slider-thumb[data-dragging] { background-image:var(--vault-button-pressed-image);box-shadow:var(--vault-inset-shadow) }
+.lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Slider-thumb[data-disabled] { background-image:none;box-shadow:none }
+.lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Slider-label { color:var(--vault-text);background:var(--vault-panel);border:var(--vault-border) solid var(--vault-menu-border);border-radius:var(--vault-radius) }
+.lm-root[data-window-chrome=true]>.lm-task-checkbox .mantine-Checkbox-input { border-radius:var(--vault-radius);background:var(--vault-content);box-shadow:var(--vault-input-shadow) }
+.lm-root[data-window-chrome=true]>.lm-task-checkbox .mantine-Checkbox-input:checked { background:var(--vault-accent);box-shadow:none }
+.lm-root[data-window-chrome=true]>.lm-task-checkbox .mantine-Checkbox-input:disabled { background:var(--vault-selection);box-shadow:none }
+.lm-root[data-window-chrome=true]>.lm-task-checkbox .mantine-Checkbox-input:disabled:checked { background:var(--vault-secondary) }
+.lm-root[data-window-chrome=true]>.lm-task-checkbox .mantine-Checkbox-input:disabled:checked+.mantine-Checkbox-icon { color:var(--vault-background) }
+.lm-root[data-window-chrome=true]>.lm-explorer .lm-explorer-actions .mantine-ActionIcon-root { border:var(--vault-border) solid transparent;border-radius:var(--vault-radius) }
+.lm-root[data-window-chrome=true]>.lm-explorer .lm-explorer-actions .mantine-ActionIcon-root:enabled:hover { border-color:var(--vault-button-border);box-shadow:var(--vault-button-shadow);background-image:var(--vault-button-hover-image) }
+.lm-root[data-window-chrome=true]>.lm-explorer .lm-explorer-actions .mantine-ActionIcon-root:enabled:active { background-image:var(--vault-button-pressed-image);box-shadow:var(--vault-inset-shadow) }
+.lm-root[data-window-chrome=true]>.lm-context-surface .lm-context-island { border-color:var(--vault-menu-border);box-shadow:var(--vault-surface-shadow) }
+.lm-root[data-window-chrome=true]>.lm-settings-items .mantine-NumberInput-control { color:var(--vault-text);border-color:var(--vault-control-border);background:var(--vault-panel) }
+.lm-root[data-window-chrome=true]>.lm-settings-items .mantine-NumberInput-control:enabled:hover { background-image:var(--vault-button-hover-image) }
+.lm-root[data-window-chrome=true]>.lm-account-access .mantine-PasswordInput-visibilityToggle { color:var(--vault-text);background:transparent }
+.lm-root[data-window-chrome=true]>.lm-account-access .mantine-PasswordInput-visibilityToggle:enabled:hover { background:var(--vault-hover) }
+.lm-root[data-window-chrome=true]>.lm-status-bar { padding-block:calc(var(--vault-space)*1.5) }
+.lm-root[data-window-chrome=true]>.lm-status-bar .lm-status-metric { padding-inline:calc(var(--vault-space)*2);box-shadow:var(--vault-inset-shadow) }
+
+.lm-root .lm-window-titlebar[data-chrome=true] { min-height:27px;padding:3px;gap:3px }
+.lm-window-titlebar[data-chrome=true] .lm-window-titlebar-title { font-weight:700;color:var(--vault-caption-text) }
+.lm-window-titlebar[data-chrome=true] .lm-window-titlebar-actions { gap:3px;align-items:center }
+.lm-root .lm-window-titlebar[data-chrome=true] .lm-window-action { width:23px;min-height:21px;height:21px;border:var(--vault-border) solid var(--vault-caption-text);border-radius:3px;color:var(--vault-on-accent);background:var(--vault-accent);background-image:var(--vault-primary-image);box-shadow:var(--vault-button-shadow) }
+.lm-root .lm-window-titlebar[data-chrome=true] .lm-window-action:enabled:hover { background-image:var(--vault-primary-hover-image) }
+.lm-root .lm-window-titlebar[data-chrome=true] .lm-window-action:enabled:active { background-image:var(--vault-primary-pressed-image);box-shadow:var(--vault-inset-shadow) }
+.lm-root .lm-window-titlebar[data-chrome=true] .lm-window-close:enabled { background:var(--vault-error);color:var(--vault-background) }
+.lm-root .lm-window-titlebar[data-chrome=true] .lm-window-action:focus-visible { outline-color:var(--vault-caption-text) }
+.lm-root .lm-window-titlebar[data-chrome=true] .lm-window-action:disabled { background:var(--vault-panel);color:var(--vault-secondary);border-color:var(--vault-secondary);box-shadow:none }
+@media(prefers-reduced-motion:reduce) { .lm-settings-items :is(.mantine-Switch-track,.mantine-Switch-thumb) { transition:none } }

@@ -659,3 +659,30 @@ renders an accessible alert without file-reload actions.
 The public task-list Lucide role maps to ListTodo for the editor Lists submenu.
 It uses the same Menu.Sub action rows, localized labels, focus and theme as the
 existing bullet/numbered list entries; no island geometry or ownership changes.
+
+## Luna control completion
+
+Reference: existing Windows XP Luna caption, Settings picker and Explorer toolbar,
+plus [Mantine UI inputs](https://ui.mantine.dev/category/inputs/) and the
+[Switch Styles API](https://mantine.dev/core/switch/). Luna Dark uses the same
+owned roles with dark theme data. No React/Mantine imports or styling are added
+to consuming plugins. Existing Themes/ThemeChanged integration is complete.
+
+The control adapter now uses semantic colors for Switch tracks/thumbs and focus,
+with square inset XP tracks, beveled slider thumbs, themed slider tooltips and
+number steppers. Task checkboxes receive XP inset finishes and visible checked
+boundaries. Caption actions use compact beveled controls with a semantic error
+close action; disabled and inactive states retain readable colors. Explorer
+toolbar hover/press, context islands and status metrics use the shared finishes.
+Action gradients follow state backgrounds in the cascade; navigation, tab menus
+and CardRow keep their own selection surfaces. Optional colors.link maps anchors
+independently of primary button colors. Theme replacement removes XP finishes.
+
+Ownership is unchanged: WorkspaceLayout owns rail/panel/bottom geometry and
+surfaces; each embedded role styles its own controls and internal spacing only.
+The real-preset regression verifies stable Settings inputs, opened Russian menus,
+dark/light scheme propagation and transparent embedded roots. Automated tests
+do not verify native appearance. Manual acceptance remains pending in Workspace:
+both Luna presets and return to Monochrome; open theme/language/context menus;
+slider, switch, checkbox and caption hover/press/focus/disabled states; editor
+links; long Russian labels; narrow and short windows.

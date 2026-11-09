@@ -64,7 +64,7 @@ export function resolveTheme(theme: ThemeDefinition | null) {
     "--mantine-color-body": color("background", "transparent"),
     "--mantine-color-text": color("text"), "--mantine-color-dimmed": color("textSecondary"),
     "--mantine-color-placeholder": color("textSecondary"), "--mantine-color-error": color("error"),
-    "--mantine-color-anchor": color("accent"), "--mantine-color-default": color("content", "transparent"),
+    "--mantine-color-anchor": color("link", color("accent")), "--mantine-color-default": color("content", "transparent"),
     "--mantine-color-default-hover": color("hover", "transparent"), "--mantine-color-default-color": color("text"),
     "--mantine-color-default-border": color("controlBorder"),
     "--mantine-color-disabled": color("selection", "transparent"),

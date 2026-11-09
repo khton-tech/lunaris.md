@@ -97,6 +97,9 @@ surfaces (#181C24/#1C212B), #282E3A panels, #F0F2F7 text, #D0D7E2 secondary
 text, #94A4BE input borders and #B5D3FF focus replace the light palette. Hover and
 selection use #323D50/#304566; blue primary controls retain white labels.
 Dark shadows and highlights replace every light control and chrome finish.
+Optional `colors.link` supplies readable links independently of primary-button
+accent; Mantine anchors and CodeMirror use it with an accent fallback. Luna Dark
+sets #91BCFF, while both primary blue fills retain white text.
 Select it through the existing Interface Settings theme picker; Config persists
 its independent ID. No new provider, API or plugin dependency is introduced.
 Themes/ThemeChanged already connect the engine, Mantine and CodeMirror.

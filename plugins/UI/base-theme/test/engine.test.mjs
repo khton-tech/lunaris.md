@@ -85,6 +85,7 @@ test('text and meaningful controls meet contrast thresholds across their intende
       for (const role of ['controlBorder', 'focus']) assert.ok(contrast(colors[role], colors[surface]) >= 3, `${theme.name}: ${role}/${surface}`);
     }
     for (const surface of ['accent', 'accentHover']) assert.ok(contrast(colors.onAccent, colors[surface]) >= 4.5, `${theme.name}: onAccent/${surface}`);
+    for (const surface of ['background', 'content']) assert.ok(contrast(colors.link ?? colors.accent, colors[surface]) >= 4.5, `${theme.name}: link/${surface}`);
   }
   await s.stop();
 });

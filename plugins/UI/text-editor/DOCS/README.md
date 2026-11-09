@@ -502,6 +502,11 @@ entry manually in the real menu; composed behavior is covered automatically.
 
 ## Russian UI copy
 
+The CodeMirror theme adapter reads optional colors.link with an accent fallback,
+so Luna Dark links remain readable independently of blue primary controls.
+Theme updates reuse the existing compartment and preserve editor state. No new
+SDK or filesystem integration is required; native visual acceptance is pending.
+
 English and Russian catalogs are owned by this consumer. Messages reach shared
 Mantine roles through Localization/LocaleChanged and existing public component
 props; no renderer translation or SDK change is required. Interface Settings

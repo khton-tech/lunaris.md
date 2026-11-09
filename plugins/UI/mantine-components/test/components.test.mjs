@@ -14,6 +14,7 @@ import themeProvider from '@lunaris/theme-provider';
 import plugin from '@lunaris/mantine-components';
 import contextMenuProvider from '@lunaris/context-menu-provider';
 import { ContextMenu } from '@lunaris/context-menu';
+import baseThemeEngine from '@lunaris/base-theme-engine';
 
 const manifest = (id, provides = [], requires = [], permissions = []) => ({ manifestVersion: 1, id, version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides, requires, permissions, optionalPermissions: [] });
 async function setup() {
@@ -35,6 +36,41 @@ async function setup() {
   } };
 }
 const startup = { art: '<img src=x> ASCII', logoLabel: 'Lunaris', status: 'Loading' };
+
+test('real Luna presets adapt settings controls and opened menus without replacing inputs or embedded surfaces', async () => {
+  const s = await setup(); await s.start();
+  s.kernel.register(baseThemeEngine); await s.kernel.start(baseThemeEngine.manifest.id);
+  const sheet = s.dom.window.document.createElement('style');
+  sheet.textContent = readFileSync(new URL('../styles.css', import.meta.url), 'utf8').replace(/^@import .*$/gm, '');
+  s.dom.window.document.head.append(sheet);
+  const changes = [];
+  const props = { items: [
+    { id: 'test.locale', type: 'select', title: 'Язык', value: 'ru', options: [{ value: 'en', label: 'English' }, { value: 'ru', label: 'Русский' }] },
+    { id: 'test.wrap', type: 'switch', title: 'Переносить длинные строки', value: false },
+    { id: 'test.font', type: 'slider', title: 'Размер шрифта', value: 14, min: 10, max: 32, step: 1 },
+  ], onChange: (...args) => changes.push(args), onRetry() {} };
+  const mounted = s.components.mount('lunaris.settings-items', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true);
+  const root = s.target.querySelector('.lm-root'); const content = s.target.querySelector('.lm-settings-items');
+  const toggle = s.target.querySelector('.mantine-Switch-input'); const picker = s.target.querySelector('[role=combobox]');
+  const thumb = s.target.querySelector('.mantine-Slider-thumb');
+  for (const id of ['windows-xp', 'windows-xp-dark']) {
+    s.themes.select(`lunaris.base-theme-engine.${id}`); await settle();
+    assert.equal(root.dataset.windowChrome, 'true'); assert.equal(root.style.backgroundColor, 'transparent');
+    assert.equal(s.target.querySelector('.mantine-Switch-input'), toggle);
+    assert.equal(s.target.querySelector('.mantine-Slider-thumb'), thumb);
+    assert.equal(s.dom.window.getComputedStyle(thumb).borderRadius, 'var(--vault-radius)');
+    assert.match(content.style.getPropertyValue('--vault-button-image'), /linear-gradient/);
+    assert.equal(root.getAttribute('data-mantine-color-scheme'), id.endsWith('dark') ? 'dark' : 'light');
+    picker.click(); await settle();
+    assert.ok(s.target.querySelector('[role=option][data-checked]').textContent.includes('Русский'));
+    picker.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await settle();
+  }
+  toggle.click(); await settle(); assert.deepEqual(changes, [['test.wrap', true]]);
+  s.themes.select('lunaris.base-theme-engine.monochrome'); await settle();
+  assert.equal(root.dataset.windowChrome, 'false'); assert.equal(content.style.getPropertyValue('--vault-button-image'), '');
+  assert.equal(s.dom.window.getComputedStyle(thumb).borderRadius, '');
+  await s.stop();
+});
 
 test('account access uses controlled Mantine password fields, escaped catalog names and owned presentation', async () => {
   const s = await setup(); await s.start(); const calls = [];

@@ -131,7 +131,7 @@ export const baseThemes: readonly ThemeDefinition[] = [
         error: "#FFB4B8", extraError: "#FFC9CC",
         colorfulError: "#EBCB8B", colorfulExtraError: "#F5DEA8",
         panel: "#282E3A", content: "#1C212B", textSecondary: "#D0D7E2",
-        accent: "#245EDB", onAccent: "#FFFFFF", selection: "#304566",
+        accent: "#245EDB", onAccent: "#FFFFFF", link: "#91BCFF", selection: "#304566",
         separator: "#515B6D", controlBorder: "#94A4BE", hover: "#323D50",
         accentHover: "#194CC5", focus: "#B5D3FF",
       },
