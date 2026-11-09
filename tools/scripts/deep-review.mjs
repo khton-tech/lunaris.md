@@ -6,6 +6,7 @@ import { ServerTransport, ConnectionStatus } from '@lunaris/remote';
 import { testHost, consumer } from '../testing/remote.mjs';
 import { DocumentSession } from '../../plugins/UI/text-editor/dist/src/session.js';
 import { createObservation } from '../../plugins/systems/filesystem/dist/src/observation.js';
+import { createTestKernel } from '@lunaris/test';
 
 const ok = value => ({ ok: true, value });
 const tick = () => new Promise(setImmediate);
@@ -83,11 +84,29 @@ async function failedUnwatchCannotRetry() {
   } finally { await host.stopAll(); host.assertNoResources(); }
 }
 
+async function asynchronousRecursiveDisposal() {
+  const host = createTestKernel({ stopTimeoutMs: 10 });
+  host.register(consumer([], ctx => {
+    ctx.scope.own({ async dispose() { await Promise.resolve(); await ctx.scope.dispose(); } });
+  }, []));
+  await host.start('test.consumer');
+  const stopping = host.stop('test.consumer');
+  const rejected = assert.rejects(stopping, error => error.code === 'STOP_TIMEOUT');
+  await tick();
+  host.clock.advanceBy(10);
+  await rejected;
+  assert.equal(host.inspect().plugins[0].state, 'failed');
+  assert.ok(host.inspect().plugins[0].ownedResources > 0);
+  // This deliberately invalid disposer leaves a Promise cycle, no native resource
+  // or real timer. Do not await the same disposal cycle again.
+}
+
 try {
   await overlappingConnects();
   await cleanUndoLeavesOldDraft();
   await failedUnwatchCannotRetry();
-  console.log('Deep review: 3 defects reproduced (connect ownership race, clean undo resurrects draft, failed unwatch cannot retry). Synthetic data only.');
+  await asynchronousRecursiveDisposal();
+  console.log('Deep review: 3 defects reproduced (connect ownership race, clean undo resurrects draft, failed unwatch cannot retry); async recursive-disposal guard limitation confirmed. Synthetic data only.');
 } catch (error) {
   console.error(`Deep review failed or behavior changed: ${error.stack}`);
   process.exitCode = 1;
