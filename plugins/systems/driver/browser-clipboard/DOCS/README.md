@@ -1,0 +1,3 @@
+# Browser clipboard driver
+
+Purpose: adapt browser/WebView navigator.clipboard to ClipboardDriver 1.0. The host calls createBrowserClipboard(optionalNavigator); the driver requires Logger and clipboard.native. Provides capabilities(), readText() and writeText(text), with typed unsupported/denied/failed/cancelled results. Logs outcomes/errors without text. No events or storage. Shared composition connects Clipboard provider to the editor in browser and Tauri. Browser permissions, secure origin and user activation remain platform requirements; native WebView acceptance is pending. See [API, lifecycle and test guidance](../../../../../DOCS/reference/clipboard.md).

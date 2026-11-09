@@ -1,6 +1,6 @@
 # Context menu provider
 
-The plugin provides `api:lunaris.context-menu@1.0.0` through the public
+The plugin provides `api:lunaris.context-menu@1.1.0` through the public
 `@lunaris/context-menu` contract. It owns contribution registration, context-based
 tree construction, one-shot action sessions and the document overlay.
 
@@ -21,3 +21,5 @@ data/ownership rules, errors, the File Explorer context and verification.
 The renderer receives explicit embedded/fill presentation. The overlay remains
 transparent; only the local menu surfaces own backgrounds. No target DOM inspection
 is used to infer presentation.
+
+API 1.1 adds top-level kind: island descriptors through existing register/resolve/open methods. Islands own icon-only action groups above ordinary rows; nested groups become themed dropdowns. Validation, ownership, one-shot execution and cancellation are shared across island and list actions. Text Editor now integrates through local entries; File Explorer menus are unchanged. See the [island contract](../../../../DOCS/reference/context-menu.md#icon-islands-api-11). Visual acceptance remains manual in the real editor.

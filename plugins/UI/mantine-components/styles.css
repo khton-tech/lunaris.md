@@ -369,3 +369,9 @@
 .lm-status-server,.lm-status-metric { display:inline-flex;align-items:center;gap:var(--vault-space);flex:0 0 auto;color:var(--vault-secondary) }
 .lm-status-counts { flex:0 0 auto;margin-inline-start:auto;font-variant-numeric:tabular-nums }
 .lm-status-bar svg { flex:none;width:1.15em;height:1.15em }
+
+.lm-root .lm-context-composite { padding:0;border:0;background:transparent;box-shadow:none;display:flex;flex-direction:column;gap:calc(var(--vault-space)*1.5);overflow:visible }
+.lm-root .lm-context-island { display:flex;flex-wrap:wrap;align-items:center;gap:var(--vault-space);padding:var(--vault-space);background:var(--vault-panel);border:var(--vault-border) solid var(--vault-control-border);border-radius:var(--vault-radius);max-width:calc(100vw - 8px);overflow:visible }
+.lm-root .lm-island-control { width:auto;min-width:2em;flex:0 0 auto;padding:calc(var(--vault-space)*1.5);border-radius:calc(var(--vault-radius)/2) }
+.lm-root .lm-island-control .mantine-Menu-itemLabel { display:flex;align-items:center;justify-content:center }
+.lm-root .lm-context-actions { width:100%;min-width:0 }

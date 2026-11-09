@@ -3,12 +3,15 @@ import path from 'node:path';
 import ts from 'typescript';
 
 export const dependencies = {
+  clipboard: ['sdk'],
+  'clipboard-provider': ['sdk', 'logging', 'clipboard'],
+  'browser-clipboard': ['sdk', 'logging', 'clipboard'],
   'status-bar': ["sdk","logging","workspace","active-document","filesystem","remote","vault","localization"],
   'client-update-ui': ["sdk","remote","logging","vault","components","slots","slot-dom","localization"],
   'browser-navigation': ["sdk","remote","logging","active-document"],
   'client-updates': ["sdk","remote","logging"],
   web: ['application-host', 'mantine-components'],
-  'application-host': ['status-bar','client-updates','client-update-ui','browser-navigation',"filesystem-provider","logger","dev-tools-logger","kernel","sdk","vault-manager","config-manager","localization-manager","slot-provider","web-slot-driver","theme-provider","component-provider","base-theme-engine","startup","startup-provider","theme-settings","runner","vault-history","vault-selector","mantine-components","workspace-plugin","workspace-provider","sidebar-plugin","sidebar-provider","file-explorer","context-menu-provider","active-document","active-document-provider","active-screen-provider","active-screen-plugin","settings-provider","settings-plugin","interface-settings","text-editor","vault","browser-storage","server-transport","remote-filesystem","account-session","drafts-provider","account-access","filesystem-router","filesystem"],
+  'application-host': ['clipboard-provider','browser-clipboard','status-bar','client-updates','client-update-ui','browser-navigation',"filesystem-provider","logger","dev-tools-logger","kernel","sdk","vault-manager","config-manager","localization-manager","slot-provider","web-slot-driver","theme-provider","component-provider","base-theme-engine","startup","startup-provider","theme-settings","runner","vault-history","vault-selector","mantine-components","workspace-plugin","workspace-provider","sidebar-plugin","sidebar-provider","file-explorer","context-menu-provider","active-document","active-document-provider","active-screen-provider","active-screen-plugin","settings-provider","settings-plugin","interface-settings","text-editor","vault","browser-storage","server-transport","remote-filesystem","account-session","drafts-provider","account-access","filesystem-router","filesystem"],
   'account-access': ['sdk', 'remote', 'filesystem', 'vault', 'logging', 'localization', 'components', 'slots', 'slot-dom', 'startup'],
   'drafts-provider': ['sdk', 'remote', 'filesystem', 'logging'],
   'browser-storage': ['sdk', 'remote', 'filesystem', 'logging'],
@@ -21,7 +24,7 @@ export const dependencies = {
   window: ['sdk'],
   'window-provider': ['sdk', 'logging', 'window'],
   'tauri-window': ['sdk', 'logging', 'window'],
-  'text-editor': ['remote', 'sdk', 'logging', 'active-document', 'active-screen', 'filesystem', 'vault', 'components', 'localization', 'themes'],
+  'text-editor': ['context-menu', 'clipboard', 'remote', 'sdk', 'logging', 'active-document', 'active-screen', 'filesystem', 'vault', 'components', 'localization', 'themes'],
   'interface-settings': ['sdk', 'logging', 'config', 'settings', 'localization', 'themes', 'vault'],
   settings: ['sdk'],
   'settings-provider': ['sdk', 'logging', 'settings'],
@@ -79,6 +82,8 @@ export const dependencies = {
 };
 
 export const packagePath = scope => {
+ if (scope === 'clipboard-provider') return 'plugins/systems/clipboard';
+ if (scope === 'browser-clipboard') return 'plugins/systems/driver/browser-clipboard';
   if (scope === 'status-bar') return 'plugins/UI/status-bar';
   if (scope === 'client-update-ui') return 'plugins/UI/client-update';
   if (scope === 'browser-navigation') return 'plugins/systems/driver/browser-navigation';

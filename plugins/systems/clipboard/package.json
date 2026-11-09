@@ -1,0 +1,20 @@
+{
+  "name": "@lunaris/clipboard-provider",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@lunaris/sdk": "0.1.0",
+    "@lunaris/logging": "0.1.0",
+    "@lunaris/clipboard": "0.1.0"
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
+}

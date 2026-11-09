@@ -395,3 +395,44 @@ recovery. ConnectionChanged is subscribed only with the remote recovery services
 ## Public statistics
 
 Provides DocumentStatistics and DocumentStatisticsChanged from @lunaris/active-document. Counts cover the raw buffer including unsaved input and recovered drafts, following load/reload, relocation and file changes. Loading/unsupported files expose null counts. See [the SDK contract](../../../../DOCS/reference/active-document.md#buffer-statistics).
+
+## Context menu and formatting
+
+The editor requires ContextMenu API 1.1 and Clipboard 1.0 (clipboard.access).
+Right-click preserves a selected range when invoked inside it; outside selection
+it moves the caret to the pointer. ContextMenu or Shift+F10 opens at the caret.
+The formatting island uses icon-only bold, italic, fenced code and standard link
+actions, a Heading submenu (levels 1-6), and a Lists submenu (bullet/numbered).
+Normal Cut, Copy, Paste and Select all rows follow below. Labels are localized
+accessible names/tooltips. Unsupported clipboard capabilities and empty-selection
+cut/copy are omitted under the existing menu availability policy.
+
+Formatting changes the raw CodeMirror buffer with undoable transactions; inline
+styles toggle, headings replace existing heading prefixes, lists preserve indent,
+and code fences grow to enclose embedded backtick runs safely. Links use standard
+[Label](URL) Markdown; selected text becomes the label and the URL placeholder is
+selected. Selected absolute URIs become the destination with an editable label.
+Parsed Markdown link preview already hides source markers outside selection;
+this change adds link insertion, not automatic navigation to arbitrary URLs.
+Mod-B/Mod-I/Mod-K invoke the same formatting commands. Save/autosave remain intact.
+
+Each opening captures editor state and is closed on document/selection edits or
+view disposal. An async cut deletes text only after successful clipboard writing;
+paste checks the captured state after reading and never edits a changed or switched
+buffer. Read-only buffers omit editing commands. Clipboard failures retain text
+and show a separate localized command alert, without inappropriate reload controls.
+Native clipboard shortcuts remain available when programmatic access is unsupported.
+No buffer contents or selection text enter public menu context or logs.
+
+Integration completed through public ContextMenu/Clipboard contracts with shared
+Mantine roles and browser/Tauri composition. The editor owns document content and
+selection; the menu renderer owns overlay/island/action surfaces and interactions.
+The text-editor role accepts optional commandError for an accessible inline alert.
+See [menu island API](../../../../DOCS/reference/context-menu.md#icon-islands-api-11)
+and [clipboard platform requirements](../../../../DOCS/reference/clipboard.md).
+Native acceptance remains pending: pointer and keyboard invocation, all headings/
+lists, submenu hover/focus, copy/cut/paste permissions, undo, theme changes,
+screen edges and narrow/short windows. No desktop automation was used.
+
+Verification command: npm run editor-menu:check. Formatting regression coverage
+also includes Windows CRLF selection offsets and composing italic with bold.

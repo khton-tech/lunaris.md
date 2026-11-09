@@ -1,3 +1,6 @@
+import { markupCommand } from "./formatting.js";
+import { bindEditorMenu } from "./editor-menu.js";
+import type { EditorMenuOptions } from "./editor-menu.js";
 import { Compartment, EditorState, StateEffect } from "@codemirror/state";
 import type { Extension, StateCommand, StateEffect as Effect } from "@codemirror/state";
 import { EditorView, drawSelection, keymap } from "@codemirror/view";
@@ -60,7 +63,8 @@ function appearance(theme: ThemeDefinition | null) {
 
 /** Reusable view adapter; cached states belong to the controller, not DOM roots. */
 export function mountEditor(target: HTMLElement, session: DocumentSession, cached: EditorState | undefined,
-  theme: ThemeDefinition | null, label: string, save: () => void, failed: (error: unknown) => void, preview = true, tasks?: TaskControls) {
+  theme: ThemeDefinition | null, label: string, save: () => void, failed: (error: unknown) => void, preview = true, tasks?: TaskControls, menuOptions?: EditorMenuOptions) {
+  let menu: ReturnType<typeof bindEditorMenu> | undefined;
   const mode = new Compartment();
   const skin = new Compartment(); const access = new Compartment(); const attributes = new Compartment();
   // A cached state retains history/selection; replace view-specific compartments
@@ -69,8 +73,8 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
     EditorView.exceptionSink.of(failed),
     pairedInput,
     typingAnimation,
-    keymap.of([{ key: "Mod-s", run: () => { save(); return true; }, preventDefault: true }, { key: "Tab", run: insertIndent, shift: indentLess, preventDefault: true }, { key: "Enter", run: continueTabIndentedList }, ...markdownKeymap, ...defaultKeymap, ...historyKeymap]),
-    EditorView.updateListener.of(update => { if (update.docChanged) session.edit(update.state.sliceDoc()); }),
+    keymap.of([{ key: "Mod-b", run: markupCommand("bold"), preventDefault: true }, { key: "Mod-i", run: markupCommand("italic"), preventDefault: true }, { key: "Mod-k", run: markupCommand("link", menuOptions?.text("linkText")), preventDefault: true }, { key: "Mod-s", run: () => { save(); return true; }, preventDefault: true }, { key: "Tab", run: insertIndent, shift: indentLess, preventDefault: true }, { key: "Enter", run: continueTabIndentedList }, ...markdownKeymap, ...defaultKeymap, ...historyKeymap]),
+    EditorView.updateListener.of(update => { if (update.docChanged || update.selectionSet || update.startState.readOnly !== update.state.readOnly) menu?.close(); if (update.docChanged) session.edit(update.state.sliceDoc()); }),
     skin.of(appearance(theme)), access.of([EditorState.readOnly.of(session.locks > 0 || session.missing || session.loading), EditorView.editable.of(!session.locks && !session.missing && !session.loading)]),
     attributes.of(EditorView.contentAttributes.of({ "aria-label": label, spellcheck: "true" })),
   ];
@@ -79,6 +83,7 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
   if (!state) state = EditorState.create({ doc: session.text, extensions });
   else state = state.update({ effects: reconfigure(extensions) }).state;
   const view = new EditorView({ parent: target, state });
+  if (menuOptions) menu = bindEditorMenu(view, menuOptions);
   let lastPreview = preview;
   let lastTheme = theme; let lastLabel = label; let lastReadOnly = session.locks > 0 || session.missing || session.loading;
   return {
@@ -96,7 +101,7 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
       }
       if (effects.length) view.dispatch({ effects });
     },
-    dispose(): EditorState { const state = view.state; view.destroy(); return state; },
+    dispose(): EditorState { const state = view.state; menu?.dispose(); view.destroy(); return state; },
   };
 }
 

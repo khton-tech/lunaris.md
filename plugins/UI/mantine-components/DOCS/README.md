@@ -621,3 +621,17 @@ WorkspaceLayout accepts optional bottomVisible and lends a stable bottom target 
 ## Status bar role
 
 lunaris.status-bar renders a transparent embedded/content footer using Mantine Box, Group and Text. Its localized string props are label, filename, fileTitle, serverLabel, serverTitle, wordsLabel and lettersLabel. Numeric words/letters are nonnegative integers or null; serverState is connected/offline/expired/unknown or null. Null values omit their sections. Lucide icons replace captions, with numbers still visible and localized title/accessible labels retained. WorkspaceLayout owns the enclosing supporting surface beneath main; this role owns internal spacing and text only. Reference: the Owner's bottom-strip screenshot, existing Files footer and [Mantine UI footers](https://ui.mantine.dev/category/footers/). The view has no controls; names are escaped and truncated with full titles, and counts remain in one row at all widths. Its owned root grows horizontally with flex 1 1 auto and normal containment, keeping intrinsic height without collapsing the file area. No gallery runtime was added. See [integration and pending manual acceptance](../../status-bar/DOCS/README.md).
+
+## Context-menu islands
+
+The existing context-menu role renders public top-level island descriptors above
+ordinary action rows. It owns one overlay composition, independent island/action
+surfaces and themed Menu.Item/Menu.Sub interactions. Island children use Lucide
+icons with localized title/aria-label, group arrows and focus/hover/pressed states;
+submenu options retain readable labels. Providers/consumers never style the owned
+DOM. Ordinary Explorer menus retain their layout. Text Editor supplies formatting
+commands via ContextMenu 1.1; native visual acceptance of the composed island is
+pending. Reference: existing Files menus, Owner's island request, Mantine Menu and
+[Mantine UI buttons](https://ui.mantine.dev/category/buttons/). No gallery runtime.
+The text-editor role additionally accepts optional localized commandError and
+renders an accessible alert without file-reload actions.

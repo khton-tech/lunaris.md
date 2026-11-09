@@ -142,3 +142,33 @@ Escape and focus restoration, long labels, screen edges, short/narrow windows,
 theme changes, multi-selection, panel collapse and Vault replacement in
 `npm run tauri:dev`. Desktop automation is prohibited; DOM tests do not prove
 WebView placement or pointer traversal geometry.
+
+## Icon islands (API 1.1)
+
+MenuEntry/MenuItem now support kind: "island" with id, localized label, children,
+optional icon/order/disabled. Islands are top-level siblings of ordinary actions;
+children are actions or dropdown groups. Nested islands are rejected. Empty or
+unavailable islands disappear. Existing register(), resolve() and open() transport
+islands through the same immutable session, duplicate-ID validation, one-shot
+execution, ownership and cancellation rules. No extra renderer or controller is
+needed to contribute a contextual quick-action strip.
+
+Mantine owns the full overlay: its placement, separate island surface above the
+normal action surface, spacing, corners, overflow and icon menu controls. Island
+actions have icon-only content, localized title/accessible names and focus feedback.
+Dropdown groups have an arrow and use themed Menu.Sub menus. Ordinary actions
+retain labels and icons. Arrow keys, Escape, collision handling and source focus
+restoration remain shared. Renderer props remain items/x/y/label/onAction/onClose.
+
+Text Editor contributes its formatting island and cut/copy/paste/select-all entries
+at invocation through public local entries. The editor owns commands and buffer
+selection; ContextMenu owns overlay/session lifecycle; Clipboard owns system text
+access. File Explorer contributions remain list menus unchanged. References: the
+Owner's requested isolated toolbar, existing Files menus, [Mantine menu](https://mantine.dev/core/menu/)
+and [Mantine UI buttons](https://ui.mantine.dev/category/buttons/). Manual acceptance
+remains pending for pointer traversal, submenu position at screen edges, light/dark/
+XP themes, short/narrow screens and keyboard focus inside the actual editor.
+
+The coordinate anchor intentionally disables hideDetached on the outer Menu: its
+source is validated by the provider, and the synthetic point must not suppress the
+menu because it has no layout rectangle. Collision positioning remains enabled.

@@ -8,6 +8,7 @@ interface EditorProps {
   readonly name: string;
   readonly status: string;
   readonly error: string;
+  readonly commandError?: string;
   readonly ready: boolean;
   readonly dirty: boolean;
   readonly busy: boolean;
@@ -25,6 +26,7 @@ export function textEditorProps(value: ComponentProps): EditorProps {
     if (typeof value[key] !== "string") throw new TypeError(`Text editor requires ${key}.`);
   for (const key of ["ready", "dirty", "busy"]) if (typeof value[key] !== "boolean") throw new TypeError(`Text editor requires ${key}.`);
   for (const key of ["onSave", "onReload", "onTarget"]) if (typeof value[key] !== "function") throw new TypeError(`Text editor requires ${key}.`);
+  if (value.commandError !== undefined && typeof value.commandError !== "string") throw new TypeError("Invalid editor command error.");
   return value as unknown as EditorProps;
 }
 export function TextEditor({ props, theme }: { props: EditorProps; theme: ReturnType<typeof resolveTheme> }) {
@@ -33,6 +35,7 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
   useLayoutEffect(() => { publish(target.current); return () => publish(null); }, [publish]);
   useLayoutEffect(() => { setConfirm(false); }, [props.documentKey]);
   return <Box className="lm-text-editor" style={theme.contentStyle}>
+    {props.commandError && <Text size="sm" role="alert" className="lm-editor-error">{props.commandError}</Text>}
     {!props.ready && <Text className="lm-editor-placeholder" size="sm" c="dimmed" role="status">{props.status || props.name}</Text>}
     {props.error && <Group className="lm-editor-error" gap="xs">
       <Text size="sm" role="alert">{props.error}</Text>

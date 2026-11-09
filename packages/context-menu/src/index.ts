@@ -20,10 +20,10 @@ interface MenuEntryBase {
 }
 export type MenuEntry = MenuEntryBase & (
   { readonly kind: "action"; readonly run: (context: MenuContext) => MaybePromise<void> } |
-  { readonly kind: "group"; readonly children: readonly MenuEntry[] }
+  { readonly kind: "group" | "island"; readonly children: readonly MenuEntry[] }
 );
 export type MenuItem = MenuEntryBase & (
-  { readonly kind: "action" } | { readonly kind: "group"; readonly children: readonly MenuItem[] }
+  { readonly kind: "action" } | { readonly kind: "group" | "island"; readonly children: readonly MenuItem[] }
 );
 export interface MenuContribution {
   readonly id: string;
@@ -58,6 +58,6 @@ export interface ContextMenuApi {
   open(request: MenuOpenRequest, owner: CancellationSignal): MenuResult<MenuSession>;
 }
 export const ContextMenu = defineApi<ContextMenuApi>({
-  id: "lunaris.context-menu", version: "1.0.0",
+  id: "lunaris.context-menu", version: "1.1.0",
   validate: value => !!value && typeof value === "object" && ["register", "resolve", "open"].every(key => typeof Object.getOwnPropertyDescriptor(value, key)?.value === "function"),
 });

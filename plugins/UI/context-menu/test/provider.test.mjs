@@ -96,3 +96,13 @@ test('opened commands run after overlay disposal and never run if their owner ex
   assert.equal((await pending).error.code, 'UNAVAILABLE'); assert.equal(calls, 1);
   await s.stop(); dom.window.close();
 });
+
+test('public islands share action execution, ordering, liveness and unique identities', async () => {
+ const s = await setup(); let count = 0;
+ const session = s.api.resolve(context, s.ctx.signal, [{kind:'island', id:'format', label:'Formatting', children:[action('bold',()=>count++), {kind:'group',id:'headings',label:'Heading',children:[action('h1')]}]}]).value;
+ assert.equal(session.items[0].kind,'island'); assert.ok(Object.isFrozen(session.items[0].children));
+ assert.equal((await session.execute('bold')).ok,true); assert.equal(count,1);
+ assert.equal(s.api.resolve(context,s.ctx.signal,[{kind:'group',id:'group',label:'Group',children:[{kind:'island',id:'bad',label:'Bad',children:[]}]}]).error.code,'BUILD_FAILED');
+ assert.equal(s.api.resolve(context,s.ctx.signal,[{kind:'island',id:'empty',label:'Empty',children:[action('hidden',undefined,{disabled:true})]}]).value.items.length,0);
+ await s.stop();
+});

@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {createBrowserClipboard} from '@lunaris/browser-clipboard';
+import provider from '@lunaris/clipboard-provider';
+import {Clipboard} from '@lunaris/clipboard';
+import {testHost,consumer} from '../../../../../tools/testing/remote.mjs';
+async function setup(native){const host=testHost({'lunaris.browser-clipboard':['clipboard.native'],'lunaris.clipboard-provider':['clipboard.access'],'test.consumer':['clipboard.access']});let api;host.register(createBrowserClipboard(native));host.register(provider);host.register(consumer([Clipboard],ctx=>{api=ctx.use(Clipboard)},['clipboard.access']));await host.start('test.consumer');return {host,api};}
+test('SDK clipboard delegates Unicode text to the platform and preserves capability checks',async()=>{let copied;const s=await setup({clipboard:{async readText(){return 'Привет'},async writeText(text){copied=text}}});assert.deepEqual(s.api.capabilities(),{read:true,write:true});assert.equal((await s.api.readText()).value,'Привет');assert.equal((await s.api.writeText('Hello')).ok,true);assert.equal(copied,'Hello');await s.host.stopAll();s.host.assertNoResources();});
+test('unavailable and denied clipboard return typed errors without altering documents',async()=>{const unavailable=await setup({});assert.deepEqual(unavailable.api.capabilities(),{read:false,write:false});assert.equal((await unavailable.api.readText()).error.code,'UNSUPPORTED');await unavailable.host.stopAll();const denied=await setup({clipboard:{async readText(){throw new DOMException('Denied','NotAllowedError')},async writeText(){throw Error('Failure')}}});assert.equal((await denied.api.readText()).error.code,'DENIED');assert.equal((await denied.api.writeText('secret')).error.code,'FAILED');await denied.host.stopAll();denied.host.assertNoResources();});
+test('shutdown invalidates pending clipboard results',async()=>{let release;const s=await setup({clipboard:{readText:()=>new Promise(resolve=>{release=resolve})}});const pending=s.api.readText();await s.host.stopAll();release('late');assert.equal((await pending).error.code,'CANCELLED');s.host.assertNoResources();});

@@ -8,6 +8,8 @@ import { StateEffect, EditorState, Prec } from '@codemirror/state';
 import { syntaxTree } from '@codemirror/language';
 import { createTestKernel } from '@lunaris/test';
 import { definePlugin } from '@lunaris/sdk';
+import { Clipboard } from '@lunaris/clipboard';
+import menuProvider from '@lunaris/context-menu-provider';
 import { Logger } from '@lunaris/logging';
 import { Config } from '@lunaris/config';
 import { Filesystem, FilesystemDriver, FilesystemRootsDriver, FilesystemObservationDriver, FilesystemLocationsDriver, DirectoryLocationsDriver, ApplicationDirectoryDriver, DriverFileChanged, filesystemMethods } from '@lunaris/filesystem';
@@ -44,6 +46,8 @@ async function setup(options = {}) {
   const kernel = createTestKernel(); const closeGuard = createCloseGuard(); const logs = []; const calls = []; const closed = new Set(); let selected = 0; let watchContext;
   const disk = new Map([['a/note.md', { text: options.initial ?? '# Note', version: 'v1' }], ['a/other.md', { text: 'Other', version: 'v1' }], ['a/image.png', { text: 'binary', version: 'v1' }], ['b/note.md', { text: '# B', version: 'v1' }]]);
   const store = new Map(); let content; let api; let host;
+  const clipboardCalls = [];
+  kernel.installMock(Clipboard, { capabilities: () => ({ read: true, write: true }), async readText() { clipboardCalls.push(["read"]); if (options.readClipboard) return options.readClipboard(); return options.clipboardFailure ? fail("DENIED") : ok(options.clipboardText ?? "Pasted"); }, async writeText(text) { clipboardCalls.push(["write", text]); return options.clipboardFailure ? fail("DENIED") : ok(null); } });
   kernel.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push([level, ...args]); return true; }])));
   kernel.installMock(Config, { async get(id, name, scope) { return ok(store.get(scope.vaultId)); }, async set(id, name, value, scope) { store.set(scope.vaultId, value); return ok(null); }, async remove(id, name, scope) { store.delete(scope.vaultId); return ok(true); }, async read() { return ok({}); } });
   kernel.installMock(Workspace, { register(value) { content = value; return ok(null); }, update() { return ok(null); }, list() { return content ? [content] : []; } });
@@ -75,12 +79,12 @@ async function setup(options = {}) {
   kernel.installMock(FilesystemLocationsDriver, { async select() { return ok(null); }, async describe() { return fail('NOT_FOUND'); }, async attach() { return fail('NOT_FOUND'); } }, { grants: ['filesystem.native'] });
   kernel.installMock(DirectoryLocationsDriver, { async create() { return fail('UNSUPPORTED'); } }, { grants: ['filesystem.native'] });
   kernel.installMock(ApplicationDirectoryDriver, { async openConfig() { return fail('UNSUPPORTED'); } }, { grants: ['filesystem.native'] });
-  for (const plugin of [filesystem, vault, documents, screenProvider, screenHost, components, themes, localization, mantine, editor, closeGuard.plugin]) kernel.register(plugin);
+  for (const plugin of [menuProvider, filesystem, vault, documents, screenProvider, screenHost, components, themes, localization, mantine, editor, closeGuard.plugin]) kernel.register(plugin);
 
   kernel.register(definePlugin({ manifest: metadata('test.consumer', [], [DocumentStatistics, DocumentStatisticsChanged, Filesystem, Vault, ActiveDocument, ActiveScreen, Components, Themes].map(t => ({ kind: t.kind, id: t.id, range: '^' + t.version })), ['vault.access', 'filesystem.access', 'ui.dom']), activate(ctx) {
     api = { ctx, statistics: ctx.use(DocumentStatistics), fs: ctx.use(Filesystem), vault: ctx.use(Vault), documents: ctx.use(ActiveDocument), screens: ctx.use(ActiveScreen), components: ctx.use(Components), themes: ctx.use(Themes) };
   } }));
-  for (const [id, grants] of Object.entries({ 'test.driver': ['filesystem.native'], 'lunaris.filesystem-provider': ['filesystem.access', 'filesystem.app-config'], 'lunaris.vault-manager': ['filesystem.access'], 'lunaris.active-document-provider': ['vault.access', 'config.access', 'filesystem.access'], 'lunaris.active-screen-provider': ['vault.access'], [screenHost.manifest.id]: ['ui.dom'], 'lunaris.component-provider': ['ui.dom'], 'lunaris.mantine-components': ['ui.dom'], 'lunaris.text-editor': ['ui.dom', 'vault.access', 'filesystem.access'], 'test.consumer': ['vault.access', 'filesystem.access', 'ui.dom'] })) for (const grant of grants) kernel.grant(id, grant);
+  for (const [id, grants] of Object.entries({ 'test.driver': ['filesystem.native'], 'lunaris.filesystem-provider': ['filesystem.access', 'filesystem.app-config'], 'lunaris.vault-manager': ['filesystem.access'], 'lunaris.active-document-provider': ['vault.access', 'config.access', 'filesystem.access'], 'lunaris.active-screen-provider': ['vault.access'], [screenHost.manifest.id]: ['ui.dom'], 'lunaris.component-provider': ['ui.dom'], 'lunaris.mantine-components': ['ui.dom'], 'lunaris.context-menu-provider': ['ui.dom'], 'lunaris.text-editor': ['clipboard.access', 'ui.dom', 'vault.access', 'filesystem.access'], 'test.consumer': ['vault.access', 'filesystem.access', 'ui.dom'] })) for (const grant of grants) kernel.grant(id, grant);
   kernel.grant(closeGuard.plugin.manifest.id, 'vault.access');
   await kernel.start('test.consumer'); await kernel.start(mantine.manifest.id); await kernel.start(screenHost.manifest.id); await kernel.start(editor.manifest.id); await kernel.start(closeGuard.plugin.manifest.id);
   await api.vault.open(); await flush();
@@ -95,7 +99,7 @@ async function setup(options = {}) {
   }
   host = api.components.mount(content.componentId, editorTarget, { workspace: { vaultId: 'a', vaultName: 'A' } }, api.ctx.signal);
   assert.equal(host.ok, true); await api.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
-  return { ...api, target, dom, disk, calls, logs, kernel, beforeClose: closeGuard.beforeClose,
+  return { ...api, target, dom, disk, calls, logs, kernel, clipboardCalls, beforeClose: closeGuard.beforeClose,
     cm() { const node = target.querySelector('.cm-editor'); assert.ok(node, target.textContent); return EditorView.findFromDOM(node); },
     edit(text) { const view = this.cm(); view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } }); },
     async stop() { await flush(); await kernel.stopAll(); await flush(); kernel.assertNoResources(); assert.equal(target.childElementCount, 0); assert.ok(!kernel.diagnostics().some(d => d.code === 'CLEANUP_FAILED')); dom.window.close(); },
@@ -462,4 +466,38 @@ test('public statistics follow unsaved Unicode input, document changes and closu
   await s.documents.open({ vaultId: 'a', path: 'image.png' }); await flush(); assert.equal(s.statistics.current().state, 'unavailable'); assert.equal(s.statistics.current().words, null);
   await s.documents.close(); await flush(); assert.equal(s.statistics.current(), null);
  } finally { await s.stop(); }
+});
+
+async function editorMenu(s) {
+ const view=s.cm();view.posAtCoords=()=>null;
+ view.dom.dispatchEvent(new s.dom.window.MouseEvent('contextmenu',{bubbles:true,cancelable:true,clientX:20,clientY:20}));await flush();
+ return label => s.dom.window.document.querySelector('[role=menuitem][aria-label="'+label+'"]');
+}
+test('editor island formats the invocation selection, opens headings and preserves undo',async()=>{
+ const s=await setup({initial:'Hello world'});try{
+  s.cm().dispatch({selection:{anchor:0,head:5}});let item=await editorMenu(s);
+  const island=s.dom.window.document.querySelector('.lm-context-island');assert.ok(island);assert.equal(item('Bold').textContent,'');assert.ok(item('Cut'));assert.ok(item('Copy'));assert.ok(item('Paste'));assert.ok(item('Select all'));
+  s.cm().dispatch({effects:StateEffect.define().of(true)});item('Bold').click();await flush();assert.equal(s.cm().state.sliceDoc(),'**Hello** world');assert.equal(undo(s.cm()),true);assert.equal(s.cm().state.sliceDoc(),'Hello world');
+  item=await editorMenu(s);item('Heading').focus();item('Heading').dispatchEvent(new s.dom.window.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true,cancelable:true}));await flush();assert.ok(item('Heading 3'));item('Heading 3').click();await flush();assert.equal(s.cm().state.sliceDoc(),'### Hello world');
+ }finally{await s.stop();}
+});
+test('editor cut/copy/paste use the SDK and select-all keeps the document unchanged',async()=>{
+ const s=await setup({initial:'Hello world',clipboardText:'NEW'});try{
+  s.cm().dispatch({selection:{anchor:0,head:5}});let item=await editorMenu(s);item('Copy').click();await flush();assert.deepEqual(s.clipboardCalls.at(-1),['write','Hello']);assert.equal(s.cm().state.sliceDoc(),'Hello world');
+  item=await editorMenu(s);item('Cut').click();await flush();assert.equal(s.cm().state.sliceDoc(),' world');
+  item=await editorMenu(s);item('Paste').click();await flush();assert.equal(s.cm().state.sliceDoc(),'NEW world');
+  item=await editorMenu(s);item('Select all').click();await flush();assert.equal(s.cm().state.selection.main.from,0);assert.equal(s.cm().state.selection.main.to,9);
+ }finally{await s.stop();}
+});
+test('denied clipboard cannot remove selected text and switching documents cancels an awaited paste',async()=>{
+ const s=await setup({initial:'Hello',clipboardFailure:true});try{s.cm().dispatch({selection:{anchor:0,head:5}});const item=await editorMenu(s);item('Cut').click();await flush();assert.equal(s.cm().state.sliceDoc(),'Hello');assert.ok(s.target.querySelector('[role=alert]').textContent.includes('Clipboard'));}finally{await s.stop();}
+ let release;const delayed=await setup({initial:'Original',readClipboard:()=>new Promise(resolve=>{release=resolve})});try{const item=await editorMenu(delayed);item('Paste').click();await flush();await delayed.documents.open({vaultId:'a',path:'other.md'});await flush();release(ok('WRONG'));await flush();assert.equal(delayed.cm().state.sliceDoc(),'Other');}finally{await delayed.stop();}
+});
+
+test('keyboard context menu exposes icon names, horizontal movement and closes on selection changes',async()=>{
+ const s=await setup({initial:'Keyboard'});try{
+  s.cm().coordsAtPos=()=>({left:10,right:10,top:10,bottom:25});s.cm().dom.dispatchEvent(new s.dom.window.KeyboardEvent('keydown',{key:'F10',shiftKey:true,bubbles:true,cancelable:true}));await flush();await new Promise(resolve=>setTimeout(resolve,25));
+  const doc=s.dom.window.document;const bold=doc.querySelector('[role=menuitem][aria-label=Bold]');assert.ok(bold);bold.focus();assert.equal(doc.activeElement === bold,true);assert.equal(bold.parentElement.querySelectorAll(':scope > [role=menuitem]').length,6);bold.dispatchEvent(new s.dom.window.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true,cancelable:true}));assert.equal(doc.activeElement.getAttribute('aria-label'),'Italic','Immediately after arrow: '+doc.activeElement.tagName);await flush();assert.equal(doc.activeElement.getAttribute('aria-label'),'Italic');
+  s.cm().dispatch({selection:{anchor:2}});await flush();assert.equal(doc.querySelector('[data-lunaris-context-menu]'),null);
+ }finally{await s.stop();}
 });

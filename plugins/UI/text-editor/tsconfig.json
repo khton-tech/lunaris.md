@@ -45,6 +45,12 @@
     },
     {
       "path": "../../../packages/remote"
+    },
+    {
+      "path": "../../../packages/clipboard"
+    },
+    {
+      "path": "../../../packages/context-menu"
     }
   ]
 }

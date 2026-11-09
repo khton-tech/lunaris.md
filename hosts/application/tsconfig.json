@@ -155,6 +155,12 @@
     },
     {
       "path": "../../plugins/UI/status-bar"
+    },
+    {
+      "path": "../../plugins/systems/clipboard"
+    },
+    {
+      "path": "../../plugins/systems/driver/browser-clipboard"
     }
   ]
 }

@@ -125,12 +125,23 @@
       "id": "lunaris.connection-changed",
       "range": "^1.0.0",
       "optional": true
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.context-menu",
+      "range": "^1.1.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.clipboard",
+      "range": "^1.0.0"
     }
   ],
   "permissions": [
     "ui.dom",
     "vault.access",
-    "filesystem.access"
+    "filesystem.access",
+    "clipboard.access"
   ],
   "optionalPermissions": [
     "drafts.access",

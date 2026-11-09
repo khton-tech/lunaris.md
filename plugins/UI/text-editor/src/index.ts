@@ -1,3 +1,5 @@
+import { ContextMenu } from "@lunaris/context-menu";
+import { Clipboard } from "@lunaris/clipboard";
 import { countDocument } from "./statistics.js";
 import type { DocumentStatisticsSnapshot } from "@lunaris/active-document";
 import { definePlugin, isSdkUnavailable } from "@lunaris/sdk";
@@ -18,6 +20,8 @@ import { mountEditor } from "./codemirror.js";
 import manifest from "../manifest.json" with { type: "json" };
 
 const catalogs = { en: {
+  editorMenu: "Editor actions", formatting: "Formatting", bold: "Bold", italic: "Italic", "code-block": "Code block", heading: "Heading", list: "Lists", bulletList: "Bullet list", orderedList: "Numbered list", link: "Link", linkText: "Link text",
+  h1: "Heading 1", h2: "Heading 2", h3: "Heading 3", h4: "Heading 4", h5: "Heading 5", h6: "Heading 6", cut: "Cut", copy: "Copy", paste: "Paste", selectAll: "Select all", clipboardFailed: "Clipboard access failed. Use your keyboard shortcut or allow clipboard access.",
   empty: "Open a Markdown file", loading: "Loading", unsupported: "This file type is not supported", saved: "Saved", unsaved: "Unsaved", saving: "Saving",
   save: "Save", retry: "Retry save", reload: "Reload from disk", discard: "Discard changes and reload", cancel: "Cancel", editor: "Markdown editor", task: "Task",
   conflict: "The file changed outside the editor. Your changes are retained.", missing: "The file was removed. Your text is retained.",
@@ -30,6 +34,7 @@ const inside = (target: FileTarget, parent: FileTarget) => target.vaultId === pa
 const markdownFile = (target: FileTarget) => /\.md$/i.test(target.path);
 
 export default definePlugin({ manifest, activate(ctx) {
+  const menus = ctx.use(ContextMenu); const clipboard = ctx.use(Clipboard);
   const logger = scopeLogger(ctx.use(Logger), ctx.signal); const fs = ctx.use(Filesystem); const documents = ctx.use(ActiveDocument);
   const screens = ctx.use(ActiveScreen); const components = ctx.use(Components); const localization = ctx.use(Localization);
   const vaults = ctx.use(Vault); const themes = ctx.use(Themes);
@@ -157,7 +162,7 @@ export default definePlugin({ manifest, activate(ctx) {
   const registration = components.register({ id: "lunaris.text-editor-host", mount(target, initial, signal) {
     const owner = ctx.scope.child(); let props = initial; let mounted: MountedComponent | undefined;
     let disposed = false; let editorTarget: HTMLElement | null = null;
-    let taskUnavailableReported = false;
+    let taskUnavailableReported = false; let commandError = ""; let commandDocument = "";
     let editor: ReturnType<typeof mountEditor> | undefined; let rendered: DocumentSession | null = null;
     const onTarget = (value: HTMLElement | null) => { editorTarget = value; };
     function clearEditor(): void { if (editor && rendered) states.set(rendered, editor.dispose()); editor = undefined; rendered = null; }
@@ -175,10 +180,12 @@ export default definePlugin({ manifest, activate(ctx) {
       const context = props.workspace as { vaultId?: string } | undefined;
       const session = current?.target.vaultId === context?.vaultId ? current : null;
       const ready = !!session?.loaded;
+      const documentKey = session ? key(session.target) : "";
+      if (commandDocument !== documentKey) { commandDocument = documentKey; commandError = ""; }
       const error = session?.draftError ? text("draftFailed") : session?.error ? text(session.error.code === "CONFLICT" ? "conflict" : session.missing ? "missing" : session.draftSaved && ["OFFLINE", "SERVER_UNAVAILABLE"].includes(session.error.code) ? "offline" : session.loaded ? "saveFailed" : "readFailed") : "";
       const next = { documentKey: session ? key(session.target) : "", name: session?.target.path ?? text(unsupported ? "unsupported" : "empty"),
         status: session?.loading ? text("loading") : session?.saving ? text("saving") : session?.loaded ? text(session.dirty ? "unsaved" : "saved") : "",
-        error, ready, dirty: session?.dirty ?? false, busy: !!session && (session.loading || session.saving || session.locks > 0),
+        error, commandError, ready, dirty: session?.dirty ?? false, busy: !!session && (session.loading || session.saving || session.locks > 0),
         saveLabel: text("save"), retryLabel: text("retry"), reloadLabel: text("reload"), discardLabel: text("discard"), cancelLabel: text("cancel"), onSave, onReload, onTarget,
         presentation: { mode: "embedded", sizing: "fill" } };
       if (mounted) {
@@ -210,6 +217,12 @@ export default definePlugin({ manifest, activate(ctx) {
                 logger.warn(ctx.pluginId, "Cannot mount task checkbox; retaining Markdown source", { error: result.error });
                 return null;
               },
+            }, {
+              menus, clipboard, owner: owner.signal,
+              text: id => localization.text(ctx.pluginId, id),
+              active: () => !disposed && !owner.signal.aborted && !ctx.signal.aborted && current === session && session.active && screens.snapshot().activeId === screenId,
+              failed(error) { if (ctx.signal.aborted || disposed) return; commandError = text("clipboardFailed"); logger.warn(ctx.pluginId, "Editor context command failed", { error }); changed(); },
+              completed(operation) { if (ctx.signal.aborted || disposed) return; commandError = ""; logger.info(ctx.pluginId, "Editor context command completed", { data: { operation } }); changed(); },
             });
         } else editor.update(themes.current(), text("editor"));
       }

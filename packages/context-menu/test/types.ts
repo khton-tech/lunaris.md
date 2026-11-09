@@ -7,3 +7,6 @@ api.register({ id: "example.tools", build: () => [{ kind: "group", id: "example.
 // @ts-expect-error Actions must have an execution handler.
 const invalid: MenuEntry = { kind: "action", id: "example.invalid", label: "Invalid" };
 void invalid;
+
+const island: MenuEntry = { kind: "island", id: "example.formatting", label: "Formatting", children: [action] };
+api.resolve({ source: "example.editor", target: "document", data: {} }, owner, [island]);
