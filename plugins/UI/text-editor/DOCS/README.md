@@ -148,6 +148,8 @@ Following the Owner's modern Word reference, short typed edits softly fade from
 low opacity and slight blur to full readability, with no translation or scaling.
 Short deletions
 leave a fading, zero-width, noninteractive afterimage at the deletion boundary.
+Afterimages retain the text baseline through normal inline layout, without an
+absolute vertical offset, so deletion fades in place rather than jumping upward.
 The document and caret update immediately: afterimages are aria-hidden,
 noneditable widgets and never enter document text, clipboard source, history or
 saves. Only opacity and a subtle blur animate; document layout is not animated.

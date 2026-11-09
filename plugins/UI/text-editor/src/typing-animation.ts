@@ -101,11 +101,11 @@ const appearance = EditorView.baseTheme({
     animation: "cm-typing-appear clamp(0ms, var(--vault-motion-normal, 200ms), 240ms) var(--vault-motion-easing, ease-out) both",
   },
   ".cm-typing-deletion": {
-    display: "inline-block", position: "relative", width: "0", height: "0",
+    display: "inline-block", width: "0",
     pointerEvents: "none", userSelect: "none", verticalAlign: "baseline",
   },
   ".cm-typing-deletion > span": {
-    position: "absolute", insetInlineStart: "0", bottom: "-0.2em", whiteSpace: "pre",
+    whiteSpace: "pre",
     animation: "cm-typing-disappear clamp(0ms, var(--vault-motion-normal, 200ms), 240ms) var(--vault-motion-easing, ease-out) both",
   },
   "@media (prefers-reduced-motion: reduce)": {
