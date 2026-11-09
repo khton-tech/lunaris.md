@@ -1,7 +1,7 @@
 import { definePlugin } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
-import { ServerTransport, REMOTE_PROTOCOL, AccountSessionChanged, ConnectionChanged } from "@lunaris/remote";
+import { ConnectionStatus, ServerTransport, REMOTE_PROTOCOL, AccountSessionChanged, ConnectionChanged } from "@lunaris/remote";
 import type { AccountState, Account, RemoteResult, ServerInfo } from "@lunaris/remote";
 
 export function createServerTransport(options: { readonly mode: "browser" | "desktop"; readonly fetch?: typeof fetch; readonly timeoutMs?: number }) {
@@ -9,21 +9,21 @@ export function createServerTransport(options: { readonly mode: "browser" | "des
   const timeoutMs = options.timeoutMs ?? 30000;
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1) throw Error("A positive request timeout is required.");
   return definePlugin({ manifest: { manifestVersion: 1, id: "lunaris.server-transport", version: "0.1.0", engine: "^0.1.0", sdk: "^0.1.0", entry: "./dist/index.js",
-    provides: [ServerTransport, AccountSessionChanged, ConnectionChanged].map(t => ({ kind: t.kind, id: t.id, version: t.version })),
+    provides: [ConnectionStatus, ServerTransport, AccountSessionChanged, ConnectionChanged].map(t => ({ kind: t.kind, id: t.id, version: t.version })),
     requires: [{ kind: "api", id: Logger.id, range: "^1.0.0" }], permissions: [], optionalPermissions: [] }, activate(ctx) {
     const logger = scopeLogger(ctx.use(Logger), ctx.signal); let address = ""; let bearer: string | undefined; let current: AccountState | null = null;
-    let epoch = 0; let connection: "connected" | "offline" | "expired" = "connected";
+    let epoch = 0; let connection: "connected" | "offline" | "expired" | "unknown" = "unknown";
     const controllers = new Set<AbortController>(); const deadlines = new Map<AbortController, ReturnType<typeof setTimeout>>(); let unbindOwner = () => {};
     const failed = <T>(code: string, message: string): RemoteResult<T> => ({ ok: false, error: { code, message } } as RemoteResult<T>);
     async function publish() { if (!ctx.signal.aborted) await ctx.events.emit(AccountSessionChanged, { current }); }
-    async function status(state: typeof connection) {
+    async function status(state: "connected" | "offline" | "expired") {
       if (connection === state || ctx.signal.aborted) return;
       connection = state;
       if (state === "offline") logger.warn(ctx.pluginId, "Server connection interrupted");
       else logger.info(ctx.pluginId, "Server connection state changed", { data: { state } });
       await ctx.events.emit(ConnectionChanged, { state, epoch: `${ctx.activationId}:${epoch}` });
     }
-    function retire() { epoch++; current = null; bearer = undefined; for (const controller of controllers) controller.abort(); controllers.clear(); for (const timer of deadlines.values()) clearTimeout(timer); deadlines.clear(); }
+    function retire() { connection = "unknown"; epoch++; current = null; bearer = undefined; for (const controller of controllers) controller.abort(); controllers.clear(); for (const timer of deadlines.values()) clearTimeout(timer); deadlines.clear(); }
     ctx.scope.own({ dispose() { unbindOwner(); retire(); } });
     async function request(method: "GET" | "POST", route: string, body?: unknown, owner: CancellationSignal = ctx.signal): Promise<RemoteResult<unknown>> {
       if (!address) return failed("UNAUTHENTICATED", "Connect to a server first.");
@@ -57,6 +57,7 @@ export function createServerTransport(options: { readonly mode: "browser" | "des
         await status("offline"); return failed("OFFLINE", "The server is unavailable. Your unsaved changes remain local.");
       } finally { clearTimeout(deadline); deadlines.delete(controller); owner.removeEventListener("abort", abort); controllers.delete(controller); }
     }
+    ctx.provide(ConnectionStatus, { current: () => address ? Object.freeze({ server: address, epoch: `${ctx.activationId}:${epoch}`, state: connection }) : null });
     ctx.provide(ServerTransport, {
       current: () => current,
       async connect(value, owner) {
@@ -86,7 +87,7 @@ export function createServerTransport(options: { readonly mode: "browser" | "des
         if (version !== epoch) return failed("CANCELLED", "The account session changed.");
         const value = result.value as { account: Account; token?: string };
         if (!value?.account || typeof value.account.id !== "string" || typeof value.account.login !== "string" || (options.mode === "desktop" && typeof value.token !== "string")) return failed("PROTOCOL_MISMATCH", "The server returned an invalid account.");
-        retire(); const committedEpoch = epoch;
+        retire(); connection = "connected"; const committedEpoch = epoch;
         bearer = value.token; current = Object.freeze({ server: address, account: Object.freeze({ ...value.account }), epoch: `${ctx.activationId}:${epoch}` }); await publish();
         if (ctx.signal.aborted || committedEpoch !== epoch || !current) return failed("CANCELLED", "The account session changed.");
         logger.info(ctx.pluginId, "Account signed in"); return { ok: true, value: current.account };

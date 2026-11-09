@@ -1,6 +1,8 @@
+import { countDocument } from "./statistics.js";
+import type { DocumentStatisticsSnapshot } from "@lunaris/active-document";
 import { definePlugin, isSdkUnavailable } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
-import { ActiveDocument, ActiveDocumentTransitioned, BeforeActiveDocumentChange, DocumentProtection } from "@lunaris/active-document";
+import { DocumentStatistics, DocumentStatisticsChanged, ActiveDocument, ActiveDocumentTransitioned, BeforeActiveDocumentChange, DocumentProtection } from "@lunaris/active-document";
 import { ActiveScreen } from "@lunaris/active-screen";
 import { BeforeFileMutation, Filesystem, FileChanged, FilesystemSources } from "@lunaris/filesystem";
 import { Drafts, ConnectionChanged } from "@lunaris/remote";
@@ -40,10 +42,30 @@ export default definePlugin({ manifest, activate(ctx) {
   const messages = localization.register(ctx.pluginId, catalogs, ctx.signal);
   if (!messages.ok) throw new Error("Cannot register editor messages.", { cause: messages.error });
   const text = (id: keyof typeof catalogs.en) => localization.text(ctx.pluginId, id);
+  let statisticsSignature = ""; let cachedText: string | undefined; let cachedCounts = { words: 0, letters: 0 };
+  function statistics(): DocumentStatisticsSnapshot {
+    const target = documents.current();
+    if (!target) return null;
+    const session = current && key(current.target) === key(target) ? current : null;
+    const state = session?.loading ? "loading" : session?.loaded ? "ready" : "unavailable";
+    if (state === "ready" && cachedText !== session!.text) { cachedText = session!.text; cachedCounts = countDocument(cachedText); }
+    return Object.freeze({ target: Object.freeze({ ...target }), state,
+      words: state === "ready" ? cachedCounts.words : null, letters: state === "ready" ? cachedCounts.letters : null });
+  }
+  ctx.provide(DocumentStatistics, { current: statistics });
+  function publishStatistics(): void {
+    const snapshot = statistics(); const signature = JSON.stringify(snapshot);
+    if (signature === statisticsSignature) return;
+    statisticsSignature = signature;
+    void ctx.events.emit(DocumentStatisticsChanged, { current: snapshot }).catch(error => {
+      if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot publish document statistics", { error });
+    });
+  }
   function changed(): void {
     if (scheduled || ctx.signal.aborted) return; scheduled = true;
     void Promise.resolve().then(() => {
       scheduled = false; if (ctx.signal.aborted) return;
+      publishStatistics();
       for (const view of views) {
         try { view.render(); } catch (error) { logger.error(ctx.pluginId, "Cannot render editor", { error }); }
       }

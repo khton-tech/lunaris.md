@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServerTransport } from '@lunaris/server-transport';
-import { ServerTransport } from '@lunaris/remote';
+import { ConnectionStatus, ServerTransport } from '@lunaris/remote';
 import { testHost, consumer } from '../../../../../tools/testing/remote.mjs';
 const json = value => new Response(JSON.stringify({ ok: true, value }));
 test('desktop bearer stays in transport; late responses cannot restore a cancelled account', async () => {
@@ -46,4 +46,15 @@ test('a response body that stalls after headers has the same recoverable timeout
   host.register(consumer([ServerTransport], context => { ctx = context; api = ctx.use(ServerTransport); }, ['account.network']));
   await host.start('test.consumer'); assert.equal((await api.connect('http://localhost:3100', ctx.signal)).error.code, 'SERVER_UNAVAILABLE');
   await host.stopAll(); host.assertNoResources();
+});
+
+test('connection snapshot follows failure, recovery and owner cancellation', async () => {
+ let api, status, ctx; let offline = false; const host = testHost({ 'test.consumer': ['account.network', 'account.access'] });
+ host.register(createServerTransport({ mode: 'desktop', fetch: async () => { if (offline) throw Error('Network unavailable'); return json({ protocol: 1, buildId: 'test', registration: 'open' }); } }));
+ host.register(consumer([ServerTransport, ConnectionStatus], c => { ctx = c; api = c.use(ServerTransport); status = c.use(ConnectionStatus); }, ['account.network', 'account.access']));
+ await host.start('test.consumer'); assert.equal(status.current(), null); const owner = ctx.scope.child();
+ await api.connect('http://localhost:3100', owner.signal); assert.equal(status.current().state, 'connected'); assert.ok(Object.isFrozen(status.current()));
+ offline = true; await api.request('GET', 'server'); assert.equal(status.current().state, 'offline');
+ offline = false; await api.request('GET', 'server'); assert.equal(status.current().state, 'connected');
+ await owner.dispose(); assert.equal(status.current(), null); await host.stopAll(); host.assertNoResources();
 });

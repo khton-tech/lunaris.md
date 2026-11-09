@@ -44,3 +44,27 @@ export const ActiveDocumentChanged = defineEvent<{ readonly current: ActiveDocum
     const current = Object.getOwnPropertyDescriptor(value, "current")?.value;
     return current === null || (!!current && typeof current.vaultId === "string" && current.vaultId.length > 0 && validPath(current.path));
   } });
+
+/** Statistics of the current editor buffer, including unsaved edits. No text escapes. */
+export interface DocumentStatisticsState {
+  readonly target: Readonly<FileTarget>;
+  readonly state: "loading" | "unavailable" | "ready";
+  readonly words: number | null;
+  readonly letters: number | null;
+}
+export type DocumentStatisticsSnapshot = Readonly<DocumentStatisticsState> | null;
+export const DocumentStatistics = defineApi<{ current(): DocumentStatisticsSnapshot }>({
+  id: "lunaris.document-statistics", version: "1.0.0", consumePermission: "vault.access",
+  validate: value => !!value && typeof value === "object" && typeof Object.getOwnPropertyDescriptor(value, "current")?.value === "function",
+});
+export const DocumentStatisticsChanged = defineEvent<{ readonly current: DocumentStatisticsSnapshot }>({
+  id: "lunaris.document-statistics-changed", version: "1.0.0", consumePermission: "vault.access",
+  validate: input => {
+    const value = input as { current?: DocumentStatisticsSnapshot } | null;
+    if (!value || value.current === undefined) return false;
+    const current = value.current;
+    return current === null || (!!current.target && typeof current.target.vaultId === "string" && current.target.vaultId.length > 0 && validPath(current.target.path) &&
+      (current.state === "ready" ? [current.words, current.letters].every(count => typeof count === "number" && Number.isSafeInteger(count) && count >= 0) :
+        ["loading", "unavailable"].includes(current.state) && current.words === null && current.letters === null));
+  },
+});

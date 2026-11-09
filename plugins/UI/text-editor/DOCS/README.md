@@ -391,3 +391,7 @@ only after a durable local draft succeeds. Structural mutations still require a
 successful remote flush. Storage failure is visible and prevents claiming durable
 recovery. Forced shutdown before a storage transaction commits cannot guarantee
 recovery. ConnectionChanged is subscribed only with the remote recovery services.
+
+## Public statistics
+
+Provides DocumentStatistics and DocumentStatisticsChanged from @lunaris/active-document. Counts cover the raw buffer including unsaved input and recovered drafts, following load/reload, relocation and file changes. Loading/unsupported files expose null counts. See [the SDK contract](../../../../DOCS/reference/active-document.md#buffer-statistics).

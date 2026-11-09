@@ -79,3 +79,13 @@ export const AccountSessionChanged = defineEvent<{ readonly current: AccountStat
   validate: input => { const v = input as { current?: AccountState | null } | null; return !!v && (v.current === null || (!!v.current && typeof v.current.server === "string" && typeof v.current.epoch === "string" && typeof v.current.account?.id === "string" && typeof v.current.account.login === "string")); } });
 export const ConnectionChanged = defineEvent<{ readonly state: "connected" | "offline" | "expired"; readonly epoch: string }>({ id: "lunaris.connection-changed", version: "1.0.0", consumePermission: "account.access",
   validate: input => { const v = input as { state?: string; epoch?: string } | null; return !!v && ["connected", "offline", "expired"].includes(v.state ?? "") && typeof v.epoch === "string"; } });
+
+/** Last observed request outcome, not a promise of live reachability. */
+export interface ConnectionSnapshot {
+  readonly server: string;
+  readonly epoch: string;
+  readonly state: "connected" | "offline" | "expired" | "unknown";
+}
+export const ConnectionStatus = defineApi<{ current(): Readonly<ConnectionSnapshot> | null }>({
+  id: "lunaris.connection-status", version: "1.0.0", consumePermission: "account.access", validate: methods(["current"]),
+});

@@ -10,6 +10,16 @@
       "kind": "api",
       "id": "lunaris.document-protection",
       "version": "1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.document-statistics",
+      "version": "1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.document-statistics-changed",
+      "version": "1.0.0"
     }
   ],
   "requires": [

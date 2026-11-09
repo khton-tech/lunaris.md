@@ -613,3 +613,7 @@ root and delegates real directory traversal to the controller through Components
 Integration through Sidebar is complete. Behavior tests cover creation targets,
 sort callbacks and disabled controls. Native visual acceptance remains pending:
 both themes, open menu, selection/focus and narrow/short Workspace layouts.
+
+## Workspace bottom target
+
+WorkspaceLayout accepts optional bottomVisible and lends a stable bottom target beneath main within its pane. The layout owns Paper surface, spacing, corners and overflow. Embedded/content views inherit this surface. Files and the rail retain full height. Targets survive theme, visibility and prop updates.

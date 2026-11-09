@@ -80,3 +80,7 @@ persisted selection changes. Handlers register onSettled(listener) before awaiti
 and return the input with a nullable FsFailure, preserving earlier errors. A
 failure retains the previous document; a thrown handler also releases registered
 completion listeners. Never recursively call open/close from this serialized hook.
+
+## Buffer statistics
+
+DocumentStatistics.current() and DocumentStatisticsChanged ({ current }) are additive 1.0 SDK contracts with vault.access. Text Editor supplies a frozen snapshot { target: { vaultId, path }, state, words, letters }, or null without an active file. State is ready/loading/unavailable; counts are null unless ready. Subscribe before reading the snapshot and match its target to ActiveDocument. Counts use the current unsaved raw Markdown buffer. Words use Intl.Segmenter("und", word) word-like segments, including numeric words. Letters count Unicode Letter code points, excluding spaces, digits, punctuation, combining marks and emoji. Updates coalesce per microtask, cache by buffer text and publish only changed snapshots. No document text is exposed.

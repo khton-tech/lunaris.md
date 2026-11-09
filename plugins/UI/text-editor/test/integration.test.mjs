@@ -12,7 +12,7 @@ import { Logger } from '@lunaris/logging';
 import { Config } from '@lunaris/config';
 import { Filesystem, FilesystemDriver, FilesystemRootsDriver, FilesystemObservationDriver, FilesystemLocationsDriver, DirectoryLocationsDriver, ApplicationDirectoryDriver, DriverFileChanged, filesystemMethods } from '@lunaris/filesystem';
 import { Vault } from '@lunaris/vault';
-import { ActiveDocument } from '@lunaris/active-document';
+import { DocumentStatistics, DocumentStatisticsChanged, ActiveDocument } from '@lunaris/active-document';
 import { ActiveScreen } from '@lunaris/active-screen';
 import { Components } from '@lunaris/components';
 import { Themes } from '@lunaris/themes';
@@ -77,8 +77,8 @@ async function setup(options = {}) {
   kernel.installMock(ApplicationDirectoryDriver, { async openConfig() { return fail('UNSUPPORTED'); } }, { grants: ['filesystem.native'] });
   for (const plugin of [filesystem, vault, documents, screenProvider, screenHost, components, themes, localization, mantine, editor, closeGuard.plugin]) kernel.register(plugin);
 
-  kernel.register(definePlugin({ manifest: metadata('test.consumer', [], [Filesystem, Vault, ActiveDocument, ActiveScreen, Components, Themes].map(t => ({ kind: t.kind, id: t.id, range: '^' + t.version })), ['vault.access', 'filesystem.access', 'ui.dom']), activate(ctx) {
-    api = { ctx, fs: ctx.use(Filesystem), vault: ctx.use(Vault), documents: ctx.use(ActiveDocument), screens: ctx.use(ActiveScreen), components: ctx.use(Components), themes: ctx.use(Themes) };
+  kernel.register(definePlugin({ manifest: metadata('test.consumer', [], [DocumentStatistics, DocumentStatisticsChanged, Filesystem, Vault, ActiveDocument, ActiveScreen, Components, Themes].map(t => ({ kind: t.kind, id: t.id, range: '^' + t.version })), ['vault.access', 'filesystem.access', 'ui.dom']), activate(ctx) {
+    api = { ctx, statistics: ctx.use(DocumentStatistics), fs: ctx.use(Filesystem), vault: ctx.use(Vault), documents: ctx.use(ActiveDocument), screens: ctx.use(ActiveScreen), components: ctx.use(Components), themes: ctx.use(Themes) };
   } }));
   for (const [id, grants] of Object.entries({ 'test.driver': ['filesystem.native'], 'lunaris.filesystem-provider': ['filesystem.access', 'filesystem.app-config'], 'lunaris.vault-manager': ['filesystem.access'], 'lunaris.active-document-provider': ['vault.access', 'config.access', 'filesystem.access'], 'lunaris.active-screen-provider': ['vault.access'], [screenHost.manifest.id]: ['ui.dom'], 'lunaris.component-provider': ['ui.dom'], 'lunaris.mantine-components': ['ui.dom'], 'lunaris.text-editor': ['ui.dom', 'vault.access', 'filesystem.access'], 'test.consumer': ['vault.access', 'filesystem.access', 'ui.dom'] })) for (const grant of grants) kernel.grant(id, grant);
   kernel.grant(closeGuard.plugin.manifest.id, 'vault.access');
@@ -448,4 +448,18 @@ test('repeated hard tabs retain standalone and nested lists and Shift-Tab revers
     }
     await s.stop();
   }
+});
+
+test('public statistics follow unsaved Unicode input, document changes and closure', async () => {
+ const s = await setup({ initial: 'Привет мир' });
+ try {
+  assert.equal(s.statistics.current().words, 2); assert.equal(s.statistics.current().letters, 9);
+  const changes = []; s.ctx.events.on(DocumentStatisticsChanged, value => changes.push(value.current));
+  s.edit('Hello, ёж! 123 👩‍💻'); await flush();
+  assert.equal(s.statistics.current().words, 3); assert.equal(s.statistics.current().letters, 7);
+  assert.equal(s.disk.get('a/note.md').text, 'Привет мир'); assert.ok(changes.some(v => v?.letters === 7));
+  await s.documents.open({ vaultId: 'a', path: 'other.md' }); await flush(); assert.equal(s.statistics.current().letters, 5);
+  await s.documents.open({ vaultId: 'a', path: 'image.png' }); await flush(); assert.equal(s.statistics.current().state, 'unavailable'); assert.equal(s.statistics.current().words, null);
+  await s.documents.close(); await flush(); assert.equal(s.statistics.current(), null);
+ } finally { await s.stop(); }
 });

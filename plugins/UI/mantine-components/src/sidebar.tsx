@@ -5,20 +5,21 @@ import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
 
-type Regions = Readonly<Record<"main" | "left-rail" | "left-panel", HTMLElement>>;
+type Regions = Readonly<Record<"main" | "left-rail" | "left-panel" | "bottom", HTMLElement>>;
 interface LayoutProps {
-  readonly railVisible: boolean; readonly panelVisible: boolean; readonly mainLabel: string; readonly panelLabel: string;
+  readonly bottomVisible?: boolean; readonly railVisible: boolean; readonly panelVisible: boolean; readonly mainLabel: string; readonly panelLabel: string;
   readonly onTargets: (targets: Regions | null) => void; readonly onDismiss: () => void;
   readonly panelWidth?: number; readonly resizeLabel?: string; readonly onPanelWidth?: (width: number) => void;
 }
 export function layoutProps(value: ComponentProps): LayoutProps {
+  if (value.bottomVisible !== undefined && typeof value.bottomVisible !== "boolean") throw new TypeError("Invalid bottom visibility.");
   if (typeof value.railVisible !== "boolean" || typeof value.panelVisible !== "boolean" || typeof value.mainLabel !== "string" || typeof value.panelLabel !== "string" || typeof value.onTargets !== "function" || typeof value.onDismiss !== "function") throw new TypeError("Invalid workspace layout props.");
   if ((value.panelWidth !== undefined && (typeof value.panelWidth !== "number" || !Number.isFinite(value.panelWidth) || value.panelWidth < 120 || value.panelWidth > 4096)) ||
     (value.resizeLabel !== undefined && typeof value.resizeLabel !== "string") || (value.onPanelWidth !== undefined && typeof value.onPanelWidth !== "function")) throw new TypeError("Invalid side panel sizing props.");
   return value as unknown as LayoutProps;
 }
 export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: ReturnType<typeof resolveTheme> }) {
-  const main = useRef<HTMLDivElement>(null); const rail = useRef<HTMLDivElement>(null); const panel = useRef<HTMLDivElement>(null);
+  const bottom = useRef<HTMLDivElement>(null); const main = useRef<HTMLDivElement>(null); const rail = useRef<HTMLDivElement>(null); const panel = useRef<HTMLDivElement>(null);
   const content = useRef<HTMLDivElement>(null); const [available, setAvailable] = useState(0);
   const [width, setWidth] = useState(props.panelWidth ?? 288); const latestWidth = useRef(width);
   useLayoutEffect(() => { latestWidth.current = props.panelWidth ?? 288; setWidth(latestWidth.current); }, [props.panelWidth]);
@@ -50,10 +51,10 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
     return () => document.removeEventListener("keydown", suppressTab, true);
   }, []);
   useLayoutEffect(() => {
-    publish(Object.freeze({ main: main.current!, "left-rail": rail.current!, "left-panel": panel.current! }));
+    publish(Object.freeze({ main: main.current!, "left-rail": rail.current!, "left-panel": panel.current!, bottom: bottom.current! }));
     return () => publish(null);
   }, [publish]);
-  return <Box className="lm-workspace-layout" style={{ ...theme.contentStyle, "--workspace-panel-width": `${width}px` }} data-window-chrome={theme.windowChrome || undefined} data-rail={props.railVisible || undefined} data-panel={props.panelVisible || undefined}
+  return <Box className="lm-workspace-layout" style={{ ...theme.contentStyle, "--workspace-panel-width": `${width}px` }} data-window-chrome={theme.windowChrome || undefined} data-bottom={props.bottomVisible || undefined} data-rail={props.railVisible || undefined} data-panel={props.panelVisible || undefined}
     onKeyDown={event => { if (event.key === "Escape" && props.panelVisible) {
       event.preventDefault(); rail.current?.querySelector<HTMLButtonElement>("button[aria-pressed=true]")?.focus({ preventScroll: true }); props.onDismiss();
     } }}>
@@ -69,6 +70,7 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
       </Splitter.Pane>
       <Splitter.Pane className="lm-workspace-main-pane" defaultSize={100} min="16rem">
         <Box component="main" ref={main} className="lm-workspace-main" aria-label={props.mainLabel} />
+        <Paper ref={bottom} className="lm-workspace-bottom lm-workspace-card" shadow="none" hidden={!props.bottomVisible} />
       </Splitter.Pane>
     </Splitter>
   </Box>;

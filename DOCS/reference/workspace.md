@@ -173,3 +173,7 @@ JSDOM checks do not verify native WebView geometry. Manual acceptance: run
 without a top Vault-name/Close vault row. Check empty-state copy, keyboard navigation,
 narrow/short windows, theme inheritance and readable local overflow.
 Desktop automation is prohibited and is not used.
+
+## Bottom region (SDK 1.2)
+
+Workspace 1.2 adds the exclusive bottom region to register(). The layout lends a stable bottom target beneath main inside its Splitter pane; Files and the navigation rail keep their full height. Optional bottomVisible defaults to false. Workspace owns its supporting Paper surface, corners, margins and overflow. Contributions receive embedded/content presentation. Removing registration hides the region; it never suppresses the empty main placeholder. Existing registrations remain compatible.

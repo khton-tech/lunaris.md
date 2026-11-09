@@ -172,3 +172,15 @@ test('Workspace temporarily blocks Tab traversal and releases that policy when t
   const restored = new s.dom.window.KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
   s.dom.window.document.body.dispatchEvent(restored); assert.equal(restored.defaultPrevented, false); await s.stop();
 });
+
+test('bottom region retains its target under main without suppressing the placeholder', async () => {
+ const s = await setup(); panel(s); await s.open(); const owner = s.ctx.scope.child();
+ assert.equal(s.tools.workspace.register({ id: 'test.status', componentId: 'test.panel', region: 'bottom' }, owner.signal).ok, true);
+ await flush(); const bottom = s.surface.querySelector('.lm-workspace-bottom');
+ assert.ok(bottom.querySelector('article')); assert.equal(bottom.hidden, false);
+ assert.ok(bottom.parentElement.classList.contains('lm-workspace-main-pane')); assert.equal(bottom.previousElementSibling.tagName, 'MAIN');
+ assert.ok(s.surface.querySelector('.lm-workspace-empty'));
+ assert.equal(s.tools.workspace.register({ id: 'test.other', componentId: 'test.panel', region: 'bottom' }, s.ctx.signal).error.code, 'REGION_OCCUPIED');
+ s.tools.workspace.update('test.status', { label: 'Updated' }); assert.equal(s.surface.querySelector('.lm-workspace-bottom'), bottom);
+ assert.ok(bottom.textContent.includes('Updated')); await owner.dispose(); await flush(); assert.equal(bottom.hidden, true); await s.stop();
+});

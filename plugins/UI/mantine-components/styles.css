@@ -356,3 +356,7 @@
 
 .lm-client-update { padding:calc(var(--vault-space)*2) calc(var(--vault-space)*4);min-width:0 }
 .lm-root[data-presentation="standalone"] .lm-client-update { margin:calc(var(--vault-space)*2);background:var(--vault-panel);border-radius:var(--vault-radius) }
+
+/* Workspace owns the status region beneath main, alongside the full-height Files panel. */
+.lm-workspace-main-pane { flex-direction:column }
+.lm-workspace-bottom { display:flex;flex:0 0 auto;min-width:0;overflow:auto;margin:0 var(--workspace-gap) var(--workspace-gap) 0 }
