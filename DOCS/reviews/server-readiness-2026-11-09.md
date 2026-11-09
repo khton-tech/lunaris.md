@@ -11,6 +11,38 @@ Reviewed revisions:
 Both working trees were clean before review. No product implementation was changed.
 Server paths below are relative to the sibling `lunaris-server` repository.
 
+## Remediation follow-up
+
+The findings below describe the original reviewed revisions. Subsequent work on
+`fix/server-deployment-readiness` and `fix/server-release-integration` addresses
+their implementation and local workflow:
+
+- Finding 1: image releases are copied with node ownership, including the private
+  active pointer. Real Linux Docker execution is still pending.
+- Finding 2: installation enforces a private `0700` host deployment directory and
+  a `0644` individually mounted public-policy file, preserving readable container
+  configuration independently of the host UID. Environment/state files stay
+  `0600`. The isolated Docker smoke exercises a root-owned policy when run.
+- Finding 3: protected HTTP routes authenticate before buffering. All POST bodies
+  have declared-length and streaming byte limits (16 MiB file JSON; 16 KiB other
+  requests), with real HTTP regression tests.
+- Finding 4: `npm run server:check` provides the paired local gate. Local code CI
+  invokes it automatically when the sibling server exists; missing server source
+  is reported explicitly, or rejected when required/configured. Remote paired CI
+  remains pending by Owner preference: the server is local-only, with no remote.
+- Local synchronization is implemented by `npm run dev:server`: shared TypeScript
+  watching, browser Vite/HMR and serialized API restart. No source synchronization
+  through Git, publishing, or production update service is configured.
+- Docker smoke and backup-volume instructions now exercise/document non-root
+  operation, an actual note, offline snapshot and restore to an empty volume.
+
+Validation: 47 remote tests, 20 server tests (24 syntax-checked source files),
+3 development synchronization tests, and the existing CI-selection test passed.
+The development integration covers shared-source edits, compile errors and
+correction, API restart, session/note persistence and configuration reload using
+temporary data. Docker and manual browser/desktop visual acceptance remain
+unverified. See [local development](../guides/server-development.md).
+
 ## Assessment
 
 The native client/server foundation is usable for continued product development.

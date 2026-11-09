@@ -26,7 +26,7 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     if (scopes.length) execute(['tools/scripts/check.mjs', ...scopes]);
     if (scopes.length && hasServer()) execute(['tools/scripts/server-check.mjs']);
     else if (scopes.length) {
-      if (process.env.LUNARIS_SERVER_REQUIRED === '1') throw new Error('Server integration is required but the sibling server checkout is missing.');
+      if (process.env.LUNARIS_SERVER_REQUIRED === '1' || process.env.LUNARIS_SERVER_DIRECTORY) throw new Error('Server integration is required but the configured/sibling server checkout is missing.');
       console.log('Server integration was not run: no sibling lunaris-server checkout. Use npm run server:check with both repositories.');
     }
     execute(['tools/scripts/audit.mjs', ...(scopes.length ? [] : ['--docs-only'])]);
