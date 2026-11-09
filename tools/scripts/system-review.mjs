@@ -8,6 +8,12 @@ import { TestScheduler } from '@lunaris/test';
 import { createServerTransport } from '@lunaris/server-transport';
 import { ServerTransport, ConnectionStatus } from '@lunaris/remote';
 import { testHost, consumer } from '../testing/remote.mjs';
+import { JSDOM } from 'jsdom';
+import { useBrowser } from '../test/browser.mjs';
+import { Components } from '@lunaris/components';
+import componentProvider from '@lunaris/component-provider';
+import themeProvider from '@lunaris/theme-provider';
+import mantine from '@lunaris/mantine-components';
 
 const ok = value => ({ ok: true, value });
 const failure = { ok: false, error: { code: 'IO_ERROR', message: 'Injected storage failure' } };
@@ -68,11 +74,30 @@ async function jsonServerFailureReportsConnected() {
   } finally { await host.stopAll(); host.assertNoResources(); }
 }
 
+async function workspaceCancelsExternalTab() {
+  const dom = useBrowser(new JSDOM('<div id="target"></div><input id="outside">'));
+  const host = testHost(Object.fromEntries([componentProvider.manifest.id, mantine.manifest.id, 'test.consumer'].map(id => [id, ['ui.dom']])));
+  let api; let ctx;
+  for (const plugin of [componentProvider, themeProvider, mantine]) host.register(plugin);
+  host.register(consumer([Components], context => { ctx = context; api = ctx.use(Components); }, ['ui.dom']));
+  await host.start('test.consumer'); await host.start(mantine.manifest.id);
+  try {
+    const mounted = api.mount('lunaris.workspace-layout', dom.window.document.getElementById('target'), {
+      railVisible: true, panelVisible: true, mainLabel: 'Main', panelLabel: 'Panel', onTargets() {}, onDismiss() {},
+    }, ctx.signal);
+    assert.equal(mounted.ok, true);
+    const event = new dom.window.KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });
+    dom.window.document.getElementById('outside').dispatchEvent(event);
+    assert.equal(event.defaultPrevented, true);
+  } finally { await host.stopAll(); host.assertNoResources(); dom.window.close(); }
+}
+
 try {
   await discardedDraftReturns();
   await caughtFailureStopsHost();
   await jsonServerFailureReportsConnected();
-  console.log('Review reproductions confirmed: discarded draft returns; caught API failure stops host without save gate; JSON 503 reports connected. No product data written.');
+  await workspaceCancelsExternalTab();
+  console.log('Review reproductions confirmed: discarded draft returns; caught API failure stops host without save gate; JSON 503 reports connected; Workspace cancels Tab outside its region. No product data written.');
 } catch (error) {
   console.error(`Review reproduction changed or failed: ${error.message}`);
   process.exitCode = 1;
