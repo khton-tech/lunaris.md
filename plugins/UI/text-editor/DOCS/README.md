@@ -144,13 +144,17 @@ Mantine owns the borrowed text target and recovery controls. No new control,
 SDK contract, provider or cross-plugin connection is required. Existing Themes,
 Components, ActiveDocument, Filesystem and session integrations remain connected.
 
-Short typed edits fade from partial opacity to full readability. Short deletions
+Following the Owner's modern Word reference, short typed edits softly fade from
+low opacity and slight blur to full readability, with no translation or scaling.
+Short deletions
 leave a fading, zero-width, noninteractive afterimage at the deletion boundary.
 The document and caret update immediately: afterimages are aria-hidden,
 noneditable widgets and never enter document text, clipboard source, history or
-saves. Only opacity animates; document layout is not animated. The active theme's
-fast motion/easing tokens are inherited (120 ms fallback, capped at 180 ms).
-Feedback expires after 200 ms and is replaced on the next document edit.
+saves. Only opacity and a subtle blur animate; document layout is not animated.
+The active theme's normal motion/easing tokens are inherited (200 ms fallback,
+capped at 240 ms). Feedback expires independently after 260 ms, so rapid typing
+does not abruptly finish or restart earlier letters. A subsequent edit replaces
+deletion afterimages; retained insertion marks keep their own DOM identity.
 View disposal cancels cleanup and removes the media-query listener.
 
 Paste, external changes, undo/redo, IME composition, whitespace-only edits,
@@ -159,7 +163,7 @@ not animate. At most 32 changed ranges receive feedback per transaction.
 Reduced-motion preference suppresses feedback and immediately clears active
 feedback when changed. There are no typing logs or additional persistence calls.
 
-Targeted tests cover expiry, rapid deletion, document/selection/history retention,
+Targeted tests cover expiry, rapid typing with retained animation nodes, rapid deletion, document/selection/history retention,
 multiple carets, reduced motion, exclusions and composed Workspace/Live Preview
 saving without afterimages. Native visual acceptance remains pending: type and
 delete quickly at line ends and in the middle of text, near Markdown markers,

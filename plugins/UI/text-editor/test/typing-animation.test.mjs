@@ -29,7 +29,7 @@ test('short typed text fades without changing selection/history and feedback exp
   view.dispatch({ changes: { from: 0, insert: 'я' }, selection: { anchor: 1 }, userEvent: 'input.type' });
   assert.equal(view.contentDOM.querySelector('.cm-typing-insertion').textContent, 'я');
   assert.equal(view.state.selection.main.head, 1);
-  await new Promise(resolve => setTimeout(resolve, 230));
+  await new Promise(resolve => setTimeout(resolve, 300));
   assert.equal(view.contentDOM.querySelector('.cm-typing-insertion'), null);
   assert.equal(view.state.doc.toString(), 'я');
   assert.equal(undo(view), true); assert.equal(view.state.doc.toString(), '');
@@ -49,7 +49,7 @@ test('deleted text is a temporary inaccessible widget, never source text; rapid 
   view.dispatch({ changes: { from: 1, to: 2 }, userEvent: 'delete.forward' });
   assert.equal(view.contentDOM.querySelectorAll('.cm-typing-deletion').length, 1);
   assert.equal(view.contentDOM.querySelector('.cm-typing-deletion').textContent, 'c');
-  await new Promise(resolve => setTimeout(resolve, 230));
+  await new Promise(resolve => setTimeout(resolve, 300));
   assert.equal(view.contentDOM.querySelector('.cm-typing-deletion'), null);
   assert.equal(view.state.doc.toString(), 'a');
 });
@@ -81,4 +81,18 @@ test('multiple carets animate their own insertions without moving selections', t
     selection: EditorSelection.create([EditorSelection.cursor(1), EditorSelection.cursor(4)]), userEvent: 'input.type' });
   assert.deepEqual([...view.contentDOM.querySelectorAll('.cm-typing-insertion')].map(node => node.textContent), ['x', 'y']);
   assert.deepEqual(view.state.selection.ranges.map(range => range.head), [1, 4]);
+});
+
+test('rapid typing lets earlier letters finish without recreating their animation nodes', async t => {
+  const { view } = setup(t);
+  view.dispatch({ changes: { from: 0, insert: 'a' }, userEvent: 'input.type' });
+  const first = view.contentDOM.querySelector('.cm-typing-insertion');
+  view.dispatch({ changes: { from: 1, insert: 'b' }, userEvent: 'input.type' });
+  const letters = [...view.contentDOM.querySelectorAll('.cm-typing-insertion')];
+  assert.deepEqual(letters.map(node => node.textContent), ['a', 'b']);
+  assert.equal(letters[0], first);
+  assert.notEqual(letters[0].dataset.typing, letters[1].dataset.typing);
+  await new Promise(resolve => setTimeout(resolve, 300));
+  assert.equal(view.contentDOM.querySelector('.cm-typing-insertion'), null);
+  assert.equal(view.state.doc.toString(), 'ab');
 });
