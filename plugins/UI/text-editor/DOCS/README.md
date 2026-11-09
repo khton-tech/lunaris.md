@@ -528,3 +528,11 @@ The controller owns registration lifetimes; `extensions.ts` owns the registry;
 `codemirror.ts` applies contributions in dedicated compartments. Registration and
 removal preserve editor identity, document, selection and undo history and do not
 write files. No callout plugin or new UI role is included in this foundation.
+
+## Callout integration
+
+The independent [Callouts plugin](../../callouts/DOCS/README.md) contributes syntax,
+presentation and Enter handling through EditorExtensions. Text Editor continues
+owning sessions, persistence and undo; no callout-specific implementation or private
+contract is added to the editor. During extension teardown, scheduled statistics
+refresh tolerates retiring SDK dependencies instead of rejecting asynchronously.

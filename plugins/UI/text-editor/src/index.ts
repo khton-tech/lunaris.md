@@ -74,7 +74,8 @@ export default definePlugin({ manifest, activate(ctx) {
     if (scheduled || ctx.signal.aborted) return; scheduled = true;
     void Promise.resolve().then(() => {
       scheduled = false; if (ctx.signal.aborted) return;
-      publishStatistics();
+      // Contribution teardown can enqueue work while dependencies are retiring.
+      try { publishStatistics(); } catch (error) { if (isSdkUnavailable(error)) return; throw error; }
       for (const view of views) {
         try { view.render(); } catch (error) { logger.error(ctx.pluginId, "Cannot render editor", { error }); }
       }

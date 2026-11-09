@@ -258,7 +258,7 @@ test('workspace header retains intrinsic block sizing while full-height surfaces
 
 test('registers the replaceable roles, renders real Mantine controls, preserves siblings and releases roots', async () => {
   const s = await setup(); await s.start();
-  assert.deepEqual(s.components.list(), ['lunaris.account-access', 'lunaris.active-screen', 'lunaris.client-update', 'lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.settings-choices', 'lunaris.settings-items', 'lunaris.settings-navigation', 'lunaris.settings-page', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.status-bar', 'lunaris.task-checkbox', 'lunaris.text-editor', 'lunaris.vault-selector', 'lunaris.window-titlebar', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
+  assert.deepEqual(s.components.list(), ['lunaris.account-access', 'lunaris.active-screen', 'lunaris.callout-header', 'lunaris.client-update', 'lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.settings-choices', 'lunaris.settings-items', 'lunaris.settings-navigation', 'lunaris.settings-page', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.status-bar', 'lunaris.task-checkbox', 'lunaris.text-editor', 'lunaris.vault-selector', 'lunaris.window-titlebar', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
   const owner = s.ctx.scope.child();
   const mounted = s.components.mount('lunaris.vault-selector', s.target, selector, owner.signal); assert.equal(mounted.ok, true);
   assert.ok(s.target.querySelector('.mantine-Button-root')); assert.ok(s.target.querySelector('.mantine-TextInput-input'));
@@ -840,4 +840,15 @@ test('status role escapes names, preserves its root across theme changes and own
   assert.equal(footer.querySelector('.lm-status-server'), null);
   assert.equal(s.components.mount('lunaris.status-bar', s.target, { ...props, wordsLabel: 2 }, s.ctx.signal).ok, false);
  } finally { await s.stop(); }
+});
+
+test('callout header owns themed Mantine disclosure and preserves focus, escaping and props on updates',async()=>{
+ const s=await setup();await s.start();let toggles=0,edits=0;
+ const props={title:'<script>Title</script>',kind:'warning',foldable:true,collapsed:true,toggleLabel:'Toggle',editLabel:'Edit',onToggle(){toggles++;},onEdit(){edits++;}};
+ const mounted=s.components.mount('lunaris.callout-header',s.target,props,s.ctx.signal);assert.equal(mounted.ok,true);
+ const root=s.target.querySelector('.lm-callout-header'),toggle=root.querySelector('[aria-expanded]'),title=root.querySelector('.lm-callout-title');
+ assert.equal(root.querySelector('script'),null);assert.equal(toggle.getAttribute('aria-expanded'),'false');assert.equal(root.closest('.lm-root').dataset.presentation,'embedded');
+ toggle.focus();toggle.click();assert.equal(toggles,1);mounted.value.update({...props,collapsed:false,title:'Localized title'});assert.equal(root.querySelector('[aria-expanded]'),toggle);assert.equal(s.dom.window.document.activeElement,toggle);assert.equal(toggle.getAttribute('aria-expanded'),'true');
+ title.click();assert.equal(edits,1);assert.equal(mounted.value.update({...props,kind:'invalid'}).ok,false);
+ mounted.value.dispose();await s.stop();
 });

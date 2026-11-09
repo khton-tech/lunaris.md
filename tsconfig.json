@@ -225,6 +225,9 @@
     },
     {
       "path": "packages/editor"
+    },
+    {
+      "path": "plugins/UI/callouts"
     }
   ]
 }

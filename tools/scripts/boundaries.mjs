@@ -3,6 +3,7 @@ import path from 'node:path';
 import ts from 'typescript';
 
 export const dependencies = {
+  callouts: ['sdk', 'editor', 'logging', 'components', 'localization', 'themes'],
   editor: ['sdk'],
   clipboard: ['sdk'],
   'clipboard-provider': ['sdk', 'logging', 'clipboard'],
@@ -12,7 +13,7 @@ export const dependencies = {
   'browser-navigation': ["sdk","remote","logging","active-document"],
   'client-updates': ["sdk","remote","logging"],
   web: ['application-host', 'mantine-components'],
-  'application-host': ['clipboard-provider','browser-clipboard','status-bar','client-updates','client-update-ui','browser-navigation',"filesystem-provider","logger","dev-tools-logger","kernel","sdk","vault-manager","config-manager","localization-manager","slot-provider","web-slot-driver","theme-provider","component-provider","base-theme-engine","startup","startup-provider","theme-settings","runner","vault-history","vault-selector","mantine-components","workspace-plugin","workspace-provider","sidebar-plugin","sidebar-provider","file-explorer","context-menu-provider","active-document","active-document-provider","active-screen-provider","active-screen-plugin","settings-provider","settings-plugin","interface-settings","text-editor","vault","browser-storage","server-transport","remote-filesystem","account-session","drafts-provider","account-access","filesystem-router","filesystem"],
+  'application-host': ['callouts','clipboard-provider','browser-clipboard','status-bar','client-updates','client-update-ui','browser-navigation',"filesystem-provider","logger","dev-tools-logger","kernel","sdk","vault-manager","config-manager","localization-manager","slot-provider","web-slot-driver","theme-provider","component-provider","base-theme-engine","startup","startup-provider","theme-settings","runner","vault-history","vault-selector","mantine-components","workspace-plugin","workspace-provider","sidebar-plugin","sidebar-provider","file-explorer","context-menu-provider","active-document","active-document-provider","active-screen-provider","active-screen-plugin","settings-provider","settings-plugin","interface-settings","text-editor","vault","browser-storage","server-transport","remote-filesystem","account-session","drafts-provider","account-access","filesystem-router","filesystem"],
   'account-access': ['sdk', 'remote', 'filesystem', 'vault', 'logging', 'localization', 'components', 'slots', 'slot-dom', 'startup'],
   'drafts-provider': ['sdk', 'remote', 'filesystem', 'logging'],
   'browser-storage': ['sdk', 'remote', 'filesystem', 'logging'],
@@ -101,6 +102,7 @@ export const packagePath = scope => {
   if (scope === 'window-titlebar') return 'plugins/UI/window-titlebar';
   if (scope === 'window-provider') return 'plugins/systems/window';
   if (scope === 'tauri-window') return 'plugins/systems/driver/tauri-window';
+  if (scope === 'callouts') return 'plugins/UI/callouts';
   if (scope === 'text-editor') return 'plugins/UI/text-editor';
   if (scope === 'interface-settings') return 'plugins/UI/interface-settings';
   if (scope === 'settings-provider') return 'plugins/UI/settings-provider';
@@ -156,6 +158,7 @@ export function checkSource(source, filename, scope) {
   if (scope === 'config-manager' && path.resolve(filename) === path.resolve('plugins/systems/config/src/codec.ts')) allowed.add('smol-toml');
   if (scope === 'components-kit' && path.resolve(filename) === path.resolve('plugins/UI/components-kit/src/controls.ts')) allowed.add('lucide');
   if (scope === 'editor') for (const name of ['@codemirror/state', '@lezer/markdown']) allowed.add(name);
+  if (scope === 'callouts') for (const name of ['@codemirror/state', '@codemirror/view', '@codemirror/language', '@lezer/markdown']) allowed.add(name);
   if (scope === 'text-editor') {
     for (const name of ['@codemirror/state', '@codemirror/view', '@codemirror/commands', '@codemirror/lang-markdown', '@codemirror/language', '@lezer/highlight', '@lezer/markdown']) allowed.add(name);
   }
@@ -171,7 +174,7 @@ export function checkSource(source, filename, scope) {
       return;
     }
     const value = node.text;
-    if (['status-bar', 'window-titlebar', 'window-provider', 'tauri-window', 'text-editor', 'interface-settings', 'settings-provider', 'settings-plugin', 'active-screen-provider', 'active-screen-plugin', 'active-document-provider', 'context-menu-provider', 'file-explorer', 'sidebar-provider', 'sidebar-plugin', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'components-kit', 'mantine-components', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'].includes(scope) &&
+    if (['callouts', 'status-bar', 'window-titlebar', 'window-provider', 'tauri-window', 'text-editor', 'interface-settings', 'settings-provider', 'settings-plugin', 'active-screen-provider', 'active-screen-plugin', 'active-document-provider', 'context-menu-provider', 'file-explorer', 'sidebar-provider', 'sidebar-plugin', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'components-kit', 'mantine-components', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'].includes(scope) &&
         path.resolve(filename) === path.resolve(packagePath(scope), 'src/index.ts') &&
         value === '../manifest.json') return;
     if (scope === 'web' && path.resolve(filename) === path.resolve('hosts/web/src/bootstrap.ts') && value === '../../../resources/ascii_art.txt?raw') return;

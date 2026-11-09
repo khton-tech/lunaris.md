@@ -161,6 +161,9 @@
     },
     {
       "path": "../../plugins/systems/driver/browser-clipboard"
+    },
+    {
+      "path": "../../plugins/UI/callouts"
     }
   ]
 }
