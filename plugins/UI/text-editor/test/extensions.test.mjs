@@ -45,4 +45,3 @@ test('live adapter adds/removes contributions without replacing view, text, sele
   const next=mountEditor(document.createElement('div'),session,undefined,null,'Editor',()=>{},()=>{},true,undefined,undefined,undefined,[extension]);
   assert.equal(next.view.state.facet(facet),7);next.dispose();
 });
-
