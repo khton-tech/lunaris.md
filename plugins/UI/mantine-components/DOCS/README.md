@@ -568,8 +568,9 @@ recovery manually in Workspace; native visual acceptance remains pending.
 as a separate Mantine Paper with ActionIcon controls and Lucide minimize,
 maximize/restore and close icons. Reference: the Owner's Lunaris screenshot,
 existing shared quiet controls, and [Mantine UI buttons](https://ui.mantine.dev/category/buttons/).
-The intentional difference is theme-derived spacing, a rounded supporting surface
-and no OS-painted caption. No copied gallery composition or new runtime is added.
+The titlebar fills its allocated row with a flat, square surface in every theme;
+the Owner explicitly requested this exception to the floating treatment of other
+shell surfaces. No copied gallery composition or new runtime is added.
 
 Required props: title, focused, maximized, canMinimize, canMaximize, canClose,
 canDrag; localized minimizeLabel, maximizeLabel, restoreLabel, closeLabel;
@@ -581,12 +582,12 @@ left mouse button over the title area; double-click requests maximize/restore.
 Buttons are outside that area, with keyboard-only focus and distinct press states.
 
 Ownership: the root Slots container supplies vertical ordering and available
-width. This role owns only titlebar surface, height, margin and internal controls;
+width. This role owns only titlebar surface, height and internal controls;
 it neither covers nor recreates Workspace or startup screens. Its public default
 presentation is standalone/content: the owned root paints the theme page background
-behind caption margins so no host boot color leaks through on theme changes.
-In windowChrome mode the caption has no external margins or rounded cutouts: its
-blue themed surface fills the entire allocated row to the top and both side edges.
+behind the full-row caption so no host boot color leaks through on theme changes.
+The caption has no external margins or rounded cutouts in any theme. In windowChrome
+mode its blue themed surface and controls fill the same allocated row.
 Caption text uses captionText, overriding the normal content text color. An
 explicit embedded context remains transparent. Theme windowChrome caption colors are applied
 only within this owned caption. The controller releases native chrome ownership
@@ -597,7 +598,7 @@ focus in both themes remain manual checks in the real host.
 
 Caption width correction: the Owner's follow-up screenshot exposed a caption
 shrunk to its contents. The caption now grows across the row inside the UIKit-owned
-flex root while retaining intrinsic height, theme-dependent margins and fixed-size actions.
+flex root while retaining intrinsic height, the flat full-row surface and fixed-size actions.
 The remaining width belongs to the title/drag area; controls align at the trailing
 edge. No slot geometry, provider contracts or other plugin surfaces are changed.
 A composed regression loads the actual stylesheet and checks width-growth and

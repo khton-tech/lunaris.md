@@ -785,9 +785,14 @@ test('window titlebar owns one surface, preserves controls on updates and separa
       onMinimize: () => calls.push('minimize'), onToggleMaximize: () => calls.push('maximize'), onClose: () => calls.push('close'), onDrag: () => calls.push('drag') };
     const mounted = s.components.mount('lunaris.window-titlebar', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true);
     const header = s.target.querySelector('header'); const close = header.querySelector('[aria-label=Close]');
+    const sheet = s.dom.window.document.createElement('style');
+    sheet.textContent = readFileSync(new URL('../styles.css', import.meta.url), 'utf8').replace(/^@import .*;$/gm, '');
+    s.dom.window.document.head.append(sheet);
     assert.equal(s.target.firstChild.textContent, 'Sibling');
     assert.equal(header.closest('.lm-root').style.backgroundColor, 'transparent');
     assert.equal(header.closest('.lm-root').dataset.sizing, 'content');
+    assert.equal(s.dom.window.getComputedStyle(header).margin, '0px');
+    assert.equal(s.dom.window.getComputedStyle(header).borderRadius, '0px');
     assert.equal(header.querySelector('.lm-window-titlebar-title').textContent, props.title);
     const drag = header.querySelector('.lm-window-titlebar-drag');
     drag.dispatchEvent(new s.dom.window.MouseEvent('mousedown', { bubbles: true, button: 0, detail: 1 }));
@@ -804,6 +809,8 @@ test('window titlebar owns one surface, preserves controls on updates and separa
     assert.equal(header.querySelector('[aria-label=Close]'), close);
     const root = header.closest('.lm-root');
     assert.equal(root.style.backgroundColor, 'rgb(221, 221, 221)');
+    assert.equal(s.dom.window.getComputedStyle(header).margin, '0px');
+    assert.equal(s.dom.window.getComputedStyle(header).borderRadius, '0px');
     mounted.value.update({ ...props, presentation: { mode: 'embedded', sizing: 'content' } });
     assert.equal(root.style.backgroundColor, 'transparent', 'An explicitly embedded caption must inherit its container surface.');
     mounted.value.update(props); assert.equal(root.style.backgroundColor, 'rgb(221, 221, 221)');

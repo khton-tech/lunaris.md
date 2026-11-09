@@ -11,9 +11,11 @@ of startup, Vault selection and Workspace screens. Slots owns ordering/width;
 the `lunaris.window-titlebar` UIKit role owns caption surface, height and controls.
 The controller explicitly requests standalone/content presentation because this
 is an independent shell region. Its owned root paints the current theme page
-background behind caption margins; it does not repaint the host or other slots.
-Native-style windowChrome themes remove these margins and corner cutouts so the
-caption surface covers the complete row. Ordinary themes retain their card spacing.
+background and the titlebar surface fills its allocated row edge to edge with
+square corners in every theme. This is the Owner-requested flat titlebar exception
+to the floating card treatment for other shell regions. It does not repaint the
+host or other slots. Native-style windowChrome themes may still supply their own
+caption colors and control finishes.
 The controller owns localization, native state and callbacks only. It never paints,
 reparents or resizes another plugin's region. See the [UIKit role](../../mantine-components/DOCS/README.md#window-titlebar-role).
 
