@@ -20,12 +20,25 @@ try {
       const root = packagePath(scope);
       const pkg = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
       assert.equal(pkg.private, true, `${scope} must remain private until separate publishing authorization`);
-      assert.deepEqual(Object.keys(pkg.exports), scope === 'mantine-components' ? ['.', './styles.css'] : ['.']);
-      if (scope === 'mantine-components') await stat(path.join(root, pkg.exports['./styles.css']));
-      await stat(path.join(root, pkg.exports['.'].types));
-      await import(pkg.name);
-      for (const subpath of ['src/index.js', 'dist/index.js', 'package.json']) {
-        await assert.rejects(import(`${pkg.name}/${subpath}`), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
+      const expectedExports = scope === 'web' ? [] : scope === 'application-host'
+        ? ['.', './session', './slots', './view', './scheduler', './shell.css']
+        : scope === 'mantine-components' ? ['.', './styles.css'] : ['.'];
+      assert.deepEqual(Object.keys(pkg.exports ?? {}), expectedExports, `${scope} public exports changed`);
+      for (const [subpath, target] of Object.entries(pkg.exports ?? {})) {
+        if (typeof target === 'string') await stat(path.join(root, target));
+        else {
+          await stat(path.join(root, target.types));
+          await import(subpath === '.' ? pkg.name : pkg.name + subpath.slice(1));
+        }
+      }
+      if (scope === 'web') {
+        // The browser executable is bootstrapped by HTML, not imported by Node.
+        await stat(path.join(root, 'index.html'));
+        await stat(path.join(root, 'dist/bootstrap.js'));
+      } else {
+        for (const subpath of ['src/index.js', 'dist/index.js', 'package.json']) {
+          await assert.rejects(import(`${pkg.name}/${subpath}`), { code: 'ERR_PACKAGE_PATH_NOT_EXPORTED' });
+        }
       }
       for (const name of Object.keys(pkg.dependencies ?? {})) {
         if (name.startsWith('@lunaris/')) assert.ok(dependencies[scope].some(dep => name === `@lunaris/${dep}`), `${scope} has undeclared architecture dependency ${name}`);
