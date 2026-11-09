@@ -1,6 +1,6 @@
 import { definePlugin } from "@lunaris/sdk";
 import type { ResourceScope } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Window, WindowChanged } from "@lunaris/window";
 import type { WindowResult } from "@lunaris/window";
 import { Slots } from "@lunaris/slots";
@@ -14,7 +14,7 @@ const role = "lunaris.window-titlebar";
 interface View { readonly owner: ResourceScope; mounted?: MountedComponent; }
 
 export default definePlugin({ manifest, async activate(ctx) {
-  const logger = ctx.use(Logger); const window = ctx.use(Window);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal); const window = ctx.use(Window);
   const slots = ctx.use(Slots); const targets = ctx.use(SlotDom); const components = ctx.use(Components);
   const localization = ctx.use(Localization);
   logger.debug(ctx.pluginId, "Activating window titlebar");

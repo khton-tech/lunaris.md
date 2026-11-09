@@ -1,11 +1,11 @@
 import type { PluginContext } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Vault, VaultChanged, VaultHistory, VaultHistoryChanged } from "@lunaris/vault";
 import type { RecentVault, VaultHistoryResult } from "@lunaris/vault";
 
 /** Workspace navigation state is independent of file-tree sessions. */
 export function createVaultSwitcher(ctx: PluginContext, changed: () => void) {
-  const vaults = ctx.use(Vault); const history = ctx.use(VaultHistory); const logger = ctx.use(Logger);
+  const vaults = ctx.use(Vault); const history = ctx.use(VaultHistory); const logger = scopeLogger(ctx.use(Logger), ctx.signal);
   let entries: readonly RecentVault[] = []; let version = 0; let busy = false;
   let error = ""; let historyError = false; let activeReference: string | null = null;
   async function load(): Promise<void> {

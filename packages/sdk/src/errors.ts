@@ -27,3 +27,8 @@ export class LunarisError extends Error {
     this.context = Object.freeze({ ...context });
   }
 }
+
+/** Expected endpoint retirement during stop/replacement, never permission denial. */
+export function isSdkUnavailable(error: unknown): error is LunarisError {
+  return error instanceof LunarisError && (error.code === "SCOPE_CLOSED" || error.code === "PROVIDER_UNAVAILABLE");
+}

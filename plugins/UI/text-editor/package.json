@@ -25,7 +25,8 @@
     "@lunaris/logging": "0.1.0",
     "@lunaris/sdk": "0.1.0",
     "@lunaris/themes": "0.1.0",
-    "@lunaris/vault": "0.1.0"
+    "@lunaris/vault": "0.1.0",
+    "@lunaris/remote": "0.1.0"
   },
   "scripts": {
     "build": "tsc -b"

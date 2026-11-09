@@ -1,5 +1,5 @@
 import { definePlugin } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Config } from "@lunaris/config";
 import { Themes } from "@lunaris/themes";
 import manifest from "../manifest.json" with { type: "json" };
@@ -9,7 +9,7 @@ export function createThemeSettings(options: { readonly defaultThemeId: string }
   const fallback = options.defaultThemeId;
   if (typeof fallback !== "string" || fallback.length === 0) throw new TypeError("A default theme ID is required.");
   return definePlugin({ manifest, async activate(ctx) {
-    const logger = ctx.use(Logger);
+    const logger = scopeLogger(ctx.use(Logger), ctx.signal);
     try {
       const themes = ctx.use(Themes);
       const read = await ctx.use(Config).read(ctx.pluginId);

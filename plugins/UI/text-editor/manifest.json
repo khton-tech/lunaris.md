@@ -5,7 +5,13 @@
   "engine": "^0.1.0",
   "sdk": "^0.1.0",
   "entry": "./dist/src/index.js",
-  "provides": [],
+  "provides": [
+    {
+      "kind": "api",
+      "id": "lunaris.document-protection",
+      "version": "1.0.0"
+    }
+  ],
   "requires": [
     {
       "kind": "api",
@@ -91,6 +97,24 @@
       "kind": "event",
       "id": "lunaris.theme-changed",
       "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.drafts",
+      "range": "^1.0.0",
+      "optional": true
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.filesystem-sources",
+      "range": "^1.0.0",
+      "optional": true
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.connection-changed",
+      "range": "^1.0.0",
+      "optional": true
     }
   ],
   "permissions": [
@@ -98,5 +122,8 @@
     "vault.access",
     "filesystem.access"
   ],
-  "optionalPermissions": []
+  "optionalPermissions": [
+    "drafts.access",
+    "account.access"
+  ]
 }

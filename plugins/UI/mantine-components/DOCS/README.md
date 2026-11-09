@@ -1,5 +1,27 @@
 # Mantine components
 
+## Account and browser update roles
+
+`lunaris.account-access` accepts mode connect/login/register/vaults/trash,
+localized text, controlled address/login/password/invitation/name, account label,
+busy/error, allowLocal/invitationRequired, and entries `{ id, name, detail }`.
+Callbacks are onField, onSubmit, onToggleAuth, onLocal, onLogout, onOpen, onTrash,
+onRestore, onToggleTrash, onRefresh and onChangeServer. The standalone role owns
+its content card; embedded presentation inherits the parent's surface. Controls
+reuse Mantine TextInput/PasswordInput/Button and the existing CardRow navigation.
+The existing Vault Selector optionally accepts onServer and localized text.server.
+
+`lunaris.client-update` accepts localized message/action/error, busy and onReload.
+Its standalone/content instance owns one transient notice surface in a dedicated
+slot; it does not add a permanent Workspace header or restyle another region.
+The controller gates reload through Vault.close before requesting native reload.
+
+References: the existing product selector/navigation and
+[Mantine authentication compositions](https://ui.mantine.dev/category/authentication/).
+Account input, escaped catalog labels, controlled updates and presentation have
+DOM tests. Opened password visibility, focus, theme contrast, narrow/short layouts
+and the composed update/reload interaction remain manual visual acceptance items.
+
 ## Purpose and stack
 
 `@lunaris/mantine-components` / `lunaris.mantine-components` supplies the product
@@ -559,3 +581,14 @@ The remaining width belongs to the title/drag area; controls align at the traili
 edge. No slot geometry, provider contracts or other plugin surfaces are changed.
 A composed regression loads the actual stylesheet and checks width-growth and
 content-height policy. Native geometry after this correction remains a manual check.
+
+## Server account screens
+
+lunaris.account-access uses the existing Vault Selector CardRow and Files footer
+menu conventions. The role owns the page layout, authentication panel and catalog
+list surface; its explicit embedded presentation stays transparent. AccountAccess
+owns data, localized copy and operations through the public role props. The role
+owns only create disclosure and Mantine menu state, including focus restoration.
+References: [Mantine UI authentication](https://ui.mantine.dev/category/authentication/)
+and [navbars](https://ui.mantine.dev/category/navbars/). There is no gallery runtime.
+See [the controller guide](../../account-access/DOCS/README.md) for the integration.

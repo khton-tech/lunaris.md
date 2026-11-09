@@ -1,7 +1,7 @@
 import { ActiveDocument, ActiveDocumentChanged } from "@lunaris/active-document";
 import { definePlugin } from "@lunaris/sdk";
 import type { ResourceScope } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { ContextMenu } from "@lunaris/context-menu";
 import type { MenuOpenRequest, MenuSession } from "@lunaris/context-menu";
 import { Sidebar } from "@lunaris/sidebar";
@@ -15,7 +15,7 @@ import { createVaultSwitcher } from "./vault-switcher.js";
 import manifest from "../manifest.json" with { type: "json" };
 
 export default definePlugin({ manifest, activate(ctx) {
-  const logger = ctx.use(Logger); const sidebar = ctx.use(Sidebar); const fs = ctx.use(Filesystem);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal); const sidebar = ctx.use(Sidebar); const fs = ctx.use(Filesystem);
   const documents = ctx.use(ActiveDocument);
   const menus = ctx.use(ContextMenu); let menu: MenuSession | undefined;
   const observation = ctx.use(FilesystemObservation); const vaults = ctx.use(Vault); const localization = ctx.use(Localization);

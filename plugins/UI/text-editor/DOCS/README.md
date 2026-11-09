@@ -310,3 +310,17 @@ renderer restart, CRLF persistence and save-failure retention. Native visual and
 keyboard acceptance remains pending: manually verify click and Space, source
 editing and Enter continuation, long wrapped/nested tasks, checkbox alignment,
 focus and disabled contrast in light/dark themes and narrow/short Workspace views.
+# Remote recovery
+
+When optional Drafts and FilesystemSources are composed, remote document sessions
+persist local revisions under stable server/account/Vault/path identities. Local
+Vault behavior is unchanged. Reconnection retries interrupted saves with the
+original content version; conflicting drafts require explicit recovery. Empty
+drafts remain dirty even when no remote read is available. Acknowledgement removes
+only the saved draft revision, preserving edits made during a pending save.
+
+Document/Vault departure during connectivity or authorization failure is accepted
+only after a durable local draft succeeds. Structural mutations still require a
+successful remote flush. Storage failure is visible and prevents claiming durable
+recovery. Forced shutdown before a storage transaction commits cannot guarantee
+recovery. ConnectionChanged is subscribed only with the remote recovery services.

@@ -1,6 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { Filesystem, FileChanged, validPath, filesystemMethods } from '@lunaris/filesystem';
+import { LocalFilesystemBackend, RemoteFilesystemBackend, backendMethods } from '@lunaris/filesystem';
+
+test('local and remote backend contracts are distinct and validate all owned operations', () => {
+  assert.notEqual(LocalFilesystemBackend.api.id, RemoteFilesystemBackend.api.id);
+  assert.equal(LocalFilesystemBackend.api.validate(Object.fromEntries(backendMethods.map(name => [name, () => {}]))), true);
+  assert.equal(LocalFilesystemBackend.api.validate(Object.fromEntries(filesystemMethods.map(name => [name, () => {}]))), false);
+  assert.equal(RemoteFilesystemBackend.changed.validate({ vaultId: 'v', watchId: 'w', kind: 'modified', paths: ['../secret'] }), false);
+});
 
 test('portable paths are canonical, relative and safe for Windows aliases', () => {
   for (const path of ['note.md', 'notes/Привет.md', '.config/settings.json']) assert.equal(validPath(path), true);

@@ -111,6 +111,7 @@ export function VaultSelector({ props, theme }: { props: SelectorProps; theme: R
         <Text className="ln-vault-status" role="status" aria-live="polite">{props.status}</Text>
         <Stack className="ln-vault-actions" gap="xs">
           <ActionForm mode="create" props={props} /><ActionForm mode="select" props={props} />
+          {props.onServer && <CardRow label={props.text.server!} icon={<Icon name="browse" />} disabled={props.busy} onClick={props.onServer} />}
         </Stack>
         <Text role="alert" hidden={props.mode !== null || !props.error}>{props.mode === null ? props.error : ""}</Text>
       </Box>

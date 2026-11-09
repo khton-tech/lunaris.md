@@ -1,6 +1,6 @@
 import { definePlugin, LunarisError } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { WindowDriver, DriverWindowChanged, windowFailure, validWindowOwner } from "@lunaris/window";
 import type { WindowSnapshot, WindowCapabilities, WindowResult } from "@lunaris/window";
 import { nativeWindow } from "./native.js";
@@ -9,7 +9,7 @@ import manifest from "../manifest.json" with { type: "json" };
 
 export function createTauriWindowDriver(port?: NativeWindowPort | null) {
   return definePlugin({ manifest, async activate(ctx) {
-    const logger = ctx.use(Logger); const native = port === undefined ? nativeWindow() : port;
+    const logger = scopeLogger(ctx.use(Logger), ctx.signal); const native = port === undefined ? nativeWindow() : port;
     logger.debug(ctx.pluginId, "Activating native window driver");
     let state: WindowSnapshot = Object.freeze({ sequence: 0, title: "Lunaris", focused: true, maximized: false,
       capabilities: Object.freeze({ title: false, minimize: false, maximize: false, close: false, drag: false, customTitlebar: false }) });

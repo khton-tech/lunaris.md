@@ -6,15 +6,63 @@
   "sdk": "^0.1.0",
   "entry": "./dist/src/index.js",
   "provides": [
-    { "kind": "api", "id": "lunaris.vault-history", "version": "1.0.0" },
-    { "kind": "event", "id": "lunaris.vault-history-changed", "version": "1.0.0" }
+    {
+      "kind": "api",
+      "id": "lunaris.vault-history",
+      "version": "1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.vault-history-changed",
+      "version": "1.0.0"
+    }
   ],
   "requires": [
-    { "kind": "api", "id": "lunaris.logger", "range": "^1.0.0" },
-    { "kind": "api", "id": "lunaris.config", "range": "^1.0.0" },
-    { "kind": "api", "id": "lunaris.vault-locations", "range": "^1.1.0" },
-    { "kind": "event", "id": "lunaris.vault-changed", "range": "^1.1.0" }
+    {
+      "kind": "api",
+      "id": "lunaris.logger",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.config",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.vault-locations",
+      "range": "^1.1.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.vault-changed",
+      "range": "^1.1.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.filesystem-sources",
+      "range": "^1.0.0",
+      "optional": true
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.account-session",
+      "range": "^1.0.0",
+      "optional": true
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.account-session-changed",
+      "range": "^1.0.0",
+      "optional": true
+    }
   ],
-  "permissions": ["config.access", "vault.access"],
-  "optionalPermissions": []
+  "permissions": [
+    "config.access",
+    "vault.access"
+  ],
+  "optionalPermissions": [
+    "filesystem.access",
+    "account.access"
+  ]
 }

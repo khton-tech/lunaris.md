@@ -35,6 +35,43 @@ async function setup() {
 }
 const startup = { art: '<img src=x> ASCII', logoLabel: 'Lunaris', status: 'Loading' };
 
+test('account access uses controlled Mantine password fields, escaped catalog names and owned presentation', async () => {
+  const s = await setup(); await s.start(); const calls = [];
+  const labels = ['connect', 'login', 'register', 'vaults', 'trash', 'local', 'address', 'username', 'password', 'showPassword', 'invitation', 'name', 'create', 'restore', 'delete', 'logout', 'refresh', 'empty', 'changeServer', 'passwordReset', 'cancel', 'accountMenu', 'vaultActions', 'loginDetail', 'registerDetail', 'connectDetail', 'vaultsDetail', 'trashDetail', 'emptyTrash', 'emptyDetail', 'emptyTrashDetail'];
+  const props = { mode: 'register', text: Object.fromEntries(labels.map(key => [key, key])), address: 'https://notes.example', login: 'alice', password: 'typed password', invitation: 'invite', name: '', account: '',
+    busy: false, error: '', allowLocal: true, invitationRequired: true, entries: [], onField: (...args) => calls.push(args),
+    ...Object.fromEntries(['onSubmit', 'onToggleAuth', 'onLocal', 'onLogout', 'onOpen', 'onTrash', 'onRestore', 'onToggleTrash', 'onRefresh', 'onChangeServer'].map(name => [name, (...args) => calls.push([name, ...args])])) };
+  const mounted = s.components.mount('lunaris.account-access', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true);
+  const password = s.target.querySelector('input[type=password]'); assert.ok(password); assert.equal(password.value, 'typed password');
+  assert.equal(password.getAttribute('autocomplete'), 'new-password');
+  mounted.value.update({ ...props, error: 'Try again' }); assert.equal(s.target.querySelector('input[type=password]'), password);
+  mounted.value.update({ ...props, mode: 'vaults', entries: [{ id: 'v', name: '<script>bad</script>', detail: 'Notes' }] });
+  assert.equal(s.target.querySelector('script'), null); assert.ok(s.target.textContent.includes('<script>bad</script>'));
+  [...s.target.querySelectorAll('button')].find(button => button.textContent.includes('<script>')).click(); assert.ok(calls.some(call => call[0] === 'onOpen' && call[1] === 'v'));
+  const toggle = s.target.querySelector('[aria-controls]');
+  assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+  assert.equal(s.target.querySelector('.lm-account-disclosure').getAttribute('aria-hidden'), 'true');
+  toggle.click(); await new Promise(setImmediate);
+  assert.equal(toggle.getAttribute('aria-expanded'), 'true');
+  assert.equal(s.target.querySelector('.lm-account-disclosure').getAttribute('aria-hidden'), 'false');
+  s.target.querySelector('form').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await new Promise(setImmediate);
+  assert.equal(s.target.querySelector('.lm-account-disclosure').getAttribute('aria-hidden'), 'true');
+  assert.equal(s.dom.window.document.activeElement, toggle);
+  s.target.querySelector('[aria-label="vaultActions: <script>bad</script>"]').click(); await settle();
+  const trashAction = s.target.querySelector('[role=menuitem]'); assert.ok(trashAction);
+  trashAction.click(); await new Promise(setImmediate);
+  assert.ok(calls.some(call => call[0] === 'onTrash' && call[1] === 'v'));
+  mounted.value.update({ ...props, mode: 'trash', entries: [{ id: 'v', name: 'Archived', detail: 'Until tomorrow' }] });
+  assert.equal(s.target.querySelector('.lm-account-row .lm-card-row'), null);
+  assert.ok(s.target.querySelector('.lm-account-trash-entry').textContent.includes('Until tomorrow'));
+  s.target.querySelector('.lm-account-row button').click();
+  assert.ok(calls.some(call => call[0] === 'onRestore' && call[1] === 'v'));
+  assert.equal(s.target.querySelector('.lm-root').dataset.presentation, 'standalone');
+  mounted.value.update({ ...props, presentation: { mode: 'embedded', sizing: 'content' } }); assert.equal(s.target.querySelector('.lm-root').style.backgroundColor, 'transparent');
+  await s.stop();
+});
+
 test('optional control finishes reset on theme replacement without repainting embedded surfaces', async () => {
   const s = await setup(); await s.start();
   s.target.style.backgroundColor = '#123456';
@@ -184,7 +221,7 @@ test('workspace header retains intrinsic block sizing while full-height surfaces
 
 test('registers the replaceable roles, renders real Mantine controls, preserves siblings and releases roots', async () => {
   const s = await setup(); await s.start();
-  assert.deepEqual(s.components.list(), ['lunaris.active-screen', 'lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.settings-choices', 'lunaris.settings-items', 'lunaris.settings-navigation', 'lunaris.settings-page', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.task-checkbox', 'lunaris.text-editor', 'lunaris.vault-selector', 'lunaris.window-titlebar', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
+  assert.deepEqual(s.components.list(), ['lunaris.account-access', 'lunaris.active-screen', 'lunaris.client-update', 'lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.settings-choices', 'lunaris.settings-items', 'lunaris.settings-navigation', 'lunaris.settings-page', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.task-checkbox', 'lunaris.text-editor', 'lunaris.vault-selector', 'lunaris.window-titlebar', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
   const owner = s.ctx.scope.child();
   const mounted = s.components.mount('lunaris.vault-selector', s.target, selector, owner.signal); assert.equal(mounted.ok, true);
   assert.ok(s.target.querySelector('.mantine-Button-root')); assert.ok(s.target.querySelector('.mantine-TextInput-input'));

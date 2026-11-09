@@ -1,5 +1,5 @@
 import { definePlugin } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { SlotDriver, ROOT_SLOT, normalizeSlot, isLiveOwner, slotFailure } from "@lunaris/slots";
 import type { SlotInfo, SlotErrorCode } from "@lunaris/slots";
 import { SlotDom } from "@lunaris/slot-dom";
@@ -8,7 +8,7 @@ import manifest from "../manifest.json" with { type: "json" };
 /** Only trusted host composition supplies the application's isolated DOM surface. */
 export function createWebSlotDriver(target: HTMLElement) {
   return definePlugin({ manifest, activate(ctx) {
-    const logger = ctx.use(Logger);
+    const logger = scopeLogger(ctx.use(Logger), ctx.signal);
     const entries = new Map<string, { element: HTMLElement; info: SlotInfo; detach: () => void }>();
     const document = target.ownerDocument;
     function reject(code: SlotErrorCode, message: string) {

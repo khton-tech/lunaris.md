@@ -1,0 +1,80 @@
+{
+  "name": "@lunaris/application-host",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./session": {
+      "types": "./dist/session.d.ts",
+      "import": "./dist/session.js"
+    },
+    "./slots": {
+      "types": "./dist/slots.d.ts",
+      "import": "./dist/slots.js"
+    },
+    "./view": {
+      "types": "./dist/view.d.ts",
+      "import": "./dist/view.js"
+    },
+    "./scheduler": {
+      "types": "./dist/scheduler.d.ts",
+      "import": "./dist/scheduler.js"
+    },
+    "./shell.css": "./assets/shell.css"
+  },
+  "dependencies": {
+    "@lunaris/filesystem-provider": "0.1.0",
+    "@lunaris/logger": "0.1.0",
+    "@lunaris/dev-tools-logger": "0.1.0",
+    "@lunaris/kernel": "0.1.0",
+    "@lunaris/sdk": "0.1.0",
+    "@lunaris/vault-manager": "0.1.0",
+    "@lunaris/config-manager": "0.1.0",
+    "@lunaris/localization-manager": "0.1.0",
+    "@lunaris/slot-provider": "0.1.0",
+    "@lunaris/web-slot-driver": "0.1.0",
+    "@lunaris/theme-provider": "0.1.0",
+    "@lunaris/component-provider": "0.1.0",
+    "@lunaris/base-theme-engine": "0.1.0",
+    "@lunaris/startup": "0.1.0",
+    "@lunaris/startup-provider": "0.1.0",
+    "@lunaris/theme-settings": "0.1.0",
+    "@lunaris/runner": "0.1.0",
+    "@lunaris/vault-history": "0.1.0",
+    "@lunaris/vault-selector": "0.1.0",
+    "@lunaris/mantine-components": "0.1.0",
+    "@lunaris/workspace-plugin": "0.1.0",
+    "@lunaris/workspace-provider": "0.1.0",
+    "@lunaris/sidebar-plugin": "0.1.0",
+    "@lunaris/sidebar-provider": "0.1.0",
+    "@lunaris/file-explorer": "0.1.0",
+    "@lunaris/context-menu-provider": "0.1.0",
+    "@lunaris/active-document": "0.1.0",
+    "@lunaris/active-document-provider": "0.1.0",
+    "@lunaris/active-screen-provider": "0.1.0",
+    "@lunaris/active-screen-plugin": "0.1.0",
+    "@lunaris/settings-provider": "0.1.0",
+    "@lunaris/settings-plugin": "0.1.0",
+    "@lunaris/interface-settings": "0.1.0",
+    "@lunaris/text-editor": "0.1.0",
+    "@lunaris/vault": "0.1.0",
+    "@lunaris/browser-storage": "0.1.0",
+    "@lunaris/server-transport": "0.1.0",
+    "@lunaris/remote-filesystem": "0.1.0",
+    "@lunaris/account-session": "0.1.0",
+    "@lunaris/drafts-provider": "0.1.0",
+    "@lunaris/account-access": "0.1.0",
+    "@lunaris/filesystem-router": "0.1.0",
+    "@lunaris/filesystem": "0.1.0",
+    "@lunaris/client-updates": "0.1.0",
+    "@lunaris/browser-navigation": "0.1.0",
+    "@lunaris/client-update-ui": "0.1.0"
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
+}

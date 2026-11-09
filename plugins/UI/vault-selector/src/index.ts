@@ -1,5 +1,6 @@
 import { definePlugin } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
+import { AccountAccess, AccountAccessChanged } from "@lunaris/remote";
 import { Localization, LocaleChanged } from "@lunaris/localization";
 import { Slots } from "@lunaris/slots";
 import { SlotDom } from "@lunaris/slot-dom";
@@ -20,7 +21,7 @@ export function createVaultSelector(options: { readonly art: string; readonly hi
   const art = options.art;
   if (typeof art !== "string" || !art.trim()) throw new TypeError("Selector artwork is required.");
   return definePlugin({ manifest, async activate(ctx) {
-    const logger = ctx.use(Logger);
+    const logger = scopeLogger(ctx.use(Logger), ctx.signal);
     try {
       const localization = ctx.use(Localization);
       const registered = localization.register(ctx.pluginId, catalogs, ctx.signal);
@@ -28,6 +29,7 @@ export function createVaultSelector(options: { readonly art: string; readonly hi
       const slots = ctx.use(Slots); const targets = ctx.use(SlotDom); const components = ctx.use(Components);
       const creation = ctx.use(VaultCreation);
       const startup = ctx.use(Startup); const vaults = ctx.use(Vault); const locations = ctx.use(VaultLocations); const history = ctx.use(VaultHistory);
+      const accountAccess = ctx.permissions.has("account.access") ? ctx.optional(AccountAccess) : undefined;
       const forms: Record<Mode, { location: FolderLocation | null; name: string }> = { create: { location: null, name: "" }, select: { location: null, name: "" } };
       let mode: Mode | null = null; let busy = false; let operation = "working"; let errorKey = ""; let historyFailed = false;
       let entries: readonly RecentVault[] = []; let historyVersion = 0; let current = vaults.current(); let activeReference: string | null = null;
@@ -48,7 +50,7 @@ export function createVaultSelector(options: { readonly art: string; readonly hi
       }
       function render(): void {
         if (ctx.signal.aborted || latest.state !== "loaded") return;
-        if (options.hideWhenVaultOpen && current) {
+        if ((options.hideWhenVaultOpen && current) || accountAccess?.visible()) {
           mounted = undefined; allocated = false;
           void screen.dispose().catch(error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot release selector surface", { code: "SELECTOR_RELEASE_FAILED", error }); });
           return;
@@ -69,6 +71,7 @@ export function createVaultSelector(options: { readonly art: string; readonly hi
           onMode(next: Mode) { if (!busy) { mode = mode === next ? null : next; errorKey = ""; refresh(); } },
           onName(name: string) { if (!busy && mode) { forms[mode].name = name; errorKey = ""; refresh(); } },
           onBrowse: browse, onNext: next, onRecent: recent, onRetry: () => run(loadHistory, "refreshing"),
+          ...(accountAccess ? { onServer: () => accountAccess.open() } : {}),
         };
         if (mounted) {
           const result = mounted.update(props);
@@ -88,6 +91,7 @@ export function createVaultSelector(options: { readonly art: string; readonly hi
         try { render(); }
         catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot render Vault selector", { code: "SELECTOR_RENDER_FAILED", error }); throw error; }
       }
+      if (accountAccess) ctx.events.on(AccountAccessChanged, refresh);
       async function loadHistory(): Promise<void> {
         const version = historyVersion;
         const result = await history.list();

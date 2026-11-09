@@ -81,11 +81,25 @@
       "kind": "api",
       "id": "lunaris.vault-creation",
       "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.account-access",
+      "range": "^1.0.0",
+      "optional": true
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.account-access-changed",
+      "range": "^1.0.0",
+      "optional": true
     }
   ],
   "permissions": [
     "ui.dom",
     "vault.access"
   ],
-  "optionalPermissions": []
+  "optionalPermissions": [
+    "account.access"
+  ]
 }

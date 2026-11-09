@@ -12,7 +12,7 @@ function setup(options = {}) {
       writes.push({ target, text, policy }); if (options.write) return options.write(target, text, policy);
       disk = { text, version: `v${writes.length + 1}` }; return ok({ version: disk.version });
     },
-  }, () => options.alive !== false, () => {}, (...args) => logs.push(args), clock);
+  }, () => options.alive !== false, () => {}, (...args) => logs.push(args), clock, options.draft);
   return { session, writes, timers, logs, async tick(delta) { now += delta; for (const [id, timer] of timers) if (timer.at <= now) { timers.delete(id); timer.callback(); } await new Promise(setImmediate); } };
 }
 test('autosave waits two seconds after the last edit and uses the loaded version', async () => {
@@ -71,4 +71,27 @@ test('closing a session before its scheduled read starts performs no filesystem 
   let reads = 0; const s = setup({ read() { reads++; return ok({ text: 'unexpected', version: 'v1' }); } });
   const reading = s.session.load(); s.session.dispose(); await reading;
   assert.equal(reads, 0); assert.equal(s.session.loaded, false);
+});
+
+test('durable offline drafts restore even empty text and retain the expected remote version', async () => {
+  let stored = null;
+  const draft = { load: async () => ok(stored), save: async (text, expectedVersion, revision) => { stored = { text, expectedVersion, revision }; return ok(null); }, remove: async revision => { if (stored?.revision === revision) stored = null; return ok(null); } };
+  const s = setup({ draft, write: async () => ({ ok: false, error: { code: 'OFFLINE', message: 'Disconnected' } }) });
+  await s.session.load(); s.session.edit(''); await s.session.persistDraft(); assert.equal(s.session.draftSaved, true);
+  assert.equal((await s.session.flush()).error.code, 'OFFLINE'); assert.equal(stored.text, ''); assert.equal(stored.expectedVersion, 'v1'); s.session.dispose();
+  const restored = setup({ draft, read: async () => ({ ok: false, error: { code: 'OFFLINE', message: 'Disconnected' } }) });
+  await restored.session.load(); assert.equal(restored.session.text, ''); assert.equal(restored.session.dirty, true); assert.equal(restored.session.loaded, true); assert.equal(restored.session.version, 'v1'); restored.session.dispose();
+});
+test('restored drafts never overwrite a newer remote version and storage failure is visible', async () => {
+  const s = setup({ draft: { load: async () => ok({ text: 'local', expectedVersion: 'old', revision: 'r' }), save: async () => ({ ok: false, error: { code: 'IO_ERROR', message: 'Quota unavailable' } }), remove: async () => ok(null) } });
+  await s.session.load(); assert.equal(s.session.error.code, 'CONFLICT'); assert.equal(s.session.text, 'local'); assert.equal(s.writes.length, 0);
+  s.session.edit('latest'); await s.session.persistDraft(); assert.equal(s.session.draftError, true); assert.equal(s.session.draftSaved, false); s.session.dispose();
+});
+test('a late remote save acknowledges its own draft revision while newer edits remain durable', async () => {
+  let stored; const removed = []; const entered = Promise.withResolvers(); const finish = Promise.withResolvers(); let count = 0;
+  const draft = { load: async () => ok(null), save: async (text, expectedVersion, revision) => { stored = { text, expectedVersion, revision }; return ok(null); }, remove: async revision => { removed.push([revision, stored?.revision]); if (stored?.revision === revision) stored = null; return ok(null); } };
+  const s = setup({ draft, write: async () => { if (++count === 1) { entered.resolve(); await finish.promise; } return ok({ version: `v${count + 1}` }); } });
+  await s.session.load(); s.session.edit('first'); const saving = s.session.flush(); await entered.promise;
+  s.session.edit('newer'); await s.session.persistDraft(); const newerRevision = stored.revision; finish.resolve(); await saving;
+  assert.notEqual(removed[0][0], newerRevision); assert.equal(removed[0][1], newerRevision); assert.equal(s.session.dirty, false); assert.equal(stored, null); s.session.dispose();
 });

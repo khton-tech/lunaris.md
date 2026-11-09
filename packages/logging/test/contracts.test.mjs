@@ -1,6 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Logger, LogSink, isLogInput, isLogRecord } from '@lunaris/logging';
+import { Logger, LogSink, isLogInput, isLogRecord, scopeLogger } from '@lunaris/logging';
+import { LunarisError } from '@lunaris/sdk';
+
+test('scoped logging contains endpoint retirement and makes no SDK call after owner cancellation', () => {
+  const owner = { aborted: false }; let calls = 0; let failure = new LunarisError('PROVIDER_UNAVAILABLE', 'Stopping');
+  const logger = scopeLogger({ info() { calls++; throw failure; } }, owner);
+  assert.equal(logger.info('test.plugin', 'Late result'), false); assert.equal(calls, 1);
+  failure = new LunarisError('PERMISSION_DENIED', 'Denied'); assert.throws(() => logger.info('test.plugin', 'Denied'), /Denied/);
+  owner.aborted = true; assert.equal(logger.info('test.plugin', 'Closed'), false); assert.equal(calls, 2);
+});
 
 test('API contracts reject missing methods and accessors without invoking them', () => {
   assert.equal(LogSink.validate({ write() {} }), true);

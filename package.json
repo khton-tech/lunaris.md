@@ -16,6 +16,11 @@
   },
   "packageManager": "npm@11.20.0",
   "scripts": {
+    "dev:server": "node tools/scripts/server-dev.mjs",
+    "server:check": "node tools/scripts/server-check.mjs",
+    "web:dev": "npm run dev --workspace @lunaris/web",
+    "web:build": "npm run build --workspace @lunaris/web",
+    "remote:check": "node tools/scripts/remote.mjs",
     "environment": "node tools/scripts/environment.mjs",
     "build": "tsc -b",
     "check": "node tools/scripts/check.mjs",
@@ -58,6 +63,7 @@
   "devDependencies": {
     "@types/node": "26.6.6",
     "@types/semver": "7.8.0",
+    "fake-indexeddb": "6.2.7",
     "typescript": "6.0.3"
   }
 }

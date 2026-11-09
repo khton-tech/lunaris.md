@@ -1,11 +1,11 @@
 import { definePlugin } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Themes } from "@lunaris/themes";
 import { baseThemes } from "./themes.js";
 import manifest from "../manifest.json" with { type: "json" };
 
 export default definePlugin({ manifest, activate(ctx) {
-  const logger = ctx.use(Logger);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal);
   const themes = ctx.use(Themes);
   logger.debug(ctx.pluginId, "Activating base theme engine");
   for (const theme of baseThemes) {

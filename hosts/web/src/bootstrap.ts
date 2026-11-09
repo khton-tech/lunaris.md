@@ -1,0 +1,21 @@
+import { HostSession, composeApplication } from "@lunaris/application-host";
+import { createWebviewScheduler } from "@lunaris/application-host/scheduler";
+import { mountSystemView } from "@lunaris/application-host/view";
+import "@lunaris/application-host/shell.css";
+import "@lunaris/mantine-components/styles.css";
+import art from "../../../resources/ascii_art.txt?raw";
+
+const application = document.getElementById("application-root")!;
+document.addEventListener("contextmenu", event => event.preventDefault(), { capture: true });
+const session = new HostSession({ scheduler: createWebviewScheduler(), async load(signal) {
+  const target = document.createElement("div"); target.className = "application-surface";
+  application.replaceChildren(target); signal.addEventListener("abort", () => target.remove(), { once: true });
+  return composeApplication(target, { art, mode: "browser", defaultServer: window.location.origin, features: __LUNARIS_FEATURES__, buildId: __LUNARIS_BUILD_ID__ });
+} });
+mountSystemView(document.getElementById("system-root")!, application, session, { startup: document.getElementById("startup-root")! });
+const monitor = window.setInterval(session.refresh, 250);
+window.addEventListener("pagehide", () => { clearInterval(monitor); void session.stop(); }, { once: true });
+window.addEventListener("error", () => { void session.reportFault("runtime", "UNHANDLED_APPLICATION_ERROR"); });
+window.addEventListener("unhandledrejection", () => { void session.reportFault("runtime", "UNHANDLED_PROMISE_REJECTION"); });
+document.documentElement.dataset.lunarisBuild = __LUNARIS_BUILD_ID__;
+void session.start();

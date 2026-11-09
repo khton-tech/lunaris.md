@@ -1,6 +1,6 @@
 import { definePlugin } from "@lunaris/sdk";
 import type { ResourceScope } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Sidebar, SidebarChanged } from "@lunaris/sidebar";
 import { Workspace } from "@lunaris/workspace";
 import { Components, ComponentsChanged } from "@lunaris/components";
@@ -9,7 +9,7 @@ import { catalogs } from "./catalog.js";
 import manifest from "../manifest.json" with { type: "json" };
 
 export default definePlugin({ manifest, activate(ctx) {
-  const logger = ctx.use(Logger); const sidebar = ctx.use(Sidebar); const workspace = ctx.use(Workspace);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal); const sidebar = ctx.use(Sidebar); const workspace = ctx.use(Workspace);
   const components = ctx.use(Components); const localization = ctx.use(Localization);
   const registered = localization.register(ctx.pluginId, catalogs, ctx.signal);
   if (!registered.ok) throw new Error("Cannot register sidebar messages.", { cause: registered.error });

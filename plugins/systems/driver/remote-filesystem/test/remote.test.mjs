@@ -1,0 +1,25 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import driver from '@lunaris/remote-filesystem';
+import { ServerTransport, AccountSessionChanged, encodeRemoteReference } from '@lunaris/remote';
+import { RemoteFilesystemBackend } from '@lunaris/filesystem';
+import { definePlugin } from '@lunaris/sdk';
+import { testHost, consumer } from '../../../../../tools/testing/remote.mjs';
+test('remote attachments bind stable account identity and stop serving after session replacement', async () => {
+  const host = testHost({ 'lunaris.remote-filesystem': ['filesystem.native', 'account.network', 'account.access'], 'test.consumer': ['filesystem.access'] }); let api, ctx; let malformed = false;
+  const id = '00000000-0000-0000-0000-000000000001'; let state = { server: 'https://server', account: { id: 'alice', login: 'alice' }, epoch: 'first' };
+  const mock = { current: () => state, connect() {}, register() {}, login() {}, logout() {}, request: async (_method, route) => ({ ok: true, value: route === 'vaults' ? [{ id, name: 'Notes', state: 'active', deletedAt: null, expiresAt: null, location: { reference: `alice/${id}`, label: 'Notes' } }] : { text: 'hello', ...(malformed ? {} : { version: 'v1' }) } }) };
+  host.installMock(ServerTransport, mock);
+  host.register(definePlugin({ manifest: { manifestVersion: 1, id: 'test.events', version: '0.1.0', sdk: '^0.1.0', engine: '^0.1.0', entry: './index.js', provides: [{ kind: 'event', id: AccountSessionChanged.id, version: AccountSessionChanged.version }], requires: [], permissions: [], optionalPermissions: [] }, activate() {} }));
+  host.register(driver); host.register(consumer([RemoteFilesystemBackend.api], context => { ctx = context; api = ctx.use(RemoteFilesystemBackend.api); }, ['filesystem.access']));
+  await host.start('test.consumer'); const root = (await api.attachLocation({ reference: encodeRemoteReference(state.server, `alice/${id}`), label: 'Notes' }, ctx.signal)).value;
+  assert.equal((await api.readText({ vaultId: root.id, path: 'a.md' })).value.text, 'hello'); assert.equal(api.remoteIdentity(root.id).value.accountId, 'alice');
+  assert.equal(api.locationVisible(encodeRemoteReference(state.server, `alice/${id}`)), true);
+  assert.equal(api.locationVisible(encodeRemoteReference('https://another-server', `alice/${id}`)), false);
+  assert.equal((await api.attachLocation({ reference: encodeRemoteReference('https://another-server', `alice/${id}`), label: 'Other server' }, ctx.signal)).error.code, 'NOT_FOUND');
+  malformed = true; assert.equal((await api.readText({ vaultId: root.id, path: 'a.md' })).error.code, 'PROTOCOL_MISMATCH');
+  state = { ...state, epoch: 'second' }; assert.equal((await api.readText({ vaultId: root.id, path: 'a.md' })).error.code, 'SESSION_EXPIRED');
+  assert.equal((await api.attachLocation({ reference: encodeRemoteReference(state.server, `bob/${id}`), label: 'Fake' }, ctx.signal)).error.code, 'NOT_FOUND');
+  state = { ...state, account: { id: 'bob', login: 'bob' } }; assert.equal(api.locationVisible(encodeRemoteReference(state.server, `alice/${id}`)), false);
+  await host.stopAll(); host.assertNoResources(); assert.deepEqual(host.diagnostics(), []);
+});

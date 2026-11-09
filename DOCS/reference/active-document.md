@@ -1,5 +1,10 @@
 # Active document
 
+The additive DocumentProtection API exposes hasUnprotectedChanges() under
+vault.access. Text Editor provides this synchronous query without exposing text.
+Browser navigation uses it before unload: pending/failed local storage is not
+durable recovery. Existing document identity and transition contracts are unchanged.
+
 Purpose: a replaceable system service that owns the single active file identity,
 independently of tree selection, keyboard focus and content rendering. The public
 SDK package is @lunaris/active-document; the default implementation lives in

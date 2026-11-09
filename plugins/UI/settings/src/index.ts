@@ -1,5 +1,5 @@
 import { definePlugin } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Settings, SettingsChanged } from "@lunaris/settings";
 import { Sidebar } from "@lunaris/sidebar";
 import { ActiveScreen } from "@lunaris/active-screen";
@@ -15,7 +15,7 @@ const catalogs = { en: { settings: "Settings", empty: "No settings available", s
   emptyCategory: "No settings in this category", unavailable: "Section unavailable", unavailableDetail: "This settings section could not be displayed.", itemFailed: "Cannot update this setting. Try again." } };
 
 export default definePlugin({ manifest, activate(ctx) {
-  const logger = ctx.use(Logger); const registry = ctx.use(Settings); const sidebar = ctx.use(Sidebar);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal); const registry = ctx.use(Settings); const sidebar = ctx.use(Sidebar);
   const screens = ctx.use(ActiveScreen); const components = ctx.use(Components); const localization = ctx.use(Localization); const vaults = ctx.use(Vault);
   const messages = localization.register(ctx.pluginId, catalogs, ctx.signal);
   if (!messages.ok) throw new Error("Cannot register settings messages.", { cause: messages.error });

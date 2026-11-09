@@ -1,10 +1,10 @@
 import { definePlugin, LunarisError } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Window, WindowDriver, WindowChanged, DriverWindowChanged, windowFailure, validWindowOwner } from "@lunaris/window";
 import manifest from "../manifest.json" with { type: "json" };
 
 export default definePlugin({ manifest, activate(ctx) {
-  const logger = ctx.use(Logger); const driver = ctx.use(WindowDriver);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal); const driver = ctx.use(WindowDriver);
   logger.debug(ctx.pluginId, "Activating window provider");
   ctx.events.on(DriverWindowChanged, async snapshot => {
     try { if (!ctx.signal.aborted) await ctx.events.emit(WindowChanged, snapshot); }

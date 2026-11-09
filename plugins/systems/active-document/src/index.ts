@@ -1,5 +1,5 @@
 import { definePlugin } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Config } from "@lunaris/config";
 import { Vault, VaultChanged } from "@lunaris/vault";
 import { Filesystem, validTarget, validPath } from "@lunaris/filesystem";
@@ -11,7 +11,7 @@ import manifest from "../manifest.json" with { type: "json" };
 const ok = (): FsResult<null> => ({ ok: true, value: null });
 const fail = (code: "INVALID_ARGUMENT" | "CANCELLED", message: string): FsResult<null> => ({ ok: false, error: { code, message } });
 export default definePlugin({ manifest, async activate(ctx) {
-  const logger = ctx.use(Logger); const config = ctx.use(Config); const vaults = ctx.use(Vault); const fs = ctx.use(Filesystem);
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal); const config = ctx.use(Config); const vaults = ctx.use(Vault); const fs = ctx.use(Filesystem);
   let current: ActiveDocumentState = null; let epoch = 0; let queue: Promise<unknown> = Promise.resolve();
   const live = (version: number, vaultId?: string) => !ctx.signal.aborted && epoch === version && (!vaultId || vaults.current()?.id === vaultId);
   function publish(next: ActiveDocumentState, reason: DocumentTransition["reason"]) {

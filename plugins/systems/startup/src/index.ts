@@ -1,5 +1,5 @@
 import { definePlugin } from "@lunaris/sdk";
-import { Logger } from "@lunaris/logging";
+import { Logger, scopeLogger } from "@lunaris/logging";
 import { Startup, StartupChanged, isStartupSnapshot } from "@lunaris/startup";
 import type { StartupSnapshot } from "@lunaris/startup";
 import manifest from "../manifest.json" with { type: "json" };
@@ -10,7 +10,7 @@ export function createStartupProvider() {
   let publish: ((value: StartupSnapshot) => void) | undefined;
   let closed = false;
   const plugin = definePlugin({ manifest, activate(ctx) {
-    const logger = ctx.use(Logger);
+    const logger = scopeLogger(ctx.use(Logger), ctx.signal);
     closed = false;
     ctx.provide(Startup, { snapshot: () => snapshot });
     publish = value => {

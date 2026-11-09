@@ -1,0 +1,157 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ],
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "references": [
+    {
+      "path": "../../plugins/UI/base-theme"
+    },
+    {
+      "path": "../../plugins/UI/themes"
+    },
+    {
+      "path": "../../plugins/UI/components"
+    },
+    {
+      "path": "../../plugins/UI/layout"
+    },
+    {
+      "path": "../../plugins/systems/driver/web-slots"
+    },
+    {
+      "path": "../../plugins/systems/localization"
+    },
+    {
+      "path": "../../plugins/systems/config"
+    },
+    {
+      "path": "../../plugins/systems/vault"
+    },
+    {
+      "path": "../../plugins/systems/filesystem"
+    },
+    {
+      "path": "../../packages/sdk"
+    },
+    {
+      "path": "../../packages/kernel"
+    },
+    {
+      "path": "../../plugins/systems/logger"
+    },
+    {
+      "path": "../../plugins/systems/driver/dev-tools-logger"
+    },
+    {
+      "path": "../../packages/startup"
+    },
+    {
+      "path": "../../plugins/systems/startup"
+    },
+    {
+      "path": "../../plugins/UI/mantine-components"
+    },
+    {
+      "path": "../../plugins/UI/theme-settings"
+    },
+    {
+      "path": "../../plugins/UI/lunaris-runner"
+    },
+    {
+      "path": "../../plugins/systems/vault-history"
+    },
+    {
+      "path": "../../plugins/UI/vault-selector"
+    },
+    {
+      "path": "../../plugins/UI/workspace"
+    },
+    {
+      "path": "../../plugins/UI/workspace-content"
+    },
+    {
+      "path": "../../plugins/UI/sidebar"
+    },
+    {
+      "path": "../../plugins/UI/sidebar-tabs"
+    },
+    {
+      "path": "../../plugins/UI/file-explorer"
+    },
+    {
+      "path": "../../plugins/UI/context-menu"
+    },
+    {
+      "path": "../../packages/active-document"
+    },
+    {
+      "path": "../../plugins/systems/active-document"
+    },
+    {
+      "path": "../../plugins/UI/active-screen-provider"
+    },
+    {
+      "path": "../../plugins/UI/active-screen"
+    },
+    {
+      "path": "../../plugins/UI/settings-provider"
+    },
+    {
+      "path": "../../plugins/UI/settings"
+    },
+    {
+      "path": "../../plugins/UI/interface-settings"
+    },
+    {
+      "path": "../../plugins/UI/text-editor"
+    },
+    {
+      "path": "../../packages/vault"
+    },
+    {
+      "path": "../../plugins/systems/driver/browser-storage"
+    },
+    {
+      "path": "../../plugins/systems/driver/server-transport"
+    },
+    {
+      "path": "../../plugins/systems/driver/remote-filesystem"
+    },
+    {
+      "path": "../../plugins/systems/account-session"
+    },
+    {
+      "path": "../../plugins/systems/drafts"
+    },
+    {
+      "path": "../../plugins/UI/account-access"
+    },
+    {
+      "path": "../../plugins/systems/filesystem-router"
+    },
+    {
+      "path": "../../packages/filesystem"
+    },
+    {
+      "path": "../../plugins/systems/client-updates"
+    },
+    {
+      "path": "../../plugins/systems/driver/browser-navigation"
+    },
+    {
+      "path": "../../plugins/UI/client-update"
+    }
+  ]
+}
