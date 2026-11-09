@@ -13,3 +13,10 @@ test('italic composes with bold and toggles its own marker without removing stro
 test('formatting preserves CRLF source while selections use internal document positions',()=>{let state=EditorState.create({doc:'one\r\ntwo',extensions:[EditorState.lineSeparator.of('\r\n')],selection:{anchor:0,head:7}});const s={get state(){return state},dispatch(tr){state=tr.state}};markupCommand('code-block')(s);const fence=String.fromCharCode(96).repeat(3);assert.equal(state.sliceDoc(),fence+'\r\none\r\ntwo\r\n'+fence);assert.equal(state.sliceDoc(state.selection.main.from,state.selection.main.to),'one\r\ntwo');markupCommand('bold')(s);assert.ok(state.sliceDoc().includes('**one\r\ntwo**'));assert.equal(state.sliceDoc(state.selection.main.from,state.selection.main.to),'one\r\ntwo');});
 
 test('custom URI schemes are preserved as Markdown destinations without navigating',()=>{const s=fixture('urt://example');markupCommand('link','Alias')(s);assert.equal(s.state.sliceDoc(),'[Alias](urt://example)');});
+
+test('task list inserts an unchecked marker at the caret and preserves existing checked tasks',()=>{
+ const empty=fixture('',0,0);markupCommand('task-list')(empty);assert.equal(empty.state.sliceDoc(),'- [ ] ');assert.equal(empty.state.selection.main.head,6);
+ const mixed=fixture('  - one\n  2. two\n  - [x] done');markupCommand('task-list')(mixed);assert.equal(mixed.state.sliceDoc(),'  - [ ] one\n  - [ ] two\n  - [x] done');
+ const before=mixed.state.sliceDoc();markupCommand('task-list')(mixed);assert.equal(mixed.state.sliceDoc(),before);
+ const ro=fixture('text',0,4,true);assert.equal(markupCommand('task-list')(ro),false);
+});

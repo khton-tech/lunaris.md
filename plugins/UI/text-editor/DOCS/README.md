@@ -402,7 +402,7 @@ The editor requires ContextMenu API 1.1 and Clipboard 1.0 (clipboard.access).
 Right-click preserves a selected range when invoked inside it; outside selection
 it moves the caret to the pointer. ContextMenu or Shift+F10 opens at the caret.
 The formatting island uses icon-only bold, italic, fenced code and standard link
-actions, a Heading submenu (levels 1-6), and a Lists submenu (bullet/numbered).
+actions, a Heading submenu (levels 1-6), and a Lists submenu (bullet/numbered/task).
 Normal Cut, Copy, Paste and Select all rows follow below. Labels are localized
 accessible names/tooltips. Unsupported clipboard capabilities and empty-selection
 cut/copy are omitted under the existing menu availability policy.
@@ -436,3 +436,9 @@ screen edges and narrow/short windows. No desktop automation was used.
 
 Verification command: npm run editor-menu:check. Formatting regression coverage
 also includes Windows CRLF selection offsets and composing italic with bold.
+
+Task list inserts - [ ] markers on the current or selected lines, preserving
+indentation and existing checked states without duplicating task markers. The
+existing public Mantine task-checkbox role supplies interactive preview; no new
+SDK contract or separate checkbox renderer is required. Verify the new Lists
+entry manually in the real menu; composed behavior is covered automatically.

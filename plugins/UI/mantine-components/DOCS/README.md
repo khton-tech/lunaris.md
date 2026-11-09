@@ -635,3 +635,7 @@ pending. Reference: existing Files menus, Owner's island request, Mantine Menu a
 [Mantine UI buttons](https://ui.mantine.dev/category/buttons/). No gallery runtime.
 The text-editor role additionally accepts optional localized commandError and
 renders an accessible alert without file-reload actions.
+
+The public task-list Lucide role maps to ListTodo for the editor Lists submenu.
+It uses the same Menu.Sub action rows, localized labels, focus and theme as the
+existing bullet/numbered list entries; no island geometry or ownership changes.

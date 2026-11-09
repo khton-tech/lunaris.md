@@ -27,7 +27,7 @@ export function bindEditorMenu(view: EditorView, options: EditorMenuOptions) {
    {kind:"island",id:"editor.formatting",label:options.text("formatting"),order:-100,children:[
     format("bold"),format("italic"),format("code-block"),
     {kind:"group",id:"editor.headings",label:options.text("heading"),icon:"heading",children:([1,2,3,4,5,6] as const).map(level=>format(("heading-"+level) as Markup,"h"+level,"heading"))},
-    {kind:"group",id:"editor.lists",label:options.text("list"),icon:"list",children:[format("bullet-list","bulletList","list"),format("ordered-list","orderedList","ordered-list")]},
+    {kind:"group",id:"editor.lists",label:options.text("list"),icon:"list",children:[format("bullet-list","bulletList","list"),format("ordered-list","orderedList","ordered-list"),format("task-list","taskList","task-list")]},
     format("link"),
    ]},
    action("cut","cut","cut",async()=> {

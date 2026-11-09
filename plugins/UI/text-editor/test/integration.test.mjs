@@ -501,3 +501,11 @@ test('keyboard context menu exposes icon names, horizontal movement and closes o
   s.cm().dispatch({selection:{anchor:2}});await flush();assert.equal(doc.querySelector('[data-lunaris-context-menu]'),null);
  }finally{await s.stop();}
 });
+
+test('Lists menu inserts a task that uses the existing interactive checkbox renderer',async()=>{
+ const s=await setup({initial:'Todo\n'});try{
+  s.cm().dispatch({selection:{anchor:0}});const item=await editorMenu(s);item('Lists').focus();item('Lists').dispatchEvent(new s.dom.window.KeyboardEvent('keydown',{key:'ArrowRight',bubbles:true,cancelable:true}));await flush();
+  assert.ok(item('Task list'));assert.ok(item('Task list').querySelector('svg'));item('Task list').click();await flush();assert.equal(s.cm().state.sliceDoc(),'- [ ] Todo\n');
+  s.cm().dispatch({selection:{anchor:s.cm().state.doc.length}});await flush();const checkbox=s.target.querySelector('input[type=checkbox]');assert.ok(checkbox);checkbox.click();await flush();assert.equal(s.cm().state.sliceDoc(),'- [x] Todo\n');
+ }finally{await s.stop();}
+});

@@ -1,6 +1,6 @@
 import { EditorSelection } from "@codemirror/state";
 import type { StateCommand } from "@codemirror/state";
-export type Markup = "bold" | "italic" | "code-block" | "bullet-list" | "ordered-list" | "link" | "heading-1" | "heading-2" | "heading-3" | "heading-4" | "heading-5" | "heading-6";
+export type Markup = "bold" | "italic" | "code-block" | "bullet-list" | "ordered-list" | "task-list" | "link" | "heading-1" | "heading-2" | "heading-3" | "heading-4" | "heading-5" | "heading-6";
 export function markupCommand(kind: Markup, linkText = "Link text"): StateCommand {
  return ({state, dispatch}) => {
   if (state.readOnly) return false;
@@ -45,10 +45,11 @@ export function markupCommand(kind: Markup, linkText = "Link text"): StateComman
   }
   const changes = [...lines].sort((a,b)=>a-b).map((number,index)=> {
    const line=state.doc.line(number); const heading=kind.startsWith("heading-");
-   const match=(heading ? /^([ \t]*)(?:#{1,6}[ \t]+)?/ : /^([ \t]*)(?:(?:[-+*]|\d+[.)])[ \t]+)?/).exec(line.text)!;
-   const prefix=heading ? "#".repeat(Number(kind.at(-1)))+" " : kind === "bullet-list" ? "- " : String(index+1)+". ";
+   const match=(heading ? /^([ \t]*)(?:#{1,6}[ \t]+)?/ : /^([ \t]*)(?:(?:[-+*]|\d+[.)])[ \t]+(\[[ xX]\][ \t]*)?)?/).exec(line.text)!;
+   const prefix=heading ? "#".repeat(Number(kind.at(-1)))+" " : kind === "bullet-list" ? "- " : kind === "task-list" ? "- " + (match[2]?.slice(0,3) ?? "[ ]") + " " : String(index+1)+". ";
    return {from:line.from,to:line.from+match[0].length,insert:match[1]+prefix};
   });
-  dispatch(state.update({changes,userEvent:"input",scrollIntoView:true})); return true;
+  const selection = state.selection.map(state.changes(changes), 1);
+  dispatch(state.update({changes,selection,userEvent:"input",scrollIntoView:true})); return true;
  };
 }
