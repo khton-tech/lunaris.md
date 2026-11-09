@@ -57,6 +57,9 @@
     },
     {
       "path": "../../../packages/settings"
+    },
+    {
+      "path": "../../../packages/editor"
     }
   ]
 }

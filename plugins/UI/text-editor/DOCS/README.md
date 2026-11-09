@@ -148,7 +148,7 @@ Vault isolation, errors/retry, cancelled callbacks and retained editor history.
 Native visual acceptance remains manual: verify opened menus, keyboard focus,
 both themes, long labels, narrow/short windows and wrapped/unwrapped long lines.
 
-No editor service API is provided. The following public contracts connect it:
+The EditorExtensions service allows scoped syntax/presentation contributions (see below). The following public contracts connect document and UI services:
 
 | Contract | Purpose |
 | --- | --- |
@@ -517,3 +517,22 @@ Native acceptance of long Russian labels, menus and narrow layouts is pending.
 The link shortcut resolves its placeholder at invocation time, so changing the
 locale updates inserted link text without recreating the editor. The composed
 regression covers Russian editor accessibility, formatting menus and Ctrl-K.
+
+## Public editor extensions
+
+Text Editor now provides `EditorExtensions` 1.0 from `@lunaris/editor`.
+Separate plugins can register CodeMirror and Lezer Markdown contributions using
+public SDK contracts. See [the contract reference](../../../../DOCS/reference/editor-extensions.md)
+for permissions, ownership, lifecycle, failure behavior and integration limits.
+The controller owns registration lifetimes; `extensions.ts` owns the registry;
+`codemirror.ts` applies contributions in dedicated compartments. Registration and
+removal preserve editor identity, document, selection and undo history and do not
+write files. No callout plugin or new UI role is included in this foundation.
+
+## Callout integration
+
+The independent [Callouts plugin](../../callouts/DOCS/README.md) contributes syntax,
+presentation and Enter handling through EditorExtensions. Text Editor continues
+owning sessions, persistence and undo; no callout-specific implementation or private
+contract is added to the editor. During extension teardown, scheduled statistics
+refresh tolerates retiring SDK dependencies instead of rejecting asynchronously.

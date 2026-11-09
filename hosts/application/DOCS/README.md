@@ -19,3 +19,10 @@ filtered to registered plugins. Platform extensions declare their own grants.
 The host owns viewport and recovery geometry. Mantine roles own product surfaces;
 embedded views preserve their containers. Recovery is host-owned and remains
 available when product services fail.
+
+Callouts are enabled alongside the editor through the independent
+`@lunaris/callouts` plugin with `ui.dom`. It consumes EditorExtensions provided by
+Text Editor, so dependency startup orders the editor before the contribution.
+The existing Mantine component set supplies `lunaris.callout-header`. Web and
+desktop share this composition; a feature set without editor omits both plugins.
+See [usage and integration](../../../plugins/UI/callouts/DOCS/README.md).

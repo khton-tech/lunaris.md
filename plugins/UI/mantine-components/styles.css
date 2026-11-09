@@ -433,3 +433,10 @@
 .lm-root .lm-window-titlebar[data-chrome=true] .lm-window-action:focus-visible { outline-color:var(--vault-caption-text) }
 .lm-root .lm-window-titlebar[data-chrome=true] .lm-window-action:disabled { background:var(--vault-panel);color:var(--vault-secondary);border-color:var(--vault-secondary);box-shadow:none }
 @media(prefers-reduced-motion:reduce) { .lm-settings-items :is(.mantine-Switch-track,.mantine-Switch-thumb) { transition:none } }
+
+/* Inline callout controls inherit the document contribution's local surface. */
+.lm-callout-header { display: inline-flex; max-width: 100%; vertical-align: middle; }
+.lm-root .lm-callout-title { display: inline-flex; align-items: flex-start; gap: calc(var(--vault-space) * 1.5); min-width: 0; white-space: normal; text-align: start; font: inherit; font-weight: 600; color: var(--vault-text); background: transparent; border: 0; border-radius: 0; box-shadow: none; padding: 0; cursor: text; }
+.lm-callout-title > svg { flex: 0 0 auto; margin-top: 0.15em; color: var(--callout-color, var(--vault-accent)); }
+.lm-callout-title > span { overflow-wrap: anywhere; }
+.lm-root .lm-callout-title:hover { color: var(--vault-text); background: transparent; }

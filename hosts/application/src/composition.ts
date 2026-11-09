@@ -1,3 +1,4 @@
+import callouts from "@lunaris/callouts";
 import { createClientUpdates } from "@lunaris/client-updates";
 import { createBrowserNavigation } from "@lunaris/browser-navigation";
 import clientUpdateUI from "@lunaris/client-update-ui";
@@ -75,7 +76,7 @@ export function composeApplication(target: HTMLElement, options: {
   const layout = composeSlotSurface(target);
   const disabled = new Set<string>();
   if (options.features) {
-    if (!options.features.includes("editor")) disabled.add(textEditor.manifest.id);
+    if (!options.features.includes("editor")) { disabled.add(textEditor.manifest.id); disabled.add(callouts.manifest.id); }
     if (!options.features.includes("files")) disabled.add(fileExplorer.manifest.id);
     if (!options.features.includes("settings")) disabled.add(settings.manifest.id);
   }
@@ -83,8 +84,8 @@ export function composeApplication(target: HTMLElement, options: {
     ...layout,
     startup,
     ...(extra.beforeClose ? { beforeClose: extra.beforeClose } : {}),
-    plugins: [...extra.plugins, ...updates, clipboardDriver, clipboardProvider, device, transport, accountSession, account, remoteFilesystem, draftsProvider, router, ...(options.platformPlugins ?? []), statusBar, textEditor, interfaceSettings, settingsProvider, settings, activeScreenProvider, activeScreen, activeDocument, contextMenu, fileExplorer, sidebar, sidebarProvider, runner, ...(options.mode === "desktop" ? [selector] : []), workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
-    entrypoints: [...extra.entrypoints, ...updates.map(plugin => plugin.manifest.id), account.manifest.id, statusBar.manifest.id, textEditor.manifest.id, startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, ...(options.mode === "desktop" ? [selector.manifest.id] : []), workspace.manifest.id, activeScreen.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id, settings.manifest.id, interfaceSettings.manifest.id],
+    plugins: [...extra.plugins, ...updates, clipboardDriver, clipboardProvider, device, transport, accountSession, account, remoteFilesystem, draftsProvider, router, ...(options.platformPlugins ?? []), statusBar, callouts, textEditor, interfaceSettings, settingsProvider, settings, activeScreenProvider, activeScreen, activeDocument, contextMenu, fileExplorer, sidebar, sidebarProvider, runner, ...(options.mode === "desktop" ? [selector] : []), workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
+    entrypoints: [...extra.entrypoints, ...updates.map(plugin => plugin.manifest.id), account.manifest.id, statusBar.manifest.id, callouts.manifest.id, textEditor.manifest.id, startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, ...(options.mode === "desktop" ? [selector.manifest.id] : []), workspace.manifest.id, activeScreen.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id, settings.manifest.id, interfaceSettings.manifest.id],
     grants: {
       ...layout.grants,
       ...extra.grants,
@@ -99,6 +100,7 @@ export function composeApplication(target: HTMLElement, options: {
       [draftsProvider.manifest.id]: ["drafts.access"],
       [router.manifest.id]: ["filesystem.native", "filesystem.access", "filesystem.app-config"],
       [statusBar.manifest.id]: statusBar.manifest.permissions,
+      [callouts.manifest.id]: ["ui.dom"],
       [textEditor.manifest.id]: ["config.access", "clipboard.access", "ui.dom", "filesystem.access", "vault.access", "drafts.access", "account.access"],
       [interfaceSettings.manifest.id]: ["config.access", "vault.access"],
       [settings.manifest.id]: ["ui.dom", "vault.access"],

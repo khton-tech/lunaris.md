@@ -688,3 +688,27 @@ do not verify native appearance. Manual acceptance remains pending in Workspace:
 both Luna presets and return to Monochrome; open theme/language/context menus;
 slider, switch, checkbox and caption hover/press/focus/disabled states; editor
 links; long Russian labels; narrow and short windows.
+
+## Callout header role
+
+`lunaris.callout-header` provides embedded/content Mantine controls for document
+callouts. Required props: nonempty title, kind (`note`, `abstract`, `info`, `todo`,
+`tip`, `success`, `question`, `warning`, `failure`, `danger`, `bug`, `example`, `quote`),
+foldable/collapsed booleans, nonempty localized toggleLabel/editLabel, onToggle()
+and onEdit(). The chevron is an ActionIcon with aria-expanded; the title is an
+UnstyledButton with the type's Lucide icon. Text is escaped and wraps; document
+font metrics are inherited. State/theme/localization updates preserve controls
+and focus. The role adds no document or outer surface and performs no editor or
+filesystem operations. Callouts own line surfaces and source/disclosure changes.
+Reference: existing task-checkbox/quiet action controls, Obsidian callouts and
+[Mantine UI buttons](https://ui.mantine.dev/category/buttons/). Integration is
+connected through Components and EditorExtensions; native visual acceptance is
+pending as described in the [callout guide](../../callouts/DOCS/README.md).
+
+Callout presentation correction follows the Owner's code-block card screenshot.
+The header's note icon is Lucide Pencil; the editing title keeps a transparent
+surface and unchanged text color on hover, and has no native edit tooltip.
+It retains its accessible label and keyboard focus. The inherited document token
+`--callout-color` supplies icon color with the shared accent fallback. The callout
+contribution owns card boundaries, gutters and surfaces, while this role owns
+only its controls. Native comparison in Workspace remains pending.

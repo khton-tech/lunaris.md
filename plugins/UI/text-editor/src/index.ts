@@ -1,3 +1,5 @@
+import { EditorExtensions } from "@lunaris/editor";
+import { createExtensions } from "./extensions.js";
 import { russian } from "./locales/ru.js";
 import { ContextMenu } from "@lunaris/context-menu";
 import { Clipboard } from "@lunaris/clipboard";
@@ -72,12 +74,15 @@ export default definePlugin({ manifest, activate(ctx) {
     if (scheduled || ctx.signal.aborted) return; scheduled = true;
     void Promise.resolve().then(() => {
       scheduled = false; if (ctx.signal.aborted) return;
-      publishStatistics();
+      // Contribution teardown can enqueue work while dependencies are retiring.
+      try { publishStatistics(); } catch (error) { if (isSdkUnavailable(error)) return; throw error; }
       for (const view of views) {
         try { view.render(); } catch (error) { logger.error(ctx.pluginId, "Cannot render editor", { error }); }
       }
     });
   }
+  const extensions = createExtensions(ctx.signal, () => { logger.info(ctx.pluginId, "Editor extensions changed"); changed(); });
+  ctx.provide(EditorExtensions, extensions.api);
   const preferences = createPreferences(ctx, changed);
   function sessionFor(target: FileTarget): DocumentSession {
     let session = sessions.get(key(target));
@@ -226,8 +231,8 @@ export default definePlugin({ manifest, activate(ctx) {
               active: () => !disposed && !owner.signal.aborted && !ctx.signal.aborted && current === session && session.active && screens.snapshot().activeId === screenId,
               failed(error) { if (ctx.signal.aborted || disposed) return; commandError = text("clipboardFailed"); logger.warn(ctx.pluginId, "Editor context command failed", { error }); changed(); },
               completed(operation) { if (ctx.signal.aborted || disposed) return; commandError = ""; logger.info(ctx.pluginId, "Editor context command completed", { data: { operation } }); changed(); },
-            }, preferences.current());
-        } else editor.update(themes.current(), text("editor"), true, preferences.current());
+            }, preferences.current(), extensions.current());
+        } else editor.update(themes.current(), text("editor"), true, preferences.current(), extensions.current());
       }
     }
     const view = { render, refreshControls: clearEditor, removed() { clearEditor(); mounted = undefined; editorTarget = null; } };

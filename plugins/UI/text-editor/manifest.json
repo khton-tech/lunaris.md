@@ -20,6 +20,11 @@
       "kind": "event",
       "id": "lunaris.document-statistics-changed",
       "version": "1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.editor-extensions",
+      "version": "1.0.0"
     }
   ],
   "requires": [

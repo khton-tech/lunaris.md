@@ -219,3 +219,11 @@ with ActiveDocument, Filesystem/File Explorer, Vault, ActiveScreen, Themes,
 Localization, Components and Logger. Normal desktop closure flushes through Vault.
 Native visual acceptance remains pending; crash recovery and merge are outside
 this initial scope. See the [plugin guide](../plugins/UI/text-editor/DOCS/README.md).
+
+## Callouts
+
+Implemented as the independent `lunaris.callouts` plugin through EditorExtensions
+1.0. Supports Obsidian-style types/aliases, nesting, source-preserving Live Preview
+and local disclosure. Connected to the shared web/desktop application composition
+and Mantine header role. Native visual acceptance remains pending. See the
+[callout plugin guide](../plugins/UI/callouts/DOCS/README.md).
