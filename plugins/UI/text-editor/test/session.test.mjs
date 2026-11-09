@@ -67,6 +67,40 @@ test('a clean buffer cannot accept edits while an external reload is in flight',
   s.session.edit('after reload'); assert.equal(s.session.text, 'after reload'); s.session.dispose();
 });
 
+test('a delayed save echo checks its version without locking input', async () => {
+  const options = {}; const s = setup(options); await s.session.load();
+  s.session.edit('saved text'); await s.session.flush();
+  const pending = Promise.withResolvers(); options.read = () => pending.promise;
+  const checking = s.session.refresh(); assert.equal(s.session.loading, false);
+  s.session.edit('keep typing during the check');
+  pending.resolve(ok({ text: 'saved text', version: s.session.version })); await checking;
+  assert.equal(s.session.text, 'keep typing during the check'); assert.equal(s.session.dirty, true);
+  s.session.dispose();
+});
+
+test('unchanged notifications stay quiet while genuine external changes still reload', async () => {
+  const options = {}; const s = setup(options); await s.session.load();
+  let reads = 0;
+  options.read = async () => { reads++; assert.equal(s.session.loading, false); return ok({ text: '# Note', version: 'v1' }); };
+  await s.session.refresh(); assert.equal(reads, 1); assert.equal(s.session.loading, false);
+  options.read = async () => ok({ text: 'External replacement', version: 'v2' });
+  await s.session.refresh(); assert.equal(s.session.text, 'External replacement'); assert.equal(s.session.version, 'v2');
+  s.session.dispose();
+});
+
+test('a refresh response cannot replace a buffer saved, relocated or closed during its read', async () => {
+  for (const action of ['save', 'relocate', 'close']) {
+    const options = {}; const s = setup(options); await s.session.load();
+    const pending = Promise.withResolvers(); options.read = () => pending.promise;
+    const checking = s.session.refresh();
+    if (action === 'save') { s.session.edit('newer saved text'); await s.session.flush(); }
+    else if (action === 'relocate') s.session.target = { vaultId: 'v', path: 'moved.md' };
+    else s.session.dispose();
+    pending.resolve(ok({ text: 'stale external text', version: 'stale' })); await checking;
+    assert.equal(s.session.text, action === 'save' ? 'newer saved text' : '# Note'); s.session.dispose();
+  }
+});
+
 test('closing a session before its scheduled read starts performs no filesystem access', async () => {
   let reads = 0; const s = setup({ read() { reads++; return ok({ text: 'unexpected', version: 'v1' }); } });
   const reading = s.session.load(); s.session.dispose(); await reading;

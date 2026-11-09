@@ -68,6 +68,23 @@ export class DocumentSession {
     this.locks++; this.cancelTimer(); this.changed(); let released = false;
     return () => { if (released) return; released = true; this.locks--; if (this.active) this.changed(); };
   }
+  /** Delayed watch echoes must not disable the renderer for an unchanged file. */
+  async refresh(): Promise<void> {
+    if (!this.active || !this.loaded || this.dirty || this.saving || this.loading || this.locks) return;
+    const target = { ...this.target }; const version = this.version; const text = this.text;
+    const relevant = () => this.active && !this.dirty && !this.saving && !this.loading && !this.locks &&
+      this.target.vaultId === target.vaultId && this.target.path === target.path && this.version === version && this.text === text;
+    try {
+      const result = await this.fs.readText(target);
+      if (!relevant()) return;
+      if (result.ok && result.value.version === version && result.value.text === text) return;
+    } catch (error) {
+      if (!relevant()) return;
+      this.log("error", "Cannot check document changes", error);
+    }
+    // A real change or read failure uses the normal authoritative reload path.
+    if (relevant()) await this.load();
+  }
   load(discard = false): Promise<void> {
     if (this.reading) return this.reading;
     if (!this.active || (this.dirty && !discard)) return Promise.resolve();

@@ -65,6 +65,18 @@ expectedVersion; autosave never recreates a removed file. A flush saves edits
 made during an in-flight write before reporting the buffer clean. CRLF line
 separators are preserved.
 
+File observations can arrive after a browser save has completed. A clean session
+checks the observed file's version and content without entering the loading state;
+unchanged save echoes retain the existing CodeMirror view, focus, selection and
+history. Real external changes still use the authoritative reload path. Edits,
+saves, relocation or closure during the check invalidate its result. This behavior
+belongs to the existing editor controller/session; Workspace and Mantine retain
+layout/surface ownership, and no public SDK contract changes are required.
+Regression coverage uses the composed browser editor with real server observation
+and guards against even a transient contenteditable/read-only toggle. Native
+keyboard/caret acceptance remains manual: type, wait for autosave and the next
+server poll, then continue typing without clicking the editor again.
+
 Conflicts and write failures retain text and stop background retries. Use Retry
 save for recoverable failures. Reload from disk requires explicit Discard changes
 and reload confirmation when dirty. Failed reloads preserve text. Confirmed

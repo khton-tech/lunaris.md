@@ -227,7 +227,7 @@ export default definePlugin({ manifest, activate(ctx) {
           !(change.kind === "rescan" || change.paths.some(path => path === "" || inside(session.target, { vaultId: change.vaultId, path })))) continue;
       if (session.dirty) {
         if (change.kind === "removed") { session.missing = true; session.error = { code: "NOT_FOUND", message: "Document removed." }; session.cancelTimer(); changed(); }
-      } else { states.delete(session); await session.load(); }
+      } else await session.refresh();
     }
   });
   ctx.events.on(ThemeChanged, changed); ctx.events.on(LocaleChanged, changed);

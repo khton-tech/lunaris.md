@@ -8,6 +8,7 @@ import { JSDOM } from 'jsdom';
 import { IDBFactory } from 'fake-indexeddb';
 import { useBrowser, typeInput } from '../test/browser.mjs';
 import { EditorView } from '@codemirror/view';
+import { StateEffect } from '@codemirror/state';
 import { definePlugin } from '@lunaris/sdk';
 import { HostSession, composeApplication } from '@lunaris/application-host';
 import { createWebviewScheduler } from '@lunaris/application-host/scheduler';
@@ -36,7 +37,7 @@ test('real server browser composition recovers drafts, gates updates and retires
   const server = await startApplication(configuration, { writeLog: () => {} });
   const address = `http://127.0.0.1:${server.address.port}`;
   const nativeFetch = globalThis.fetch; let cookie = ''; let offline = false; let networkError;
-  let holdReads = false; let readEntered = false; let readSettled = false; let holdShutdown = false;
+  let holdReads = false; let readEntered = false; let readSettled = false; let holdShutdown = false; let noteReads = 0;
   const readGate = Promise.withResolvers(); const shutdownEntered = Promise.withResolvers(); const shutdownGate = Promise.withResolvers();
   // Node fetch has no browser cookie jar. Emulate only that browser responsibility.
   globalThis.fetch = async (url, init) => {
@@ -51,6 +52,7 @@ test('real server browser composition recovers drafts, gates updates and retires
     try { response = await nativeFetch(url, { ...nativeInit, headers: { ...init.headers, ...(cookie ? { Cookie: cookie } : {}) } }); }
     catch (error) { networkError = error.stack + '\n' + error.cause?.stack; throw error; }
     const next = response.headers.get('set-cookie'); if (next) cookie = next.split(';')[0];
+    if (body?.operation === 'readText' && body.args?.path === 'note.md') noteReads++;
     if (held) { await response.clone().arrayBuffer(); readSettled = true; }
     return response;
   };
@@ -101,14 +103,35 @@ test('real server browser composition recovers drafts, gates updates and retires
   const created = { ok: true, value: (await api.catalog.list()).value.find(vault => vault.name === 'Web notes') }; assert.ok(created.value);
   const wrapped = api.sources.location('remote', created.value.location); assert.equal(wrapped.ok, true);
   let rootId = api.vault.current().id;
+  const physical = path.join(base, 'userData', 'alice', `vault_${created.value.id}`, 'note.md');
   assert.equal((await api.fs.writeText({ vaultId: rootId, path: 'note.md' }, '# Original', { mode: 'create' })).ok, true);
   assert.equal((await api.document.open({ vaultId: rootId, path: 'note.md' })).ok, true);
   await until(() => target.querySelector('.cm-editor'), 'editor mount');
   let editor = EditorView.findFromDOM(target.querySelector('.cm-editor'));
+  const editableStates = [];
+  editor.dispatch({ effects: StateEffect.appendConfig.of(EditorView.updateListener.of(update => editableStates.push(update.state.facet(EditorView.editable)))) });
+  editor.focus();
+  editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: '# Autosave keeps focus' }, selection: { anchor: 7 } });
+  await until(() => fs.readFileSync(physical, 'utf8') === '# Autosave keeps focus', 'two-second autosave');
+  await new Promise(setImmediate);
+  const readCount = noteReads; const previousTime = fs.statSync(physical).mtime;
+  // Deliver a real, delayed server rescan for unchanged content after saving.
+  fs.utimesSync(physical, previousTime, new Date(previousTime.getTime() + 1000));
+  await until(() => noteReads > readCount, 'delayed server save echo');
+  for (let index = 0; index < 3; index++) await new Promise(setImmediate);
+  assert.equal(EditorView.findFromDOM(target.querySelector('.cm-editor')), editor);
+  assert.equal(editor.hasFocus, true); assert.equal(editor.state.selection.main.head, 7);
+  assert.equal(editableStates.includes(false), false, 'Save echoes must never disable the focused editor.');
+  editor.dispatch({ changes: { from: 7, insert: ' typing continues' } });
+  assert.ok(editor.state.doc.toString().includes(' typing continues'));
+  // Retain the existing offline-recovery scenario's original disk fixture.
+  editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: '# Original' } });
+  editor.contentDOM.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 's', code: 'KeyS', ctrlKey: true, bubbles: true, cancelable: true }));
+  await until(() => fs.readFileSync(physical, 'utf8') === '# Original', 'restore recovery fixture');
   editor.dispatch({ changes: { from: 0, to: editor.state.doc.length, insert: '# Recovered from this device' } });
   offline = true;
   const closed = await api.vault.close(); assert.equal(closed.ok, true, JSON.stringify(closed));
-  const physical = path.join(base, 'userData', 'alice', `vault_${created.value.id}`, 'note.md'); assert.equal(fs.readFileSync(physical, 'utf8'), '# Original');
+  assert.equal(fs.readFileSync(physical, 'utf8'), '# Original');
   offline = false;
   const reopened = await api.locations.open(wrapped.value); assert.equal(reopened.ok, true, JSON.stringify(reopened)); rootId = reopened.value.id;
   await api.document.open({ vaultId: rootId, path: 'note.md' });
