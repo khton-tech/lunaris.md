@@ -1,6 +1,6 @@
 # Base theme engine
 
-Purpose: register Monochrome and experimental Windows XP Luna. Theme IDs:
+Purpose: register the built-in theme catalog. Theme IDs:
 `lunaris.base-theme-engine.monochrome` and `lunaris.base-theme-engine.windows-xp`.
 Requires Logger and `api:lunaris.themes@^1.0.0`; no permissions are needed.
 Activation registers through ctx.use(Themes) with ctx.signal and logs through
@@ -32,3 +32,14 @@ captions. It shares Luna typography, geometry and existing public theme contract
 Interface Settings exposes it automatically; Mantine and CodeMirror consume its
 tokens through Themes/ThemeChanged. Integration through these contracts is
 complete; native visual acceptance is pending. See the reference for the palette.
+
+The engine also registers Catppuccin Mocha, Dracula, Nord, Tokyo Night, Rosé Pine,
+Gruvbox Dark and Everforest Dark palette adaptations, plus the original Lunaris
+Sakura Night palette. They use the same `lunaris.base-theme` v1 contract and are
+available immediately in Interface Settings; no UI or SDK changes are needed.
+Community palette references: [Catppuccin](https://catppuccin.com/),
+[Dracula](https://draculatheme.com/), [Nord](https://www.nordtheme.com/),
+[Tokyo Night](https://github.com/enkia/tokyo-night-vscode-theme),
+[Rosé Pine](https://rosepinetheme.com/), [Gruvbox](https://github.com/morhetz/gruvbox),
+and [Everforest](https://github.com/sainnhe/everforest). Sakura Night is an
+original palette with plum-charcoal surfaces and sakura pink accents.

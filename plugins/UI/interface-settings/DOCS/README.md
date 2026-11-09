@@ -52,6 +52,9 @@ Runtime catalog discovery remains outside Localization's existing contract.
 Changes require restart to refresh that availability snapshot.
 
 Theme choices follow the live Themes registry and use author-supplied names.
+The base theme engine's community palette adaptations appear automatically in
+this list, including Sakura Night; the controller does not maintain a separate
+theme catalog.
 The selector supports the documented `lunaris.base-theme` schema version 1 used
 by the current Mantine adapter; it does not claim arbitrary theme compatibility.
 New registrations, replacements and removal refresh choices and restore the saved

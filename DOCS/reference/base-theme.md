@@ -88,6 +88,34 @@ and the existing selection contract. No controller or ownership changes are need
 
 ## Composition and saved preferences
 
+### Community palette adaptations
+
+The base engine additionally registers seven community palette adaptations and
+one original Lunaris palette. All use schema `lunaris.base-theme` version 1,
+the existing shared geometry, typography and motion, and dark appearance. Each
+theme is available through the existing Interface Settings selector.
+
+| Theme | ID suffix | Palette reference |
+|---|---|---|
+| Catppuccin Mocha | `catppuccin-mocha` | [Catppuccin](https://catppuccin.com/) |
+| Dracula | `dracula` | [Dracula](https://draculatheme.com/) |
+| Nord | `nord` | [Nord](https://www.nordtheme.com/) |
+| Tokyo Night | `tokyo-night` | [Tokyo Night](https://github.com/enkia/tokyo-night-vscode-theme) |
+| Rosé Pine | `rose-pine` | [Rosé Pine](https://rosepinetheme.com/) |
+| Gruvbox Dark | `gruvbox-dark` | [Gruvbox](https://github.com/morhetz/gruvbox) |
+| Everforest Dark | `everforest-dark` | [Everforest](https://github.com/sainnhe/everforest) |
+| Sakura Night | `sakura-night` | Original Lunaris palette |
+
+The seven community themes use adapted semantic roles from their named palettes;
+the repository does not bundle upstream theme packages or code. Sakura Night is
+an original plum-charcoal palette with pink accents. All palettes are checked
+against the existing text, control-boundary, focus and primary-label contrast
+requirements. Layout, container surfaces and component ownership do not change.
+
+The existing selector obtains author-supplied names from Themes, so no separate
+selector/UI integration is needed. Vault-local theme values continue to use the
+existing IDs; each newly chosen theme is saved by the same controller.
+
 ### Windows XP Luna Dark
 
 `lunaris.base-theme-engine.windows-xp-dark` (Windows XP Luna Dark) is an independent

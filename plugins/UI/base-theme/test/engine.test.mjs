@@ -24,7 +24,7 @@ test('engine supplies the immutable Monochrome preset without selecting it', asy
   const s = await setup(); assert.deepEqual(s.themes.list(), []);
   await s.host.start(engine.manifest.id);
   const theme = s.themes.get(presetId);
-  assert.equal(theme.name, 'Monochrome'); assert.equal(s.themes.list().length, 3);
+  assert.equal(theme.name, 'Monochrome'); assert.equal(s.themes.list().length, 11);
   assert.equal(theme.properties.appearance, 'dark');
   assert.equal(theme.properties.schema, 'lunaris.base-theme'); assert.equal(theme.properties.schemaVersion, 1);
   assert.ok(Object.isFrozen(theme.properties.colors)); assert.ok(Object.isFrozen(theme.properties.typography.fontFamily));
@@ -75,6 +75,21 @@ test('Luna Dark retains XP chrome and typography with independent dark surfaces'
   assert.equal(s.themes.current(), dark);
   await s.stop();
 });
+test('community presets use the shared schema and include a dark Sakura palette', async () => {
+  const s = await setup(); await s.host.start(engine.manifest.id);
+  const expected = ['Catppuccin Mocha', 'Dracula', 'Nord', 'Tokyo Night', 'Rosé Pine', 'Gruvbox Dark', 'Everforest Dark', 'Sakura Night'];
+  const additions = s.themes.list().filter(theme => expected.includes(theme.name));
+  assert.deepEqual(additions.map(theme => theme.name).sort(), [...expected].sort());
+  for (const theme of additions) {
+    assert.equal(theme.properties.schema, 'lunaris.base-theme');
+    assert.equal(theme.properties.schemaVersion, 1);
+    assert.equal(theme.properties.appearance, 'dark');
+  }
+  const sakura = additions.find(theme => theme.name === 'Sakura Night');
+  assert.equal(sakura.properties.colors.accent, '#E89AB8');
+  assert.equal(sakura.properties.colors.background, '#211A22');
+  await s.stop();
+});
 const contrast = (a, b) => (Math.max(luminance(a), luminance(b)) + 0.05) / (Math.min(luminance(a), luminance(b)) + 0.05);
 test('text and meaningful controls meet contrast thresholds across their intended states', async () => {
   const s = await setup(); await s.host.start(engine.manifest.id);
@@ -96,7 +111,7 @@ test('registration and restart preserve an existing selection and remove only en
   await s.host.start(engine.manifest.id); assert.equal(s.themes.current().id, foreign.id);
   s.themes.select(presetId); await s.host.stop(engine.manifest.id);
   assert.equal(s.themes.current(), null); assert.deepEqual(s.themes.list().map(theme => theme.id), [foreign.id]);
-  await s.host.start(engine.manifest.id); assert.equal(s.themes.list().length, 4); assert.equal(s.themes.current(), null);
+  await s.host.start(engine.manifest.id); assert.equal(s.themes.list().length, 12); assert.equal(s.themes.current(), null);
   s.themes.select(presetId); assert.equal(s.themes.current().name, 'Monochrome');
   await s.stop();
 });
@@ -107,7 +122,7 @@ test('a registration collision preserves another owner; retry succeeds', async (
   await assert.rejects(s.host.start(engine.manifest.id));
   assert.equal(s.themes.get(presetId).name, 'Existing owner'); assert.equal(s.themes.current().id, presetId);
   assert.ok(s.logs.some(([level, source, , details]) => level === 'error' && source === engine.manifest.id && details.error.cause.code === 'ALREADY_REGISTERED'));
-  await owner.dispose(); await s.host.start(engine.manifest.id); assert.equal(s.themes.list().length, 3);
+  await owner.dispose(); await s.host.start(engine.manifest.id); assert.equal(s.themes.list().length, 11);
   await s.host.stopAll(); s.host.assertNoResources();
   assert.ok(!s.host.diagnostics().some(item => ['CLEANUP_FAILED', 'API_CALL_FAILED'].includes(item.code)));
 });
@@ -117,5 +132,5 @@ test('provider shutdown stops its dependent engine; a new provider generation ge
   await s.host.stop(provider.manifest.id); s.host.assertState(engine.manifest.id, 'stopped');
   assert.throws(() => stale.list());
   await s.host.start(engine.manifest.id); await s.host.start('test.observer');
-  assert.equal(s.themes.list().length, 3); assert.equal(s.themes.current(), null); await s.stop();
+  assert.equal(s.themes.list().length, 11); assert.equal(s.themes.current(), null); await s.stop();
 });
