@@ -118,3 +118,27 @@ appearance. Repository policy prohibits automated desktop control.
 
 Insertion/type-picker menus, formatted title rendering, user-defined callout
 styles/types, Obsidian CSS snippets and reading/export views are outside this version.
+
+## Card presentation correction
+
+The Owner's comparison screenshots establish the editor's existing code-block
+card as the product reference. Callouts now use the same neutral currentColor
+surface mix (5%), thin boundary mix (25%), horizontal gutters and 0.4em corner
+radius. Start/end line decorations provide one continuous card outline; only
+outside edges have vertical padding, with additional space between title and body.
+Collapsed and title-only blocks carry both edges on the header. Nested content
+retains depth indentation. This replaces the quote-like left stripe and removes
+header-line font weight inheritance from body content.
+
+Mantine retains ownership of header controls. Note uses the Lucide Pencil icon;
+other types retain their dedicated icons. Icons take the callout's semantic accent
+through the documented inherited --callout-color token (theme accent fallback).
+The title remains plain text with a transparent editing button, no hover color
+change, no badge surface and no native edit tooltip; the accessible edit label
+and keyboard focus remain. Workspace and editor target ownership are unchanged.
+
+Targeted composed tests compare callout/code-block corner geometry, normal body
+font weight, closed-card edges, no writes on presentation, the actual Pencil path,
+and transparent title styles. Native visual acceptance remains pending: compare
+with the supplied code-block reference in Workspace, including hover/focus,
+light/dark themes, wrapped titles, selection and nested/folded cards.

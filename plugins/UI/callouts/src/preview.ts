@@ -55,7 +55,7 @@ function build(state: EditorState, folds: Map<number, Fold>): DecorationSet {
   const controls = state.facet(presentation);
   if (!controls) return Decoration.none;
   const ranges: Range<Decoration>[] = [];
-  const lines = new Map<number, { depth: number; kind: CalloutType; header: boolean }>();
+  const lines = new Map<number, { depth: number; kind: CalloutType; header: boolean; end: boolean }>();
   const hidden: { from: number; to: number }[] = [];
   syntaxTree(state).iterate({ enter(ref) {
     if (["FencedCode", "CodeBlock", "HTMLBlock"].includes(ref.name)) return false;
@@ -71,7 +71,7 @@ function build(state: EditorState, folds: Map<number, Fold>): DecorationSet {
     const collapsed = controls.available && !!parsed.fold && (saved?.source === source ? saved.collapsed : parsed.fold === "-") && !selected(state, first.to + 1, node.to);
     for (let number = first.number; number <= (collapsed ? first.number : last.number); number++) {
       const line = state.doc.line(number);
-      if ((lines.get(line.from)?.depth ?? 0) <= depth) lines.set(line.from, { depth, kind: parsed.type, header: number === first.number });
+      if ((lines.get(line.from)?.depth ?? 0) <= depth) lines.set(line.from, { depth, kind: parsed.type, header: number === first.number, end: number === (collapsed ? first.number : last.number) });
     }
     if (controls.available && !selected(state, first.from, first.to)) ranges.push(Decoration.replace({ widget: new Header(header.from, source, parsed.type, parsed.title || controls.title(parsed.type), !!parsed.fold, collapsed, controls) }).range(header.from, header.to));
     if (collapsed && node.to > first.to) { ranges.push(Decoration.replace({ block: true }).range(first.to, node.to)); hidden.push({from:first.to,to:node.to}); }
@@ -84,7 +84,7 @@ function build(state: EditorState, folds: Map<number, Fold>): DecorationSet {
     const line = state.doc.lineAt(ref.from);
     if (!selected(state, line.from, line.to)) ranges.push(Decoration.replace({}).range(ref.from, Math.min(ref.to + (state.sliceDoc(ref.to, ref.to + 1) === " " ? 1 : 0), line.to)));
   } });
-  for (const [from, info] of lines) ranges.push(Decoration.line({ class: "cm-callout" + (info.header ? " cm-callout-header" : ""), attributes: { "data-callout": info.kind, style: `--callout-depth:${info.depth}` } }).range(from));
+  for (const [from, info] of lines) ranges.push(Decoration.line({ class: "cm-callout" + (info.header ? " cm-callout-header cm-callout-start" : "") + (info.end ? " cm-callout-end" : ""), attributes: { "data-callout": info.kind, style: `--callout-depth:${info.depth}` } }).range(from));
   return Decoration.set(ranges, true);
 }
 export const calloutPreview = StateField.define<Preview>({
@@ -107,10 +107,13 @@ export const calloutPreview = StateField.define<Preview>({
 export function calloutTheme(colors: Readonly<Record<string, unknown>> = {}) {
   const color = (key: string, fallback: string) => typeof colors[key] === "string" ? colors[key] as string : fallback;
   return EditorView.baseTheme({
-    ".cm-line.cm-callout": { "--callout-color": color("accent", "currentColor"), backgroundColor: "color-mix(in srgb, var(--callout-color) 8%, transparent)", borderInlineStart: "2px solid var(--callout-color)", paddingInlineStart: "calc(clamp(12px, 3cqi, 40px) + var(--callout-depth) * 0.65em)", backgroundImage: "none !important" },
+    ".cm-line.cm-callout": { "--callout-color": color("accent", "currentColor"), backgroundColor: "color-mix(in srgb, currentColor 5%, transparent)", margin: "0 clamp(12px, 3cqi, 40px)", marginInlineStart: "calc(clamp(12px, 3cqi, 40px) + (var(--callout-depth) - 1) * 0.9em)", padding: "0 0.9em", borderLeft: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderRight: "1px solid color-mix(in srgb, currentColor 25%, transparent)", whiteSpace: "pre-wrap", overflowWrap: "anywhere", backgroundImage: "none !important" },
     '.cm-callout[data-callout="warning"]': { "--callout-color": color("warning", color("colorfulError", color("accent", "currentColor"))) },
     '.cm-callout[data-callout="danger"], .cm-callout[data-callout="failure"], .cm-callout[data-callout="bug"]': { "--callout-color": color("error", "currentColor") },
     '.cm-callout[data-callout="success"]': { "--callout-color": color("success", color("accent", "currentColor")) },
-    ".cm-callout-header": { fontWeight: "600" },
+    ".cm-line.cm-callout-start": { borderTop: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderTopLeftRadius: "0.4em", borderTopRightRadius: "0.4em", paddingTop: "0.9em" },
+    ".cm-line.cm-callout-end": { borderBottom: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderBottomLeftRadius: "0.4em", borderBottomRightRadius: "0.4em", paddingBottom: "0.9em" },
+    ".cm-line.cm-callout-header": { paddingBottom: "0.65em" },
+    ".cm-line.cm-callout-header.cm-callout-end": { paddingBottom: "0.9em" },
   });
 }

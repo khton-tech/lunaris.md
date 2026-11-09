@@ -1,4 +1,5 @@
 import { readFileSync } from 'node:fs';
+import { Pencil } from 'lucide';
 import { useBrowser, typeInput } from '../../../../tools/test/browser.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -851,4 +852,18 @@ test('callout header owns themed Mantine disclosure and preserves focus, escapin
  toggle.focus();toggle.click();assert.equal(toggles,1);mounted.value.update({...props,collapsed:false,title:'Localized title'});assert.equal(root.querySelector('[aria-expanded]'),toggle);assert.equal(s.dom.window.document.activeElement,toggle);assert.equal(toggle.getAttribute('aria-expanded'),'true');
  title.click();assert.equal(edits,1);assert.equal(mounted.value.update({...props,kind:'invalid'}).ok,false);
  mounted.value.dispose();await s.stop();
+});
+
+test('callout title stays plain, has the note pencil icon and no native edit tooltip',async()=>{
+ const s=await setup();await s.start();
+ try {
+  const sheet=s.dom.window.document.createElement('style');sheet.textContent=readFileSync(new URL('../styles.css',import.meta.url),'utf8').replace(/^@import .*$/gm,'');s.dom.window.document.head.append(sheet);
+  const props={title:'Note title',kind:'note',foldable:false,collapsed:false,toggleLabel:'Toggle',editLabel:'Edit',onToggle(){},onEdit(){}};
+  const mounted=s.components.mount('lunaris.callout-header',s.target,props,s.ctx.signal);assert.equal(mounted.ok,true);
+  const title=s.target.querySelector('.lm-callout-title');assert.equal(title.hasAttribute('title'),false);
+  const paths=[...title.querySelectorAll('svg path')].map(path=>path.getAttribute('d'));
+  assert.deepEqual(paths,Pencil.filter(([tag])=>tag==='path').map(([,attributes])=>attributes.d));
+  const style=s.dom.window.getComputedStyle(title);assert.equal(style.backgroundColor,'rgba(0, 0, 0, 0)');assert.equal(style.boxShadow,'none');assert.equal(style.fontWeight,'600');assert.equal(style.cursor,'text');
+  mounted.value.dispose();
+ } finally { await s.stop(); }
 });

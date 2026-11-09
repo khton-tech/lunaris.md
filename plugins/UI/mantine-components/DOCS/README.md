@@ -704,3 +704,11 @@ Reference: existing task-checkbox/quiet action controls, Obsidian callouts and
 [Mantine UI buttons](https://ui.mantine.dev/category/buttons/). Integration is
 connected through Components and EditorExtensions; native visual acceptance is
 pending as described in the [callout guide](../../callouts/DOCS/README.md).
+
+Callout presentation correction follows the Owner's code-block card screenshot.
+The header's note icon is Lucide Pencil; the editing title keeps a transparent
+surface and unchanged text color on hover, and has no native edit tooltip.
+It retains its accessible label and keyboard focus. The inherited document token
+`--callout-color` supplies icon color with the shared accent fallback. The callout
+contribution owns card boundaries, gutters and surfaces, while this role owns
+only its controls. Native comparison in Workspace remains pending.

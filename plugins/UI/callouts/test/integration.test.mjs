@@ -170,3 +170,19 @@ test('real Enter command continues tasks inside callouts and saves CRLF through 
     assert.equal(s.cm(),view);assert.equal(undo(view),true);assert.equal(view.state.sliceDoc(),source);
   } finally { await s.stop(); }
 });
+
+test('callout card matches code-block boundaries and keeps normal body typography inside Workspace',async()=>{
+ const source='Start\n\n> [!note] A title\n> Body\n> Last line\n\n```\nCode\n```\n\nEnd';const s=await setup({initial:source,withLayout:true});
+ try {
+  const view=s.cm(),header=s.target.querySelector('.cm-callout-start'),end=s.target.querySelector('.cm-callout-end'),body=[...s.target.querySelectorAll('.cm-callout')].find(line=>line.textContent==='Body');
+  const codeStart=s.target.querySelector('.cm-preview-code-start'),codeEnd=s.target.querySelector('.cm-preview-code-end');
+  assert.ok(header);assert.ok(end);assert.ok(body);assert.notEqual(header,end);
+  const style=node=>s.dom.window.getComputedStyle(node);
+  assert.equal(style(header).borderTopLeftRadius,style(codeStart).borderTopLeftRadius);assert.ok(parseFloat(style(header).borderTopLeftRadius)>0);
+  assert.equal(style(end).borderBottomRightRadius,style(codeEnd).borderBottomRightRadius);
+  assert.equal(style(body).fontWeight,style(view.contentDOM).fontWeight);
+  assert.equal(view.state.sliceDoc(),source);assert.equal(s.calls.filter(x=>x[0]==='write').length,0);
+  s.edit('Start\n\n> [!note]- Folded\n> Body');view.dispatch({selection:{anchor:0}});await flush();
+  const folded=s.target.querySelector('.cm-callout-start');assert.equal(folded.classList.contains('cm-callout-end'),true);
+ } finally { await s.stop(); }
+});
