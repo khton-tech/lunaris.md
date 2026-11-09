@@ -153,15 +153,25 @@ function decorations(view: EditorView): DecorationSet {
 
 /** Rebuild on parser progress too: large documents may parse asynchronously. */
 export const livePreview = ViewPlugin.fromClass(class {
-  decorations: DecorationSet;
-  constructor(view: EditorView) { this.decorations = decorations(view); }
+  decorations: DecorationSet = Decoration.none;
+  outerDecorations: DecorationSet = Decoration.none;
+  constructor(view: EditorView) { this.refresh(view); }
+  refresh(view: EditorView): void {
+    const all = decorations(view);
+    // Keep the code surface outside animated letter marks so its border never splits.
+    this.outerDecorations = all.update({ filter: (_from, _to, decoration) => decoration.spec.class === "cm-preview-code" });
+    this.decorations = all.update({ filter: (_from, _to, decoration) => decoration.spec.class !== "cm-preview-code" });
+  }
   update(update: ViewUpdate) {
     if (update.docChanged || update.selectionSet || update.viewportChanged || syntaxTree(update.startState) !== syntaxTree(update.state)
       || update.startState.readOnly !== update.state.readOnly || update.startState.facet(EditorView.editable) !== update.state.facet(EditorView.editable)
       || update.startState.facet(taskControls) !== update.state.facet(taskControls))
-      this.decorations = decorations(update.view);
+      this.refresh(update.view);
   }
-}, { decorations: plugin => plugin.decorations });
+}, {
+  decorations: plugin => plugin.decorations,
+  provide: plugin => EditorView.outerDecorations.of(view => view.plugin(plugin)?.outerDecorations ?? Decoration.none),
+});
 
 export const livePreviewTheme = EditorView.baseTheme({
   ".cm-preview-strong": { fontWeight: "600" },
