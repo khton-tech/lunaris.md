@@ -9,6 +9,7 @@
 @import '@mantine/core/styles/Switch.css';
 @import '@mantine/core/styles/Checkbox.css';
 @import '@mantine/core/styles/NumberInput.css';
+@import '@mantine/core/styles/Slider.css';
 @import '@mantine/core/styles/Paper.css';
 @import '@mantine/core/styles/Stack.css';
 @import '@mantine/core/styles/Group.css';
@@ -244,18 +245,19 @@
 
 .lm-settings-navigation { --tool-hover:color-mix(in srgb,var(--vault-hover) 35%,var(--vault-panel));--tool-pressed:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel));flex:1; min-width:0; min-height:0; overflow:auto; padding:0;user-select:none }
 .lm-tool-panel-title { display:flex;align-items:center;overflow-wrap:anywhere }
-.lm-settings-categories { padding-inline:calc(var(--vault-space)*2) }
-.lm-root .lm-tool-navigation-item { min-height:calc(var(--vault-space)*7);padding:var(--vault-space) calc(var(--vault-space)*2);border:0;border-radius:calc(var(--vault-radius)*0.5);font-weight:400;color:var(--vault-text) }
+.lm-settings-categories { gap:var(--vault-space);padding-inline:calc(var(--vault-space)*2) }
+.lm-root .lm-tool-navigation-item { min-height:calc(var(--vault-space)*9);padding:calc(var(--vault-space)*2) calc(var(--vault-space)*2);border:0;border-radius:calc(var(--vault-radius)*0.5);font-weight:400;color:var(--vault-text) }
 .lm-tool-navigation-item .mantine-Button-section { color:var(--vault-secondary);flex-shrink:0;margin-inline-end:calc(var(--vault-space)*1.5) }
 .lm-tool-navigation-item .mantine-Button-label { white-space:normal;overflow-wrap:anywhere }
 .lm-root .lm-tool-navigation-item[aria-current=page] { background:color-mix(in srgb,var(--vault-selection) 75%,var(--vault-panel)) }
 .lm-root .lm-tool-navigation-item:enabled:active { background:var(--tool-pressed) }
 @media(hover:hover) { .lm-root .lm-tool-navigation-item:enabled:hover { background:var(--tool-hover) } }
 .lm-root .lm-setting-dropdown { background:var(--vault-panel);color:var(--vault-text);border:var(--vault-border) solid var(--vault-menu-border,color-mix(in srgb,var(--vault-control-border) 22%,transparent));border-radius:var(--vault-radius);padding:var(--vault-space);box-shadow:var(--vault-surface-shadow,none);max-width:calc(100vw - 16px);overflow:auto }
-.lm-setting-dropdown [role=option] { min-height:calc(var(--vault-space)*7);padding:var(--vault-space) calc(var(--vault-space)*2);font:inherit;color:var(--vault-text);border-radius:calc(var(--vault-radius)*0.5);white-space:normal;overflow-wrap:anywhere }
+.lm-setting-dropdown [role=option] { display:flex;align-items:center;justify-content:space-between;gap:calc(var(--vault-space)*3);min-height:calc(var(--vault-space)*9);padding:calc(var(--vault-space)*2) calc(var(--vault-space)*3);font:inherit;color:var(--vault-text);border-radius:calc(var(--vault-radius)*0.5);white-space:normal;overflow-wrap:anywhere }
 .lm-setting-dropdown [role=option][data-combobox-selected] { background:color-mix(in srgb,var(--vault-hover) 35%,var(--vault-panel)) }
 .lm-setting-dropdown [role=option][data-checked] { font-weight:500;background:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel)) }
-.lm-setting-options { max-height:min(18rem,50dvh);overflow:auto }
+.lm-setting-option svg { flex-shrink:0 }
+.lm-setting-options { display:flex;flex-direction:column;gap:var(--vault-space);max-height:min(18rem,50dvh);overflow:auto }
 .lm-settings-page { flex:1; min-width:0; min-height:0; overflow:auto; padding:clamp(0.75rem, 3cqi, 2rem);--settings-divider:color-mix(in srgb,var(--vault-control-border) 12%,transparent) }
 .lm-settings-page>*,.lm-settings-navigation>* { flex-shrink:0 }
 .lm-settings-page-header { width:100%;max-width:60rem;padding-block-end:calc(var(--vault-space)*5);margin-block-end:calc(var(--vault-space)*6);border-bottom:var(--vault-border) solid var(--settings-divider) }
@@ -264,17 +266,17 @@
 .lm-settings-group-header h2 { line-height:1.4;overflow-wrap:anywhere }
 .lm-settings-section { display:flex; min-width:0; flex-direction:column }
 .lm-settings-items { flex:1; min-width:0;padding-inline-start:calc(var(--vault-space)*3) }
-.lm-setting-row { display:flex; flex-wrap:wrap; align-items:center; gap:calc(var(--vault-space)*3) calc(var(--vault-space)*6); min-width:0;padding-block:calc(var(--vault-space)*3) }
+.lm-setting-row { display:flex; flex-wrap:wrap; align-items:center; gap:calc(var(--vault-space)*3) calc(var(--vault-space)*6); min-width:0;padding-block:calc(var(--vault-space)*5) }
 .lm-setting-row+.lm-setting-row { border-top:var(--vault-border) solid color-mix(in srgb,var(--vault-control-border) 7%,transparent) }
 .lm-setting-label { flex:1 1 16rem; min-width:0; overflow-wrap:anywhere }
 .lm-setting-control { flex:0 1 18rem; min-width:min(100%,12rem); max-width:100%; overflow-wrap:anywhere }
 .lm-setting-row[data-layout=inline]>.lm-setting-control { margin-inline-start:auto }
 .lm-root .lm-setting-input { --input-height:calc(var(--vault-space)*8);--input-bd:color-mix(in srgb,var(--vault-control-border) 22%,transparent);--input-bg:var(--vault-panel);border-radius:var(--vault-radius);font-weight:500 }
-.lm-root .lm-setting-select { text-align:end;padding-inline-end:calc(var(--vault-space)*3);cursor:pointer }
+.lm-root .lm-setting-select { user-select:none;text-align:end;padding-inline-end:calc(var(--vault-space)*3);cursor:pointer }
 .lm-setting-control .mantine-Input-section { color:var(--vault-secondary) }
 .lm-setting-static-value { min-height:calc(var(--vault-space)*8);display:flex;align-items:center;justify-content:flex-end;padding-inline:calc(var(--vault-space)*3);font-weight:500 }
 .lm-setting-control .mantine-Switch-root { align-self:flex-end }
-.lm-root .lm-setting-select:focus { outline:none;border-color:var(--vault-focus) }
+.lm-root .lm-setting-select:focus-visible { outline:none;border-color:var(--vault-focus) }
 .lm-root .lm-setting-input:disabled { cursor:default }
 .lm-setting-row[data-layout=stacked] { flex-direction:column; align-items:stretch }
 .lm-setting-row[data-layout=stacked]>.lm-setting-label,.lm-setting-row[data-layout=stacked]>.lm-setting-control { flex:0 0 auto; min-width:0 }
@@ -303,7 +305,7 @@
 .lm-root[data-window-chrome=true]>.lm-settings-page>.lm-settings-group { margin:0;max-width:none;padding:12px;box-shadow:var(--vault-inset-shadow) }
 .lm-root[data-window-chrome=true]>.lm-settings-page .lm-settings-group-header { padding-bottom:8px;border-color:var(--vault-separator) }
 .lm-root[data-window-chrome=true]>.lm-settings-items { padding-inline:0 }
-.lm-root[data-window-chrome=true]>.lm-settings-items .lm-setting-row { padding-block:8px }
+.lm-root[data-window-chrome=true]>.lm-settings-items .lm-setting-row { padding-block:calc(var(--vault-space)*4) }
 .lm-root[data-window-chrome=true]>.lm-settings-items .lm-setting-input { --input-bg:var(--vault-content);--input-bd:var(--vault-control-border);--input-height:26px;border-radius:0;font-weight:400 }
 .lm-root[data-window-chrome=true]>.lm-settings-items .lm-setting-select { text-align:start;padding-inline:6px 28px }
 .lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Input-section[data-position=left] { inset-inline-start:auto;inset-inline-end:2px;width:20px;inset-block:2px;box-shadow:var(--vault-surface-shadow);background:var(--vault-panel) }
@@ -375,3 +377,14 @@
 .lm-root .lm-island-control { width:auto;min-width:2em;flex:0 0 auto;padding:calc(var(--vault-space)*1.5);border-radius:calc(var(--vault-radius)/2) }
 .lm-root .lm-island-control .mantine-Menu-itemLabel { display:flex;align-items:center;justify-content:center }
 .lm-root .lm-context-actions { width:100%;min-width:0 }
+
+/* Sliders own only their labeled control area, inheriting the Settings surface. */
+.lm-setting-slider-control { min-width:0;width:100%;min-height:calc(var(--vault-space)*8);user-select:none }
+.lm-root .lm-setting-slider { flex:1;min-width:0;--slider-track-bg:var(--vault-hover);--slider-track-disabled-bg:var(--vault-selection) }
+.lm-setting-slider .mantine-Slider-thumb { background:var(--vault-panel);border-color:var(--vault-text);box-shadow:none;transition:border-color var(--vault-motion-fast) var(--vault-motion-easing) }
+.lm-setting-slider .mantine-Slider-thumb[data-dragging] { transform:translate(-50%,-50%);box-shadow:none }
+.lm-setting-slider .mantine-Slider-thumb[data-disabled] { display:flex;border-color:var(--vault-secondary);cursor:default }
+.lm-setting-slider .mantine-Slider-thumb:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset) }
+@media(prefers-reduced-motion:reduce) { .lm-setting-slider .mantine-Slider-thumb { transition:none } }
+.lm-setting-slider-value { min-width:5ch;text-align:end;font-variant-numeric:tabular-nums;white-space:nowrap }
+.lm-setting-reset { align-self:flex-end;font-weight:400 }

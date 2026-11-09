@@ -57,6 +57,27 @@ test('consumer stop removes owned registrations and revokes its handles', async 
 
 const group = (id = 'test.group', extra = {}) => ({ id, title: 'Group', categoryId: 'test.category', ...extra });
 const item = (id = 'test.item', extra = {}) => ({ id, groupId: 'test.group', title: 'Choice', type: 'select', value: 'a', options: [{ value: 'a', label: 'A' }], onChange() {}, ...extra });
+
+test('Settings 1.2 validates category icons, bounded sliders and owned reset callbacks', async () => {
+  const s = await setup();
+  assert.equal(s.api.registerCategory(category('test.category', { icon: 'palette' }), s.ctx.signal).ok, true);
+  assert.equal(s.api.snapshot().categories[0].icon, 'palette');
+  assert.equal(s.api.updateCategory('test.category', { title: 'Editor', icon: 'editor' }).ok, true);
+  assert.equal(s.api.updateCategory('test.category', { title: 'Unsafe', icon: '<svg>' }).ok, false);
+  assert.equal(s.api.snapshot().categories[0].icon, 'editor');
+  s.api.updateCategory('test.category', { title: 'Default icon' }); assert.equal(s.api.snapshot().categories[0].icon, undefined);
+  const reset = () => {}; const slider = { id: 'test.slider', groupId: 'test.group', title: 'Font', type: 'slider', value: 14, min: 12, max: 32, step: 1, unit: 'px', onChange() {}, onReset: reset, resetLabel: 'Use theme', resetDisabled: false };
+  assert.equal(s.api.registerItem(slider, s.ctx.signal).ok, true);
+  assert.equal(s.api.snapshot().items[0].onReset, reset); assert.ok(Object.isFrozen(s.api.snapshot().items[0]));
+  const snapshot = s.api.snapshot().items[0];
+  const { id, groupId, ...presentation } = slider;
+  for (const changes of [{ min: undefined }, { min: NaN }, { max: Infinity }, { max: 12 }, { step: 0 }, { step: undefined }, { value: 33 }, { unit: 42 }, { resetLabel: '' }, { onReset: undefined }, { resetDisabled: 'yes' }, { get unit() { throw new Error('Getter invoked'); } }]) {
+    assert.equal(s.api.updateItem('test.slider', Object.defineProperties({ ...presentation }, Object.getOwnPropertyDescriptors(changes))).ok, false);
+    assert.equal(s.api.snapshot().items[0], snapshot);
+  }
+  assert.equal(s.api.updateItem('test.slider', { ...presentation, value: 20 }).ok, true);
+  assert.equal(s.api.snapshot().items[0].value, 20); await s.stop();
+});
 test('groups and typed items have independent ownership, immutable options, stable ordering and presentation updates', async () => {
   const s = await setup(); const owner = s.ctx.scope.child(); const input = item();
   assert.equal(s.api.registerItem(input, s.ctx.signal).ok, true); input.options[0].label = 'Changed';

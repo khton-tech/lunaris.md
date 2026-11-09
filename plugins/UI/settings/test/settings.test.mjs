@@ -109,6 +109,25 @@ const group = (s, id = 'test.group', extra = {}, owner = s.ctx.signal) => s.tool
 const item = (s, id, extra = {}, owner = s.ctx.signal) => s.tools.settings.registerItem({ id, groupId: 'test.group', title: id, type: 'text', value: '', onChange() {}, ...extra }, owner);
 const openCategory = async s => { await s.open(); s.tools.sidebar.select('lunaris.settings.navigation'); await flush(); category(s, 'Example').click(); await flush(); };
 
+test('category icons follow public metadata and slider reset shares item cancellation and pending guards', async () => {
+  const s = await setup(); register(s); group(s);
+  s.tools.settings.updateCategory('test.category', { title: 'Example', icon: 'palette' });
+  s.tools.settings.registerCategory({ id: 'test.editor', title: 'Editor', icon: 'editor' }, s.ctx.signal);
+  s.tools.settings.registerCategory({ id: 'test.files', title: 'Files', icon: 'folder' }, s.ctx.signal);
+  const owner = s.ctx.scope.child(); const pending = Promise.withResolvers(); const contexts = [];
+  item(s, 'test.slider', { type: 'slider', value: 18, min: 12, max: 32, step: 1, unit: 'px', resetLabel: 'Use theme',
+    onChange() {}, onReset(context) { contexts.push(context); return pending.promise; } }, owner.signal);
+  await openCategory(s);
+  const icons = ['Example', 'Editor', 'Files'].map(title => category(s, title).querySelector('svg').innerHTML);
+  assert.equal(new Set(icons).size, 3);
+  const slider = s.surface.querySelector('[role=slider]'); assert.equal(slider.getAttribute('aria-valuenow'), '18');
+  const reset = s.surface.querySelector('.lm-setting-reset'); reset.click(); reset.click(); await flush();
+  assert.equal(contexts.length, 1); assert.equal(contexts[0].vaultId, 'vault-1'); assert.equal(reset.disabled, true);
+  await owner.dispose(); await flush(); assert.equal(contexts[0].signal.aborted, true);
+  assert.equal(s.surface.querySelector('[role=slider]'), null);
+  pending.resolve(); await flush(); await s.stop();
+});
+
 test('declarative groups compose ordered controls from different owners, preserve inputs and honor registered placement', async () => {
   const s = await setup(); register(s); const other = s.ctx.scope.child(); group(s, 'test.group', { description: 'Interface preferences', order: 10 });
   group(s, 'test.earlier', { title: 'First', order: -1 });

@@ -108,7 +108,7 @@ test('restoration happens without opening Settings and Vault defaults never inhe
 test('save failure rolls back immediate behavior and leaves the form usable for retry', async () => {
   let fail = true; const s = await setup({ write: async () => fail ? failure : ok(null) });
   await s.open(); await show(s); await change(s, 0, 'fr');
-  assert.equal(s.tools.localization.locale(), 'en'); assert.equal(select(s, 0).value, 'English');
+  assert.equal(s.tools.localization.locale(), 'en'); assert.equal(select(s, 0).textContent, 'English');
   assert.match(s.surface.querySelector('[role=alert]').textContent, /Cannot save/);
   fail = false; await change(s, 0, 'fr'); assert.equal(s.tools.localization.locale(), 'fr');
   assert.equal(s.surface.querySelector('[role=alert]'), null); await s.stop();
@@ -119,7 +119,7 @@ test('failed reads support retry; unavailable or malformed saved choices preserv
   await s.open(); await show(s); assert.match(s.surface.querySelector('[role=alert]').textContent, /Cannot read/);
   fail = false; [...s.surface.querySelectorAll('.lm-settings-items button')].find(node => node.textContent === 'Retry').click(); await flush();
   assert.match(s.surface.querySelector('[role=alert]').textContent, /unavailable/);
-  assert.equal(select(s, 0).value, 'English'); assert.equal(select(s, 1).value, 'Monochrome'); assert.equal(s.writes.length, 0); await s.stop();
+  assert.equal(select(s, 0).textContent, 'English'); assert.equal(select(s, 1).textContent, 'Monochrome'); assert.equal(s.writes.length, 0); await s.stop();
 });
 
 test('late reads and accepted writes cannot change a replacement Vault', async () => {
@@ -165,5 +165,5 @@ test('closing a section preserves an accepted write and prevents further edits f
   assert.equal(old.isConnected, false); pending.resolve(ok(null)); await flush();
   assert.equal(s.values.get('vault-1').locale, 'fr'); assert.equal(s.tools.localization.locale(), 'fr');
   old.value = 'en'; old.dispatchEvent(new s.dom.window.Event('change', { bubbles: true })); await flush();
-  assert.equal(s.writes.length, 1); await show(s); assert.equal(select(s, 0).value, 'français'); await s.stop();
+  assert.equal(s.writes.length, 1); await show(s); assert.equal(select(s, 0).textContent, 'français'); await s.stop();
 });

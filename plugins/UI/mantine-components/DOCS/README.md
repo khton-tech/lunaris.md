@@ -117,11 +117,13 @@ component stylesheet. Settings navigation uses a compact static tool heading and
 icon-bearing category rows instead of a separate large-button scheme. Header
 geometry follows the existing Files header; Settings has no header menu or chevron.
 The Files
-renderer/controller is unchanged. Category rows use a generic settings icon;
-category-specific icon registration is not introduced by this change.
+renderer/controller retains its ownership. Category-specific icons are now supplied
+by Settings 1.2 metadata, with the generic
+Settings icon retained as the fallback when no icon is registered.
 
 Both declarative and legacy settings dropdowns use `SettingsSelect`, built on
-Mantine Select/Combobox. Its trigger, listbox, selected/hovered options and check
+Mantine Combobox and InputBase with `component="button"`. Its non-editable button
+trigger, listbox, selected/hovered options and check
 indicator remain within the owned themed root (`withinPortal: false`). Opening
 the list never invokes a native select popup. The list supports keyboard arrows,
 Enter, Escape, no deselection, disabled controls and bounded local scrolling.
@@ -143,21 +145,39 @@ The shared stylesheet imports Mantine InlineInput/Switch/NumberInput styles for
 the registered control types. Native visual acceptance remains manual.
 
 `lunaris.settings-items` is the primary embedded/content renderer for declarative
-Settings 1.1 items. Props: `items: SettingsItem[]`, `onChange(id, value)` and
-`onRetry(id)`. It interprets public `type`, `title`, `description`, `layout`, controlled
+Settings 1.2 items. Props: `items: SettingsItem[]`, `onChange(id, value)`,
+`onRetry(id)` and optional `onReset(id)` (required when items expose reset actions).
+It interprets public `type`, `title`, `description`, `layout`, controlled
 `value`, options/constraints, `disabled`, `error` and retry presentation. It calls
 the supplied host callbacks, never the contributed item callbacks directly.
-Select/switch/text/number map to the shared themed Mantine Select/Switch/TextInput/NumberInput.
+Select/switch/text/number map to the shared themed Combobox/Switch/TextInput/NumberInput.
+Slider items use Mantine Slider with its scoped component stylesheet, theme-derived
+track/thumb/focus colors, a numeric readout, accessible thumb label/value and
+optional reset action. Pointer motion updates local presentation; release and
+keyboard adjustments invoke the host callback. Controlled changes, disabled states
+and failed saves restore the authoritative value without replacing the thumb.
 A sole matching select option is plain text. Item IDs retain row/input identity;
 labels, descriptions and errors are linked accessibly. Inline rows wrap naturally;
 `stacked` puts the control below its label. The container owns surrounding surfaces
 and group headings. The role owns internal controls/spacing only.
 
+Reference for the Settings 1.2 refinement: the Owner's Files screenshots showing
+closed/open menus, repeated category icons and dense rows. The new category glyphs
+come from explicit SDK metadata. Category, item and menu spacing uses existing
+theme spacing tokens. The existing left chevrons, selection checks and navigation
+hierarchy remain; button triggers remove text selection and text carets.
+Reviewed [Mantine input compositions](https://ui.mantine.dev/category/inputs/),
+[Slider](https://mantine.dev/core/slider/) and installed Combobox APIs.
+Workspace owns region surfaces/geometry, Settings owns groups and target lifetimes,
+and this plugin owns embedded controls and internal spacing. Native visual
+acceptance remains pending: inspect both themes, opened options, pointer/keyboard
+focus, dragging/reset, long labels, and narrow/short Workspace layouts.
+
 `lunaris.settings-choices` remains as a legacy embedded/content role. New settings
 must use the declarative registration contract. Its props:
 `fields: { id, label, value, options: { value, label }[] }[]`, `disabled`, localized
 `error`, `retryLabel`, `canRetry`, `onChange(id, value)` and `onRetry()`. Field/option
-IDs are unique; values/labels are strings. Multiple choices use the shared themed Mantine Select;
+IDs are unique; values/labels are strings. Multiple choices use the shared themed Mantine Combobox;
 a single choice is plain labeled text. Errors use an alert and optional Retry.
 The role owns internal spacing/controls only, preserves input identity on updates
 and inherits Settings' surface. Persistence stays in the contributing controller.

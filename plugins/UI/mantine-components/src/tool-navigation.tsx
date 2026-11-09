@@ -7,9 +7,9 @@ export function ToolPanelHeader({ title }: { title: string }) {
     <Text component="h2" className="lm-tool-panel-title" size="sm" fw={500} m={0}>{title}</Text>
   </Box>;
 }
-export function ToolNavigationItem({ title, selected, onSelect }: { title: string; selected: boolean; onSelect: () => void }) {
+export function ToolNavigationItem({ title, icon = "settings", selected, onSelect }: { title: string; icon?: string | undefined; selected: boolean; onSelect: () => void }) {
   return <Button variant="subtle" justify="start" className="lm-tool-navigation-item lm-settings-category lm-focus"
-    leftSection={<Icon name="settings" />} aria-current={selected ? "page" : undefined} onClick={onSelect}>
+    leftSection={<Icon name={icon} />} aria-current={selected ? "page" : undefined} onClick={onSelect}>
     <Text component="span" inherit>{title}</Text>
   </Button>;
 }

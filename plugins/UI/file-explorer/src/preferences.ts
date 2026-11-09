@@ -39,7 +39,7 @@ export function createPreferences(ctx: PluginContext, changed: () => void) {
   }
   function publish(): void {
     if (ctx.signal.aborted) return;
-    ensure(settings.updateCategory(categoryId, { title: text("category") }));
+    ensure(settings.updateCategory(categoryId, { title: text("category"), icon: "folder" }));
     ensure(settings.updateGroup(groupId, { title: text("group") }));
     for (const key of keys) ensure(settings.updateItem(`${categoryId}.${itemId(key)}`, presentation(key)));
   }
@@ -78,7 +78,7 @@ export function createPreferences(ctx: PluginContext, changed: () => void) {
       if (alive(current)) { current.values = previous; current.error = "saveFailed"; logger.error(ctx.pluginId, "Cannot save preference", { data: { key }, error }); }
     } finally { if (alive(current)) { current.busy = false; if (current.reload) { current.reload = false; current.ready = load(current); } notify(); } }
   }
-  ensure(settings.registerCategory({ id: categoryId, title: text("category"), order: 30 }, ctx.signal));
+  ensure(settings.registerCategory({ id: categoryId, title: text("category"), icon: "folder", order: 30 }, ctx.signal));
   ensure(settings.registerGroup({ id: groupId, categoryId, title: text("group") }, ctx.signal));
   for (const [order, key] of keys.entries()) ensure(settings.registerItem({ id: `${categoryId}.${itemId(key)}`, groupId, order, ...presentation(key) }, ctx.signal));
   function switchVault(): void {

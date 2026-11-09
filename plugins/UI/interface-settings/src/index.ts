@@ -54,7 +54,7 @@ export function createInterfaceSettings(options: { readonly defaultThemeId: stri
     }
     function publish(): void {
       if (ctx.signal.aborted) return;
-      ensure(settings.updateCategory(categoryId, { title: text("customization") }));
+      ensure(settings.updateCategory(categoryId, { title: text("customization"), icon: "palette" }));
       ensure(settings.updateGroup(groupId, { title: text("interface") }));
       for (const key of ["locale", "theme"] as const) ensure(settings.updateItem(`${ctx.pluginId}.${key}`, presentation(key)));
     }
@@ -104,7 +104,7 @@ export function createInterfaceSettings(options: { readonly defaultThemeId: stri
         }
       } finally { if (alive(current)) { current.busy = false; if (current.reload) { current.reload = false; void load(current); } changed(); } }
     }
-    ensure(settings.registerCategory({ id: categoryId, title: text("customization"), order: 10 }, ctx.signal));
+    ensure(settings.registerCategory({ id: categoryId, title: text("customization"), icon: "palette", order: 10 }, ctx.signal));
     ensure(settings.registerGroup({ id: groupId, categoryId, title: text("interface"), order: 10 }, ctx.signal));
     for (const [order, key] of (["locale", "theme"] as const).entries()) ensure(settings.registerItem({ id: `${ctx.pluginId}.${key}`, groupId, order, ...presentation(key) }, ctx.signal));
     function switchVault(): void {

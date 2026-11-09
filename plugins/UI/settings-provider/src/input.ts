@@ -8,11 +8,13 @@ export function record(value: unknown, keys?: readonly string[]): Record<string,
 }
 const validId = (value: unknown): value is string => typeof value === "string" && /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/.test(value);
 export const validTitle = (value: unknown): value is string => typeof value === "string" && !!value.trim();
+export const validIcon = (value: unknown): value is string => typeof value === "string" && /^[a-z][a-z0-9-]*$/.test(value);
 export function readCategory(value: unknown): SettingsCategory | undefined {
-  const data = record(value, ["id", "title", "order"]); if (!data) return;
+  const data = record(value, ["id", "title", "icon", "order"]); if (!data) return;
   const order = data.order === undefined ? 0 : data.order;
   if (!validId(data.id) || !validTitle(data.title) || typeof order !== "number" || !Number.isSafeInteger(order)) return;
-  return Object.freeze({ id: data.id, title: data.title, order });
+  if (data.icon !== undefined && !validIcon(data.icon)) return;
+  return Object.freeze({ id: data.id, title: data.title, order, ...(data.icon === undefined ? {} : { icon: data.icon }) });
 }
 export function readSection(value: unknown): SettingsSection | undefined {
   const data = record(value, ["id", "categoryId", "title", "componentId", "props", "order"]); if (!data) return;
@@ -27,7 +29,7 @@ export function readGroup(value: unknown): SettingsGroup | undefined {
   if (!base || !validId(data.categoryId) || (data.description !== undefined && typeof data.description !== "string")) return;
   return Object.freeze({ ...base, categoryId: data.categoryId, ...(data.description === undefined ? {} : { description: data.description as string }) });
 }
-export const itemKeys = ["title", "description", "layout", "disabled", "error", "retryLabel", "onRetry", "type", "value", "onChange", "options", "placeholder", "min", "max", "step"];
+export const itemKeys = ["title", "description", "layout", "disabled", "error", "retryLabel", "onRetry", "resetLabel", "onReset", "resetDisabled", "type", "value", "onChange", "options", "placeholder", "min", "max", "step", "unit"];
 export function readItem(value: unknown): SettingsItem | undefined {
   const input = record(value, ["id", "groupId", "order", ...itemKeys]); if (!input) return;
   let data: Record<string, unknown> = input;
@@ -36,7 +38,9 @@ export function readItem(value: unknown): SettingsItem | undefined {
       ["description", "error", "retryLabel"].some(key => data[key] !== undefined && typeof data[key] !== "string") ||
       (data.layout !== undefined && data.layout !== "inline" && data.layout !== "stacked") ||
       (data.disabled !== undefined && typeof data.disabled !== "boolean") ||
-      ((data.onRetry !== undefined || data.retryLabel !== undefined) && (typeof data.onRetry !== "function" || !validTitle(data.retryLabel)))) return;
+      ((data.onRetry !== undefined || data.retryLabel !== undefined) && (typeof data.onRetry !== "function" || !validTitle(data.retryLabel))) ||
+      ((data.onReset !== undefined || data.resetLabel !== undefined || data.resetDisabled !== undefined) && (typeof data.onReset !== "function" || !validTitle(data.resetLabel))) ||
+      (data.resetDisabled !== undefined && typeof data.resetDisabled !== "boolean")) return;
   let allowed: string[] = [];
   if (data.type === "select") {
     if (typeof data.value !== "string" || !Array.isArray(data.options) || Object.keys(data.options).length !== data.options.length) return;
@@ -47,14 +51,19 @@ export function readItem(value: unknown): SettingsItem | undefined {
     data = Object.freeze({ ...data, options: Object.freeze(options) }); allowed = ["options"];
   } else if (data.type === "switch") { if (typeof data.value !== "boolean") return; }
   else if (data.type === "text") { if (typeof data.value !== "string" || (data.placeholder !== undefined && typeof data.placeholder !== "string")) return; allowed = ["placeholder"]; }
-  else if (data.type === "number") {
+  else if (data.type === "number" || data.type === "slider") {
     const finite = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value);
     if (!finite(data.value) || ["min", "max", "step"].some(key => data[key] !== undefined && !finite(data[key])) ||
         (data.step !== undefined && (data.step as number) <= 0) ||
         (data.min !== undefined && data.max !== undefined && (data.min as number) > (data.max as number)) ||
         (data.min !== undefined && data.value < (data.min as number)) || (data.max !== undefined && data.value > (data.max as number))) return;
     allowed = ["min", "max", "step"];
+    if (data.type === "slider") {
+      if (!finite(data.min) || !finite(data.max) || !finite(data.step) || data.min >= data.max ||
+          (data.unit !== undefined && typeof data.unit !== "string")) return;
+      allowed.push("unit");
+    }
   } else return;
-  if (["options", "placeholder", "min", "max", "step"].some(key => key in data && !allowed.includes(key))) return;
+  if (["options", "placeholder", "min", "max", "step", "unit"].some(key => key in data && !allowed.includes(key))) return;
   return Object.freeze({ ...data, ...base }) as unknown as SettingsItem;
 }

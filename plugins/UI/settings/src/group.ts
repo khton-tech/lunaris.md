@@ -11,7 +11,7 @@ const accepts = (item: SettingsItem, value: unknown): boolean => {
     case "select": return typeof value === "string" && item.options.some(option => option.value === value);
     case "switch": return typeof value === "boolean";
     case "text": return typeof value === "string";
-    case "number": return typeof value === "number" && Number.isFinite(value) && (item.min === undefined || value >= item.min) && (item.max === undefined || value <= item.max);
+    case "number": case "slider": return typeof value === "number" && Number.isFinite(value) && (item.min === undefined || value >= item.min) && (item.max === undefined || value <= item.max);
   }
 };
 
@@ -36,22 +36,24 @@ export function mountSettingsGroup(ctx: PluginContext, registry: SettingsApi, co
       try { render(); } catch (error) { logger.error(ctx.pluginId, "Cannot update settings group", { data: { id: props.groupId }, error }); }
     });
   }
-  function invoke(expected: SettingsItem, value: unknown, retry = false): void {
+  function invoke(expected: SettingsItem, value: unknown, action: "change" | "retry" | "reset" = "change"): void {
     if (!live()) return;
     const id = expected.id;
     const snapshot = registry.snapshot(); reconcile(snapshot);
     const item = props.items.find(value => value.id === id); const state = states.get(id);
-    if (!item || item !== expected || !state || state.scope.signal.aborted || state.pending || item.disabled || !snapshot.items.includes(item) || (!retry && !accepts(item, value)) || (retry && !item.onRetry)) return;
+    if (!item || item !== expected || !state || state.scope.signal.aborted || state.pending || item.disabled || !snapshot.items.includes(item) ||
+        (action === "change" && !accepts(item, value)) || (action === "retry" && !item.onRetry) || (action === "reset" && (!item.onReset || item.resetDisabled))) return;
     state.pending = true; state.error = ""; changed();
     const context = Object.freeze({ vaultId: workspace.vaultId, signal: state.scope.signal });
     // Invoke outside React's event/effect stack and contain both sync and async failures.
     void Promise.resolve().then(() => {
       if (!live() || context.signal.aborted || !registry.snapshot().items.includes(item)) return;
-      if (retry) return item.onRetry!(context);
+      if (action === "retry") return item.onRetry!(context);
+      if (action === "reset") return item.onReset!(context);
       switch (item.type) {
         case "select": case "text": return item.onChange(value as string, context);
         case "switch": return item.onChange(value as boolean, context);
-        case "number": return item.onChange(value as number, context);
+        case "number": case "slider": return item.onChange(value as number, context);
       }
     }).catch(error => {
       if (live() && !context.signal.aborted) {
@@ -70,7 +72,8 @@ export function mountSettingsGroup(ctx: PluginContext, registry: SettingsApi, co
     const items = active.map(item => { const state = states.get(item.id)!; return { ...item, disabled: !!item.disabled || state.pending, error: state.error || item.error || "" }; });
     const sources = new Map(active.map(item => [item.id, item]));
     const next = { items, onChange: (id: string, value: unknown) => { const item = sources.get(id); if (item) invoke(item, value); },
-      onRetry: (id: string) => { const item = sources.get(id); if (item) invoke(item, undefined, true); }, presentation: { mode: "embedded", sizing: "content" } };
+      onRetry: (id: string) => { const item = sources.get(id); if (item) invoke(item, undefined, "retry"); },
+      onReset: (id: string) => { const item = sources.get(id); if (item) invoke(item, undefined, "reset"); }, presentation: { mode: "embedded", sizing: "content" } };
     if (mounted) { const result = mounted.update(next); if (!result.ok) throw new Error("Cannot update declarative settings.", { cause: result.error }); }
     else { const result = components.mount("lunaris.settings-items", target, next, owner.signal); if (!result.ok) throw new Error("Cannot mount declarative settings.", { cause: result.error }); mounted = result.value; }
   }

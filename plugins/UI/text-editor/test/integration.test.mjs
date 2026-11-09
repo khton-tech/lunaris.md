@@ -142,8 +142,8 @@ test('display preferences apply without replacing the editor, selection, source 
     const item = s.settings.snapshot().items.find(item => item.id.endsWith('.' + key)); assert.ok(item);
     await item.onChange(value, { vaultId: 'a', signal: s.ctx.signal }); await flush();
   };
-  await choose('font-size', '20');
-  await choose('line-height', '1.8');
+  await choose('font-size', 20);
+  await choose('line-height', 1.8);
   await choose('text-width', 'full');
   await choose('wrap-lines', false);
   assert.equal(s.cm(), view); assert.equal(view.state.selection.main.head, 4);
@@ -170,7 +170,7 @@ test('display preferences restore before Settings opens and reset on Vault switc
 test('failed preference writes restore live appearance and leave retryable editing available', async () => {
   const s = await setup({ preferenceWrite: async () => fail('IO_ERROR') }); const view = s.cm();
   const item = s.settings.snapshot().items.find(item => item.id.endsWith('.font-size'));
-  await item.onChange('24', { vaultId: 'a', signal: s.ctx.signal }); await flush();
+  await item.onChange(24, { vaultId: 'a', signal: s.ctx.signal }); await flush();
   assert.equal(s.cm(), view); assert.equal(s.dom.window.getComputedStyle(view.dom).fontSize, '14px');
   const failed = s.settings.snapshot().items.find(current => current.id === item.id);
   assert.ok(failed.error); assert.equal(failed.disabled, false);

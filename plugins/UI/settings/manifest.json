@@ -15,12 +15,12 @@
     {
       "kind": "api",
       "id": "lunaris.settings",
-      "range": "^1.1.0"
+      "range": "^1.2.0"
     },
     {
       "kind": "event",
       "id": "lunaris.settings-changed",
-      "range": "^1.1.0"
+      "range": "^1.2.0"
     },
     {
       "kind": "api",

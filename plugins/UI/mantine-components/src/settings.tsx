@@ -5,7 +5,7 @@ import type { resolveTheme } from "./theme.js";
 import { SettingsSelect } from "./settings-select.js";
 import { ToolNavigationItem, ToolPanelHeader } from "./tool-navigation.js";
 
-interface Item { readonly id: string; readonly title: string; readonly description?: string }
+interface Item { readonly id: string; readonly title: string; readonly icon?: string; readonly description?: string }
 interface ChoiceField { readonly id: string; readonly label: string; readonly value: string; readonly options: readonly { readonly value: string; readonly label: string }[] }
 interface ChoicesProps {
   readonly fields: readonly ChoiceField[]; readonly disabled: boolean; readonly error: string;
@@ -40,7 +40,7 @@ interface PageProps {
   readonly title: string; readonly emptyLabel: string; readonly sections: readonly Item[];
   readonly onTargets: (targets: ReadonlyMap<string, HTMLElement> | null) => void;
 }
-const items = (value: unknown): value is readonly Item[] => Array.isArray(value) && value.every(item => item && typeof item.id === "string" && typeof item.title === "string" && (item.description === undefined || typeof item.description === "string")) && new Set(value.map(item => item.id)).size === value.length;
+const items = (value: unknown): value is readonly Item[] => Array.isArray(value) && value.every(item => item && typeof item.id === "string" && typeof item.title === "string" && (item.icon === undefined || typeof item.icon === "string") && (item.description === undefined || typeof item.description === "string")) && new Set(value.map(item => item.id)).size === value.length;
 export function settingsNavigationProps(value: ComponentProps): NavigationProps {
   if (typeof value.title !== "string" || typeof value.emptyLabel !== "string" || !items(value.categories) ||
       (value.selectedId !== null && (typeof value.selectedId !== "string" || !value.categories.some(item => item.id === value.selectedId))) || typeof value.onSelect !== "function") throw new TypeError("Invalid settings navigation props.");
@@ -54,7 +54,7 @@ export function SettingsNavigation({ props, theme }: { props: NavigationProps; t
   return <Stack component="nav" className="lm-settings-navigation" aria-label={props.title} style={theme.contentStyle} gap={0}>
     <ToolPanelHeader title={props.title} />
     <Stack className="lm-settings-categories" gap={0}>
-      {props.categories.length ? props.categories.map(item => <ToolNavigationItem key={item.id} title={item.title} selected={item.id === props.selectedId}
+      {props.categories.length ? props.categories.map(item => <ToolNavigationItem key={item.id} title={item.title} icon={item.icon} selected={item.id === props.selectedId}
         onSelect={() => props.onSelect(item.id)} />) : <Text size="sm" c="dimmed">{props.emptyLabel}</Text>}
     </Stack>
   </Stack>;

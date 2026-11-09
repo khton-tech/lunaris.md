@@ -67,7 +67,7 @@ export default definePlugin({ manifest, activate(ctx) {
       const snapshot = registry.snapshot(); const category = snapshot.categories.find(item => item.id === categoryId);
       if (!category) categoryId = null;
       ensure(sidebar.update(tabId, { title: text("settings"), icon: "settings", props: {
-        title: text("settings"), emptyLabel: text("empty"), categories: snapshot.categories.map(item => ({ id: item.id, title: item.title })), selectedId: categoryId,
+        title: text("settings"), emptyLabel: text("empty"), categories: snapshot.categories.map(item => ({ id: item.id, title: item.title, icon: item.icon })), selectedId: categoryId,
       } }), "Cannot update settings navigation.");
       ensure(screens.update(screenId, { title: category?.title ?? text("settings"), emptyLabel: text(category ? "emptyCategory" : "select"),
         sections: category ? [...snapshot.sections.filter(item => item.categoryId === category.id),

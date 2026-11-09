@@ -9,7 +9,7 @@ theme selector and the underlying replaceable theme/localization services.
 
 ## Contracts and persistence
 
-Requires Logger, Config/ConfigChanged, Settings 1.1, Localization/
+Requires Logger, Config/ConfigChanged, Settings 1.2, Localization/
 LocaleChanged, Themes/ThemeChanged and Vault/VaultChanged through `ctx.use` and
 SDK events. Grants: `config.access`, `vault.access`. Provides no API/events and
 registers no Components role. Registers category `lunaris.interface-settings.customization`,
@@ -85,7 +85,7 @@ adding flags, decorative cards or a parallel component system.
 
 ## Integration and verification
 
-Completed SDK connections: Settings 1.1 registry/UI, Config,
+Completed SDK connections: Settings 1.2 registry/UI, Config,
 Vault lifecycle, Themes, Localization and required Logger; Tauri registers, starts
 and grants the controller. The startup theme plugin remains separate. File Explorer
 is unchanged. The Settings container supplies the Components/Mantine connection;

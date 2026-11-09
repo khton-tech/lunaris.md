@@ -5,11 +5,10 @@ import type { SettingsItemContext, SettingsItemUpdate } from "@lunaris/settings"
 import { Localization, LocaleChanged } from "@lunaris/localization";
 import { Vault, VaultChanged } from "@lunaris/vault";
 import { Logger, scopeLogger } from "@lunaris/logging";
+import { Themes, ThemeChanged } from "@lunaris/themes";
 
 export interface Preferences { readonly fontSize: string; readonly lineHeight: string; readonly textWidth: string; readonly wrapLines: boolean }
 export const defaults: Preferences = Object.freeze({ fontSize: "theme", lineHeight: "theme", textWidth: "780", wrapLines: true });
-const fontSizes = ["theme", "12", "14", "16", "18", "20", "24", "28", "32"];
-const lineHeights = ["theme", "1.2", "1.4", "1.6", "1.8", "2"];
 const textWidths = ["640", "780", "960", "full"];
 type Key = keyof Preferences;
 interface Session { vaultId: string; values: Preferences; loading: boolean; busy: boolean; reload: boolean; revision: number; error: string; errorKey: Key; ready: Promise<void> }
@@ -20,6 +19,7 @@ const catalogs = { en: { category: "Editor", group: "Display", fontSize: "Font s
 /** Own live preferences and explicit Vault persistence; rendering belongs to Settings. */
 export function createPreferences(ctx: PluginContext, changed: () => void) {
   const config = ctx.use(Config); const settings = ctx.use(Settings); const vaults = ctx.use(Vault);
+  const themes = ctx.use(Themes);
   const localization = ctx.use(Localization); const logger = scopeLogger(ctx.use(Logger), ctx.signal);
   const namespace = `${ctx.pluginId}.preferences`; const categoryId = `${ctx.pluginId}.settings`; const groupId = `${categoryId}.display`;
   const ensure = (result: { ok: boolean; error?: unknown }) => { if (!result.ok) throw new Error("Cannot register preferences.", { cause: result.error }); };
@@ -27,7 +27,16 @@ export function createPreferences(ctx: PluginContext, changed: () => void) {
   const text = (key: string) => localization.text(namespace, key);
   let session: Session | undefined;
   const alive = (current: Session) => !ctx.signal.aborted && session === current && vaults.current()?.id === current.vaultId;
-  function valid(key: Key, value: unknown): boolean { return key === "wrapLines" ? typeof value === "boolean" : typeof value === "string" && (key === "fontSize" ? fontSizes : key === "lineHeight" ? lineHeights : textWidths).includes(value); }
+  function valid(key: Key, value: unknown): boolean {
+    if (key === "wrapLines") return typeof value === "boolean";
+    if (typeof value !== "string") return false;
+    if (key === "textWidth") return textWidths.includes(value);
+    if (value === "theme") return true;
+    const number = Number(value);
+    return value === String(number) && Number.isFinite(number) && (key === "fontSize"
+      ? number >= 8 && number <= 96 && Number.isInteger(number)
+      : number >= 1 && number <= 3 && Math.abs(number * 10 - Math.round(number * 10)) < 1e-8);
+  }
   function presentation(key: Key): SettingsItemUpdate {
     const current = session; const value = current?.values[key] ?? defaults[key];
     const error = current?.errorKey === key ? current.error : "";
@@ -38,13 +47,25 @@ export function createPreferences(ctx: PluginContext, changed: () => void) {
     };
     const onChange = (value: string | boolean, context: SettingsItemContext) => choose(key, value, context.vaultId, context.signal);
     if (key === "wrapLines") return { ...common, type: "switch", value: value as boolean, onChange };
-    const options = (key === "fontSize" ? fontSizes : key === "lineHeight" ? lineHeights : textWidths).map(value => ({ value,
-      label: value === "theme" || value === "full" ? text(value) : key === "lineHeight" ? value : `${value} px` }));
+    if (key === "fontSize" || key === "lineHeight") {
+      const typography = themes.current()?.properties.typography as Record<string, unknown> | undefined;
+      const fallback = key === "fontSize" ? 14 : 1.6;
+      const inherited = typography?.[key];
+      const effective = value === "theme" ? typeof inherited === "number" && Number.isFinite(inherited) && inherited > 0 ? inherited : fallback : Number(value);
+      return { ...common, type: "slider", value: effective, min: Math.min(key === "fontSize" ? 12 : 1.2, effective),
+        max: Math.max(key === "fontSize" ? 32 : 2, effective), step: key === "fontSize" ? 1 : 0.1,
+        ...(key === "fontSize" ? { unit: "px" } : {}),
+        onChange: (value, context) => choose(key, String(Number(value.toFixed(key === "fontSize" ? 0 : 1))), context.vaultId, context.signal),
+        resetLabel: text("theme"), resetDisabled: value === "theme",
+        onReset: context => choose(key, "theme", context.vaultId, context.signal),
+      };
+    }
+    const options = textWidths.map(value => ({ value, label: value === "full" ? text(value) : `${value} px` }));
     return { ...common, type: "select", value: value as string, options, onChange };
   }
   function publish(): void {
     if (ctx.signal.aborted) return;
-    ensure(settings.updateCategory(categoryId, { title: text("category") }));
+    ensure(settings.updateCategory(categoryId, { title: text("category"), icon: "editor" }));
     ensure(settings.updateGroup(groupId, { title: text("group") }));
     for (const key of keys) ensure(settings.updateItem(`${categoryId}.${itemId(key)}`, presentation(key)));
   }
@@ -83,7 +104,7 @@ export function createPreferences(ctx: PluginContext, changed: () => void) {
       if (alive(current)) { current.values = previous; current.error = "saveFailed"; logger.error(ctx.pluginId, "Cannot save preference", { data: { key }, error }); }
     } finally { if (alive(current)) { current.busy = false; if (current.reload) { current.reload = false; current.ready = load(current); } notify(); } }
   }
-  ensure(settings.registerCategory({ id: categoryId, title: text("category"), order: 20 }, ctx.signal));
+  ensure(settings.registerCategory({ id: categoryId, title: text("category"), icon: "editor", order: 20 }, ctx.signal));
   ensure(settings.registerGroup({ id: groupId, categoryId, title: text("group") }, ctx.signal));
   for (const [order, key] of keys.entries()) ensure(settings.registerItem({ id: `${categoryId}.${itemId(key)}`, groupId, order, ...presentation(key) }, ctx.signal));
   function switchVault(): void {
@@ -95,6 +116,7 @@ export function createPreferences(ctx: PluginContext, changed: () => void) {
   }
   ctx.events.on(VaultChanged, switchVault);
   ctx.events.on(LocaleChanged, publish);
+  ctx.events.on(ThemeChanged, publish);
   ctx.events.on(ConfigChanged, change => {
     if (session && change.pluginId === ctx.pluginId && change.scope === "vault" && change.vaultId === session.vaultId && keys.includes(change.key as Key)) {
       if (session.busy) session.reload = true; else session.ready = load(session);

@@ -1,5 +1,41 @@
 # Settings foundation
 
+## Settings 1.2: icons, sliders and reset actions
+
+Settings and SettingsChanged are version **1.2.0**. Consumers using the additions
+below require `api:lunaris.settings@^1.2.0`; snapshot observers rendering slider
+items require the corresponding 1.2 event. Existing 1.0/1.1 descriptors remain valid.
+
+- Categories accept optional `icon`, a nonempty lowercase shared icon key such as
+  `palette`, `editor` or `folder`. The category owner supplies it on registration
+  and `updateCategory({ title, icon? })`. Omitting it on update restores the default
+  Settings icon. UI never infers an icon from a plugin ID or translated title.
+- `type: "slider"` requires a finite numeric `value`, finite `min < max`, positive
+  finite `step` and `onChange(number, context)`. Value must be within bounds;
+  optional `unit` is display-only text. The Mantine role previews the numeric
+  readout locally while dragging, invoking `onChange` only on release or a completed
+  keyboard adjustment. It does not persist intermediate pointer movements.
+- All item types may declare `onReset(context)` and a nonempty localized
+  `resetLabel` together. Optional `resetDisabled` controls the reset action only.
+  Reset shares the item's owned Vault context, pending guard, cancellation,
+  error containment and logging with change/retry. The renderer does not choose
+  a default or write Config; the owning controller performs the reset.
+
+Product categories use Palette for Customization, Editor for Editor, and Folder
+for Files. Font size and line spacing use sliders with a visible value and a
+Use theme reset. Other choices retain themed menus with native **button** triggers,
+not text inputs; there is no editable/searchable field or text caret. Category rows,
+setting rows and menu options use more generous theme-derived spacing. Workspace
+still owns region geometry/surfaces; Settings and Mantine own only internal content.
+Reference: the Owner's Settings screenshots and the existing Customization rows.
+
+Verification, 2026-11-09: targeted checks for `settings`, `settings-provider`,
+`settings-plugin`, `mantine-components`, `text-editor`, `file-explorer` and
+`interface-settings` passed 230 tests, boundary checks and type fixtures.
+Browser and Tauri frontend production builds passed with the Slider stylesheet.
+Native WebView appearance, opened menus, both themes and narrow/short layout
+acceptance remain manual; automated desktop control is prohibited.
+
 ## Shipped product contributions
 
 - Customization / Interface: language and theme, owned by `interface-settings`.
@@ -27,9 +63,9 @@ entries; groups organize settings inside a category; items declare individual
 typed controls. UI structure belongs to registration, never to saved Config data.
 The existing category/section APIs remain available for older custom contributions.
 
-`Settings` and `SettingsChanged` now use version 1.1.0. Consumers of declarative
-registration must require `api:lunaris.settings@^1.1.0`; observers of its expanded
-snapshot require `event:lunaris.settings-changed@^1.1.0`.
+Declarative registration was introduced in Settings 1.1. Current product
+contributors and renderers require Settings/SettingsChanged 1.2 for icons,
+sliders and reset actions; see the extension contract above.
 
 - `registerGroup({ id, categoryId, title, description?, order? }, owner)`.
 - `registerItem({ id, groupId, title, type, value, onChange, ... }, owner)`.
@@ -145,7 +181,7 @@ multiple section contributors.
 |---|---|
 | `registerCategory({ id, title, order? }, owner)` | Add an owned category. |
 | `registerSection({ id, categoryId, title, componentId, props?, order? }, owner)` | Add an owned section; its category may appear later. |
-| `updateCategory(id, { title })` | Replace localized presentation, preserving order/identity/owner. |
+| `updateCategory(id, { title, icon? })` | Replace localized presentation/icon, preserving order/identity/owner. Omitted icon restores the default. |
 | `updateSection(id, { title, props? })` | Replace title and custom props, preserving category/role/order/identity/owner. Omitted props become empty. |
 | `snapshot()` | Frozen `{ categories, sections, groups, items }`, each sorted by order then registration order. |
 

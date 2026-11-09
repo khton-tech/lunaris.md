@@ -3,7 +3,7 @@ import type { CancellationSignal } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
 import { Settings, SettingsChanged } from "@lunaris/settings";
 import type { SettingsCategory, SettingsSection, SettingsGroup, SettingsItem, SettingsResult } from "@lunaris/settings";
-import { readCategory, readSection, readGroup, readItem, itemKeys, record, validTitle } from "./input.js";
+import { readCategory, readSection, readGroup, readItem, itemKeys, record, validTitle, validIcon } from "./input.js";
 import manifest from "../manifest.json" with { type: "json" };
 
 interface Entry<T> { value: T; detach(): void }
@@ -58,10 +58,11 @@ export default definePlugin({ manifest, activate(ctx) {
       logger.debug(ctx.pluginId, "Settings item updated", { data: { id } }); void notify(); return done;
     },
     updateCategory(id, input) {
-      const changes = record(input, ["title"]);
-      if (!changes || !validTitle(changes.title)) return reject("INVALID_ARGUMENT", "A category title is required.");
+      const changes = record(input, ["title", "icon"]);
+      if (!changes || !validTitle(changes.title) || (changes.icon !== undefined && !validIcon(changes.icon))) return reject("INVALID_ARGUMENT", "A category title and optional icon are required.");
       const entry = categories.get(id); if (!entry) return reject("NOT_FOUND", "Settings category is not registered.");
-      entry.value = Object.freeze({ ...entry.value, title: changes.title });
+      const { icon: _, ...previous } = entry.value;
+      entry.value = readCategory({ ...previous, ...changes })!;
       logger.debug(ctx.pluginId, "Settings category updated", { data: { id } }); void notify(); return done;
     },
     updateSection(id, input) {

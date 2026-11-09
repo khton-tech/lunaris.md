@@ -8,7 +8,7 @@ These exclusions describe this container plugin. Tauri now also composes the
 separate [interface settings contribution](../../interface-settings/DOCS/README.md)
 for Vault-local language/theme choices, using the public group/item contract.
 
-Requires Logger, Settings/SettingsChanged 1.1, Sidebar 1.1, ActiveScreen, Components/
+Requires Logger, Settings/SettingsChanged 1.2, Sidebar 1.1, ActiveScreen, Components/
 ComponentsChanged, Localization/LocaleChanged and Vault/VaultChanged. Host grants
 `ui.dom` and `vault.access`. It provides no API/events. Subscribes to SettingsChanged,
 ComponentsChanged, LocaleChanged and VaultChanged.
@@ -57,3 +57,12 @@ Workspace owns region geometry/surfaces; Settings owns group headings/targets;
 Mantine owns row content, responsive internal spacing and controls. Group/item
 presentation never paints a second surrounding surface. Config remains entirely
 outside this container.
+
+Settings 1.2 passes category icon metadata to the shared navigation role and
+supports bounded sliders and reset actions. Reset callbacks run through the same
+owned item context, pending/cancellation checks and failure containment as changes
+and retries; disabled reset actions cannot execute. No category-specific icons,
+numeric default policies or renderer-specific behavior are hardcoded here.
+Integration with the registry, Mantine and product controllers is complete through
+public SDK contracts. Native visual acceptance of the refined controls remains
+manual, including opened menus, focus, both themes and narrow/short containers.

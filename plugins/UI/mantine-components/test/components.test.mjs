@@ -244,7 +244,7 @@ test('settings choices validate data, render single values as text and retain li
   assert.ok(choice); choice.click(); await new Promise(resolve => setImmediate(resolve)); assert.deepEqual(changes, [['locale', 'fr']]);
   assert.equal(mounted.value.update({ ...multiple, fields: [{ ...multiple.fields[0], value: 'fr', label: 'Langue' }], error: 'Save failed' }).ok, true);
   await new Promise(resolve => setImmediate(resolve));
-  assert.equal(s.target.querySelector('[role=combobox]'), input); assert.equal(input.value, '<French>'); assert.equal(s.target.querySelector('img'), null);
+  assert.equal(s.target.querySelector('[role=combobox]'), input); assert.equal(input.textContent, '<French>'); assert.equal(s.target.querySelector('img'), null);
   assert.equal(mounted.value.update({ ...multiple, fields: [...multiple.fields, ...multiple.fields] }).ok, false);
   assert.equal(s.target.querySelector('[role=combobox]'), input); assert.match(s.target.querySelector('[role=alert]').textContent, /Save failed/);
   assert.equal(s.target.querySelector('.lm-root').style.backgroundColor, 'transparent');
@@ -279,6 +279,8 @@ test('Settings Select opens themed options, supports keyboard selection and Esca
     disabled: false, error: '', canRetry: false, retryLabel: 'Retry', onChange: (...args) => changes.push(args), onRetry() {} };
   const mounted = s.components.mount('lunaris.settings-choices', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true);
   const trigger = s.target.querySelector('[role=combobox]'); assert.equal(s.target.querySelector('select'), null);
+  assert.equal(trigger.tagName, 'BUTTON'); assert.equal(trigger.hasAttribute('contenteditable'), false);
+  assert.equal(s.target.querySelector('input:not([type=hidden])'), null);
   trigger.focus(); trigger.click(); await settle(); assert.equal(trigger.getAttribute('aria-expanded'), 'true');
   const list = s.dom.window.document.getElementById(trigger.getAttribute('aria-controls'));
   assert.ok(list.closest('.lm-setting-dropdown')); assert.equal(list.closest('.lm-root'), trigger.closest('.lm-root'));

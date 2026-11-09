@@ -96,14 +96,14 @@ without SDK calls. Browser refresh is not a guarded desktop close.
 
 ### Display preferences
 
-The editor owns the `Editor > Display` contribution through Settings 1.1.
+The editor owns the `Editor > Display` contribution through Settings 1.2.
 Its existing controller delegates preference lifecycle to `src/preferences.ts`;
 no editor service API or separate settings plugin is introduced.
 
 | Config key | Values | Default |
 | --- | --- | --- |
-| `fontSize` | `theme`, `12`, `14`, `16`, `18`, `20`, `24`, `28`, `32` (pixels) | `theme` |
-| `lineHeight` | `theme`, `1.2`, `1.4`, `1.6`, `1.8`, `2` | `theme` |
+| `fontSize` | `theme` or canonical integer strings, 8–96 pixels | `theme` |
+| `lineHeight` | `theme` or canonical numeric strings, 1–3 in 0.1 increments | `theme` |
 | `textWidth` | `640`, `780`, `960` (pixels), `full` | `780` |
 | `wrapLines` | boolean | `true` |
 
@@ -122,7 +122,15 @@ for when wrapping is re-enabled. CodeMirror compartments apply changes without
 replacing the view, document, selection or undo history. Live Preview remains
 enabled, with no source-mode, input-behavior, spellcheck or autosave setting.
 
-Required SDK connections: Config/ConfigChanged, Settings 1.1, Vault/VaultChanged,
+Font size and line spacing now register numeric `slider` items. The usual ranges
+are 12–32 px (step 1) and 1.2–2 (step 0.1), extending to include an existing valid
+saved or inherited value. Config continues storing the same string values, so
+previous preferences need no migration. The readout updates locally during
+dragging; the controller applies/persists the value on release or keyboard change.
+The Use theme action writes `theme`; it is disabled while already inherited.
+ThemeChanged republishes the effective values without replacing the slider thumb.
+
+Required SDK connections: Config/ConfigChanged, Settings 1.2, Vault/VaultChanged,
 Localization/LocaleChanged and Logger. The shared application host supplies the
 new `config.access` grant in desktop and browser compositions. Settings owns the
 category, group and item lifetimes; its existing Mantine role renders controls.

@@ -100,7 +100,7 @@ opened sort menu, selection, hover/focus/disabled controls and narrow/short pane
 
 ## File preferences
 
-`src/preferences.ts` owns `Files > Navigation` through Settings 1.1. Its two items
+`src/preferences.ts` owns `Files > Navigation` through Settings 1.2. Its two items
 are `sortDirection` (`asc` / `desc`, default `asc`) and `revealActiveFile`
 (boolean, default `true`). Both use the `lunaris.file-explorer` Config namespace
 with explicit `{ scope: "vault", vaultId }` reads/writes. The registry item IDs
@@ -117,7 +117,7 @@ Malformed stored values remain untouched and fall back to defaults with a warnin
 Read failures expose Retry. Vault/session and read revision checks reject stale
 results; released callbacks cannot write to a different Vault.
 
-Integration is complete through Config/ConfigChanged, Settings 1.1,
+Integration is complete through Config/ConfigChanged, Settings 1.2,
 Vault/VaultChanged, Localization/LocaleChanged and required Logger. The shared
 application host supplies `config.access` for desktop and browser. No filesystem
 driver change is required. Workspace owns the panel geometry/surface, Settings

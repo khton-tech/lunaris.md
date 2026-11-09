@@ -1,4 +1,5 @@
-import { Select } from "@mantine/core";
+import { useEffect } from "react";
+import { Combobox, InputBase, useCombobox } from "@mantine/core";
 import type { SettingsOption } from "@lunaris/settings";
 import { Icon } from "./icons.js";
 
@@ -10,10 +11,32 @@ interface Props {
 }
 /** Keep both the trigger and opened options inside the themed UIKit root. */
 export function SettingsSelect({ options, onChange, ...props }: Props) {
-  return <Select {...props} size="sm" data={options.map(option => ({ ...option }))}
-    classNames={{ input: "lm-input lm-setting-input lm-setting-select", dropdown: "lm-setting-dropdown", option: "lm-setting-option", options: "lm-setting-options" }}
-    leftSection={<Icon name="vault-switch" />} leftSectionWidth={32} leftSectionPointerEvents="none" rightSection={<span />} rightSectionWidth={0}
-    allowDeselect={false} clearable={false} withScrollArea={false} checkIconPosition="right"
-    comboboxProps={{ withinPortal: false, position: "bottom-end", offset: 4, transitionProps: { duration: 0 } }}
-    onChange={value => { if (typeof value === "string") onChange(value); }} />;
+  const store = useCombobox({
+    onDropdownOpen: () => store.selectActiveOption(),
+    onDropdownClose: () => store.resetSelectedOption(),
+  });
+  useEffect(() => { if (props.disabled) store.closeDropdown(); }, [props.disabled]);
+  const selected = options.find(option => option.value === props.value);
+  return <Combobox store={store} size="sm" withinPortal={false} position="bottom-end" offset={4}
+    transitionProps={{ duration: 0 }}
+    classNames={{ dropdown: "lm-setting-dropdown", option: "lm-setting-option", options: "lm-setting-options" }}
+    onOptionSubmit={value => {
+      if (props.disabled || typeof value !== "string" || !options.some(option => option.value === value)) return;
+      store.closeDropdown(); onChange(value);
+    }}>
+    <Combobox.Target targetType="button" withExpandedAttribute>
+      <InputBase {...props} component="button" type="button" size="sm" pointer
+        classNames={{ input: "lm-input lm-setting-input lm-setting-select" }}
+        leftSection={<Icon name="vault-switch" />} leftSectionWidth={32} leftSectionPointerEvents="none" rightSection={<span />} rightSectionWidth={0}
+        onClick={() => { if (!props.disabled) store.toggleDropdown(); }}>
+        {selected?.label ?? props.value}
+      </InputBase>
+    </Combobox.Target>
+    <Combobox.Dropdown><Combobox.Options>
+      {options.map(option => <Combobox.Option key={option.value} value={option.value} active={option.value === props.value}
+        aria-selected={option.value === props.value} data-checked={option.value === props.value || undefined}>
+        <span>{option.label}</span>{option.value === props.value && <Icon name="check" />}
+      </Combobox.Option>)}
+    </Combobox.Options></Combobox.Dropdown>
+  </Combobox>;
 }
