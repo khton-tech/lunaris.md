@@ -9,6 +9,8 @@ The audit adds this report and an isolated reproduction script; no merge or depl
 
 ## Assessment
 
+Follow-up: the [deep non-UI code audit](deep-code-audit-2026-11-09.md) adds three reproduced defects (R10–R12) and one separately classified kernel defensive limitation. The nine findings below retain their original scope and status; no remediation is implied.
+
 The SDK/kernel foundation has substantial lifecycle, permission and contract coverage. The product is nevertheless **not ready for an integration-stability sign-off**: the real client/server check fails, recoverable errors can shut down the whole application, and independent browser writers can destroy each other's recovery drafts.
 
 This review identifies **nine actionable findings: three P1 and six P2**. Six have execution evidence (five focused probes plus one existing integration test); three are confirmed implementation/contract limitations from source inspection. Additional hypotheses and accepted constraints are separated below. No P0 was established. A passing unit suite is not evidence that the composed application is free of these defects.
