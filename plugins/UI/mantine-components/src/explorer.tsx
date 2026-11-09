@@ -17,6 +17,8 @@ interface Entry { id: string; name: string; kind: string; children?: Entry[]; dr
 type Form = { kind: "file" | "folder"; parent: string; initialName?: string } | { kind: "delete"; paths: string[] };
 interface Draft { form: Form | null; name: string }
 interface ExplorerProps {
+  sortDirection?: "asc" | "desc"; expanding?: boolean;
+  onSort?: (direction: "asc" | "desc") => void; onExpandAll?: () => Promise<void>;
   vaultSwitcher?: VaultSwitcherProps;
   supportedExtensions?: readonly string[];
   activePath?: string | null; onOpen?: (path: string) => Promise<void>;
@@ -30,6 +32,9 @@ interface ExplorerProps {
   onContextMenu(request: Omit<MenuOpenRequest, "context"> & { path: string | null; kind: string; selection: readonly string[]; destination: string }): MenuSession | undefined;
 }
 export function explorerProps(value: ComponentProps): ExplorerProps {
+  if ((value.sortDirection !== undefined && !["asc", "desc"].includes(value.sortDirection as string)) ||
+    (value.expanding !== undefined && typeof value.expanding !== "boolean") ||
+    ["onSort", "onExpandAll"].some(key => value[key] !== undefined && typeof value[key] !== "function")) throw new TypeError("Invalid explorer toolbar props.");
   if (value.vaultSwitcher !== undefined && !validVaultSwitcher(value.vaultSwitcher)) throw new TypeError("Invalid Vault switcher props.");
   const validEntries = (items: unknown, ids = new Set<string>()): boolean => Array.isArray(items) && items.every(item => {
     if (!item || typeof item.id !== "string" || !item.id || ids.has(item.id) || typeof item.name !== "string" || !["file", "directory", "symlink", "other"].includes(item.kind)) return false;
@@ -169,10 +174,10 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     const placeholder: Entry = { id: DRAFT_ID, name: creation?.initialName ?? props.initialDraft.name, kind: creation?.kind === "folder" ? "directory" : "file", draft: true };
     const insert = (items: Entry[], parent: string): Entry[] => {
       const children = items.map(item => item.children ? { ...item, children: insert(item.children, item.id) } : item);
-      return creation?.parent === parent ? [...children, placeholder].sort((a, b) => Number(b.kind === "directory") - Number(a.kind === "directory") || a.name.localeCompare(b.name)) : children;
+      return creation?.parent === parent ? [...children, placeholder].sort((a, b) => Number(b.kind === "directory") - Number(a.kind === "directory") || a.name.localeCompare(b.name) * (props.sortDirection === "desc" ? -1 : 1)) : children;
     };
     return [{ id: ROOT_ID, name: props.workspace?.vaultName || t.root!, kind: "directory", children: insert(props.data, "") }];
-  }, [props.data, props.workspace?.vaultName, t.root, form]);
+  }, [props.data, props.workspace?.vaultName, props.sortDirection, t.root, form]);
   useLayoutEffect(() => { props.onDraft({ form, name }); }, [form, name, props.onDraft]);
   useLayoutEffect(() => {
     alive.current = true;
@@ -308,6 +313,17 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
         <Menu.Target><Button variant="subtle" fullWidth justify="space-between" className="lm-explorer-tabs" aria-label={t.tabs} title={t.title} rightSection={<Icon name="expand" />}>{t.title}</Button></Menu.Target>
         <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu"><Menu.Item aria-current="page" title={t.title} rightSection={<Icon name="check" />}>{t.title}</Menu.Item></Menu.Dropdown>
       </Menu>
+    </Group>
+    <Group className="lm-explorer-actions" gap={0} wrap="nowrap" role="group" aria-label={t.actions}>
+      <ActionIcon variant="subtle" aria-label={t.newFile} title={t.newFile} disabled={props.busy || props.loading || !!form} onClick={() => command("newFile")}><Icon name="file-plus" /></ActionIcon>
+      <ActionIcon variant="subtle" aria-label={t.newFolder} title={t.newFolder} disabled={props.busy || props.loading || !!form} onClick={() => command("newFolder")}><Icon name="folder-plus" /></ActionIcon>
+      <Menu withinPortal={false} position="bottom-start" offset={4} returnFocus>
+        <Menu.Target><ActionIcon variant="subtle" aria-label={t.sort} title={t.sort} disabled={props.busy || !!form || !props.onSort}><Icon name="sort" /></ActionIcon></Menu.Target>
+        <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu">
+          {(["asc", "desc"] as const).map(direction => <Menu.Item key={direction} aria-current={(props.sortDirection ?? "asc") === direction ? "true" : undefined} rightSection={(props.sortDirection ?? "asc") === direction ? <Icon name="check" /> : undefined} onClick={() => props.onSort?.(direction)}>{direction === "asc" ? t.sortAscending : t.sortDescending}</Menu.Item>)}
+        </Menu.Dropdown>
+      </Menu>
+      <ActionIcon variant="subtle" aria-label={t.expandAll} title={t.expandAll} disabled={props.busy || props.loading || props.expanding || !!form || !props.onExpandAll} onClick={() => { tree.current?.open(ROOT_ID); void props.onExpandAll?.(); }}><Icon name="expand-all" /></ActionIcon>
     </Group>
     {props.error && <Group className="lm-explorer-message" gap="xs"><Text role="alert">{props.error}</Text><Button disabled={props.busy} onClick={props.onRefresh}>{t.retry}</Button></Group>}
     {props.degraded && <Text role="status" className="lm-explorer-message">{props.degraded}</Text>}

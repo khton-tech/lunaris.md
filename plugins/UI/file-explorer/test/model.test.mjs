@@ -26,6 +26,32 @@ function setup(overrides = {}, relocated) {
   const model = new ExplorerModel('vault', fs, () => active, () => {}, (...args) => logs.push(args), relocated);
   return { model, calls, entries, logs, stop() { active = false; } };
 }
+test('toolbar sorting keeps folders first and expand all loads nested visible directories', async () => {
+  const s = setup();
+  s.entries.set('z.md', info('z.md'));
+  s.entries.set('folder/nested', info('folder/nested', 'directory'));
+  s.entries.set('folder/nested/deep.md', info('folder/nested/deep.md'));
+  s.entries.set('.hidden', info('.hidden', 'directory'));
+  s.entries.set('link', info('link', 'symlink'));
+  await s.model.refresh(); s.model.sort('desc');
+  assert.deepEqual(s.model.tree().map(entry => entry.id), ['folder', 'z.md', 'link', 'a.md']);
+  await s.model.expandAll();
+  assert.deepEqual([...s.model.expanded], ['folder', 'folder/nested']);
+  assert.equal(s.model.tree()[0].children[0].children[0].id, 'folder/nested/deep.md');
+  assert.equal(s.calls.some(call => ['.hidden', 'link'].includes(call[1].path)), false);
+  assert.equal(s.model.expanding, false);
+  s.stop(); s.model.sort('asc'); await s.model.expandAll();
+  assert.equal(s.model.sortDirection, 'desc');
+});
+
+test('expand all stops loading after its Vault scope closes', async () => {
+  let finish;
+  const s = setup({ list: () => new Promise(resolve => { finish = resolve; }) });
+  const expanding = s.model.expandAll(); s.stop();
+  finish(ok([info('old', 'directory')])); await expanding;
+  assert.equal(s.model.directories.size, 0); assert.equal(s.model.expanding, false);
+});
+
 test('lazy directories, folder-first sorting and portable create policy', async () => {
   const { model, calls } = setup(); await model.refresh();
   assert.deepEqual(model.tree().map(item => item.id), ['folder', 'a.md']);

@@ -16,6 +16,8 @@ export class ExplorerModel {
   clipboard: { paths: string[]; cut: boolean } | null = null;
   draft: ExplorerDraft = { form: null, name: "" };
   busy = false; loading = 0; error = ""; degraded = false;
+  sortDirection: "asc" | "desc" = "asc";
+  expanding = false;
   private scans = new Map<string, number>();
   private sequence = 0;
   constructor(readonly vaultId: string, private fs: FilesystemApi, private alive: () => boolean,
@@ -25,7 +27,7 @@ export class ExplorerModel {
     if (ancestors.has(path)) return [];
     const next = new Set(ancestors).add(path);
     return [...(this.directories.get(path) ?? [])].filter(item => item.kind !== "directory" || !basename(item.path).startsWith("."))
-      .sort((a, b) => Number(b.kind === "directory") - Number(a.kind === "directory") || basename(a.path).localeCompare(basename(b.path)))
+      .sort((a, b) => Number(b.kind === "directory") - Number(a.kind === "directory") || basename(a.path).localeCompare(basename(b.path)) * (this.sortDirection === "asc" ? 1 : -1))
       .map(item => ({ id: item.path, name: basename(item.path), kind: item.kind, ...(item.kind === "directory" ? { children: this.tree(item.path, next) } : {}) }));
   }
   private target(path: string) { return { vaultId: this.vaultId, path }; }
@@ -80,6 +82,30 @@ export class ExplorerModel {
     if (open) { this.expanded.add(path); if (!this.directories.has(path)) void this.load(path); }
     else this.expanded.delete(path);
     this.changed();
+  }
+  sort(direction: "asc" | "desc"): void {
+    if (!this.active || this.busy) return;
+    this.sortDirection = direction; this.changed();
+    this.log("info", `Explorer sort changed: ${direction}`);
+  }
+  async expandAll(): Promise<void> {
+    if (!this.active || this.busy || this.expanding) return;
+    this.expanding = true; this.changed();
+    try {
+      const queue = [""]; const visited = new Set<string>();
+      for (let index = 0; index < queue.length && this.active; index++) {
+        const path = queue[index]!;
+        if (visited.has(path)) continue;
+        visited.add(path);
+        if (path) this.expanded.add(path);
+        if (!this.directories.has(path)) await this.load(path);
+        if (!this.active) return;
+        for (const entry of this.directories.get(path) ?? []) {
+          if (entry.kind === "directory" && parentPath(entry.path) === path && !basename(entry.path).startsWith(".")) queue.push(entry.path);
+        }
+      }
+      if (this.active) this.log(this.error ? "warn" : "info", this.error ? "Explorer folders partially expanded" : "Explorer folders expanded");
+    } finally { this.expanding = false; if (this.active) this.changed(); }
   }
   select(paths: readonly string[]): void {
     if (!this.active || JSON.stringify(paths) === JSON.stringify(this.selection)) return;

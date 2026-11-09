@@ -404,9 +404,31 @@ test('shared context menu opens nested folders by keyboard, executes once and re
 function explorerFixture(overrides = {}) {
   return { supportedExtensions: ['md'], vaultId: 'a', workspace: { vaultId: 'a' }, data: [{ id: 'folder', name: 'Folder', kind: 'directory', children: [{ id: 'folder/note.md', name: 'note.md', kind: 'file' }] }, { id: 'a.md', name: '<img src=x>.md', kind: 'file' }],
     expanded: ['folder'], selection: [], busy: false, loading: false, error: '', degraded: '', canPaste: false,
-    text: { unnamedFile: 'Unnamed.md', unnamedFolder: 'Unnamed folder', tabs: 'Tabs', title: 'Files', newFile: 'New file', newFolder: 'New folder', rename: 'Rename', copy: 'Copy', cut: 'Cut', paste: 'Paste', remove: 'Delete', refresh: 'Refresh', actions: 'Actions', name: 'Name', create: 'Create', cancel: 'Cancel', empty: 'No files', loading: 'Loading', root: 'Vault root', retry: 'Retry', confirmDelete: 'Delete permanently?', deleteWarning: 'No trash or undo' },
+    text: { sort: 'Sort', sortAscending: 'Name: A–Z', sortDescending: 'Name: Z–A', expandAll: 'Expand all', unnamedFile: 'Unnamed.md', unnamedFolder: 'Unnamed folder', tabs: 'Tabs', title: 'Files', newFile: 'New file', newFolder: 'New folder', rename: 'Rename', copy: 'Copy', cut: 'Cut', paste: 'Paste', remove: 'Delete', refresh: 'Refresh', actions: 'Actions', name: 'Name', create: 'Create', cancel: 'Cancel', empty: 'No files', loading: 'Loading', root: 'Vault root', retry: 'Retry', confirmDelete: 'Delete permanently?', deleteWarning: 'No trash or undo' },
     initialDraft: { form: null, name: '' }, onContextMenu() {}, onDraft() {}, onToggle() {}, onSelection() {}, onBuffer() {}, onCreate: async () => true, onRename: async () => true, onMove: async () => true, onPaste: async () => true, onRemove: async () => true, onRefresh() {}, ...overrides };
 }
+
+test('explorer toolbar creates in the selected folder, sorts through a themed menu and expands the root', async () => {
+  const s = await setup(); await s.start(); const sorts = []; let expands = 0; const drafts = [];
+  s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 320);
+  const props = explorerFixture({ selection: ['folder'], onSort: direction => sorts.push(direction), onExpandAll: async () => { expands++; }, onDraft: draft => drafts.push(draft) });
+  const mounted = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); await settle();
+  const actions = s.target.querySelector('.lm-explorer-actions');
+  assert.equal(actions.querySelectorAll('button').length, 4);
+  assert.equal(actions.previousElementSibling.className.includes('lm-explorer-toolbar'), true);
+  actions.querySelector('[aria-label="Sort"]').click(); await settle();
+  const descending = [...s.target.querySelectorAll('[role=menuitem]')].find(node => node.textContent === 'Name: Z–A');
+  assert.ok(descending); descending.click(); await settle(); assert.deepEqual(sorts, ['desc']);
+  actions.querySelector('[aria-label="Expand all"]').click(); await settle(); assert.equal(expands, 1);
+  actions.querySelector('[aria-label="New folder"]').click(); await settle();
+  assert.equal(drafts.at(-1).form.kind, 'folder'); assert.equal(drafts.at(-1).form.parent, 'folder');
+  const input = s.target.querySelector('.lm-explorer-create input');
+  input.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); await settle();
+  actions.querySelector('[aria-label="New file"]').click(); await settle(); assert.equal(drafts.at(-1).form.kind, 'file');
+  mounted.value.update({ ...props, busy: true }); await settle();
+  assert.ok([...actions.querySelectorAll('.mantine-ActionIcon-root')].every(button => button.disabled));
+  await s.stop();
+});
 
 test('right-click preserves invocation multi-selection, coordinates and safe root/background commands', async () => {
   const s = await setup(); await s.start(); const contexts = []; const buffered = [];
