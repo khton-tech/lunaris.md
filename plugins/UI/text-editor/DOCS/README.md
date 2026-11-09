@@ -155,6 +155,13 @@ The active theme's normal motion/easing tokens are inherited (200 ms fallback,
 capped at 240 ms). Feedback expires independently after 260 ms, so rapid typing
 does not abruptly finish or restart earlier letters. A subsequent edit replaces
 deletion afterimages; retained insertion marks keep their own DOM identity.
+The existing CodeMirror-drawn carets slide between left/top coordinates using
+the active theme's fast easing, capped at 100 ms. Height, text layout, selection
+and actual editing positions update immediately; only caret presentation
+interpolates. This applies to primary and secondary carets and does not replace
+CodeMirror's cursor layer or blink behavior. Reduced motion removes the transition.
+Manually check rapid typing, arrow navigation, mouse placement, line wrapping,
+scrolling, multiple carets and both themes in the actual Workspace.
 View disposal cancels cleanup and removes the media-query listener.
 
 Paste, external changes, undo/redo, IME composition, whitespace-only edits,

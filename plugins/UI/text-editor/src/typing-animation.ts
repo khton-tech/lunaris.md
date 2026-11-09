@@ -90,6 +90,11 @@ const feedback = ViewPlugin.fromClass(class {
 }, { decorations: instance => instance.decorations });
 
 const appearance = EditorView.baseTheme({
+  ".cm-cursor": {
+    transitionProperty: "left, top",
+    transitionDuration: "clamp(0ms, var(--vault-motion-fast, 120ms), 100ms)",
+    transitionTimingFunction: "var(--vault-motion-easing, ease-out)",
+  },
   "@keyframes cm-typing-appear": { from: { opacity: "0.12", filter: "blur(0.7px)" }, to: { opacity: "1", filter: "blur(0)" } },
   "@keyframes cm-typing-disappear": { from: { opacity: "0.65", filter: "blur(0)" }, to: { opacity: "0", filter: "blur(0.7px)" } },
   ".cm-typing-insertion": {
@@ -104,6 +109,7 @@ const appearance = EditorView.baseTheme({
     animation: "cm-typing-disappear clamp(0ms, var(--vault-motion-normal, 200ms), 240ms) var(--vault-motion-easing, ease-out) both",
   },
   "@media (prefers-reduced-motion: reduce)": {
+    ".cm-cursor": { transition: "none" },
     ".cm-typing-insertion": { animation: "none" },
     ".cm-typing-deletion": { display: "none" },
   },
