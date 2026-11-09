@@ -1,12 +1,13 @@
 import type { Disposable } from "@lunaris/sdk";
 import type { HostSession, HostSnapshot } from "./session.js";
-import { message as t } from "./catalog.js";
+import { message } from "./catalog.js";
 import type { MessageKey } from "./catalog.js";
 
 /** Host-owned DOM. No plugin is given this system root or the session object. */
-export function mountSystemView(root: HTMLElement, application: HTMLElement, session: HostSession, options: { readonly startup?: HTMLElement } = {}): Disposable {
+export function mountSystemView(root: HTMLElement, application: HTMLElement, session: HostSession, options: { readonly startup?: HTMLElement; readonly locale?: string } = {}): Disposable {
   const document = root.ownerDocument;
-  root.lang = "en";
+  root.lang = (options.locale ?? document.defaultView?.navigator.language ?? "en").startsWith("ru") ? "ru" : "en";
+  const t = (key: MessageKey) => message(key, root.lang);
   const el = <K extends keyof HTMLElementTagNameMap>(tag: K, text?: string, className?: string) => {
     const node = document.createElement(tag);
     if (text !== undefined) node.textContent = text;

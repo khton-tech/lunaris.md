@@ -32,3 +32,12 @@ and focus behavior require manual acceptance; desktop automation is prohibited.
 The controller supplies `presentation: { mode: "embedded", sizing: "fill" }` to
 its layout, screens and placeholders after custom props. Screen roots inherit the
 Workspace surface, independently of their target DOM.
+
+## Russian UI copy
+
+English and Russian catalogs are owned by this consumer. Messages reach shared
+Mantine roles through Localization/LocaleChanged and existing public component
+props; no renderer translation or SDK change is required. Interface Settings
+selects and persists Russian per Vault. Names and user content stay unchanged.
+Run `npm run ui-localization:check` for complete keys and matching placeholders.
+Native acceptance of long Russian labels, menus and narrow layouts is pending.

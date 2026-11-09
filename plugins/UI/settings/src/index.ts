@@ -1,3 +1,4 @@
+import { russian } from "./locales/ru.js";
 import { definePlugin } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
 import { Settings, SettingsChanged } from "@lunaris/settings";
@@ -12,7 +13,7 @@ import { mountSettingsGroup } from "./group.js";
 import manifest from "../manifest.json" with { type: "json" };
 
 const catalogs = { en: { settings: "Settings", empty: "No settings available", select: "Select a category",
-  emptyCategory: "No settings in this category", unavailable: "Section unavailable", unavailableDetail: "This settings section could not be displayed.", itemFailed: "Cannot update this setting. Try again." } };
+  emptyCategory: "No settings in this category", unavailable: "Section unavailable", unavailableDetail: "This settings section could not be displayed.", itemFailed: "Cannot update this setting. Try again." }, ru: russian };
 
 export default definePlugin({ manifest, activate(ctx) {
   const logger = scopeLogger(ctx.use(Logger), ctx.signal); const registry = ctx.use(Settings); const sidebar = ctx.use(Sidebar);

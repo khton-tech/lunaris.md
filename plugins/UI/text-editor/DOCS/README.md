@@ -499,3 +499,12 @@ indentation and existing checked states without duplicating task markers. The
 existing public Mantine task-checkbox role supplies interactive preview; no new
 SDK contract or separate checkbox renderer is required. Verify the new Lists
 entry manually in the real menu; composed behavior is covered automatically.
+
+## Russian UI copy
+
+English and Russian catalogs are owned by this consumer. Messages reach shared
+Mantine roles through Localization/LocaleChanged and existing public component
+props; no renderer translation or SDK change is required. Interface Settings
+selects and persists Russian per Vault. Names and user content stay unchanged.
+Run `npm run ui-localization:check` for complete keys and matching placeholders.
+Native acceptance of long Russian labels, menus and narrow layouts is pending.

@@ -98,3 +98,12 @@ visible captions. Workspace still owns the outer surface; no SDK/container API
 change or new integration is required. Tests load the actual status CSS and cover
 row growth, no wrapping, right alignment, safe names, zero counts, icons and
 accessible labels. Native visual acceptance of the correction remains pending.
+
+## Russian UI copy
+
+English and Russian catalogs are owned by this consumer. Messages reach shared
+Mantine roles through Localization/LocaleChanged and existing public component
+props; no renderer translation or SDK change is required. Interface Settings
+selects and persists Russian per Vault. Names and user content stay unchanged.
+Run `npm run ui-localization:check` for complete keys and matching placeholders.
+Native acceptance of long Russian labels, menus and narrow layouts is pending.

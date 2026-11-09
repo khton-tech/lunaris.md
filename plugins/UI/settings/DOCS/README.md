@@ -66,3 +66,12 @@ numeric default policies or renderer-specific behavior are hardcoded here.
 Integration with the registry, Mantine and product controllers is complete through
 public SDK contracts. Native visual acceptance of the refined controls remains
 manual, including opened menus, focus, both themes and narrow/short containers.
+
+## Russian UI copy
+
+English and Russian catalogs are owned by this consumer. Messages reach shared
+Mantine roles through Localization/LocaleChanged and existing public component
+props; no renderer translation or SDK change is required. Interface Settings
+selects and persists Russian per Vault. Names and user content stay unchanged.
+Run `npm run ui-localization:check` for complete keys and matching placeholders.
+Native acceptance of long Russian labels, menus and narrow layouts is pending.

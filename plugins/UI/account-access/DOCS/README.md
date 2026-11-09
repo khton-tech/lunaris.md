@@ -62,3 +62,12 @@ registration, alternate themes and the native desktop WebView remain manual
 acceptance cases. Behavioral coverage includes escaped names, stable password
 inputs, create cancellation/focus, trash/restore callbacks and real-server login,
 creation, editing, draft recovery and shutdown.
+
+## Russian UI copy
+
+English and Russian catalogs are owned by this consumer. Messages reach shared
+Mantine roles through Localization/LocaleChanged and existing public component
+props; no renderer translation or SDK change is required. Interface Settings
+selects and persists Russian per Vault. Names and user content stay unchanged.
+Run `npm run ui-localization:check` for complete keys and matching placeholders.
+Native acceptance of long Russian labels, menus and narrow layouts is pending.

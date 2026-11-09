@@ -14,10 +14,10 @@ UI, theme, settings, locale persistence or discovery/downloading of language pac
 It depends only on Logger and the SDK/contracts, so filesystem, Vault and Config
 remain independent. Additional providers implement the same public contract.
 
-Only English is shipped. Startup always selects `en`; there is no automatic OS
-locale selection or language selector. Other catalogs in tests demonstrate future
-extension, not installed product languages. Locale persistence and its settings
-integration can be added separately when multiple product languages are available.
+English and Russian ship in all active product UI consumers. Startup selects
+`en`; choose Russian in Settings > Customization > Language. Interface settings
+persists the choice per Vault and restores it on opening. User content, plugin
+identifiers, theme names and technical diagnostics are not translated.
 
 ## Consumer API
 
@@ -110,7 +110,7 @@ not call the product localization service. No visible layout changes are made.
 
 The separate [interface settings controller](../../plugins/UI/interface-settings/DOCS/README.md)
 now persists and applies a Vault-local locale through this API. Localization
-itself remains independent of Config/Settings; only English ships by default.
+itself remains independent of Config/Settings. All product catalogs include `ru`.
 The controller uses an activation-time locale snapshot, without claiming a
 catalog-availability event or runtime language-pack discovery.
 
@@ -120,5 +120,9 @@ as a dependency. Future consumers import contracts, never the provider or host.
 Run `npm run localization:check` for contracts, service, SDK consumer lifecycle,
 host recovery, types and package boundaries. Run
 `npm run build --workspace @lunaris/tauri` for the frontend bundle. Tests install
-English-only consumer catalogs and exercise a partial additional language as a
-fixture; no windows or native dialogs are opened.
+English-only consumer fixtures and exercise a partial additional language;
+no windows or native dialogs are opened. `npm run ui-localization:check` checks
+complete English/Russian key coverage and matching interpolation parameters in
+every product and recovery catalog. The recovery shell uses its independent
+English/Russian catalogs, selecting Russian for a Russian browser/OS language
+(or an explicit host view locale), so it also works without the product provider.

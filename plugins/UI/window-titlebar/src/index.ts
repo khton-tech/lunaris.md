@@ -1,3 +1,4 @@
+import { russian } from "./locales/ru.js";
 import { definePlugin } from "@lunaris/sdk";
 import type { ResourceScope } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
@@ -20,7 +21,7 @@ export default definePlugin({ manifest, async activate(ctx) {
   logger.debug(ctx.pluginId, "Activating window titlebar");
   const registered = localization.register(ctx.pluginId, { en: {
     minimize: "Minimize", maximize: "Maximize", restore: "Restore", close: "Close",
-  } }, ctx.signal);
+  }, ru: russian }, ctx.signal);
   if (!registered.ok) throw new Error("Cannot register titlebar messages.", { cause: registered.error });
   let state = window.snapshot(); let view: View | undefined; let acquiring = Promise.resolve();
   function release(): void {

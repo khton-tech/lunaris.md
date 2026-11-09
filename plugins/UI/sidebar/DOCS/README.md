@@ -26,3 +26,12 @@ Run `npm run sidebar:check` and the Tauri frontend build.
 Sidebar API 1.1 supports `placement: "start" | "end"` (default start). End tabs
 form a bottom group; numeric order stays local to each group. Snapshot and keyboard
 order follow visual order. Updates preserve placement; existing consumers remain compatible.
+
+## Russian UI copy
+
+English and Russian catalogs are owned by this consumer. Messages reach shared
+Mantine roles through Localization/LocaleChanged and existing public component
+props; no renderer translation or SDK change is required. Interface Settings
+selects and persists Russian per Vault. Names and user content stay unchanged.
+Run `npm run ui-localization:check` for complete keys and matching placeholders.
+Native acceptance of long Russian labels, menus and narrow layouts is pending.

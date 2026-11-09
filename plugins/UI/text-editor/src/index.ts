@@ -1,3 +1,4 @@
+import { russian } from "./locales/ru.js";
 import { ContextMenu } from "@lunaris/context-menu";
 import { Clipboard } from "@lunaris/clipboard";
 import { countDocument } from "./statistics.js";
@@ -29,7 +30,7 @@ const catalogs = { en: {
   readFailed: "Cannot read this file.", saveFailed: "Cannot save changes. Your text is retained.",
   offline: "Server unavailable. Changes are saved on this device and will be retried after reconnection.",
   draftFailed: "Local recovery could not be saved. Keep this document open until saving succeeds.",
-} };
+}, ru: russian };
 const key = (target: FileTarget) => JSON.stringify([target.vaultId, target.path]);
 const inside = (target: FileTarget, parent: FileTarget) => target.vaultId === parent.vaultId && (target.path === parent.path || target.path.startsWith(parent.path + "/"));
 const markdownFile = (target: FileTarget) => /\.md$/i.test(target.path);

@@ -1,3 +1,4 @@
+import { russian } from "./locales/ru.js";
 /** Consumer copy; component sets receive already localized strings. */
 export const catalogs = {
   en: {
@@ -12,5 +13,5 @@ export const catalogs = {
     activation: "Starting {plugin}",
     activationGeneric: "Starting plugins",
     failureDetail: "Code: {code}",
-  },
+  }, ru: russian,
 };

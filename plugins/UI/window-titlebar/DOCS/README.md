@@ -36,3 +36,12 @@ startup/selector/Workspace transitions, long titles, narrow/short windows, hover
 keyboard focus, minimize/maximize/restore, double-click, drag, edge resize/snap,
 close with pending save/conflict, role/plugin disable and recovery fallback.
 Automated desktop control is prohibited; the Owner performs these native checks.
+
+## Russian UI copy
+
+English and Russian catalogs are owned by this consumer. Messages reach shared
+Mantine roles through Localization/LocaleChanged and existing public component
+props; no renderer translation or SDK change is required. Interface Settings
+selects and persists Russian per Vault. Names and user content stay unchanged.
+Run `npm run ui-localization:check` for complete keys and matching placeholders.
+Native acceptance of long Russian labels, menus and narrow layouts is pending.

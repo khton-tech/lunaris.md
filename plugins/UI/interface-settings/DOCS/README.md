@@ -45,9 +45,10 @@ Read failures show Retry. ConfigChanged reloads only matching Vault/namespace/ke
 external file edits do not produce that event and are read on a later reload.
 
 Language choices are the registered locale snapshot at controller activation,
-displayed through Intl.DisplayNames in the current language. English-only product
-catalogs remain English through normal fallback; this integration adds no language
-packs. Runtime catalog discovery remains outside Localization's existing contract.
+displayed through Intl.DisplayNames in the current language. All active product
+consumers ship English and Russian; this controller registers both before taking
+the snapshot, so Russian is available independently of consumer startup order.
+Runtime catalog discovery remains outside Localization's existing contract.
 Changes require restart to refresh that availability snapshot.
 
 Theme choices follow the live Themes registry and use author-supplied names.
@@ -106,3 +107,12 @@ automation is prohibited; automated DOM tests do not prove WebView geometry.
 Verification evidence for declarative registration is recorded in the
 [Settings reference](../../../../DOCS/reference/settings.md). Native visual
 acceptance has not been performed.
+
+## Russian UI copy
+
+English and Russian catalogs are owned by this consumer. Messages reach shared
+Mantine roles through Localization/LocaleChanged and existing public component
+props; no renderer translation or SDK change is required. Interface Settings
+selects and persists Russian per Vault. Names and user content stay unchanged.
+Run `npm run ui-localization:check` for complete keys and matching placeholders.
+Native acceptance of long Russian labels, menus and narrow layouts is pending.

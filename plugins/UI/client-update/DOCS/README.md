@@ -13,3 +13,12 @@ an acknowledged local draft. Scope cleanup releases listeners/timers only.
 Composed only for browser navigation; server bundle notices do not imply a desktop
 binary update. Manual checks: updated bundle notice, save/conflict/offline states,
 narrow layouts, themes and native reload confirmation remain pending.
+
+## Russian UI copy
+
+English and Russian catalogs are owned by this consumer. Messages reach shared
+Mantine roles through Localization/LocaleChanged and existing public component
+props; no renderer translation or SDK change is required. Interface Settings
+selects and persists Russian per Vault. Names and user content stay unchanged.
+Run `npm run ui-localization:check` for complete keys and matching placeholders.
+Native acceptance of long Russian labels, menus and narrow layouts is pending.

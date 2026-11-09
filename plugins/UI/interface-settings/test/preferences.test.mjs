@@ -68,6 +68,24 @@ test('composed controls apply and persist explicit Vault preferences, preserve i
   await s.stop();
 });
 
+test('Russian selection translates the composed Workspace and Settings and restores per Vault', async () => {
+  const values = new Map(); let s = await setup({ values }); await s.open(); await show(s);
+  const language = select(s, 0);
+  await change(s, 0, 'ru');
+  assert.equal(s.tools.localization.locale(), 'ru');
+  assert.equal(select(s, 0), language);
+  assert.match(s.surface.querySelector('.lm-settings-page').textContent, /Оформление/);
+  assert.match(s.surface.querySelector('.lm-settings-items').textContent, /Язык/);
+  assert.match(s.surface.querySelector('.lm-settings-navigation').textContent, /Настройки/);
+  assert.equal(s.writes[0].value, 'ru');
+  s.tools.screens.select(null); await flush();
+  s.tools.sidebar.select('lunaris.settings.navigation'); await flush();
+  assert.ok([...s.surface.querySelectorAll('.lm-settings-category')].some(node => node.textContent === 'Оформление'));
+  await s.stop(); s = await setup({ values }); await s.open();
+  assert.equal(s.tools.localization.locale(), 'ru');
+  await s.stop();
+});
+
 test('Luna selection updates composed controls and preserves container ownership when switched back', async () => {
   const s = await setup(); await s.open(); await show(s);
   const choice = select(s, 1);

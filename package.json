@@ -38,6 +38,7 @@
     "config:check": "node tools/scripts/check.mjs config config-manager",
     "tauri:build": "node tools/scripts/tauri.mjs build",
     "localization:check": "node tools/scripts/check.mjs localization localization-manager",
+    "ui-localization:check": "node tools/scripts/ui-localization.mjs",
     "slots:check": "node tools/scripts/check.mjs slots slot-dom slot-provider web-slot-driver",
     "themes:check": "node tools/scripts/check.mjs themes theme-provider",
     "components:check": "node tools/scripts/check.mjs components component-provider",

@@ -39,3 +39,15 @@ test('host starts SDK localization and recovery stays English when its provider 
   assert.ok(!session.snapshot().kernel.diagnostics.some(item => item.code === 'CLEANUP_FAILED'));
   await session.stop(); view.dispose(); dom.window.close();
 });
+
+test('Russian recovery remains readable without product localization', async () => {
+  const session = new HostSession({ scheduler: new TestScheduler(), load: async () => { throw Error('fixture failure'); } });
+  const dom = new JSDOM('<div id="system"></div><div id="app"></div>');
+  const root = dom.window.document.getElementById('system');
+  const view = mountSystemView(root, dom.window.document.getElementById('app'), session, { locale: 'ru-RU' });
+  await session.start();
+  assert.equal(root.lang, 'ru');
+  assert.match(root.textContent, /Приложение требует внимания/);
+  assert.match(root.textContent, /Повторить/);
+  await session.stop(); view.dispose(); dom.window.close();
+});

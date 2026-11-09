@@ -1,3 +1,4 @@
+import { russian } from "./locales/ru.js";
 import { definePlugin } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
@@ -16,7 +17,7 @@ const groupId = "lunaris.interface-settings.preferences";
 
 const catalogs = { en: { customization: "Customization", interface: "Interface", locale: "Language", theme: "Theme",
   unavailable: "Saved choice is unavailable.", readFailed: "Cannot read preferences. Retry to load them.",
-  saveFailed: "Cannot save the change. Try again.", applyFailed: "Cannot apply the selected choice.", retry: "Retry" } };
+  saveFailed: "Cannot save the change. Try again.", applyFailed: "Cannot apply the selected choice.", retry: "Retry" }, ru: russian };
 
 /** Own Vault interface preferences independently of startup policy and presentation. */
 export function createInterfaceSettings(options: { readonly defaultThemeId: string }) {

@@ -107,3 +107,12 @@ is prohibited by repository policy and is not used.
 This standalone page explicitly supplies `presentation: { mode: "standalone",
 sizing: "fill" }` through its public Components role. The component set owns the
 page background separately from theme tokens and typography.
+
+## Russian UI copy
+
+English and Russian catalogs are owned by this consumer. Messages reach shared
+Mantine roles through Localization/LocaleChanged and existing public component
+props; no renderer translation or SDK change is required. Interface Settings
+selects and persists Russian per Vault. Names and user content stay unchanged.
+Run `npm run ui-localization:check` for complete keys and matching placeholders.
+Native acceptance of long Russian labels, menus and narrow layouts is pending.

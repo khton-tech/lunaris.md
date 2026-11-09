@@ -12,7 +12,7 @@ catalogs are removed automatically when the owner stops. The other methods are
 
 The plugin provides `event:lunaris.locale-changed@1.0.0`, with
 `{ previous, current }`; subscribers declare it and use `ctx.events.on`. It has
-no incoming event or hook subscriptions. Only English is shipped. Technical
+no incoming event or hook subscriptions. Product consumers ship English and Russian. Technical
 logs/errors are not localized; product UI copy belongs to consumer catalogs.
 
 See the [complete API and lifecycle reference](../../../../DOCS/reference/localization.md)

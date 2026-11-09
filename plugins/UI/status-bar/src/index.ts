@@ -1,3 +1,4 @@
+import { russian } from "./locales/ru.js";
 import { definePlugin } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
 import { Workspace } from "@lunaris/workspace";
@@ -11,7 +12,7 @@ import manifest from "../manifest.json" with { type: "json" };
 const catalogs = { en: {
   label: "Document status", noFile: "No file open", words: "Words: {count}", letters: "Letters: {count}",
   connected: "Server connected", offline: "Server offline", expired: "Session expired", unknown: "Server status unknown",
-} };
+}, ru: russian };
 export default definePlugin({ manifest, activate(ctx) {
   const logger = scopeLogger(ctx.use(Logger), ctx.signal); const workspace = ctx.use(Workspace);
   const documents = ctx.use(ActiveDocument); const sources = ctx.use(FilesystemSources);

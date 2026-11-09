@@ -1,3 +1,4 @@
+import { russian } from "./locales/ru.js";
 import { definePlugin, isSdkUnavailable } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
 import { ClientUpdates, ClientUpdateChanged, ApplicationReload } from "@lunaris/remote";
@@ -13,7 +14,7 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: "lunaris.clien
   permissions: ["application.update", "application.reload", "vault.access", "ui.dom"], optionalPermissions: [] }, activate(ctx) {
   const logger = scopeLogger(ctx.use(Logger), ctx.signal); const updates = ctx.use(ClientUpdates); const reload = ctx.use(ApplicationReload); const vaults = ctx.use(Vault);
   const components = ctx.use(Components); const slots = ctx.use(Slots); const targets = ctx.use(SlotDom); const localization = ctx.use(Localization);
-  localization.register(ctx.pluginId, { en: { message: "A Lunaris update is available.", action: "Save and reload", error: "Resolve unsaved changes before reloading." } }, ctx.signal);
+  localization.register(ctx.pluginId, { en: { message: "A Lunaris update is available.", action: "Save and reload", error: "Resolve unsaved changes before reloading." }, ru: russian }, ctx.signal);
   let screen = ctx.scope.child(); let mounted: MountedComponent | undefined; let allocated = false; let busy = false; let failed = false; let unavailable = false;
   const slotId = "lunaris.client-update.notice";
   function render() {

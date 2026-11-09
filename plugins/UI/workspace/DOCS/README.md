@@ -49,3 +49,12 @@ Workspace registry. A future content editor must consume that SDK contract.
 WorkspaceLayout owns the application background and rail/panel card surfaces with
 standalone/fill presentation. Registered content and placeholders receive public
 embedded/fill presentation after custom props and inherit their assigned surface.
+
+## Russian UI copy
+
+English and Russian catalogs are owned by this consumer. Messages reach shared
+Mantine roles through Localization/LocaleChanged and existing public component
+props; no renderer translation or SDK change is required. Interface Settings
+selects and persists Russian per Vault. Names and user content stay unchanged.
+Run `npm run ui-localization:check` for complete keys and matching placeholders.
+Native acceptance of long Russian labels, menus and narrow layouts is pending.

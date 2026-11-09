@@ -1,3 +1,4 @@
+import { russian } from "./locales/ru.js";
 import { definePlugin, isSdkUnavailable } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
 import { AccountAccess, AccountAccessChanged, AccountSession, AccountSessionChanged, AccountVaults } from "@lunaris/remote";
@@ -24,7 +25,7 @@ const catalog = { en: {
   error: "The operation failed. Try again.", offline: "The server is unavailable. Check the address and your connection.",
   credentials: "Invalid login or password.", invitationError: "The invitation is missing, invalid or already used.", taken: "This login is already registered.",
   limit: "The account has reached its active vault limit.", conflict: "Unsaved changes need attention before continuing.", invalid: "Check the entered values.",
-} };
+}, ru: russian };
 type Mode = "connect" | "login" | "register" | "vaults" | "trash";
 export function createAccountAccess(options: { readonly defaultOpen?: boolean; readonly defaultAddress?: string; readonly allowLocal?: boolean } = {}) {
   const provides = [AccountAccess, AccountAccessChanged];
