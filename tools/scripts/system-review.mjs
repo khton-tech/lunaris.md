@@ -6,7 +6,9 @@ import { HostSession } from '@lunaris/application-host';
 import { defineApi, definePlugin } from '@lunaris/sdk';
 import { TestScheduler } from '@lunaris/test';
 import { createServerTransport } from '@lunaris/server-transport';
-import { ServerTransport, ConnectionStatus } from '@lunaris/remote';
+import { ServerTransport, ConnectionStatus, DraftStorage } from '@lunaris/remote';
+import { createBrowserStorage } from '@lunaris/browser-storage';
+import { IDBFactory } from 'fake-indexeddb';
 import { testHost, consumer } from '../testing/remote.mjs';
 import { JSDOM } from 'jsdom';
 import { useBrowser } from '../test/browser.mjs';
@@ -92,12 +94,33 @@ async function workspaceCancelsExternalTab() {
   } finally { await host.stopAll(); host.assertNoResources(); dom.window.close(); }
 }
 
+async function independentDraftWritersClobber() {
+  const factory = new IDBFactory();
+  const hosts = []; const apis = [];
+  try {
+    for (let index = 0; index < 2; index++) {
+      const host = testHost({ 'lunaris.browser-storage': ['drafts.storage'], 'test.consumer': ['drafts.access'] });
+      hosts.push(host);
+      host.register(createBrowserStorage({ indexedDB: factory, config: false, databaseName: 'review-only' }));
+      host.register(consumer([DraftStorage], ctx => apis.push(ctx.use(DraftStorage)), ['drafts.access']));
+      await host.start('test.consumer');
+    }
+    const key = { server: 'https://review.invalid', accountId: 'a', vaultId: 'v', path: 'note.md' };
+    assert.equal((await apis[0].save({ key, text: 'tab A unsaved', expectedVersion: 'v1', revision: 'a', updatedAt: 1 })).ok, true);
+    assert.equal((await apis[1].save({ key, text: 'tab B unsaved', expectedVersion: 'v1', revision: 'b', updatedAt: 2 })).ok, true);
+    assert.equal((await apis[0].load(key)).value.text, 'tab B unsaved');
+    assert.equal((await apis[1].remove(key, 'b')).ok, true);
+    assert.equal((await apis[0].load(key)).value, null);
+  } finally { for (const host of hosts) { await host.stopAll(); host.assertNoResources(); } }
+}
+
 try {
   await discardedDraftReturns();
   await caughtFailureStopsHost();
   await jsonServerFailureReportsConnected();
   await workspaceCancelsExternalTab();
-  console.log('Review reproductions confirmed: discarded draft returns; caught API failure stops host without save gate; JSON 503 reports connected; Workspace cancels Tab outside its region. No product data written.');
+  await independentDraftWritersClobber();
+  console.log('Review reproductions confirmed (5): discarded draft returns; caught API failure stops host without save gate; JSON 503 reports connected; Workspace cancels external Tab; independent draft writers clobber. No product data written.');
 } catch (error) {
   console.error(`Review reproduction changed or failed: ${error.message}`);
   process.exitCode = 1;
