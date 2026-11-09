@@ -420,7 +420,8 @@ paint embedded roots or alter region geometry. Card rows retain their navigation
 appearance; disabled buttons suppress gradients/shadows. The reference is the
 existing shared controls, Windows XP Luna and [Mantine UI buttons](https://ui.mantine.dev/category/buttons/).
 The Owner's second screenshot (XP Paint) now defines the chrome: WorkspaceLayout
-owns the blue outer frame/caption and compact region grid. Embedded role roots
+owns the blue outer frame and compact region grid, without a duplicate Workspace
+caption. Embedded role roots
 receive an explicit data-window-chrome flag from theme data, never DOM ancestry
 or plugin IDs. Settings owns its blue title and compact form content; the
 Explorer owns its toolbar and inset file list. Gray region surfaces stay with

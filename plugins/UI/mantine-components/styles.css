@@ -281,11 +281,7 @@
 
 /* Window chrome is an explicit theme contract. Layout owns the outer frame;
    each embedded role only adapts its own heading, controls and local content. */
-.lm-workspace-layout[data-window-chrome] { grid-template-rows:auto minmax(0,1fr);padding:3px;background:var(--vault-panel);border:1px solid var(--vault-frame-color);border-radius:7px 7px 0 0;--workspace-gap:4px;--workspace-rail-width:52px }
-.lm-window-caption { grid-column:1/-1;grid-row:1;display:flex;align-items:center;gap:6px;min-height:27px;padding:3px 6px;background:var(--vault-caption-background);color:var(--vault-caption-text);font-weight:700;text-shadow:1px 1px #003C74;border-radius:4px 4px 0 0;user-select:none }
-.lm-window-caption span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
-.lm-workspace-layout[data-window-chrome]>.lm-workspace-rail { grid-row:2 }
-.lm-workspace-layout[data-window-chrome]>.lm-workspace-content { grid-row:2 }
+.lm-workspace-layout[data-window-chrome] { padding:3px;background:var(--vault-panel);border:1px solid var(--vault-frame-color);border-radius:7px 7px 0 0;--workspace-gap:4px;--workspace-rail-width:52px }
 .lm-root .lm-workspace-card { box-shadow:var(--vault-surface-shadow,none) }
 .lm-root[data-window-chrome=true]>.lm-sidebar-rail { padding:6px }
 .lm-root[data-window-chrome=true]>.lm-sidebar-rail .lm-sidebar-tab { border:1px solid transparent;border-radius:1px }
@@ -304,7 +300,7 @@
 .lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Input-section[data-position=left] { inset-inline-start:auto;inset-inline-end:2px;width:20px;inset-block:2px;box-shadow:var(--vault-surface-shadow);background:var(--vault-panel) }
 .lm-root[data-window-chrome=true]>.lm-explorer .lm-explorer-tabs { min-height:26px;border-radius:0;box-shadow:var(--vault-surface-shadow);background:var(--vault-panel) }
 .lm-root[data-window-chrome=true]>.lm-explorer .lm-explorer-tree { margin-inline:4px;box-shadow:var(--vault-inset-shadow);background:var(--vault-content) }
-@container(max-width:40rem) { .lm-workspace-layout[data-window-chrome] .lm-workspace-panel { inset-block-start:calc(27px + var(--workspace-gap)) } }
+@container(max-width:40rem) { .lm-workspace-layout[data-window-chrome] .lm-workspace-panel { inset-block-start:var(--workspace-gap) } }
 
 .lm-account-access { --vault-row-height:calc(var(--vault-space)*12);--explorer-control-hover:color-mix(in srgb,var(--vault-hover) 35%,var(--vault-panel));--explorer-control-pressed:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel));display:flex;flex:1 1 0%;min-width:0;min-height:0;overflow:auto;padding:clamp(16px,5cqw,64px) }
 .lm-account-content { display:flex;flex-direction:column;gap:calc(var(--vault-space)*6);width:min(100%,48rem);margin:clamp(0px,5cqh,56px) auto auto;min-width:0 }
