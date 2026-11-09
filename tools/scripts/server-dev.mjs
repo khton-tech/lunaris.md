@@ -6,8 +6,8 @@ import { checkEnvironment } from './environment.mjs';
 
 const repository = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
-export function developmentConfig(config, origin = 'http://127.0.0.1:3101') {
-  return Object.freeze({ ...config, host: '127.0.0.1', port: 3100, publicOrigin: origin });
+export function developmentConfig(config, origin = 'http://127.0.0.1:3101', apiPort = 3100) {
+  return Object.freeze({ ...config, host: '127.0.0.1', port: apiPort, publicOrigin: origin });
 }
 
 /** Serialize restarts so two processes never acquire the metadata lock together. */
@@ -23,19 +23,21 @@ export function restartQueue(restart, failed) {
   return { request() { if (!closed) { pending = true; void drain(); } }, close() { closed = true; pending = false; } };
 }
 
-export async function serveApi(serverRoot, configFile) {
+export async function serveApi(serverRoot, configFile, origin, apiPort) {
   const { loadConfig } = await import(pathToFileURL(path.join(serverRoot, 'src/config.mjs')).href);
   const { startApplication } = await import(pathToFileURL(path.join(serverRoot, 'src/application.mjs')).href);
-  const app = await startApplication(developmentConfig(loadConfig(configFile)));
+  const app = await startApplication(developmentConfig(loadConfig(configFile), origin, apiPort));
   let closing;
-  const close = () => closing ??= app.close().then(() => process.disconnect?.());
-  process.on('message', message => { if (message === 'stop') void close().catch(() => { process.exitCode = 1; process.disconnect?.(); }); });
+  const disconnect = () => { if (process.connected) process.disconnect(); };
+  const close = () => closing ??= app.close().then(disconnect);
+  process.on('message', message => { if (message === 'stop') void close().catch(() => { process.exitCode = 1; disconnect(); }); });
   process.on('disconnect', () => { void close(); });
   process.on('SIGTERM', () => { void close(); }); process.on('SIGINT', () => { void close(); });
   process.send?.('ready');
 }
 
-export async function develop(serverRoot = path.resolve(repository, '../lunaris-server'), configFile = path.join(serverRoot, 'server.local.json')) {
+export async function develop(serverRoot = path.resolve(repository, '../lunaris-server'), configFile = path.join(serverRoot, 'server.local.json'),
+  { report = message => process.stdout.write(`[server-dev] ${message}\n`), apiPort = 3100, webPort = 3101 } = {}) {
   checkEnvironment();
   for (const filename of ['src/application.mjs', 'node_modules/@lunaris/sdk/package.json']) {
     if (!fs.existsSync(path.join(serverRoot, filename))) throw Error('Install the sibling server dependencies first: cd ../lunaris-server && npm ci.');
@@ -43,9 +45,9 @@ export async function develop(serverRoot = path.resolve(repository, '../lunaris-
   if (!fs.existsSync(configFile)) throw Error('Create server.local.json from server.example.json first. Existing data and policy are preserved.');
   const { createServer } = await import('vite');
   const vite = await createServer({ root: path.join(repository, 'hosts/web'), configFile: path.join(repository, 'hosts/web/vite.config.ts'),
-    clearScreen: false, logLevel: 'warn', server: { host: '127.0.0.1', port: 3101, strictPort: true } });
+    clearScreen: false, logLevel: 'warn', server: { host: '127.0.0.1', port: webPort, strictPort: true, proxy: { '/api': `http://127.0.0.1:${apiPort}` } } });
+  const webOrigin = `http://127.0.0.1:${webPort}`;
   let api; let compiler; let closing = false; let timer; let compiled = false; let buildOutput = ''; const watchers = [];
-  const report = message => process.stdout.write(`[server-dev] ${message}\n`);
   async function stopApi() {
     const old = api; api = undefined;
     if (!old || old.exitCode !== null || old.signalCode !== null) return;
@@ -57,7 +59,7 @@ export async function develop(serverRoot = path.resolve(repository, '../lunaris-
   }
   const queue = restartQueue(async () => {
     await stopApi(); if (closing) return;
-    const child = spawn(process.execPath, [fileURLToPath(import.meta.url), '--api', serverRoot, configFile], {
+    const child = spawn(process.execPath, [fileURLToPath(import.meta.url), '--api', serverRoot, configFile, webOrigin, String(apiPort)], {
       cwd: serverRoot, windowsHide: true, stdio: ['ignore', 'pipe', 'pipe', 'ipc'],
     });
     api = child;
@@ -70,15 +72,20 @@ export async function develop(serverRoot = path.resolve(repository, '../lunaris-
       child.on('message', ready); child.once('error', reject);
       child.once('exit', code => { if (code !== 0) reject(Error(`API startup failed (${code}).`)); else resolve(); });
     });
-    if (!closing && api === child) report('API ready: http://127.0.0.1:3100; browser: http://127.0.0.1:3101.');
+    if (!closing && api === child) report(`API ready: http://127.0.0.1:${apiPort}; browser: ${webOrigin}.`);
   }, error => report(error.message));
   const schedule = () => { clearTimeout(timer); timer = setTimeout(() => { if (compiled) queue.request(); }, 200); };
   async function close() {
     if (closing) return; closing = true; queue.close(); clearTimeout(timer);
     for (const watcher of watchers) watcher.close();
-    compiler?.kill(); await stopApi(); await vite.close();
+    if (compiler && compiler.exitCode === null && compiler.signalCode === null) {
+      await new Promise(resolve => { compiler.once('exit', resolve); compiler.kill(); });
+    }
+    await stopApi(); await vite.close();
+    process.off('SIGINT', shutdown); process.off('SIGTERM', shutdown);
     report('Stopped; source checkouts, configuration and Vault files were preserved.');
   }
+  const shutdown = () => { void close(); };
   try {
     await vite.listen();
     for (const directory of ['src', 'plugins']) watchers.push(fs.watch(path.join(serverRoot, directory), { recursive: true }, schedule));
@@ -97,7 +104,7 @@ export async function develop(serverRoot = path.resolve(repository, '../lunaris-
     compiler.stderr.pipe(process.stderr);
     compiler.on('error', error => { report(error.message); process.exitCode = 1; void close(); });
     compiler.on('exit', code => { if (!closing) { report(`Compiler stopped (${code}).`); process.exitCode = 1; void close(); } });
-    process.once('SIGINT', () => { void close(); }); process.once('SIGTERM', () => { void close(); });
+    process.once('SIGINT', shutdown); process.once('SIGTERM', shutdown);
     report('Watching main Lunaris and server sources. Browser HMR and API restarts are automatic.');
   } catch (error) { await close(); throw error; }
   return { close };
@@ -105,7 +112,7 @@ export async function develop(serverRoot = path.resolve(repository, '../lunaris-
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
-    if (process.argv[2] === '--api') await serveApi(process.argv[3], process.argv[4]);
+    if (process.argv[2] === '--api') await serveApi(process.argv[3], process.argv[4], process.argv[5], Number(process.argv[6]));
     else if (process.argv[2] === '--help') process.stdout.write('Usage: npm run dev:server [-- SERVER_DIRECTORY CONFIG_FILE]\nWatches shared TypeScript, serves browser on 3101 and restarts the API on 3100.\n');
     else await develop(process.argv[2] && path.resolve(process.argv[2]), process.argv[3] && path.resolve(process.argv[3]));
   } catch (error) { process.stderr.write(`Server development failed: ${error.message}\n`); process.exitCode = 1; }

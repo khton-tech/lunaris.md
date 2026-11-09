@@ -1,6 +1,7 @@
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { dependencies, packagePath } from './boundaries.mjs';
+import { hasServer } from './server-check.mjs';
 
 export function selectScopes(files) {
   if (files.some(file => /^(package(-lock)?\.json|tsconfig[^/]*\.json|tools\/|\.github\/)/.test(file))) return Object.keys(dependencies);
@@ -23,6 +24,11 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     }
     execute(['--test', '--test-reporter=dot', 'tools/scripts/ci.test.mjs']);
     if (scopes.length) execute(['tools/scripts/check.mjs', ...scopes]);
+    if (scopes.length && hasServer()) execute(['tools/scripts/server-check.mjs']);
+    else if (scopes.length) {
+      if (process.env.LUNARIS_SERVER_REQUIRED === '1') throw new Error('Server integration is required but the sibling server checkout is missing.');
+      console.log('Server integration was not run: no sibling lunaris-server checkout. Use npm run server:check with both repositories.');
+    }
     execute(['tools/scripts/audit.mjs', ...(scopes.length ? [] : ['--docs-only'])]);
     console.log(`CI passed: ${scopes.join(', ') || 'documentation only'} (affected consumers included by check).`);
   } catch (error) { console.error(`CI failed: ${error.message}`); process.exitCode = 1; }

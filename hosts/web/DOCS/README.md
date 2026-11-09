@@ -13,6 +13,8 @@ Dependency/lockfile changes still require `npm ci` and relaunching the command.
 Use this workflow for local development; it does not deploy source edits to a
 production server. API restarts interrupt requests; browser appearance and HMR
 state preservation still require manual acceptance.
+See [local server development](../../../DOCS/guides/server-development.md) for
+setup, source ownership and the combined `npm run server:check` gate.
 
 Run `npm run build --workspace @lunaris/web` to produce hosts/web/web-dist.
 `npm run dev --workspace @lunaris/web` runs at port 3101 and proxies /api to 3100;
