@@ -30,14 +30,14 @@ test('composed status bar shows local document counts, hides stale counts and fo
   assert.equal(s.surface.querySelector('.lm-status-bar'), null); await s.open();
   const bar = s.surface.querySelector('.lm-status-bar'); assert.ok(bar); assert.ok(bar.textContent.includes('No file open'));
   assert.equal(bar.closest('.lm-root').style.backgroundColor, 'transparent');
-  assert.equal(bar.closest('.lm-root').dataset.sizing, 'content');
+  assert.equal(bar.closest('.lm-root').dataset.sizing, 'content'); assert.equal(bar.closest('.lm-root').style.flex, '1 1 auto'); assert.equal(bar.closest('.lm-root').style.containerType, 'normal');
   assert.equal(bar.closest('.lm-workspace-bottom').parentElement.classList.contains('lm-workspace-main-pane'), true);
   s.state.active = { vaultId: s.service.current().id, path: 'folder/Пример.md' };
   s.state.statistics = { target: s.state.active, state: 'ready', words: 2, letters: 9 };
   await s.emit(ActiveDocumentChanged, { current: s.state.active });
   assert.equal(s.surface.querySelector('.lm-status-bar'), bar); assert.ok(bar.textContent.includes('Пример')); assert.ok(!bar.textContent.includes('Пример.md'));
-  assert.equal(bar.querySelector('.lm-status-file').title, 'folder/Пример.md'); assert.ok(bar.textContent.includes('Words: 2')); assert.ok(bar.textContent.includes('Letters: 9')); assert.equal(bar.querySelector('.lm-status-server'), null);
-  s.state.statistics = { ...s.state.statistics, words: 4, letters: 20 }; await s.emit(DocumentStatisticsChanged, { current: s.state.statistics }); assert.ok(bar.textContent.includes('Letters: 20'));
+  assert.equal(bar.querySelector('.lm-status-file').title, 'folder/Пример.md'); assert.ok(bar.querySelector('[aria-label="Words: 2"]')); assert.ok(bar.querySelector('[aria-label="Letters: 9"]')); assert.ok(!bar.textContent.includes('Words:')); assert.equal(bar.querySelector('.lm-status-counts').textContent, '29'); assert.equal(bar.querySelector('.lm-status-server'), null);
+  s.state.statistics = { ...s.state.statistics, words: 4, letters: 20 }; await s.emit(DocumentStatisticsChanged, { current: s.state.statistics }); assert.ok(bar.querySelector('[aria-label="Letters: 20"]'));
   s.state.active = { ...s.state.active, path: 'other.md' }; await s.emit(ActiveDocumentChanged, { current: s.state.active }); assert.equal(bar.querySelector('.lm-status-counts'), null);
   s.state.statistics = { target: s.state.active, state: 'loading', words: null, letters: null }; await s.emit(DocumentStatisticsChanged, { current: s.state.statistics }); assert.equal(bar.querySelector('.lm-status-counts'), null);
   await s.open(); assert.ok(s.surface.querySelector('.lm-status-bar').textContent.includes('No file open'));
@@ -51,14 +51,14 @@ test('server status matches the selected root and account epoch, including offli
   s.state.connection = { server: 'https://notes.example', epoch: 'e1', state: 'connected' };
   s.state.account = { server: 'https://notes.example', account: { id: 'a', login: 'alice' }, epoch: 'e1' };
   await s.emit(ConnectionChanged, { state: 'connected', epoch: 'e1' });
-  const bar = s.surface.querySelector('.lm-status-bar'); assert.ok(bar.textContent.includes('Server connected'));
-  s.state.connection.state = 'offline'; await s.emit(ConnectionChanged, { state: 'offline', epoch: 'e1' }); assert.ok(bar.textContent.includes('Server offline'));
-  s.state.connection.epoch = 'old'; await s.emit(ConnectionChanged, { state: 'offline', epoch: 'old' }); assert.ok(bar.textContent.includes('Server status unknown'));
-  s.state.connection = { server: 'https://elsewhere.example', epoch: 'e1', state: 'connected' }; await s.emit(ConnectionChanged, { state: 'connected', epoch: 'e1' }); assert.ok(bar.textContent.includes('Server status unknown'));
+  const bar = s.surface.querySelector('.lm-status-bar'); assert.equal(bar.querySelector('.lm-status-server').getAttribute('aria-label'), 'Server connected');
+  s.state.connection.state = 'offline'; await s.emit(ConnectionChanged, { state: 'offline', epoch: 'e1' }); assert.equal(bar.querySelector('.lm-status-server').getAttribute('aria-label'), 'Server offline');
+  s.state.connection.epoch = 'old'; await s.emit(ConnectionChanged, { state: 'offline', epoch: 'old' }); assert.equal(bar.querySelector('.lm-status-server').getAttribute('aria-label'), 'Server status unknown');
+  s.state.connection = { server: 'https://elsewhere.example', epoch: 'e1', state: 'connected' }; await s.emit(ConnectionChanged, { state: 'connected', epoch: 'e1' }); assert.equal(bar.querySelector('.lm-status-server').getAttribute('aria-label'), 'Server status unknown');
   s.state.connection = { server: 'https://notes.example', epoch: 'e2', state: 'expired' }; s.state.account = null;
-  await s.emit(AccountSessionChanged, { current: null }); assert.ok(bar.textContent.includes('Session expired'));
+  await s.emit(AccountSessionChanged, { current: null }); assert.equal(bar.querySelector('.lm-status-server').getAttribute('aria-label'), 'Session expired');
   s.state.connection.state = 'connected'; s.state.account = { server: 'https://notes.example', account: { id: 'a', login: 'alice' }, epoch: 'e2' };
-  await s.emit(AccountSessionChanged, { current: s.state.account }); assert.ok(bar.textContent.includes('Server connected'));
+  await s.emit(AccountSessionChanged, { current: s.state.account }); assert.equal(bar.querySelector('.lm-status-server').getAttribute('aria-label'), 'Server connected');
   s.state.remote = null; await s.emit(ConnectionChanged, { state: 'connected', epoch: 'e2' }); assert.equal(bar.querySelector('.lm-status-server'), null);
  } finally { await s.stop(); }
 });

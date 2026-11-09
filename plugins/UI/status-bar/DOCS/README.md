@@ -26,8 +26,11 @@ consumer to establish its event subscription. Theme changes are handled by UIKit
 Only changed props update Workspace. No SDK calls occur after cancellation.
 
 The role accepts localized strings: label, filename, fileTitle, serverLabel,
-serverTitle, wordsLabel and lettersLabel. Empty server/count labels omit those
-parts. Dynamic filenames remain plain text. Full names use native title tooltips;
+serverTitle, wordsLabel and lettersLabel, nullable nonnegative integer words/letters,
+and nullable serverState (connected/offline/expired/unknown). Null values omit their
+sections. Visible text is the filename and numeric counts; Lucide word/letter and
+state-specific server icons replace captions. Localized labels remain in native
+title tooltips and accessible image names. Dynamic filenames remain plain text. Full names use native title tooltips;
 there are no interactive controls or extra tab stops. New locales can supply the
 catalog keys from src/index.ts; numeric values use message parameters.
 
@@ -54,9 +57,12 @@ WorkspaceLayout owns region placement under main, the Paper supporting surface,
 external spacing, rounded corners and overflow. The Files panel and rail retain
 full height. The embedded/content status role owns only its internal Group/Text
 composition and spacing, stays transparent, and never restyles a borrowed target.
-Default height is about 25px with the normal theme; long content truncates with
-full titles, and narrow widths wrap into readable rows. A narrow supporting region
-can scroll horizontally using wheel/touch/keyboard under the shared scrollbar policy.
+The panel retains intrinsic single-line height in every width. Long filenames
+truncate with full titles; numeric groups never wrap and remain right-aligned.
+The existing region overflow policy handles extreme width constraints. The owned
+UIKit root grows across the borrowed row with flex: 1 1 auto and normal
+containment, preserving intrinsic height and preventing inline-size containment
+from collapsing its width.
 
 Reference: the Owner's highlighted strip beneath main and existing quiet Files
 footer/theme tokens. [Mantine UI footers](https://ui.mantine.dev/category/footers/)
@@ -80,3 +86,15 @@ server Vault; type without saving; switch/rename/close files; interrupt/recover 
 server; compare light/dark/XP themes, long paths and narrow/short windows. Confirm
 the thin strip remains under main with intact panel geometry and readable counts.
 Desktop automation is prohibited and was not used.
+
+## Single-row correction
+
+The Owner's follow-up screenshot showed a tall two-line block with the filename
+compressed away. The prior intrinsic root did not grow horizontally and its
+inline-size containment collapsed the available width; container-query wrapping
+then stacked metrics. The role now explicitly fills its row without size
+containment and uses a single non-wrapping layout. Icon/value groups replace
+visible captions. Workspace still owns the outer surface; no SDK/container API
+change or new integration is required. Tests load the actual status CSS and cover
+row growth, no wrapping, right alignment, safe names, zero counts, icons and
+accessible labels. Native visual acceptance of the correction remains pending.

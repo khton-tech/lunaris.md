@@ -361,13 +361,11 @@
 .lm-workspace-main-pane { flex-direction:column }
 .lm-workspace-bottom { display:flex;flex:0 0 auto;min-width:0;overflow:auto;margin:0 var(--workspace-gap) var(--workspace-gap) 0 }
 
-.lm-status-bar { display:flex;flex:1;align-items:center;justify-content:space-between;gap:calc(var(--vault-space)*3);padding:var(--vault-space) calc(var(--vault-space)*2);min-width:0;user-select:none }
-.lm-status-bar span { font-size:.85em;line-height:1.4 }
-.lm-status-context { flex:1;min-width:0 }
-.lm-status-file { min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
-.lm-status-server { flex-shrink:0;color:var(--vault-secondary) }
-.lm-status-counts { flex-shrink:0;white-space:nowrap;color:var(--vault-secondary);font-variant-numeric:tabular-nums }
-@container(max-width:32rem) { .lm-status-bar { flex-wrap:wrap;gap:var(--vault-space) }.lm-status-context { flex-basis:100% }.lm-status-counts { margin-inline-start:auto } }
-
-.lm-status-server { flex-shrink:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
-@container(max-width:32rem) { .lm-status-counts { flex-wrap:wrap;flex-shrink:1;max-width:100% } }
+.lm-status-bar { font-size:inherit;display:flex;flex:1 1 auto;align-items:center;justify-content:space-between;flex-wrap:nowrap;gap:calc(var(--vault-space)*3);padding:var(--vault-space) calc(var(--vault-space)*2);min-width:0;white-space:nowrap;user-select:none }
+.lm-status-bar span { font-size:inherit;line-height:1.4 }
+.lm-status-bar .lm-status-context,.lm-status-bar .lm-status-counts { display:flex;flex-wrap:nowrap;align-items:center }
+.lm-status-context { flex:1 1 auto;min-width:0 }
+.lm-status-file { flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
+.lm-status-server,.lm-status-metric { display:inline-flex;align-items:center;gap:var(--vault-space);flex:0 0 auto;color:var(--vault-secondary) }
+.lm-status-counts { flex:0 0 auto;margin-inline-start:auto;font-variant-numeric:tabular-nums }
+.lm-status-bar svg { flex:none;width:1.15em;height:1.15em }

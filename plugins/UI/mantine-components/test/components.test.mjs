@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { useBrowser, typeInput } from '../../../../tools/test/browser.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -775,11 +776,22 @@ test('window titlebar owns one surface, preserves controls on updates and separa
 test('status role escapes names, preserves its root across theme changes and owns no outer surface', async () => {
  const s = await setup(); await s.start();
  try {
-  const props = { label: 'Document status', filename: '<script>name</script>', fileTitle: 'folder/name.md', serverLabel: 'Server offline', serverTitle: 'https://notes.example', wordsLabel: 'Words: 1', lettersLabel: 'Letters: 4' };
+  const props = { label: 'Document status', filename: '<script>name</script>', fileTitle: 'folder/name.md', serverLabel: 'Server offline', serverTitle: 'https://notes.example', serverState: 'offline', words: 1, letters: 4, wordsLabel: 'Words: 1', lettersLabel: 'Letters: 4' };
   const mounted = s.components.mount('lunaris.status-bar', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true);
-  const footer = s.target.querySelector('footer'); assert.ok(footer); assert.equal(footer.querySelector('script'), null); assert.ok(footer.textContent.includes('<script>name</script>'));
+  const footer = s.target.querySelector('footer'); assert.ok(footer); assert.equal(footer.querySelector('script'), null); assert.ok(footer.textContent.includes('<script>name</script>')); assert.equal(footer.querySelector('.lm-status-counts').textContent, '14'); assert.equal(footer.querySelectorAll('svg').length, 3); assert.ok(!footer.textContent.includes('Words:')); assert.equal(footer.querySelector('.lm-status-server').title, 'Server offline: https://notes.example'); assert.equal(footer.closest('.lm-root').style.flex, '1 1 auto');
+  const sheet = s.dom.window.document.createElement('style');
+  const css = readFileSync(new URL('../styles.css', import.meta.url), 'utf8');
+  sheet.textContent = css.slice(css.indexOf('.lm-status-bar {')); s.dom.window.document.head.append(sheet);
+  const computed = s.dom.window.getComputedStyle;
+  assert.equal(computed(footer).display, 'flex'); assert.equal(computed(footer).flexWrap, 'nowrap');
+  assert.equal(computed(footer.querySelector('.lm-status-counts')).display, 'flex');
+  assert.equal(computed(footer.querySelector('.lm-status-counts')).flexWrap, 'nowrap');
+  assert.equal(computed(footer.querySelector('.lm-status-counts')).marginInlineStart, 'auto');
+  mounted.value.update({ ...props, filename: 'Very long document '.repeat(20), words: 0, letters: 0, wordsLabel: 'Words: 0', lettersLabel: 'Letters: 0' });
+  assert.equal(footer.querySelector('.lm-status-counts').textContent, '00');
+  assert.equal(computed(footer).flexWrap, 'nowrap');
   assert.equal(footer.style.backgroundColor, ''); assert.equal(footer.closest('.lm-root').dataset.sizing, 'content'); assert.equal(footer.querySelectorAll('button,input').length, 0);
-  mounted.value.update({ ...props, filename: 'Updated', serverLabel: '', wordsLabel: '', lettersLabel: '' }); assert.equal(s.target.querySelector('footer'), footer); assert.equal(footer.querySelector('.lm-status-counts'), null);
+  mounted.value.update({ ...props, filename: 'Updated', serverLabel: '', serverState: null, words: null, letters: null, wordsLabel: '', lettersLabel: '' }); assert.equal(s.target.querySelector('footer'), footer); assert.equal(footer.querySelector('.lm-status-counts'), null);
   assert.equal(footer.querySelector('.lm-status-server'), null);
   assert.equal(s.components.mount('lunaris.status-bar', s.target, { ...props, wordsLabel: 2 }, s.ctx.signal).ok, false);
  } finally { await s.stop(); }

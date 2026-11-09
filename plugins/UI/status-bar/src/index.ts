@@ -27,14 +27,14 @@ export default definePlugin({ manifest, activate(ctx) {
     const target = active?.vaultId === vault?.id ? active : null;
     const statistics = ctx.optional(DocumentStatistics)?.current();
     const ready = target && statistics?.state === "ready" && statistics.target.vaultId === target.vaultId && statistics.target.path === target.path;
-    let serverLabel = ""; let serverTitle = "";
+    let serverLabel = ""; let serverTitle = ""; let serverState: "connected" | "offline" | "expired" | "unknown" | null = null;
     const remote = vault ? sources.remoteIdentity(vault.id) : null;
     if (remote?.ok) {
       const snapshot = connection.current(); const account = accounts.current();
       const matching = snapshot?.server === remote.value.server && (snapshot.state === "expired" ||
         (account?.server === remote.value.server && account.account.id === remote.value.accountId && account.epoch === snapshot.epoch));
       const state = matching ? snapshot.state : "unknown";
-      serverLabel = text(state); serverTitle = remote.value.server;
+      serverState = state; serverLabel = text(state); serverTitle = remote.value.server;
       if (lastConnection !== state) {
         logger[state === "offline" || state === "expired" ? "warn" : "info"](ctx.pluginId, "Status bar connection changed", { data: { state } });
         lastConnection = state;
@@ -43,7 +43,7 @@ export default definePlugin({ manifest, activate(ctx) {
     const path = target?.path ?? ""; const filename = path.split("/").at(-1) ?? "";
     const stem = filename.replace(/\.[^.]+$/, "");
     const props = { label: text("label"), filename: target ? stem || filename : text("noFile"), fileTitle: path,
-      serverLabel, serverTitle, wordsLabel: ready ? text("words", statistics.words!) : "", lettersLabel: ready ? text("letters", statistics.letters!) : "" };
+      serverLabel, serverTitle, serverState, words: ready ? statistics.words : null, letters: ready ? statistics.letters : null, wordsLabel: ready ? text("words", statistics.words!) : "", lettersLabel: ready ? text("letters", statistics.letters!) : "" };
     const next = JSON.stringify(props); if (next === signature) return;
     const result = registered ? workspace.update(id, props) : workspace.register({ id, componentId: "lunaris.status-bar", region: "bottom", props }, ctx.signal);
     if (!result.ok) { logger.error(ctx.pluginId, "Cannot publish status bar", { error: result.error }); throw new Error("Cannot publish status bar.", { cause: result.error }); }
