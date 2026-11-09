@@ -11,6 +11,7 @@ import { livePreview, livePreviewTheme } from "./live-preview.js";
 import { tabIndentedLists } from "./markdown.js";
 import { continueTabIndentedList } from "./markdown-commands.js";
 import { pairedInput } from "./paired-input.js";
+import { typingAnimation } from "./typing-animation.js";
 import { tags } from "@lezer/highlight";
 import type { ThemeDefinition } from "@lunaris/themes";
 import type { DocumentSession } from "./session.js";
@@ -67,6 +68,7 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
   const extensions = [EditorState.lineSeparator.of(session.text.includes("\r\n") ? "\r\n" : "\n"), indentUnit.of("\t"), EditorState.tabSize.of(4), history(), markdown({ addKeymap: false, extensions: [Strikethrough, tabIndentedLists] }), tasks ? taskControls.of(tasks) : [], mode.of(preview ? [livePreview, livePreviewTheme] : []), EditorView.lineWrapping, drawSelection(),
     EditorView.exceptionSink.of(failed),
     pairedInput,
+    typingAnimation,
     keymap.of([{ key: "Mod-s", run: () => { save(); return true; }, preventDefault: true }, { key: "Tab", run: insertIndent, shift: indentLess, preventDefault: true }, { key: "Enter", run: continueTabIndentedList }, ...markdownKeymap, ...defaultKeymap, ...historyKeymap]),
     EditorView.updateListener.of(update => { if (update.docChanged) session.edit(update.state.sliceDoc()); }),
     skin.of(appearance(theme)), access.of([EditorState.readOnly.of(session.locks > 0 || session.missing || session.loading), EditorView.editable.of(!session.locks && !session.missing && !session.loading)]),

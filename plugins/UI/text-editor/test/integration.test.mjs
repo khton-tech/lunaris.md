@@ -159,6 +159,22 @@ test('Windows line endings survive editing, saving and theme reconfiguration', a
   await s.stop();
 });
 
+test('typing feedback composes with Workspace and Live Preview without saving deleted afterimages', async () => {
+  const s = await setup({ initial: '**bold** text', withLayout: true });
+  try {
+    const view = s.cm(); const end = view.state.doc.length;
+    view.dispatch({ changes: { from: end, insert: 'я' }, selection: { anchor: end + 1 }, userEvent: 'input.type' });
+    assert.equal(view.dom.querySelector('.cm-typing-insertion').textContent, 'я');
+    assert.ok(view.dom.querySelector('.cm-preview-strong'));
+    view.dispatch({ changes: { from: end, to: end + 1 }, selection: { anchor: end }, userEvent: 'delete.backward' });
+    assert.equal(view.dom.querySelector('.cm-typing-deletion').textContent, 'я');
+    assert.equal(view.state.sliceDoc(), '**bold** text');
+    await s.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
+    assert.equal(s.disk.get('a/note.md').text, '**bold** text');
+    assert.equal(s.cm(), view);
+  } finally { await s.stop(); }
+});
+
 test('headerless Live Preview retains the composed editor, source and history', async () => {
   const original = '# Heading\r\n\r\n**bold** and [label](https://example.com)\r\n';
   const s = await setup({ initial: original });

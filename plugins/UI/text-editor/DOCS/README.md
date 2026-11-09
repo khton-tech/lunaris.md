@@ -135,6 +135,39 @@ discard before invoking onReload. Controller callbacks become inert on cancellat
 
 ## Ownership and visual reference
 
+### Typing feedback
+
+The Owner requested subtle letter appearance/deletion feedback in the existing
+editor. The CodeMirror adapter owns this document presentation in
+`typing-animation.ts`; Workspace/ActiveScreen own geometry and surfaces, and
+Mantine owns the borrowed text target and recovery controls. No new control,
+SDK contract, provider or cross-plugin connection is required. Existing Themes,
+Components, ActiveDocument, Filesystem and session integrations remain connected.
+
+Short typed edits fade from partial opacity to full readability. Short deletions
+leave a fading, zero-width, noninteractive afterimage at the deletion boundary.
+The document and caret update immediately: afterimages are aria-hidden,
+noneditable widgets and never enter document text, clipboard source, history or
+saves. Only opacity animates; document layout is not animated. The active theme's
+fast motion/easing tokens are inherited (120 ms fallback, capped at 180 ms).
+Feedback expires after 200 ms and is replaced on the next document edit.
+View disposal cancels cleanup and removes the media-query listener.
+
+Paste, external changes, undo/redo, IME composition, whitespace-only edits,
+multiline changes and edits exceeding eight UTF-16 units per changed range do
+not animate. At most 32 changed ranges receive feedback per transaction.
+Reduced-motion preference suppresses feedback and immediately clears active
+feedback when changed. There are no typing logs or additional persistence calls.
+
+Targeted tests cover expiry, rapid deletion, document/selection/history retention,
+multiple carets, reduced motion, exclusions and composed Workspace/Live Preview
+saving without afterimages. Native visual acceptance remains pending: type and
+delete quickly at line ends and in the middle of text, near Markdown markers,
+with Cyrillic/emoji, wrapped headings/code, multiple carets and IME; check caret
+hit testing, scrolling, copy/paste, both themes and reduced motion. Zero-width
+afterimages follow the deletion boundary after reflow rather than preserving
+the previous screen position. Desktop automation is prohibited.
+
 Reference: the existing open Workspace main region and Settings inside
 ActiveScreen. Composition catalog consulted: [Mantine UI](https://ui.mantine.dev/).
 Workspace owns external spacing and the main surface; ActiveScreen owns screen
