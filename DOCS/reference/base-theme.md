@@ -1,5 +1,30 @@
 # Base theme engine
 
+## Maiami Night
+
+`lunaris.base-theme-engine.maiami-night` uses the Owner's supplied screenshot,
+with the requested display name Maiami Night and the shared dark v1 schema.
+
+| Reference role | Hex | Semantic mapping |
+|---|---|---|
+| background | #18181A | background, content, onAccent |
+| main | #E4609B | main, accent, accentHover, focus |
+| sub | #47BAC0 | sub, textSecondary, separator, controlBorder |
+| text | #FFFFFF | text |
+| caret | #E4609B | caret |
+| sub alt | #0F0F10 | subAlt, panel |
+| error / colorful error | #FFF591 | error, colorfulError |
+| extra error / colorful extra error | #B6AF68 | extraError, colorfulExtraError |
+
+Hover (#292327) and selection (#40303B) are restrained derived surfaces.
+Dark primary labels preserve contrast against the pink accent. Existing geometry,
+typography and motion are reused. This adapts the palette rather than the reference
+page layout. The engine registers data through Themes; Interface Settings lists
+it automatically, and Mantine and the editor receive ThemeChanged. No SDK changes
+or additional plugin connections are required. Container surface ownership remains
+unchanged. Native visual acceptance is pending: select Maiami Night in Workspace
+and check panels, editor, opened menus, hover/selection/focus and narrow/short sizes.
+
 ## Responsibilities and SDK integration
 
 The engine registers Monochrome and experimental Windows XP Luna in the replaceable

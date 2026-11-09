@@ -1,5 +1,11 @@
 # Base theme engine
 
+Maiami Night (`lunaris.base-theme-engine.maiami-night`) transcribes the Owner's
+reference palette. It uses the existing Themes/ThemeChanged contracts for
+Interface Settings, Mantine and the editor; no additional integration is needed.
+The engine owns palette data only; containers retain geometry and surface ownership.
+See the reference for color mappings and pending manual visual acceptance.
+
 Purpose: register the built-in theme catalog. Theme IDs:
 `lunaris.base-theme-engine.monochrome` and `lunaris.base-theme-engine.windows-xp`.
 Requires Logger and `api:lunaris.themes@^1.0.0`; no permissions are needed.
