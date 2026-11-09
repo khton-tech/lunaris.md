@@ -1,0 +1,43 @@
+{
+  "extends": "../../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": ".",
+    "outDir": "dist",
+    "resolveJsonModule": true,
+    "lib": [
+      "ES2022",
+      "DOM",
+      "DOM.Iterable"
+    ]
+  },
+  "include": [
+    "src/**/*.ts",
+    "manifest.json"
+  ],
+  "references": [
+    {
+      "path": "../../../packages/sdk"
+    },
+    {
+      "path": "../../../packages/logging"
+    },
+    {
+      "path": "../../../packages/workspace"
+    },
+    {
+      "path": "../../../packages/active-document"
+    },
+    {
+      "path": "../../../packages/filesystem"
+    },
+    {
+      "path": "../../../packages/remote"
+    },
+    {
+      "path": "../../../packages/vault"
+    },
+    {
+      "path": "../../../packages/localization"
+    }
+  ]
+}

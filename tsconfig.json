@@ -210,6 +210,9 @@
     },
     {
       "path": "plugins/UI/window-titlebar"
+    },
+    {
+      "path": "plugins/UI/status-bar"
     }
   ]
 }

@@ -72,7 +72,8 @@
     "@lunaris/filesystem": "0.1.0",
     "@lunaris/client-updates": "0.1.0",
     "@lunaris/browser-navigation": "0.1.0",
-    "@lunaris/client-update-ui": "0.1.0"
+    "@lunaris/client-update-ui": "0.1.0",
+    "@lunaris/status-bar": "0.1.0"
   },
   "scripts": {
     "build": "tsc -b"

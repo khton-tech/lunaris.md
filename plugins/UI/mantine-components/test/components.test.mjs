@@ -221,7 +221,7 @@ test('workspace header retains intrinsic block sizing while full-height surfaces
 
 test('registers the replaceable roles, renders real Mantine controls, preserves siblings and releases roots', async () => {
   const s = await setup(); await s.start();
-  assert.deepEqual(s.components.list(), ['lunaris.account-access', 'lunaris.active-screen', 'lunaris.client-update', 'lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.settings-choices', 'lunaris.settings-items', 'lunaris.settings-navigation', 'lunaris.settings-page', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.task-checkbox', 'lunaris.text-editor', 'lunaris.vault-selector', 'lunaris.window-titlebar', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
+  assert.deepEqual(s.components.list(), ['lunaris.account-access', 'lunaris.active-screen', 'lunaris.client-update', 'lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.settings-choices', 'lunaris.settings-items', 'lunaris.settings-navigation', 'lunaris.settings-page', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.status-bar', 'lunaris.task-checkbox', 'lunaris.text-editor', 'lunaris.vault-selector', 'lunaris.window-titlebar', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
   const owner = s.ctx.scope.child();
   const mounted = s.components.mount('lunaris.vault-selector', s.target, selector, owner.signal); assert.equal(mounted.ok, true);
   assert.ok(s.target.querySelector('.mantine-Button-root')); assert.ok(s.target.querySelector('.mantine-TextInput-input'));
@@ -770,4 +770,17 @@ test('window titlebar owns one surface, preserves controls on updates and separa
     mounted.value.update(props); assert.equal(root.style.backgroundColor, 'rgb(221, 221, 221)');
     assert.equal(mounted.value.update({ ...props, onClose: null }).ok, false);
   } finally { await s.stop(); }
+});
+
+test('status role escapes names, preserves its root across theme changes and owns no outer surface', async () => {
+ const s = await setup(); await s.start();
+ try {
+  const props = { label: 'Document status', filename: '<script>name</script>', fileTitle: 'folder/name.md', serverLabel: 'Server offline', serverTitle: 'https://notes.example', wordsLabel: 'Words: 1', lettersLabel: 'Letters: 4' };
+  const mounted = s.components.mount('lunaris.status-bar', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true);
+  const footer = s.target.querySelector('footer'); assert.ok(footer); assert.equal(footer.querySelector('script'), null); assert.ok(footer.textContent.includes('<script>name</script>'));
+  assert.equal(footer.style.backgroundColor, ''); assert.equal(footer.closest('.lm-root').dataset.sizing, 'content'); assert.equal(footer.querySelectorAll('button,input').length, 0);
+  mounted.value.update({ ...props, filename: 'Updated', serverLabel: '', wordsLabel: '', lettersLabel: '' }); assert.equal(s.target.querySelector('footer'), footer); assert.equal(footer.querySelector('.lm-status-counts'), null);
+  assert.equal(footer.querySelector('.lm-status-server'), null);
+  assert.equal(s.components.mount('lunaris.status-bar', s.target, { ...props, wordsLabel: 2 }, s.ctx.signal).ok, false);
+ } finally { await s.stop(); }
 });

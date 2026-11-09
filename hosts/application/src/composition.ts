@@ -10,6 +10,7 @@ import draftsProvider from "@lunaris/drafts-provider";
 import { createAccountAccess } from "@lunaris/account-access";
 import { createFilesystemRouter } from "@lunaris/filesystem-router";
 import { LocalFilesystemBackend, RemoteFilesystemBackend } from "@lunaris/filesystem";
+import statusBar from "@lunaris/status-bar";
 import textEditor from "@lunaris/text-editor";
 import { createInterfaceSettings } from "@lunaris/interface-settings";
 import settingsProvider from "@lunaris/settings-provider";
@@ -79,8 +80,8 @@ export function composeApplication(target: HTMLElement, options: {
     ...layout,
     startup,
     ...(extra.beforeClose ? { beforeClose: extra.beforeClose } : {}),
-    plugins: [...extra.plugins, ...updates, device, transport, accountSession, account, remoteFilesystem, draftsProvider, router, ...(options.platformPlugins ?? []), textEditor, interfaceSettings, settingsProvider, settings, activeScreenProvider, activeScreen, activeDocument, contextMenu, fileExplorer, sidebar, sidebarProvider, runner, ...(options.mode === "desktop" ? [selector] : []), workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
-    entrypoints: [...extra.entrypoints, ...updates.map(plugin => plugin.manifest.id), account.manifest.id, textEditor.manifest.id, startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, ...(options.mode === "desktop" ? [selector.manifest.id] : []), workspace.manifest.id, activeScreen.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id, settings.manifest.id, interfaceSettings.manifest.id],
+    plugins: [...extra.plugins, ...updates, device, transport, accountSession, account, remoteFilesystem, draftsProvider, router, ...(options.platformPlugins ?? []), statusBar, textEditor, interfaceSettings, settingsProvider, settings, activeScreenProvider, activeScreen, activeDocument, contextMenu, fileExplorer, sidebar, sidebarProvider, runner, ...(options.mode === "desktop" ? [selector] : []), workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
+    entrypoints: [...extra.entrypoints, ...updates.map(plugin => plugin.manifest.id), account.manifest.id, statusBar.manifest.id, textEditor.manifest.id, startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, ...(options.mode === "desktop" ? [selector.manifest.id] : []), workspace.manifest.id, activeScreen.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id, settings.manifest.id, interfaceSettings.manifest.id],
     grants: {
       ...layout.grants,
       ...extra.grants,
@@ -92,6 +93,7 @@ export function composeApplication(target: HTMLElement, options: {
       [remoteFilesystem.manifest.id]: ["filesystem.native", "account.network", "account.access"],
       [draftsProvider.manifest.id]: ["drafts.access"],
       [router.manifest.id]: ["filesystem.native", "filesystem.access", "filesystem.app-config"],
+      [statusBar.manifest.id]: statusBar.manifest.permissions,
       [textEditor.manifest.id]: ["ui.dom", "filesystem.access", "vault.access", "drafts.access", "account.access"],
       [interfaceSettings.manifest.id]: ["config.access", "vault.access"],
       [settings.manifest.id]: ["ui.dom", "vault.access"],

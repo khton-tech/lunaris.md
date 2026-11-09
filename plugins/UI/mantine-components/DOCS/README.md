@@ -617,3 +617,7 @@ both themes, open menu, selection/focus and narrow/short Workspace layouts.
 ## Workspace bottom target
 
 WorkspaceLayout accepts optional bottomVisible and lends a stable bottom target beneath main within its pane. The layout owns Paper surface, spacing, corners and overflow. Embedded/content views inherit this surface. Files and the rail retain full height. Targets survive theme, visibility and prop updates.
+
+## Status bar role
+
+lunaris.status-bar renders a transparent embedded/content footer using Mantine Box, Group and Text. Its localized string props are label, filename, fileTitle, serverLabel, serverTitle, wordsLabel and lettersLabel. Empty optional-section labels omit their sections. WorkspaceLayout owns the enclosing supporting surface beneath main; this role owns internal spacing and text only. Reference: the Owner's bottom-strip screenshot, existing Files footer and [Mantine UI footers](https://ui.mantine.dev/category/footers/). The view has no controls; names are escaped and truncated with full titles, and counts wrap at narrow widths. No gallery runtime was added. See [integration and pending manual acceptance](../../status-bar/DOCS/README.md).

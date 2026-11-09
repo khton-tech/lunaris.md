@@ -1,0 +1,94 @@
+{
+  "manifestVersion": 1,
+  "id": "lunaris.status-bar",
+  "version": "0.1.0",
+  "engine": "^0.1.0",
+  "sdk": "^0.1.0",
+  "entry": "./dist/src/index.js",
+  "provides": [],
+  "requires": [
+    {
+      "kind": "api",
+      "id": "lunaris.logger",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.workspace",
+      "range": "^1.2.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.active-document",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.active-document-changed",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.filesystem-sources",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.connection-status",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.connection-changed",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.account-session",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.account-session-changed",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.vault",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.vault-changed",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.localization",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.locale-changed",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.document-statistics",
+      "range": "^1.0.0",
+      "optional": true
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.document-statistics-changed",
+      "range": "^1.0.0",
+      "optional": true
+    }
+  ],
+  "permissions": [
+    "vault.access",
+    "filesystem.access",
+    "account.access"
+  ],
+  "optionalPermissions": []
+}
