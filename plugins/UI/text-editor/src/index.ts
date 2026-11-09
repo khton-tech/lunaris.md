@@ -17,6 +17,7 @@ import { Themes, ThemeChanged } from "@lunaris/themes";
 import type { EditorState } from "@codemirror/state";
 import { DocumentSession } from "./session.js";
 import { mountEditor } from "./codemirror.js";
+import { createPreferences } from "./preferences.js";
 import manifest from "../manifest.json" with { type: "json" };
 
 const catalogs = { en: {
@@ -76,6 +77,7 @@ export default definePlugin({ manifest, activate(ctx) {
       }
     });
   }
+  const preferences = createPreferences(ctx, changed);
   function sessionFor(target: FileTarget): DocumentSession {
     let session = sessions.get(key(target));
     if (!session) {
@@ -223,8 +225,8 @@ export default definePlugin({ manifest, activate(ctx) {
               active: () => !disposed && !owner.signal.aborted && !ctx.signal.aborted && current === session && session.active && screens.snapshot().activeId === screenId,
               failed(error) { if (ctx.signal.aborted || disposed) return; commandError = text("clipboardFailed"); logger.warn(ctx.pluginId, "Editor context command failed", { error }); changed(); },
               completed(operation) { if (ctx.signal.aborted || disposed) return; commandError = ""; logger.info(ctx.pluginId, "Editor context command completed", { data: { operation } }); changed(); },
-            });
-        } else editor.update(themes.current(), text("editor"));
+            }, preferences.current());
+        } else editor.update(themes.current(), text("editor"), true, preferences.current());
       }
     }
     const view = { render, refreshControls: clearEditor, removed() { clearEditor(); mounted = undefined; editorTarget = null; } };

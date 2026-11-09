@@ -1,5 +1,25 @@
 # Settings foundation
 
+## Shipped product contributions
+
+- Customization / Interface: language and theme, owned by `interface-settings`.
+- Editor / Display: font size, line spacing, text width and line wrapping, owned
+  by [Text editor](../../plugins/UI/text-editor/DOCS/README.md#display-preferences).
+- Files / Navigation: file order and automatic active-file reveal, owned by
+  [File Explorer](../../plugins/UI/file-explorer/DOCS/README.md#file-preferences).
+
+All use explicit Vault-local Config targets and apply immediately. The Settings
+foundation stores no values. Live Preview, disabled browser spellchecking and
+one-second autosave are fixed editor behavior and have no settings controls.
+Desktop/browser composition supplies Config grants to the owning controllers.
+Native visual acceptance of the new contributions remains manual.
+
+Verification, 2026-11-09: `node tools/scripts/check.mjs text-editor file-explorer
+settings-plugin` passed 175 targeted tests plus build, boundary and type-fixture
+checks. The subsequent composed Files settings test passed separately (176 total).
+Both `npm run build --workspace @lunaris/web` and `npm run build --workspace
+@lunaris/tauri` passed. These checks do not establish native visual acceptance.
+
 ## Declarative registration (SDK 1.1)
 
 The primary model is **category -> group -> item**. Categories are navigation

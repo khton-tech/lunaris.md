@@ -76,11 +76,27 @@
       "kind": "event",
       "id": "lunaris.vault-history-changed",
       "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.config",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.config-changed",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.settings",
+      "range": "^1.1.0"
     }
   ],
   "permissions": [
     "filesystem.access",
-    "vault.access"
+    "vault.access",
+    "config.access"
   ],
   "optionalPermissions": []
 }

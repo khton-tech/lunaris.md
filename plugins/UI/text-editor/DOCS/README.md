@@ -94,6 +94,51 @@ without SDK calls. Browser refresh is not a guarded desktop close.
 
 ## Integration contracts
 
+### Display preferences
+
+The editor owns the `Editor > Display` contribution through Settings 1.1.
+Its existing controller delegates preference lifecycle to `src/preferences.ts`;
+no editor service API or separate settings plugin is introduced.
+
+| Config key | Values | Default |
+| --- | --- | --- |
+| `fontSize` | `theme`, `12`, `14`, `16`, `18`, `20`, `24`, `28`, `32` (pixels) | `theme` |
+| `lineHeight` | `theme`, `1.2`, `1.4`, `1.6`, `1.8`, `2` | `theme` |
+| `textWidth` | `640`, `780`, `960` (pixels), `full` | `780` |
+| `wrapLines` | boolean | `true` |
+
+Config reads/writes use the editor's own `lunaris.text-editor` namespace and
+explicit `{ scope: "vault", vaultId }` targets. Restoration happens on Vault
+activation without opening Settings. Missing keys use defaults; invalid values
+remain stored and show a localized warning. Read failures expose Retry; failed
+writes restore the previous live value. Writes serialize, and Vault/session and
+read revision checks reject stale work. Cancelled item callbacks cannot begin
+new writes; accepted writes remain bound to the original Vault.
+
+`theme` inherits current theme typography. Explicit font/line-height preferences
+override only the editor, never the theme or UI controls. Width limits the wrapped
+text column; unwrapped lines use horizontal scrolling and retain the saved width
+for when wrapping is re-enabled. CodeMirror compartments apply changes without
+replacing the view, document, selection or undo history. Live Preview remains
+enabled, with no source-mode, input-behavior, spellcheck or autosave setting.
+
+Required SDK connections: Config/ConfigChanged, Settings 1.1, Vault/VaultChanged,
+Localization/LocaleChanged and Logger. The shared application host supplies the
+new `config.access` grant in desktop and browser compositions. Settings owns the
+category, group and item lifetimes; its existing Mantine role renders controls.
+Workspace retains outer geometry, surfaces and overflow ownership. The editor
+changes only typography and text-column layout inside its existing target.
+
+Product reference: the existing Customization / Interface settings rows, themed
+Mantine Select menus and inherited surfaces. Reviewed
+[Mantine input compositions](https://ui.mantine.dev/category/inputs/); no new
+component role or decorative wrapper is needed. Integration with Settings,
+Config, Themes and the active editor is complete through public SDK contracts.
+Tests cover actual Settings controls inside Workspace, theme/input identity,
+Vault isolation, errors/retry, cancelled callbacks and retained editor history.
+Native visual acceptance remains manual: verify opened menus, keyboard focus,
+both themes, long labels, narrow/short windows and wrapped/unwrapped long lines.
+
 No editor service API is provided. The following public contracts connect it:
 
 | Contract | Purpose |

@@ -51,6 +51,12 @@
     },
     {
       "path": "../../../packages/context-menu"
+    },
+    {
+      "path": "../../../packages/config"
+    },
+    {
+      "path": "../../../packages/settings"
     }
   ]
 }

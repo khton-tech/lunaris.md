@@ -135,13 +135,29 @@
       "kind": "api",
       "id": "lunaris.clipboard",
       "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.config",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.config-changed",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.settings",
+      "range": "^1.1.0"
     }
   ],
   "permissions": [
     "ui.dom",
     "vault.access",
     "filesystem.access",
-    "clipboard.access"
+    "clipboard.access",
+    "config.access"
   ],
   "optionalPermissions": [
     "drafts.access",

@@ -78,7 +78,8 @@ changes. Restored files reveal their ancestors without taking keyboard focus.
 Confirmed file creation activates the new file; rename/move update its identity
 and deletion/observation/manual refresh reconcile missing files. See
 [the active document reference](../../../../DOCS/reference/active-document.md).
-Content editor integration remains outstanding; no editor exists yet.
+The text editor consumes the same public ActiveDocument contracts to open,
+save and relocate Markdown documents; no private editor connection is needed.
 
 ## Compact action panel
 
@@ -87,7 +88,8 @@ all. Creation reuses selection-relative inline drafts and the existing callbacks
 Sort offers name ascending/descending, with directories first. Expand all loads
 unloaded visible descendants through Filesystem, excluding hidden directories and
 symlinks. Scope closure stops traversal; failures retain localized error/retry.
-Sort and expansion survive panel remounts in memory for the active Vault.
+Expansion survives panel remounts in memory for the active Vault. Sort order
+is now persisted per Vault by the preference controller described below.
 
 Integration is complete via Sidebar/Components public props: sortDirection,
 expanding, onSort(direction) and onExpandAll(). No new SDK service or driver
@@ -95,3 +97,36 @@ contract is needed. Workspace owns panel geometry/surface; Mantine owns embedded
 controls and internal spacing. Reference: the Owner's marked Files screenshot.
 Manual visual acceptance remains pending in the real Workspace: both themes,
 opened sort menu, selection, hover/focus/disabled controls and narrow/short panels.
+
+## File preferences
+
+`src/preferences.ts` owns `Files > Navigation` through Settings 1.1. Its two items
+are `sortDirection` (`asc` / `desc`, default `asc`) and `revealActiveFile`
+(boolean, default `true`). Both use the `lunaris.file-explorer` Config namespace
+with explicit `{ scope: "vault", vaultId }` reads/writes. The registry item IDs
+end in `sort-direction` and `reveal-active-file`; Config keys use camel case.
+
+Initialization restores preferences before revealing the active document.
+Disabling reveal stops automatic ancestor expansion while preserving the active
+file marker, selection, explicit expansion and file-operation synchronization.
+Enabling it reveals the current file immediately. The existing toolbar sort menu
+and Settings share one live persisted preference, always keeping directories first.
+Unavailable storage shows a localized field error and logs the original failure;
+a failed write restores both Settings and the toolbar's confirmed value.
+Malformed stored values remain untouched and fall back to defaults with a warning.
+Read failures expose Retry. Vault/session and read revision checks reject stale
+results; released callbacks cannot write to a different Vault.
+
+Integration is complete through Config/ConfigChanged, Settings 1.1,
+Vault/VaultChanged, Localization/LocaleChanged and required Logger. The shared
+application host supplies `config.access` for desktop and browser. No filesystem
+driver change is required. Workspace owns the panel geometry/surface, Settings
+owns its page and groups, and the existing Mantine item role renders embedded
+controls without new cards or backgrounds. Reference: Customization / Interface
+rows and the existing Files toolbar's themed sort menu; reviewed
+[Mantine input compositions](https://ui.mantine.dev/category/inputs/).
+
+Behavioral tests cover restoration, toolbar/Settings consistency, reveal policy,
+Vault isolation, rollback and late completions. Native visual acceptance remains
+manual: check Files settings and opened menus, focus, both themes, narrow/short
+layouts, and the actual Files panel after changing either option.

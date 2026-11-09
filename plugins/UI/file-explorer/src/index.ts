@@ -12,6 +12,7 @@ import { ExplorerModel } from "./model.js";
 import type { ExplorerDraft } from "./model.js";
 import { catalogs } from "./catalog.js";
 import { createVaultSwitcher } from "./vault-switcher.js";
+import { createPreferences } from "./preferences.js";
 import manifest from "../manifest.json" with { type: "json" };
 
 export default definePlugin({ manifest, activate(ctx) {
@@ -26,10 +27,18 @@ export default definePlugin({ manifest, activate(ctx) {
   let refreshing = false; let dirty = false;
   const text = (key: string) => localization.text(ctx.pluginId, key);
   const switcher = createVaultSwitcher(ctx, changed);
+  const preferences = createPreferences(ctx, changed);
+  let revealEnabled = true;
   function publish(): void {
     if (ctx.signal.aborted) return;
     menu?.dispose(); menu = undefined;
     const current = model;
+    if (current) current.sortDirection = preferences.current().sortDirection;
+    const reveal = preferences.current().revealActiveFile;
+    if (reveal !== revealEnabled) {
+      revealEnabled = reveal;
+      if (reveal) void revealActive().catch(error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot reveal active document", { error }); });
+    }
     const active = documents.current();
     const props = { activePath: active?.vaultId === current?.vaultId ? active?.path ?? null : null,
       onOpen: (path: string) => openDocument(current, path), supportedExtensions: ["md"], vaultId: current?.vaultId ?? "", data: current?.tree() ?? [], expanded: [...(current?.expanded ?? [])], selection: current?.selection ?? [],
@@ -38,7 +47,7 @@ export default definePlugin({ manifest, activate(ctx) {
       initialDraft: current?.draft ?? { form: null, name: "" },
       vaultSwitcher: switcher.snapshot(),
       sortDirection: current?.sortDirection ?? "asc", expanding: current?.expanding ?? false,
-      onSort: (direction: "asc" | "desc") => current?.sort(direction),
+      onSort: (direction: "asc" | "desc") => { if (current?.active && current === model && !current.busy) return preferences.choose("sortDirection", direction, current.vaultId); },
       onExpandAll: () => current?.expandAll() ?? Promise.resolve(),
       onDraft: (draft: ExplorerDraft) => { if (current?.active) current.draft = draft; },
       text: Object.fromEntries(Object.keys(catalogs.en).map(key => [key, text(key)])),
@@ -98,6 +107,8 @@ export default definePlugin({ manifest, activate(ctx) {
     model = current; changed();
     void (async () => {
       try {
+        await preferences.ready();
+        if (!current.active) return;
         const result = await observation.watch({ vaultId: root.id, path: "" }, owner.signal);
         if (!current.active) return;
         if (result.ok) watchId = result.value;
@@ -114,11 +125,13 @@ export default definePlugin({ manifest, activate(ctx) {
     if (!result.ok && current.active) { current.error = result.error.code; changed(); logger.warn(ctx.pluginId, "Cannot open explorer document", { error: result.error }); }
   }
   async function revealActive(): Promise<void> {
+    await preferences.ready();
+    if (ctx.signal.aborted || !preferences.current().revealActiveFile) return;
     const active = documents.current(); const current = model;
     if (!active || !current?.active || active.vaultId !== current.vaultId) return;
     const segments = active.path.split("/"); segments.pop(); let parent = "";
     for (const segment of segments) {
-      if (!current.active || documents.current()?.path !== active.path) return;
+      if (!current.active || current !== model || !preferences.current().revealActiveFile || documents.current()?.vaultId !== active.vaultId || documents.current()?.path !== active.path) return;
       parent = parent ? parent + "/" + segment : segment;
       current.expanded.add(parent);
       if (!current.directories.has(parent)) await current.load(parent);

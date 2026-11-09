@@ -37,6 +37,12 @@
     },
     {
       "path": "../../../packages/active-document"
+    },
+    {
+      "path": "../../../packages/config"
+    },
+    {
+      "path": "../../../packages/settings"
     }
   ]
 }

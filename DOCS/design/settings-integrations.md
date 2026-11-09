@@ -1,5 +1,12 @@
 # Settings integration audit
 
+Update, 2026-11-09: the Owner approved editor display preferences and file
+preferences. Both are implemented in their owning product plugins; see the
+[current Settings contributions](../reference/settings.md#shipped-product-contributions).
+The original audit below predates the editor and toolbar sorting and must not be
+used as the current feature inventory. Live Preview remains fixed, spellchecking
+is disabled, and autosave uses a fixed one-second debounce without a setting.
+
 Date: 2026-11-07. Status: proposal based on current documentation, public
 contracts and product source. No concrete settings integration is implemented
 by this audit. Proposed options, keys and category IDs are not shipped contracts.

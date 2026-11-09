@@ -16,13 +16,20 @@ import localization from '@lunaris/localization-manager';
 import explorer from '@lunaris/file-explorer';
 import contextMenuProvider from '@lunaris/context-menu-provider';
 import componentProvider from '@lunaris/component-provider';
+import { Config, ConfigChanged } from '@lunaris/config';
+import { Settings } from '@lunaris/settings';
+import settingsProvider from '@lunaris/settings-provider';
 
 const flush = async () => { for (let n = 0; n < 4; n++) await new Promise(resolve => setImmediate(resolve)); };
 const manifest = (id, provides = [], requires = [], permissions = []) => ({ manifestVersion: 1, id, version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides, requires, permissions, optionalPermissions: [] });
 async function setup(options = {}) {
-  const kernel = createTestKernel({ initialGrants: { 'lunaris.file-explorer': ['filesystem.access', 'vault.access'], 'lunaris.context-menu-provider': ['ui.dom'], 'lunaris.component-provider': ['ui.dom'], 'test.inspect': ['ui.dom'] } });
+  const kernel = createTestKernel({ initialGrants: { 'lunaris.file-explorer': ['config.access', 'filesystem.access', 'vault.access'], 'lunaris.context-menu-provider': ['ui.dom'], 'lunaris.component-provider': ['ui.dom'], 'test.inspect': ['ui.dom'] } });
   const logs = []; const watches = []; const lists = []; let current = { id: 'a', name: 'A' }; let emit;
-  let document = null; let side; let locales; let menus; let components; let inspect;
+  let document = null; let side; let locales; let menus; let components; let inspect; let settings;
+  const values = options.preferences ?? new Map(); const writes = [];
+  kernel.installMock(Config, { async read(id, target) { return options.preferenceRead ? options.preferenceRead(id, target) : { ok: true, value: values.get(target.vaultId) ?? {} }; },
+    async set(id, key, value, target) { writes.push({ id, key, value, target }); const result = options.preferenceWrite ? await options.preferenceWrite(id, key, value, target) : { ok: true, value: null }; if (result.ok) values.set(target.vaultId, { ...values.get(target.vaultId), [key]: value }); return result; },
+    async get() { return { ok: true, value: undefined }; }, async remove() { return { ok: true, value: false }; } });
   kernel.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push(args); return true; }])));
   kernel.installMock(Filesystem, { ...Object.fromEntries(filesystemMethods.map(method => [method, async () => ({ ok: true, value: null })])),
     list: async target => { lists.push(target); return { ok: true, value: target.path === '' ? [{ path: 'folder', kind: 'directory', size: 0, modifiedAt: null }, { path: 'file-' + target.vaultId + '.md', kind: 'file', size: 0, modifiedAt: null }] : [{ path: target.path + '/note-' + target.vaultId + '.md', kind: 'file', size: 0, modifiedAt: null }] }; },
@@ -31,11 +38,12 @@ async function setup(options = {}) {
   kernel.installMock(ActiveDocument, { current: () => document, async open(target) { document = target; await emit(ActiveDocumentChanged, { current: document }); return { ok: true, value: null }; }, async close() { return { ok: true, value: null }; }, async relocate() { return { ok: true, value: null }; }, async reconcile() { return { ok: true, value: null }; } });
   kernel.installMock(Vault, { current: () => current, open: options.open ?? (async () => ({ ok: true, value: null })), close: options.close ?? (async () => { const previous = current; current = null; await emit(VaultChanged, { kind: 'closed', previous, current }); return { ok: true, value: null }; }) });
   kernel.installMock(VaultHistory, { list: options.list ?? (async () => ({ ok: true, value: options.entries ?? [] })), open: options.recent ?? (async () => ({ ok: true, value: current })) });
-  kernel.register(definePlugin({ manifest: manifest('test.events', [FileChanged, VaultChanged, ActiveDocumentChanged, VaultHistoryChanged].map(token => ({ kind: 'event', id: token.id, version: token.version }))), activate(ctx) { emit = (token, value) => ctx.events.emit(token, value); } }));
+  kernel.register(definePlugin({ manifest: manifest('test.events', [ConfigChanged, FileChanged, VaultChanged, ActiveDocumentChanged, VaultHistoryChanged].map(token => ({ kind: 'event', id: token.id, version: token.version }))), activate(ctx) { emit = (token, value) => ctx.events.emit(token, value); } }));
+  kernel.register(settingsProvider);
   kernel.register(componentProvider); kernel.register(contextMenuProvider); kernel.register(sidebarProvider); kernel.register(localization); kernel.register(explorer);
-  kernel.register(definePlugin({ manifest: manifest('test.inspect', [], [Sidebar, Localization, ContextMenu, Components].map(token => ({ kind: 'api', id: token.id, range: '^1.0.0' })), ['ui.dom']), activate(ctx) { side = ctx.use(Sidebar); locales = ctx.use(Localization); menus = ctx.use(ContextMenu); components = ctx.use(Components); inspect = ctx; } }));
+  kernel.register(definePlugin({ manifest: manifest('test.inspect', [], [Settings, Sidebar, Localization, ContextMenu, Components].map(token => ({ kind: 'api', id: token.id, range: '^1.0.0' })), ['ui.dom']), activate(ctx) { settings = ctx.use(Settings); side = ctx.use(Sidebar); locales = ctx.use(Localization); menus = ctx.use(ContextMenu); components = ctx.use(Components); inspect = ctx; } }));
   await kernel.start('test.events'); await kernel.start('test.inspect'); await kernel.start(explorer.manifest.id); await flush();
-  return { kernel, logs, watches, lists, side, locales, menus, components, inspect, emit, tab: () => side.snapshot().tabs[0], async switch(root) { const previous = current; current = root; await emit(VaultChanged, { kind: root ? (previous ? 'switched' : 'opened') : 'closed', previous, current }); await flush(); } };
+  return { kernel, logs, watches, lists, side, locales, menus, components, inspect, settings, writes, emit, tab: () => side.snapshot().tabs[0], async switch(root) { const previous = current; current = root; await emit(VaultChanged, { kind: root ? (previous ? 'switched' : 'opened') : 'closed', previous, current }); await flush(); } };
 }
 test('SDK controller registers a localized sidebar tool, preserves collapsed state and refreshes only its own watch', async () => {
   const s = await setup();
@@ -49,6 +57,37 @@ test('SDK controller registers a localized sidebar tool, preserves collapsed sta
   await s.emit(FileChanged, { vaultId: 'a', watchId: 'watch-a', kind: 'rescan', paths: [] }); await flush(); assert.ok(s.lists.length > before);
   s.locales.setLocale('ru'); await flush(); assert.equal(s.tab().title, 'Файлы');
   await s.kernel.stopAll(); s.kernel.assertNoResources();
+});
+
+test('file preferences restore, control reveal and persist sorting from the existing toolbar', async () => {
+  const s = await setup({ preferences: new Map([['a', { sortDirection: 'desc', revealActiveFile: false }]]) });
+  assert.equal(s.tab().props.sortDirection, 'desc');
+  await s.tab().props.onOpen('folder/note-a.md'); await flush();
+  assert.deepEqual(s.tab().props.expanded, []); assert.equal(s.tab().props.activePath, 'folder/note-a.md');
+  const item = s.settings.snapshot().items.find(item => item.id.endsWith('.reveal-active-file'));
+  await item.onChange(true, { vaultId: 'a', signal: s.inspect.signal }); await flush();
+  assert.deepEqual(s.tab().props.expanded, ['folder']);
+  await s.tab().props.onSort('asc'); await flush();
+  assert.equal(s.settings.snapshot().items.find(item => item.id.endsWith('.sort-direction')).value, 'asc');
+  assert.deepEqual(s.writes.at(-1), { id: 'lunaris.file-explorer', key: 'sortDirection', value: 'asc', target: { scope: 'vault', vaultId: 'a' } });
+  await s.switch({ id: 'b', name: 'B' }); assert.equal(s.tab().props.sortDirection, 'asc');
+  const before = s.writes.length;
+  await item.onChange(false, { vaultId: 'a', signal: s.inspect.signal }); assert.equal(s.writes.length, before);
+  await s.kernel.stopAll(); s.kernel.assertNoResources();
+});
+
+test('sorting failure restores both toolbar and Settings, and late completion cannot change another Vault', async () => {
+  const pending = Promise.withResolvers();
+  const s = await setup({ preferenceWrite: () => pending.promise });
+  const saving = s.tab().props.onSort('desc'); await flush(); assert.equal(s.tab().props.sortDirection, 'desc');
+  await s.switch({ id: 'b', name: 'B' });
+  pending.resolve({ ok: false, error: { code: 'IO_ERROR', message: 'Failed' } }); await saving; await flush();
+  assert.equal(s.tab().props.sortDirection, 'asc'); assert.equal(s.writes[0].target.vaultId, 'a');
+  await s.kernel.stopAll(); s.kernel.assertNoResources();
+  const t = await setup({ preferenceWrite: async () => ({ ok: false, error: { code: 'IO_ERROR', message: 'Failed' } }) });
+  await t.tab().props.onSort('desc'); await flush();
+  assert.equal(t.tab().props.sortDirection, 'asc'); assert.ok(t.settings.snapshot().items.find(item => item.id.endsWith('.sort-direction')).error);
+  await t.kernel.stopAll(); t.kernel.assertNoResources();
 });
 test('Vault switching cancels the old watch and stale view callbacks; restart releases registrations', async () => {
   const s = await setup(); const stale = s.tab().props;

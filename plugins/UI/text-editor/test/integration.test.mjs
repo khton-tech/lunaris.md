@@ -11,7 +11,9 @@ import { definePlugin } from '@lunaris/sdk';
 import { Clipboard } from '@lunaris/clipboard';
 import menuProvider from '@lunaris/context-menu-provider';
 import { Logger } from '@lunaris/logging';
-import { Config } from '@lunaris/config';
+import { Config, ConfigChanged } from '@lunaris/config';
+import { Settings } from '@lunaris/settings';
+import settingsProvider from '@lunaris/settings-provider';
 import { Filesystem, FilesystemDriver, FilesystemRootsDriver, FilesystemObservationDriver, FilesystemLocationsDriver, DirectoryLocationsDriver, ApplicationDirectoryDriver, DriverFileChanged, filesystemMethods } from '@lunaris/filesystem';
 import { Vault } from '@lunaris/vault';
 import { DocumentStatistics, DocumentStatisticsChanged, ActiveDocument } from '@lunaris/active-document';
@@ -49,7 +51,16 @@ async function setup(options = {}) {
   const clipboardCalls = [];
   kernel.installMock(Clipboard, { capabilities: () => ({ read: true, write: true }), async readText() { clipboardCalls.push(["read"]); if (options.readClipboard) return options.readClipboard(); return options.clipboardFailure ? fail("DENIED") : ok(options.clipboardText ?? "Pasted"); }, async writeText(text) { clipboardCalls.push(["write", text]); return options.clipboardFailure ? fail("DENIED") : ok(null); } });
   kernel.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push([level, ...args]); return true; }])));
-  kernel.installMock(Config, { async get(id, name, scope) { return ok(store.get(scope.vaultId)); }, async set(id, name, value, scope) { store.set(scope.vaultId, value); return ok(null); }, async remove(id, name, scope) { store.delete(scope.vaultId); return ok(true); }, async read() { return ok({}); } });
+  const preferenceWrites = []; const preferenceStore = options.preferences ?? new Map();
+  kernel.installMock(Config, { async get(id, name, scope) { return ok(store.get(scope.vaultId)); }, async set(id, name, value, scope) {
+    if (id === editor.manifest.id) {
+      preferenceWrites.push({ id, name, value, scope });
+      const result = options.preferenceWrite ? await options.preferenceWrite(id, name, value, scope) : ok(null);
+      if (result.ok) preferenceStore.set(scope.vaultId, { ...preferenceStore.get(scope.vaultId), [name]: value });
+      return result;
+    }
+    store.set(scope.vaultId, value); return ok(null);
+  }, async remove(id, name, scope) { store.delete(scope.vaultId); return ok(true); }, async read(id, scope) { return options.preferenceRead ? options.preferenceRead(id, scope) : ok(preferenceStore.get(scope.vaultId) ?? {}); } });
   kernel.installMock(Workspace, { register(value) { content = value; return ok(null); }, update() { return ok(null); }, list() { return content ? [content] : []; } });
   const methods = Object.fromEntries(filesystemMethods.map(name => [name, async () => ok(null)]));
   Object.assign(methods, {
@@ -79,13 +90,15 @@ async function setup(options = {}) {
   kernel.installMock(FilesystemLocationsDriver, { async select() { return ok(null); }, async describe() { return fail('NOT_FOUND'); }, async attach() { return fail('NOT_FOUND'); } }, { grants: ['filesystem.native'] });
   kernel.installMock(DirectoryLocationsDriver, { async create() { return fail('UNSUPPORTED'); } }, { grants: ['filesystem.native'] });
   kernel.installMock(ApplicationDirectoryDriver, { async openConfig() { return fail('UNSUPPORTED'); } }, { grants: ['filesystem.native'] });
-  for (const plugin of [menuProvider, filesystem, vault, documents, screenProvider, screenHost, components, themes, localization, mantine, editor, closeGuard.plugin]) kernel.register(plugin);
+  kernel.register(definePlugin({ manifest: metadata('test.config-events', [{ kind: 'event', id: ConfigChanged.id, version: ConfigChanged.version }]), activate() {} }));
+  for (const plugin of [settingsProvider, menuProvider, filesystem, vault, documents, screenProvider, screenHost, components, themes, localization, mantine, editor, closeGuard.plugin]) kernel.register(plugin);
 
-  kernel.register(definePlugin({ manifest: metadata('test.consumer', [], [DocumentStatistics, DocumentStatisticsChanged, Filesystem, Vault, ActiveDocument, ActiveScreen, Components, Themes].map(t => ({ kind: t.kind, id: t.id, range: '^' + t.version })), ['vault.access', 'filesystem.access', 'ui.dom']), activate(ctx) {
-    api = { ctx, statistics: ctx.use(DocumentStatistics), fs: ctx.use(Filesystem), vault: ctx.use(Vault), documents: ctx.use(ActiveDocument), screens: ctx.use(ActiveScreen), components: ctx.use(Components), themes: ctx.use(Themes) };
+  kernel.register(definePlugin({ manifest: metadata('test.consumer', [], [Settings, DocumentStatistics, DocumentStatisticsChanged, Filesystem, Vault, ActiveDocument, ActiveScreen, Components, Themes].map(t => ({ kind: t.kind, id: t.id, range: '^' + t.version })), ['vault.access', 'filesystem.access', 'ui.dom']), activate(ctx) {
+    api = { ctx, settings: ctx.use(Settings), statistics: ctx.use(DocumentStatistics), fs: ctx.use(Filesystem), vault: ctx.use(Vault), documents: ctx.use(ActiveDocument), screens: ctx.use(ActiveScreen), components: ctx.use(Components), themes: ctx.use(Themes) };
   } }));
   for (const [id, grants] of Object.entries({ 'test.driver': ['filesystem.native'], 'lunaris.filesystem-provider': ['filesystem.access', 'filesystem.app-config'], 'lunaris.vault-manager': ['filesystem.access'], 'lunaris.active-document-provider': ['vault.access', 'config.access', 'filesystem.access'], 'lunaris.active-screen-provider': ['vault.access'], [screenHost.manifest.id]: ['ui.dom'], 'lunaris.component-provider': ['ui.dom'], 'lunaris.mantine-components': ['ui.dom'], 'lunaris.context-menu-provider': ['ui.dom'], 'lunaris.text-editor': ['clipboard.access', 'ui.dom', 'vault.access', 'filesystem.access'], 'test.consumer': ['vault.access', 'filesystem.access', 'ui.dom'] })) for (const grant of grants) kernel.grant(id, grant);
   kernel.grant(closeGuard.plugin.manifest.id, 'vault.access');
+  kernel.grant(editor.manifest.id, 'config.access');
   await kernel.start('test.consumer'); await kernel.start(mantine.manifest.id); await kernel.start(screenHost.manifest.id); await kernel.start(editor.manifest.id); await kernel.start(closeGuard.plugin.manifest.id);
   await api.vault.open(); await flush();
   let editorTarget = target;
@@ -99,7 +112,8 @@ async function setup(options = {}) {
   }
   host = api.components.mount(content.componentId, editorTarget, { workspace: { vaultId: 'a', vaultName: 'A' } }, api.ctx.signal);
   assert.equal(host.ok, true); await api.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
-  return { ...api, target, dom, disk, calls, logs, kernel, clipboardCalls, beforeClose: closeGuard.beforeClose,
+  return { ...api, target, dom, disk, calls, logs, kernel, clipboardCalls, preferenceWrites, beforeClose: closeGuard.beforeClose,
+    async showVault(vaultId) { host.value.dispose(); await flush(); host = api.components.mount(content.componentId, editorTarget, { workspace: { vaultId, vaultName: vaultId } }, api.ctx.signal); assert.equal(host.ok, true); },
     cm() { const node = target.querySelector('.cm-editor'); assert.ok(node, target.textContent); return EditorView.findFromDOM(node); },
     edit(text) { const view = this.cm(); view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } }); },
     async stop() { await flush(); await kernel.stopAll(); await flush(); kernel.assertNoResources(); assert.equal(target.childElementCount, 0); assert.ok(!kernel.diagnostics().some(d => d.code === 'CLEANUP_FAILED')); dom.window.close(); },
@@ -118,6 +132,49 @@ test('composed editor retains history and selection through Settings, theme chan
   await s.kernel.stop(mantine.manifest.id); await s.kernel.start(mantine.manifest.id); await flush();
   assert.equal(s.cm().state.doc.toString(), '# Draft'); assert.equal(s.cm().state.selection.main.head, 3); assert.equal(undo(s.cm()), true);
   assert.equal(s.cm().state.doc.toString(), '# Note'); await s.stop();
+});
+
+test('display preferences apply without replacing the editor, selection, source or undo history', async () => {
+  const s = await setup(); const view = s.cm();
+  assert.equal(view.contentDOM.getAttribute('spellcheck'), 'false');
+  s.edit('Retained draft'); view.dispatch({ selection: { anchor: 4 } });
+  const choose = async (key, value) => {
+    const item = s.settings.snapshot().items.find(item => item.id.endsWith('.' + key)); assert.ok(item);
+    await item.onChange(value, { vaultId: 'a', signal: s.ctx.signal }); await flush();
+  };
+  await choose('font-size', '20');
+  await choose('line-height', '1.8');
+  await choose('text-width', 'full');
+  await choose('wrap-lines', false);
+  assert.equal(s.cm(), view); assert.equal(view.state.selection.main.head, 4);
+  assert.equal(view.state.sliceDoc(), 'Retained draft'); assert.equal(view.contentDOM.classList.contains('cm-lineWrapping'), false);
+  assert.equal(s.dom.window.getComputedStyle(view.dom).fontSize, '20px');
+  assert.equal(s.dom.window.getComputedStyle(view.scrollDOM).lineHeight, '1.8');
+  assert.equal(s.dom.window.getComputedStyle(view.contentDOM).maxWidth, 'none');
+  assert.ok(s.preferenceWrites.every(write => write.id === 'lunaris.text-editor' && write.scope.scope === 'vault' && write.scope.vaultId === 'a'));
+  assert.deepEqual(s.settings.snapshot().items.map(item => item.id.split('.').at(-1)), ['font-size', 'line-height', 'text-width', 'wrap-lines']);
+  assert.equal(undo(view), true); assert.equal(view.state.sliceDoc(), '# Note');
+  await s.stop();
+});
+
+test('display preferences restore before Settings opens and reset on Vault switch', async () => {
+  const s = await setup({ preferences: new Map([['a', { fontSize: '24', wrapLines: false }]]) });
+  assert.equal(s.dom.window.getComputedStyle(s.cm().dom).fontSize, '24px'); assert.equal(s.cm().contentDOM.classList.contains('cm-lineWrapping'), false);
+  await s.vault.open(); await flush();
+  await s.documents.open({ vaultId: 'b', path: 'note.md' }); await flush();
+  await s.showVault('b'); await flush();
+  assert.equal(s.dom.window.getComputedStyle(s.cm().dom).fontSize, '14px'); assert.equal(s.cm().contentDOM.classList.contains('cm-lineWrapping'), true);
+  assert.equal(s.preferenceWrites.length, 0); await s.stop();
+});
+
+test('failed preference writes restore live appearance and leave retryable editing available', async () => {
+  const s = await setup({ preferenceWrite: async () => fail('IO_ERROR') }); const view = s.cm();
+  const item = s.settings.snapshot().items.find(item => item.id.endsWith('.font-size'));
+  await item.onChange('24', { vaultId: 'a', signal: s.ctx.signal }); await flush();
+  assert.equal(s.cm(), view); assert.equal(s.dom.window.getComputedStyle(view.dom).fontSize, '14px');
+  const failed = s.settings.snapshot().items.find(current => current.id === item.id);
+  assert.ok(failed.error); assert.equal(failed.disabled, false);
+  await s.stop();
 });
 
 test('conflicts block document and Vault departure, retain the buffer and recover by explicit reload', async () => {
