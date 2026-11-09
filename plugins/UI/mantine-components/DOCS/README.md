@@ -599,7 +599,8 @@ Between Tabs and the tree, four Mantine ActionIcon controls provide creation,
 sorting and full expansion. Reference: the Owner's marked Files screenshot,
 existing Files menu styles and [Mantine UI buttons](https://ui.mantine.dev/category/buttons/).
 Lucide icons and localized controller labels follow the existing product pattern.
-The row has no additional card or surface: Workspace owns panel geometry and
+The row centers its four icons between subtle theme-derived top and bottom
+separators. It has no additional card or surface: Workspace owns panel geometry and
 background; this embedded role owns controls and internal spacing only.
 
 Optional public props: sortDirection ("asc" | "desc", default "asc"), expanding,
