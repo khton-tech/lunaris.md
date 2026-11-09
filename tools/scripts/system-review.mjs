@@ -102,7 +102,7 @@ async function independentDraftWritersClobber() {
       const host = testHost({ 'lunaris.browser-storage': ['drafts.storage'], 'test.consumer': ['drafts.access'] });
       hosts.push(host);
       host.register(createBrowserStorage({ indexedDB: factory, config: false, databaseName: 'review-only' }));
-      host.register(consumer([DraftStorage], ctx => apis.push(ctx.use(DraftStorage)), ['drafts.access']));
+      host.register(consumer([DraftStorage], ctx => { apis.push(ctx.use(DraftStorage)); }, ['drafts.access']));
       await host.start('test.consumer');
     }
     const key = { server: 'https://review.invalid', accountId: 'a', vaultId: 'v', path: 'note.md' };
@@ -118,8 +118,8 @@ try {
   await discardedDraftReturns();
   await caughtFailureStopsHost();
   await jsonServerFailureReportsConnected();
-  await workspaceCancelsExternalTab();
   await independentDraftWritersClobber();
+  await workspaceCancelsExternalTab();
   console.log('Review reproductions confirmed (5): discarded draft returns; caught API failure stops host without save gate; JSON 503 reports connected; Workspace cancels external Tab; independent draft writers clobber. No product data written.');
 } catch (error) {
   console.error(`Review reproduction changed or failed: ${error.message}`);
