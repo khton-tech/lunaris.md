@@ -3,6 +3,7 @@ import path from 'node:path';
 import ts from 'typescript';
 
 export const dependencies = {
+  editor: ['sdk'],
   clipboard: ['sdk'],
   'clipboard-provider': ['sdk', 'logging', 'clipboard'],
   'browser-clipboard': ['sdk', 'logging', 'clipboard'],
@@ -24,7 +25,7 @@ export const dependencies = {
   window: ['sdk'],
   'window-provider': ['sdk', 'logging', 'window'],
   'tauri-window': ['sdk', 'logging', 'window'],
-  'text-editor': ['config', 'settings', 'context-menu', 'clipboard', 'remote', 'sdk', 'logging', 'active-document', 'active-screen', 'filesystem', 'vault', 'components', 'localization', 'themes'],
+  'text-editor': ['editor', 'config', 'settings', 'context-menu', 'clipboard', 'remote', 'sdk', 'logging', 'active-document', 'active-screen', 'filesystem', 'vault', 'components', 'localization', 'themes'],
   'interface-settings': ['sdk', 'logging', 'config', 'settings', 'localization', 'themes', 'vault'],
   settings: ['sdk'],
   'settings-provider': ['sdk', 'logging', 'settings'],
@@ -154,6 +155,7 @@ export function checkSource(source, filename, scope) {
   if (scope === 'browser-storage') allowed.add('@noble/hashes/sha2.js');
   if (scope === 'config-manager' && path.resolve(filename) === path.resolve('plugins/systems/config/src/codec.ts')) allowed.add('smol-toml');
   if (scope === 'components-kit' && path.resolve(filename) === path.resolve('plugins/UI/components-kit/src/controls.ts')) allowed.add('lucide');
+  if (scope === 'editor') for (const name of ['@codemirror/state', '@lezer/markdown']) allowed.add(name);
   if (scope === 'text-editor') {
     for (const name of ['@codemirror/state', '@codemirror/view', '@codemirror/commands', '@codemirror/lang-markdown', '@codemirror/language', '@lezer/highlight', '@lezer/markdown']) allowed.add(name);
   }

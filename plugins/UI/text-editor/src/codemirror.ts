@@ -1,3 +1,4 @@
+import type { EditorExtension } from "@lunaris/editor";
 import { markupCommand } from "./formatting.js";
 import { bindEditorMenu } from "./editor-menu.js";
 import type { EditorMenuOptions } from "./editor-menu.js";
@@ -65,14 +66,16 @@ function appearance(theme: ThemeDefinition | null, preferences: Preferences) {
 
 /** Reusable view adapter; cached states belong to the controller, not DOM roots. */
 export function mountEditor(target: HTMLElement, session: DocumentSession, cached: EditorState | undefined,
-  theme: ThemeDefinition | null, label: string, save: () => void, failed: (error: unknown) => void, preview = true, tasks?: TaskControls, menuOptions?: EditorMenuOptions, preferences: Preferences = defaults) {
+  theme: ThemeDefinition | null, label: string, save: () => void, failed: (error: unknown) => void, preview = true, tasks?: TaskControls, menuOptions?: EditorMenuOptions, preferences: Preferences = defaults, contributions: readonly EditorExtension[] = []) {
   let menu: ReturnType<typeof bindEditorMenu> | undefined;
   const mode = new Compartment();
+  const contributed = new Compartment(); const language = new Compartment();
+  const languageFor = (items: readonly EditorExtension[]) => markdown({ addKeymap: false, extensions: [Strikethrough, tabIndentedLists, ...items.flatMap(item => item.markdown ? [item.markdown] : [])] });
   const wrapping = new Compartment();
   const skin = new Compartment(); const access = new Compartment(); const attributes = new Compartment();
   // A cached state retains history/selection; replace view-specific compartments
   // and callbacks through a full reconfiguration without replacing the document.
-  const extensions = [EditorState.lineSeparator.of(session.text.includes("\r\n") ? "\r\n" : "\n"), indentUnit.of("\t"), EditorState.tabSize.of(4), history(), markdown({ addKeymap: false, extensions: [Strikethrough, tabIndentedLists] }), tasks ? taskControls.of(tasks) : [], mode.of(preview ? [livePreview, livePreviewTheme] : []), wrapping.of(preferences.wrapLines ? EditorView.lineWrapping : []), drawSelection(),
+  const extensions = [EditorState.lineSeparator.of(session.text.includes("\r\n") ? "\r\n" : "\n"), indentUnit.of("\t"), EditorState.tabSize.of(4), history(), language.of(languageFor(contributions)), contributed.of(contributions.map(item => item.extension ?? [])), tasks ? taskControls.of(tasks) : [], mode.of(preview ? [livePreview, livePreviewTheme] : []), wrapping.of(preferences.wrapLines ? EditorView.lineWrapping : []), drawSelection(),
     EditorView.exceptionSink.of(failed),
     pairedInput,
     typingAnimation,
@@ -87,13 +90,15 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
   else state = state.update({ effects: reconfigure(extensions) }).state;
   const view = new EditorView({ parent: target, state });
   if (menuOptions) menu = bindEditorMenu(view, menuOptions);
+  let lastContributions = contributions;
   let lastPreview = preview;
   let lastPreferences = preferences;
   let lastTheme = theme; let lastLabel = label; let lastReadOnly = session.locks > 0 || session.missing || session.loading;
   return {
     view,
-    update(nextTheme: ThemeDefinition | null, nextLabel: string, nextPreview = true, nextPreferences: Preferences = defaults) {
+    update(nextTheme: ThemeDefinition | null, nextLabel: string, nextPreview = true, nextPreferences: Preferences = defaults, nextContributions: readonly EditorExtension[] = lastContributions) {
       const effects: Effect<unknown>[] = [];
+      if (nextContributions !== lastContributions) { effects.push(language.reconfigure(languageFor(nextContributions)), contributed.reconfigure(nextContributions.map(item => item.extension ?? []))); lastContributions = nextContributions; }
       if (nextPreview !== lastPreview) { effects.push(mode.reconfigure(nextPreview ? [livePreview, livePreviewTheme] : [])); lastPreview = nextPreview; }
       const readOnly = session.locks > 0 || session.missing || session.loading;
       if (nextPreferences.wrapLines !== lastPreferences.wrapLines) effects.push(wrapping.reconfigure(nextPreferences.wrapLines ? EditorView.lineWrapping : []));

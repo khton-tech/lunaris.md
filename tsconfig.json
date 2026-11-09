@@ -222,6 +222,9 @@
     },
     {
       "path": "plugins/systems/driver/browser-clipboard"
+    },
+    {
+      "path": "packages/editor"
     }
   ]
 }
