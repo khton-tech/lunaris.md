@@ -137,6 +137,15 @@ discard before invoking onReload. Controller callbacks become inert on cancellat
 
 ### Typing feedback
 
+Inline code surfaces use CodeMirror's public outerDecorations facet, wrapping
+ordinary letter-animation marks. This keeps one continuous outlined span during
+typing, deletion and animation expiry rather than temporarily outlining each
+animated fragment. Text animations remain enabled inside code. The composed
+Workspace regression reproduces the previous three-span split and checks one
+outline while typing paired backticks, inserting/deleting within the span and
+saving after feedback expiry. Existing public SDK integrations and ownership
+remain unchanged; native wrapping/outline acceptance remains manual.
+
 The Owner requested subtle letter appearance/deletion feedback in the existing
 editor. The CodeMirror adapter owns this document presentation in
 `typing-animation.ts`; Workspace/ActiveScreen own geometry and surfaces, and

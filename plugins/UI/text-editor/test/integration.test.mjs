@@ -291,6 +291,35 @@ test('task renderer replacement preserves edits and checkbox save failures retai
   } finally { await s.stop(); }
 });
 
+test('inline code keeps a single outline around animated letters in the composed Workspace editor', async () => {
+  const s = await setup({ initial: '', withLayout: true });
+  try {
+    const view = s.cm();
+    const type = text => {
+      const { from, to } = view.state.selection.main;
+      const handled = view.state.facet(EditorView.inputHandler).some(handler => handler(view, from, to, text,
+        () => view.state.update(view.state.replaceSelection(text))));
+      if (!handled) view.dispatch(view.state.update(view.state.replaceSelection(text), { userEvent: 'input.type' }));
+    };
+    type('`');
+    for (const letter of ['a', 'b', 'c']) {
+      type(letter);
+      assert.equal(view.dom.querySelectorAll('.cm-preview-code').length, 1);
+      assert.equal(view.dom.querySelectorAll('.cm-typing-insertion .cm-preview-code').length, 0);
+      assert.ok(view.dom.querySelector('.cm-preview-code .cm-typing-insertion'));
+    }
+    view.dispatch({ selection: { anchor: 2 } }); type('x');
+    assert.equal(view.dom.querySelectorAll('.cm-preview-code').length, 1);
+    view.dispatch({ changes: { from: 2, to: 3 }, selection: { anchor: 2 }, userEvent: 'delete.backward' });
+    assert.equal(view.dom.querySelectorAll('.cm-preview-code').length, 1);
+    assert.ok(view.dom.querySelector('.cm-preview-code .cm-typing-deletion'));
+    await new Promise(resolve => setTimeout(resolve, 300));
+    assert.equal(view.dom.querySelectorAll('.cm-preview-code').length, 1);
+    await s.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
+    assert.equal(s.disk.get('a/note.md').text, '`abc`');
+  } finally { await s.stop(); }
+});
+
 test('Workspace editor auto-pairs Markdown input and saves the unchanged closing delimiters', async () => {
   const s = await setup({ initial: '', withLayout: true });
   try {
