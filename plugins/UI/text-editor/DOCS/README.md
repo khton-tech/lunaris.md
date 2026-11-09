@@ -513,3 +513,7 @@ props; no renderer translation or SDK change is required. Interface Settings
 selects and persists Russian per Vault. Names and user content stay unchanged.
 Run `npm run ui-localization:check` for complete keys and matching placeholders.
 Native acceptance of long Russian labels, menus and narrow layouts is pending.
+
+The link shortcut resolves its placeholder at invocation time, so changing the
+locale updates inserted link text without recreating the editor. The composed
+regression covers Russian editor accessibility, formatting menus and Ctrl-K.

@@ -29,6 +29,7 @@ import screenHost from '@lunaris/active-screen-plugin';
 import components from '@lunaris/component-provider';
 import themes from '@lunaris/theme-provider';
 import localization from '@lunaris/localization-manager';
+import { Localization } from '@lunaris/localization';
 import mantine from '@lunaris/mantine-components';
 import editor from '@lunaris/text-editor';
 import { createCloseGuard } from '../../../../hosts/tauri/dist/close-guard.js';
@@ -93,8 +94,8 @@ async function setup(options = {}) {
   kernel.register(definePlugin({ manifest: metadata('test.config-events', [{ kind: 'event', id: ConfigChanged.id, version: ConfigChanged.version }]), activate() {} }));
   for (const plugin of [settingsProvider, menuProvider, filesystem, vault, documents, screenProvider, screenHost, components, themes, localization, mantine, editor, closeGuard.plugin]) kernel.register(plugin);
 
-  kernel.register(definePlugin({ manifest: metadata('test.consumer', [], [Settings, DocumentStatistics, DocumentStatisticsChanged, Filesystem, Vault, ActiveDocument, ActiveScreen, Components, Themes].map(t => ({ kind: t.kind, id: t.id, range: '^' + t.version })), ['vault.access', 'filesystem.access', 'ui.dom']), activate(ctx) {
-    api = { ctx, settings: ctx.use(Settings), statistics: ctx.use(DocumentStatistics), fs: ctx.use(Filesystem), vault: ctx.use(Vault), documents: ctx.use(ActiveDocument), screens: ctx.use(ActiveScreen), components: ctx.use(Components), themes: ctx.use(Themes) };
+  kernel.register(definePlugin({ manifest: metadata('test.consumer', [], [Settings, DocumentStatistics, DocumentStatisticsChanged, Filesystem, Vault, ActiveDocument, ActiveScreen, Components, Themes, Localization].map(t => ({ kind: t.kind, id: t.id, range: '^' + t.version })), ['vault.access', 'filesystem.access', 'ui.dom']), activate(ctx) {
+    api = { ctx, settings: ctx.use(Settings), statistics: ctx.use(DocumentStatistics), fs: ctx.use(Filesystem), vault: ctx.use(Vault), documents: ctx.use(ActiveDocument), screens: ctx.use(ActiveScreen), components: ctx.use(Components), themes: ctx.use(Themes), language: ctx.use(Localization) };
   } }));
   for (const [id, grants] of Object.entries({ 'test.driver': ['filesystem.native'], 'lunaris.filesystem-provider': ['filesystem.access', 'filesystem.app-config'], 'lunaris.vault-manager': ['filesystem.access'], 'lunaris.active-document-provider': ['vault.access', 'config.access', 'filesystem.access'], 'lunaris.active-screen-provider': ['vault.access'], [screenHost.manifest.id]: ['ui.dom'], 'lunaris.component-provider': ['ui.dom'], 'lunaris.mantine-components': ['ui.dom'], 'lunaris.context-menu-provider': ['ui.dom'], 'lunaris.text-editor': ['clipboard.access', 'ui.dom', 'vault.access', 'filesystem.access'], 'test.consumer': ['vault.access', 'filesystem.access', 'ui.dom'] })) for (const grant of grants) kernel.grant(id, grant);
   kernel.grant(closeGuard.plugin.manifest.id, 'vault.access');
@@ -132,6 +133,18 @@ test('composed editor retains history and selection through Settings, theme chan
   await s.kernel.stop(mantine.manifest.id); await s.kernel.start(mantine.manifest.id); await flush();
   assert.equal(s.cm().state.doc.toString(), '# Draft'); assert.equal(s.cm().state.selection.main.head, 3); assert.equal(undo(s.cm()), true);
   assert.equal(s.cm().state.doc.toString(), '# Note'); await s.stop();
+});
+
+test('Russian locale updates editor accessibility, menus and link shortcuts without remounting', async () => {
+  const s = await setup({ initial: '' });
+  try {
+    const view = s.cm();
+    assert.equal(s.language.setLocale('ru').ok, true); await flush();
+    assert.equal(s.cm(), view); assert.equal(view.contentDOM.getAttribute('aria-label'), 'Редактор Markdown');
+    view.contentDOM.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'k', code: 'KeyK', keyCode: 75, ctrlKey: true, bubbles: true, cancelable: true }));
+    await flush(); assert.equal(view.state.sliceDoc(), '[Текст ссылки](https://)');
+    const item = await editorMenu(s); assert.ok(item('Полужирный')); assert.ok(item('Списки'));
+  } finally { await s.stop(); }
 });
 
 test('display preferences apply without replacing the editor, selection, source or undo history', async () => {
