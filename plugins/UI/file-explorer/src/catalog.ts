@@ -1,5 +1,6 @@
 export const catalogs = {
   en: {
+    sort: "Sort", sortAscending: "Name: A–Z", sortDescending: "Name: Z–A", expandAll: "Expand all",
     switchVault: "Switch vault…", recentVaults: "Recent vaults", switchFailed: "Could not switch vault. Try again.", historyUnavailable: "Recent vaults unavailable",
     unnamedFile: "Unnamed.md", unnamedFolder: "Unnamed folder",
     PARTIAL_FAILURE: "Some items failed. Completed operations were retained.",
@@ -13,6 +14,7 @@ export const catalogs = {
     DIRECTORY_NOT_EMPTY: "The folder is not empty", INVALID_ENCODING: "Unsupported text encoding",
   },
   ru: {
+    sort: "Сортировка", sortAscending: "Имя: А–Я", sortDescending: "Имя: Я–А", expandAll: "Раскрыть всё",
     switchVault: "Сменить хранилище…", recentVaults: "Последние хранилища", switchFailed: "Не удалось сменить хранилище. Повторите попытку.", historyUnavailable: "История хранилищ недоступна",
     unnamedFile: "Без имени.md", unnamedFolder: "Папка без имени",
     PARTIAL_FAILURE: "Часть операций не выполнена. Успешные изменения сохранены.",

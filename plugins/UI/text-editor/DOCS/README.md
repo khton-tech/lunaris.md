@@ -65,6 +65,18 @@ expectedVersion; autosave never recreates a removed file. A flush saves edits
 made during an in-flight write before reporting the buffer clean. CRLF line
 separators are preserved.
 
+File observations can arrive after a browser save has completed. A clean session
+checks the observed file's version and content without entering the loading state;
+unchanged save echoes retain the existing CodeMirror view, focus, selection and
+history. Real external changes still use the authoritative reload path. Edits,
+saves, relocation or closure during the check invalidate its result. This behavior
+belongs to the existing editor controller/session; Workspace and Mantine retain
+layout/surface ownership, and no public SDK contract changes are required.
+Regression coverage uses the composed browser editor with real server observation
+and guards against even a transient contenteditable/read-only toggle. Native
+keyboard/caret acceptance remains manual: type, wait for autosave and the next
+server poll, then continue typing without clicking the editor again.
+
 Conflicts and write failures retain text and stop background retries. Use Retry
 save for recoverable failures. Reload from disk requires explicit Discard changes
 and reload confirmation when dirty. Failed reloads preserve text. Confirmed
@@ -122,6 +134,52 @@ mount returns; do not style/reparent borrowed targets. The role confirms dirty
 discard before invoking onReload. Controller callbacks become inert on cancellation.
 
 ## Ownership and visual reference
+
+### Typing feedback
+
+The Owner requested subtle letter appearance/deletion feedback in the existing
+editor. The CodeMirror adapter owns this document presentation in
+`typing-animation.ts`; Workspace/ActiveScreen own geometry and surfaces, and
+Mantine owns the borrowed text target and recovery controls. No new control,
+SDK contract, provider or cross-plugin connection is required. Existing Themes,
+Components, ActiveDocument, Filesystem and session integrations remain connected.
+
+Following the Owner's modern Word reference, short typed edits softly fade from
+low opacity and slight blur to full readability, with no translation or scaling.
+Short deletions
+leave a fading, zero-width, noninteractive afterimage at the deletion boundary.
+Afterimages retain the text baseline through normal inline layout, without an
+absolute vertical offset, so deletion fades in place rather than jumping upward.
+The document and caret update immediately: afterimages are aria-hidden,
+noneditable widgets and never enter document text, clipboard source, history or
+saves. Only opacity and a subtle blur animate; document layout is not animated.
+The active theme's normal motion/easing tokens are inherited (200 ms fallback,
+capped at 240 ms). Feedback expires independently after 260 ms, so rapid typing
+does not abruptly finish or restart earlier letters. A subsequent edit replaces
+deletion afterimages; retained insertion marks keep their own DOM identity.
+The existing CodeMirror-drawn carets slide between left/top coordinates using
+the active theme's fast easing, capped at 100 ms. Height, text layout, selection
+and actual editing positions update immediately; only caret presentation
+interpolates. This applies to primary and secondary carets and does not replace
+CodeMirror's cursor layer or blink behavior. Reduced motion removes the transition.
+Manually check rapid typing, arrow navigation, mouse placement, line wrapping,
+scrolling, multiple carets and both themes in the actual Workspace.
+View disposal cancels cleanup and removes the media-query listener.
+
+Paste, external changes, undo/redo, IME composition, whitespace-only edits,
+multiline changes and edits exceeding eight UTF-16 units per changed range do
+not animate. At most 32 changed ranges receive feedback per transaction.
+Reduced-motion preference suppresses feedback and immediately clears active
+feedback when changed. There are no typing logs or additional persistence calls.
+
+Targeted tests cover expiry, rapid typing with retained animation nodes, rapid deletion, document/selection/history retention,
+multiple carets, reduced motion, exclusions and composed Workspace/Live Preview
+saving without afterimages. Native visual acceptance remains pending: type and
+delete quickly at line ends and in the middle of text, near Markdown markers,
+with Cyrillic/emoji, wrapped headings/code, multiple carets and IME; check caret
+hit testing, scrolling, copy/paste, both themes and reduced motion. Zero-width
+afterimages follow the deletion boundary after reflow rather than preserving
+the previous screen position. Desktop automation is prohibited.
 
 Reference: the existing open Workspace main region and Settings inside
 ActiveScreen. Composition catalog consulted: [Mantine UI](https://ui.mantine.dev/).

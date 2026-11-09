@@ -180,7 +180,7 @@ collision/partial failure, explicit permanent-delete confirmation, external
 filesystem changes, panel collapse/reopen and Vault switching. Desktop automation
 is prohibited; JSDOM cannot verify physical drag/drop or WebView geometry.
 
-Folder rows select on a single click and toggle on double click or disclosure/Enter. Selection does not change folder geometry before dragging. The header contains a localized Tabs dropdown with Files as its sole current item, without a title or operation buttons. The Workspace Vault name appears in an initially expanded root directory row containing the controller tree. This renderer-owned row cannot be renamed, dragged, copied, cut or deleted and exposes only root-appropriate context-menu operations. Its synthetic identity never reaches controller selection, buffer or mutation callbacks; drop destinations map to the public empty root path. Root disclosure is local view state and resets to expanded on remount. A transient mismatch between Workspace context and controller Vault props shows loading without mounting the old tree or its operations.
+Folder rows select on a single click and toggle on double click or disclosure/Enter. Selection does not change folder geometry before dragging. The header contains a localized Tabs dropdown with Files as its sole current item, without a separate title; a compact action row sits below the selector. The Workspace Vault name appears in an initially expanded root directory row containing the controller tree. This renderer-owned row cannot be renamed, dragged, copied, cut or deleted and exposes only root-appropriate context-menu operations. Its synthetic identity never reaches controller selection, buffer or mutation callbacks; drop destinations map to the public empty root path. Root disclosure is local view state and resets to expanded on remount. A transient mismatch between Workspace context and controller Vault props shows loading without mounting the old tree or its operations.
 
 ## File extension presentation
 
@@ -206,3 +206,16 @@ selection, keyboard focus and background clicks do not clear the active mark.
 The renderer receives optional activePath/onOpen props; the controller reveals
 ancestors and notifies confirmed rename/move/delete operations through the SDK.
 Content editor integration remains outstanding.
+
+## Action panel contract
+
+Below Tabs, New file/New folder reuse existing selection-relative drafts.
+Sort offers name ascending/descending with directories first. Expand all loads
+and opens visible descendants through Filesystem, excluding hidden directories
+and symlinks. Traversal stops when its Vault scope closes. Listing failures retain
+localized error/retry. Sort and expansion survive panel remounts for the active
+Vault; Vault replacement resets to ascending order.
+
+Optional public role props: sortDirection: "asc" | "desc", expanding: boolean,
+onSort(direction), onExpandAll(): Promise<void>. Missing callbacks disable the
+corresponding controls. The renderer never accesses the filesystem directly.

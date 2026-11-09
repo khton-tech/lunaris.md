@@ -592,3 +592,24 @@ owns only create disclosure and Mantine menu state, including focus restoration.
 References: [Mantine UI authentication](https://ui.mantine.dev/category/authentication/)
 and [navbars](https://ui.mantine.dev/category/navbars/). There is no gallery runtime.
 See [the controller guide](../../account-access/DOCS/README.md) for the integration.
+
+## File Explorer action row
+
+Between Tabs and the tree, four Mantine ActionIcon controls provide creation,
+sorting and full expansion. Reference: the Owner's marked Files screenshot,
+existing Files menu styles and [Mantine UI buttons](https://ui.mantine.dev/category/buttons/).
+Lucide icons and localized controller labels follow the existing product pattern.
+The row centers its four icons without separators.
+It has no additional card or surface: Workspace owns panel geometry and
+background; this embedded role owns controls and internal spacing only.
+
+Optional public props: sortDirection ("asc" | "desc", default "asc"), expanding,
+onSort(direction) and onExpandAll(): Promise<void>. Missing callbacks disable
+their controls. Busy state or an open draft disables all actions; loading disables
+creation/expansion, and expanding prevents repeated expansion. Sort uses a themed
+Mantine Menu with a current-option check. Draft ordering follows sort direction
+and keeps its initial name as its position key. Expand all opens the synthetic
+root and delegates real directory traversal to the controller through Components.
+Integration through Sidebar is complete. Behavior tests cover creation targets,
+sort callbacks and disabled controls. Native visual acceptance remains pending:
+both themes, open menu, selection/focus and narrow/short Workspace layouts.

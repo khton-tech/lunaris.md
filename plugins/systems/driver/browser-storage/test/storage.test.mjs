@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { IDBFactory } from 'fake-indexeddb';
 import { createBrowserStorage } from '@lunaris/browser-storage';
 import { DraftStorage } from '@lunaris/remote';
@@ -27,4 +28,41 @@ test('IndexedDB drafts survive driver restart and stale acknowledgements preserv
   const reopened = (await files.openConfig(ctx.signal)).value;
   assert.equal((await files.readText({ vaultId: reopened.id, path: 'config.toml' })).value.text, 'theme="dark"');
   await host.stopAll(); host.assertNoResources(); assert.deepEqual(host.diagnostics(), []);
+});
+
+test('HTTP-style storage without Web Crypto preserves SHA-256 versions and concurrent write conflicts', async () => {
+  const descriptor = Object.getOwnPropertyDescriptor(globalThis, 'crypto');
+  Object.defineProperty(globalThis, 'crypto', { configurable: true, value: {} });
+  const indexedDB = new IDBFactory(); const hosts = [];
+  async function start() {
+    let files, ctx;
+    const host = testHost({ 'lunaris.browser-storage': ['drafts.storage', 'filesystem.native'], 'test.consumer': ['filesystem.access'] });
+    hosts.push(host); host.register(createBrowserStorage({ indexedDB }));
+    host.register(consumer([LocalFilesystemBackend.api], context => { ctx = context; files = ctx.use(LocalFilesystemBackend.api); }, ['filesystem.access']));
+    await host.start('test.consumer');
+    const opened = await files.openConfig(ctx.signal); assert.equal(opened.ok, true);
+    return { files, target: path => ({ vaultId: opened.value.id, path }) };
+  }
+  try {
+    const first = await start(); const second = await start();
+    for (const [index, bytes] of [[], [...new TextEncoder().encode('Привет\nconfig = "dark"')], [...Array(256).keys()]].entries()) {
+      const filename = `config-${index}.toml`; const expected = createHash('sha256').update(new Uint8Array(bytes)).digest('hex');
+      const written = await first.files.writeFile(first.target(filename), bytes, { mode: 'create' });
+      assert.deepEqual(written, { ok: true, value: { version: expected } });
+      const read = await second.files.readFile(second.target(filename));
+      assert.deepEqual(read, { ok: true, value: { data: bytes, version: expected } });
+      const unchanged = await second.files.writeFile(second.target(filename), bytes, { mode: 'replace', expectedVersion: expected });
+      assert.equal(unchanged.value.version, expected);
+    }
+    const filename = 'config-0.toml'; const version = (await first.files.readFile(first.target(filename))).value.version;
+    const results = await Promise.all([
+      first.files.writeText(first.target(filename), 'first update', { mode: 'replace', expectedVersion: version }),
+      second.files.writeText(second.target(filename), 'other update', { mode: 'replace', expectedVersion: version }),
+    ]);
+    assert.equal(results.filter(result => result.ok).length, 1);
+    assert.equal(results.find(result => !result.ok).error.code, 'CONFLICT');
+  } finally {
+    for (const host of hosts) { await host.stopAll(); host.assertNoResources(); assert.deepEqual(host.diagnostics(), []); }
+    if (descriptor) Object.defineProperty(globalThis, 'crypto', descriptor); else delete globalThis.crypto;
+  }
 });

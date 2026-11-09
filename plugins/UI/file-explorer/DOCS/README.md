@@ -79,3 +79,19 @@ Confirmed file creation activates the new file; rename/move update its identity
 and deletion/observation/manual refresh reconcile missing files. See
 [the active document reference](../../../../DOCS/reference/active-document.md).
 Content editor integration remains outstanding; no editor exists yet.
+
+## Compact action panel
+
+The four icon buttons below Tabs provide New file, New folder, Sort and Expand
+all. Creation reuses selection-relative inline drafts and the existing callbacks.
+Sort offers name ascending/descending, with directories first. Expand all loads
+unloaded visible descendants through Filesystem, excluding hidden directories and
+symlinks. Scope closure stops traversal; failures retain localized error/retry.
+Sort and expansion survive panel remounts in memory for the active Vault.
+
+Integration is complete via Sidebar/Components public props: sortDirection,
+expanding, onSort(direction) and onExpandAll(). No new SDK service or driver
+contract is needed. Workspace owns panel geometry/surface; Mantine owns embedded
+controls and internal spacing. Reference: the Owner's marked Files screenshot.
+Manual visual acceptance remains pending in the real Workspace: both themes,
+opened sort menu, selection, hover/focus/disabled controls and narrow/short panels.

@@ -88,6 +88,20 @@ npm run tauri:dev
 - `npm run web:dev --workspace @lunaris/tauri` serves only the frontend for manual
   browser inspection. It is not evidence of native Tauri execution.
 
+DevTools are enabled for the main window in both debug and release builds through
+the Tauri Cargo `devtools` feature and explicit window configuration. On Windows,
+use F12 or Ctrl+Shift+I to inspect Console and Network, including recovery-screen
+resource failures. Native shortcut/window acceptance must be checked manually.
+
+Release CSP permits inline styles, matching development: Mantine theme variables,
+component styles and CodeMirror presentation are generated at runtime. Static
+asset hashes alone cannot authorize these changing styles. This allowance applies
+only to style-src; script-src remains self-only, and object/frame content remains
+disabled. A host regression checks development/release style compatibility and
+the retained script/object/frame restrictions. The Owner's release DevTools log
+identified the blocked inline style; native startup acceptance after rebuilding
+remains manual. No SDK contract or product-plugin integration changes are needed.
+
 Native prerequisites are Rust/MSVC C++ build tools and WebView2; see the official
 [Windows prerequisites](https://v2.tauri.app/start/prerequisites/). The toolchain is
 pinned in `hosts/tauri/src-tauri/rust-toolchain.toml`; npm and Cargo lockfiles record

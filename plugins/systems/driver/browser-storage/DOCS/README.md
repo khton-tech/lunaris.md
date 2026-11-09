@@ -12,5 +12,12 @@ changes through Vault.close. Remote filesystem owns account-bound attachments an
 rescan observations. Browser storage persists device configuration and revisioned
 drafts in IndexedDB; drafts-provider validates stable document identities.
 
+Device-file versions remain SHA-256 content fingerprints, calculated with the
+pinned `@noble/hashes/sha2.js` implementation inside this driver. Existing versions
+and conditional writes remain compatible. No `crypto.subtle` or secure-context
+dependency is required for configuration/draft storage, so an HTTP IP origin can
+initialize normally. Use HTTPS for credentials and note transport on public
+networks; supporting HTTP storage does not encrypt HTTP traffic.
+
 Current tests cover the module's lifecycle and failure boundaries. Product visual
 acceptance is pending host integration.

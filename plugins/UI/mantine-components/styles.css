@@ -161,6 +161,11 @@
 .lm-root .lm-explorer-tabs[aria-expanded=true] { background:var(--tool-hover,var(--explorer-control-hover)) }
 @media(hover:hover) { .lm-root .lm-explorer-tabs:enabled:hover:not(:active) { background:var(--tool-hover,var(--explorer-control-hover)) } }
 .lm-root .lm-explorer-tabs:enabled:active { background:var(--tool-pressed,var(--explorer-control-pressed)) }
+.lm-explorer-actions { flex-shrink:0;position:relative;justify-content:center;margin-inline:calc(var(--vault-space)*2);padding:var(--vault-space);gap:var(--vault-space) }
+.lm-root .lm-explorer-actions .mantine-ActionIcon-root { flex-shrink:0;--ai-size:calc(var(--vault-space)*7);color:var(--vault-secondary);border-radius:var(--vault-radius) }
+@media(hover:hover) { .lm-root .lm-explorer-actions .mantine-ActionIcon-root:enabled:hover:not(:active) { background:var(--tool-hover,var(--explorer-control-hover));color:var(--vault-text) } }
+.lm-root .lm-explorer-actions .mantine-ActionIcon-root:enabled:active { background:var(--tool-pressed,var(--explorer-control-pressed)) }
+.lm-root .lm-explorer-actions .mantine-ActionIcon-root:disabled { color:var(--vault-secondary);opacity:0.45;background:transparent }
 .lm-explorer-menu-anchor { position:absolute;inset-inline-start:0;bottom:0;width:1px;height:1px }
 .lm-explorer-tree { flex:1;min-height:3em;min-width:0;padding-inline:calc(var(--vault-space)*2);overflow:hidden }
 .lm-explorer-row { min-width:0;outline:none }

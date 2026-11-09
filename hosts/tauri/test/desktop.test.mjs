@@ -20,6 +20,20 @@ test('Windows WebView leaves HTML5 drag/drop to the SDK component renderer', () 
   assert.equal(config.app.windows.find(window => window.label === 'main').dragDropEnabled, false);
 });
 
+test('release CSP permits runtime product styles while keeping scripts and embedded content restricted', () => {
+  const { app: { security } } = JSON.parse(readFileSync(new URL('../src-tauri/tauri.conf.json', import.meta.url), 'utf8'));
+  const directives = policy => new Map(policy.split(';').map(part => {
+    const [name, ...values] = part.trim().split(/\s+/); return [name, values];
+  }));
+  const release = directives(security.csp); const development = directives(security.devCsp);
+  assert.deepEqual(release.get('style-src'), development.get('style-src'));
+  assert.ok(release.get('style-src').includes("'unsafe-inline'"));
+  assert.deepEqual(release.get('script-src'), ["'self'"]);
+  assert.deepEqual(release.get('default-src'), ["'self'"]);
+  assert.deepEqual(release.get('object-src'), ["'none'"]);
+  assert.deepEqual(release.get('frame-src'), ["'none'"]);
+});
+
 test('failed save keeps the window open and allows a later close request', async () => {
   let handler; let allowed = false; let prevented = 0; let calls = 0;
   await bindWindowClose({ async requestClose() { calls++; return allowed; } }, {
