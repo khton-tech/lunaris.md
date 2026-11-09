@@ -4,6 +4,7 @@ import { DraftStorage } from "@lunaris/remote";
 import type { DraftKey, DraftRecord } from "@lunaris/remote";
 import { LocalFilesystemBackend, failure, validTarget } from "@lunaris/filesystem";
 import type { FileTarget, FsResult, WriteOptions } from "@lunaris/filesystem";
+import { sha256 } from "@noble/hashes/sha2.js";
 
 interface StoredFile { readonly data: readonly number[]; readonly version: string; readonly modifiedAt: number }
 const keyOf = (key: DraftKey) => JSON.stringify([key.server, key.accountId, key.vaultId, key.path]);
@@ -53,17 +54,19 @@ export function createBrowserStorage(options: { readonly databaseName?: string; 
       async function write(target: FileTarget, data: readonly number[], options: WriteOptions): Promise<FsResult<{ version: string }>> {
         if (!valid(target)) return failure("VAULT_CLOSED", "The device configuration attachment is closed.");
         if (!options || !["create", "replace", "upsert"].includes(options.mode) || (options.mode === "create" && options.expectedVersion !== undefined)) return failure("INVALID_ARGUMENT", "An explicit write mode is required.");
-        const digest = await globalThis.crypto.subtle.digest("SHA-256", new Uint8Array(data));
         if (closed || !roots.has(target.vaultId)) return failure("VAULT_CLOSED", "The configuration attachment closed.");
-        const version = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, "0")).join("");
         let declined: FsResult<never> | undefined;
-        const saved = await result(async () => { await access<StoredFile>("files", target.path, (previous, store) => {
-          if (options.mode === "create" && previous) declined = failure("ALREADY_EXISTS", "The configuration already exists.");
-          else if (options.mode === "replace" && !previous) declined = failure("NOT_FOUND", "The configuration no longer exists.");
-          else if (options.expectedVersion !== undefined && previous?.version !== options.expectedVersion) declined = failure("CONFLICT", "The configuration changed in another tab.");
-          if (declined) return previous;
-          const record = { data: [...data], version, modifiedAt: Date.now() }; store.put(record, target.path); return record;
-        }); return { version }; }); return declined ?? saved;
+        const saved = await result(async () => {
+          // Content versions must also work on HTTP origins without Web Crypto.
+          const version = [...sha256(new Uint8Array(data))].map(byte => byte.toString(16).padStart(2, "0")).join("");
+          await access<StoredFile>("files", target.path, (previous, store) => {
+            if (options.mode === "create" && previous) declined = failure("ALREADY_EXISTS", "The configuration already exists.");
+            else if (options.mode === "replace" && !previous) declined = failure("NOT_FOUND", "The configuration no longer exists.");
+            else if (options.expectedVersion !== undefined && previous?.version !== options.expectedVersion) declined = failure("CONFLICT", "The configuration changed in another tab.");
+            if (declined) return previous;
+            const record = { data: [...data], version, modifiedAt: Date.now() }; store.put(record, target.path); return record;
+          }); return { version };
+        }); return declined ?? saved;
       }
       ctx.provide(LocalFilesystemBackend.api, {
         locationVisible: () => false,

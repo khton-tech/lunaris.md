@@ -143,6 +143,8 @@ export function checkSource(source, filename, scope) {
   }
   // The shared validator owns the reviewed, platform-neutral SemVer dependency.
   if (scope === 'manifest') allowed.add('semver');
+  // The native browser-storage driver owns portable content fingerprinting.
+  if (scope === 'browser-storage') allowed.add('@noble/hashes/sha2.js');
   if (scope === 'config-manager' && path.resolve(filename) === path.resolve('plugins/systems/config/src/codec.ts')) allowed.add('smol-toml');
   if (scope === 'components-kit' && path.resolve(filename) === path.resolve('plugins/UI/components-kit/src/controls.ts')) allowed.add('lucide');
   if (scope === 'text-editor') {

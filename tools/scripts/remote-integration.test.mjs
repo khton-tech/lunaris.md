@@ -55,6 +55,11 @@ test('real server browser composition recovers drafts, gates updates and retires
     return response;
   };
   const dom = useBrowser(new JSDOM('<div id="application"></div>', { url: address, pretendToBeVisual: true }));
+  // Match a browser HTTP IP origin rather than Node's secure-context Web Crypto.
+  const originalCrypto = Object.getOwnPropertyDescriptor(globalThis, 'crypto');
+  Object.defineProperty(globalThis, 'crypto', { configurable: true, value: dom.window.crypto });
+  t.after(() => { if (originalCrypto) Object.defineProperty(globalThis, 'crypto', originalCrypto); else delete globalThis.crypto; });
+  assert.equal(globalThis.crypto.subtle, undefined);
   Object.defineProperty(globalThis, 'indexedDB', { configurable: true, value: new IDBFactory() });
   Object.defineProperty(globalThis, 'Window', { configurable: true, value: dom.window.Window });
   Object.defineProperty(globalThis, 'MutationObserver', { configurable: true, value: dom.window.MutationObserver });
