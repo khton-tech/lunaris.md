@@ -88,6 +88,11 @@ npm run tauri:dev
 - `npm run web:dev --workspace @lunaris/tauri` serves only the frontend for manual
   browser inspection. It is not evidence of native Tauri execution.
 
+DevTools are enabled for the main window in both debug and release builds through
+the Tauri Cargo `devtools` feature and explicit window configuration. On Windows,
+use F12 or Ctrl+Shift+I to inspect Console and Network, including recovery-screen
+resource failures. Native shortcut/window acceptance must be checked manually.
+
 Native prerequisites are Rust/MSVC C++ build tools and WebView2; see the official
 [Windows prerequisites](https://v2.tauri.app/start/prerequisites/). The toolchain is
 pinned in `hosts/tauri/src-tauri/rust-toolchain.toml`; npm and Cargo lockfiles record
