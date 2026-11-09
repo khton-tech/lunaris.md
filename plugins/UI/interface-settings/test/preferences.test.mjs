@@ -56,7 +56,7 @@ test('composed controls apply and persist explicit Vault preferences, preserve i
   assert.equal(s.surface.querySelector('select'), null);
   theme.click(); await flush();
   const options = s.dom.window.document.getElementById(theme.getAttribute('aria-controls'));
-  assert.deepEqual([...options.querySelectorAll('[role=option]')].map(item => item.textContent.trim()), ['Monochrome', 'Windows XP Luna', 'Alternate']);
+  assert.deepEqual([...options.querySelectorAll('[role=option]')].map(item => item.textContent.trim()), ['Monochrome', 'Windows XP Luna', 'Windows XP Luna Dark', 'Alternate']);
   assert.ok(theme.closest('.lm-root').querySelector('.lm-setting-dropdown'));
   theme.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await flush();
   await change(s, 0, 'fr'); assert.equal(s.tools.localization.locale(), 'fr');

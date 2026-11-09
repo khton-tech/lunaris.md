@@ -88,6 +88,21 @@ and the existing selection contract. No controller or ownership changes are need
 
 ## Composition and saved preferences
 
+### Windows XP Luna Dark
+
+`lunaris.base-theme-engine.windows-xp-dark` (Windows XP Luna Dark) is an independent
+dark preset using the same schema, Tahoma, compact geometry and motion as Luna.
+It retains blue gradient captions and beveled controls. Dark slate page/content
+surfaces (#181C24/#1C212B), #282E3A panels, #F0F2F7 text, #D0D7E2 secondary
+text, #94A4BE input borders and #B5D3FF focus replace the light palette. Hover and
+selection use #323D50/#304566; blue primary controls retain white labels.
+Dark shadows and highlights replace every light control and chrome finish.
+Select it through the existing Interface Settings theme picker; Config persists
+its independent ID. No new provider, API or plugin dependency is introduced.
+Themes/ThemeChanged already connect the engine, Mantine and CodeMirror.
+Contrast tests cover text, secondary text, borders, focus and primary labels.
+Native visual acceptance inside Workspace remains pending for both Luna variants.
+
 Tauri starts the engine before theme-settings and supplies the Monochrome ID as
 the default. Windows XP Luna remains available as an optional preset. Saved startup and Vault preferences take priority;
 choose Windows XP Luna under Settings > Customization for an existing Vault.

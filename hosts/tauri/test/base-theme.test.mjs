@@ -17,11 +17,11 @@ test('desktop composition exposes the preset through the provider and supports e
   const consumer = definePlugin({ manifest: manifest('test.app', [], [{ kind: 'api', id: Themes.id, range: '^1.0.0' }]), activate(ctx) { themes = ctx.use(Themes); } });
   const session = new HostSession({ scheduler: new TestScheduler(), load: async () => ({ plugins: [logger, provider, engine, consumer], entrypoints: [engine.manifest.id, 'test.app'] }) });
   await session.start(); assert.equal(session.snapshot().phase, 'running');
-  assert.deepEqual(themes.list().map(theme => theme.name).sort(), ['Monochrome', 'Windows XP Luna']);
+  assert.deepEqual(themes.list().map(theme => theme.name).sort(), ['Monochrome', 'Windows XP Luna', 'Windows XP Luna Dark']);
   themes.select('lunaris.base-theme-engine.monochrome'); assert.equal(themes.current().properties.colors.accent, '#E7E7E7');
   const stale = themes;
   await session.disable(engine.manifest.id); assert.equal(session.snapshot().phase, 'fallback'); assert.throws(() => stale.list());
-  await session.enable(engine.manifest.id); assert.equal(session.snapshot().phase, 'running'); assert.equal(themes.list().length, 2);
+  await session.enable(engine.manifest.id); assert.equal(session.snapshot().phase, 'running'); assert.equal(themes.list().length, 3);
   assert.equal(themes.current(), null);
   await session.stop(); assert.ok(!session.snapshot().kernel.diagnostics.some(item => item.code === 'CLEANUP_FAILED'));
 });

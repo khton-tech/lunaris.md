@@ -25,3 +25,10 @@ or window-management behavior is supplied. Native visual acceptance remains pend
 
 See [palette mappings and lifecycle](../../../../DOCS/reference/base-theme.md).
 Run `npm run base-theme:check` from the repository root.
+
+Windows XP Luna Dark (`lunaris.base-theme-engine.windows-xp-dark`) adds a third
+independent preset with dark slate surfaces, readable light labels and blue XP
+captions. It shares Luna typography, geometry and existing public theme contracts.
+Interface Settings exposes it automatically; Mantine and CodeMirror consume its
+tokens through Themes/ThemeChanged. Integration through these contracts is
+complete; native visual acceptance is pending. See the reference for the palette.
