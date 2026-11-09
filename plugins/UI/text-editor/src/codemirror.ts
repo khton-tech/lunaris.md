@@ -76,7 +76,7 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
     keymap.of([{ key: "Mod-b", run: markupCommand("bold"), preventDefault: true }, { key: "Mod-i", run: markupCommand("italic"), preventDefault: true }, { key: "Mod-k", run: markupCommand("link", menuOptions?.text("linkText")), preventDefault: true }, { key: "Mod-s", run: () => { save(); return true; }, preventDefault: true }, { key: "Tab", run: insertIndent, shift: indentLess, preventDefault: true }, { key: "Enter", run: continueTabIndentedList }, ...markdownKeymap, ...defaultKeymap, ...historyKeymap]),
     EditorView.updateListener.of(update => { if (update.docChanged || update.selectionSet || update.startState.readOnly !== update.state.readOnly) menu?.close(); if (update.docChanged) session.edit(update.state.sliceDoc()); }),
     skin.of(appearance(theme)), access.of([EditorState.readOnly.of(session.locks > 0 || session.missing || session.loading), EditorView.editable.of(!session.locks && !session.missing && !session.loading)]),
-    attributes.of(EditorView.contentAttributes.of({ "aria-label": label, spellcheck: "true" })),
+    attributes.of(EditorView.contentAttributes.of({ "aria-label": label, spellcheck: "false" })),
   ];
   let state = cached && cached.sliceDoc() === session.text ? cached : undefined;
   // StateEffect.reconfigure replaces extensions while preserving compatible fields.
@@ -97,7 +97,7 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
         effects.push(access.reconfigure([EditorState.readOnly.of(readOnly), EditorView.editable.of(!readOnly)])); lastReadOnly = readOnly;
       }
       if (nextLabel !== lastLabel) {
-        effects.push(attributes.reconfigure(EditorView.contentAttributes.of({ "aria-label": nextLabel, spellcheck: "true" }))); lastLabel = nextLabel;
+        effects.push(attributes.reconfigure(EditorView.contentAttributes.of({ "aria-label": nextLabel, spellcheck: "false" }))); lastLabel = nextLabel;
       }
       if (effects.length) view.dispatch({ effects });
     },

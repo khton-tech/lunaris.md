@@ -7,7 +7,7 @@ export interface SessionDraft {
   remove(revision: string): Promise<FsResult<null>>;
 }
 
-export const AUTOSAVE_DELAY = 2000;
+export const AUTOSAVE_DELAY = 1000;
 const ok = (): FsResult<null> => ({ ok: true, value: null });
 const failed = (code: FsFailure["code"], message: string): FsResult<null> => ({ ok: false, error: { code, message } });
 export interface Timer {

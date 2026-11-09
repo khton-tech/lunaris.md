@@ -15,10 +15,10 @@ function setup(options = {}) {
   }, () => options.alive !== false, () => {}, (...args) => logs.push(args), clock, options.draft);
   return { session, writes, timers, logs, async tick(delta) { now += delta; for (const [id, timer] of timers) if (timer.at <= now) { timers.delete(id); timer.callback(); } await new Promise(setImmediate); } };
 }
-test('autosave waits two seconds after the last edit and uses the loaded version', async () => {
-  const s = setup(); await s.session.load(); assert.equal(AUTOSAVE_DELAY, 2000);
-  s.session.edit('first'); await s.tick(1500); assert.equal(s.writes.length, 0);
-  s.session.edit('latest'); await s.tick(1999); assert.equal(s.writes.length, 0);
+test('autosave waits one second after the last edit and uses the loaded version', async () => {
+  const s = setup(); await s.session.load(); assert.equal(AUTOSAVE_DELAY, 1000);
+  s.session.edit('first'); await s.tick(500); assert.equal(s.writes.length, 0);
+  s.session.edit('latest'); await s.tick(999); assert.equal(s.writes.length, 0);
   await s.tick(1); assert.equal(s.writes.length, 1); assert.equal(s.writes[0].text, 'latest');
   assert.deepEqual(s.writes[0].policy, { mode: 'replace', expectedVersion: 'v1' }); assert.equal(s.session.dirty, false);
   s.session.dispose();

@@ -59,7 +59,10 @@ remain available. Source mode remains an internal adapter capability with no
 product control. No reading view, formatting toolbar, gutter or CodeMirror
 search panel is included. Unsupported extensions never decode as editable text.
 
-Autosave waits 2000 ms after the last edit. Mod-S and document/Vault/file
+Browser spellchecking is disabled. Live Preview remains the product mode;
+spellchecking and autosave timing are not user preferences.
+
+Autosave waits 1000 ms after the last edit. Mod-S and document/Vault/file
 transitions flush immediately. Writes serialize per document using replace and
 expectedVersion; autosave never recreates a removed file. A flush saves edits
 made during an in-flight write before reporting the buffer clean. CRLF line

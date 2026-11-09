@@ -272,5 +272,5 @@ export default definePlugin({ manifest, activate(ctx) {
   });
   ctx.scope.own({ dispose() { for (const session of sessions.values()) session.dispose(); sessions.clear(); states.clear(); } });
   choose(documents.current()); if (documents.current()) selectScreen();
-  logger.info(ctx.pluginId, "Text editor ready", { data: { autosaveDelay: 2000 } });
+  logger.info(ctx.pluginId, "Text editor ready", { data: { autosaveDelay: 1000 } });
 } });
