@@ -100,7 +100,8 @@ export class DocumentSession {
       try {
         if (!this.active) return;
         if (discard && this.draft) {
-          await this.draftPending;
+          const pending = await this.draftPending;
+          if (!pending.ok) { this.error = pending.error; this.draftError = true; return; }
           const acknowledgements: [string, DraftRecord?][] = [];
           if (this.revision) acknowledgements.push([this.revision]);
           if (this.recoveryRecord) acknowledgements.push([this.recoveryRecord.revision, this.recoveryRecord]);

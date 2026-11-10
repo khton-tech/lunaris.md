@@ -164,3 +164,8 @@ test('failed acknowledgement cleanup stays protected and retries on clean flush'
  await s.session.load();s.session.edit('Saved');assert.equal((await s.session.flush()).ok,false);assert.equal(s.session.dirty,false);assert.equal(s.session.hasUnprotectedChanges,true);
  assert.equal((await s.session.flush()).ok,true);assert.equal(s.session.hasUnprotectedChanges,false);assert.equal(calls,2);s.session.dispose();
 });
+
+test('discard does not acknowledge an unsettled failed draft write',async()=>{
+ const s=setup({draft:{load:async()=>ok(null),save:async()=>({ok:false,error:{code:'IO_ERROR',message:'Storage failure'}}),remove:async()=>{assert.fail('failed recovery write must be surfaced before discard');}}});
+ await s.session.load();s.session.edit('Retain');await s.session.persistDraft();await s.session.load(true);assert.equal(s.session.text,'Retain');assert.equal(s.session.dirty,true);assert.equal(s.session.draftError,true);s.session.dispose();
+});
