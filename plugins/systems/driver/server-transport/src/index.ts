@@ -12,7 +12,7 @@ export function createServerTransport(options: { readonly mode: "browser" | "des
     provides: [ConnectionStatus, ServerTransport, AccountSessionChanged, ConnectionChanged].map(t => ({ kind: t.kind, id: t.id, version: t.version })),
     requires: [{ kind: "api", id: Logger.id, range: "^1.0.0" }], permissions: [], optionalPermissions: [] }, activate(ctx) {
     const logger = scopeLogger(ctx.use(Logger), ctx.signal); let address = ""; let bearer: string | undefined; let current: AccountState | null = null;
-    let epoch = 0; let connection: "connected" | "offline" | "expired" | "unknown" = "unknown";
+    let connectionGeneration = 0; let epoch = 0; let connection: "connected" | "offline" | "expired" | "unknown" = "unknown";
     const controllers = new Set<AbortController>(); const deadlines = new Map<AbortController, ReturnType<typeof setTimeout>>(); let unbindOwner = () => {};
     const failed = <T>(code: string, message: string): RemoteResult<T> => ({ ok: false, error: { code, message } } as RemoteResult<T>);
     async function publish() { if (!ctx.signal.aborted) await ctx.events.emit(AccountSessionChanged, { current }); }
@@ -48,6 +48,7 @@ export function createServerTransport(options: { readonly mode: "browser" | "des
         if (version !== epoch || owner.aborted || ctx.signal.aborted) return failed("CANCELLED", "The account session changed.");
         if (!result || typeof result.ok !== "boolean" || (!result.ok && (typeof result.error?.code !== "string" || typeof result.error?.message !== "string"))) return failed("PROTOCOL_MISMATCH", "The server returned an unsupported response.");
         if (!result.ok && ["SESSION_EXPIRED", "UNAUTHENTICATED"].includes(result.error.code) && current) { retire(); await status("expired"); await publish(); }
+        else if (response.status >= 500 || (!result.ok && ["SERVER_UNAVAILABLE", "OFFLINE"].includes(result.error.code))) await status("offline");
         else await status("connected");
         return result;
       } catch (error) {
@@ -65,11 +66,14 @@ export function createServerTransport(options: { readonly mode: "browser" | "des
         try { url = new URL(value); if (!["http:", "https:"].includes(url.protocol) || url.username || url.password || url.pathname !== "/" || url.search || url.hash) throw Error(); }
         catch { return failed("INVALID_ARGUMENT", "Enter an HTTP(S) server address."); }
         if (owner.aborted) return failed("CANCELLED", "The connection was cancelled.");
-        unbindOwner(); retire(); address = url.origin; await publish();
+        unbindOwner(); retire(); address = url.origin;
+        const generation = ++connectionGeneration; const version = epoch;
         // Owner cleanup only retires local state; it must not publish through SDK.
-        const abort = () => { retire(); address = ""; };
+        const abort = () => { if (generation === connectionGeneration) { retire(); address = ""; } };
         owner.addEventListener("abort", abort, { once: true }); unbindOwner = () => owner.removeEventListener("abort", abort);
-        const version = epoch; const result = await request("GET", "server", undefined, owner);
+        await publish();
+        if (version !== epoch || owner.aborted || ctx.signal.aborted) return failed("CANCELLED", "The connection was superseded or cancelled.");
+        const result = await request("GET", "server", undefined, owner);
         if (!result.ok) return result;
         const info = result.value as ServerInfo;
         if (info?.protocol !== REMOTE_PROTOCOL || !["open", "invitation"].includes(info.registration) || typeof info.buildId !== "string") { address = ""; return failed("PROTOCOL_MISMATCH", "The server protocol is incompatible."); }
