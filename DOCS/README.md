@@ -29,6 +29,7 @@
 - [Vault-scoped filesystem](reference/filesystem.md): provider/driver APIs, relative paths, dialogs, writes, permissions and native verification.
 - [Application configuration directory](reference/application-storage.md): global file storage, owned roots and coordinated closure.
 - [Vault Manager](reference/vault.md): active context, opening/switching/closing, preparation hooks and events.
+- [Awaited Vault runtime lifecycle](reference/vault-runtime-lifecycle.md): stop after accepted save guards and settle before transition completion, including failed-release recovery.
 - [Settings foundation](reference/settings.md): declarative category/group/item registration, typed controls, ordering/layout, owned views and Vault-scoped callbacks; legacy custom sections remain supported.
 - [Settings integration audit](design/settings-integrations.md): proposed preferences, owning plugins, SDK readiness, exclusions and bounded delivery order.
 - [Interface settings](../plugins/UI/interface-settings/DOCS/README.md): immediate Vault-local language/theme preferences, live application, persistence and selection limits.

@@ -2,8 +2,8 @@ import { definePlugin } from "@lunaris/sdk";
 import type { ResourceScope } from "@lunaris/sdk";
 import { DirectoryLocations, validDirectoryName, Filesystem, FilesystemRoots, FilesystemLocations, validFolderLocation } from "@lunaris/filesystem";
 import type { FolderLocation, VaultRoot } from "@lunaris/filesystem";
-import { Vault, VaultCreation, VaultLocations, VaultChanged, PrepareVault, validVaultName } from "@lunaris/vault";
-import type { VaultChange, VaultResult } from "@lunaris/vault";
+import { Vault, VaultCreation, VaultLocations, VaultChanged, PrepareVault, VaultLifecycle, validVaultName } from "@lunaris/vault";
+import type { VaultChange, VaultResult, VaultLifecycleParticipant } from "@lunaris/vault";
 import { Logger, scopeLogger } from "@lunaris/logging";
 import { BeforeVaultRelease } from "@lunaris/vault";
 import manifest from "../manifest.json" with { type: "json" };
@@ -21,11 +21,30 @@ export default definePlugin({ manifest, activate(ctx) {
   let active: Attachment | null = null;
   let busy = false;
   let releaseListeners: (() => void)[] = [];
+  let releaseAttempted = false;
+  const participants = new Map<string, VaultLifecycleParticipant>();
+  ctx.provide(VaultLifecycle, { register(participant, owner) {
+    if (!participant || typeof participant.id !== 'string' || !participant.id || typeof participant.beforeRelease !== 'function' || typeof participant.settled !== 'function' || !owner || typeof owner.addEventListener !== 'function' || typeof owner.removeEventListener !== 'function') return { ok: false, error: { code: 'INVALID_ARGUMENT', message: 'A lifecycle participant and owner are required.' } };
+    if (owner.aborted || ctx.signal.aborted) return failed('STOPPED', 'Participant owner is stopped.');
+    if (participants.has(participant.id)) return failed('BUSY', 'Lifecycle participant ID is already registered.');
+    const captured = Object.freeze({ id: participant.id, beforeRelease: participant.beforeRelease.bind(participant), settled: participant.settled.bind(participant) });
+    participants.set(captured.id, captured);
+    const remove = () => { if (participants.get(captured.id) === captured) participants.delete(captured.id); owner.removeEventListener('abort', remove); ctx.signal.removeEventListener('abort', remove); };
+    owner.addEventListener('abort', remove, { once: true }); ctx.signal.addEventListener('abort', remove, { once: true });
+    return { ok: true, value: null };
+  } });
   async function guardRelease(previous: VaultRoot, next: VaultRoot | null) {
     try {
       const guard = await ctx.hooks.run(BeforeVaultRelease, Object.freeze({ previous, next, error: null, onSettled: (listener: () => void) => { releaseListeners.push(listener); } }));
       if (guard.error && !ctx.signal.aborted) logger.warn(ctx.pluginId, "Vault release declined", { error: guard.error });
-      return guard.error ? { ok: false as const, error: guard.error } : { ok: true as const, value: null };
+      if (guard.error) return { ok: false as const, error: guard.error };
+      releaseAttempted = true;
+      for (const participant of [...participants.values()]) {
+        if (participants.get(participant.id) !== participant) continue;
+        const result = await participant.beforeRelease(previous, next);
+        if (!result.ok) return result;
+      }
+      return { ok: true as const, value: null };
     } catch (error) {
       if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Vault release guard failed", { error });
       return failed("PREPARATION_FAILED", "Cannot safely release the current Vault.");
@@ -46,6 +65,8 @@ export default definePlugin({ manifest, activate(ctx) {
       return failed("BUSY", "Another Vault transition is in progress.");
     }
     busy = true;
+    releaseAttempted = false;
+    const previous = active?.vault ?? null;
     try {
       return await work();
     } catch (error) {
@@ -53,6 +74,13 @@ export default definePlugin({ manifest, activate(ctx) {
       logger.error(ctx.pluginId, "Unexpected Vault transition failure", { code: "VAULT_TRANSITION_FAILED", error, data: { operation } });
       throw error;
     } finally {
+      if (!ctx.signal.aborted && (releaseAttempted || previous?.id !== active?.vault.id)) {
+        for (const participant of [...participants.values()]) {
+          if (participants.get(participant.id) !== participant) continue;
+          try { await participant.settled(previous, active?.vault ?? null); }
+          catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, 'Vault lifecycle settlement failed', { error, data: { participantId: participant.id } }); }
+        }
+      }
       const listeners = releaseListeners; releaseListeners = []; busy = false;
       for (const listener of listeners) {
         try { listener(); } catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Vault release completion failed", { error }); }

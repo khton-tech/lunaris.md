@@ -121,3 +121,18 @@ export const PrepareVault = defineHook<VaultPreparation>({
 
 /** Stable Vault metadata storage namespace, retained for existing configuration files. */
 export const VAULT_METADATA_NAMESPACE = "lunaris.vault-manager";
+
+/** Awaited runtime participants; release runs only after every save guard accepts. */
+export interface VaultLifecycleParticipant {
+  readonly id: string;
+  beforeRelease(previous: VaultRoot, next: VaultRoot | null): Promise<VaultResult<null>>;
+  /** Runs under the transition lock; current may equal previous after a failed release. */
+  settled(previous: VaultRoot | null, current: VaultRoot | null): Promise<void>;
+}
+export interface VaultLifecycleApi {
+  register(participant: VaultLifecycleParticipant, owner: CancellationSignal): VaultResult<null>;
+}
+export const VaultLifecycle = defineApi<VaultLifecycleApi>({
+  id: 'lunaris.vault-lifecycle', version: '1.0.0', consumePermission: 'vault.access',
+  validate: value => !!value && typeof value === 'object' && typeof Object.getOwnPropertyDescriptor(value, 'register')?.value === 'function',
+});

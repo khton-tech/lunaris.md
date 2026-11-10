@@ -4,7 +4,7 @@ import { definePlugin } from '@lunaris/sdk';
 import { createTestKernel } from '@lunaris/test';
 import { Logger } from '@lunaris/logging';
 import { Filesystem, filesystemMethods } from '@lunaris/filesystem';
-import { BeforeVaultRelease, Vault, VaultCreation, VaultLocations, VaultChanged, PrepareVault } from '@lunaris/vault';
+import { BeforeVaultRelease, Vault, VaultCreation, VaultLocations, VaultChanged, PrepareVault, VaultLifecycle } from '@lunaris/vault';
 import filesystem from '@lunaris/filesystem-provider';
 import vaultManager from '@lunaris/vault-manager';
 import { createTauriFilesystemDriver } from '@lunaris/tauri-filesystem';
@@ -62,7 +62,7 @@ async function setup(options = {}) {
     return methods[operation](args.target);
   } }));
   host.register(filesystem); host.register(vaultManager);
-  host.register(definePlugin({ manifest: manifest('test.consumer', [], [BeforeVaultRelease, Vault, VaultCreation, VaultLocations, VaultChanged, PrepareVault, Filesystem].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' })), ['vault.access', 'filesystem.access']), activate(ctx) {
+  host.register(definePlugin({ manifest: manifest('test.consumer', [], [BeforeVaultRelease, Vault, VaultCreation, VaultLocations, VaultChanged, PrepareVault, VaultLifecycle, Filesystem].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' })), ['vault.access', 'filesystem.access']), activate(ctx) {
     context = ctx; manager = ctx.use(Vault); creation = ctx.use(VaultCreation); locations = ctx.use(VaultLocations); fs = ctx.use(Filesystem);
     ctx.events.on(VaultChanged, async change => { changes.push(change); await options.onChange?.(change, manager); });
     if (options.prepare) ctx.hooks.register(PrepareVault, value => options.prepare(value, manager, fs));
@@ -87,6 +87,38 @@ test('startup has no dialog; open/switch/close publish explicit identities after
   assert.deepEqual(s.calls.filter(([name]) => name === 'closeVault'), [['closeVault', 'a'], ['closeVault', 'b']]);
   assert.equal(s.manager.current(), null);
   await s.host.stopAll(); s.host.assertNoResources(); assert.deepEqual(s.host.diagnostics(), []);
+});
+
+test('runtime lifecycle waits after committed open and stops plugins before root release', async () => {
+  const s = await setup(); const lifecycle = s.context.use(VaultLifecycle); const order = []; const gate = deferred();
+  const owner = new AbortController();
+  assert.equal(lifecycle.register({ id: 'test.runtime', async beforeRelease(previous) {
+    assert.equal(s.calls.some(call => call[0] === 'closeVault' && call[1] === previous.id), false);
+    order.push(`release:${previous.id}`); return ok(null);
+  }, async settled(previous, current) {
+    order.push(`settled:${previous?.id ?? '-'}:${current?.id ?? '-'}`);
+    assert.equal((await s.manager.open()).error.code, 'BUSY');
+    if (current?.id === 'a') await gate.promise;
+  } }, owner.signal).ok, true);
+  s.select('a'); let finished = false; const opening = s.manager.open().then(result => { finished = true; return result; });
+  await flush(); assert.equal(finished, false); assert.equal(s.manager.current().id, 'a');
+  gate.resolve(); assert.equal((await opening).ok, true);
+  s.select('b'); assert.equal((await s.manager.open()).ok, true);
+  assert.deepEqual(order, ['settled:-:a', 'release:a', 'settled:a:b']);
+  owner.abort(); await s.manager.close(); assert.equal(order.length, 3);
+  await s.host.stopAll(); s.host.assertNoResources();
+});
+
+test('save veto does not stop runtime; failed native release settles against the retained root', async () => {
+  let failClose = true;
+  const s = await setup({ driver: { async closeVault() { if (failClose) { failClose = false; return failure('IO_ERROR'); } return ok(null); } } });
+  s.select('a'); await s.manager.open(); const order = [];
+  s.context.use(VaultLifecycle).register({ id: 'test.runtime', async beforeRelease(previous) { order.push(`stopped:${previous.id}`); return ok(null); }, async settled(previous, current) { order.push(`restore:${current?.id}`); } }, s.context.signal);
+  const guard = s.context.hooks.register(BeforeVaultRelease, value => ({ ...value, error: { code: 'CONFLICT', message: 'Save failed' } }));
+  assert.equal((await s.manager.close()).error.code, 'CONFLICT'); assert.deepEqual(order, []);
+  guard.dispose(); assert.equal((await s.manager.close()).error.code, 'IO_ERROR');
+  assert.deepEqual(order, ['stopped:a', 'restore:a']); assert.equal(s.manager.current().id, 'a');
+  await s.host.stopAll(); s.host.assertNoResources();
 });
 
 test('cancelled/failed selection leaves active Vault unchanged without emitting changes', async () => {
