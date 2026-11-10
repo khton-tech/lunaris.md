@@ -6,6 +6,7 @@ export class DependencyIndex {
   readonly providers = new Map<string, Set<string>>();
   #consumers = new Map<string, Set<string>>();
   #dependencies = new Map<string, Set<string>>();
+  #owners = new Map<string, string>();
 
   register(manifest: PluginManifest): void {
     const dependencies = new Set<string>();
@@ -26,7 +27,10 @@ export class DependencyIndex {
       consumers.add(manifest.id);
       for (const provider of this.providers.get(key) ?? []) dependencies.add(provider);
     }
+    for (const [child, owner] of this.#owners) if (owner === manifest.id) this.#dependencies.get(child)?.add(owner);
   }
+
+  own(id: string, ownerId: string): void { this.#owners.set(id, ownerId); this.#dependencies.get(id)!.add(ownerId); }
 
   related(root: string): ReadonlySet<string> {
     const reachable = new Set([root]);
@@ -37,6 +41,7 @@ export class DependencyIndex {
   }
 
   unregister(id: string): void {
+    this.#owners.delete(id);
     this.#dependencies.delete(id);
     for (const values of this.#dependencies.values()) values.delete(id);
     for (const [key, values] of this.providers) {

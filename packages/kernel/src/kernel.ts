@@ -72,12 +72,12 @@ class Runtime {
     if (this.#mutating) throw new LunarisError("LIFECYCLE_INVALID", "A registry mutation is in progress; await it before management calls.");
   }
 
-  register = (definition: PluginDefinition): void => {
+  register = (definition: PluginDefinition, options: { readonly ownerId?: string } = {}): void => {
     this.#externalGuard();
-    this.#register(definition);
+    this.#register(definition, options.ownerId);
   };
 
-  #register(definition: PluginDefinition): void {
+  #register(definition: PluginDefinition, ownerId?: string): void {
     const checked = definePlugin(definition);
     const id = checked.manifest.id;
     const compatibility = validateManifest(checked.manifest, { engineVersion: "0.1.0", sdkVersion: "0.1.0" });
@@ -89,10 +89,12 @@ class Runtime {
       this.#diagnostics.record("PLUGIN_DUPLICATE", { pluginId: id });
       throw new LunarisError("PLUGIN_DUPLICATE", "Plugin ID is already registered.", { pluginId: id });
     }
-    const record: Registration = { definition: checked, state: "registered", tail: Promise.resolve() };
+    if (ownerId !== undefined && (ownerId === id || !this.#plugins.has(ownerId))) throw new LunarisError('LIFECYCLE_INVALID', 'Lifecycle owner must be a different registered plugin.', { pluginId: id });
+    const record: Registration = { definition: checked, ...(ownerId === undefined ? {} : { ownerId }), state: "registered", tail: Promise.resolve() };
     this.#permissions.register(record);
     this.#plugins.set(id, record);
     this.#dependencies.register(checked.manifest);
+    if (ownerId !== undefined) this.#dependencies.own(id, ownerId);
   }
 
   #enqueue(id: string, operation: (record: Registration) => Promise<void>, internal = false, stopping = false): Promise<void> {
@@ -202,6 +204,10 @@ class Runtime {
           new LunarisError("LIFECYCLE_INVALID", "Dependency planning failed.", context(record), { cause: planningError });
         throw resolutionFailure;
       }
+      if (record.ownerId) {
+        const owner = this.#plugins.get(record.ownerId);
+        if (owner?.state !== 'active' || !owner.activation || owner.activation.scope.closed) throw new LunarisError('PROVIDER_UNAVAILABLE', 'Lifecycle owner is not active.', { pluginId: record.definition.manifest.id });
+      }
       for (const requirement of record.definition.manifest.requires) {
         const key = requirementKey(requirement);
         const providerId = selected.get(key);
@@ -269,6 +275,7 @@ class Runtime {
   #dependents(provider: Registration, activation = provider.activation, key?: string): Registration[] {
     const providerId = provider.definition.manifest.id;
     return [...this.#plugins.values()].filter(record => record !== provider && (
+      (record.ownerId === providerId && (record.state === 'active' || record.state === 'starting' || record.state === 'stopping' || !!record.pending)) ||
       (record.activation && (!record.activation.scope.closed || record.state === "stopping") && [...record.activation.bindings].some(([bindingKey, binding]) =>
         binding?.provider === provider && binding.activation === activation && !binding.requirement.optional && (!key || key === bindingKey))) ||
       [...this.#starts.get(record) ?? []].some(selected => record.definition.manifest.requires.some(requirement =>
@@ -398,7 +405,7 @@ class Runtime {
   #affected(root: Registration): Registration[] {
     const affected = new Set([root]);
     for (const provider of affected) for (const record of this.#plugins.values()) {
-      if (record.state === "active" && record.activation && [...record.activation.bindings.values()].some(binding => binding?.provider === provider)) affected.add(record);
+      if (record.state === "active" && record.activation && (record.ownerId === provider.definition.manifest.id || [...record.activation.bindings.values()].some(binding => binding?.provider === provider))) affected.add(record);
     }
     return [...affected];
   }
@@ -442,7 +449,7 @@ class Runtime {
       this.#remove(previous);
       installed = true;
       try {
-        this.#register(checked);
+        this.#register(checked, previous.ownerId);
         this.#restoreGrants(checked, grants);
         // A changed consumer declaration cannot inherit invalid selections.
         for (const key of this.#selections.keys()) if (key.startsWith(`${id}/`) && !checked.manifest.requires.some(requirement => key === `${id}/${requirementKey(requirement)}`)) this.#selections.delete(key);
@@ -458,7 +465,7 @@ class Runtime {
             this.#remove(candidate);
           }
           this.#selections = selections;
-          this.#register(previous.definition);
+          this.#register(previous.definition, previous.ownerId);
           this.#restoreGrants(previous.definition, grants);
           for (const consumer of active) await this.#start(consumer);
         } catch (rollback) {
@@ -478,6 +485,7 @@ class Runtime {
   inspect = (): KernelSnapshot => Object.freeze({
     plugins: Object.freeze([...this.#plugins.values()].sort((a, b) => a.definition.manifest.id < b.definition.manifest.id ? -1 : 1).map(record => Object.freeze({
       manifest: record.definition.manifest, state: record.state,
+      ...(record.ownerId === undefined ? {} : { ownerId: record.ownerId }),
       ...(record.activation ? { activationId: record.activation.id } : {}),
       contracts: Object.freeze(record.state === "active" && !record.activation?.scope.closed ? [
         ...record.activation!.apis.keys(), ...record.definition.manifest.provides.filter(p => p.kind !== "api").map(p => contractKey(p)),

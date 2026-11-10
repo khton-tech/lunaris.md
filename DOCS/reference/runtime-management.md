@@ -43,3 +43,21 @@ Targeted regression coverage includes required/optional consumer recovery,
 unrelated activation preservation, stale handles, rollback, dependency-index and
 selection removal, concurrent operations, pending activation, cleanup failure and
 revoked initial grants.
+
+## Host lifecycle ownership
+
+`register(definition, { ownerId })` adds a trusted host lifecycle dependency without
+changing the package's public manifest. The owner must already be registered and
+must differ from the child. Starting a child starts its owner first; ownership
+cycles participate in normal dependency-cycle detection. Stopping/unregistering an
+owner stops its children before owner cleanup. Owner replacement includes active
+children in the restarted graph. Snapshots expose `ownerId` for diagnostics.
+
+Unregistering an owner leaves stopped child registrations; starting them reports
+`PROVIDER_MISSING` until an owner is registered again. Ownership edges survive
+owner replacement/re-registration and are removed with the child. SDK contexts
+cannot assign or modify this metadata. Execution hosts must register loaded
+definitions with their execution driver as owner, so guest cleanup runs while its
+interpreter is still available. A loaded definition that captures a specific driver
+activation must be regenerated when switching execution-driver implementations;
+ownership alone does not rebind private factory closures.

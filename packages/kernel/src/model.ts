@@ -23,6 +23,7 @@ export interface Activation {
 }
 export interface Registration {
   readonly definition: PluginDefinition;
+  readonly ownerId?: string;
   state: PluginState;
   tail: Promise<void>;
   pending?: number;

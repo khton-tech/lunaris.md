@@ -36,6 +36,7 @@ export interface PluginSnapshot {
   readonly manifest: PluginManifest;
   readonly state: PluginState;
   readonly activationId?: string;
+  readonly ownerId?: string;
   readonly contracts: readonly string[];
   readonly ownedResources: number;
   readonly bindings: readonly { readonly contract: string; readonly providerId?: string; readonly activationId?: string; readonly version?: string }[];
@@ -49,7 +50,7 @@ export interface KernelSnapshot {
 
 /** Privileged host composition surface; never included in plugin context. */
 export interface Kernel {
-  register(definition: PluginDefinition): void;
+  register(definition: PluginDefinition, options?: { readonly ownerId?: string }): void;
   /** Stop the affected graph and remove a registration. No implicit replacement. */
   unregister(pluginId: string): Promise<void>;
   /** Replace the same ID and restart its active graph; restore old code on failure. */

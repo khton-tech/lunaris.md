@@ -25,7 +25,7 @@ export function candidates(records: ReadonlyMap<string, Registration>, requireme
 export function resolve(root: string, records: ReadonlyMap<string, Registration>, selections: ReadonlyMap<string, string>, dependencies: DependencyIndex): Plan {
   if (!records.has(root)) throw new LunarisError("PLUGIN_NOT_FOUND", "Plugin is not registered.", { pluginId: root });
   const target = records.get(root)!;
-  if (!target.definition.manifest.requires.length || (target.state === "active" && !target.pendingStops && target.activation && !target.activation.scope.closed)) {
+  if ((!target.definition.manifest.requires.length && !target.ownerId) || (target.state === "active" && !target.pendingStops && target.activation && !target.activation.scope.closed)) {
     return { order: [root], edges: new Map([[root, new Map()]]), errors: new Map(), omitted: [] };
   }
   const edges = new Map<string, Map<string, string | undefined>>();
@@ -39,6 +39,10 @@ export function resolve(root: string, records: ReadonlyMap<string, Registration>
     const record = records.get(id)!;
     const dependencies = new Map<string, string | undefined>();
     edges.set(id, dependencies);
+    if (record.ownerId) {
+      dependencies.set('owner', record.ownerId);
+      if (!records.has(record.ownerId)) errors.set(id, new LunarisError('PROVIDER_MISSING', 'Lifecycle owner is not registered.', { pluginId: id }));
+    }
     for (const requirement of [...record.definition.manifest.requires].sort((a, b) => requirementKey(a) < requirementKey(b) ? -1 : 1)) {
       const key = requirementKey(requirement);
       if (record.state === "active" && !record.pendingStops && record.activation && !record.activation.scope.closed) {
@@ -83,7 +87,7 @@ export function resolve(root: string, records: ReadonlyMap<string, Registration>
     }
     for (const dependency of new Set(edges.get(id)!.values())) if (dependency) {
       // Optional provider failures do not invalidate its consumer's graph.
-      const isRequired = [...edges.get(id)!].some(([key, value]) => value === dependency && !records.get(id)!.definition.manifest.requires.find(r => requirementKey(r) === key)!.optional);
+      const isRequired = [...edges.get(id)!].some(([key, value]) => value === dependency && (key === 'owner' || !records.get(id)!.definition.manifest.requires.find(r => requirementKey(r) === key)!.optional));
       try { visit(dependency, [...path, id]); }
       catch (error) { if (isRequired) throw error; }
     }
