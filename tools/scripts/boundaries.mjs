@@ -90,6 +90,8 @@ export const dependencies = {
   tauri: ['application-host', 'window-titlebar', 'window-provider', 'tauri-window', 'vault', 'logging', 'text-editor', 'interface-settings', 'settings-provider', 'settings-plugin', 'active-screen-provider', 'active-screen-plugin', 'active-document', 'active-document-provider', 'context-menu-provider', 'file-explorer', 'sidebar-plugin', 'sidebar-provider', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'mantine-components', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'],
 };
 
+dependencies['application-host'].push('lime', 'execution');
+
 export const packagePath = scope => {
   if (scope === 'lup-picker') return 'plugins/systems/driver/lup-picker';
   if (scope === 'quickjs-execution') return 'plugins/systems/driver/quickjs-execution';

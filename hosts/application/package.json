@@ -27,6 +27,8 @@
     "./shell.css": "./assets/shell.css"
   },
   "dependencies": {
+    "@lunaris/lime": "0.1.0",
+    "@lunaris/execution": "0.1.0",
     "@lunaris/filesystem-provider": "0.1.0",
     "@lunaris/logger": "0.1.0",
     "@lunaris/dev-tools-logger": "0.1.0",
@@ -82,5 +84,6 @@
   },
   "scripts": {
     "build": "tsc -b"
-  }
+  },
+  "devDependencies": { "@lunaris/quickjs-execution": "0.1.0" }
 }

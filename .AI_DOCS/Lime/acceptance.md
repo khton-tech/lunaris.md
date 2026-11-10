@@ -2,7 +2,28 @@
 
 Runtime and manual evidence is pending. These scenarios define completion; they are not claims of
 implemented behavior. Choose focused checks for the changed contracts/components.
-No full-project test run is required for this planning-only change.
+Use focused checks for each implementation change.
+
+## Implemented foundations, 2026-11-10
+
+- Metadata: 37 shared manifest tests passed; legacy built-ins remain valid.
+- Kernel: `npm run check -- kernel` passed 336 tests across affected consumers,
+  including replacement, rollback, ownership and stale handles.
+- Execution: `node tools/scripts/check.mjs quickjs-execution` passed 31 tests
+  including actual WASM, SDK callbacks/async calls, Config/Filesystem scoping and
+  failed activation cleanup. No real native host isolation acceptance is claimed.
+- Package codec: `node tools/scripts/check.mjs lup` passed 27 tests including
+  hostile raw paths and immutable preview identity.
+- CLI: `npm run check -- cli` passed 26 tests including inert bundle/pack/inspect.
+- Picker: `node tools/scripts/check.mjs lup-picker lime` passed 25 tests including
+  selected file bytes, busy/cancel and late-read cleanup. Native dialog pending.
+- Runtime adapter: `node tools/scripts/check.mjs application-host` passed 75 tests
+  across affected hosts; actual kernel/QuickJS integration covers runtime replacement,
+  rollback, Vault generations, built-in collisions and host shutdown.
+- All checks ran on Node 26.13.0 / Windows, SDK and kernel 0.1.0. Browser/Tauri
+  product execution, Lime storage/engine/UI and complete acceptance remain pending.
+- Commits: d67bbf4, a06d02b, 410bcef, 21ac7bb, dba4e6f, 4f60444, 7b08579,
+  dd9cb81 and e961963 record completed foundation changes. No merge/publication.
 
 ## L01 evidence, 2026-11-10
 

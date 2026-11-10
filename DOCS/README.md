@@ -11,6 +11,7 @@
 - [LUP package format](reference/lup.md): implemented bounded file-only container, shared pack/inspect validation and immutable package-byte identity.
 - [Plugin packaging](guides/plugin-packaging.md): implemented CLI bundle/pack and inert package inspection commands, resources and diagnostics.
 - [Host registry mutations](reference/runtime-management.md): implemented explicit unregister/replacement, affected graph recovery, concurrency and rollback limits.
+- [Lime host runtime adapter](reference/lime-runtime.md): public environment-bound registration, activation, replacement and removal bridge; product composition remains pending.
 - [QuickJS execution driver](../plugins/systems/driver/quickjs-execution/DOCS/README.md): implemented isolated interpreter and synchronous data capabilities; full SDK and product-host integration remain pending.
 - [Remote service contracts](reference/remote.md): account sessions, Vault catalog, durable drafts and filesystem backend tokens.
 - [Local server development](guides/server-development.md): one-command source watching, shared builds, API restarts and paired local validation without a server remote.
