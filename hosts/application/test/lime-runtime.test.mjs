@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createTestKernel } from '@lunaris/test';
 import { definePlugin } from '@lunaris/sdk';
 import { Logger } from '@lunaris/logging';
+import { Vault } from '@lunaris/vault';
 import execution from '@lunaris/quickjs-execution';
 import { LimeRuntime } from '@lunaris/lime';
 import { createLimeRuntime } from '../dist/lime-runtime.js';
@@ -10,6 +11,7 @@ import { createLimeRuntime } from '../dist/lime-runtime.js';
 async function fixture() {
   const kernel = createTestKernel(); let runtime;
   const loggerId = kernel.installMock(Logger, { log() { return true; }, debug() { return true; }, info() { return true; }, warn() { return true; }, error() { return true; } });
+  kernel.installMock(Vault, { current() { return null; }, async open() { return { ok: true, value: null }; }, async close() { return { ok: true, value: null }; } });
   kernel.register(execution); kernel.register(createLimeRuntime(kernel, [loggerId, execution.manifest.id, 'test.manager', 'test.builtin']));
   kernel.grant('lunaris.lime-runtime-adapter', 'runtime.manage');
   kernel.register(definePlugin({ manifest: { manifestVersion: 1, id: 'test.manager', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides: [], requires: [{ kind: 'api', id: LimeRuntime.id, range: '^1.0.0' }], permissions: ['runtime.manage'], optionalPermissions: [] }, activate(ctx) { runtime = ctx.use(LimeRuntime); } }));

@@ -1,4 +1,5 @@
 export const english = Object.freeze({
+  safeRestart: 'Open without third-party plugins',
   title: "Lunaris", host: "Tauri host",
   phaseIdle: "Idle", phaseStarting: "Starting", phaseRunning: "Running", phaseFallback: "Recovery", phaseStopped: "Stopped",
   idle: "Ready to start.", starting: "Starting the application.", running: "The kernel is running.",

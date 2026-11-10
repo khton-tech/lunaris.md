@@ -9,7 +9,7 @@ import { catalogs } from "./catalogs.js";
 
 const categoryId = 'lunaris.lime-settings.plugins'; const sectionId = 'lunaris.lime-settings.manager';
 export default definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-settings', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './dist/index.js',
-  provides: [], requires: [Logger, Lime, LimeChanged, Settings, Localization, LocaleChanged].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' })), permissions: [], optionalPermissions: [],
+  provides: [], requires: [Logger, Lime, LimeChanged, Settings, Localization, LocaleChanged].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' })), permissions: ['runtime.manage'], optionalPermissions: [],
 }, activate(ctx) {
   const logger = ctx.use(Logger); const engine = ctx.use(Lime); const settings = ctx.use(Settings); const localization = ctx.use(Localization);
   const registered = localization.register(ctx.pluginId, catalogs, ctx.signal); if (!registered.ok) throw new Error('Cannot register Lime Settings catalogs.', { cause: registered.error });

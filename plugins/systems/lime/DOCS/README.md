@@ -70,8 +70,9 @@ after a Vault is already open requires explicit `restore()` after its own activa
 commits; do not start guests depending on Lime from inside Lime activation.
 
 The current safe-mode method prevents package evaluation through Lime. Host-owned
-pre-evaluation recovery entry/UI still needs integration; this is not yet complete
-recovery from every essential provider replacement. All archive/module reads/writes
+pre-evaluation recovery now uses LimeBootPolicy and HostSession.startSafeMode;
+the independent recovery shell exposes the action in both hosts. This is not yet
+verified recovery from every essential provider replacement. All archive/module reads/writes
 use public Filesystem with explicit captured Vault IDs.
 
 ## Verification and remaining integration
@@ -83,8 +84,10 @@ Actual Kernel/QuickJS runtime tests are separate host adapter evidence.
 
 Still pending: staging/update orphan cleanup,
 managed-data migration backup/rollback, dependency/provider-choice disclosure,
-arbitrary view support, host recovery/bootstrap, product composition and Lime
-Settings UI. An update can run arbitrary package side effects against the Vault;
+arbitrary view support and complete native/browser acceptance. The shared host now
+composes the engine, SDK execution driver, picker, runtime adapter and Lime Settings.
+Lime management requires the host-only runtime.manage contract; guest code cannot
+use it through the execution broker. An update can run arbitrary package side effects against the Vault;
 code rollback does not reverse those data changes. Do not claim transactional data
 rollback or completed update acceptance until that policy/integration is implemented.
 No visual/native acceptance is claimed by these service tests.

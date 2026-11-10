@@ -13,6 +13,12 @@ export const LimePackagePicker = defineApi<LimePackagePickerApi>({
   validate: value => !!value && typeof value === 'object' && typeof Object.getOwnPropertyDescriptor(value, 'pick')?.value === 'function',
 });
 
+/** Host-owned bootstrap policy, read before any enabled package is evaluated. */
+export const LimeBootPolicy = defineApi<{ safeMode(): boolean }>({
+  id: 'lunaris.lime-boot-policy', version: '1.0.0', consumePermission: 'runtime.manage',
+  validate: value => !!value && typeof value === 'object' && typeof Object.getOwnPropertyDescriptor(value, 'safeMode')?.value === 'function',
+});
+
 export interface LimeEnvironment { readonly vaultId: string; readonly generation: number }
 export interface LimeRuntimeEntry { readonly id: string; readonly state: string; readonly version: string }
 export interface LimeRuntimeApi {
@@ -68,7 +74,7 @@ export interface LimeApi {
   restore(safeMode?: boolean): Promise<LimeResult<null>>;
 }
 export const Lime = defineApi<LimeApi>({
-  id: 'lunaris.lime', version: '1.0.0',
+  id: 'lunaris.lime', version: '1.0.0', consumePermission: 'runtime.manage',
   validate: value => !!value && typeof value === 'object' && ['snapshot', 'preview', 'cancelPreview', 'install', 'update', 'enable', 'disable', 'retry', 'remove', 'restore'].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === 'function'),
 });
 export const LimeChanged = defineEvent<LimeSnapshot>({

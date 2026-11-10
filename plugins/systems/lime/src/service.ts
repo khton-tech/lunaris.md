@@ -20,7 +20,7 @@ function source(preview: InspectedLup): ExecutionSource {
   return { entry: preview.manifest.entry.slice(2), modules };
 }
 
-export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | 'mobile'): void {
+export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | 'mobile', initialSafeMode = false): void {
   const logger = ctx.use(Logger); const fs = ctx.use(Filesystem); const vault = ctx.use(Vault);
   const config = ctx.use(Config);
   const runtime = ctx.use(LimeRuntime); const picker = ctx.use(LimePackagePicker);
@@ -28,7 +28,7 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
   let environment: LimeEnvironment | null = null; let generation = 0; let owner: ResourceScope | null = null;
   let storage: ReturnType<typeof createStorage> | null = null; let records: readonly InstallationRecord[] = [];
   const packages = new Map<string, InspectedLup>(); const previews = new Map<number, { environment: LimeEnvironment; preview: InspectedLup }>();
-  let nextTicket = 0; let busy = false; let transitioning = false; let safeMode = false; let error: string | null = null; let tail = Promise.resolve();
+  let nextTicket = 0; let busy = false; let transitioning = false; let safeMode = initialSafeMode; let error: string | null = null; let tail = Promise.resolve();
   const snapshot = (): LimeSnapshot => {
     const observed = environment ? runtime.snapshot(environment) : null;
     return Object.freeze({ vaultId: environment?.vaultId ?? null, busy: busy || transitioning, safeMode, error,
@@ -168,7 +168,7 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
     }
     packages.set(record.id, preview);
     logger.info(ctx.pluginId, updating ? 'Plugin update committed' : 'Plugin installation committed', { data: { pluginId: record.id, version: record.version } });
-    if (record.enabled && !updating) return await activate(record.id, captured);
+    if (record.enabled && !updating && !safeMode) return await activate(record.id, captured);
     publish(); return ok();
   });
   ctx.provide(Lime, {

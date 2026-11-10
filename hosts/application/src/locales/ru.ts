@@ -1,6 +1,7 @@
 import type { english } from "./en.js";
 
 export const russian: Record<keyof typeof english, string> = Object.freeze({
+  safeRestart: 'Открыть без сторонних плагинов',
   title: "Lunaris",
   host: "Среда Tauri",
   phaseIdle: "Ожидание",

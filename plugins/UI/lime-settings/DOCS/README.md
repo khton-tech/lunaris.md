@@ -5,6 +5,8 @@ Settings and Localization APIs, subscribes to LimeChanged/LocaleChanged, and
 requires Logger for readiness and meaningful action outcomes/failures. It provides
 no API. Registrations/catalogs are owned by ctx.signal. It imports no engine
 implementation, host, DOM, React or Mantine code.
+The host grants runtime.manage to this built-in UI to consume Lime; installed guest
+code cannot acquire that management facade through its scoped SDK bridge.
 
 The controller registers Settings / Third-party plugins, with a custom section
 using the public `lunaris.lime-settings` component role. It maps immutable engine
@@ -46,7 +48,7 @@ light/dark and Monochrome. Shared UIKit regression checks pass separately.
 Native visual acceptance remains pending: real file dialog/gesture/cancel,
 light/dark control sizing and focus, long metadata/locales, removal/recovery states
 and narrow/short Settings. Automated DOM tests do not establish native geometry.
-Engine/Settings/UIKit integration is tested; normal host composition and independent
-authoring acceptance are separate remaining tasks. Provider-choice and dependency
+Engine/Settings/UIKit integration is tested and included in normal shared host
+composition. Independent authoring acceptance remains pending. Provider-choice and dependency
 resolution workflows remain incomplete; displaying declarations is not a complete
 dependency resolver.

@@ -67,7 +67,8 @@ operation must be bounded. This is not a hard real-time watchdog; browser/native
 recovery and Worker supervision remain integration work. Memory limits cover the
 guest runtime, not all host WASM/module/transfer allocations.
 
-Implementation dependency: pinned `quickjs-emscripten` 0.32.0. See its
+Implementation dependencies: pinned `quickjs-emscripten-core` and the separate
+release-sync WASM variant at 0.32.0; debug/asyncify variants are not bundled. See its
 [runtime and memory/interrupt documentation](https://github.com/justjake/quickjs-emscripten).
 This preserves synchronous data calls without evaluating plugin code in the host's
 JavaScript global environment. It does not make arbitrary host-object proxies safe.
@@ -77,8 +78,11 @@ JavaScript global environment. It does not make arbitrary host-object proxies sa
 Node tests run the actual WASM interpreter through public Kernel/SDK composition:
 module containment, missing globals/native imports, synchronous capability calls,
 captured identity, revocation, guest-loop interruption and transfer validation.
-No desktop control tools are used. Browser/Tauri WASM delivery/CSP and native
-authority acceptance are unverified. This driver is not yet in product composition.
+No desktop control tools are used. The shared browser/Tauri product composition
+now includes this driver. Production web bundling verifies one 503 KiB release
+WASM asset; real WebView/browser CSP execution and native authority acceptance
+remain unverified. Tauri CSP permits wasm-unsafe-eval for the built-in interpreter,
+while ordinary host unsafe-eval, arbitrary frames and objects remain forbidden.
 
 Still required: complete host-contract authority review, scoped
 renderer contract for arbitrary viewports, Vault transition generation orchestration,

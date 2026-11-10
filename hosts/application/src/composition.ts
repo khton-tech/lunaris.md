@@ -1,4 +1,8 @@
 import mobileMenu from "@lunaris/mobile-menu-plugin";
+import { createLime } from "@lunaris/lime-manager";
+import limeSettings from "@lunaris/lime-settings";
+import quickjsExecution from "@lunaris/quickjs-execution";
+import { createLupPicker } from "@lunaris/lup-picker";
 import { createCloseGuard } from "./close-guard.js";
 import callouts from "@lunaris/callouts";
 import { createClientUpdates } from "@lunaris/client-updates";
@@ -61,6 +65,8 @@ export function composeApplication(target: HTMLElement, options: {
 }): ApplicationDefinition {
   if (options.features && !options.features.includes("files")) throw Error("The files feature currently owns required Vault navigation.");
   const preservation = createCloseGuard();
+  const lime = createLime({ platform: options.mode === 'desktop' ? 'desktop' : 'web' });
+  const lupPicker = createLupPicker(target.ownerDocument);
   const art = options.art;
   const navigation = options.mode === "browser" ? createBrowserNavigation() : null;
   const updateService = options.mode === "browser" && options.buildId && options.buildId !== "development" ? createClientUpdates(options.buildId) : null;
@@ -84,12 +90,15 @@ export function composeApplication(target: HTMLElement, options: {
     if (!options.features.includes("settings")) disabled.add(settings.manifest.id);
   }
   const definition: ApplicationDefinition = {
+    pluginRuntime: true,
     ...layout,
     startup,
     beforeClose: async () => await preservation.beforeClose() && (extra.beforeClose ? await extra.beforeClose() : true),
-    plugins: [preservation.plugin, ...extra.plugins, ...updates, clipboardDriver, clipboardProvider, device, transport, accountSession, account, remoteFilesystem, draftsProvider, router, ...(options.platformPlugins ?? []), mobileMenu, statusBar, callouts, textEditor, interfaceSettings, settingsProvider, settings, activeScreenProvider, activeScreen, activeDocument, contextMenu, fileExplorer, sidebar, sidebarProvider, runner, ...(options.mode === "desktop" ? [selector] : []), workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
-    entrypoints: [preservation.plugin.manifest.id, ...extra.entrypoints, ...updates.map(plugin => plugin.manifest.id), account.manifest.id, mobileMenu.manifest.id, statusBar.manifest.id, callouts.manifest.id, textEditor.manifest.id, startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, ...(options.mode === "desktop" ? [selector.manifest.id] : []), workspace.manifest.id, activeScreen.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id, settings.manifest.id, interfaceSettings.manifest.id],
+    plugins: [lime, quickjsExecution, lupPicker, ...(options.features && !options.features.includes('settings') ? [] : [limeSettings]), preservation.plugin, ...extra.plugins, ...updates, clipboardDriver, clipboardProvider, device, transport, accountSession, account, remoteFilesystem, draftsProvider, router, ...(options.platformPlugins ?? []), mobileMenu, statusBar, callouts, textEditor, interfaceSettings, settingsProvider, settings, activeScreenProvider, activeScreen, activeDocument, contextMenu, fileExplorer, sidebar, sidebarProvider, runner, ...(options.mode === "desktop" ? [selector] : []), workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
+    entrypoints: [preservation.plugin.manifest.id, ...extra.entrypoints, ...updates.map(plugin => plugin.manifest.id), account.manifest.id, mobileMenu.manifest.id, statusBar.manifest.id, callouts.manifest.id, textEditor.manifest.id, startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, ...(options.mode === "desktop" ? [selector.manifest.id] : []), workspace.manifest.id, activeScreen.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id, settings.manifest.id, interfaceSettings.manifest.id, lime.manifest.id, ...(options.features && !options.features.includes('settings') ? [] : [limeSettings.manifest.id])],
     grants: {
+      [lime.manifest.id]: lime.manifest.permissions,
+      [limeSettings.manifest.id]: limeSettings.manifest.permissions,
       ...layout.grants,
       [preservation.plugin.manifest.id]: ["vault.access"],
       ...extra.grants,

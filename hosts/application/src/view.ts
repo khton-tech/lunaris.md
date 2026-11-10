@@ -19,8 +19,9 @@ export function mountSystemView(root: HTMLElement, application: HTMLElement, ses
   const heading = el("h1");
   const detail = el("p", undefined, "detail");
   const retry = el("button"); retry.type = "button";
+  const safeRetry = el('button'); safeRetry.type = 'button';
   const statusRow = el("div", undefined, "status-row");
-  statusRow.append(heading, retry);
+  statusRow.append(heading, retry, safeRetry);
   intro.append(statusRow, detail);
   const metrics = el("dl", undefined, "metrics");
   const plugins = el("section", undefined, "section");
@@ -49,6 +50,7 @@ export function mountSystemView(root: HTMLElement, application: HTMLElement, ses
     void work().catch(() => session.reportFault("view", "RECOVERY_ACTION_FAILED"));
   }
   retry.onclick = () => action(session.start);
+  safeRetry.onclick = () => action(session.startSafeMode);
 
   function render(snapshot: HostSnapshot): void {
     const renderKey = JSON.stringify(snapshot);
@@ -69,6 +71,8 @@ export function mountSystemView(root: HTMLElement, application: HTMLElement, ses
     detail.hidden = snapshot.phase !== "fallback" && !snapshot.recoveryBlocked;
     retry.textContent = t(snapshot.busy ? "working" : "restart"); retry.disabled = snapshot.busy || snapshot.recoveryBlocked;
     retry.hidden = snapshot.phase === "running" || snapshot.phase === "starting" || snapshot.recoveryBlocked;
+    safeRetry.textContent = t('safeRestart'); safeRetry.disabled = snapshot.busy || snapshot.recoveryBlocked;
+    safeRetry.hidden = !snapshot.pluginRuntimeAvailable || snapshot.phase !== 'fallback' || snapshot.recoveryBlocked;
     pluginsHeading.textContent = t("plugins"); diagnosticsHeading.textContent = t("diagnostics");
     scope.textContent = t("scope"); pluginHelpHeading.textContent = t("pluginHelp");
     pluginHelp.hidden = snapshot.kernel.plugins.length + snapshot.disabled.length === 0;

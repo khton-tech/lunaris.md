@@ -15,6 +15,10 @@
     "src/**/*.ts"
   ],
   "references": [
+    { "path": "../../plugins/systems/lime" },
+    { "path": "../../plugins/UI/lime-settings" },
+    { "path": "../../plugins/systems/driver/quickjs-execution" },
+    { "path": "../../plugins/systems/driver/lup-picker" },
     { "path": "../../packages/lime" },
     { "path": "../../packages/execution" },
     {

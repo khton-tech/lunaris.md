@@ -1,9 +1,12 @@
-import { getQuickJS } from "quickjs-emscripten";
-import type { QuickJSHandle } from "quickjs-emscripten";
+import { newQuickJSWASMModuleFromVariant } from "quickjs-emscripten-core";
+import type { QuickJSHandle, QuickJSWASMModule } from "quickjs-emscripten-core";
+import releaseSync from "@jitl/quickjs-wasmfile-release-sync";
 import type { CancellationSignal } from "@lunaris/sdk";
 import type { ExecutionCapability, ExecutionIdentity, ExecutionLimits, ExecutionRealm, ExecutionSource, ExecutionValue } from "@lunaris/execution";
 
 const MAX_DATA_BYTES = 1024 * 1024;
+let module: Promise<QuickJSWASMModule> | undefined;
+const interpreter = () => module ??= newQuickJSWASMModuleFromVariant(releaseSync).catch(error => { module = undefined; throw error; });
 const validModule = (name: string): boolean => name.length > 0 && name.length <= 240 &&
   !/[\\:%?#\s\u0000-\u001f\u007f]/.test(name) && name.split('/').every(part => part !== '' && part !== '.' && part !== '..');
 
@@ -41,7 +44,7 @@ export async function createRealm(identity: ExecutionIdentity, source: Execution
   const stack = limits.stackBytes ?? 256 * 1024;
   const turn = limits.turnMilliseconds ?? 100;
   if (![memory, stack, turn].every(value => Number.isSafeInteger(value) && value > 0) || memory > 128 * 1024 * 1024 || stack > 1024 * 1024 || turn > 1000) throw new Error("Invalid execution limits.");
-  const wasm = await getQuickJS();
+  const wasm = await interpreter();
   if (owner.aborted || driver.aborted) throw new Error("Execution owner is closed.");
   const runtime = wasm.newRuntime();
   runtime.setMemoryLimit(memory); runtime.setMaxStackSize(stack);

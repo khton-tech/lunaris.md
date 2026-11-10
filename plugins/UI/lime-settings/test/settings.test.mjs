@@ -24,7 +24,7 @@ async function fixture() {
       async restore(safeMode) { calls.push(['restore', safeMode]); state = { ...state, safeMode }; await publish(); return ok(null); },
     });
   } });
-  const s = await setupWorkspace({ settings: true, plugins: [plugin, ui], entrypoints: [ui.manifest.id] });
+  const s = await setupWorkspace({ settings: true, plugins: [plugin, ui], entrypoints: [ui.manifest.id], grants: { [ui.manifest.id]: ui.manifest.permissions } });
   await s.open(); s.tools.sidebar.select('lunaris.settings.navigation'); await flush();
   [...s.surface.querySelectorAll('.lm-settings-category')].find(element => element.textContent === 'Third-party plugins').click(); await flush();
   const button = text => [...s.surface.querySelectorAll('.lm-lime-settings button')].find(element => element.textContent === text);

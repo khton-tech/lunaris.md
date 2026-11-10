@@ -2,10 +2,14 @@ import type { StartupSnapshot, StartupStage, StartupState } from "@lunaris/start
 import { createKernel } from "@lunaris/kernel";
 import type { Kernel, KernelOptions, KernelSnapshot, Scheduler } from "@lunaris/kernel";
 import type { ContractKind, Disposable, MaybePromise, PluginDefinition } from "@lunaris/sdk";
-import { LunarisError } from "@lunaris/sdk";
+import { LunarisError, definePlugin } from "@lunaris/sdk";
+import { LimeBootPolicy } from "@lunaris/lime";
+import { createLimeRuntime } from "./lime-runtime.js";
 
 /** Trusted host renderer adapter, never part of PluginContext. */
 export interface ApplicationDefinition {
+  /** Compose the protected Lime runtime bridge and pre-evaluation boot policy. */
+  readonly pluginRuntime?: boolean;
   readonly plugins: readonly PluginDefinition[];
   readonly selections?: readonly { readonly consumerId: string; readonly kind: ContractKind; readonly contractId: string; readonly providerId: string }[];
   readonly entrypoints: readonly string[];
@@ -27,6 +31,8 @@ export interface HostIncident {
   readonly pluginId?: string;
 }
 export interface HostSnapshot {
+  readonly thirdPartySafeMode: boolean;
+  readonly pluginRuntimeAvailable: boolean;
   readonly phase: HostPhase;
   readonly startup: StartupSnapshot;
   readonly busy: boolean;
@@ -49,6 +55,7 @@ const emptyKernel: KernelSnapshot = Object.freeze({ plugins: Object.freeze([]), 
 const fatalDiagnostics = new Set(["CLEANUP_FAILED", "STOP_TIMEOUT"]);
 
 export class HostSession {
+  #thirdPartySafeMode = false;
   #kernel: Kernel | undefined;
   #definition: ApplicationDefinition | undefined;
   #phase: HostPhase = "idle";
@@ -73,6 +80,7 @@ export class HostSession {
   }
 
   snapshot = (): HostSnapshot => Object.freeze({
+    thirdPartySafeMode: this.#thirdPartySafeMode, pluginRuntimeAvailable: this.#definition?.pluginRuntime === true,
     phase: this.#phase, startup: this.#startup, busy: this.#busy,
     applicationVisible: this.#view !== undefined && (this.#phase === "running" ||
       this.#phase === "starting" && this.#definition?.view?.duringStartup === true),
@@ -161,8 +169,14 @@ export class HostSession {
       const abort = this.#abort = new AbortController();
       this.#progress("loading", "composition");
       stage = "APPLICATION_LOAD_FAILED";
-      const definition = await this.#deadline(Promise.resolve().then(() => this.options.load(abort.signal)), "APPLICATION_LOAD_TIMEOUT", () => abort.abort());
+      let definition = await this.#deadline(Promise.resolve().then(() => this.options.load(abort.signal)), "APPLICATION_LOAD_TIMEOUT", () => abort.abort());
       if (generation !== this.#generation) return;
+      if (definition.pluginRuntime) {
+        const safeMode = this.#thirdPartySafeMode;
+        const policy = definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-boot-policy', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './host-policy.js', provides: [{ kind: 'api', id: LimeBootPolicy.id, version: LimeBootPolicy.version }], requires: [], permissions: [], optionalPermissions: [] }, activate(ctx) { ctx.provide(LimeBootPolicy, { safeMode: () => safeMode }); } });
+        const runtime = createLimeRuntime(this.#kernel, [...definition.plugins.map(plugin => plugin.manifest.id), policy.manifest.id]);
+        definition = { ...definition, plugins: [...definition.plugins, policy, runtime], entrypoints: [policy.manifest.id, ...definition.entrypoints], grants: { ...definition.grants, [runtime.manifest.id]: runtime.manifest.permissions } };
+      }
       this.#definition = definition;
       this.#progress("loading", "registration");
       stage = "PLUGIN_REGISTRATION_FAILED";
@@ -250,6 +264,17 @@ export class HostSession {
     const generation = ++this.#generation;
     return this.#enqueue(() => this.#launch(generation));
   };
+
+  /** Host-owned recovery entry; policy is captured before any package evaluation. */
+  startSafeMode = (): Promise<void> => this.#enqueue(async () => {
+    if (this.#phase === 'running' && this.#definition?.beforeClose) {
+      try { if (!await this.#definition.beforeClose()) return; }
+      catch { this.#incident('runtime', 'APPLICATION_RECOVERY_BLOCKED'); this.#publish(); return; }
+    }
+    this.#thirdPartySafeMode = true;
+    this.#disabled.delete('lunaris.lime-boot-policy');
+    await this.#launch(++this.#generation);
+  });
 
   /** Rebuild the registry so dependency auto-start cannot reactivate disabled plugins. */
   disable = (pluginId: string): Promise<void> => {

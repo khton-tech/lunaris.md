@@ -28,7 +28,8 @@ test('release CSP permits runtime product styles while keeping scripts and embed
   const release = directives(security.csp); const development = directives(security.devCsp);
   assert.deepEqual(release.get('style-src'), development.get('style-src'));
   assert.ok(release.get('style-src').includes("'unsafe-inline'"));
-  assert.deepEqual(release.get('script-src'), ["'self'"]);
+  assert.deepEqual(release.get('script-src'), ["'self'", "'wasm-unsafe-eval'"]);
+  assert.equal(release.get('script-src').includes("'unsafe-eval'"), false);
   assert.deepEqual(release.get('default-src'), ["'self'"]);
   assert.deepEqual(release.get('object-src'), ["'none'"]);
   assert.deepEqual(release.get('frame-src'), ["'none'"]);

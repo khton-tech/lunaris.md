@@ -2,6 +2,7 @@ import { definePlugin } from "@lunaris/sdk";
 import type { PluginDefinition, PluginManifest } from "@lunaris/sdk";
 import type { Kernel } from "@lunaris/kernel";
 import { Logger } from "@lunaris/logging";
+import { Vault } from "@lunaris/vault";
 import { PluginExecution } from "@lunaris/execution";
 import type { ExecutionSource } from "@lunaris/execution";
 import { LimeRuntime } from "@lunaris/lime";
@@ -12,7 +13,7 @@ export function createLimeRuntime(kernel: Kernel, builtinIds: readonly string[])
   const protectedIds = new Set([...builtinIds, 'lunaris.lime-runtime-adapter']);
   return definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-runtime-adapter', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './dist/lime-runtime.js',
     provides: [{ kind: 'api', id: LimeRuntime.id, version: LimeRuntime.version }],
-    requires: [{ kind: 'api', id: Logger.id, range: '^1.0.0' }, { kind: 'api', id: PluginExecution.id, range: '^1.0.0' }], permissions: ['runtime.manage'], optionalPermissions: [],
+    requires: [{ kind: 'api', id: Logger.id, range: '^1.0.0' }, { kind: 'api', id: PluginExecution.id, range: '^1.0.0' }, { kind: 'api', id: Vault.id, range: '^1.0.0' }], permissions: ['runtime.manage', 'vault.access'], optionalPermissions: [],
   }, activate(ctx) {
     const logger = ctx.use(Logger); const execution = ctx.use(PluginExecution);
     const managed = new Map<string, PluginDefinition>(); let current: LimeEnvironment | null = null; let tail = Promise.resolve(); let generation = 0;

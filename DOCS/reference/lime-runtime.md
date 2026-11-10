@@ -2,10 +2,10 @@
 
 `createLimeRuntime(kernel, builtinIds)` is a trusted composition helper exported
 by `@lunaris/application-host`. It creates `lunaris.lime-runtime-adapter`, which
-requires Logger and PluginExecution, and provides `LimeRuntime` 1.0 from
+requires Logger, Vault and PluginExecution, and provides `LimeRuntime` 1.0 from
 `@lunaris/lime`. Only the host passes Kernel to the helper; consuming product
 plugins receive the public token, never a kernel object or private host module.
-The adapter itself needs the internal `runtime.manage` grant. The same permission
+The adapter itself needs the internal `runtime.manage` and `vault.access` grants. The management permission
 is required to consume its API and must not be granted to installed package code.
 
 The adapter serializes all mutations after the SDK invocation unwinds, avoiding
@@ -41,7 +41,30 @@ or failed runtime snapshots. These belong to Lime and its Vault integration.
 
 Integration tests run actual Kernel + adapter + QuickJS against public contracts,
 covering enable/disable, replacement and code rollback, built-in collisions,
-Vault generations and whole-host cleanup. The adapter is not yet installed in
-normal product composition. Registry persistence, Vault transition coordination,
-safe-mode entry, provider-choice planning/revisions and full native/browser
-authority acceptance remain outstanding; this is not the completed Lime engine.
+Vault generations and whole-host cleanup. Shared application composition now
+installs the adapter, engine, Settings controller, selected-file picker and QuickJS
+driver. Vault dependency ownership keeps guest cleanup before root teardown.
+Provider-choice planning/revisions and full native/browser authority acceptance
+remain outstanding; this is not complete Lime acceptance.
+
+## Host recovery bootstrap
+
+ApplicationDefinition.pluginRuntime enables protected adapter/policy composition.
+HostSession creates LimeBootPolicy before entrypoints start, capturing the current
+safe-mode choice. The policy is an essential host entrypoint and cannot silently
+disappear while safe mode is requested. It is independent of product Logger,
+Settings, Components and filesystem replacement. Installed code cannot consume
+its runtime.manage facade through the guest SDK broker.
+
+HostSession.startSafeMode respects the running application's save gate, tears down
+the old session and starts with the host-owned policy already set. The independent
+recovery shell exposes Open without third-party plugins in both browser and desktop
+hosts. The engine registers/inspects installed packages but does not evaluate them
+until explicit resume. Enabled preferences remain intact. Cleanup-unsafe/frozen
+host recovery retains the documented process-restart limitation.
+
+Production browser bundling includes one release-sync QuickJS WASM asset. Tauri
+CSP permits that WebAssembly compilation through wasm-unsafe-eval, while host
+JavaScript unsafe-eval, arbitrary frames and objects remain blocked. Production
+bundling/CSP source tests are evidence for deployment shape, not real native dialog,
+WebView execution, filesystem isolation or manual visual acceptance.

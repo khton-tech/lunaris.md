@@ -6,7 +6,7 @@ import { Logger } from '@lunaris/logging';
 import { Filesystem, filesystemMethods } from '@lunaris/filesystem';
 import { Config } from '@lunaris/config';
 import { Vault, VaultLifecycle } from '@lunaris/vault';
-import { Lime, LimeRuntime, LimePackagePicker } from '@lunaris/lime';
+import { Lime, LimeRuntime, LimePackagePicker, LimeBootPolicy } from '@lunaris/lime';
 import { packLup } from '@lunaris/lup';
 import { createLime } from '@lunaris/lime-manager';
 
@@ -17,10 +17,11 @@ function packageBytes(version = '1.0.0', id = 'test.package') {
   const encode = text => new TextEncoder().encode(text);
   return packLup([{ path: 'manifest.json', data: encode(JSON.stringify(manifest)) }, { path: 'plugin.js', data: encode(`throw Error('preview must not evaluate');`) }]);
 }
-async function fixture() {
+async function fixture(options = {}) {
   const kernel = createTestKernel(); const files = new Map(); const selected = []; const executions = []; const runtimes = new Map(); const settings = new Map(); const configCalls = [];
   let root = { id: 'vault-a', name: 'A' }; let participant; let api; let revision = 0; let failWrites = false; let failActivation = false; let failConfig = false;
   kernel.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(name => [name, () => true])));
+  if (options.bootSafeMode) kernel.installMock(LimeBootPolicy, { safeMode: () => true });
   const methods = Object.fromEntries(filesystemMethods.map(name => [name, async () => failure('NOT_FOUND')]));
   const key = target => `${target.vaultId}:${target.path}`;
   methods.readText = async target => { const file = files.get(key(target)); return file ? ok({ text: new TextDecoder().decode(file.bytes), version: file.version }) : failure('NOT_FOUND'); };
@@ -54,7 +55,8 @@ async function fixture() {
   });
   const plugin = createLime({ platform: 'web' }); kernel.register(plugin);
   for (const permission of plugin.manifest.permissions) kernel.grant(plugin.manifest.id, permission);
-  kernel.register(definePlugin({ manifest: { manifestVersion: 1, id: 'test.consumer', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides: [], requires: [{ kind: 'api', id: Lime.id, range: '^1.0.0' }], permissions: [], optionalPermissions: [] }, activate(ctx) { api = ctx.use(Lime); } }));
+  kernel.register(definePlugin({ manifest: { manifestVersion: 1, id: 'test.consumer', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides: [], requires: [{ kind: 'api', id: Lime.id, range: '^1.0.0' }], permissions: ['runtime.manage'], optionalPermissions: [] }, activate(ctx) { api = ctx.use(Lime); } }));
+  kernel.grant('test.consumer', 'runtime.manage');
   await kernel.start('test.consumer'); await api.restore();
   return { kernel, files, selected, executions, runtimes, settings, configCalls, api, get participant() { return participant; }, setRoot: value => { root = value; }, setFailWrites: value => { failWrites = value; }, setFailActivation: value => { failActivation = value; }, setFailConfig: value => { failConfig = value; } };
 }
@@ -132,4 +134,12 @@ test('explicit updates commit new identity and failed replacements retain recove
   assert.equal((await f.api.update(failed.value.ticket)).error.code, 'RUNTIME_FAILED');
   assert.equal(f.api.snapshot().installations[0].version, '2.0.0'); assert.equal(f.api.snapshot().installations[0].recoveryRequired, true);
   await f.kernel.stopAll();
+});
+
+test('host bootstrap safe mode prevents installed package evaluation before explicit resume', async () => {
+  const f = await fixture({ bootSafeMode: true }); assert.equal(f.api.snapshot().safeMode, true);
+  f.selected.push(packageBytes()); const preview = await f.api.preview();
+  assert.equal((await f.api.install(preview.value.ticket, true)).ok, true); assert.deepEqual(f.executions, []);
+  await f.api.restore(); assert.deepEqual(f.executions, []);
+  await f.api.restore(false); assert.deepEqual(f.executions, ['test.package']); await f.kernel.stopAll();
 });
