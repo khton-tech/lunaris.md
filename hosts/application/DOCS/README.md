@@ -20,6 +20,11 @@ The host owns viewport and recovery geometry. Mantine roles own product surfaces
 embedded views preserve their containers. Recovery is host-owned and remains
 available when product services fail.
 
+The shared browser shell applies safe-area insets inside its border-box dynamic
+viewport, matching the Tauri shell. Product layout roles position floating controls
+inside that safe region and do not add a second device inset. Device verification
+of portrait/landscape cutouts and the virtual keyboard remains pending.
+
 Callouts are enabled alongside the editor through the independent
 `@lunaris/callouts` plugin with `ui.dom`. It consumes EditorExtensions provided by
 Text Editor, so dependency startup orders the editor before the contribution.

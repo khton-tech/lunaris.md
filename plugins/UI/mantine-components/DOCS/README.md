@@ -1,5 +1,28 @@
 # Mantine components
 
+## Mobile layout audit corrections
+
+Reference: the existing mobile Workspace, Files rail and Settings header, plus
+[Mantine UI navigation](https://ui.mantine.dev/category/navbars/). Workspace retains
+ownership of floating surfaces and their scroll overflow. The launcher now scrolls
+when contributed actions exceed its available width, matching the bottom toolbar.
+SidebarRail adapts its own padding to an allocated width of 60px or less so Luna
+padding cannot squeeze compact navigation controls. Settings owns heading wrapping;
+long unbroken category titles stay within the existing sticky header.
+
+File Explorer uses a minimum 44px virtual row height for coarse pointers, including
+draft rows, and recalculates on pointer-capability changes. Virtual geometry is
+updated directly rather than stretching CSS rows over adjacent hit targets. The
+media-query listener is released on unmount. Password inner inputs receive the same
+16px minimum coarse-pointer text as other shared editable inputs.
+
+Existing Workspace/Sidebar/Components contracts connect these changes; no new SDK
+contract or consumer integration is required. DOM regressions cover virtual row
+geometry, capability changes and listener cleanup. Visual acceptance remains pending
+in the real composed Workspace and account screens: 320/360/390/640px widths, short
+landscape, long titles, overflowing launcher actions, Luna light/dark and Monochrome,
+touch scrolling, opened menus and password focus with the virtual keyboard.
+
 ## Initial mobile adaptation
 
 Reference: the existing Workspace rail, Files and Settings compositions, and

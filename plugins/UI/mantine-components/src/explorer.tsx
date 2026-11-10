@@ -182,14 +182,15 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
   useLayoutEffect(() => {
     alive.current = true;
     const element = host.current!;
+    const pointer = element.ownerDocument.defaultView!.matchMedia("(pointer: coarse)");
     const measure = () => {
       const css = element.ownerDocument.defaultView!.getComputedStyle(element);
       const height = Math.max(1, element.getBoundingClientRect().height);
-      const row = Math.max(24, Math.ceil((parseFloat(css.fontSize) || 14) * 2));
+      const row = Math.max(pointer.matches ? 44 : 24, Math.ceil((parseFloat(css.fontSize) || 14) * 2));
       setSize(previous => previous.height === height && previous.row === row ? previous : { height, row });
     };
-    const observer = new ResizeObserver(measure); observer.observe(element); measure();
-    return () => { alive.current = false; observer.disconnect(); };
+    const observer = new ResizeObserver(measure); observer.observe(element); pointer.addEventListener("change", measure); measure();
+    return () => { alive.current = false; observer.disconnect(); pointer.removeEventListener("change", measure); };
   }, [theme.contentStyle.fontSize]);
   useLayoutEffect(() => {
     const api = tree.current; if (!api) return;

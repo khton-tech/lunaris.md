@@ -448,6 +448,39 @@ function explorerFixture(overrides = {}) {
     initialDraft: { form: null, name: '' }, onContextMenu() {}, onDraft() {}, onToggle() {}, onSelection() {}, onBuffer() {}, onCreate: async () => true, onRename: async () => true, onMove: async () => true, onPaste: async () => true, onRemove: async () => true, onRefresh() {}, ...overrides };
 }
 
+test('Explorer virtual rows adapt to touch capability without losing drafts and release the media listener', async () => {
+  const s = await setup(); await s.start();
+  const originalBounds = s.dom.window.HTMLElement.prototype.getBoundingClientRect;
+  const originalMedia = s.dom.window.matchMedia;
+  const listeners = new Set();
+  const pointer = { matches: true, addEventListener(type, listener) { assert.equal(type, 'change'); listeners.add(listener); }, removeEventListener(type, listener) { assert.equal(type, 'change'); listeners.delete(listener); } };
+  s.dom.window.matchMedia = query => query === '(pointer: coarse)' ? pointer : originalMedia(query);
+  s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 480);
+  try {
+    const mounted = s.components.mount('lunaris.file-explorer', s.target, explorerFixture(), s.ctx.signal);
+    assert.equal(mounted.ok, true); await settle();
+    const rowHeight = () => s.target.querySelector('[role=treeitem]').style.height;
+    assert.equal(rowHeight(), '44px');
+    s.target.querySelector('[aria-label="New file"]').click(); await settle();
+    const input = s.target.querySelector('.lm-explorer-create input'); assert.ok(input);
+    typeInput(input, 'Mobile draft'); await settle();
+    pointer.matches = false;
+    for (const listener of listeners) listener();
+    await settle();
+    assert.equal(rowHeight(), '28px');
+    assert.equal(s.target.querySelector('.lm-explorer-create input'), input);
+    assert.equal(input.value, 'Mobile draft');
+    pointer.matches = true;
+    for (const listener of listeners) listener();
+    await settle(); assert.equal(rowHeight(), '44px');
+    mounted.value.dispose(); assert.equal(listeners.size, 0);
+  } finally {
+    s.dom.window.matchMedia = originalMedia;
+    s.dom.window.HTMLElement.prototype.getBoundingClientRect = originalBounds;
+    await s.stop();
+  }
+});
+
 test('explorer toolbar creates in the selected folder, sorts through a themed menu and expands the root', async () => {
   const s = await setup(); await s.start(); const sorts = []; let expands = 0; const drafts = [];
   s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 320);
