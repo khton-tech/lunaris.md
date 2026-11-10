@@ -457,13 +457,13 @@ test('focused selection layer uses the active theme instead of the CodeMirror de
   marker.remove(); await s.stop();
 });
 
-test('Workspace retains temporary Tab traversal suppression outside editable content', async () => {
+test('Workspace preserves Tab traversal outside editable content', async () => {
   const s = await setup({ withLayout: true }); const view = s.cm();
   const button = s.dom.window.document.createElement('button');
   s.dom.window.document.body.append(button); button.focus();
   const event = new s.dom.window.KeyboardEvent('keydown', { key: 'Tab', code: 'Tab', keyCode: 9, bubbles: true, cancelable: true });
   button.dispatchEvent(event); await flush();
-  assert.equal(event.defaultPrevented, true);
+  assert.equal(event.defaultPrevented, false);
   assert.equal(view.state.doc.toString(), '# Note');
   button.remove(); await s.stop();
 });
