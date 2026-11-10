@@ -97,13 +97,13 @@ test('excluding a broken optional provider allows the application to recover', a
     requires: [{ kind: 'api', id: api.id, range: '^1.0.0', optional: true }],
   });
   const { session } = setup({ plugins: [provider, root], entrypoints: ['test.app'] });
-  await session.start(); assert.equal(session.snapshot().phase, 'fallback');
+  await session.start(); assert.equal(session.snapshot().phase, 'running');
   await session.disable('test.optional-provider');
   assert.equal(session.snapshot().phase, 'running'); assert.equal(optional, undefined);
   assert.equal(session.snapshot().kernel.plugins[0].state, 'active'); await session.stop();
 });
 
-test('runtime SDK failures return to the fallback and release the mounted view', async () => {
+test('caught runtime SDK failures preserve unrelated mounted views', async () => {
   const api = defineApi({ id: 'test.service', version: '1.0.0' }); let handle; let disposed = 0;
   const provider = plugin('test.provider', ctx => ctx.provide(api, { fail() { throw new Error('failed'); } }), {
     provides: [{ kind: 'api', id: api.id, version: api.version }],
@@ -115,11 +115,9 @@ test('runtime SDK failures return to the fallback and release the mounted view',
     view: { mount() { return { dispose() { disposed++; } }; } } });
   await session.start(); assert.equal(session.snapshot().applicationVisible, true);
   assert.throws(() => handle.fail());
-  const settled = Promise.withResolvers();
-  session.subscribe(snapshot => { if (snapshot.phase === 'fallback' && !snapshot.busy && disposed) settled.resolve(); });
-  session.refresh(); await settled.promise;
-  assert.equal(disposed, 1); assert.equal(session.snapshot().applicationVisible, false);
-  assert.equal(session.snapshot().incidents.at(-1).code, 'API_CALL_FAILED'); await session.stop();
+  session.refresh(); await Promise.resolve();
+  assert.equal(disposed, 0); assert.equal(session.snapshot().applicationVisible, true);
+  assert.equal(session.snapshot().phase, 'running'); await session.stop();
 });
 
 test('normal permission denial is not treated as an application crash', async () => {
@@ -249,4 +247,12 @@ test('application extensions can replace a bundled provider with the same ID', a
  const definition=composeApplication(target,{art:'L',mode:'desktop',extensions:{plugins:[replacement],entrypoints:[],grants:{},excludeBuiltins:['lunaris.logger']}});
  assert.deepEqual(definition.plugins.filter(p=>p.manifest.id==='lunaris.logger'),[replacement]);
  dom.window.close();
+});
+
+test('fatal recovery preserves before abort and retains live buffers when refused', async()=>{
+ let allowed=false,signal,disposed=false;const order=[];
+ const app=plugin('test.preserve',ctx=>{signal=ctx.signal;return{dispose(){disposed=true;order.push('dispose');}};});
+ const {session}=setup({plugins:[app],entrypoints:[app.manifest.id],beforeClose:async()=>{assert.equal(signal.aborted,false);order.push('preserve');return allowed;}});
+ await session.start();await session.reportFault();assert.equal(disposed,false);assert.equal(signal.aborted,false);assert.equal(session.snapshot().recoveryBlocked,true);
+ await session.start();assert.equal(disposed,false);allowed=true;assert.equal(await session.requestClose(),true);assert.deepEqual(order,['preserve','preserve','dispose']);
 });
