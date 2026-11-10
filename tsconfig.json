@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
+    { "path": "packages/lup" },
     { "path": "packages/execution" },
     { "path": "plugins/systems/driver/quickjs-execution" },
     {

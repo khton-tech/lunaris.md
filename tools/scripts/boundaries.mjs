@@ -3,6 +3,7 @@ import path from 'node:path';
 import ts from 'typescript';
 
 export const dependencies = {
+  lup: ['manifest'],
   execution: ['sdk'],
   'quickjs-execution': ['sdk', 'logging', 'execution'],
   callouts: ['sdk', 'editor', 'logging', 'components', 'localization', 'themes'],
@@ -160,6 +161,7 @@ export function checkSource(source, filename, scope) {
   // The shared validator owns the reviewed, platform-neutral SemVer dependency.
   if (scope === 'manifest') allowed.add('semver');
   if (scope === 'quickjs-execution') allowed.add('quickjs-emscripten');
+  if (scope === 'lup') allowed.add('@noble/hashes/sha2.js');
   // The native browser-storage driver owns portable content fingerprinting.
   if (scope === 'browser-storage') allowed.add('@noble/hashes/sha2.js');
   if (scope === 'config-manager' && path.resolve(filename) === path.resolve('plugins/systems/config/src/codec.ts')) allowed.add('smol-toml');
