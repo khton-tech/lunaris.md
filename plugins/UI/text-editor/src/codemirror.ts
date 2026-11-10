@@ -12,7 +12,7 @@ import { Strikethrough } from "@lezer/markdown";
 import { taskControls } from "./task-checkbox.js";
 import type { TaskControls } from "./task-checkbox.js";
 import { livePreview, livePreviewTheme } from "./live-preview.js";
-import { tabIndentedLists } from "./markdown.js";
+import { noSetextHeadings, tabIndentedLists } from "./markdown.js";
 import { continueTabIndentedList } from "./markdown-commands.js";
 import { pairedInput } from "./paired-input.js";
 import { typingAnimation } from "./typing-animation.js";
@@ -73,7 +73,7 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
   let menu: ReturnType<typeof bindEditorMenu> | undefined;
   const mode = new Compartment();
   const contributed = new Compartment(); const language = new Compartment();
-  const languageFor = (items: readonly EditorExtension[]) => markdown({ addKeymap: false, extensions: [Strikethrough, tabIndentedLists, ...items.flatMap(item => item.markdown ? [item.markdown] : [])] });
+  const languageFor = (items: readonly EditorExtension[]) => markdown({ addKeymap: false, extensions: [Strikethrough, tabIndentedLists, ...items.flatMap(item => item.markdown ? [item.markdown] : []), noSetextHeadings] });
   const wrapping = new Compartment();
   const skin = new Compartment(); const access = new Compartment(); const attributes = new Compartment();
   // A cached state retains history/selection; replace view-specific compartments

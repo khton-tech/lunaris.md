@@ -1,5 +1,8 @@
 import type { Line, MarkdownConfig } from "@lezer/markdown";
 
+/** Underline-like lines must not turn preceding text into a heading. */
+export const noSetextHeadings: MarkdownConfig = { remove: ["SetextHeading"] };
+
 function tabList(line: Line) {
   if (line.indent < line.baseIndent + 4 || !line.text.slice(line.basePos, line.pos).includes("\t")) return false;
   const text = line.text.slice(line.pos);

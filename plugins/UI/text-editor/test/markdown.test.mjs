@@ -1,9 +1,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parser } from '@lezer/markdown';
-import { tabIndentedLists } from '../dist/src/markdown.js';
+import { noSetextHeadings, tabIndentedLists } from '../dist/src/markdown.js';
 
-const markdown = parser.configure(tabIndentedLists);
+const markdown = parser.configure([tabIndentedLists, noSetextHeadings]);
+
+test('underline lines do not promote preceding paragraphs to headings', () => {
+  for (const marker of ['-', '--', '---', '=', '===']) {
+    const tree = markdown.parse(`Пример строки 1\n${marker}`).toString();
+    assert.ok(tree.includes('Paragraph'), tree);
+    assert.ok(!tree.includes('Heading'), tree);
+  }
+  assert.ok(markdown.parse('# Heading').toString().includes('ATXHeading1'));
+  assert.ok(markdown.parse('## Heading').toString().includes('ATXHeading2'));
+  assert.ok(markdown.parse('Text\n\n- Item').toString().includes('BulletList'));
+  assert.ok(markdown.parse('Text\n---').toString().includes('HorizontalRule'));
+});
 
 test('deep tab-indented siblings share a list and retain inline parsing', () => {
   const tree = markdown.parse('\t\t\t\t- **First**\n\t\t\t\t- *Second*');

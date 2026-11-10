@@ -15,6 +15,14 @@ and landscape geometry still require visual acceptance.
 
 ## Usage and saving
 
+Underline-style (Setext) headings are disabled at the Markdown parser level at
+the Owner's request. A following `-` or `=` line does not promote a paragraph to a
+heading; use `#` through `######` for headings. Lists and horizontal rules retain
+their existing syntax, and saved source is unchanged. Other Markdown readers may
+still interpret these underline lines as headings. This extends the existing
+Lunaris editing dialect through CodeMirror's public Markdown configuration; no SDK
+or contributing-plugin integration change is required.
+
 Open a Markdown file in File Explorer. Wrapped lines, Markdown syntax, standard
 text shortcuts, undo/redo, multiple selections and Mod-S are enabled. Tab inserts
 a literal tab (`\t`) at the caret or indents selected lines with tabs. Within

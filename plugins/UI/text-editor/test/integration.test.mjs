@@ -128,6 +128,22 @@ async function setup(options = {}) {
   };
 }
 
+test('composed editor keeps text before underline markers as paragraphs and retains hash headings', async () => {
+  const s = await setup();
+  try {
+    for (const marker of ['-', '--', '---', '=', '===']) {
+      const source = `Пример строки 1\n${marker}`;
+      s.edit(source); await flush();
+      assert.ok(!syntaxTree(s.cm().state).toString().includes('Heading'));
+      assert.equal(s.target.querySelector('.cm-preview-heading'), null);
+      assert.equal(s.cm().state.doc.toString(), source);
+    }
+    s.edit('## Heading'); await flush();
+    assert.ok(syntaxTree(s.cm().state).toString().includes('ATXHeading2'));
+    assert.ok(s.target.querySelector('.cm-preview-h2'));
+  } finally { await s.stop(); }
+});
+
 test('composed editor retains history and selection through Settings, theme changes and renderer replacement', async () => {
   const s = await setup(); s.edit('# Draft'); await flush(); const view = s.cm(); view.dispatch({ selection: { anchor: 3 } });
   s.themes.register({ id: 'test.light', name: 'Light', properties: { appearance: 'light', colors: { background: '#ffffff', text: '#222222', selection: '#cccccc', caret: '#111111' } } }, s.ctx.signal);
