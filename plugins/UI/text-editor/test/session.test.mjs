@@ -129,3 +129,43 @@ test('a late remote save acknowledges its own draft revision while newer edits r
   s.session.edit('newer'); await s.session.persistDraft(); const newerRevision = stored.revision; finish.resolve(); await saving;
   assert.notEqual(removed[0][0], newerRevision); assert.equal(removed[0][1], newerRevision); assert.equal(s.session.dirty, false); assert.equal(stored, null); s.session.dispose();
 });
+
+test('clean flush settles delayed obsolete recovery writes before close', async()=>{
+ let stored=null; const entered=Promise.withResolvers(),release=Promise.withResolvers(); let count=0;
+ const draft={load:async()=>ok(stored),save:async(text,expectedVersion,revision)=>{if(++count===1){entered.resolve();await release.promise;}stored={text,expectedVersion,revision};return ok(null);},remove:async()=>{stored=null;return ok(null);}};
+ const s=setup({draft});await s.session.load();s.session.edit('obsolete');await entered.promise;s.session.edit('# Note');
+ assert.equal(s.session.dirty,false);assert.equal(s.session.hasUnprotectedChanges,true);
+ let settled=false;const flush=s.session.flush().then(r=>{settled=true;return r;});await Promise.resolve();assert.equal(settled,false);
+ release.resolve();assert.equal((await flush).ok,true);assert.equal(s.session.hasUnprotectedChanges,false);s.session.dispose();
+ const reopened=setup({draft});await reopened.session.load();assert.equal(reopened.session.text,'# Note');assert.equal(reopened.session.dirty,false);reopened.session.dispose();
+});
+for(const thrown of [false,true]) test('failed durable discard retains buffer: thrown='+thrown,async()=>{
+ const stored={text:'recover me',expectedVersion:'v1',revision:'r'};
+ const s=setup({draft:{load:async()=>ok(stored),save:async()=>ok(null),remove:async()=>{if(thrown)throw Error('Storage');return {ok:false,error:{code:'IO_ERROR',message:'Storage'}};}}});
+ await s.session.load();await s.session.load(true);assert.equal(s.session.text,'recover me');assert.equal(s.session.dirty,true);assert.equal(s.session.error.code,'IO_ERROR');s.session.dispose();
+});
+
+test('competing recovery candidates require selection and never autosave a hidden choice',async()=>{
+ const records=['A','B'].map((text,index)=>({key:{server:'s',accountId:'a',vaultId:'v',path:'note.md',writerId:text},text,expectedVersion:'v1',revision:text,updatedAt:index}));const saved=[],removed=[];
+ const s=setup({draft:{load:async()=>ok(records),save:async(text)=>{saved.push(text);return ok(null);},remove:async(revision,record)=>{removed.push([revision,record]);return ok(null);}}});
+ await s.session.load();assert.equal(s.session.text,'# Note');assert.equal(s.session.recoveryCandidates.length,2);s.session.edit('silent');await s.tick(2000);assert.equal(s.writes.length,0);assert.deepEqual(saved,[]);
+ s.session.selectRecovery(1);await s.session.persistDraft();assert.equal(s.session.text,'B');assert.equal(s.session.recoveryCandidates.length,0);assert.equal(s.writes.length,0);
+ assert.equal((await s.session.flush()).ok,true);assert.equal(s.writes[0].text,'B');assert.ok(removed.some(([revision,record])=>revision==='B'&&record===records[1]));assert.equal(removed.some(([revision])=>revision==='A'),false);s.session.dispose();
+});
+
+test('discard waits for delayed draft saves and cannot leave discarded text for reopen',async()=>{
+ let stored=null;const entered=Promise.withResolvers(),release=Promise.withResolvers();
+ const draft={load:async()=>ok(stored),save:async(text,expectedVersion,revision)=>{entered.resolve();await release.promise;stored={text,expectedVersion,revision};return ok(null);},remove:async revision=>{if(stored?.revision===revision)stored=null;return ok(null);}};
+ const s=setup({draft});await s.session.load();s.session.edit('Discard');await entered.promise;const discarding=s.session.load(true);await Promise.resolve();assert.equal(s.session.text,'Discard');release.resolve();await discarding;
+ assert.equal(stored,null);assert.equal(s.session.text,'# Note');assert.equal(s.session.dirty,false);s.session.dispose();const reopened=setup({draft});await reopened.session.load();assert.equal(reopened.session.text,'# Note');reopened.session.dispose();
+});
+test('failed acknowledgement cleanup stays protected and retries on clean flush',async()=>{
+ let calls=0;const s=setup({draft:{load:async()=>ok(null),save:async()=>ok(null),remove:async()=>++calls===1?{ok:false,error:{code:'IO_ERROR',message:'Transient'}}:ok(null)}});
+ await s.session.load();s.session.edit('Saved');assert.equal((await s.session.flush()).ok,false);assert.equal(s.session.dirty,false);assert.equal(s.session.hasUnprotectedChanges,true);
+ assert.equal((await s.session.flush()).ok,true);assert.equal(s.session.hasUnprotectedChanges,false);assert.equal(calls,2);s.session.dispose();
+});
+
+test('discard does not acknowledge an unsettled failed draft write',async()=>{
+ const s=setup({draft:{load:async()=>ok(null),save:async()=>({ok:false,error:{code:'IO_ERROR',message:'Storage failure'}}),remove:async()=>{assert.fail('failed recovery write must be surfaced before discard');}}});
+ await s.session.load();s.session.edit('Retain');await s.session.persistDraft();await s.session.load(true);assert.equal(s.session.text,'Retain');assert.equal(s.session.dirty,true);assert.equal(s.session.draftError,true);s.session.dispose();
+});

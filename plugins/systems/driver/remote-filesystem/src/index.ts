@@ -1,7 +1,7 @@
 import { definePlugin } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
-import { ServerTransport, AccountSessionChanged, validRemoteVault, decodeRemoteReference } from "@lunaris/remote";
+import { REMOTE_FILE_LIMITS, remoteFileContentFits, ServerTransport, AccountSessionChanged, validRemoteVault, decodeRemoteReference } from "@lunaris/remote";
 import type { RemoteVault } from "@lunaris/remote";
 import { RemoteFilesystemBackend, failure, validTarget, validFolderLocation } from "@lunaris/filesystem";
 import type { FsResult, FsCapabilities, FileTarget, RemoteRootIdentity } from "@lunaris/filesystem";
@@ -18,7 +18,7 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: "lunaris.remot
   let sequence = 0; let polling = false;
   const next = () => `${ctx.activationId}:${++sequence}`;
   const unsupported = () => Promise.resolve(failure("UNSUPPORTED", "Use the server Vault catalog and file explorer."));
-  const capabilities: FsCapabilities = Object.freeze({ watch: true, atomicReplace: true, versionCheck: "optimistic", trash: false, maxFileBytes: Number.MAX_SAFE_INTEGER });
+  const capabilities: FsCapabilities = Object.freeze({ watch: true, atomicReplace: true, versionCheck: "optimistic", trash: false, maxFileBytes: REMOTE_FILE_LIMITS.maxFileBytes });
   function unwatch(id: string) { watches.get(id)?.detach(); watches.delete(id); }
   function close(id: string) { for (const [watchId, watch] of watches) if (watch.rootId === id) unwatch(watchId); roots.get(id)?.detach(); roots.delete(id); cursors.delete(id); }
   function live(id: string): FsResult<Root> {
@@ -41,6 +41,7 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: "lunaris.remot
   }
   async function file<T>(target: FileTarget, operation: string, args: object = {}): Promise<FsResult<T>> {
     if (!validTarget(target, true)) return failure("INVALID_PATH", "A Vault-relative target is required.");
+    if (!remoteFileContentFits(operation, args)) return failure("TOO_LARGE", "The file exceeds the remote content limit.");
     const root = live(target.vaultId); if (!root.ok) return root;
     const result = await transport.request("POST", `vaults/${root.value.identity.vaultId}/files`, { operation, args: { path: target.path, ...args } });
     if (ctx.signal.aborted || !roots.has(target.vaultId)) return failure("CANCELLED", "The Vault attachment closed.");

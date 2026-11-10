@@ -164,6 +164,9 @@
     },
     {
       "path": "../../plugins/UI/callouts"
+    },
+    {
+      "path": "../../packages/logging"
     }
   ]
 }

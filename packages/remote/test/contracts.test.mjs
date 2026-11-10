@@ -14,7 +14,15 @@ test('session and connection events reject malformed state', () => {
   assert.equal(ConnectionChanged.validate({ state: 'unknown', epoch: 'e' }), false);
 });
 test('draft storage requires conditional removal and rejects accessor methods', () => {
-  assert.equal(Drafts.validate({ load() {}, save() {}, remove() {} }), true);
+  assert.equal(Drafts.validate({ list() {}, load() {}, save() {}, remove() {} }), true);
   assert.equal(Drafts.validate({ load() {}, save() {} }), false);
   assert.equal(Drafts.validate({ load() {}, save() {}, get remove() { throw Error('must not run'); } }), false);
+});
+
+test('remote content limits count UTF-8 bytes and bound binary expansion', async()=>{
+ const {REMOTE_FILE_LIMITS,remoteFileContentFits}=await import('@lunaris/remote');const n=REMOTE_FILE_LIMITS.maxFileBytes;
+ assert.equal(remoteFileContentFits('writeText',{text:'a'.repeat(n)}),true);assert.equal(remoteFileContentFits('writeText',{text:'a'.repeat(n+1)}),false);
+ assert.equal(remoteFileContentFits('writeText',{text:'я'.repeat(n/2)}),true);assert.equal(remoteFileContentFits('writeText',{text:'я'.repeat(n/2+1)}),false);
+ assert.equal(remoteFileContentFits('writeFile',{data:Array(n).fill(255)}),true);assert.equal(remoteFileContentFits('writeFile',{data:Array(n+1).fill(0)}),false);
+ assert.ok(JSON.stringify({text:'\u0000'.repeat(n)}).length<REMOTE_FILE_LIMITS.maxRequestBytes);
 });

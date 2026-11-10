@@ -26,3 +26,9 @@ Text Editor, so dependency startup orders the editor before the contribution.
 The existing Mantine component set supplies `lunaris.callout-header`. Web and
 desktop share this composition; a feature set without editor omits both plugins.
 See [usage and integration](../../../plugins/UI/callouts/DOCS/README.md).
+
+## Provider replacement
+
+Trusted extensions may declare excludeBuiltins (plugin IDs) and selections (consumerId, kind, contractId, providerId). Exclusions remove bundled definitions and their entrypoints/grants while retaining explicitly supplied extensions, including same-ID replacements. Supply replacement entrypoints/grants explicitly. The host applies selections through the public kernel API before activation. Required dependency validation stays authoritative; excluding required navigation without a replacement is invalid. Files remains a required product profile until Vault navigation has another owner.
+
+Runtime recovery distinguishes failed operations from lost entrypoints and unsafe cleanup. Caught API/hook/event failures and unused optional-provider failures remain kernel diagnostics and do not tear down healthy views. Both product compositions install a public-SDK Vault close bridge. Fatal recovery attempts that gate before aborting; a refused/thrown gate retains live buffers, records APPLICATION_RECOVERY_BLOCKED and blocks host relaunch until a guarded close succeeds. Successful preservation is recorded before teardown. This is preservation through live services, not an SDK call after abort or a guarantee against process termination.

@@ -1,5 +1,6 @@
 /** Russian product copy owned by this consumer. */
 export const russian = {
+  recovery: "Выберите черновик для восстановления",
   editorMenu: "Действия редактора",
   formatting: "Форматирование",
   bold: "Полужирный",

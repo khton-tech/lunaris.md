@@ -3,7 +3,7 @@ import { Logger, scopeLogger } from "@lunaris/logging";
 import { Config } from "@lunaris/config";
 import { FilesystemSources } from "@lunaris/filesystem";
 import { AccountSession, AccountSessionChanged } from "@lunaris/remote";
-import { VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged, validRecentVault } from "@lunaris/vault";
+import { VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged, validRecentVault, PrepareVault, validVaultName, VAULT_METADATA_NAMESPACE } from "@lunaris/vault";
 import type { RecentVault, VaultHistoryResult } from "@lunaris/vault";
 import manifest from "../manifest.json" with { type: "json" };
 
@@ -17,6 +17,22 @@ export default definePlugin({ manifest, activate(ctx) {
   const logger = scopeLogger(ctx.use(Logger), ctx.signal);
   const config = ctx.use(Config);
   const locations = ctx.use(VaultLocations);
+  // Config initializes storage first; this Vault persistence owner interprets metadata.
+  ctx.hooks.register(PrepareVault, async preparation => {
+    if (preparation.error !== null) return preparation;
+    const target = { scope: "vault" as const, vaultId: preparation.vault.id };
+    const metadata = await config.read(VAULT_METADATA_NAMESPACE, target);
+    if (!metadata.ok) return { ...preparation, error: "Cannot read Vault metadata: " + metadata.error.code };
+    const stored = metadata.value.name;
+    if (stored !== undefined && !validVaultName(stored)) return { ...preparation, error: "The stored Vault name is invalid." };
+    const name = preparation.requestedName ?? stored;
+    if (preparation.requestedName !== undefined && preparation.requestedName !== stored) {
+      const saved = await config.set(VAULT_METADATA_NAMESPACE, "name", preparation.requestedName, target);
+      if (!saved.ok) { logger.error(ctx.pluginId, "Cannot save Vault metadata", { error: saved.error }); return { ...preparation, error: "Cannot save Vault metadata: " + saved.error.code }; }
+    }
+    logger.info(ctx.pluginId, "Vault metadata prepared");
+    return name === undefined ? preparation : { ...preparation, displayName: name as string };
+  });
   const sources = ctx.permissions.has("filesystem.access") ? ctx.optional(FilesystemSources) : undefined;
   const account = ctx.permissions.has("account.access") ? ctx.optional(AccountSession) : undefined;
   let cached: readonly RecentVault[] = [];

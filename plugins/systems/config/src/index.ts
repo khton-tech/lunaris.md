@@ -1,7 +1,7 @@
 import { definePlugin } from "@lunaris/sdk";
 import { ApplicationDirectory, Filesystem } from "@lunaris/filesystem";
 import type { FileTarget } from "@lunaris/filesystem";
-import { Vault, PrepareVault, validVaultName } from "@lunaris/vault";
+import { Vault, PrepareVault } from "@lunaris/vault";
 import { Logger, scopeLogger } from "@lunaris/logging";
 import { Config, ConfigChanged, validConfigKey, validPluginId } from "@lunaris/config";
 import type { ConfigChange, ConfigReadOptions, ConfigResult, ConfigTable, ConfigTarget, ConfigValue } from "@lunaris/config";
@@ -41,18 +41,8 @@ export default definePlugin({ manifest, async activate(ctx) {
     if (preparation.error !== null) return preparation;
     const ready = await invoke("prepareVault", () => storage.prepareVault(preparation.vault.id));
     if (!ready.ok) return { ...preparation, error: `Cannot prepare Vault configuration: ${ready.error.code}` };
-    const target = { vaultId: preparation.vault.id, path: ".lunaris/config.toml" };
-    const metadata = await invoke("readVaultName", () => storage.read(target, "lunaris.vault-manager"));
-    if (!metadata.ok) return { ...preparation, error: `Cannot read Vault metadata: ${metadata.error.code}` };
-    const stored = metadata.value.name;
-    if (stored !== undefined && !validVaultName(stored)) return { ...preparation, error: "The stored Vault name is invalid." };
-    const name = preparation.requestedName ?? stored;
-    if (preparation.requestedName !== undefined && preparation.requestedName !== stored) {
-      const saved = await invoke("saveVaultName", () => storage.mutate(target, "lunaris.vault-manager", "name", preparation.requestedName));
-      if (!saved.ok) return { ...preparation, error: `Cannot save Vault metadata: ${saved.error.code}` };
-    }
     if (!ctx.signal.aborted) logger.info(ctx.pluginId, "Vault configuration ready", { data: { vaultId: preparation.vault.id } });
-    return name === undefined ? preparation : { ...preparation, displayName: name };
+    return preparation;
   }, { priority: -100 });
   const current = vaults.current();
   if (current) {

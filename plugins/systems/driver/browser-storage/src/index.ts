@@ -7,7 +7,7 @@ import type { FileTarget, FsResult, WriteOptions } from "@lunaris/filesystem";
 import { sha256 } from "@noble/hashes/sha2.js";
 
 interface StoredFile { readonly data: readonly number[]; readonly version: string; readonly modifiedAt: number }
-const keyOf = (key: DraftKey) => JSON.stringify([key.server, key.accountId, key.vaultId, key.path]);
+const keyOf = (key: DraftKey) => JSON.stringify([key.server, key.accountId, key.vaultId, key.path, ...(key.writerId ? [key.writerId] : [])]);
 export function createBrowserStorage(options: { readonly databaseName?: string; readonly indexedDB?: IDBFactory; readonly config?: boolean } = {}) {
   return definePlugin({ manifest: { manifestVersion: 1, id: "lunaris.browser-storage", version: "0.1.0", engine: "^0.1.0", sdk: "^0.1.0", entry: "./dist/index.js",
     provides: [DraftStorage, ...(options.config === false ? [] : [LocalFilesystemBackend.api, LocalFilesystemBackend.changed])].map(t => ({ kind: t.kind, id: t.id, version: t.version })),
@@ -18,8 +18,8 @@ export function createBrowserStorage(options: { readonly databaseName?: string; 
     const roots = new Map<string, () => void>(); let sequence = 0;
     ctx.scope.own({ dispose() { closed = true; for (const detach of roots.values()) detach(); roots.clear(); database?.close(); } });
     database = await new Promise<IDBDatabase>((resolve, reject) => {
-      const request = factory.open(options.databaseName ?? "lunaris-device-v1", 1);
-      request.onupgradeneeded = () => { request.result.createObjectStore("files"); request.result.createObjectStore("drafts"); };
+      const request = factory.open(options.databaseName ?? "lunaris-device-v1", 2);
+      request.onupgradeneeded = () => { for (const name of ["files", "drafts", "draft-writers"]) if (!request.result.objectStoreNames.contains(name)) request.result.createObjectStore(name); };
       request.onerror = () => reject(request.error);
       request.onblocked = () => reject(Error("Close other Lunaris tabs to upgrade local storage."));
       request.onsuccess = () => { if (closed) { request.result.close(); reject(Error("Browser storage stopped.")); } else resolve(request.result); };
@@ -38,10 +38,20 @@ export function createBrowserStorage(options: { readonly databaseName?: string; 
       try { return { ok: true, value: await work() }; }
       catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Device storage operation failed", { error }); return failure("IO_ERROR", "Local storage is unavailable or full."); }
     }
+    async function candidates(key: DraftKey): Promise<readonly DraftRecord[]> {
+      const records = await new Promise<DraftRecord[]>((resolve, reject) => {
+        const tx = database!.transaction(["drafts", "draft-writers"], "readonly");
+        const legacy = tx.objectStore("drafts").getAll(); const writers = tx.objectStore("draft-writers").getAll();
+        tx.oncomplete = () => resolve([...legacy.result, ...writers.result] as DraftRecord[]);
+        tx.onabort = () => reject(tx.error); tx.onerror = () => {};
+      });
+      return records.filter(record => record.key.server === key.server && record.key.accountId === key.accountId && record.key.vaultId === key.vaultId && record.key.path === key.path);
+    }
     ctx.provide(DraftStorage, {
-      load: key => result(async () => (await access<DraftRecord>("drafts", keyOf(key))) ?? null),
-      save: record => result(async () => { await access<DraftRecord>("drafts", keyOf(record.key), (_previous, store) => { store.put({ ...record, key: { ...record.key } }, keyOf(record.key)); return record; }); return null; }),
-      remove: (key, revision) => result(async () => { await access<DraftRecord>("drafts", keyOf(key), (previous, store) => { if (previous?.revision === revision) { store.delete(keyOf(key)); return undefined; } return previous; }); return null; }),
+      list: key => result(() => candidates(key)),
+      load: key => result(async () => (await access<DraftRecord>(key.writerId ? "draft-writers" : "drafts", keyOf(key))) ?? null),
+      save: record => typeof record.key.writerId !== "string" || !record.key.writerId ? Promise.resolve(failure("INVALID_ARGUMENT", "A writer identity is required.")) : result(async () => { await access<DraftRecord>("draft-writers", keyOf(record.key), (_previous, store) => { store.put({ ...record, key: { ...record.key } }, keyOf(record.key)); return record; }); return null; }),
+      remove: (key, revision) => result(async () => { await access<DraftRecord>(key.writerId ? "draft-writers" : "drafts", keyOf(key), (previous, store) => { if (previous?.revision === revision) { store.delete(keyOf(key)); return undefined; } return previous; }); return null; }),
     });
     if (options.config !== false) {
       const unsupported = () => Promise.resolve(failure("UNSUPPORTED", "Browser storage only owns device configuration; use server Vaults."));

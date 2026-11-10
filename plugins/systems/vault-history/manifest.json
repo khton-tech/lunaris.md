@@ -55,6 +55,11 @@
       "id": "lunaris.account-session-changed",
       "range": "^1.0.0",
       "optional": true
+    },
+    {
+      "kind": "hook",
+      "id": "lunaris.prepare-vault",
+      "range": "^1.0.0"
     }
   ],
   "permissions": [

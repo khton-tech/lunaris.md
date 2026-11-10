@@ -1,3 +1,4 @@
+import { createCloseGuard } from "./close-guard.js";
 import callouts from "@lunaris/callouts";
 import { createClientUpdates } from "@lunaris/client-updates";
 import { createBrowserNavigation } from "@lunaris/browser-navigation";
@@ -55,9 +56,10 @@ export function composeApplication(target: HTMLElement, options: {
   readonly buildId?: string;
   readonly features?: readonly ("editor" | "files" | "settings")[];
   readonly platformPlugins?: readonly PluginDefinition[];
-  readonly extensions?: { readonly plugins: readonly PluginDefinition[]; readonly entrypoints: readonly string[]; readonly grants: Readonly<Record<string, readonly string[]>>; readonly beforeClose?: () => Promise<boolean> };
+  readonly extensions?: { readonly excludeBuiltins?: readonly string[]; readonly selections?: ApplicationDefinition["selections"]; readonly plugins: readonly PluginDefinition[]; readonly entrypoints: readonly string[]; readonly grants: Readonly<Record<string, readonly string[]>>; readonly beforeClose?: () => Promise<boolean> };
 }): ApplicationDefinition {
   if (options.features && !options.features.includes("files")) throw Error("The files feature currently owns required Vault navigation.");
+  const preservation = createCloseGuard();
   const art = options.art;
   const navigation = options.mode === "browser" ? createBrowserNavigation() : null;
   const updateService = options.mode === "browser" && options.buildId && options.buildId !== "development" ? createClientUpdates(options.buildId) : null;
@@ -83,11 +85,12 @@ export function composeApplication(target: HTMLElement, options: {
   const definition: ApplicationDefinition = {
     ...layout,
     startup,
-    ...(extra.beforeClose ? { beforeClose: extra.beforeClose } : {}),
-    plugins: [...extra.plugins, ...updates, clipboardDriver, clipboardProvider, device, transport, accountSession, account, remoteFilesystem, draftsProvider, router, ...(options.platformPlugins ?? []), statusBar, callouts, textEditor, interfaceSettings, settingsProvider, settings, activeScreenProvider, activeScreen, activeDocument, contextMenu, fileExplorer, sidebar, sidebarProvider, runner, ...(options.mode === "desktop" ? [selector] : []), workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
-    entrypoints: [...extra.entrypoints, ...updates.map(plugin => plugin.manifest.id), account.manifest.id, statusBar.manifest.id, callouts.manifest.id, textEditor.manifest.id, startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, ...(options.mode === "desktop" ? [selector.manifest.id] : []), workspace.manifest.id, activeScreen.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id, settings.manifest.id, interfaceSettings.manifest.id],
+    beforeClose: async () => await preservation.beforeClose() && (extra.beforeClose ? await extra.beforeClose() : true),
+    plugins: [preservation.plugin, ...extra.plugins, ...updates, clipboardDriver, clipboardProvider, device, transport, accountSession, account, remoteFilesystem, draftsProvider, router, ...(options.platformPlugins ?? []), statusBar, callouts, textEditor, interfaceSettings, settingsProvider, settings, activeScreenProvider, activeScreen, activeDocument, contextMenu, fileExplorer, sidebar, sidebarProvider, runner, ...(options.mode === "desktop" ? [selector] : []), workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
+    entrypoints: [preservation.plugin.manifest.id, ...extra.entrypoints, ...updates.map(plugin => plugin.manifest.id), account.manifest.id, statusBar.manifest.id, callouts.manifest.id, textEditor.manifest.id, startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, ...(options.mode === "desktop" ? [selector.manifest.id] : []), workspace.manifest.id, activeScreen.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id, settings.manifest.id, interfaceSettings.manifest.id],
     grants: {
       ...layout.grants,
+      [preservation.plugin.manifest.id]: ["vault.access"],
       ...extra.grants,
       ...Object.fromEntries(updates.map(plugin => [plugin.manifest.id, plugin.manifest.permissions])),
       [clipboardDriver.manifest.id]: clipboardDriver.manifest.permissions,
@@ -122,8 +125,9 @@ export function composeApplication(target: HTMLElement, options: {
       [configManager.manifest.id]: ["filesystem.access", "filesystem.app-config", "vault.access"],
     },
   };
-  const plugins = definition.plugins.filter(plugin => !disabled.has(plugin.manifest.id));
+  const excluded = new Set(options.extensions?.excludeBuiltins ?? []);
+  const plugins = definition.plugins.filter(plugin => !disabled.has(plugin.manifest.id) && (extra.plugins.includes(plugin) || !excluded.has(plugin.manifest.id)));
   const registeredIds = new Set(plugins.map(plugin => plugin.manifest.id));
-  return { ...definition, plugins, entrypoints: definition.entrypoints.filter(id => registeredIds.has(id)),
-    grants: Object.fromEntries(Object.entries(definition.grants ?? {}).filter(([id]) => registeredIds.has(id))) };
+  return { ...definition, ...(options.extensions?.selections ? { selections: options.extensions.selections } : {}), plugins, entrypoints: definition.entrypoints.filter(id => registeredIds.has(id)),
+    grants: Object.fromEntries(Object.entries({ ...definition.grants, ...extra.grants }).filter(([id]) => registeredIds.has(id))) };
 }

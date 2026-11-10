@@ -34,23 +34,6 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
   const commitWidth = () => { if (props.panelVisible) props.onPanelWidth?.(Math.round(latestWidth.current)); };
   const publish = props.onTargets;
   useLayoutEffect(() => {
-    const document = main.current!.ownerDocument;
-    // Suspend chrome traversal while allowing editable content to own Tab input.
-    // Use standard HTML semantics, independent of the contributed editor plugin.
-    const suppressTab = (event: KeyboardEvent) => {
-      if (event.key !== "Tab") return;
-      for (const target of event.composedPath()) {
-        if (!(target instanceof document.defaultView!.Element) || !target.hasAttribute("contenteditable")) continue;
-        const editable = target.getAttribute("contenteditable")?.toLowerCase();
-        if (editable === "" || editable === "true" || editable === "plaintext-only") return;
-        break;
-      }
-      event.preventDefault(); event.stopImmediatePropagation();
-    };
-    document.addEventListener("keydown", suppressTab, true);
-    return () => document.removeEventListener("keydown", suppressTab, true);
-  }, []);
-  useLayoutEffect(() => {
     publish(Object.freeze({ main: main.current!, "left-rail": rail.current!, "left-panel": panel.current!, bottom: bottom.current! }));
     return () => publish(null);
   }, [publish]);

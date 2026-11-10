@@ -26,7 +26,7 @@ test('registry validates IDs, sorts contributions and releases owners independen
 test('live adapter adds/removes contributions without replacing view, text, selection or undo history', t => {
   const dom=useBrowser(new JSDOM('<div id="editor"></div>',{pretendToBeVisual:true}));
   globalThis.MutationObserver=dom.window.MutationObserver;globalThis.Window=dom.window.Window;
-  const session={text:'hello\r\n@@word@@',locks:0,missing:false,loading:false,edit(text){this.text=text;}};
+  const session={text:'hello\r\n@@word@@',locks:0,missing:false,loading:false,recoveryCandidates:[],edit(text){this.text=text;}};
   const adapter=mountEditor(document.querySelector('#editor'),session,undefined,null,'Editor',()=>{},error=>{throw error;});
   t.after(()=>{adapter.dispose();dom.window.close();});
   const original=adapter.view;

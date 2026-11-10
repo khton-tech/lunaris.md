@@ -1,5 +1,7 @@
 # Server readiness and update workflow review
 
+Remediation follow-up (2026-11-10): see [implementation status, regression results and remaining manual acceptance](audit-remediation-2026-11-10.md). Original findings below describe their reviewed baseline.
+
 Date: 2026-11-09. Scope: server behavior, installation, updates from the main
 Lunaris repository, integration boundaries, and operational readiness.
 

@@ -24,7 +24,7 @@ test('engine supplies the immutable Monochrome preset without selecting it', asy
   const s = await setup(); assert.deepEqual(s.themes.list(), []);
   await s.host.start(engine.manifest.id);
   const theme = s.themes.get(presetId);
-  assert.equal(theme.name, 'Monochrome'); assert.equal(s.themes.list().length, 11);
+  assert.equal(theme.name, 'Monochrome'); assert.equal(s.themes.list().length, 12);
   assert.equal(theme.properties.appearance, 'dark');
   assert.equal(theme.properties.schema, 'lunaris.base-theme'); assert.equal(theme.properties.schemaVersion, 1);
   assert.ok(Object.isFrozen(theme.properties.colors)); assert.ok(Object.isFrozen(theme.properties.typography.fontFamily));
@@ -111,7 +111,7 @@ test('registration and restart preserve an existing selection and remove only en
   await s.host.start(engine.manifest.id); assert.equal(s.themes.current().id, foreign.id);
   s.themes.select(presetId); await s.host.stop(engine.manifest.id);
   assert.equal(s.themes.current(), null); assert.deepEqual(s.themes.list().map(theme => theme.id), [foreign.id]);
-  await s.host.start(engine.manifest.id); assert.equal(s.themes.list().length, 12); assert.equal(s.themes.current(), null);
+  await s.host.start(engine.manifest.id); assert.equal(s.themes.list().length, 13); assert.equal(s.themes.current(), null);
   s.themes.select(presetId); assert.equal(s.themes.current().name, 'Monochrome');
   await s.stop();
 });
@@ -122,7 +122,7 @@ test('a registration collision preserves another owner; retry succeeds', async (
   await assert.rejects(s.host.start(engine.manifest.id));
   assert.equal(s.themes.get(presetId).name, 'Existing owner'); assert.equal(s.themes.current().id, presetId);
   assert.ok(s.logs.some(([level, source, , details]) => level === 'error' && source === engine.manifest.id && details.error.cause.code === 'ALREADY_REGISTERED'));
-  await owner.dispose(); await s.host.start(engine.manifest.id); assert.equal(s.themes.list().length, 11);
+  await owner.dispose(); await s.host.start(engine.manifest.id); assert.equal(s.themes.list().length, 12);
   await s.host.stopAll(); s.host.assertNoResources();
   assert.ok(!s.host.diagnostics().some(item => ['CLEANUP_FAILED', 'API_CALL_FAILED'].includes(item.code)));
 });
@@ -132,5 +132,5 @@ test('provider shutdown stops its dependent engine; a new provider generation ge
   await s.host.stop(provider.manifest.id); s.host.assertState(engine.manifest.id, 'stopped');
   assert.throws(() => stale.list());
   await s.host.start(engine.manifest.id); await s.host.start('test.observer');
-  assert.equal(s.themes.list().length, 11); assert.equal(s.themes.current(), null); await s.stop();
+  assert.equal(s.themes.list().length, 12); assert.equal(s.themes.current(), null); await s.stop();
 });

@@ -1,12 +1,13 @@
 import type { StartupSnapshot, StartupStage, StartupState } from "@lunaris/startup";
 import { createKernel } from "@lunaris/kernel";
 import type { Kernel, KernelOptions, KernelSnapshot, Scheduler } from "@lunaris/kernel";
-import type { Disposable, MaybePromise, PluginDefinition } from "@lunaris/sdk";
+import type { ContractKind, Disposable, MaybePromise, PluginDefinition } from "@lunaris/sdk";
 import { LunarisError } from "@lunaris/sdk";
 
 /** Trusted host renderer adapter, never part of PluginContext. */
 export interface ApplicationDefinition {
   readonly plugins: readonly PluginDefinition[];
+  readonly selections?: readonly { readonly consumerId: string; readonly kind: ContractKind; readonly contractId: string; readonly providerId: string }[];
   readonly entrypoints: readonly string[];
   /** Trusted composition grants, applied after registration and before activation. */
   readonly grants?: Readonly<Record<string, readonly string[]>>;
@@ -45,7 +46,7 @@ export interface HostSessionOptions {
 }
 
 const emptyKernel: KernelSnapshot = Object.freeze({ plugins: Object.freeze([]), diagnostics: Object.freeze([]) });
-const fatalDiagnostics = new Set(["API_CALL_FAILED", "HOOK_FAILED", "EVENT_LISTENER_FAILED", "ACTIVATION_FAILED", "CLEANUP_FAILED", "STOP_TIMEOUT"]);
+const fatalDiagnostics = new Set(["CLEANUP_FAILED", "STOP_TIMEOUT"]);
 
 export class HostSession {
   #kernel: Kernel | undefined;
@@ -63,6 +64,7 @@ export class HostSession {
   #sequence = 0;
   #diagnosticSequence = 0;
   #cleanupUnsafe = false;
+  #preservationBlocked = false;
   readonly #timeout: number;
 
   constructor(private readonly options: HostSessionOptions) {
@@ -74,7 +76,7 @@ export class HostSession {
     phase: this.#phase, startup: this.#startup, busy: this.#busy,
     applicationVisible: this.#view !== undefined && (this.#phase === "running" ||
       this.#phase === "starting" && this.#definition?.view?.duringStartup === true),
-    recoveryBlocked: this.#cleanupUnsafe,
+    recoveryBlocked: this.#cleanupUnsafe || this.#preservationBlocked,
     kernelVersion: "0.1.0", sdkVersion: "0.1.0",
     kernel: this.#kernel?.inspect() ?? emptyKernel,
     disabled: Object.freeze([...this.#disabled].sort()), incidents: Object.freeze([...this.#incidents]),
@@ -141,6 +143,7 @@ export class HostSession {
 
   async #launch(generation: number): Promise<void> {
     if (generation !== this.#generation) return;
+    if (this.#preservationBlocked) { this.#incident("runtime", "APPLICATION_RECOVERY_BLOCKED"); this.#publish(); return; }
     if (this.#cleanupUnsafe) {
       this.#phase = "fallback";
       this.#incident("cleanup", "RECOVERY_REQUIRES_RESTART"); this.#publish();
@@ -165,6 +168,9 @@ export class HostSession {
       stage = "PLUGIN_REGISTRATION_FAILED";
       for (const plugin of definition.plugins) if (!this.#disabled.has(plugin.manifest.id)) {
         pluginId = plugin.manifest.id; this.#kernel.register(plugin);
+      }
+      for (const selection of definition.selections ?? []) {
+        if (!this.#disabled.has(selection.consumerId)) this.#kernel.selectProvider(selection.consumerId, selection.kind, selection.contractId, selection.providerId);
       }
       for (const [id, permissions] of Object.entries(definition.grants ?? {})) {
         if (this.#disabled.has(id)) continue;
@@ -271,9 +277,18 @@ export class HostSession {
     this.#phase = "fallback";
     this.#progress("failed", "failed", pluginId, code);
     this.#incident(origin, code, pluginId);
-    this.#abort?.abort();
     this.#publish();
     return this.#enqueue(async () => {
+      if (this.#definition?.beforeClose) {
+        let preserved = false;
+        try { preserved = await this.#definition.beforeClose(); } catch { /* Keep buffers live when preservation cannot be confirmed. */ }
+        if (!preserved) {
+          this.#preservationBlocked = true; this.#phase = "running";
+          this.#incident("runtime", "APPLICATION_RECOVERY_BLOCKED"); this.#publish(); return;
+        }
+        this.#incident("runtime", "APPLICATION_RECOVERY_PRESERVED");
+      }
+      this.#abort?.abort();
       try { await this.#shutdown(); } catch { /* Keep the fallback available. */ }
     });
   };
@@ -281,13 +296,13 @@ export class HostSession {
   /** Called by the host monitor; normal permission denials do not crash the UI. */
   refresh = (): void => {
     const kernel = this.#kernel?.inspect();
-    if (this.#phase === "running" && kernel) {
+    if (this.#phase === "running" && kernel && !this.#preservationBlocked) {
       const failed = kernel.plugins.find(plugin => plugin.state === "failed");
       const lost = this.#definition?.entrypoints.find(id => !this.#disabled.has(id) &&
         !kernel.plugins.some(plugin => plugin.manifest.id === id && plugin.state === "active"));
       const diagnostic = kernel.diagnostics.find(item => item.sequence > this.#diagnosticSequence && fatalDiagnostics.has(item.code));
       this.#diagnosticSequence = kernel.diagnostics.at(-1)?.sequence ?? this.#diagnosticSequence;
-      if (failed || lost || diagnostic) {
+      if (lost || diagnostic) {
         void this.reportFault("runtime", diagnostic?.code ?? "APPLICATION_PLUGIN_UNAVAILABLE", failed?.manifest.id ?? lost ?? diagnostic?.pluginId);
         return;
       }

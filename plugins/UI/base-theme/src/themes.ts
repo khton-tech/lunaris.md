@@ -183,4 +183,14 @@ export const baseThemes: readonly ThemeDefinition[] = [
   communityTheme("gruvbox-dark", "Gruvbox Dark", "dark", darkPalette("#282828", "#1D2021", "#EBDBB2", "#FABD2F", "#3C3836", "#504945", "#BDAE93", "#FE8019", "#282828")),
   communityTheme("everforest-dark", "Everforest Dark", "dark", darkPalette("#2D353B", "#343F44", "#D3C6AA", "#A7C080", "#3D484D", "#4A555B", "#A7C080", "#83C092", "#2D353B")),
   communityTheme("sakura-night", "Sakura Night", "dark", darkPalette("#211A22", "#2B202B", "#F4E8F0", "#E89AB8", "#392B38", "#50384B", "#C18AA9", "#F2B6D0", "#211A22")),
+  communityTheme("maiami-night", "Maiami Night", "dark", {
+    background: "#18181A", main: "#E4609B", sub: "#47BAC0",
+    text: "#FFFFFF", caret: "#E4609B", subAlt: "#0F0F10",
+    error: "#FFF591", extraError: "#B6AF68",
+    colorfulError: "#FFF591", colorfulExtraError: "#B6AF68",
+    panel: "#0F0F10", content: "#18181A", textSecondary: "#47BAC0",
+    accent: "#E4609B", onAccent: "#18181A", selection: "#40303B",
+    separator: "#47BAC0", controlBorder: "#47BAC0", hover: "#292327",
+    accentHover: "#E4609B", focus: "#E4609B",
+  }),
 ];

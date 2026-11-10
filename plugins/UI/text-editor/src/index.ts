@@ -31,6 +31,7 @@ const catalogs = { en: {
   conflict: "The file changed outside the editor. Your changes are retained.", missing: "The file was removed. Your text is retained.",
   readFailed: "Cannot read this file.", saveFailed: "Cannot save changes. Your text is retained.",
   offline: "Server unavailable. Changes are saved on this device and will be retried after reconnection.",
+  recovery: "Choose a recovery draft",
   draftFailed: "Local recovery could not be saved. Keep this document open until saving succeeds.",
 }, ru: russian };
 const key = (target: FileTarget) => JSON.stringify([target.vaultId, target.path]);
@@ -44,7 +45,7 @@ export default definePlugin({ manifest, activate(ctx) {
   const vaults = ctx.use(Vault); const themes = ctx.use(Themes);
   const drafts = ctx.permissions.has("drafts.access") ? ctx.optional(Drafts) : undefined; const sources = ctx.optional(FilesystemSources);
   const sessions = new Map<string, DocumentSession>(); const states = new Map<DocumentSession, EditorState>();
-  ctx.provide(DocumentProtection, { hasUnprotectedChanges: () => [...sessions.values()].some(session => session.dirty && !session.draftSaved) });
+  ctx.provide(DocumentProtection, { hasUnprotectedChanges: () => [...sessions.values()].some(session => session.hasUnprotectedChanges) });
   const views = new Set<{ render(): void; removed(): void; refreshControls(): void }>();
   const screenId = `${ctx.pluginId}.screen`;
   let current: DocumentSession | null = null; let unsupported = false; let scheduled = false;
@@ -87,6 +88,7 @@ export default definePlugin({ manifest, activate(ctx) {
   function sessionFor(target: FileTarget): DocumentSession {
     let session = sessions.get(key(target));
     if (!session) {
+      const writerId = [...globalThis.crypto.getRandomValues(new Uint8Array(16))].map(byte => byte.toString(16).padStart(2, "0")).join("");
       const identity = sources?.remoteIdentity(target.vaultId);
       const draftKey = () => identity?.ok ? { ...identity.value, path: session!.target.path } : null;
       session = new DocumentSession({ ...target }, fs, () => {
@@ -95,9 +97,9 @@ export default definePlugin({ manifest, activate(ctx) {
       }, changed,
         (level, message, error) => { if (!ctx.signal.aborted) logger[level](ctx.pluginId, message, error === undefined ? {} : { error }); }, undefined,
         drafts && identity?.ok ? {
-          load: () => drafts.load(draftKey()!),
-          save: (text, expectedVersion, revision) => drafts.save({ key: draftKey()!, text, expectedVersion, revision, updatedAt: Date.now() }),
-          remove: revision => drafts.remove(draftKey()!, revision),
+          load: () => drafts.list(draftKey()!),
+          save: (text, expectedVersion, revision) => drafts.save({ key: { ...draftKey()!, writerId }, text, expectedVersion, revision, updatedAt: Date.now() }),
+          remove: (revision, record) => drafts.remove(record?.key ?? { ...draftKey()!, writerId }, revision),
         } : undefined);
       sessions.set(key(target), session);
     }
@@ -180,7 +182,6 @@ export default definePlugin({ manifest, activate(ctx) {
       const session = current; states.delete(session); clearEditor();
       // Confirmation belongs to the Mantine role. Explicitly discarding a missing
       // draft must allow departure even though the removed file cannot be read.
-      if (session.missing) session.savedText = session.text;
       void session.load(true);
     };
     function render(): void {
@@ -193,6 +194,8 @@ export default definePlugin({ manifest, activate(ctx) {
       const error = session?.draftError ? text("draftFailed") : session?.error ? text(session.error.code === "CONFLICT" ? "conflict" : session.missing ? "missing" : session.draftSaved && ["OFFLINE", "SERVER_UNAVAILABLE"].includes(session.error.code) ? "offline" : session.loaded ? "saveFailed" : "readFailed") : "";
       const next = { documentKey: session ? key(session.target) : "", name: session?.target.path ?? text(unsupported ? "unsupported" : "empty"),
         status: session?.loading ? text("loading") : session?.saving ? text("saving") : session?.loaded ? text(session.dirty ? "unsaved" : "saved") : "",
+        recoveryLabel: text("recovery"), recoveryCandidates: session?.recoveryCandidates.map((record, index) => ({ id: String(index), label: `${new Date(record.updatedAt).toISOString()} · ${record.text.slice(0, 100)}` })) ?? [],
+        onRecovery: (id: string) => { if (session?.active && !signal.aborted && !disposed) { states.delete(session); clearEditor(); session.selectRecovery(Number(id)); } },
         error, commandError, ready, dirty: session?.dirty ?? false, busy: !!session && (session.loading || session.saving || session.locks > 0),
         saveLabel: text("save"), retryLabel: text("retry"), reloadLabel: text("reload"), discardLabel: text("discard"), cancelLabel: text("cancel"), onSave, onReload, onTarget,
         presentation: { mode: "embedded", sizing: "fill" } };

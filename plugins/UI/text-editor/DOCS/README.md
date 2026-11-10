@@ -536,3 +536,9 @@ presentation and Enter handling through EditorExtensions. Text Editor continues
 owning sessions, persistence and undo; no callout-specific implementation or private
 contract is added to the editor. During extension teardown, scheduled statistics
 refresh tolerates retiring SDK dependencies instead of rejecting asynchronously.
+
+Recovery close safety: DocumentProtection includes unsettled draft work and storage failures even when the buffer equals disk. Clean flush waits for queued snapshots and conditionally removes the final obsolete revision before close. Explicit discard waits for pending saves and requires durable removal; failures retain the buffer and expose an error. Failed acknowledged-draft cleanup is retryable through clean flush. These changes use the existing Drafts result contract; multi-writer recovery remains a separate integration requirement.
+
+## Competing recovery drafts
+
+Drafts 2.0 integration uses a random per-document-session writer identity, lists all candidates and copies selected content into that writer. Multiple candidates pause editing and require explicit selection; normal autosave never chooses among them. Public text-editor role props are recoveryLabel, recoveryCandidates ({ id, label }[]), and onRecovery(id). The editor owns translated copy, candidate state and operations; Mantine owns the embedded action composition. Workspace retains all outer geometry and surfaces. Unselected records remain recoverable. Native acceptance remains pending for long previews, narrow/short Workspace, keyboard focus, both themes and two real browser tabs.

@@ -8,3 +8,6 @@ ctx.use(AccountSession).connect("https://notes.example");
 ctx.use(Drafts).load({ vaultId: "v", path: "note.md" });
 // @ts-expect-error Removing a draft requires its acknowledged revision.
 ctx.use(Drafts).remove({ server: "https://notes.example", accountId: "a", vaultId: "v", path: "note.md" });
+
+// @ts-expect-error Saving requires an explicit writer identity.
+ctx.use(Drafts).save({ key: { server: "s", accountId: "a", vaultId: "v", path: "note.md" }, text: "x", expectedVersion: "v", revision: "r", updatedAt: 1 });

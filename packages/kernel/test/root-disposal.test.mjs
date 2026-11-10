@@ -162,3 +162,13 @@ for (const action of ['root', 'host']) {
     assert.deepEqual(order, ['consumer', 'provider']);
   });
 }
+
+test('indirect async recursive disposal relies on the cleanup deadline', async () => {
+ const {kernel,clock}=host({stopTimeoutMs:10});
+ kernel.register(plugin('disposal.recursive',ctx=>{ctx.scope.own({async dispose(){await Promise.resolve();await ctx.scope.dispose();}});}));
+ await kernel.start('disposal.recursive'); const stopping=kernel.stop('disposal.recursive');
+ const rejected=assert.rejects(stopping,error=>error.code==='STOP_TIMEOUT');
+ await new Promise(setImmediate); clock.fire(); await rejected;
+ assert.equal(snapshot(kernel,'disposal.recursive').state,'failed');
+ assert.ok(snapshot(kernel,'disposal.recursive').ownedResources>0);
+});

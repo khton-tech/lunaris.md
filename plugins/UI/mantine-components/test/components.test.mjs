@@ -867,3 +867,23 @@ test('callout title stays plain, has the note pencil icon and no native edit too
   mounted.value.dispose();
  } finally { await s.stop(); }
 });
+
+test('Workspace leaves Tab and Shift+Tab to embedded controls and sibling views', async () => {
+ const s=await setup(); await s.start(); let targets;
+ const mounted=s.components.mount('lunaris.workspace-layout',s.target,{railVisible:true,panelVisible:true,mainLabel:'Main',panelLabel:'Panel',onTargets:value=>{targets=value;},onDismiss(){}},s.ctx.signal);
+ assert.equal(mounted.ok,true); assert.ok(targets);
+ const sibling=s.dom.window.document.createElement('input'); s.target.append(sibling);
+ const input=s.dom.window.document.createElement('input'); targets.main.append(input);
+ for(const target of [sibling,input]) for(const shiftKey of [false,true]) {
+   const event=new s.dom.window.KeyboardEvent('keydown',{key:'Tab',shiftKey,bubbles:true,cancelable:true}); target.dispatchEvent(event); assert.equal(event.defaultPrevented,false);
+ }
+ sibling.remove(); await s.stop();
+});
+
+test('editor recovery choices use public themed actions without selecting a candidate implicitly',async()=>{
+ const s=await setup();await s.start();const chosen=[];
+ const props={documentKey:'note',name:'note.md',status:'',error:'Conflict',ready:true,dirty:false,busy:false,saveLabel:'Save',retryLabel:'Retry',reloadLabel:'Reload',discardLabel:'Discard',cancelLabel:'Cancel',onSave(){},onReload(){},onTarget(){},recoveryLabel:'Choose draft',recoveryCandidates:[{id:'a',label:'First <draft>'},{id:'b',label:'Second draft'}],onRecovery:id=>chosen.push(id),presentation:{mode:'embedded',sizing:'fill'}};
+ assert.equal(s.components.mount('lunaris.text-editor',s.target,props,s.ctx.signal).ok,true);
+ const group=s.target.querySelector('[role=group][aria-label="Choose draft"]');assert.ok(group);assert.deepEqual(chosen,[]);assert.equal(group.querySelector('draft'),null);
+ group.querySelectorAll('button')[1].click();assert.deepEqual(chosen,['b']);await s.stop();
+});

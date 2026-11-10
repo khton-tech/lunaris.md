@@ -32,3 +32,5 @@ a file occupying that name is rejected and preserved.
 
 See [API, format, consistency and error details](../../../../DOCS/reference/config.md).
 Run `npm run config:check` from the repository root.
+
+PrepareVault initializes storage only at priority -100. Vault display-name policy belongs to the Vault persistence owner; generic Config does not read or interpret Vault metadata.

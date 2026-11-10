@@ -1,4 +1,4 @@
-import type { PluginContext, CancellationSignal } from "@lunaris/sdk";
+import { isSdkUnavailable, type PluginContext, type CancellationSignal } from "@lunaris/sdk";
 import { Config, ConfigChanged } from "@lunaris/config";
 import { Settings } from "@lunaris/settings";
 import type { SettingsItemContext, SettingsItemUpdate } from "@lunaris/settings";
@@ -23,7 +23,18 @@ export function createPreferences(ctx: PluginContext, changed: () => void) {
   ensure(localization.register(namespace, catalogs, ctx.signal));
   const text = (key: string) => localization.text(namespace, key);
   let session: Session | undefined;
-  const alive = (current: Session) => !ctx.signal.aborted && session === current && vaults.current()?.id === current.vaultId;
+  function alive(current: Session): boolean {
+    if (ctx.signal.aborted || session !== current) return false;
+    try { return vaults.current()?.id === current.vaultId; }
+    catch (error) { if (isSdkUnavailable(error)) return false; throw error; }
+  }
+  function startLoad(current: Session): void {
+    current.ready = load(current);
+    // Observe background work while preserving its rejection for explicit awaiters.
+    void current.ready.catch(error => {
+      if (!isSdkUnavailable(error)) logger.error(ctx.pluginId, "Background preference load failed", { error });
+    });
+  }
   function valid(key: Key, value: unknown): boolean { return key === "revealActiveFile" ? typeof value === "boolean" : value === "asc" || value === "desc"; }
   function presentation(key: Key): SettingsItemUpdate {
     const current = session; const value = current?.values[key] ?? defaults[key];
@@ -76,7 +87,7 @@ export function createPreferences(ctx: PluginContext, changed: () => void) {
       logger.info(ctx.pluginId, "Preference saved", { data: { key } });
     } catch (error) {
       if (alive(current)) { current.values = previous; current.error = "saveFailed"; logger.error(ctx.pluginId, "Cannot save preference", { data: { key }, error }); }
-    } finally { if (alive(current)) { current.busy = false; if (current.reload) { current.reload = false; current.ready = load(current); } notify(); } }
+    } finally { if (alive(current)) { current.busy = false; if (current.reload) { current.reload = false; startLoad(current); } notify(); } }
   }
   ensure(settings.registerCategory({ id: categoryId, title: text("category"), icon: "folder", order: 30 }, ctx.signal));
   ensure(settings.registerGroup({ id: groupId, categoryId, title: text("group") }, ctx.signal));
@@ -85,14 +96,14 @@ export function createPreferences(ctx: PluginContext, changed: () => void) {
     const vaultId = vaults.current()?.id;
     if (vaultId === session?.vaultId) return;
     session = vaultId ? { vaultId, values: { ...defaults }, loading: true, busy: false, reload: false, revision: 0, error: "", errorKey: keys[0]!, ready: Promise.resolve() } : undefined;
-    if (session) session.ready = load(session);
+    if (session) startLoad(session);
     notify();
   }
   ctx.events.on(VaultChanged, switchVault);
   ctx.events.on(LocaleChanged, publish);
   ctx.events.on(ConfigChanged, change => {
     if (session && change.pluginId === ctx.pluginId && change.scope === "vault" && change.vaultId === session.vaultId && keys.includes(change.key as Key)) {
-      if (session.busy) session.reload = true; else session.ready = load(session);
+      if (session.busy) session.reload = true; else startLoad(session);
     }
   });
   switchVault();

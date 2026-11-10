@@ -192,3 +192,16 @@ test('explicit unwatch and Vault close detach observation ownership idempotently
   assert.equal(calls.filter(call => call[0] === 'unwatch').length, 1);
   await host.stopAll(); host.assertNoResources();
 });
+
+test('failed watch release retries and concurrent releases share disposal', async () => {
+ const { createObservation } = await import('../dist/src/observation.js');
+ let calls=0; const pending=Promise.withResolvers(); const signal=new AbortController().signal;
+ const observation=createObservation({signal,scope:{own(){}}},async()=>({ok:true,value:'watch'}),async()=>{calls++; return calls===1?{ok:false,error:{code:'IO_ERROR',message:'Transient'}}:pending.promise;},()=>{});
+ assert.equal((await observation.unwatch('vault','watch')).ok,false);
+ assert.equal(observation.accepts('vault','watch'),false);
+ const a=observation.unwatch('vault','watch'),b=observation.unwatch('vault','watch');
+ await Promise.resolve(); assert.equal(calls,2); pending.resolve({ok:true,value:null});
+ assert.equal((await a).ok,true); assert.equal((await b).ok,true);
+ assert.equal((await observation.unwatch('vault','watch')).ok,true); assert.equal(calls,2);
+});
+
