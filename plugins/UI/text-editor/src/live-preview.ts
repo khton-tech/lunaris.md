@@ -174,7 +174,7 @@ export const livePreview = ViewPlugin.fromClass(class {
 });
 
 export const livePreviewTheme = EditorView.baseTheme({
-  ".cm-preview-strong": { fontWeight: "600" },
+  ".cm-preview-strong": { fontWeight: "700", fontSynthesis: "weight" },
   ".cm-preview-emphasis": { fontStyle: "italic" },
   ".cm-preview-strike": { textDecoration: "line-through" },
   ".cm-preview-code, .cm-preview-code-block": { fontFamily: "var(--vault-mono, 'Cascadia Code', Consolas, ui-monospace, monospace)", backgroundColor: "color-mix(in srgb, currentColor 5%, transparent)" },

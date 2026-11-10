@@ -60,7 +60,7 @@ function appearance(theme: ThemeDefinition | null, preferences: Preferences) {
     "&.cm-editor .cm-selectionBackground, &.cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": { backgroundColor: color("selection", `color-mix(in srgb, ${color("text")} 25%, transparent)`) },
   }, { dark: properties?.appearance !== "light" }), syntaxHighlighting(HighlightStyle.define([
     { tag: tags.heading, color: color("text"), fontWeight: "600" },
-    { tag: tags.emphasis, fontStyle: "italic" }, { tag: tags.strong, fontWeight: "600" },
+    { tag: tags.emphasis, fontStyle: "italic" }, { tag: tags.strong, fontWeight: "700", fontSynthesis: "weight" },
     { tag: tags.link, color: color("link", color("accent", color("text"))), textDecoration: "underline" },
     { tag: [tags.processingInstruction, tags.meta, tags.comment], color: color("textSecondary") },
     { tag: tags.strikethrough, textDecoration: "line-through" },

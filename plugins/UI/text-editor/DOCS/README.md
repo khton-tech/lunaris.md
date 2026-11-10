@@ -1,5 +1,12 @@
 # Text editor
 
+Strong Markdown emphasis uses weight 700 in both live preview and source syntax
+highlighting, including callout body text. Reference: the Owner's callout screenshot
+where the bold word was insufficiently distinct. Strong spans allow weight synthesis
+when the selected monospace font lacks a bold face; other text retains the host's
+synthesis policy. Editor owns document typography; no callout, UIKit or SDK contract
+change is needed. Native font-weight contrast remains a visual acceptance check.
+
 CodeMirror 6 Markdown editor with Live Preview, integrated through public SDK contracts.
 Plugin: `lunaris.text-editor`; package: `@lunaris/text-editor`. Tauri starts it
 with ui.dom, vault.access and filesystem.access.
