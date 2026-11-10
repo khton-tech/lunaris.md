@@ -55,7 +55,7 @@ export function composeApplication(target: HTMLElement, options: {
   readonly buildId?: string;
   readonly features?: readonly ("editor" | "files" | "settings")[];
   readonly platformPlugins?: readonly PluginDefinition[];
-  readonly extensions?: { readonly plugins: readonly PluginDefinition[]; readonly entrypoints: readonly string[]; readonly grants: Readonly<Record<string, readonly string[]>>; readonly beforeClose?: () => Promise<boolean> };
+  readonly extensions?: { readonly excludeBuiltins?: readonly string[]; readonly selections?: ApplicationDefinition["selections"]; readonly plugins: readonly PluginDefinition[]; readonly entrypoints: readonly string[]; readonly grants: Readonly<Record<string, readonly string[]>>; readonly beforeClose?: () => Promise<boolean> };
 }): ApplicationDefinition {
   if (options.features && !options.features.includes("files")) throw Error("The files feature currently owns required Vault navigation.");
   const art = options.art;
@@ -122,8 +122,9 @@ export function composeApplication(target: HTMLElement, options: {
       [configManager.manifest.id]: ["filesystem.access", "filesystem.app-config", "vault.access"],
     },
   };
-  const plugins = definition.plugins.filter(plugin => !disabled.has(plugin.manifest.id));
+  const excluded = new Set(options.extensions?.excludeBuiltins ?? []);
+  const plugins = definition.plugins.filter(plugin => !disabled.has(plugin.manifest.id) && (extra.plugins.includes(plugin) || !excluded.has(plugin.manifest.id)));
   const registeredIds = new Set(plugins.map(plugin => plugin.manifest.id));
-  return { ...definition, plugins, entrypoints: definition.entrypoints.filter(id => registeredIds.has(id)),
+  return { ...definition, ...(options.extensions?.selections ? { selections: options.extensions.selections } : {}), plugins, entrypoints: definition.entrypoints.filter(id => registeredIds.has(id)),
     grants: Object.fromEntries(Object.entries(definition.grants ?? {}).filter(([id]) => registeredIds.has(id))) };
 }

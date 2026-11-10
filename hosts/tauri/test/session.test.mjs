@@ -233,3 +233,20 @@ test('snapshots are immutable and do not expose kernel management', async () => 
   assert.throws(() => session.snapshot().disabled.push('test.app'));
   assert.equal(session.snapshot().kernel.register, undefined); await session.stop();
 });
+
+test('host applies explicit provider selections before activating consumers', async () => {
+ const api=defineApi({id:'test.choice',version:'1.0.0'}); let chosen;
+ const providers=['test.a','test.b'].map(id=>plugin(id,ctx=>{ctx.provide(api,{value:()=>id});},{provides:[{kind:'api',id:api.id,version:api.version}]}));
+ const user=plugin('test.user',ctx=>{chosen=ctx.use(api).value();},{requires:[{kind:'api',id:api.id,range:'^1.0.0'}]});
+ const {session}=setup({plugins:[...providers,user],entrypoints:[user.manifest.id],selections:[{consumerId:user.manifest.id,kind:'api',contractId:api.id,providerId:'test.b'}]});
+ await session.start(); assert.equal(session.snapshot().phase,'running'); assert.equal(chosen,'test.b'); await session.stop();
+});
+
+test('application extensions can replace a bundled provider with the same ID', async () => {
+ const {composeApplication}=await import('@lunaris/application-host'); const {JSDOM}=await import('jsdom');
+ const dom=new JSDOM('<div id="app"></div>'); const target=dom.window.document.getElementById('app');
+ const replacement=plugin('lunaris.logger');
+ const definition=composeApplication(target,{art:'L',mode:'desktop',extensions:{plugins:[replacement],entrypoints:[],grants:{},excludeBuiltins:['lunaris.logger']}});
+ assert.deepEqual(definition.plugins.filter(p=>p.manifest.id==='lunaris.logger'),[replacement]);
+ dom.window.close();
+});

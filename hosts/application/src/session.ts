@@ -1,12 +1,13 @@
 import type { StartupSnapshot, StartupStage, StartupState } from "@lunaris/startup";
 import { createKernel } from "@lunaris/kernel";
 import type { Kernel, KernelOptions, KernelSnapshot, Scheduler } from "@lunaris/kernel";
-import type { Disposable, MaybePromise, PluginDefinition } from "@lunaris/sdk";
+import type { ContractKind, Disposable, MaybePromise, PluginDefinition } from "@lunaris/sdk";
 import { LunarisError } from "@lunaris/sdk";
 
 /** Trusted host renderer adapter, never part of PluginContext. */
 export interface ApplicationDefinition {
   readonly plugins: readonly PluginDefinition[];
+  readonly selections?: readonly { readonly consumerId: string; readonly kind: ContractKind; readonly contractId: string; readonly providerId: string }[];
   readonly entrypoints: readonly string[];
   /** Trusted composition grants, applied after registration and before activation. */
   readonly grants?: Readonly<Record<string, readonly string[]>>;
@@ -165,6 +166,9 @@ export class HostSession {
       stage = "PLUGIN_REGISTRATION_FAILED";
       for (const plugin of definition.plugins) if (!this.#disabled.has(plugin.manifest.id)) {
         pluginId = plugin.manifest.id; this.#kernel.register(plugin);
+      }
+      for (const selection of definition.selections ?? []) {
+        if (!this.#disabled.has(selection.consumerId)) this.#kernel.selectProvider(selection.consumerId, selection.kind, selection.contractId, selection.providerId);
       }
       for (const [id, permissions] of Object.entries(definition.grants ?? {})) {
         if (this.#disabled.has(id)) continue;

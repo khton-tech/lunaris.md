@@ -26,3 +26,7 @@ Text Editor, so dependency startup orders the editor before the contribution.
 The existing Mantine component set supplies `lunaris.callout-header`. Web and
 desktop share this composition; a feature set without editor omits both plugins.
 See [usage and integration](../../../plugins/UI/callouts/DOCS/README.md).
+
+## Provider replacement
+
+Trusted extensions may declare excludeBuiltins (plugin IDs) and selections (consumerId, kind, contractId, providerId). Exclusions remove bundled definitions and their entrypoints/grants while retaining explicitly supplied extensions, including same-ID replacements. Supply replacement entrypoints/grants explicitly. The host applies selections through the public kernel API before activation. Required dependency validation stays authoritative; excluding required navigation without a replacement is invalid. Files remains a required product profile until Vault navigation has another owner.
