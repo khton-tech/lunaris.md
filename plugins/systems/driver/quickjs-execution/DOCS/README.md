@@ -27,10 +27,37 @@ are callable. Entry evaluation and exported results must currently be synchronou
 The caller must use validated committed package assets; this low-level driver does
 not inspect LUP, compare manifests or register definitions in the kernel.
 
+`load(manifest, source, environment, owner, limits?)` returns a host PluginDefinition
+without evaluating package code. Register it with
+`kernel.register(definition, { ownerId: "lunaris.quickjs-execution" })`. Activation
+creates a fresh realm, compares exported metadata with the inspected manifest,
+then invokes the package's activate function through the SDK bridge. Its realm
+cleanup is owned before guest resources, so guest cleanup runs first. Lifecycle
+ownership ensures the execution driver stops after its loaded plugins.
+
+The bridge supports synchronous/async method calls, callbacks, token validators,
+events/hooks and owned scopes through interpreter-local function references.
+Host promises become guest promises and guest jobs run under the same turn limit.
+BigInt and Date use explicit tagged data. Cancellation signals keep live state and
+round-trip only their own opaque signal reference; no native object is transferred.
+Transfer handles are limited to 8192 per side; they are released with the realm.
+Individual long-lived callback handle reclamation remains a development/reload
+stress-test item. SDK errors expose stable classifications without raw host paths;
+original provider errors remain in kernel diagnostics.
+
+Config calls are bound to the captured Vault and package namespace; global Config
+and foreign-root filesystem targets fail. Raw native/application-storage/runtime
+management contracts are denied. Logger attribution is forced to the package ID.
+These wrappers cover the named providers, not every future provider or transitive
+host service. All additional host-backed contracts require an authority review.
+Real DOM elements and arbitrary host class instances require explicit adapters
+and cannot be transferred by this bridge. Custom view rendering remains pending.
+
 Defaults: 32 MiB interpreter memory, 256 KiB stack, 100 ms per guest turn.
 Configuration caps are 128 MiB, 1 MiB stack and 1000 ms. Transfer data is bounded
 to 1 MiB UTF-16 code units and nesting depth 64. Cancellation from the owner or
-driver revokes the realm. Reentrant execution fails explicitly. Closure during a
+driver revokes the realm. Reentry is bounded to 32 nested turns, sharing the outer
+deadline so synchronous validators/callbacks cannot reset their budget. Closure during a
 host callback defers VM disposal until that turn unwinds. Each realm releases its
 module handles, interpreter context/runtime and callbacks on disposal.
 
@@ -53,8 +80,8 @@ captured identity, revocation, guest-loop interruption and transfer validation.
 No desktop control tools are used. Browser/Tauri WASM delivery/CSP and native
 authority acceptance are unverified. This driver is not yet in product composition.
 
-Still required: authenticated SDK broker, async/callback/resource bridges, scoped
-renderer contract for arbitrary viewports, generation-bound Vault/Config adapters,
+Still required: complete host-contract authority review, scoped
+renderer contract for arbitrary viewports, Vault transition generation orchestration,
 package loader, Lime runtime management and safe-mode host composition. In
 particular this low-level JSON facade is not a replacement for the complete SDK
 authoring surface, and full extension parity is not yet established. Do not give

@@ -45,7 +45,7 @@ export async function createRealm(identity: ExecutionIdentity, source: Execution
   if (owner.aborted || driver.aborted) throw new Error("Execution owner is closed.");
   const runtime = wasm.newRuntime();
   runtime.setMemoryLimit(memory); runtime.setMaxStackSize(stack);
-  let deadline = 0; let closed = false; let running = false; let closeRequested = false;
+  let deadline = 0; let closed = false; let running = 0; let closeRequested = false;
   runtime.setInterruptHandler(() => closed || owner.aborted || driver.aborted || Date.now() >= deadline);
   runtime.setModuleLoader(name => {
     const code = modules.get(name);
@@ -77,10 +77,11 @@ export async function createRealm(identity: ExecutionIdentity, source: Execution
   };
   const execute = <T>(work: () => T): T => {
     if (closed || closeRequested || owner.aborted || driver.aborted) throw new Error("Execution realm is closed.");
-    if (running) throw new Error("Execution reentry is unsupported.");
-    running = true; deadline = Date.now() + turn;
+    if (running >= 32) throw new Error("Execution reentry limit exceeded.");
+    if (!running) deadline = Date.now() + turn;
+    running++;
     try { return work(); }
-    finally { running = false; if (closeRequested || owner.aborted || driver.aborted) close(); }
+    finally { running--; if (!running && (closeRequested || owner.aborted || driver.aborted)) close(); }
   };
   owner.addEventListener('abort', close, { once: true }); driver.addEventListener('abort', close, { once: true });
   try {
@@ -143,7 +144,16 @@ export async function createRealm(identity: ExecutionIdentity, source: Execution
             const value = vm.unwrapResult(vm.callFunction(fn, vm.undefined, ...handles));
             try {
               const encoded = vm.unwrapResult(vm.callFunction(encode!, vm.undefined, value));
-              try { return data(vm.getString(encoded)); } finally { encoded.dispose(); }
+              try {
+                const result = data(vm.getString(encoded));
+                // Async callbacks resolve via explicit guest Promise wiring. Run only
+                // at the outermost turn, under the same interruption deadline.
+                if (running === 1) {
+                  const jobs = runtime.executePendingJobs();
+                  if (jobs.error) { const error = vm.dump(jobs.error); jobs.error.dispose(); throw new Error("Guest async task failed.", { cause: error }); }
+                }
+                return result;
+              } finally { encoded.dispose(); }
             } finally { value.dispose(); }
           } finally { input.dispose(); fn.dispose(); for (const handle of handles) handle.dispose(); }
         });

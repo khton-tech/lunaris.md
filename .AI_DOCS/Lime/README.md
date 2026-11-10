@@ -1,11 +1,13 @@
 # Lunaris Lime execution plan
 
-Status: L01 audited; execution/SDK gate blocked. Updated: 2026-11-10. Branch: `feat/lime`.
+Status: implementation in progress, including authorized SDK/host prerequisites.
+Updated: 2026-11-10. Branch: `feat/lime`.
 
 This directory contains agent execution plans, not implemented contracts or public
 developer documentation. L01 findings and required contracts are recorded in
 [the public runtime specification](../../DOCS/design/lime-runtime.md). Runtime
-implementation tasks remain pending. Do not copy proposed
+implementation tasks are tracked in tasks.md; several foundations are implemented.
+Do not copy proposed
 names or signatures into product documentation as if they already exist.
 
 ## Scope

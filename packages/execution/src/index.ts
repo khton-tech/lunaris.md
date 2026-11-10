@@ -1,5 +1,5 @@
 import { defineApi } from "@lunaris/sdk";
-import type { CancellationSignal } from "@lunaris/sdk";
+import type { CancellationSignal, PluginDefinition, PluginManifest } from "@lunaris/sdk";
 
 /** Only explicit data crosses this lowest-level boundary. No host object references. */
 export type ExecutionValue = null | boolean | number | string | readonly ExecutionValue[] | { readonly [key: string]: ExecutionValue };
@@ -32,8 +32,10 @@ export interface ExecutionRealm {
 export interface PluginExecutionApi {
   /** Trusted host ingress. The owner revokes execution and every future capability call. */
   create(identity: ExecutionIdentity, source: ExecutionSource, capabilities: readonly ExecutionCapability[], owner: CancellationSignal, limits?: ExecutionLimits): Promise<ExecutionRealm>;
+  /** Build a host definition; package evaluation is deferred until activation. */
+  load(manifest: PluginManifest, source: ExecutionSource, environment: { readonly vaultId: string; readonly generation: number }, owner: CancellationSignal, limits?: ExecutionLimits): PluginDefinition;
 }
 export const PluginExecution = defineApi<PluginExecutionApi>({
   id: "lunaris.plugin-execution", version: "1.0.0", consumePermission: "runtime.manage",
-  validate: value => !!value && typeof value === "object" && typeof Object.getOwnPropertyDescriptor(value, "create")?.value === "function",
+  validate: value => !!value && typeof value === "object" && ['create', 'load'].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function"),
 });

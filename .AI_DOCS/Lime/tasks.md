@@ -1,7 +1,8 @@
 # Implementation task backlog
 
-L01 source audit/specification is delivered; its execution boundary gate is blocked.
-L02-L10 remain pending. IDs are stable tracking keys. Work in dependency order;
+Implementation is in progress; no task's full completion gate has passed yet.
+The Owner explicitly authorized all SDK/kernel/host prerequisite work on 2026-11-10.
+Do not stop merely to request that authorization again. IDs are stable tracking keys. Work in dependency order;
 each task must produce reviewable contracts/docs and targeted verification.
 
 ## L01 - Runtime boundary and integration specification
@@ -14,7 +15,27 @@ current synchronous DOM-bearing SDK contracts have no verified execution boundar
 that preserves extension parity and prevents out-of-Vault access. Native sessions
 and Config global access also need authenticated environment authority. Required
 runtime management, selected-package transport and awaited Vault lifecycle
-contracts are specified there as B01-B04. No dependent implementation started.
+contracts are specified there as B01-B04. Follow-up implementation now includes
+QuickJS/WASM isolated execution and an SDK bridge (sync/async APIs, callbacks,
+validators, signals and scopes). Custom DOM-free viewport contracts, full host
+authority review, product composition and host acceptance remain outstanding.
+
+Implementation evidence (2026-11-10):
+
+- L02 partial: shared metadata validator and bounded LUP codec implemented;
+  public references are `DOCS/reference/plugin-metadata.md` and `DOCS/reference/lup.md`.
+  Installation layout, registry and migration/transaction semantics remain pending.
+- L03 partial: Kernel.replace/unregister and host lifecycle ownership implemented;
+  focused kernel/affected-consumer checks pass. Public management adapter,
+  environment revisions and execution-driver factory rebinding remain pending.
+- L04 partial: QuickJS driver and SDK bridge execute isolated definitions against
+  the actual public kernel. Scoped Config/Filesystem calls tested. Package picker,
+  storage/extraction, real native/browser execution and authority review pending.
+- L08 partial: existing CLI now bundles and packs complete static code plus assets
+  and inspects .lup without evaluation. External portable generation, distribution
+  rehearsal, live host attachment and JSON diagnostic unification remain pending.
+- L05-L07, L09 full recipes and L10 acceptance remain pending. No engine/UI
+  integration or complete user install workflow is claimed.
 
 - Map required/existing/new responsibilities using the decision inventory.
 - Trace current host composition, native bridge, Vault preparation/closure, Config,

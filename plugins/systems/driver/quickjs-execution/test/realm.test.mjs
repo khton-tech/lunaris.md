@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import execution from '@lunaris/quickjs-execution';
 import { PluginExecution } from '@lunaris/execution';
-import { definePlugin } from '@lunaris/sdk';
+import { definePlugin, defineApi } from '@lunaris/sdk';
 import { Logger } from '@lunaris/logging';
 import { createTestKernel } from '@lunaris/test';
 
@@ -14,7 +14,9 @@ async function fixture() {
   kernel.grant('test.manager', 'runtime.manage'); await kernel.start('test.manager');
   const owner = new AbortController();
   const identity = { pluginId: 'test.package', activationId: 'activation-1', vaultId: 'vault-a', generation: 1 };
-  return { kernel, owner, identity, create: (code, capabilities = [], modules = {}, limits) => api.create(identity, { entry: 'plugin.js', modules: { 'plugin.js': code, ...modules } }, capabilities, owner.signal, limits) };
+  return { kernel, owner, identity,
+    load: (manifest, code) => api.load(manifest, { entry: 'plugin.js', modules: { 'plugin.js': code } }, { vaultId: identity.vaultId, generation: identity.generation }, owner.signal),
+    create: (code, capabilities = [], modules = {}, limits) => api.create(identity, { entry: 'plugin.js', modules: { 'plugin.js': code, ...modules } }, capabilities, owner.signal, limits) };
 }
 
 test('actual WASM realm preserves synchronous data calls without ambient host authority', async () => {
@@ -62,4 +64,62 @@ test('non-data results, invalid limits and excessive transfer data fail explicit
   for (const kind of [1, 2, 3]) assert.throws(() => realm.call('read', [kind]));
   assert.throws(() => realm.call('read', ['x'.repeat(1024 * 1024 + 1)]), /limit/);
   realm.dispose(); await f.kernel.stopAll();
+});
+
+test('isolated definitions use real SDK APIs with validators, async calls, callbacks and cleanup', async () => {
+  const f = await fixture();
+  const Service = defineApi({ id: 'test.service', version: '1.0.0' });
+  const Guest = defineApi({ id: 'test.guest', version: '1.0.0' }); let service; const values = [];
+  f.kernel.installMock(Service, { value() { return 4; }, async later(value) { return value + 1; }, visit(callback) { return callback(10); } });
+  const manifest = { manifestVersion: 1, id: 'test.package', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './plugin.js', provides: [{ kind: 'api', id: Guest.id, version: '1.0.0' }], requires: [{ kind: 'api', id: Service.id, range: '^1.0.0' }], permissions: [], optionalPermissions: [] };
+  const code = `export default { manifest: ${JSON.stringify(manifest)}, async activate(ctx) {
+    const api = ctx.use({ kind: 'api', id: 'test.service', version: '1.0.0' });
+    const value = await api.later(api.value());
+    ctx.scope.own({ dispose() {} });
+    ctx.provide({ kind: 'api', id: 'test.guest', version: '1.0.0', validate: value => typeof value.read === 'function' }, {
+      read() { return value; }, async later() { return await api.later(20); },
+      callback() { return api.visit(value => value * 2); },
+      globals() { return [typeof process, typeof window, typeof document]; }
+    });
+  } };`;
+  const definition = f.load(manifest, code); f.kernel.register(definition, { ownerId: execution.manifest.id });
+  f.kernel.register(definePlugin({ manifest: { ...manifest, id: 'test.consumer', provides: [], requires: [{ kind: 'api', id: Guest.id, range: '^1.0.0' }] }, activate(ctx) { service = ctx.use(Guest); values.push(service.read()); } }));
+  await f.kernel.start('test.consumer');
+  assert.deepEqual(values, [5]); assert.equal(await service.later(), 21); assert.equal(service.callback(), 20);
+  assert.deepEqual(service.globals(), ['undefined', 'undefined', 'undefined']);
+  await f.kernel.restart('test.package');
+  await f.kernel.start('test.consumer'); assert.deepEqual(values, [5, 5]);
+  await f.kernel.stopAll(); f.kernel.assertNoResources();
+});
+
+test('isolated loader rejects manifest drift before activation side effects', async () => {
+  const f = await fixture();
+  const manifest = { manifestVersion: 1, id: 'test.package', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './plugin.js', provides: [], requires: [], permissions: [], optionalPermissions: [] };
+  f.kernel.register(f.load(manifest, `export default { manifest: ${JSON.stringify({ ...manifest, version: '9.0.0' })}, activate() { throw Error('must not activate'); } };`), { ownerId: execution.manifest.id });
+  await assert.rejects(f.kernel.start('test.package'), { code: 'ACTIVATION_FAILED' });
+  await f.kernel.stopAll(); f.kernel.assertNoResources();
+});
+
+test('SDK broker binds Config and Filesystem calls to captured identity and rejects global/native access', async () => {
+  const f = await fixture(); const calls = [];
+  const Config = defineApi({ id: 'lunaris.config', version: '1.0.0', consumePermission: 'config.access' });
+  const Filesystem = defineApi({ id: 'lunaris.filesystem', version: '1.0.0', consumePermission: 'filesystem.access' });
+  const Guest = defineApi({ id: 'test.guest', version: '1.0.0' }); let guest;
+  f.kernel.installMock(Config, { get(id, key, options) { calls.push(['config', id, options]); return { ok: true, value: 1 }; } });
+  f.kernel.installMock(Filesystem, { readText(target) { calls.push(['fs', target]); return { ok: true, value: { text: 'value' } }; } });
+  const manifest = { manifestVersion: 1, id: 'test.package', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './plugin.js', provides: [{ kind: 'api', id: Guest.id, version: '1.0.0' }], requires: [{ kind: 'api', id: Config.id, range: '^1.0.0' }, { kind: 'api', id: Filesystem.id, range: '^1.0.0' }], permissions: ['config.access', 'filesystem.access'], optionalPermissions: [] };
+  const code = `export default { manifest: ${JSON.stringify(manifest)}, activate(ctx) {
+    const config = ctx.use({ kind: 'api', id: 'lunaris.config', version: '1.0.0', consumePermission: 'config.access' });
+    const fs = ctx.use({ kind: 'api', id: 'lunaris.filesystem', version: '1.0.0', consumePermission: 'filesystem.access' });
+    ctx.provide({ kind: 'api', id: 'test.guest', version: '1.0.0' }, { config(scope) { return config.get(ctx.pluginId, 'key', scope); }, file(id) { return fs.readText({ vaultId: id, path: 'file.txt' }); } });
+  } };`;
+  f.kernel.register(f.load(manifest, code), { ownerId: execution.manifest.id });
+  f.kernel.grant('test.package', 'config.access'); f.kernel.grant('test.package', 'filesystem.access');
+  f.kernel.register(definePlugin({ manifest: { ...manifest, id: 'test.reader', provides: [], requires: [{ kind: 'api', id: Guest.id, range: '^1.0.0' }], permissions: [] }, activate(ctx) { guest = ctx.use(Guest); } }));
+  await f.kernel.start('test.reader');
+  assert.deepEqual(guest.config(), { ok: true, value: 1 });
+  assert.deepEqual(calls[0], ['config', 'test.package', { scope: 'vault', vaultId: 'vault-a' }]);
+  assert.throws(() => guest.config({ scope: 'global' })); assert.throws(() => guest.file('foreign-vault'));
+  assert.equal(calls.length, 1); assert.equal(guest.file('vault-a').ok, true);
+  await f.kernel.stopAll(); f.kernel.assertNoResources();
 });

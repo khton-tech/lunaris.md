@@ -1,9 +1,16 @@
 # Lime runtime boundary and integration specification
 
-Status: L01 source audit and prerequisite specification; runtime design gate blocked.
+Status: original L01 source audit and prerequisite specification; implementation in progress.
 Audited on 2026-11-10 at `4d259c199da4be969ec5e71eb451106d04fcdfa3` on
 `feat/lime`. No contracts proposed below are implemented exports. No third-party
 code loading, installation, isolation or host acceptance is delivered by this document.
+Follow-up implementations: [kernel management](../reference/runtime-management.md),
+[metadata](../reference/plugin-metadata.md), [package codec](../reference/lup.md),
+[CLI packaging](../guides/plugin-packaging.md) and
+[QuickJS/SDK bridge](../../plugins/systems/driver/quickjs-execution/DOCS/README.md).
+These supersede the corresponding missing primitive findings below; full custom
+UI, generation orchestration, host authority review and product integration remain
+open. The Owner has explicitly authorized implementing the prerequisite changes.
 
 ## Product boundary
 
@@ -259,8 +266,9 @@ UI implementation is reported as integrated. Public API recipes and distributabl
 tooling cannot be finalized until the execution and lifecycle contracts land.
 
 Repository AGENTS.md requires halting development when SDK functionality is missing
-and reporting required changes. This specification records that gate. L01 remains
-blocked on the execution model; L02-L10 remain pending. The next prerequisite is
+and reporting required changes. This specification recorded that initial gate.
+The Owner subsequently authorized implementing all prerequisite changes; see the
+implementation links above and agent task tracking. The remaining prerequisite is
 B01 architecture and a verified public execution boundary, followed by the
 versioned management, package and Vault contracts above. Do not start Lime through
 private kernel imports or bypass providers while these blockers remain.

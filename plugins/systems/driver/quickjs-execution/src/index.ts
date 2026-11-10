@@ -2,6 +2,7 @@ import { definePlugin } from "@lunaris/sdk";
 import { Logger } from "@lunaris/logging";
 import { PluginExecution } from "@lunaris/execution";
 import { createRealm } from "./realm.js";
+import { isolatedDefinition } from "./sdk-bridge.js";
 
 export default definePlugin({
   manifest: {
@@ -11,7 +12,9 @@ export default definePlugin({
   },
   activate(ctx) {
     const logger = ctx.use(Logger);
-    ctx.provide(PluginExecution, { async create(identity, source, capabilities, owner, limits) {
+    ctx.provide(PluginExecution, {
+      load(manifest, source, environment, owner, limits) { return isolatedDefinition(manifest, source, environment, owner, ctx.signal, limits); },
+      async create(identity, source, capabilities, owner, limits) {
       try {
         const realm = await createRealm(identity, source, capabilities, owner, ctx.signal, limits);
         if (ctx.signal.aborted) { realm.dispose(); throw new Error("Execution driver stopped."); }
