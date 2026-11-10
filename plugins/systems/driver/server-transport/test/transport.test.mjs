@@ -91,3 +91,10 @@ test('oversized file content is rejected before serialization or fetch', async()
  const body={operation:'writeFile',args:{data:Array(REMOTE_FILE_LIMITS.maxFileBytes+1).fill(255)},toJSON(){assert.fail('must reject before JSON serialization');}};
  assert.equal((await api.request('POST','vaults/id/files',body)).error.code,'TOO_LARGE');assert.equal(calls,1);await host.stopAll();host.assertNoResources();
 });
+
+test('a connection superseded during status publication cannot clear its replacement',async()=>{
+ const {ConnectionChanged}=await import('@lunaris/remote');const host=testHost({'test.consumer':['account.network','account.access']});let api,status,ctx,replacement,started=false;
+ host.register(createServerTransport({mode:'desktop',fetch:async url=>json({protocol:url.startsWith('https://a.invalid')?99:1,buildId:'test',registration:'open'})}));
+ host.register(consumer([ServerTransport,ConnectionStatus,ConnectionChanged],c=>{ctx=c;api=c.use(ServerTransport);status=c.use(ConnectionStatus);c.events.on(ConnectionChanged,async()=>{if(!started){started=true;replacement=await api.connect('https://b.invalid',c.signal);}});},['account.network','account.access']));
+ await host.start('test.consumer');assert.equal((await api.connect('https://a.invalid',ctx.signal)).error.code,'CANCELLED');assert.equal(replacement.ok,true);assert.equal(status.current().server,'https://b.invalid');await host.stopAll();host.assertNoResources();
+});

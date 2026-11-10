@@ -78,6 +78,7 @@ export function createServerTransport(options: { readonly mode: "browser" | "des
         await publish();
         if (version !== epoch || owner.aborted || ctx.signal.aborted) return failed("CANCELLED", "The connection was superseded or cancelled.");
         const result = await request("GET", "server", undefined, owner);
+        if (version !== epoch || owner.aborted || ctx.signal.aborted) return failed("CANCELLED", "The connection was superseded or cancelled.");
         if (!result.ok) return result;
         const info = result.value as ServerInfo;
         if ((info?.limits !== undefined && (!Number.isSafeInteger(info.limits.maxFileBytes) || info.limits.maxFileBytes < REMOTE_FILE_LIMITS.maxFileBytes || !Number.isSafeInteger(info.limits.maxRequestBytes) || info.limits.maxRequestBytes < REMOTE_FILE_LIMITS.maxRequestBytes)) || info?.protocol !== REMOTE_PROTOCOL || !["open", "invitation"].includes(info.registration) || typeof info.buildId !== "string") { address = ""; return failed("PROTOCOL_MISMATCH", "The server protocol is incompatible."); }
