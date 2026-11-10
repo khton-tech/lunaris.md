@@ -77,7 +77,8 @@
     "@lunaris/clipboard-provider": "0.1.0",
     "@lunaris/browser-clipboard": "0.1.0",
     "@lunaris/callouts": "0.1.0",
-    "@lunaris/logging": "0.1.0"
+    "@lunaris/logging": "0.1.0",
+    "@lunaris/mobile-menu-plugin": "0.1.0"
   },
   "scripts": {
     "build": "tsc -b"

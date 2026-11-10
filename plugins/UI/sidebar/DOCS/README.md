@@ -49,3 +49,5 @@ props; no renderer translation or SDK change is required. Interface Settings
 selects and persists Russian per Vault. Names and user content stay unchanged.
 Run `npm run ui-localization:check` for complete keys and matching placeholders.
 Native acceptance of long Russian labels, menus and narrow layouts is pending.
+
+Sidebar contributes its localized open action through the optional MobileMenu API and opens WorkspaceSidebar. It updates availability as tabs change. See the mobile menu reference for host ordering and replacement lifetime.

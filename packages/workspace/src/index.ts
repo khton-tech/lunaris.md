@@ -9,7 +9,7 @@ export interface WorkspaceContent {
   readonly componentId: string;
   readonly props?: WorkspaceProps;
   readonly order?: number;
-  readonly region?: "main" | "left-rail" | "left-panel" | "bottom";
+  readonly region?: "main" | "left-rail" | "left-panel" | "bottom" | "mobile-menu";
   /** Optional dismissal of a left-panel overlay (for example Escape). */
   readonly onDismiss?: (() => void) | undefined;
 }
@@ -25,7 +25,7 @@ export interface WorkspaceApi {
   list(): readonly WorkspaceContent[];
 }
 export const Workspace = defineApi<WorkspaceApi>({
-  id: "lunaris.workspace", version: "1.2.0",
+  id: "lunaris.workspace", version: "1.3.0",
   validate: value => !!value && typeof value === "object" &&
     ["register", "update", "list"].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function"),
 });
@@ -38,3 +38,8 @@ export const WorkspaceChanged = defineEvent<WorkspaceChange>({
       typeof Object.getOwnPropertyDescriptor(value, "id")?.value === "string";
   },
 });
+
+/** Mobile overlay presentation, independent of Sidebar tab selection. */
+export interface WorkspaceSidebarApi { open(): void; close(): void; isOpen(): boolean }
+export const WorkspaceSidebar = defineApi<WorkspaceSidebarApi>({ id: "lunaris.workspace-sidebar", version: "1.0.0",
+ validate: value => !!value && typeof value === "object" && ["open", "close", "isOpen"].every(key => typeof Object.getOwnPropertyDescriptor(value, key)?.value === "function") });

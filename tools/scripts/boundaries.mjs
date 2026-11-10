@@ -8,12 +8,14 @@ export const dependencies = {
   clipboard: ['sdk'],
   'clipboard-provider': ['sdk', 'logging', 'clipboard'],
   'browser-clipboard': ['sdk', 'logging', 'clipboard'],
+  'mobile-menu': ['sdk'],
+  'mobile-menu-plugin': ['sdk','logging','workspace','mobile-menu'],
   'status-bar': ["sdk","logging","workspace","active-document","filesystem","remote","vault","localization"],
   'client-update-ui': ["sdk","remote","logging","vault","components","slots","slot-dom","localization"],
   'browser-navigation': ["sdk","remote","logging","active-document"],
   'client-updates': ["sdk","remote","logging"],
   web: ['application-host', 'mantine-components'],
-  'application-host': ['logging','callouts','clipboard-provider','browser-clipboard','status-bar','client-updates','client-update-ui','browser-navigation',"filesystem-provider","logger","dev-tools-logger","kernel","sdk","vault-manager","config-manager","localization-manager","slot-provider","web-slot-driver","theme-provider","component-provider","base-theme-engine","startup","startup-provider","theme-settings","runner","vault-history","vault-selector","mantine-components","workspace-plugin","workspace-provider","sidebar-plugin","sidebar-provider","file-explorer","context-menu-provider","active-document","active-document-provider","active-screen-provider","active-screen-plugin","settings-provider","settings-plugin","interface-settings","text-editor","vault","browser-storage","server-transport","remote-filesystem","account-session","drafts-provider","account-access","filesystem-router","filesystem"],
+  'application-host': ['mobile-menu-plugin','logging','callouts','clipboard-provider','browser-clipboard','status-bar','client-updates','client-update-ui','browser-navigation',"filesystem-provider","logger","dev-tools-logger","kernel","sdk","vault-manager","config-manager","localization-manager","slot-provider","web-slot-driver","theme-provider","component-provider","base-theme-engine","startup","startup-provider","theme-settings","runner","vault-history","vault-selector","mantine-components","workspace-plugin","workspace-provider","sidebar-plugin","sidebar-provider","file-explorer","context-menu-provider","active-document","active-document-provider","active-screen-provider","active-screen-plugin","settings-provider","settings-plugin","interface-settings","text-editor","vault","browser-storage","server-transport","remote-filesystem","account-session","drafts-provider","account-access","filesystem-router","filesystem"],
   'account-access': ['sdk', 'remote', 'filesystem', 'vault', 'logging', 'localization', 'components', 'slots', 'slot-dom', 'startup'],
   'drafts-provider': ['sdk', 'remote', 'filesystem', 'logging'],
   'browser-storage': ['sdk', 'remote', 'filesystem', 'logging'],
@@ -41,7 +43,7 @@ export const dependencies = {
   'file-explorer': ['config', 'settings', 'active-document', 'sdk', 'logging', 'sidebar', 'filesystem', 'vault', 'localization', 'context-menu'],
   sidebar: ['sdk'],
   'sidebar-provider': ['sdk', 'logging', 'sidebar'],
-  'sidebar-plugin': ['sdk', 'logging', 'sidebar', 'workspace', 'components', 'localization'],
+  'sidebar-plugin': ['mobile-menu', 'sdk', 'logging', 'sidebar', 'workspace', 'components', 'localization'],
   workspace: ['sdk'],
   'workspace-provider': ['sdk', 'logging', 'workspace'],
   'workspace-plugin': ['sdk', 'logging', 'localization', 'slots', 'slot-dom', 'components', 'startup', 'vault', 'workspace', 'config'],
@@ -84,6 +86,7 @@ export const dependencies = {
 };
 
 export const packagePath = scope => {
+ if (scope === 'mobile-menu-plugin') return 'plugins/UI/mobile-menu';
  if (scope === 'clipboard-provider') return 'plugins/systems/clipboard';
  if (scope === 'browser-clipboard') return 'plugins/systems/driver/browser-clipboard';
   if (scope === 'status-bar') return 'plugins/UI/status-bar';
@@ -174,7 +177,7 @@ export function checkSource(source, filename, scope) {
       return;
     }
     const value = node.text;
-    if (['callouts', 'status-bar', 'window-titlebar', 'window-provider', 'tauri-window', 'text-editor', 'interface-settings', 'settings-provider', 'settings-plugin', 'active-screen-provider', 'active-screen-plugin', 'active-document-provider', 'context-menu-provider', 'file-explorer', 'sidebar-provider', 'sidebar-plugin', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'components-kit', 'mantine-components', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'].includes(scope) &&
+    if (['mobile-menu-plugin', 'callouts', 'status-bar', 'window-titlebar', 'window-provider', 'tauri-window', 'text-editor', 'interface-settings', 'settings-provider', 'settings-plugin', 'active-screen-provider', 'active-screen-plugin', 'active-document-provider', 'context-menu-provider', 'file-explorer', 'sidebar-provider', 'sidebar-plugin', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'components-kit', 'mantine-components', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'].includes(scope) &&
         path.resolve(filename) === path.resolve(packagePath(scope), 'src/index.ts') &&
         value === '../manifest.json') return;
     if (scope === 'web' && path.resolve(filename) === path.resolve('hosts/web/src/bootstrap.ts') && value === '../../../resources/ascii_art.txt?raw') return;

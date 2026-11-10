@@ -15,7 +15,8 @@
     "@lunaris/sidebar": "0.1.0",
     "@lunaris/workspace": "0.1.0",
     "@lunaris/components": "0.1.0",
-    "@lunaris/localization": "0.1.0"
+    "@lunaris/localization": "0.1.0",
+    "@lunaris/mobile-menu": "0.1.0"
   },
   "devDependencies": {
     "jsdom": "30.1.3"

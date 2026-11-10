@@ -5,5 +5,5 @@ import { Workspace } from '@lunaris/workspace';
 test('workspace exposes a portable versioned SDK API', () => {
   assert.equal(Workspace.id, 'lunaris.workspace');
   assert.equal(Workspace.kind, 'api');
-  assert.equal(Workspace.version, '1.2.0');
+  assert.equal(Workspace.version, '1.3.0');
 });

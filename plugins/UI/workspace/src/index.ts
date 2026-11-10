@@ -9,12 +9,12 @@ import { Components, ComponentsChanged } from "@lunaris/components";
 import type { ComponentProps, MountedComponent } from "@lunaris/components";
 import { Startup, StartupChanged } from "@lunaris/startup";
 import { Vault, VaultChanged } from "@lunaris/vault";
-import { Workspace, WorkspaceChanged } from "@lunaris/workspace";
+import { Workspace, WorkspaceChanged, WorkspaceSidebar } from "@lunaris/workspace";
 import { catalogs } from "./catalog.js";
 import manifest from "../manifest.json" with { type: "json" };
 
 interface View { readonly owner: ResourceScope; readonly target: HTMLElement; readonly componentId: string; readonly region?: string; mounted?: MountedComponent | undefined }
-type Regions = Readonly<Record<"main" | "left-rail" | "left-panel" | "bottom", HTMLElement>>;
+type Regions = Readonly<Record<"main" | "left-rail" | "left-panel" | "bottom" | "mobile-menu", HTMLElement>>;
 
 export default definePlugin({ manifest, async activate(ctx) {
   const logger = scopeLogger(ctx.use(Logger), ctx.signal);
@@ -43,7 +43,7 @@ export default definePlugin({ manifest, async activate(ctx) {
   const components = ctx.use(Components); const vaults = ctx.use(Vault); const startup = ctx.use(Startup);
   const registered = localization.register(ctx.pluginId, catalogs, ctx.signal);
   if (!registered.ok) throw new Error("Cannot register workspace messages.", { cause: registered.error });
-  const workspace = ctx.use(Workspace); const views = new Map<string, View>();
+  const navigation = ctx.use(WorkspaceSidebar); const workspace = ctx.use(Workspace); const views = new Map<string, View>();
   const rootId = `${ctx.pluginId}.screen`;
   const contentId = `${ctx.pluginId}.content`;
   let screen: ResourceScope | undefined; let screenVaultId: string | undefined;
@@ -112,11 +112,11 @@ export default definePlugin({ manifest, async activate(ctx) {
     const entries = workspace.list();
     const available = entries.filter(entry => components.has(entry.componentId));
     if (!show(layout, { railVisible: available.some(entry => entry.region === "left-rail"), panelVisible: available.some(entry => entry.region === "left-panel"),
-      bottomVisible: available.some(entry => entry.region === "bottom"), presentation: { mode: "standalone", sizing: "fill" }, mainLabel: text("main"), panelLabel: text("panel"), panelWidth, resizeLabel: text("resizePanel"), onPanelWidth, onTargets, onDismiss })) {
+      mobileOpen: navigation.isOpen(), onMobileOpen: (open: boolean) => { if (open) navigation.open(); else navigation.close(); }, mobileMenuVisible: available.some(entry => entry.region === "mobile-menu"), bottomVisible: available.some(entry => entry.region === "bottom"), presentation: { mode: "standalone", sizing: "fill" }, mainLabel: text("main"), panelLabel: text("panel"), panelWidth, resizeLabel: text("resizePanel"), onPanelWidth, onTargets, onDismiss })) {
       releaseContent(); release(layout.owner); layout = undefined; regions = undefined; return;
     }
     if (!regions) return;
-    for (const region of ["main", "left-rail", "left-panel", "bottom"]) {
+    for (const region of ["main", "left-rail", "left-panel", "bottom", "mobile-menu"]) {
       const signature = JSON.stringify(available.filter(entry => (entry.region ?? "main") === region).map(entry => [entry.id, entry.componentId, entry.order ?? 0]));
       if (signature !== contentSignatures.get(region)) {
         for (const [id, view] of views) if (view.region === region) { release(view.owner); views.delete(id); }
@@ -129,7 +129,7 @@ export default definePlugin({ manifest, async activate(ctx) {
       const region = content.region ?? "main";
       let view = views.get(content.id);
       if (!view) { view = { owner: screen!.child(), target: regions[region], componentId: content.componentId, region }; views.set(content.id, view); }
-      if (show(view, { ...content.props, workspace: context, presentation: { mode: "embedded", sizing: region === "bottom" ? "content" : "fill" } })) { if (region === "main") visible++; if (region === "left-panel") sideVisible = true; }
+      if (show(view, { ...content.props, workspace: context, presentation: { mode: "embedded", sizing: ["bottom", "mobile-menu"].includes(region) ? "content" : "fill" } })) { if (region === "main") visible++; if (region === "left-panel") sideVisible = true; }
       else { release(view.owner); views.delete(content.id); }
     }
     if (sideVisible || !available.some(entry => entry.region === "left-panel")) { release(sideEmpty?.owner); sideEmpty = undefined; }

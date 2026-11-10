@@ -177,3 +177,9 @@ Desktop automation is prohibited and is not used.
 ## Bottom region (SDK 1.2)
 
 Workspace 1.2 adds the exclusive bottom region to register(). The layout lends a stable bottom target beneath main inside its Splitter pane; Files and the navigation rail keep their full height. Optional bottomVisible defaults to false. Workspace owns its supporting Paper surface, corners, margins and overflow. Contributions receive embedded/content presentation. Removing registration hides the region; it never suppresses the empty main placeholder. Existing registrations remain compatible.
+
+## Mobile menu region and overlay control
+
+Workspace 1.3 adds the exclusive mobile-menu region, visible at compact widths.
+The bottom region retains desktop status content. WorkspaceSidebar 1.0 controls
+mobile overlay visibility independently of Sidebar selection. See [mobile menu](mobile-menu.md) for ownership, contributions and lifecycle.

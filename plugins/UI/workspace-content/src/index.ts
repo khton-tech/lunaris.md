@@ -1,6 +1,6 @@
 import { definePlugin, LunarisError } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
-import { Workspace, WorkspaceChanged } from "@lunaris/workspace";
+import { Workspace, WorkspaceChanged, WorkspaceSidebar } from "@lunaris/workspace";
 import type { WorkspaceContent, WorkspaceResult, WorkspaceChange } from "@lunaris/workspace";
 import { readContent, readProps } from "./input.js";
 import manifest from "../manifest.json" with { type: "json" };
@@ -25,6 +25,9 @@ export default definePlugin({ manifest, activate(ctx) {
     return { ok: false, error: { code, message } };
   }
   ctx.scope.own({ dispose() { for (const entry of entries.values()) entry.detach(); entries.clear(); } });
+  let sidebarOpen = false;
+  const setSidebar = (value: boolean) => { if (sidebarOpen === value) return; sidebarOpen = value; logger.info(ctx.pluginId, "Sidebar overlay changed", { data: { open: value } }); void notify("updated", "lunaris.workspace-sidebar"); };
+  ctx.provide(WorkspaceSidebar, { open: () => setSidebar(true), close: () => setSidebar(false), isOpen: () => sidebarOpen });
   ctx.provide(Workspace, {
     list: () => Object.freeze([...entries.values()].map(entry => entry.content).sort((a, b) => a.order - b.order)),
     register(input, owner) {

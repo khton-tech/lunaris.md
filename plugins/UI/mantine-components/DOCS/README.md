@@ -13,13 +13,12 @@ and stable `onTargets` contracts provide the integration; no consumer imports
 React/Mantine or changes another plugin's DOM. No new provider is required.
 
 At an allocated Workspace width of 640 CSS pixels or less, the status strip is
-hidden and one floating bottom action opens the sidebar. Its localized accessible
-label is the existing `panelLabel`. The rail and selected tool panel slide over
+hidden and a separately contributed mobile menu opens the sidebar. The menu plugin supplies localized item labels. The rail and selected tool panel slide over
 the editor as one modal layer, leaving a trailing backdrop to dismiss it. The
 editor stays mounted and visible underneath, but is inert while the layer is
 open. Mantine FocusTrap contains keyboard traversal. The main-label return button,
-floating toggle, backdrop or Escape closes the layer and restores toggle focus.
-Opening/closing changes local layout presentation, not Sidebar selection or
+backdrop or Escape closes the layer and restores focus to the first mobile action.
+Opening/closing uses the public WorkspaceSidebar presentation contract, not Sidebar selection or
 plugin registrations; even a rail without an active tool remains reachable.
 
 A single-finger right swipe starting in the 20px left-edge strip also opens it:
@@ -773,3 +772,5 @@ WorkspaceLayout owns region geometry and surfaces; embedded roles own their cont
 ## Recovery choices
 
 The existing text-editor role accepts optional recoveryLabel, recoveryCandidates ({ id, label }[]) and onRecovery(id). It renders escaped, wrapping candidates as themed Mantine buttons and makes no implicit selection. Reference: the existing editor error/retry actions. The embedded role inherits Workspace surfaces and owns only internal controls; consumers own records, translations and persistence. Public-role and real editor/container behavior tests cover selection and read-only state. Native focus, long previews, theme contrast and narrow/short geometry remain manual acceptance items.
+
+The public lunaris.mobile-menu role renders registered action descriptors; WorkspaceLayout lends its mobile-menu target and owns the floating surface. The former built-in sidebar action has been removed. See DOCS/reference/mobile-menu.md for registration and integration.

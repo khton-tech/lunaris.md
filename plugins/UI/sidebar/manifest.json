@@ -46,6 +46,18 @@
       "kind": "event",
       "id": "lunaris.locale-changed",
       "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.mobile-menu",
+      "range": "^1.0.0",
+      "optional": true
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.workspace-sidebar",
+      "range": "^1.0.0",
+      "optional": true
     }
   ],
   "permissions": [

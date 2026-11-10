@@ -76,6 +76,11 @@
       "kind": "api",
       "id": "lunaris.config",
       "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.workspace-sidebar",
+      "range": "^1.0.0"
     }
   ],
   "permissions": [

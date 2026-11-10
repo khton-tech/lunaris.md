@@ -94,7 +94,7 @@
 .lm-workspace-layout[data-compact] .lm-workspace-rail,.lm-workspace-layout[data-compact] .lm-workspace-panel-pane { transform:translateX(calc(-1 * var(--mobile-drawer-width) - 60px));visibility:hidden;pointer-events:none;transition:transform var(--vault-motion-normal) var(--vault-motion-easing) }
 .lm-workspace-layout[data-mobile-open] .lm-workspace-rail,.lm-workspace-layout[data-mobile-open] .lm-workspace-panel-pane { transform:translateX(0);visibility:visible;pointer-events:auto }
 .lm-workspace-layout[data-compact] .lm-workspace-main-pane { flex:1 1 0%!important;max-width:100%!important }
-.lm-workspace-layout[data-compact][data-rail] .lm-workspace-main { padding-block-end:64px }
+.lm-workspace-layout[data-compact][data-mobile-menu] .lm-workspace-main { padding-block-end:64px }
 .lm-workspace-layout[data-compact] .lm-workspace-panel { margin-block-start:0;margin-inline-end:var(--workspace-gap) }
 .lm-workspace-backdrop { position:absolute;inset:0;z-index:2;background:color-mix(in srgb,var(--vault-text) 15%,transparent) }
 .lm-workspace-swipe-edge { position:absolute;left:0;inset-block:0;width:20px;z-index:1;touch-action:pan-y }
@@ -458,3 +458,6 @@
 .lm-callout-title > svg { flex: 0 0 auto; margin-top: 0.15em; color: var(--callout-color, var(--vault-accent)); }
 .lm-callout-title > span { overflow-wrap: anywhere; }
 .lm-root .lm-callout-title:hover { color: var(--vault-text); background: transparent; }
+
+.lm-root .lm-workspace-mobile-toolbar { border-radius:999px;max-width:calc(100% - 32px);overflow:auto }
+.lm-mobile-menu-items { flex-wrap:nowrap }

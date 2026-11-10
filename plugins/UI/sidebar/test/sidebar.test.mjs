@@ -47,7 +47,7 @@ test('keyboard navigation and Escape retain deliberate focus and collapse the ac
 });
 
 test('mobile overlay preserves Sidebar selection and the composed editor when opened and closed', async () => {
-  const s = await setup();
+  const s = await setup({ mobileMenu: true });
   try {
     s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 360, 720);
     panel(s, 'test.content');
@@ -57,14 +57,14 @@ test('mobile overlay preserves Sidebar selection and the composed editor when op
     const root = s.surface.querySelector('.lm-workspace-layout');
     const main = root.querySelector('.lm-workspace-main'); const editor = main.firstElementChild;
     const toggle = root.querySelector('.lm-workspace-mobile-toolbar button');
-    assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+    assert.equal(root.hasAttribute('data-mobile-open'), false);
     toggle.click(); await flush();
-    assert.equal(toggle.getAttribute('aria-expanded'), 'true');
+    assert.equal(root.hasAttribute('data-mobile-open'), true);
     assert.equal(main.parentElement.hasAttribute('inert'), true);
     button(s, 'Search').click(); await flush();
     assert.equal(s.tools.sidebar.snapshot().activeId, 'test.search');
     root.querySelector('.lm-workspace-backdrop').click(); await flush();
-    assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+    assert.equal(root.hasAttribute('data-mobile-open'), false);
     assert.equal(s.tools.sidebar.snapshot().activeId, 'test.search');
     assert.equal(main.firstElementChild, editor); assert.equal(main.parentElement.hasAttribute('inert'), false);
     toggle.click(); await flush();
