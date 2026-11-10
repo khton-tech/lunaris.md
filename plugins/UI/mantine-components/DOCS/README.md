@@ -716,3 +716,7 @@ only its controls. Native comparison in Workspace remains pending.
 ## Workspace keyboard ownership
 
 WorkspaceLayout owns region geometry and surfaces; embedded roles own their controls. Workspace no longer captures document-wide Tab events. Native Tab/Shift+Tab traversal belongs to forms and controls; CodeMirror owns its own editor bindings. The reference is the existing Settings/Explorer/account controls. Public role tests cover embedded and sibling event propagation; real focus traversal in those composed forms remains manual acceptance.
+
+## Recovery choices
+
+The existing text-editor role accepts optional recoveryLabel, recoveryCandidates ({ id, label }[]) and onRecovery(id). It renders escaped, wrapping candidates as themed Mantine buttons and makes no implicit selection. Reference: the existing editor error/retry actions. The embedded role inherits Workspace surfaces and owns only internal controls; consumers own records, translations and persistence. Public-role and real editor/container behavior tests cover selection and read-only state. Native focus, long previews, theme contrast and narrow/short geometry remain manual acceptance items.

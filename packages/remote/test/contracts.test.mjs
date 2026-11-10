@@ -14,7 +14,7 @@ test('session and connection events reject malformed state', () => {
   assert.equal(ConnectionChanged.validate({ state: 'unknown', epoch: 'e' }), false);
 });
 test('draft storage requires conditional removal and rejects accessor methods', () => {
-  assert.equal(Drafts.validate({ load() {}, save() {}, remove() {} }), true);
+  assert.equal(Drafts.validate({ list() {}, load() {}, save() {}, remove() {} }), true);
   assert.equal(Drafts.validate({ load() {}, save() {} }), false);
   assert.equal(Drafts.validate({ load() {}, save() {}, get remove() { throw Error('must not run'); } }), false);
 });

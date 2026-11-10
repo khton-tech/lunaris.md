@@ -69,11 +69,14 @@ export interface AccountVaultsApi {
   restore(vaultId: string): Promise<RemoteResult<RemoteVault>>;
 }
 /** Stable identities, never a transient attached root ID. */
-export interface DraftKey { readonly server: string; readonly accountId: string; readonly vaultId: string; readonly path: string }
+export interface DraftKey { readonly writerId?: string; readonly server: string; readonly accountId: string; readonly vaultId: string; readonly path: string }
 export interface DraftRecord { readonly key: DraftKey; readonly text: string; readonly expectedVersion: string; readonly revision: string; readonly updatedAt: number }
+export type DraftWriteRecord = DraftRecord & { readonly key: DraftKey & { readonly writerId: string } };
 export interface DraftsApi {
+  /** Enumerate every writer and legacy recovery candidate without choosing one. */
+  list(key: DraftKey): Promise<FsResult<readonly DraftRecord[]>>;
   load(key: DraftKey): Promise<FsResult<DraftRecord | null>>;
-  save(record: DraftRecord): Promise<FsResult<null>>;
+  save(record: DraftWriteRecord): Promise<FsResult<null>>;
   /** Remove only this acknowledged revision; a newer draft must survive. */
   remove(key: DraftKey, revision: string): Promise<FsResult<null>>;
 }
@@ -81,8 +84,8 @@ const methods = (names: readonly string[]) => (value: unknown): boolean => value
   names.every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function");
 export const AccountSession = defineApi<AccountSessionApi>({ id: "lunaris.account-session", version: "1.0.0", consumePermission: "account.access", validate: methods(["current", "connect", "register", "login", "logout"]) });
 export const AccountVaults = defineApi<AccountVaultsApi>({ id: "lunaris.account-vaults", version: "1.0.0", consumePermission: "account.access", validate: methods(["list", "create", "trash", "restore"]) });
-export const Drafts = defineApi<DraftsApi>({ id: "lunaris.drafts", version: "1.0.0", consumePermission: "drafts.access", validate: methods(["load", "save", "remove"]) });
-export const DraftStorage = defineApi<DraftsApi>({ id: "lunaris.draft-storage", version: "1.0.0", providePermission: "drafts.storage", consumePermission: "drafts.access", validate: methods(["load", "save", "remove"]) });
+export const Drafts = defineApi<DraftsApi>({ id: "lunaris.drafts", version: "2.0.0", consumePermission: "drafts.access", validate: methods(["list", "load", "save", "remove"]) });
+export const DraftStorage = defineApi<DraftsApi>({ id: "lunaris.draft-storage", version: "2.0.0", providePermission: "drafts.storage", consumePermission: "drafts.access", validate: methods(["load", "save", "remove"]) });
 export const AccountSessionChanged = defineEvent<{ readonly current: AccountState | null }>({ id: "lunaris.account-session-changed", version: "1.0.0", consumePermission: "account.access",
   validate: input => { const v = input as { current?: AccountState | null } | null; return !!v && (v.current === null || (!!v.current && typeof v.current.server === "string" && typeof v.current.epoch === "string" && typeof v.current.account?.id === "string" && typeof v.current.account.login === "string")); } });
 export const ConnectionChanged = defineEvent<{ readonly state: "connected" | "offline" | "expired"; readonly epoch: string }>({ id: "lunaris.connection-changed", version: "1.0.0", consumePermission: "account.access",

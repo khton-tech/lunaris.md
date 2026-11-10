@@ -1,3 +1,5 @@
+import { Drafts } from '@lunaris/remote';
+import { FilesystemSources } from '@lunaris/filesystem';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
@@ -62,6 +64,10 @@ async function setup(options = {}) {
     }
     store.set(scope.vaultId, value); return ok(null);
   }, async remove(id, name, scope) { store.delete(scope.vaultId); return ok(true); }, async read(id, scope) { return options.preferenceRead ? options.preferenceRead(id, scope) : ok(preferenceStore.get(scope.vaultId) ?? {}); } });
+  if (options.drafts) {
+    kernel.installMock(Drafts,options.drafts);
+    kernel.installMock(FilesystemSources,{locationVisible:()=>true,list:()=>['remote'],location:()=>fail('UNSUPPORTED'),remoteIdentity:()=>ok({server:'https://server',accountId:'alice',vaultId:'stable-vault'}),capabilitiesFor:()=>fail('UNSUPPORTED')});
+  }
   kernel.installMock(Workspace, { register(value) { content = value; return ok(null); }, update() { return ok(null); }, list() { return content ? [content] : []; } });
   const methods = Object.fromEntries(filesystemMethods.map(name => [name, async () => ok(null)]));
   Object.assign(methods, {
@@ -100,6 +106,7 @@ async function setup(options = {}) {
   for (const [id, grants] of Object.entries({ 'test.driver': ['filesystem.native'], 'lunaris.filesystem-provider': ['filesystem.access', 'filesystem.app-config'], 'lunaris.vault-manager': ['filesystem.access'], 'lunaris.active-document-provider': ['vault.access', 'config.access', 'filesystem.access'], 'lunaris.active-screen-provider': ['vault.access'], [screenHost.manifest.id]: ['ui.dom'], 'lunaris.component-provider': ['ui.dom'], 'lunaris.mantine-components': ['ui.dom'], 'lunaris.context-menu-provider': ['ui.dom'], 'lunaris.text-editor': ['clipboard.access', 'ui.dom', 'vault.access', 'filesystem.access'], 'test.consumer': ['vault.access', 'filesystem.access', 'ui.dom'] })) for (const grant of grants) kernel.grant(id, grant);
   kernel.grant(closeGuard.plugin.manifest.id, 'vault.access');
   kernel.grant(editor.manifest.id, 'config.access');
+  if(options.drafts) kernel.grant(editor.manifest.id,'drafts.access');
   await kernel.start('test.consumer'); await kernel.start(mantine.manifest.id); await kernel.start(screenHost.manifest.id); await kernel.start(editor.manifest.id); await kernel.start(closeGuard.plugin.manifest.id);
   await api.vault.open(); await flush();
   let editorTarget = target;
@@ -578,4 +585,19 @@ test('Lists menu inserts a task that uses the existing interactive checkbox rend
   assert.ok(item('Task list'));assert.ok(item('Task list').querySelector('svg'));item('Task list').click();await flush();assert.equal(s.cm().state.sliceDoc(),'- [ ] Todo\n');
   s.cm().dispatch({selection:{anchor:s.cm().state.doc.length}});await flush();const checkbox=s.target.querySelector('input[type=checkbox]');assert.ok(checkbox);checkbox.click();await flush();assert.equal(s.cm().state.sliceDoc(),'- [x] Todo\n');
  }finally{await s.stop();}
+});
+
+test('editor writer identities remain distinct across independent kernels with matching activation sequences',async()=>{
+ const records=[];const drafts={list:async()=>ok([]),load:async()=>ok(null),save:async record=>{records.push(record);return ok(null);},remove:async()=>ok(null)};
+ for(let i=0;i<2;i++){const s=await setup({drafts});s.cm().dispatch({changes:{from:0,to:s.cm().state.doc.length,insert:'Writer '+i}});await flush();assert.ok(records.length>i,JSON.stringify(s.kernel.diagnostics()));await s.stop();}
+ assert.ok(records.length>=2);assert.notEqual(records[0].key.writerId,records.at(-1).key.writerId);
+});
+
+test('composed editor requires a recovery choice and saves only the selected candidate',async()=>{
+ const records=['A','B'].map((text,i)=>({key:{server:'https://server',accountId:'alice',vaultId:'stable-vault',path:'note.md',writerId:text},text,expectedVersion:'v1',revision:text,updatedAt:i}));const saved=[],removed=[];
+ const s=await setup({drafts:{list:async()=>ok(records),load:async()=>ok(null),save:async record=>{saved.push(record);return ok(null);},remove:async(key,revision)=>{removed.push([key,revision]);return ok(null);}}});
+ assert.equal(s.cm().state.readOnly,true);assert.equal(s.cm().state.sliceDoc(),'# Note');assert.equal(s.calls.some(c=>c[0]==='write'),false);
+ const group=s.target.querySelector('[role=group][aria-label="Choose a recovery draft"]');assert.ok(group);group.querySelectorAll('button')[1].click();await flush();
+ assert.equal(s.cm().state.sliceDoc(),'B');assert.equal(s.cm().state.readOnly,false);assert.equal(saved.at(-1).text,'B');assert.notEqual(saved.at(-1).key.writerId,'B');
+ [...s.target.querySelectorAll('button')].find(b=>b.textContent==='Retry save').click();await flush();assert.equal(s.disk.get('a/note.md').text,'B');assert.ok(removed.some(([key,revision])=>key.writerId==='B'&&revision==='B'));assert.equal(removed.some(([key])=>key.writerId==='A'),false);await s.stop();
 });

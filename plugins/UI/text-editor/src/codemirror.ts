@@ -81,7 +81,7 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
     typingAnimation,
     keymap.of([{ key: "Mod-b", run: markupCommand("bold"), preventDefault: true }, { key: "Mod-i", run: markupCommand("italic"), preventDefault: true }, { key: "Mod-k", run: target => markupCommand("link", menuOptions?.text("linkText"))(target), preventDefault: true }, { key: "Mod-s", run: () => { save(); return true; }, preventDefault: true }, { key: "Tab", run: insertIndent, shift: indentLess, preventDefault: true }, { key: "Enter", run: continueTabIndentedList }, ...markdownKeymap, ...defaultKeymap, ...historyKeymap]),
     EditorView.updateListener.of(update => { if (update.docChanged || update.selectionSet || update.startState.readOnly !== update.state.readOnly) menu?.close(); if (update.docChanged) session.edit(update.state.sliceDoc()); }),
-    skin.of(appearance(theme, preferences)), access.of([EditorState.readOnly.of(session.locks > 0 || session.missing || session.loading), EditorView.editable.of(!session.locks && !session.missing && !session.loading)]),
+    skin.of(appearance(theme, preferences)), access.of([EditorState.readOnly.of(session.locks > 0 || session.missing || session.loading || session.recoveryCandidates.length > 0), EditorView.editable.of(!session.locks && !session.missing && !session.loading && !session.recoveryCandidates.length)]),
     attributes.of(EditorView.contentAttributes.of({ "aria-label": label, spellcheck: "false" })),
   ];
   let state = cached && cached.sliceDoc() === session.text ? cached : undefined;
@@ -93,14 +93,14 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
   let lastContributions = contributions;
   let lastPreview = preview;
   let lastPreferences = preferences;
-  let lastTheme = theme; let lastLabel = label; let lastReadOnly = session.locks > 0 || session.missing || session.loading;
+  let lastTheme = theme; let lastLabel = label; let lastReadOnly = session.locks > 0 || session.missing || session.loading || session.recoveryCandidates.length > 0;
   return {
     view,
     update(nextTheme: ThemeDefinition | null, nextLabel: string, nextPreview = true, nextPreferences: Preferences = defaults, nextContributions: readonly EditorExtension[] = lastContributions) {
       const effects: Effect<unknown>[] = [];
       if (nextContributions !== lastContributions) { effects.push(language.reconfigure(languageFor(nextContributions)), contributed.reconfigure(nextContributions.map(item => item.extension ?? []))); lastContributions = nextContributions; }
       if (nextPreview !== lastPreview) { effects.push(mode.reconfigure(nextPreview ? [livePreview, livePreviewTheme] : [])); lastPreview = nextPreview; }
-      const readOnly = session.locks > 0 || session.missing || session.loading;
+      const readOnly = session.locks > 0 || session.missing || session.loading || session.recoveryCandidates.length > 0;
       if (nextPreferences.wrapLines !== lastPreferences.wrapLines) effects.push(wrapping.reconfigure(nextPreferences.wrapLines ? EditorView.lineWrapping : []));
       if (nextTheme !== lastTheme || nextPreferences !== lastPreferences) { effects.push(skin.reconfigure(appearance(nextTheme, nextPreferences))); lastTheme = nextTheme; lastPreferences = nextPreferences; }
       if (readOnly !== lastReadOnly) {
