@@ -243,9 +243,10 @@ test('host applies explicit provider selections before activating consumers', as
 test('application extensions can replace a bundled provider with the same ID', async () => {
  const {composeApplication}=await import('@lunaris/application-host'); const {JSDOM}=await import('jsdom');
  const dom=new JSDOM('<div id="app"></div>'); const target=dom.window.document.getElementById('app');
- const replacement=plugin('lunaris.logger');
- const definition=composeApplication(target,{art:'L',mode:'desktop',extensions:{plugins:[replacement],entrypoints:[],grants:{},excludeBuiltins:['lunaris.logger']}});
+ const replacement=plugin('lunaris.logger',()=>{},{permissions:['test.output']});
+ const definition=composeApplication(target,{art:'L',mode:'desktop',extensions:{plugins:[replacement],entrypoints:[],grants:{'lunaris.logger':['test.output']},excludeBuiltins:['lunaris.logger']}});
  assert.deepEqual(definition.plugins.filter(p=>p.manifest.id==='lunaris.logger'),[replacement]);
+ assert.deepEqual(definition.grants['lunaris.logger'],['test.output']);
  dom.window.close();
 });
 

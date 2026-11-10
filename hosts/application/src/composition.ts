@@ -129,5 +129,5 @@ export function composeApplication(target: HTMLElement, options: {
   const plugins = definition.plugins.filter(plugin => !disabled.has(plugin.manifest.id) && (extra.plugins.includes(plugin) || !excluded.has(plugin.manifest.id)));
   const registeredIds = new Set(plugins.map(plugin => plugin.manifest.id));
   return { ...definition, ...(options.extensions?.selections ? { selections: options.extensions.selections } : {}), plugins, entrypoints: definition.entrypoints.filter(id => registeredIds.has(id)),
-    grants: Object.fromEntries(Object.entries(definition.grants ?? {}).filter(([id]) => registeredIds.has(id))) };
+    grants: Object.fromEntries(Object.entries({ ...definition.grants, ...extra.grants }).filter(([id]) => registeredIds.has(id))) };
 }
