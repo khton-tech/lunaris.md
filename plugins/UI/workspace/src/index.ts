@@ -14,7 +14,7 @@ import { catalogs } from "./catalog.js";
 import manifest from "../manifest.json" with { type: "json" };
 
 interface View { readonly owner: ResourceScope; readonly target: HTMLElement; readonly componentId: string; readonly region?: string; mounted?: MountedComponent | undefined }
-type Regions = Readonly<Record<"main" | "left-rail" | "left-panel" | "bottom" | "mobile-menu", HTMLElement>>;
+type Regions = Readonly<Record<"main" | "left-rail" | "left-panel" | "bottom" | "mobile-menu" | "mobile-launcher", HTMLElement>>;
 
 export default definePlugin({ manifest, async activate(ctx) {
   const logger = scopeLogger(ctx.use(Logger), ctx.signal);
@@ -112,11 +112,11 @@ export default definePlugin({ manifest, async activate(ctx) {
     const entries = workspace.list();
     const available = entries.filter(entry => components.has(entry.componentId));
     if (!show(layout, { railVisible: available.some(entry => entry.region === "left-rail"), panelVisible: available.some(entry => entry.region === "left-panel"),
-      mobileOpen: navigation.isOpen(), onMobileOpen: (open: boolean) => { if (open) navigation.open(); else navigation.close(); }, mobileMenuVisible: available.some(entry => entry.region === "mobile-menu"), bottomVisible: available.some(entry => entry.region === "bottom"), presentation: { mode: "standalone", sizing: "fill" }, mainLabel: text("main"), panelLabel: text("panel"), panelWidth, resizeLabel: text("resizePanel"), onPanelWidth, onTargets, onDismiss })) {
+      mobileOpen: navigation.isOpen(), onMobileOpen: (open: boolean) => { if (open) navigation.open(); else navigation.close(); }, mobileLauncherVisible: available.some(entry => entry.region === "mobile-launcher"), mobileMenuVisible: available.some(entry => entry.region === "mobile-menu"), bottomVisible: available.some(entry => entry.region === "bottom"), presentation: { mode: "standalone", sizing: "fill" }, mainLabel: text("main"), panelLabel: text("panel"), panelWidth, resizeLabel: text("resizePanel"), onPanelWidth, onTargets, onDismiss })) {
       releaseContent(); release(layout.owner); layout = undefined; regions = undefined; return;
     }
     if (!regions) return;
-    for (const region of ["main", "left-rail", "left-panel", "bottom", "mobile-menu"]) {
+    for (const region of ["main", "left-rail", "left-panel", "bottom", "mobile-menu", "mobile-launcher"]) {
       const signature = JSON.stringify(available.filter(entry => (entry.region ?? "main") === region).map(entry => [entry.id, entry.componentId, entry.order ?? 0]));
       if (signature !== contentSignatures.get(region)) {
         for (const [id, view] of views) if (view.region === region) { release(view.owner); views.delete(id); }
@@ -129,7 +129,7 @@ export default definePlugin({ manifest, async activate(ctx) {
       const region = content.region ?? "main";
       let view = views.get(content.id);
       if (!view) { view = { owner: screen!.child(), target: regions[region], componentId: content.componentId, region }; views.set(content.id, view); }
-      if (show(view, { ...content.props, workspace: context, presentation: { mode: "embedded", sizing: ["bottom", "mobile-menu"].includes(region) ? "content" : "fill" } })) { if (region === "main") visible++; if (region === "left-panel") sideVisible = true; }
+      if (show(view, { ...content.props, workspace: context, presentation: { mode: "embedded", sizing: ["bottom", "mobile-menu", "mobile-launcher"].includes(region) ? "content" : "fill" } })) { if (region === "main") visible++; if (region === "left-panel") sideVisible = true; }
       else { release(view.owner); views.delete(content.id); }
     }
     if (sideVisible || !available.some(entry => entry.region === "left-panel")) { release(sideEmpty?.owner); sideEmpty = undefined; }

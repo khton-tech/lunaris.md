@@ -5,15 +5,15 @@ import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
 
-type Regions = Readonly<Record<"main" | "left-rail" | "left-panel" | "bottom" | "mobile-menu", HTMLElement>>;
+type Regions = Readonly<Record<"main" | "left-rail" | "left-panel" | "bottom" | "mobile-menu" | "mobile-launcher", HTMLElement>>;
 interface LayoutProps {
-  readonly mobileMenuVisible?: boolean; readonly mobileOpen?: boolean; readonly onMobileOpen?: (open: boolean) => void;
+  readonly mobileLauncherVisible?: boolean; readonly mobileMenuVisible?: boolean; readonly mobileOpen?: boolean; readonly onMobileOpen?: (open: boolean) => void;
   readonly bottomVisible?: boolean; readonly railVisible: boolean; readonly panelVisible: boolean; readonly mainLabel: string; readonly panelLabel: string;
   readonly onTargets: (targets: Regions | null) => void; readonly onDismiss: () => void;
   readonly panelWidth?: number; readonly resizeLabel?: string; readonly onPanelWidth?: (width: number) => void;
 }
 export function layoutProps(value: ComponentProps): LayoutProps {
-  if ((value.mobileOpen !== undefined && typeof value.mobileOpen !== "boolean") || (value.mobileMenuVisible !== undefined && typeof value.mobileMenuVisible !== "boolean") || (value.onMobileOpen !== undefined && typeof value.onMobileOpen !== "function")) throw new TypeError("Invalid mobile workspace presentation.");
+  if ((value.mobileLauncherVisible !== undefined && typeof value.mobileLauncherVisible !== "boolean") || (value.mobileOpen !== undefined && typeof value.mobileOpen !== "boolean") || (value.mobileMenuVisible !== undefined && typeof value.mobileMenuVisible !== "boolean") || (value.onMobileOpen !== undefined && typeof value.onMobileOpen !== "function")) throw new TypeError("Invalid mobile workspace presentation.");
   if (value.bottomVisible !== undefined && typeof value.bottomVisible !== "boolean") throw new TypeError("Invalid bottom visibility.");
   if (typeof value.railVisible !== "boolean" || typeof value.panelVisible !== "boolean" || typeof value.mainLabel !== "string" || typeof value.panelLabel !== "string" || typeof value.onTargets !== "function" || typeof value.onDismiss !== "function") throw new TypeError("Invalid workspace layout props.");
   if ((value.panelWidth !== undefined && (typeof value.panelWidth !== "number" || !Number.isFinite(value.panelWidth) || value.panelWidth < 120 || value.panelWidth > 4096)) ||
@@ -25,6 +25,9 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
   const root = useRef<HTMLDivElement>(null); const content = useRef<HTMLDivElement>(null);
   const returnButton = useRef<HTMLButtonElement>(null);
   const mobileMenu = useRef<HTMLDivElement>(null);
+  const mobileLauncher = useRef<HTMLDivElement>(null);
+  const [launcherHidden, setLauncherHidden] = useState(false);
+  const scrollPositions = useRef(new WeakMap<HTMLElement, number>());
   const swipe = useRef<{ x: number; y: number; id: number } | null>(null);
   const [localOpen, setLocalOpen] = useState(false);
   const mobileOpen = props.mobileOpen ?? localOpen;
@@ -50,12 +53,23 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
     const previous = previousPresentation.current;
     previousPresentation.current = { open: overlayOpen, compact };
     const focused = root.current?.ownerDocument.activeElement;
-    if (overlayOpen) (props.panelVisible ? returnButton.current : mobileMenu.current?.querySelector<HTMLButtonElement>("button"))?.focus({ preventScroll: true });
-    else if ((previous.open || previous.compact !== compact) && focused && (focused === mobileMenu.current?.querySelector<HTMLButtonElement>("button") || rail.current?.contains(focused) || content.current?.querySelector('.lm-workspace-panel-pane')?.contains(focused))) {
-      (compact ? mobileMenu.current?.querySelector<HTMLButtonElement>("button") : main.current)?.focus({ preventScroll: true });
+    if (overlayOpen) (props.panelVisible ? returnButton.current : mobileLauncher.current?.querySelector<HTMLButtonElement>("button"))?.focus({ preventScroll: true });
+    else if ((previous.open || previous.compact !== compact) && focused && (focused === mobileLauncher.current?.querySelector<HTMLButtonElement>("button") || rail.current?.contains(focused) || content.current?.querySelector('.lm-workspace-panel-pane')?.contains(focused))) {
+      (compact ? mobileLauncher.current?.querySelector<HTMLButtonElement>("button") : main.current)?.focus({ preventScroll: true });
     }
   }, [overlayOpen, compact, props.panelVisible]);
-  const closeOverlay = () => { setMobileOpen(false); mobileMenu.current?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true }); };
+  useLayoutEffect(() => {
+    const region = main.current!;
+    const onScroll = (event: Event) => {
+      const target = event.target;
+      if (!compact || overlayOpen || !(target instanceof region.ownerDocument.defaultView!.HTMLElement) || mobileLauncher.current?.contains(region.ownerDocument.activeElement)) return;
+      const position = Math.max(0, target.scrollTop); const previous = scrollPositions.current.get(target) ?? 0;
+      if (Math.abs(position - previous) >= 8 || position === 0) { setLauncherHidden(position > previous); scrollPositions.current.set(target, position); }
+    };
+    region.addEventListener("scroll", onScroll, true);
+    return () => region.removeEventListener("scroll", onScroll, true);
+  }, [compact, overlayOpen]);
+  const closeOverlay = () => { setLauncherHidden(false); setMobileOpen(false); mobileLauncher.current?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true }); };
   const dismiss = () => {
     if (compact) { closeOverlay(); return; }
     const selected = rail.current?.querySelector<HTMLButtonElement>("button[aria-pressed=true]");
@@ -67,10 +81,10 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
   const commitWidth = () => { if (!compact && props.panelVisible) props.onPanelWidth?.(Math.round(latestWidth.current)); };
   const publish = props.onTargets;
   useLayoutEffect(() => {
-    publish(Object.freeze({ main: main.current!, "left-rail": rail.current!, "left-panel": panel.current!, bottom: bottom.current!, "mobile-menu": mobileMenu.current! }));
+    publish(Object.freeze({ main: main.current!, "left-rail": rail.current!, "left-panel": panel.current!, bottom: bottom.current!, "mobile-menu": mobileMenu.current!, "mobile-launcher": mobileLauncher.current! }));
     return () => publish(null);
   }, [publish]);
-  return <FocusTrap active={overlayOpen} innerRef={root}><Box className="lm-workspace-layout" style={{ ...theme.contentStyle, "--workspace-panel-width": `${width}px` }} data-compact={compact || undefined} data-mobile-open={overlayOpen || undefined} data-mobile-menu={props.mobileMenuVisible || undefined} data-window-chrome={theme.windowChrome || undefined} data-bottom={props.bottomVisible || undefined} data-rail={props.railVisible || undefined} data-panel={props.panelVisible || undefined}
+  return <FocusTrap active={overlayOpen} innerRef={root}><Box className="lm-workspace-layout" style={{ ...theme.contentStyle, "--workspace-panel-width": `${width}px` }} data-launcher={props.mobileLauncherVisible || undefined} data-compact={compact || undefined} data-mobile-open={overlayOpen || undefined} data-mobile-menu={props.mobileMenuVisible || undefined} data-window-chrome={theme.windowChrome || undefined} data-bottom={props.bottomVisible || undefined} data-rail={props.railVisible || undefined} data-panel={props.panelVisible || undefined}
     role={overlayOpen ? "dialog" : undefined} aria-modal={overlayOpen || undefined} aria-label={overlayOpen ? props.panelLabel : undefined}
     onKeyDown={event => { if (event.key === "Escape" && (compact ? overlayOpen : props.panelVisible)) {
       event.preventDefault(); dismiss();
@@ -102,6 +116,7 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
         const touch = Array.from(event.changedTouches).find(item => item.identifier === start?.id);
         if (start && touch && touch.clientX - start.x >= 56 && touch.clientX - start.x > Math.abs(touch.clientY - start.y) * 1.5) setMobileOpen(true);
       }} />
+    <Paper ref={mobileLauncher} className="lm-workspace-mobile-launcher lm-workspace-card" hidden={!compact || !props.mobileLauncherVisible || (launcherHidden && !overlayOpen)} />
     <Paper ref={mobileMenu} className="lm-workspace-mobile-toolbar lm-workspace-card" hidden={!compact || !props.mobileMenuVisible} />
   </Box></FocusTrap>;
 }

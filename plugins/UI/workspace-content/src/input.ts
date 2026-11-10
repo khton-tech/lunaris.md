@@ -17,6 +17,6 @@ export function readContent(value: unknown): Required<WorkspaceContent> | undefi
   if (!validId(id) || !validId(componentId) || typeof order !== "number" || !Number.isSafeInteger(order) || !props) return;
   const region: unknown = fields.region?.value === undefined ? "main" : fields.region.value;
   const onDismiss: unknown = fields.onDismiss?.value;
-  if (!["main", "left-rail", "left-panel", "bottom", "mobile-menu"].includes(region as string) || (onDismiss !== undefined && typeof onDismiss !== "function")) return;
+  if (!["main", "left-rail", "left-panel", "bottom", "mobile-menu", "mobile-launcher"].includes(region as string) || (onDismiss !== undefined && typeof onDismiss !== "function")) return;
   return Object.freeze({ id, componentId, order, props, region: region as Required<WorkspaceContent>["region"], onDismiss: onDismiss as (() => void) | undefined });
 }

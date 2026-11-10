@@ -9,7 +9,7 @@ export const dependencies = {
   'clipboard-provider': ['sdk', 'logging', 'clipboard'],
   'browser-clipboard': ['sdk', 'logging', 'clipboard'],
   'mobile-menu': ['sdk'],
-  'mobile-menu-plugin': ['sdk','logging','workspace','mobile-menu'],
+  'mobile-menu-plugin': ['sdk','logging','workspace','mobile-menu','localization'],
   'status-bar': ["sdk","logging","workspace","active-document","filesystem","remote","vault","localization"],
   'client-update-ui': ["sdk","remote","logging","vault","components","slots","slot-dom","localization"],
   'browser-navigation': ["sdk","remote","logging","active-document"],

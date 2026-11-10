@@ -66,6 +66,7 @@ export default definePlugin({ manifest, activate(ctx) {
         container.dataset.windowChrome = String(theme.windowChrome);
         // The context-menu role owns its overlay geometry, independently of its target.
         if (id === "lunaris.context-menu") Object.assign(container.style, { containerType: "normal", position: "fixed", inset: "0", pointerEvents: "none" });
+        if (id === "lunaris.mobile-menu") Object.assign(container.style, { containerType: "normal", flex: "0 0 auto" });
         if (id === "lunaris.status-bar") Object.assign(container.style, { flex: "1 1 auto", containerType: "normal" });
         if (id === "lunaris.callout-header") Object.assign(container.style, { display: "inline-flex", containerType: "normal", maxWidth: "100%", verticalAlign: "middle" });
         if (id === "lunaris.task-checkbox") Object.assign(container.style, { display: "inline-flex", containerType: "normal", verticalAlign: "middle" });

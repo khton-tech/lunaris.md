@@ -15,7 +15,7 @@ export default definePlugin({ manifest, activate(ctx) {
   const registered = localization.register(ctx.pluginId, catalogs, ctx.signal);
   if (!registered.ok) throw new Error("Cannot register sidebar messages.", { cause: registered.error });
   const menu = ctx.optional(MobileMenu); const navigation = ctx.optional(WorkspaceSidebar);
-  const action = () => ({ id: ctx.pluginId + ".open", label: text("label"), icon: "sidebar", disabled: !sidebar.snapshot().tabs.length, onPress: () => navigation?.open() });
+  const action = () => ({ id: ctx.pluginId + ".open", label: text("label"), icon: "sidebar", placement: "launcher" as const, disabled: !sidebar.snapshot().tabs.length, onPress: () => navigation?.open() });
   let actionRegistered = false;
   let rail: ResourceScope | undefined; let panel: ResourceScope | undefined; let panelKey = "";
   const text = (key: string) => localization.text(ctx.pluginId, key);

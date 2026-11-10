@@ -9,7 +9,7 @@ export interface WorkspaceContent {
   readonly componentId: string;
   readonly props?: WorkspaceProps;
   readonly order?: number;
-  readonly region?: "main" | "left-rail" | "left-panel" | "bottom" | "mobile-menu";
+  readonly region?: "main" | "left-rail" | "left-panel" | "bottom" | "mobile-menu" | "mobile-launcher";
   /** Optional dismissal of a left-panel overlay (for example Escape). */
   readonly onDismiss?: (() => void) | undefined;
 }
@@ -25,7 +25,7 @@ export interface WorkspaceApi {
   list(): readonly WorkspaceContent[];
 }
 export const Workspace = defineApi<WorkspaceApi>({
-  id: "lunaris.workspace", version: "1.3.0",
+  id: "lunaris.workspace", version: "1.4.0",
   validate: value => !!value && typeof value === "object" &&
     ["register", "update", "list"].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function"),
 });

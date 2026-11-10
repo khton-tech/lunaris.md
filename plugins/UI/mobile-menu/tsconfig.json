@@ -21,6 +21,9 @@
     },
     {
       "path": "../../../packages/mobile-menu"
+    },
+    {
+      "path": "../../../packages/localization"
     }
   ]
 }

@@ -4,7 +4,7 @@ import { setupWorkspace, flush } from '../../../../tools/test/workspace.mjs';
 test('mobile items validate, order, update, contain failures and follow contributor lifetime', async () => {
  const s=await setupWorkspace({mobileMenu:true});
  try {
-  const api=s.tools.mobileMenu; const owner=s.ctx.scope.child(); let calls=0;
+  const service=s.tools.mobileMenu; const api={register:service.register,update:service.update,list:()=>service.list().filter(item=>item.id.startsWith('test.'))}; const owner=s.ctx.scope.child(); let calls=0;
   const item={id:'test.action',label:'Action',icon:'sidebar',onPress:()=>{calls++;}};
   assert.equal(api.register(item,owner.signal).ok,true);
   assert.equal(api.register(item,owner.signal).ok,false);

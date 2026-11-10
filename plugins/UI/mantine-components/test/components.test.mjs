@@ -885,10 +885,19 @@ test('compact Workspace lends a mobile menu target without replacing editor regi
  const original = s.dom.window.HTMLElement.prototype.getBoundingClientRect;
  s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0,0,360,720);
  try {
-  let targets; const requests=[]; const props = {onMobileOpen:open=>requests.push(open),railVisible:true,panelVisible:true,bottomVisible:true,mobileMenuVisible:true,mainLabel:'Main',panelLabel:'Sidebar',onTargets:value=>{targets=value;},onDismiss(){}};
+  let targets; const requests=[]; const props = {onMobileOpen:open=>requests.push(open),railVisible:true,panelVisible:true,bottomVisible:true,mobileLauncherVisible:true,mobileMenuVisible:true,mainLabel:'Main',panelLabel:'Sidebar',onTargets:value=>{targets=value;},onDismiss(){}};
   const mounted = s.components.mount('lunaris.workspace-layout',s.target,props,s.ctx.signal); assert.equal(mounted.ok,true);
   const initial = targets; const main = targets.main; const draft = s.dom.window.document.createElement('input'); draft.value='Draft'; main.append(draft);
   assert.ok(targets['mobile-menu']); assert.equal(targets.bottom.hidden,true); requests.length=0;
+  const launcher=targets['mobile-launcher']; assert.ok(launcher); assert.equal(launcher.hidden,false);
+  const scroll=s.dom.window.document.createElement('div'); main.append(scroll);
+  const {flushSync}=await import('react-dom');
+  scroll.scrollTop=60; flushSync(()=>scroll.dispatchEvent(new s.dom.window.Event('scroll'))); assert.equal(launcher.hidden,true);
+  scroll.scrollTop=30; flushSync(()=>scroll.dispatchEvent(new s.dom.window.Event('scroll'))); assert.equal(launcher.hidden,false);
+  const menu=s.components.mount('lunaris.mobile-menu',targets['mobile-menu'],{items:Array.from({length:5},(_,i)=>({id:'test.'+i,label:'Test '+i,icon:'files',onPress(){}}))},s.ctx.signal);
+  assert.equal(menu.ok,true); assert.equal(targets['mobile-menu'].querySelectorAll('button').length,5);
+  assert.equal(targets['mobile-menu'].querySelector('.lm-root').style.containerType,'normal');
+  menu.value.dispose();
   const edge=s.target.querySelector('.lm-workspace-swipe-edge');
   const touch=(type,x,y)=>{const event=new s.dom.window.Event(type,{bubbles:true}); const points=[{identifier:0,clientX:x,clientY:y}]; Object.defineProperties(event,{touches:{value:type==='touchend'?[]:points},changedTouches:{value:points}});edge.dispatchEvent(event);};
   touch('touchstart',5,100);touch('touchmove',10,160);touch('touchend',100,160);assert.deepEqual(requests,[]);

@@ -13,6 +13,7 @@
     "@lunaris/sdk": "0.1.0",
     "@lunaris/logging": "0.1.0",
     "@lunaris/workspace": "0.1.0",
-    "@lunaris/mobile-menu": "0.1.0"
+    "@lunaris/mobile-menu": "0.1.0",
+    "@lunaris/localization": "0.1.0"
   }
 }
