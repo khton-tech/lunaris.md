@@ -1,5 +1,7 @@
 # System, plugin integration and UI audit
 
+Remediation follow-up (2026-11-10): see [implementation status, regression results and remaining manual acceptance](audit-remediation-2026-11-10.md). Original findings below describe their reviewed baseline.
+
 Date: 2026-11-09, Asia/Yekaterinburg.
 
 Reviewed client: `a08d719e0faf9d06558d79eccdb332c6aff6da64`, branch `feat/maiami-night-theme`.

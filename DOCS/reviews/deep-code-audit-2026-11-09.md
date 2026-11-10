@@ -1,5 +1,7 @@
 # Deep code audit: concurrency and persistence
 
+Remediation follow-up (2026-11-10): see [implementation status, regression results and remaining manual acceptance](audit-remediation-2026-11-10.md). Original findings below describe their reviewed baseline.
+
 Date: 2026-11-09, Asia/Yekaterinburg.
 Baseline: `8af70e2` on `feat/maiami-night-theme`; product source is unchanged from the first audit's `a08d719`.
 The working tree was clean before this follow-up. No product fix, merge, deployment or real-user-data operation was performed.

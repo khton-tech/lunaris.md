@@ -1,44 +1,49 @@
-# Audit remediation status and SDK blockers
+# Audit remediation status
 
 Date: 2026-11-10, Asia/Yekaterinburg.
-Branch: fix/audit-2026-11-09. No merge or deployment performed.
+Client branch: fix/audit-2026-11-09. Paired server branch: fix/audit-remote-limits.
+No merge, deployment or real-user-data operation was performed.
 
 Sources: [system audit](system-audit-2026-11-09.md), [deep code audit](deep-code-audit-2026-11-09.md), and [server readiness](server-readiness-2026-11-09.md).
+The Owner authorized the remaining fixes, including SDK contract changes, after the initial R3 correction. The earlier contract-blocked status is superseded by this implementation.
 
-## Completed: R3 preference shutdown safety
+## Implementation and integration
 
-Editor and File Explorer preference liveness checks now recognize SDK endpoint retirement even while their own consumer scope remains open. Background loads have rejection observers; explicit ready callers still receive unexpected failures. Permission denial is not classified as normal retirement.
+| Finding | Correction and public-contract integration |
+| --- | --- |
+| R1 | Host keeps operation failures local and tolerates unused optional-provider failures. Both product compositions install a public-SDK Vault preservation gate before fatal abort. Refusal/failure retains live buffers, records APPLICATION_RECOVERY_BLOCKED and blocks destructive relaunch; successful preservation is recorded before teardown. |
+| R2 | Drafts/DraftStorage 2.0 provide list and writer-specific load/save/remove. Saving requires an independent random 128-bit writer identity. IndexedDB schema 2 retains legacy records. Editor, drafts provider, storage, DocumentProtection and navigation are connected; competing candidates require explicit public Mantine-role selection, and selected content is copied to the new writer. Unselected records survive acknowledgement. |
+| R3 | Editor and File Explorer liveness recognize SDK endpoint retirement while consumer scope is open. Background rejections are observed; unrelated permission failures propagate to explicit awaiters. |
+| R4 | Discard waits for queued saves and confirms durable deletion before acknowledging. Result failures, thrown failures and failed queued persistence retain buffers and actionable errors. Failed post-save cleanup remains protected and retryable. |
+| R5 | Workspace no longer intercepts document-wide Tab. Embedded forms and sibling views retain native traversal; CodeMirror keeps its own Tab behavior. |
+| R6 | Trusted extensions can exclude built-ins, replace same-ID providers and specify kernel provider selections. Explicit extension grants take precedence. Required dependency validation still applies; the existing Files profile remains required for standard Vault navigation. |
+| R7 | JSON and plain 5xx failures remain offline; ordinary business refusals do not imply loss of connectivity. Existing ConnectionChanged consumers receive the corrected classification. |
+| R8 | Shared protocol defines a conservative 1 MiB raw UTF-8/binary content ceiling and separate 16 MiB encoded file-request ceiling. Client rejects excessive content before JSON array expansion, transport checks the envelope, and per-source capabilities expose the ceiling. Paired server advertises limits and enforces writes, HTTP admission and oversized disk reads. Smaller/incomplete advertised limits are incompatible; legacy protocol-1 servers use the documented conservative client ceiling. |
+| R9 | Config initializes storage only. Vault persistence owns display-name policy through Config and PrepareVault. Public VAULT_METADATA_NAMESPACE retains the existing namespace without rewriting data; replacement Vault providers can consume the same public preparation contract. |
+| R10 | Buffer cleanliness no longer proves recovery convergence. Clean flush waits for snapshots and removes obsolete recovery records before close; pending/failed recovery work remains protected. |
+| R11 | Connection generation and ownership are established before publication. Superseded calls return cancellation, and old owners cannot retire replacements. Generation is rechecked after discovery/status publication, including reentrant connection changes. |
+| R12 | Observation suppression, pending release and successful release are separate. Concurrent releases share work; failed releases retry the driver instead of reporting false success. Router and native driver contracts remain unchanged. Native explicit unwatch already retries the underlying request; automatic native/session cleanup remains its safety net. |
+| L1 | Documentation states that only synchronous recursive disposal is detected directly; indirect asynchronous self-waits rely on cleanup deadlines. A public-kernel regression verifies STOP_TIMEOUT and retained pending-resource diagnostics. |
 
-Integration: both consumers use the existing public SDK isSdkUnavailable contract and scoped Logger. Config, Vault, Settings and kernel contracts are unchanged. No additional plugin integration is required for this correction. No visual behavior was changed or manually accepted.
+All twelve findings have implementations and automated regression coverage. No new plugin integration is knowingly outstanding for these corrections. This does not certify native visual behavior or Linux deployment.
 
-Validation:
+## Verification
 
-- Before the fix, remote:check reproduced the audited unhandled PROVIDER_UNAVAILABLE rejection: 51 passed, 1 failed.
-- After the fix, npm run remote:check passed all 52 tests, including the real server delayed-read shutdown scenario, shared browser/desktop builds, type fixtures and boundaries.
-- node --test --test-reporter=dot tools/scripts/preferences-retirement.test.mjs: four regressions passed, covering both consumers, retirement with an open consumer scope, and propagation/logging of unrelated permission failures.
-- Both existing preference test files: five tests passed.
+- Original R3 baseline reproduced: remote:check had 51 passes and one unhandled PROVIDER_UNAVAILABLE rejection. Its initial correction restored 52/52.
+- Latest paired npm run server:check passed: 66 client/server tests with shared browser/desktop builds, public type fixtures and boundaries; 24 server source syntax checks and 21 server tests; three automatic development synchronization tests. No skipped server tests.
+- Targeted checks passed for transport, filesystem provider, application host, Config/Vault persistence, editor, storage, drafts and Mantine, including affected consumers. Counts overlap and must not be added.
+- Latest focused editor persistence regressions: 20 passed, including delayed-write/undo, delayed discard, failed/throwing discard, competing recovery selection and retryable acknowledgement cleanup.
+- node tools/scripts/system-review.mjs: 24 desired-behavior regressions passed.
+- node tools/scripts/deep-review.mjs: five desired-behavior regressions passed. Both scripts now verify corrected behavior; the original audit evidence remains historical at its cited revisions.
+- UI localization: 18 bilingual catalogs, 349 messages, matching keys and parameters.
+- Production npm run web:build passed. Vite retains its large-chunk warning (approximately 1.54 MB minified JavaScript); bundle splitting was outside this remediation.
+- Documentation links and whitespace validation passed before final status commit.
 
-## Required SDK decision: R2 writer-safe recovery
+## Remaining manual acceptance
 
-Development stops at this contract gap under AGENTS.md Strict SDK Dependency. Current Drafts/DraftStorage expose one load result per document and unconditional replacement. Plugins cannot safely express multiple recovery candidates through that API. R4/R10 must be reviewed alongside the approved ownership policy, with separate regressions.
+- Workspace: Tab/Shift+Tab through Settings, Explorer create/rename and account forms, plus CodeMirror indentation. Check visible focus and opened controls.
+- Two disposable real browser tabs: edit one file independently, go offline, restart and select competing recovery candidates. Confirm unselected drafts remain available, discard does not return, and undo followed by close does not restore obsolete text.
+- Recovery choices inside real Workspace: both themes, long Russian previews, narrow/short windows and keyboard focus. Mantine owns only embedded controls; Workspace retains outer geometry and surfaces. Composed DOM/behavior tests pass; native appearance and geometry remain unverified.
+- Server readiness: Docker is unavailable in this environment. Earlier permission/admission/development-workflow fixes are recorded in the server audit; Linux/root/nonmatching-UID container operation, actual installation/update and backup/restore still need the documented Docker smoke/manual checks.
 
-Proposed minimal public contract, to approve before implementation:
-
-1. Keep DraftKey as document identity. Add a required opaque writerId to DraftRecord; identify a durable record by document plus writerId. Each editor session allocates a fresh writer identity; identity is stored with the record so recovery survives restart.
-2. Replace singular load with list(key): Promise<FsResult<readonly DraftRecord[]>>. Never silently choose among competing writers. Preserve revision and updatedAt metadata for recovery selection.
-3. save(record) replaces only that writer's record. remove(key, writerId, revision) removes only that writer's acknowledged revision. Another writer and newer revisions survive. A missing exact record is an idempotent success.
-4. Bump Drafts and DraftStorage major versions and update all declarations, providers, consumers, validators, fixtures and documentation together. These are shared SDK contracts, not private storage extensions.
-5. Migrate the existing IndexedDB draft store transactionally into writer-specific records with a reserved legacy writer identity. Do not drop legacy drafts. Coordinate schema upgrades with other tabs and report blocked upgrades explicitly.
-6. Editor recovery must expose all candidates through public UIKit roles and require explicit selection when candidates compete. Discard must acknowledge durable removal. Session close protection must include unsettled recovery writes/removals even when text equals disk. No SDK work may be scheduled after disposal.
-
-Required integration: remote contracts, drafts provider, browser storage, editor DocumentSession/recovery, DocumentProtection and browser navigation. Acceptance: two independent hosts, restart, ambiguous recovery, exact revision acknowledgements, failed discard, delayed save then undo, Vault close and page-close protection. No implementation or integration of this proposal is claimed.
-
-## Required protocol decision: R8 remote limits
-
-Before changing remote plugins, extend public ServerInfo with explicit limits for raw UTF-8 text bytes, binary bytes and the encoded file-request body. Define byte units, envelope overhead and server enforcement; advertise limits conservatively and apply them per source. Client transport must measure/reject excessive requests before materializing large JSON byte arrays. Server HTTP admission remains authoritative.
-
-Required integration: server information/HTTP policy, shared remote contract validation/version compatibility, transport, remote filesystem capabilities, router and callers. Acceptance must cover text escaping, multibyte UTF-8, binary array expansion, envelope overhead and exact boundaries. Old servers must receive a documented compatibility outcome rather than an unlimited-looking fallback. This proposal is not implemented.
-
-## Outstanding findings
-
-R1, R2, R4-R12 and L1 remain open. R3 is fixed as described above; analogous File Explorer liveness was corrected without claiming its original failure was reproduced. The server-readiness report already records prior remediation of its four original findings; Docker/Linux execution and manual acceptance remain pending, not newly certified by this work.
+No desktop automation was used. No manual acceptance or Docker execution is claimed complete.
