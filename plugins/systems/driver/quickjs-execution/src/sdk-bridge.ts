@@ -17,18 +17,38 @@ class Bridge {
   #closed = false;
   #reject = new Set<(reason: Error) => void>();
   #signals = new Map<number, CancellationSignal>();
+  #functionIds = new WeakMap<Fn, number>();
+  #guestCounts = new Map<number, number>();
+  #guestRelease = new Set<number>();
+  #releaseScheduled = false;
+  #finalizer = new FinalizationRegistry<number>(id => {
+    const count = (this.#guestCounts.get(id) ?? 1) - 1;
+    if (count > 0) { this.#guestCounts.set(id, count); return; }
+    this.#guestCounts.delete(id); this.#guestRelease.add(id);
+    if (this.#releaseScheduled || this.#closed) return;
+    this.#releaseScheduled = true;
+    queueMicrotask(() => {
+      this.#releaseScheduled = false;
+      const ids = [...this.#guestRelease].filter(id => !this.#guestCounts.has(id)); this.#guestRelease.clear();
+      if (!this.#closed && this.realm && ids.length) {
+        try { this.realm.call('__sdkRelease', [ids]); } catch { /* Realm shutdown remains the final ownership boundary. */ }
+      }
+    });
+  });
   realm?: ExecutionRealm;
 
   dispose(): void {
     this.#closed = true;
     for (const reject of this.#reject) reject(new Error('SDK execution closed.'));
-    this.#reject.clear(); this.#functions.clear(); this.#signals.clear();
+    this.#reject.clear(); this.#functions.clear(); this.#signals.clear(); this.#guestCounts.clear(); this.#guestRelease.clear();
   }
 
   #remember(fn: Fn): number {
     if (this.#closed) throw new Error('SDK execution closed.');
-    if (this.#functions.size >= 8192) throw new Error('Host SDK handle limit exceeded.');
-    const id = ++this.#next; this.#functions.set(id, fn); return id;
+    let id = this.#functionIds.get(fn);
+    if (id === undefined) { id = ++this.#next; this.#functionIds.set(fn, id); }
+    if (!this.#functions.has(id)) { if (this.#functions.size >= 8192) throw new Error('Host SDK handle limit exceeded.'); this.#functions.set(id, fn); }
+    return id;
   }
 
   pack(value: unknown, depth = 0): Wire {
@@ -92,6 +112,7 @@ class Bridge {
           if (result.ok !== true) throw new Error('Plugin callback failed.', { cause: result.code });
           return this.unpack(result.value!);
         };
+        this.#guestCounts.set(id, (this.#guestCounts.get(id) ?? 0) + 1); this.#finalizer.register(invoke, id);
         if (item.$ === 'g') return invoke;
         return new Promise((resolve, reject) => {
           this.#reject.add(reject);
@@ -112,6 +133,10 @@ class Bridge {
     } catch (error) {
       return { ok: false, code: error instanceof LunarisError ? error.code : 'SDK_FAILED', message: 'SDK operation failed' };
     }
+  };
+  release = (_identity: unknown, args: readonly ExecutionValue[]): Wire => {
+    if (!this.#closed) for (const id of args) if (typeof id === 'number' && Number.isSafeInteger(id)) this.#functions.delete(id);
+    return null;
   };
 }
 
@@ -170,7 +195,7 @@ export function isolatedDefinition(manifest: PluginManifest, source: ExecutionSo
     const entry = '__lunaris_sdk_entry__.js';
     if (Object.hasOwn(captured.modules, entry)) throw new Error('Reserved SDK module path.');
     const code = `import __entry from ${JSON.stringify(captured.entry)};\n${guestBridge}`;
-    const realm = await createRealm({ pluginId: ctx.pluginId, activationId: ctx.activationId, ...bound }, { entry, modules: { ...captured.modules, [entry]: code } }, [{ name: 'sdk.call', invoke: bridge.invoke }], owner, driver, limits);
+    const realm = await createRealm({ pluginId: ctx.pluginId, activationId: ctx.activationId, ...bound }, { entry, modules: { ...captured.modules, [entry]: code } }, [{ name: 'sdk.call', invoke: bridge.invoke }, { name: 'sdk.release', invoke: bridge.release }], owner, driver, limits);
     bridge.realm = realm;
     let owned = false;
     try {

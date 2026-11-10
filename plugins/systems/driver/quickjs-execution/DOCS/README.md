@@ -40,9 +40,12 @@ events/hooks and owned scopes through interpreter-local function references.
 Host promises become guest promises and guest jobs run under the same turn limit.
 BigInt and Date use explicit tagged data. Cancellation signals keep live state and
 round-trip only their own opaque signal reference; no native object is transferred.
-Transfer handles are limited to 8192 per side; they are released with the realm.
-Individual long-lived callback handle reclamation remains a development/reload
-stress-test item. SDK errors expose stable classifications without raw host paths;
+Transfer handles are limited to 8192 per side. Two-sided weak proxy reclamation
+releases unreachable callback handles; one-shot host promise subscriptions release
+immediately. Whole-realm disposal remains the final ownership boundary. A real
+interpreter stress test exceeds the pool size with 12000 transient callbacks and
+4500 async calls, then verifies full shutdown. GC timing itself is nondeterministic.
+SDK errors expose stable classifications without raw host paths;
 original provider errors remain in kernel diagnostics.
 
 Config calls are bound to the captured Vault and package namespace; global Config

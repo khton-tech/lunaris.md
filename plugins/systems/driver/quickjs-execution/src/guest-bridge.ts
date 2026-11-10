@@ -3,9 +3,16 @@ export const guestBridge = `
 const functions = new Map(); let next = 0;
 const functionIds = new WeakMap();
 const hostSignals = new WeakMap();
+const hostFunctions = new Map(), hostFunctionCounts = new Map();
+const hostFinalizer = new FinalizationRegistry(id => {
+  const count = (hostFunctionCounts.get(id) ?? 1) - 1;
+  if (count > 0) { hostFunctionCounts.set(id, count); return; }
+  hostFunctionCounts.delete(id); hostFunctions.delete(id); lunaris.call('sdk.release', id);
+});
 const remember = fn => {
   let id = functionIds.get(fn);
-  if (!id) { if (functions.size >= 8192) throw Error('Guest handle limit'); id = ++next; functions.set(id, fn); functionIds.set(fn, id); }
+  if (!id) { id = ++next; functionIds.set(fn, id); }
+  if (!functions.has(id)) { if (functions.size >= 8192) throw Error('Guest handle limit'); functions.set(id, fn); }
   return id;
 };
 const encode = (value, depth = 0) => {
@@ -38,8 +45,12 @@ const decode = (value, depth = 0) => {
   if (value.$ === 'u') return undefined;
   if (value.$ === 'b') return BigInt(value.value);
   if (value.$ === 'd') return new Date(value.value);
-  if (value.$ === 'h') return (...args) => operation(value.id, args);
-  if (value.$ === 'q') return new Promise((resolve, reject) => operation(value.id, [resolve, reject]));
+  if (value.$ === 'h') {
+    let fn = hostFunctions.get(value.id)?.deref();
+    if (!fn) { fn = (...args) => operation(value.id, args); hostFunctions.set(value.id, new WeakRef(fn)); hostFunctionCounts.set(value.id, (hostFunctionCounts.get(value.id) ?? 0) + 1); hostFinalizer.register(fn, value.id); }
+    return fn;
+  }
+  if (value.$ === 'q') return new Promise((resolve, reject) => { try { operation(value.id, [resolve, reject]); } finally { lunaris.call('sdk.release', value.id); } });
   if (value.$ === 's') {
     const state = decode(value.state, depth + 1), add = decode(value.add, depth + 1), remove = decode(value.remove, depth + 1);
     const listeners = new Map();
@@ -62,4 +73,5 @@ export function __sdkCall(id, args) {
 }
 export function __sdkManifest() { return __entry.manifest; }
 export function __sdkActivate(context) { return encode(__entry.activate(decode(context))); }
+export function __sdkRelease(ids) { for (const id of ids) functions.delete(id); return null; }
 `;
