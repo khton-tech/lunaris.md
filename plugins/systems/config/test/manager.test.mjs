@@ -115,7 +115,7 @@ test('history persistence failure cannot turn a committed Vault open into failur
 });
 
 test('location selection has no Vault side effects; Next opens once and persists the display name across restarts', async () => {
-  const s = await setup({ files: [['notes/existing.md', 'Keep me']] });
+  const s = await setup({ history: true, files: [['notes/existing.md', 'Keep me']] });
   const location = { reference: 'notes', label: 'Folder' };
   s.selections.push(ok(location));
   assert.deepEqual(await s.locations.select(s.context.signal), ok(location));
@@ -126,13 +126,13 @@ test('location selection has no Vault side effects; Next opens once and persists
   assert.equal(parse(s.files.get('notes/.lunaris/config.toml')).plugins['lunaris.vault-manager'].name, 'My Notes');
   assert.equal(s.calls.filter(c => c.operation === 'selectLocation').length, 1);
   assert.equal(s.calls.filter(c => c.operation === 'attachLocation').length, 1);
-  const restored = await setup({ files: [...s.files], dirs: [...s.dirs] });
+  const restored = await setup({ history: true, files: [...s.files], dirs: [...s.dirs] });
   assert.equal((await restored.locations.open(location)).value.name, 'My Notes');
   await s.host.stopAll(); await restored.host.stopAll(); s.host.assertNoResources(); restored.host.assertNoResources();
 });
 
 test('invalid names, inaccessible locations, and metadata save failure preserve the active Vault', async () => {
-  const s = await setup({ writeFailure: (path, args) => path === 'bad/.lunaris/config.toml' && args.options.mode === 'replace' ? 'ACCESS_DENIED' : undefined });
+  const s = await setup({ history: true, writeFailure: (path, args) => path === 'bad/.lunaris/config.toml' && args.options.mode === 'replace' ? 'ACCESS_DENIED' : undefined });
   s.select('old'); await s.vaults.open();
   for (const name of ['', '  ', ' padded', 'line\nbreak', 'x'.repeat(201)]) {
     assert.equal((await s.locations.open({ reference: 'bad', label: 'Bad' }, { name })).error.code, 'INVALID_ARGUMENT');
@@ -140,7 +140,7 @@ test('invalid names, inaccessible locations, and metadata save failure preserve 
   assert.equal(s.calls.some(c => c.operation === 'attachLocation'), false);
   assert.equal((await s.locations.open({ reference: 'bad', label: 'Bad' }, { name: 'New' })).error.code, 'PREPARATION_FAILED');
   assert.equal(s.vaults.current().id, 'old');
-  const missing = await setup({ attachFailure: 'NOT_FOUND' });
+  const missing = await setup({ history: true, attachFailure: 'NOT_FOUND' });
   missing.select('old'); await missing.vaults.open();
   assert.equal((await missing.locations.open({ reference: 'gone', label: 'Gone' })).error.code, 'NOT_FOUND');
   assert.equal(missing.vaults.current().id, 'old');
@@ -162,7 +162,7 @@ test('pending location selection blocks duplicate transitions and cancellation l
 
 test('invalid stored display names reject preparation without rewriting existing configuration', async () => {
   const original = '[plugins."lunaris.vault-manager"]\nname = 42\n';
-  const s = await setup({ files: [['bad/.lunaris/config.toml', original]], dirs: ['bad/.lunaris'] });
+  const s = await setup({ history: true, files: [['bad/.lunaris/config.toml', original]], dirs: ['bad/.lunaris'] });
   s.select('old'); await s.vaults.open();
   assert.equal((await s.locations.open({ reference: 'bad', label: 'Bad' })).error.code, 'PREPARATION_FAILED');
   assert.equal(s.files.get('bad/.lunaris/config.toml'), original);

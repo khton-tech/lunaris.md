@@ -4,7 +4,7 @@ import { definePlugin } from '@lunaris/sdk';
 import { createTestKernel } from '@lunaris/test';
 import { Logger } from '@lunaris/logging';
 import { Config } from '@lunaris/config';
-import { VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged } from '@lunaris/vault';
+import { VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged, PrepareVault } from '@lunaris/vault';
 import historyProvider from '@lunaris/vault-history';
 
 const ok = value => ({ ok: true, value });
@@ -26,7 +26,7 @@ async function setup(options = {}) {
     async read() { return ok({}); }, async remove() { return ok(false); },
   });
   host.register(definePlugin({ manifest: { manifestVersion: 1, id: 'test.vault', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js',
-    provides: [VaultLocations, VaultChanged].map(token => ({ kind: token.kind, id: token.id, version: token.version })), requires: [], permissions: [], optionalPermissions: [] },
+    provides: [VaultLocations, VaultChanged, PrepareVault].map(token => ({ kind: token.kind, id: token.id, version: token.version })), requires: [], permissions: [], optionalPermissions: [] },
   activate(ctx) { vaultContext = ctx; ctx.provide(VaultLocations, { async describe(reference) { return options.describeFailure ? fail("NOT_FOUND") : ok({ reference, label: options.fullLabel ?? reference }); }, async select() { return ok(null); }, async open(location) {
     opened.push(location); if (options.openFailure) return fail('NOT_FOUND');
     const vault = { id: `attached-${opened.length}`, name: 'Current metadata' };

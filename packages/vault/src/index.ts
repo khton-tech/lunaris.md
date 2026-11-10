@@ -118,3 +118,6 @@ export const PrepareVault = defineHook<VaultPreparation>({
       (preparation.displayName === undefined || validVaultName(preparation.displayName));
   },
 });
+
+/** Stable Vault metadata storage namespace, retained for existing configuration files. */
+export const VAULT_METADATA_NAMESPACE = "lunaris.vault-manager";

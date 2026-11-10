@@ -58,3 +58,5 @@ without attaching a root or preparing Vault data. The native driver returns the
 full absolute display path in `label`; `reference` remains opaque authority.
 Recent history refreshes legacy labels on listing and recording, retaining saved
 labels on recoverable failures. Display paths must never be logged.
+
+Vault metadata ownership: this Vault persistence plugin registers PrepareVault after Config's storage initialization. It reads/validates the display name and persists explicit renames through Config using the public VAULT_METADATA_NAMESPACE constant. The stable namespace retains existing files without a destructive migration; replacement Vault providers use the same public PrepareVault/displayName contract and may reuse this metadata owner. Config no longer interprets names or embeds a concrete Vault implementation namespace. History and metadata preparation are integrated in both standard host compositions; custom compositions needing persisted names must activate this owner.
