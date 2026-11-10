@@ -52,7 +52,7 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
   function commitTitle(): void {
     if (committing.current) return;
     const next = title.trim();
-    if (!props.canRename || next === props.title || !next) { setTitle(props.title); return; }
+    if (!props.canRename || next === props.title || !next || next.includes("/")) { setTitle(props.title); return; }
     committing.current = true;
     void props.onRename(next).then(ok => { if (!ok) setTitle(props.title); }).finally(() => { committing.current = false; });
   }

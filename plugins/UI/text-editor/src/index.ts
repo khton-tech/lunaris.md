@@ -195,16 +195,22 @@ export default definePlugin({ manifest, activate(ctx) {
       if (!session?.active || session.locks || session.saving || session.loading) return false;
       const cleaned = name.trim();
       const source = session.target;
-      if (!cleaned || cleaned === stem(source.path)) { renameError = ""; changed(); return cleaned === stem(source.path); }
+      if (!cleaned || cleaned.includes("/")) { renameError = cleaned ? text("renameFailed") : ""; changed(); return false; }
+      if (cleaned === stem(source.path)) { renameError = ""; changed(); return true; }
       const parent = parentPath(source.path);
       const destination = { vaultId: source.vaultId, path: `${parent ? `${parent}/` : ""}${cleaned}.md` };
-      const result = await documents.relocate(source, destination);
-      if (disposed || signal.aborted || ctx.signal.aborted) return result.ok;
-      if (!result.ok) {
+      // Move on disk first; BeforeFileMutation retargets this buffer, then the
+      // active document relocates to the committed path (same path as Explorer).
+      const moved = await fs.move(source, destination, false);
+      if (disposed || signal.aborted || ctx.signal.aborted) return moved.ok;
+      if (!moved.ok) {
         renameError = text("renameFailed");
-        logger.warn(ctx.pluginId, "Cannot rename document", { error: result.error });
+        logger.warn(ctx.pluginId, "Cannot rename document", { error: moved.error });
         changed(); return false;
       }
+      const relocated = await documents.relocate(source, destination);
+      if (disposed || signal.aborted || ctx.signal.aborted) return relocated.ok;
+      if (!relocated.ok) logger.warn(ctx.pluginId, "Renamed file but could not relocate active document", { error: relocated.error });
       renameError = ""; logger.info(ctx.pluginId, "Document renamed"); changed(); return true;
     };
     function render(): void {

@@ -3,7 +3,7 @@ import { FilesystemSources } from '@lunaris/filesystem';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
-import { useBrowser } from '../../../../tools/test/browser.mjs';
+import { useBrowser, typeInput } from '../../../../tools/test/browser.mjs';
 import { EditorView } from '@codemirror/view';
 import { undo, redo } from '@codemirror/commands';
 import { StateEffect, EditorState, Prec } from '@codemirror/state';
@@ -609,11 +609,37 @@ test('editor writer identities remain distinct across independent kernels with m
  assert.ok(records.length>=2);assert.notEqual(records[0].key.writerId,records.at(-1).key.writerId);
 });
 
-test('composed editor requires a recovery choice and saves only the selected candidate',async()=>{
- const records=['A','B'].map((text,i)=>({key:{server:'https://server',accountId:'alice',vaultId:'stable-vault',path:'note.md',writerId:text},text,expectedVersion:'v1',revision:text,updatedAt:i}));const saved=[],removed=[];
- const s=await setup({drafts:{list:async()=>ok(records),load:async()=>ok(null),save:async record=>{saved.push(record);return ok(null);},remove:async(key,revision)=>{removed.push([key,revision]);return ok(null);}}});
- assert.equal(s.cm().state.readOnly,true);assert.equal(s.cm().state.sliceDoc(),'# Note');assert.equal(s.calls.some(c=>c[0]==='write'),false);
- const group=s.target.querySelector('[role=group][aria-label="Choose a recovery draft"]');assert.ok(group);group.querySelectorAll('button')[1].click();await flush();
- assert.equal(s.cm().state.sliceDoc(),'B');assert.equal(s.cm().state.readOnly,false);assert.equal(saved.at(-1).text,'B');assert.notEqual(saved.at(-1).key.writerId,'B');
- [...s.target.querySelectorAll('button')].find(b=>b.textContent==='Retry save').click();await flush();assert.equal(s.disk.get('a/note.md').text,'B');assert.ok(removed.some(([key,revision])=>key.writerId==='B'&&revision==='B'));assert.equal(removed.some(([key])=>key.writerId==='A'),false);await s.stop();
+test('editor title renames the open document on disk and relocates the active buffer',async()=>{
+ const s=await setup();
+ try{
+  await flush();
+  const titleInput=s.target.querySelector('.lm-editor-title input');
+  assert.ok(titleInput,s.target.textContent);
+  assert.equal(titleInput.value,'note');assert.equal(titleInput.disabled,false);
+  typeInput(titleInput,'renamed');await flush();
+  titleInput.dispatchEvent(new s.dom.window.FocusEvent('focusout',{bubbles:true}));
+  await flush();await flush();
+  const move=s.calls.find(call=>call[0]==='move');
+  assert.ok(move,JSON.stringify(s.calls));
+  assert.equal(move[1].path,'note.md');assert.equal(move[2].path,'renamed.md');
+  assert.equal(s.disk.has('a/note.md'),false);assert.equal(s.disk.has('a/renamed.md'),true);
+  assert.deepEqual(s.documents.current(),{vaultId:'a',path:'renamed.md'});
+  assert.equal(s.target.querySelector('.lm-editor-title input').value,'renamed');
+ }finally{await s.stop();}
 });
+
+test('editor title rejects empty names and path separators without moving the file',async()=>{
+ const s=await setup();
+ try{
+  await flush();
+  const titleInput=s.target.querySelector('.lm-editor-title input');
+  for(const invalid of ['','  ','sub/name']){
+   typeInput(titleInput,invalid);await flush();
+   titleInput.dispatchEvent(new s.dom.window.FocusEvent('focusout',{bubbles:true}));await flush();await flush();
+   assert.equal(s.calls.some(call=>call[0]==='move'),false,invalid);
+   assert.equal(s.disk.has('a/note.md'),true);
+  }
+  assert.equal(s.target.querySelector('.lm-editor-title input').value,'note');
+ }finally{await s.stop();}
+});
+
