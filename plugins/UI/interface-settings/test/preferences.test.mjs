@@ -56,7 +56,10 @@ test('composed controls apply and persist explicit Vault preferences, preserve i
   assert.equal(s.surface.querySelector('select'), null);
   theme.click(); await flush();
   const options = s.dom.window.document.getElementById(theme.getAttribute('aria-controls'));
-  assert.deepEqual([...options.querySelectorAll('[role=option]')].map(item => item.textContent.trim()), ['Monochrome', 'Windows XP Luna', 'Windows XP Luna Dark', 'Alternate']);
+  assert.deepEqual([...options.querySelectorAll('[role=option]')].map(item => item.textContent.trim()), [
+    'Catppuccin Mocha', 'Dracula', 'Everforest Dark', 'Gruvbox Dark', 'Maiami Night',
+    'Monochrome', 'Nord', 'Rosé Pine', 'Sakura Night', 'Tokyo Night', 'Windows XP Luna', 'Windows XP Luna Dark', 'Alternate',
+  ]);
   assert.ok(theme.closest('.lm-root').querySelector('.lm-setting-dropdown'));
   theme.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await flush();
   await change(s, 0, 'fr'); assert.equal(s.tools.localization.locale(), 'fr');
@@ -96,7 +99,9 @@ test('Luna selection updates composed controls and preserves container ownership
   assert.equal(select(s, 1), choice);
   const content = s.surface.querySelector('.lm-settings-items');
   assert.equal(content.style.getPropertyValue('--vault-panel'), '#C0C0C0');
-  assert.ok(s.surface.querySelector('.lm-window-caption'));
+  // Workspace inherits Luna styling without recreating the native window caption.
+  assert.equal(s.surface.querySelector('.lm-window-caption'), null);
+  assert.equal(s.surface.querySelector('.lm-workspace-layout').dataset.windowChrome, 'true');
   assert.equal(s.surface.querySelector('.lm-workspace-main'), main);
   assert.equal(s.surface.querySelector('.lm-workspace-panel'), panel);
   assert.equal(content.closest('.lm-root').dataset.windowChrome, 'true');
