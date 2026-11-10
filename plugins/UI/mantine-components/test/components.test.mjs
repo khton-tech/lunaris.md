@@ -915,3 +915,36 @@ test('editor recovery choices use public themed actions without selecting a cand
  const group=s.target.querySelector('[role=group][aria-label="Choose draft"]');assert.ok(group);assert.deepEqual(chosen,[]);assert.equal(group.querySelector('draft'),null);
  group.querySelectorAll('button')[1].click();assert.deepEqual(chosen,['b']);await s.stop();
 });
+
+test('XP mobile surfaces and controls use real light/dark presets and reset without replacing actions', async () => {
+ const s=await setup(); await s.start(); s.kernel.register(baseThemeEngine); await s.kernel.start(baseThemeEngine.manifest.id);
+ const original=s.dom.window.HTMLElement.prototype.getBoundingClientRect;
+ s.dom.window.HTMLElement.prototype.getBoundingClientRect=()=>new s.dom.window.DOMRect(0,0,360,720);
+ try {
+  const sheet=s.dom.window.document.createElement('style');sheet.textContent=readFileSync(new URL('../styles.css',import.meta.url),'utf8').replace(/^@import .*$/gm,'');s.dom.window.document.head.append(sheet);
+  let targets;let calls=0;
+  const layout=s.components.mount('lunaris.workspace-layout',s.target,{railVisible:true,panelVisible:true,mobileMenuVisible:true,mobileLauncherVisible:true,mainLabel:'Main',panelLabel:'Sidebar',onTargets:value=>{targets=value;},onDismiss(){}},s.ctx.signal);assert.equal(layout.ok,true);
+  const item={id:'test.action',label:'Открыть панель',icon:'sidebar',onPress(){calls++;}};
+  const launcher=s.components.mount('lunaris.mobile-menu',targets['mobile-launcher'],{density:'compact',items:[item]},s.ctx.signal);
+  const menu=s.components.mount('lunaris.mobile-menu',targets['mobile-menu'],{items:[item,{...item,id:'test.disabled',disabled:true}]},s.ctx.signal);
+  assert.equal(launcher.ok,true);assert.equal(menu.ok,true);
+  const action=targets['mobile-launcher'].querySelector('button');const group=action.closest('.lm-mobile-menu-items');
+  for(const preset of ['windows-xp','windows-xp-dark']) {
+   s.themes.select('lunaris.base-theme-engine.'+preset);
+   assert.equal(targets['mobile-launcher'].querySelector('button'),action);
+   assert.equal(group.closest('.lm-root').style.backgroundColor,'transparent');
+   assert.match(group.style.getPropertyValue('--vault-button-image'),/linear-gradient/);
+   assert.equal(group.closest('.lm-root').dataset.mantineColorScheme,preset.endsWith('dark')?'dark':'light');
+   assert.equal(s.dom.window.getComputedStyle(targets['mobile-launcher']).borderRadius,'var(--vault-radius)');
+   assert.equal(s.dom.window.getComputedStyle(action).borderRadius,'var(--vault-radius)');
+   assert.equal(s.dom.window.getComputedStyle(action).width,'32px');
+   const disabled=targets['mobile-menu'].querySelector('button:disabled');disabled.click();assert.equal(calls,0);
+   assert.equal(s.dom.window.getComputedStyle(disabled).backgroundImage,'none');
+  }
+  s.themes.select('lunaris.base-theme-engine.monochrome');
+  assert.equal(group.style.getPropertyValue('--vault-button-image'),'');
+  assert.equal(s.dom.window.getComputedStyle(targets['mobile-launcher']).borderRadius,'999px');
+  assert.equal(targets['mobile-launcher'].querySelector('button'),action);action.click();assert.equal(calls,1);
+  launcher.value.dispose();menu.value.dispose();layout.value.dispose();
+ } finally {s.dom.window.HTMLElement.prototype.getBoundingClientRect=original;await s.stop();}
+});

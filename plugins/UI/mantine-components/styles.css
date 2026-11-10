@@ -467,3 +467,29 @@
 .lm-settings-page-header { display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:1;background:var(--vault-content) }
 .lm-root .lm-settings-open-sidebar { display:none;flex-shrink:0;color:inherit;--ai-hover:var(--vault-hover);--ai-hover-color:var(--vault-text) }
 @container(max-width:640px) { .lm-root .lm-settings-open-sidebar { display:inline-flex } }
+
+/* Luna floating surfaces belong to Workspace; the menu role owns only controls. */
+.lm-root .lm-workspace-layout[data-window-chrome]>.lm-workspace-mobile-toolbar,
+.lm-root .lm-workspace-layout[data-window-chrome]>.lm-workspace-mobile-launcher {
+ border-radius:var(--vault-radius);border:var(--vault-border) solid var(--vault-menu-border);
+ background:var(--vault-panel);box-shadow:var(--vault-surface-shadow);
+}
+.lm-root[data-window-chrome=true]>.lm-mobile-menu-items .lm-sidebar-tab,
+.lm-root[data-window-chrome=true]>.lm-settings-page .lm-settings-open-sidebar {
+ border-radius:var(--vault-radius);border:var(--vault-border) solid var(--vault-button-border);
+ background:var(--vault-panel);background-image:var(--vault-button-image);box-shadow:var(--vault-button-shadow);color:var(--vault-text);
+}
+@media(hover:hover) {
+ .lm-root[data-window-chrome=true]>.lm-mobile-menu-items .lm-sidebar-tab:enabled:hover:not(:active),
+ .lm-root[data-window-chrome=true]>.lm-settings-page .lm-settings-open-sidebar:enabled:hover:not(:active) {
+  background:var(--vault-hover);background-image:var(--vault-button-hover-image);color:var(--vault-text);
+ }
+}
+.lm-root[data-window-chrome=true]>.lm-mobile-menu-items .lm-sidebar-tab:enabled:active,
+.lm-root[data-window-chrome=true]>.lm-settings-page .lm-settings-open-sidebar:enabled:active {
+ background:var(--vault-selection);background-image:var(--vault-button-pressed-image);box-shadow:var(--vault-inset-shadow);color:var(--vault-text);
+}
+.lm-root[data-window-chrome=true]>.lm-mobile-menu-items .lm-sidebar-tab:disabled,
+.lm-root[data-window-chrome=true]>.lm-settings-page .lm-settings-open-sidebar:disabled {
+ background:var(--vault-panel);background-image:none;border-color:var(--vault-separator);box-shadow:none;color:var(--vault-secondary);opacity:1;
+}

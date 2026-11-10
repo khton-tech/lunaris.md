@@ -65,3 +65,7 @@ opened Sidebar. Automated tests cover routing, control counts, containment polic
 and nested-scroll visibility; they do not establish native geometry.
 
 Both floating regions share scroll-direction visibility. The Sidebar layer and backdrop stack above both floating regions, which become inert and aria-hidden while the overlay is open. There is no main-area return button. Files and Settings explicitly close WorkspaceSidebar after successful content selection; failures preserve the panel for recovery. Tool switching itself keeps navigation available. Desktop selection remains intact. Native stacking and scroll/focus acceptance remain pending.
+
+## XP mobile control adaptation
+
+Reference: existing Luna Explorer toolbar and Settings caption controls. WorkspaceLayout owns the floating menu/launcher surfaces, using XP radius, menu border and surface shadow. The mobile-menu and settings-page roles own their action controls: Luna button gradients, borders, bevels, hover/pressed/disabled states and existing semantic keyboard focus. MobileMenuView now receives theme tokens explicitly, preserving transparent embedded rendering instead of relying on an ancestor for token inheritance. Compact 32px launcher and 44px bottom actions, overlay positioning, scroll hiding and Sidebar stacking are unchanged. Luna Dark uses its own palette; switching to Monochrome removes XP finishes. Manual acceptance remains pending for both XP presets, focus/hover/press/disabled states, Settings navigation, scroll and many-item overflow in the actual Workspace.
