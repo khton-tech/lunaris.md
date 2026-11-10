@@ -303,6 +303,7 @@
 @media(max-width:640px),(pointer:coarse) { .lm-editor-width-handles { display:none } }
 @media (prefers-reduced-motion:reduce) { .lm-editor-width-handle::after { transition:none } }
 .lm-editor-heading { flex:0 0 auto;width:100%;max-width:780px;margin:0 auto;padding:clamp(24px,5cqi,56px) 0 0 }
+@container(max-width:640px) { .lm-editor-heading { padding-top:calc(clamp(24px,5cqi,56px) + 6cqh) } }
 .lm-editor-heading-line { padding:0 clamp(12px,3cqi,40px) }
 .lm-editor-title { width:100% }
 .lm-editor-title input { font:inherit;font-size:1.8em;line-height:1.2;font-weight:700;color:var(--vault-text);background:transparent;border:0;padding:0;overflow-wrap:anywhere;text-overflow:ellipsis }

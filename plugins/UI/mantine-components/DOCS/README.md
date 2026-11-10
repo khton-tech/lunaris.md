@@ -672,6 +672,13 @@ Workspace retains outer layout and surfaces. Reference: the Owner's screenshot
 of the title offset to the left of the text column. Native alignment in narrow
 and wide Workspace allocations remains pending manual acceptance.
 
+At allocations up to 640px, the existing additional 6cqh document inset now sits
+before the heading. CodeMirror no longer repeats it above the document text.
+This lowers the title toward the content while retaining the text's position,
+as requested in the Owner's narrow Workspace screenshot. The role owns heading
+spacing; Text Editor owns document padding. Outer Workspace geometry is unchanged.
+Native title/content spacing in the real container remains manual acceptance.
+
 Optional width controls extend the same public `lunaris.text-editor` role:
 `resizeWidthLabel` (nonempty localized text), `canResizeWidth` (boolean), and
 `onContentWidthChange(width, phase)` where phase is `preview`, `commit` or

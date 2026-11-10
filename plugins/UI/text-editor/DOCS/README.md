@@ -22,8 +22,11 @@ with ui.dom, vault.access and filesystem.access.
 
 On mobile-sized editor allocations (640px or less), the document starts an
 additional 6% of the allocated height below its existing top inset, as requested
-by the Owner. This is scrollable document padding, so caret and selection geometry
-remain aligned. Text Editor owns this internal spacing; Workspace retains outer
+by the Owner. This inset now precedes the file-name heading instead of separating
+the heading from the text. The Owner's narrow Workspace screenshot defines the
+correction: lower the heading toward the content while keeping the document's
+existing vertical position. UIKit owns the heading inset; CodeMirror keeps its
+normal document padding, caret and selection geometry. Workspace retains outer
 geometry and floating surfaces. The existing SDK target supplies size containment;
 no contract or consumer integration change is needed. Reference: the current mobile
 editor and Owner's requested downward offset. Native short/long documents, keyboard
