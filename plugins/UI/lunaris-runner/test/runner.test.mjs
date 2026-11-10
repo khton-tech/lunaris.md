@@ -142,11 +142,20 @@ test('activation failure after runner startup cleans the screen, and retry creat
   await s.session.stop(); s.dom.window.close();
 });
 
-test('a component rendering failure is logged with its cause and enters host recovery', async () => {
+test('a late rendering failure is diagnosed locally and a replacement renderer recovers without stopping the host', async () => {
   const s = setup({ noKit: true }); await s.slowEntered.promise; s.finish.resolve(); await s.starting;
-  s.tools.components.register({ id: 'lunaris.startup-screen', mount() { throw Error('Renderer failed'); } }, s.context.signal);
+  const broken = new AbortController();
+  s.tools.components.register({ id: 'lunaris.startup-screen', mount() { throw Error('Renderer failed'); } }, broken.signal);
   await flush(); s.session.refresh(); await flush();
-  assert.equal(s.session.snapshot().phase, 'fallback'); assert.equal(s.surface.childElementCount, 0);
+  assert.equal(s.session.snapshot().phase, 'running');
+  assert.ok(s.session.snapshot().kernel.diagnostics.some(item => item.code === 'EVENT_LISTENER_FAILED' && item.pluginId === 'lunaris.runner'));
   assert.ok(s.logs.some(log => log[3]?.code === 'RUNNER_RENDER_FAILED' && log[3].error.cause.code === 'RENDER_FAILED'));
+  broken.abort(); await flush();
+  s.tools.components.register({ id: 'lunaris.startup-screen', mount(target, props) {
+    const node = target.ownerDocument.createElement('p'); node.textContent = props.status; target.append(node);
+    return { update(next) { node.textContent = next.status; }, dispose() { node.remove(); } };
+  } }, s.context.signal);
+  await flush(); assert.match(s.surface.textContent, /System Loaded/);
+  assert.equal(s.session.snapshot().phase, 'running');
   await s.session.stop(); s.dom.window.close();
 });

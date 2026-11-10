@@ -80,9 +80,11 @@ should be placed after the runner to display their activation progress.
 events can still update the retained screen; there is no polling or background
 work initiated by the runner. Missing component roles are logged as recoverable
 degradation and mounted once registered; later registration uses the newest
-startup status. Allocation, target or rendering failures are logged and propagate
-through SDK diagnostics to host recovery. The host owns failure presentation when
-product scopes have stopped.
+startup status. Activation-time allocation, target or rendering failures are logged
+and propagate to host recovery. A late component-rendering failure is logged and
+isolated through SDK event diagnostics; it does not stop the running application.
+Replacing the failed component can restore the current startup status. The host
+owns failure presentation when product scopes have stopped.
 
 Scope closure releases the slot, component, catalog and subscriptions. There are
 no SDK/Logger calls in runner cleanup, and recovery creates fresh surfaces.
