@@ -178,9 +178,23 @@ test('display preferences apply without replacing the editor, selection, source 
     const item = s.settings.snapshot().items.find(item => item.id.endsWith('.' + key)); assert.ok(item);
     await item.onChange(value, { vaultId: 'a', signal: s.ctx.signal }); await flush();
   };
+  const heading = s.target.querySelector('.lm-editor-heading');
+  const assertColumn = width => {
+    assert.equal(heading.style.maxWidth, width);
+    assert.equal(s.dom.window.getComputedStyle(view.contentDOM).maxWidth, width);
+  };
+  assertColumn('780px');
+  for (const width of ['640', '960', '780']) {
+    await choose('text-width', width); assertColumn(`${width}px`);
+  }
   await choose('font-size', 20);
   await choose('line-height', 1.8);
   await choose('text-width', 'full');
+  assertColumn('none');
+  await choose('text-width', '640');
+  await choose('wrap-lines', false);
+  assertColumn('none');
+  await choose('wrap-lines', true); assertColumn('640px');
   await choose('wrap-lines', false);
   assert.equal(s.cm(), view); assert.equal(view.state.selection.main.head, 4);
   assert.equal(view.state.sliceDoc(), 'Retained draft'); assert.equal(view.contentDOM.classList.contains('cm-lineWrapping'), false);

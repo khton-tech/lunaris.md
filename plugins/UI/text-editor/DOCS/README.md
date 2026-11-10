@@ -1,5 +1,14 @@
 # Text editor
 
+The file-name title follows the same centered column width and responsive line
+insets as document text, including live text-width and wrapping changes. The
+controller supplies effective `contentWidth` through the public UIKit role:
+the configured pixel width when wrapping, or `"full"` for full-width/unwrapped
+content. UIKit owns the title layout and CodeMirror owns document layout;
+Workspace retains outer geometry and surfaces. Reference: the Owner's screenshot
+showing the title left of the document column. Integration with Mantine Components
+is complete; native alignment at wide/narrow sizes remains manual acceptance.
+
 Strong Markdown emphasis uses weight 700 in both live preview and source syntax
 highlighting, including callout body text. Reference: the Owner's callout screenshot
 where the bold word was insufficiently distinct. Strong spans allow weight synthesis

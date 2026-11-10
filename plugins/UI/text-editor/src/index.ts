@@ -218,11 +218,13 @@ export default definePlugin({ manifest, activate(ctx) {
       const context = props.workspace as { vaultId?: string } | undefined;
       const session = current?.target.vaultId === context?.vaultId ? current : null;
       const ready = !!session?.loaded;
+      const display = preferences.current();
       const documentKey = session ? key(session.target) : "";
       if (commandDocument !== documentKey) { commandDocument = documentKey; commandError = ""; renameError = ""; }
       const error = session?.draftError ? text("draftFailed") : session?.error ? text(session.error.code === "CONFLICT" ? "conflict" : session.missing ? "missing" : session.draftSaved && ["OFFLINE", "SERVER_UNAVAILABLE"].includes(session.error.code) ? "offline" : session.loaded ? "saveFailed" : "readFailed") : "";
       const next = { documentKey: session ? key(session.target) : "", name: session?.target.path ?? text(unsupported ? "unsupported" : "empty"),
         title: session ? stem(session.target.path) : "", titleLabel: text("title"), renameError,
+        contentWidth: display.wrapLines && display.textWidth !== "full" ? Number(display.textWidth) : "full",
         canRename: !!session?.active && !session.locks && !session.saving && !session.loading,
         onRename,
         status: session?.loading ? text("loading") : session?.saving ? text("saving") : session?.loaded ? text(session.dirty ? "unsaved" : "saved") : "",

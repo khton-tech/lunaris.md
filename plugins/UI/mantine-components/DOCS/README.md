@@ -663,6 +663,15 @@ reviewed against [Mantine UI navbars](https://ui.mantine.dev/category/navbars/).
 
 ## Text editor role
 
+The file-name heading accepts optional `contentWidth: number | "full"` (positive
+finite pixels, default 780). Text Editor supplies the effective document column
+width, including preference changes and unwrapped/full-width mode. UIKit centers
+the heading with the same responsive horizontal inset as CodeMirror lines; it
+owns heading geometry only and does not inspect or style the borrowed editor DOM.
+Workspace retains outer layout and surfaces. Reference: the Owner's screenshot
+of the title offset to the left of the text column. Native alignment in narrow
+and wide Workspace allocations remains pending manual acceptance.
+
 `lunaris.task-checkbox` provides a controlled Mantine Core Checkbox for inline
 Markdown tasks. Required public props: `checked: boolean`, `disabled: boolean`,
 nonempty localized `label: string` (accessible name), and

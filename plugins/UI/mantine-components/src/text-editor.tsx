@@ -12,6 +12,7 @@ interface EditorProps {
   readonly name: string;
   readonly title: string;
   readonly titleLabel: string;
+  readonly contentWidth?: number | "full";
   readonly renameError?: string;
   readonly canRename: boolean;
   readonly onRename: (name: string) => Promise<boolean>;
@@ -37,6 +38,7 @@ export function textEditorProps(value: ComponentProps): EditorProps {
   for (const key of ["onSave", "onReload", "onTarget", "onRename"]) if (typeof value[key] !== "function") throw new TypeError(`Text editor requires ${key}.`);
   if (value.commandError !== undefined && typeof value.commandError !== "string") throw new TypeError("Invalid editor command error.");
   if (value.renameError !== undefined && typeof value.renameError !== "string") throw new TypeError("Invalid editor rename error.");
+  if (value.contentWidth !== undefined && value.contentWidth !== "full" && (typeof value.contentWidth !== "number" || !Number.isFinite(value.contentWidth) || value.contentWidth <= 0)) throw new TypeError("Invalid editor content width.");
   if (value.recoveryCandidates !== undefined && (!Array.isArray(value.recoveryCandidates) || value.recoveryCandidates.some(item => !item || typeof item.id !== "string" || typeof item.label !== "string") || typeof value.recoveryLabel !== "string" || typeof value.onRecovery !== "function")) throw new TypeError("Invalid recovery choices.");
   return value as unknown as EditorProps;
 }
@@ -61,7 +63,7 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
     else if (event.key === "Escape") { event.preventDefault(); setTitle(props.title); event.currentTarget.blur(); }
   }
   return <Box className="lm-text-editor" style={theme.contentStyle}>
-    {props.ready && <Box className="lm-editor-heading">
+    {props.ready && <Box className="lm-editor-heading" style={{ maxWidth: props.contentWidth === "full" ? "none" : props.contentWidth ?? 780 }}>
       <Box className="lm-editor-heading-line">
         <TextInput className="lm-editor-title" aria-label={props.titleLabel} value={title}
           variant="unstyled" disabled={!props.canRename} spellCheck={false} placeholder={props.titleLabel}
