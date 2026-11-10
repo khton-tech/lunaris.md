@@ -46,7 +46,7 @@ function SettingRow({ item, onChange, onRetry, onReset }: { item: SettingsItem; 
     case "number": control = <NumberInput {...shared} size="sm" classNames={{ input: "lm-input lm-setting-input" }} value={item.value} {...(item.min === undefined ? {} : { min: item.min })} {...(item.max === undefined ? {} : { max: item.max })} {...(item.step === undefined ? {} : { step: item.step })} onChange={value => { if (typeof value === "number" && Number.isFinite(value)) onChange(item.id, value); }} />; break;
     case "slider": control = <SettingsSlider item={item} id={id} describedBy={describedBy} onChange={onChange} />; break;
   }
-  return <Box className="lm-setting-row" data-settings-item={item.id} data-layout={item.layout ?? "inline"}>
+  return <Box className="lm-setting-row" data-settings-item={item.id} data-type={item.type} data-layout={item.layout ?? "inline"}>
     <Stack className="lm-setting-label" gap={4}>
       <Text component={staticValue ? "div" : "label"} htmlFor={staticValue ? undefined : id} size="sm" fw={400}>{item.title}</Text>
       {item.description && <Text id={descriptionId} size="sm" c="dimmed">{item.description}</Text>}

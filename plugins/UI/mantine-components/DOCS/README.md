@@ -38,6 +38,30 @@ in the real composed Workspace and account screens: 320/360/390/640px widths, sh
 landscape, long titles, overflowing launcher actions, Luna light/dark and Monochrome,
 touch scrolling, opened menus and password focus with the virtual keyboard.
 
+## Phone control density
+
+Reference: the existing Files toolbar, Settings rows and floating Workspace actions,
+with [Mantine UI inputs](https://ui.mantine.dev/category/inputs/) as the composition
+catalog. At viewport widths up to 640px, shared form fields, navigation actions,
+opened menu options, reset actions and the compact launcher have a 44px minimum
+target. Editable fields retain a 16px minimum font to avoid focus zoom on phones.
+Desktop rules above that breakpoint remain unchanged.
+
+Settings owns its internal layout: fields move below their labels and use the
+available width; inline switches retain a compact label/control row. The renderer
+publishes its own item type as data-type, without inspecting another role's DOM.
+Settings, navigation and Files contain scroll chaining inside their content.
+Workspace still owns drawer/floating surfaces and geometry; no additional surface
+or SDK contract is introduced. Existing Components consumers receive the change
+without new integration work; theme tokens, selection, callbacks and focus remain
+under the existing public roles.
+
+Manual visual acceptance is pending in the composed application: 320/390/640px
+portrait and short landscape, Files toolbar and opened menus, Settings switches,
+full-width text/number/select fields with long Russian labels, reset actions,
+virtual keyboard and launcher visibility in Luna light/dark and Monochrome.
+Compare widths above 640px with the existing desktop reference.
+
 ## Initial mobile adaptation
 
 Reference: the existing Workspace rail, Files and Settings compositions, and
