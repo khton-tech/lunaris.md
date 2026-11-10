@@ -84,7 +84,7 @@ export const dependencies = {
   kernel: ['manifest', 'sdk'],
   test: ['sdk', 'kernel'],
   development: ['manifest', 'sdk', 'kernel'],
-  cli: ['manifest', 'sdk', 'kernel', 'test', 'development'],
+  cli: ['manifest', 'lup', 'sdk', 'kernel', 'test', 'development'],
   tauri: ['application-host', 'window-titlebar', 'window-provider', 'tauri-window', 'vault', 'logging', 'text-editor', 'interface-settings', 'settings-provider', 'settings-plugin', 'active-screen-provider', 'active-screen-plugin', 'active-document', 'active-document-provider', 'context-menu-provider', 'file-explorer', 'sidebar-plugin', 'sidebar-provider', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'mantine-components', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'],
 };
 
@@ -162,6 +162,7 @@ export function checkSource(source, filename, scope) {
   if (scope === 'manifest') allowed.add('semver');
   if (scope === 'quickjs-execution') allowed.add('quickjs-emscripten');
   if (scope === 'lup') allowed.add('@noble/hashes/sha2.js');
+  if (scope === 'cli') allowed.add('esbuild');
   // The native browser-storage driver owns portable content fingerprinting.
   if (scope === 'browser-storage') allowed.add('@noble/hashes/sha2.js');
   if (scope === 'config-manager' && path.resolve(filename) === path.resolve('plugins/systems/config/src/codec.ts')) allowed.add('smol-toml');

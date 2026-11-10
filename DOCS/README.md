@@ -9,6 +9,7 @@
 - [Lime runtime boundary](design/lime-runtime.md): L01 source audit, execution/authority blocker, required SDK and host contracts, integration ownership and unverified host matrix; proposed contracts are not implemented.
 - [Plugin display metadata](reference/plugin-metadata.md): implemented author fields, localization, compatibility declarations and validation limits.
 - [LUP package format](reference/lup.md): implemented bounded file-only container, shared pack/inspect validation and immutable package-byte identity.
+- [Plugin packaging](guides/plugin-packaging.md): implemented CLI bundle/pack and inert package inspection commands, resources and diagnostics.
 - [Host registry mutations](reference/runtime-management.md): implemented explicit unregister/replacement, affected graph recovery, concurrency and rollback limits.
 - [QuickJS execution driver](../plugins/systems/driver/quickjs-execution/DOCS/README.md): implemented isolated interpreter and synchronous data capabilities; full SDK and product-host integration remain pending.
 - [Remote service contracts](reference/remote.md): account sessions, Vault catalog, durable drafts and filesystem backend tokens.

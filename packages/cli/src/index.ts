@@ -5,11 +5,13 @@ import { createInterface } from "node:readline";
 import { loadLocalPlugins, validateLocalPlugin, LoadError } from "@lunaris/development";
 import { LunarisError } from "@lunaris/sdk";
 import { createPlugin, GenerationError } from "./generate.js";
+import { buildPackage, inspectPackage, PackageBuildError } from "./pack.js";
+import { LupError } from "@lunaris/lup";
 
 export { createPlugin } from "./generate.js";
 export interface CLIOutput { out(line: string): void; error(line: string): void }
 const output: CLIOutput = { out: line => { process.stdout.write(`${line}\n`); }, error: line => { process.stderr.write(`${line}\n`); } };
-const usage = "Usage: lunaris-core create-plugin <directory> [--id plugin.id] | validate|test|inspect|dev [roots...] [--once for dev]";
+const usage = "Usage: lunaris-core create-plugin <directory> [--id plugin.id] | validate|test|inspect|dev [roots...] [--once for dev] | pack <directory> <output.lup> | inspect-package <package.lup>";
 class UsageError extends Error {}
 
 async function tests(root: string): Promise<number> {
@@ -52,6 +54,12 @@ export async function run(args: readonly string[], io: CLIOutput = output): Prom
   try {
     const [command, ...rest] = args;
     if (command === "--help" || command === "help") { io.out(usage); return 0; }
+    if (command === 'pack' || command === 'inspect-package') {
+      if (rest.some(value => value.startsWith('--')) || (command === 'pack' ? rest.length !== 2 : rest.length !== 1)) throw new UsageError(usage);
+      const preview = command === 'pack' ? await buildPackage(rest[0]!, rest[1]!) : await inspectPackage(rest[0]!);
+      io.out(JSON.stringify({ code: command === 'pack' ? 'PACKAGE_BUILT' : 'PACKAGE_INSPECTED', pluginId: preview.manifest.id, version: preview.manifest.version, digest: preview.digest, bytes: preview.byteLength, entries: preview.paths.length, ...(command === 'inspect-package' ? { manifest: preview.manifest, paths: preview.paths } : {}) }));
+      return 0;
+    }
     if (command === "create-plugin") {
       const [target, flag, id, ...extra] = rest;
       if (!target || extra.length || (flag !== undefined && (flag !== "--id" || !id))) throw new UsageError(usage);
@@ -75,7 +83,7 @@ export async function run(args: readonly string[], io: CLIOutput = output): Prom
     }
     return 0;
   } catch (error) {
-    const known = error instanceof LoadError || error instanceof LunarisError || error instanceof GenerationError;
+    const known = error instanceof LoadError || error instanceof LunarisError || error instanceof GenerationError || error instanceof PackageBuildError || error instanceof LupError;
     io.error(JSON.stringify({ code: known ? error.code : error instanceof UsageError ? "CLI_USAGE" : "CLI_FAILED", message: known || error instanceof UsageError ? error.message : "Command failed. Check paths, build output and local tests.", ...(error instanceof LoadError ? { location: error.location } : {}) }));
     return 1;
   }

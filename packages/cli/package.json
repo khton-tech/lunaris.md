@@ -3,6 +3,6 @@
   "exports": { ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" } },
   "bin": { "lunaris-core": "./dist/bin.js" },
   "files": ["dist"],
-  "dependencies": { "@lunaris/manifest": "0.1.0", "@lunaris/sdk": "0.1.0", "@lunaris/kernel": "0.1.0", "@lunaris/test": "0.1.0", "@lunaris/development": "0.1.0", "typescript": "6.0.3" },
+  "dependencies": { "@lunaris/manifest": "0.1.0", "@lunaris/lup": "0.1.0", "@lunaris/sdk": "0.1.0", "@lunaris/kernel": "0.1.0", "@lunaris/test": "0.1.0", "@lunaris/development": "0.1.0", "typescript": "6.0.3", "esbuild": "0.28.2" },
   "scripts": { "build": "tsc -b" }
 }
