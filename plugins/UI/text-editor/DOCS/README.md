@@ -4,6 +4,15 @@ CodeMirror 6 Markdown editor with Live Preview, integrated through public SDK co
 Plugin: `lunaris.text-editor`; package: `@lunaris/text-editor`. Tauri starts it
 with ui.dom, vault.access and filesystem.access.
 
+On mobile-sized editor allocations (640px or less), the document starts an
+additional 10% of the allocated height below its existing top inset, as requested
+by the Owner. This is scrollable document padding, so caret and selection geometry
+remain aligned. Text Editor owns this internal spacing; Workspace retains outer
+geometry and floating surfaces. The existing SDK target supplies size containment;
+no contract or consumer integration change is needed. Reference: the current mobile
+editor and Owner's requested downward offset. Native short/long documents, keyboard
+and landscape geometry still require visual acceptance.
+
 ## Usage and saving
 
 Open a Markdown file in File Explorer. Wrapped lines, Markdown syntax, standard
