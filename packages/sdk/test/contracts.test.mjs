@@ -30,6 +30,16 @@ test('definition owns a frozen validated snapshot and never executes activation'
   assert.notEqual(definition.manifest.permissions, original.permissions);
 });
 
+test('SDK definitions preserve advisory target support without executing activation', () => {
+  const targets = { web: 'supported', android: 'unadapted', ios: 'unsupported' };
+  let activated = false;
+  const definition = definePlugin({ manifest: manifest({ targets }), activate() { activated = true; } });
+  targets.android = 'supported';
+  assert.deepEqual(definition.manifest.targets, { web: 'supported', android: 'unadapted', ios: 'unsupported' });
+  assert.equal(Object.isFrozen(definition.manifest.targets), true);
+  assert.equal(activated, false);
+});
+
 test('definitions reject repeated identity, malformed metadata and missing activation', () => {
   assert.throws(() => definePlugin({ manifest: manifest(), id: 'example.drift', activate() {} }),
     { code: 'MANIFEST_INVALID', context: { path: '$.id' } });

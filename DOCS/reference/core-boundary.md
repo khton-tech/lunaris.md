@@ -6,6 +6,10 @@ Status: accepted P0 specification, refined by [P3 execution decisions](../decisi
 
 `PluginManifest` has required fields `manifestVersion: 1`, `id`, `version`, `engine`, `sdk`, `entry`, `provides`, `requires`, `permissions`, `optionalPermissions`. Unknown fields are rejected. Empty lists are explicit. IDs are lowercase dot-separated segments matching `[a-z][a-z0-9-]*` with at least two segments. Versions are full SemVer. `engine` and `sdk` are nonempty valid SemVer ranges. `entry` starts with `./`, identifies JavaScript inside the package root, and contains no backslash, URL, query, fragment, empty, `.` or `..` segment after the prefix. The local loader additionally checks real-path containment including symlinks before import.
 
+Optional `targets` declares per-target support without changing activation policy;
+see [deployment targets](manifest.md#deployment-targets). Omitted targets mean
+undeclared support. Validation and SDK definitions preserve this metadata.
+
 `provides` entries: `{ kind: "api" | "event" | "hook", id: string, version: string }`.
 `requires` entries: `{ kind, id, range: string, optional?: boolean }` (default false).
 Permission IDs follow the same ID grammar. Lists have no duplicates; required and optional permissions are disjoint. Permissions are atomic names, with no wildcards, implicit hierarchy or URL parsing in 0.1. Names do not imply grants. A contract can declare separate `providePermission` and `consumePermission` names; any operation needing them requires declaration and an effective host grant. Shared contract packages define this metadata, not consumers.

@@ -1,4 +1,15 @@
 import type { Disposable, PluginManifest } from "@lunaris/sdk";
+import type { PluginTarget, PluginTargetSupport, PluginTargets } from "@lunaris/sdk";
+const target: PluginTarget = "android";
+const support: PluginTargetSupport = "unadapted";
+const targets: PluginTargets = { [target]: support, web: "supported" };
+// @ts-expect-error Target declarations are readonly.
+targets.android = "supported";
+// @ts-expect-error Unknown deployment targets must not be accepted.
+const invalidTargets: PluginTargets = { mobile: "supported" };
+// @ts-expect-error Support states must use the public vocabulary.
+const invalidSupport: PluginTargets = { ios: "experimental" };
+void [targets, invalidTargets, invalidSupport];
 // @ts-expect-error Private package paths must not resolve.
 import type { Disposable as PrivateDisposable } from "@lunaris/sdk/src/index.js";
 
