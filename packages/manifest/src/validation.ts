@@ -1,7 +1,7 @@
 import { isExactVersion, isValidId, isVersionRange, versionSatisfies } from "./versions.js";
 import type {
   ContractKind, HostVersions, ManifestDiagnostic, ManifestValidationResult,
-  PluginManifest, PluginTarget, PluginTargetSupport, ProvidedContract, RequiredContract,
+  PluginManifest, PluginMetadata, PluginPlatform, PluginTarget, PluginTargetSupport, ProvidedContract, RequiredContract,
 } from "./index.js";
 
 /** Inspect data descriptors before reading values; manifest accessors are not metadata. */
@@ -58,7 +58,7 @@ export function validateManifest(input: unknown, versions?: HostVersions): Manif
       return Object.freeze({ ok: false, diagnostics: Object.freeze(diagnostics) });
     }
     if (isValidId(record.id)) pluginId = record.id;
-    fields(record, ["manifestVersion", "id", "version", "engine", "sdk", "entry", "targets", "provides", "requires", "permissions", "optionalPermissions"], "$");
+    fields(record, ["manifestVersion", "id", "version", "engine", "sdk", "entry", "targets", "metadata", "provides", "requires", "permissions", "optionalPermissions"], "$");
     if (record.manifestVersion !== 1) issue("$.manifestVersion", "Expected manifest version 1.");
     if (!pluginId) issue("$.id", "Expected a canonical dotted lowercase ID.");
     if (!isExactVersion(record.version)) issue("$.version", "Expected full strict SemVer.");
@@ -66,6 +66,80 @@ export function validateManifest(input: unknown, versions?: HostVersions): Manif
       if (!isVersionRange(record[key])) issue(`$.${key}`, "Expected a nonempty SemVer range.");
     }
     if (!isEntry(record.entry)) issue("$.entry", "Expected a contained ./ JavaScript entry path.");
+
+    let metadata: PluginMetadata | undefined;
+    if (Object.hasOwn(record, "metadata")) {
+      const item = dataRecord(record.metadata);
+      if (!item) issue("$.metadata", "Expected a metadata data object.");
+      else {
+        fields(item, ["name", "author", "description", "platforms", "languages", "repository", "translations", "fields"], "$.metadata");
+        const text = (value: unknown, path: string, max: number): string => {
+          if (typeof value !== "string" || !value.trim() || value.length > max || /[\u0000-\u001f\u007f]/.test(value)) {
+            issue(path, `Expected nonempty display text of at most ${max} characters without control characters.`);
+            return "";
+          }
+          return value;
+        };
+        const name = text(item.name, "$.metadata.name", 120);
+        const author = text(item.author, "$.metadata.author", 120);
+        const description = text(item.description, "$.metadata.description", 2000);
+        const platforms: PluginPlatform[] = [];
+        if (item.platforms !== "universal") {
+          for (const [i, platform] of list(item.platforms, "$.metadata.platforms").entries()) {
+            if (!["desktop", "web", "mobile"].includes(platform as string) || platforms.includes(platform as PluginPlatform)) issue(`$.metadata.platforms[${i}]`, "Expected a unique desktop, web or mobile platform.");
+            else platforms.push(platform as PluginPlatform);
+          }
+          if (!platforms.length) issue("$.metadata.platforms", "Declare universal or at least one platform.");
+        }
+        const language = (tag: unknown): tag is string => {
+          if (typeof tag !== "string" || tag.length > 80) return false;
+          try { return Intl.getCanonicalLocales(tag).length === 1; } catch { return false; }
+        };
+        const languages: string[] = [];
+        for (const [i, tag] of list(item.languages, "$.metadata.languages").entries()) {
+          if (!language(tag) || languages.some(existing => existing.toLowerCase() === tag.toLowerCase())) issue(`$.metadata.languages[${i}]`, "Expected a unique BCP 47 language tag.");
+          else languages.push(tag);
+        }
+        if (!languages.length || languages.length > 64) issue("$.metadata.languages", "Declare 1 to 64 languages.");
+        if (item.repository !== undefined) {
+          const valid = typeof item.repository === "string" && item.repository.length <= 2048 &&
+            /^https:\/\/[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)+(?:\/[^\s\\#?@\u0000-\u001f\u007f]*)?$/i.test(item.repository);
+          if (!valid) issue("$.metadata.repository", "Expected an HTTPS repository URL with a DNS hostname and no credentials, port, query or fragment.");
+        }
+        const translations: Record<string, { readonly name?: string; readonly description?: string }> = Object.create(null) as Record<string, { readonly name?: string; readonly description?: string }>;
+        if (item.translations !== undefined) {
+          const localized = dataRecord(item.translations);
+          if (!localized) issue("$.metadata.translations", "Expected a language-keyed data object.");
+          else for (const [tag, value] of Object.entries(localized)) {
+            const path = `$.metadata.translations.${tag}`;
+            if (!language(tag) || !languages.some(existing => existing.toLowerCase() === tag.toLowerCase())) issue(path, "Translation language must be declared.");
+            const translation = dataRecord(value);
+            if (!translation) { issue(path, "Expected a translation data object."); continue; }
+            fields(translation, ["name", "description"], path);
+            translations[tag] = Object.freeze({
+              ...(translation.name === undefined ? {} : { name: text(translation.name, `${path}.name`, 120) }),
+              ...(translation.description === undefined ? {} : { description: text(translation.description, `${path}.description`, 2000) }),
+            });
+          }
+        }
+        const customFields: { readonly label: string; readonly value: string }[] = [];
+        if (item.fields !== undefined) {
+          const entries = list(item.fields, "$.metadata.fields");
+          if (entries.length > 16) issue("$.metadata.fields", "At most 16 display fields are allowed.");
+          for (const [i, value] of entries.entries()) {
+            const path = `$.metadata.fields[${i}]`; const field = dataRecord(value);
+            if (!field) { issue(path, "Expected a display field data object."); continue; }
+            fields(field, ["label", "value"], path);
+            customFields.push(Object.freeze({ label: text(field.label, `${path}.label`, 80), value: text(field.value, `${path}.value`, 500) }));
+          }
+        }
+        metadata = Object.freeze({ name, author, description, platforms: item.platforms === "universal" ? "universal" : Object.freeze(platforms), languages: Object.freeze(languages),
+          ...(typeof item.repository === "string" ? { repository: item.repository } : {}),
+          ...(item.translations === undefined ? {} : { translations: Object.freeze(translations) }),
+          ...(item.fields === undefined ? {} : { fields: Object.freeze(customFields) }),
+        });
+      }
+    }
 
     let targets: Readonly<Partial<Record<PluginTarget, PluginTargetSupport>>> | undefined;
     if (Object.hasOwn(record, "targets")) {
@@ -147,6 +221,7 @@ export function validateManifest(input: unknown, versions?: HostVersions): Manif
       manifestVersion: 1, id: pluginId!, version: record.version as string,
       engine: record.engine as string, sdk: record.sdk as string, entry: record.entry as string,
       ...(targets === undefined ? {} : { targets }),
+      ...(metadata === undefined ? {} : { metadata }),
       provides: Object.freeze(provides), requires: Object.freeze(requires),
       permissions: Object.freeze(requiredPermissions), optionalPermissions: Object.freeze(optionalPermissions),
     });

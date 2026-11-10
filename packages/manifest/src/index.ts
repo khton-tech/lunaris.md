@@ -26,6 +26,22 @@ export type PluginTarget = "web" | "windows" | "macos" | "linux" | "android" | "
 export type PluginTargetSupport = "supported" | "unadapted" | "unsupported";
 export type PluginTargets = Readonly<Partial<Record<PluginTarget, PluginTargetSupport>>>;
 
+/** Coarse author-declared compatibility; never an activation permission. */
+export type PluginPlatform = "desktop" | "web" | "mobile";
+export type PluginPlatforms = "universal" | readonly PluginPlatform[];
+export interface PluginMetadata {
+  readonly name: string;
+  readonly author: string;
+  readonly description: string;
+  readonly platforms: PluginPlatforms;
+  /** BCP 47 tags; the first tag is the metadata fallback language. */
+  readonly languages: readonly string[];
+  readonly repository?: string;
+  readonly translations?: Readonly<Record<string, { readonly name?: string; readonly description?: string }>>;
+  /** Inert display data; never HTML, commands or executable URLs. */
+  readonly fields?: readonly { readonly label: string; readonly value: string }[];
+}
+
 export interface ProvidedContract {
   readonly kind: ContractKind;
   readonly id: string;
@@ -49,6 +65,8 @@ export interface PluginManifest {
   readonly entry: string;
   /** Missing targets are undeclared, never implicitly supported. Metadata only. */
   readonly targets?: PluginTargets;
+  /** Optional for legacy built-ins; required by the LUP package format. */
+  readonly metadata?: PluginMetadata;
   readonly provides: readonly ProvidedContract[];
   readonly requires: readonly RequiredContract[];
   readonly permissions: readonly string[];

@@ -4,6 +4,9 @@ export type {
   PluginTarget,
   PluginTargetSupport,
   PluginTargets,
+  PluginMetadata,
+  PluginPlatform,
+  PluginPlatforms,
   ProvidedContract,
   RequiredContract,
 } from "@lunaris/manifest";
