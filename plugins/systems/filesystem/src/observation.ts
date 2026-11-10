@@ -7,16 +7,25 @@ export function createObservation(ctx: PluginContext, create: (target: FileTarge
   remove: (vaultId: string, watchId: string) => Promise<FsResult<null>>, report: (error: unknown) => void) {
   const entries = new Map<string, { detach(): void }>();
   const retired = new Set<string>();
+  const released = new Set<string>();
+  const releasing = new Map<string, Promise<FsResult<null>>>();
   const closed = new Set<string>();
   const pending = new Set<() => void>();
   const key = (vaultId: string, watchId: string) => JSON.stringify([vaultId, watchId]);
   const cancelled = () => failure("CANCELLED", "Observation ownership has ended.");
   async function unwatch(vaultId: string, watchId: string): Promise<FsResult<null>> {
     const id = key(vaultId, watchId);
-    if (retired.has(id) || closed.has(vaultId)) return { ok: true, value: null };
+    if (released.has(id) || closed.has(vaultId)) return { ok: true, value: null };
+    const inFlight = releasing.get(id);
+    if (inFlight) return inFlight;
     retired.add(id); entries.get(id)?.detach(); entries.delete(id);
     if (ctx.signal.aborted) return { ok: true, value: null };
-    return remove(vaultId, watchId);
+    const work = Promise.resolve().then(() => remove(vaultId, watchId)).then(result => {
+      if (result.ok) released.add(id);
+      return result;
+    }).finally(() => { releasing.delete(id); });
+    releasing.set(id, work);
+    return work;
   }
   async function watch(target: FileTarget, owner: CancellationSignal, recursive = true): Promise<FsResult<string>> {
     if (!owner || typeof owner.aborted !== "boolean" || typeof owner.addEventListener !== "function" || typeof owner.removeEventListener !== "function") return failure("INVALID_ARGUMENT", "A cancellation signal is required.");
@@ -53,12 +62,13 @@ export function createObservation(ctx: PluginContext, create: (target: FileTarge
     for (const [id, entry] of entries) {
       if ((JSON.parse(id) as string[])[0] === vaultId) { entry.detach(); entries.delete(id); }
     }
+    for (const id of released) if ((JSON.parse(id) as string[])[0] === vaultId) released.delete(id);
     for (const id of retired) if ((JSON.parse(id) as string[])[0] === vaultId) retired.delete(id);
   }
   ctx.scope.own({ dispose() {
     for (const detach of pending) detach();
     for (const entry of entries.values()) entry.detach();
-    entries.clear(); retired.clear(); closed.clear();
+    entries.clear(); retired.clear(); released.clear(); releasing.clear(); closed.clear();
   } });
   return { watch, unwatch, close, accepts: (vaultId: string, watchId: string) => !closed.has(vaultId) && !retired.has(key(vaultId, watchId)) };
 }
