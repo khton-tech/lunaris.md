@@ -712,3 +712,7 @@ It retains its accessible label and keyboard focus. The inherited document token
 `--callout-color` supplies icon color with the shared accent fallback. The callout
 contribution owns card boundaries, gutters and surfaces, while this role owns
 only its controls. Native comparison in Workspace remains pending.
+
+## Workspace keyboard ownership
+
+WorkspaceLayout owns region geometry and surfaces; embedded roles own their controls. Workspace no longer captures document-wide Tab events. Native Tab/Shift+Tab traversal belongs to forms and controls; CodeMirror owns its own editor bindings. The reference is the existing Settings/Explorer/account controls. Public role tests cover embedded and sibling event propagation; real focus traversal in those composed forms remains manual acceptance.

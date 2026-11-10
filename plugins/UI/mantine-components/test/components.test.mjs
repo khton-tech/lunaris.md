@@ -867,3 +867,15 @@ test('callout title stays plain, has the note pencil icon and no native edit too
   mounted.value.dispose();
  } finally { await s.stop(); }
 });
+
+test('Workspace leaves Tab and Shift+Tab to embedded controls and sibling views', async () => {
+ const s=await setup(); await s.start(); let targets;
+ const mounted=s.components.mount('lunaris.workspace-layout',s.target,{railVisible:true,panelVisible:true,mainLabel:'Main',panelLabel:'Panel',onTargets:value=>{targets=value;},onDismiss(){}},s.ctx.signal);
+ assert.equal(mounted.ok,true); assert.ok(targets);
+ const sibling=s.dom.window.document.createElement('input'); s.target.append(sibling);
+ const input=s.dom.window.document.createElement('input'); targets.main.append(input);
+ for(const target of [sibling,input]) for(const shiftKey of [false,true]) {
+   const event=new s.dom.window.KeyboardEvent('keydown',{key:'Tab',shiftKey,bubbles:true,cancelable:true}); target.dispatchEvent(event); assert.equal(event.defaultPrevented,false);
+ }
+ sibling.remove(); await s.stop();
+});
