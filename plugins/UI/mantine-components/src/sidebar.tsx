@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
-import { ActionIcon, Box, Button, Paper, Splitter, Stack } from "@mantine/core";
+import { ActionIcon, Box, Button, FocusTrap, Paper, Splitter, Stack, UnstyledButton } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
@@ -22,6 +22,10 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
   const bottom = useRef<HTMLDivElement>(null); const main = useRef<HTMLDivElement>(null); const rail = useRef<HTMLDivElement>(null); const panel = useRef<HTMLDivElement>(null);
   const root = useRef<HTMLDivElement>(null); const content = useRef<HTMLDivElement>(null);
   const returnButton = useRef<HTMLButtonElement>(null);
+  const toggleButton = useRef<HTMLButtonElement>(null);
+  const swipe = useRef<{ x: number; y: number; id: number } | null>(null);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const previousPresentation = useRef({ open: false, compact: false });
   const [available, setAvailable] = useState(0); const [compact, setCompact] = useState(false);
   const [width, setWidth] = useState(props.panelWidth ?? 288); const latestWidth = useRef(width);
   useLayoutEffect(() => { latestWidth.current = props.panelWidth ?? 288; setWidth(latestWidth.current); }, [props.panelWidth]);
@@ -36,13 +40,20 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
     const observer = new ResizeObserver(measure); observer.observe(element); measure();
     return () => observer.disconnect();
   }, []);
-  const panelOnly = compact && props.panelVisible;
+  const overlayOpen = compact && mobileOpen && props.railVisible;
+  useLayoutEffect(() => { if (!compact || !props.railVisible) setMobileOpen(false); }, [compact, props.railVisible]);
   useLayoutEffect(() => {
+    const previous = previousPresentation.current;
+    previousPresentation.current = { open: overlayOpen, compact };
     const focused = root.current?.ownerDocument.activeElement;
-    if (panelOnly && focused && main.current?.parentElement?.contains(focused)) returnButton.current?.focus({ preventScroll: true });
-    else if (!panelOnly && focused === returnButton.current) main.current?.focus({ preventScroll: true });
-  }, [panelOnly]);
+    if (overlayOpen) (props.panelVisible ? returnButton.current : toggleButton.current)?.focus({ preventScroll: true });
+    else if ((previous.open || previous.compact !== compact) && focused && (focused === toggleButton.current || rail.current?.contains(focused) || content.current?.querySelector('.lm-workspace-panel-pane')?.contains(focused))) {
+      (compact ? toggleButton.current : main.current)?.focus({ preventScroll: true });
+    }
+  }, [overlayOpen, compact, props.panelVisible]);
+  const closeOverlay = () => { setMobileOpen(false); toggleButton.current?.focus({ preventScroll: true }); };
   const dismiss = () => {
+    if (compact) { closeOverlay(); return; }
     const selected = rail.current?.querySelector<HTMLButtonElement>("button[aria-pressed=true]");
     if (selected) selected.focus({ preventScroll: true });
     props.onDismiss();
@@ -55,28 +66,43 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
     publish(Object.freeze({ main: main.current!, "left-rail": rail.current!, "left-panel": panel.current!, bottom: bottom.current! }));
     return () => publish(null);
   }, [publish]);
-  return <Box ref={root} className="lm-workspace-layout" style={{ ...theme.contentStyle, "--workspace-panel-width": `${width}px` }} data-compact={compact || undefined} data-window-chrome={theme.windowChrome || undefined} data-bottom={props.bottomVisible || undefined} data-rail={props.railVisible || undefined} data-panel={props.panelVisible || undefined}
-    onKeyDown={event => { if (event.key === "Escape" && props.panelVisible) {
+  return <FocusTrap active={overlayOpen} innerRef={root}><Box className="lm-workspace-layout" style={{ ...theme.contentStyle, "--workspace-panel-width": `${width}px` }} data-compact={compact || undefined} data-mobile-open={overlayOpen || undefined} data-window-chrome={theme.windowChrome || undefined} data-bottom={props.bottomVisible || undefined} data-rail={props.railVisible || undefined} data-panel={props.panelVisible || undefined}
+    role={overlayOpen ? "dialog" : undefined} aria-modal={overlayOpen || undefined} aria-label={overlayOpen ? props.panelLabel : undefined}
+    onKeyDown={event => { if (event.key === "Escape" && (compact ? overlayOpen : props.panelVisible)) {
       event.preventDefault(); dismiss();
     } }}>
-    <Paper ref={rail} className="lm-workspace-rail lm-workspace-card" shadow="none" hidden={!props.railVisible} />
+    <Paper ref={rail} className="lm-workspace-rail lm-workspace-card" shadow="none" hidden={!props.railVisible} inert={compact && !overlayOpen} aria-hidden={compact && !overlayOpen || undefined} />
     <Splitter ref={content} className="lm-workspace-content" sizes={[`${fittedWidth}px`, 100]} withHandle={false} lineSize={8} step="8px" shiftStep="32px"
       attributes={{ handle: { "aria-label": props.resizeLabel ?? props.panelLabel } }}
       onSizeChange={sizes => { const next = Number.parseFloat(String(sizes[0])); if (Number.isFinite(next) && next >= 120) { latestWidth.current = next; setWidth(next); } }}
       onResizeEnd={commitWidth} onKeyUp={event => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key) && (event.target as HTMLElement).getAttribute("role") === "separator") commitWidth(); }}
       onDoubleClick={event => { if ((event.target as HTMLElement).closest("[role=separator]")) void Promise.resolve().then(commitWidth); }}>
-      <Splitter.Pane className="lm-workspace-panel-pane" defaultSize="288px" min={compact ? 0 : "12rem"} max={compact ? "100%" : "60%"}>
-        <Box className="lm-workspace-return" hidden={!panelOnly}>
+      <Splitter.Pane className="lm-workspace-panel-pane" defaultSize="288px" min={compact ? 0 : "12rem"} max={compact ? "100%" : "60%"} inert={compact && !overlayOpen} aria-hidden={compact && !overlayOpen || undefined}>
+        <Box className="lm-workspace-return" hidden={!overlayOpen}>
           <Button ref={returnButton} className="lm-button lm-focus" variant="subtle" leftSection={<Icon name="back" />} onClick={dismiss}>{props.mainLabel}</Button>
         </Box>
         <Paper component="aside" ref={panel} className="lm-workspace-panel lm-workspace-card" shadow="none" aria-label={props.panelLabel} hidden={!props.panelVisible} />
       </Splitter.Pane>
-      <Splitter.Pane className="lm-workspace-main-pane" defaultSize={100} min={compact ? 0 : "16rem"} hidden={panelOnly} inert={panelOnly}>
+      <Splitter.Pane className="lm-workspace-main-pane" defaultSize={100} min={compact ? 0 : "16rem"} inert={overlayOpen} aria-hidden={overlayOpen || undefined}>
         <Box component="main" ref={main} className="lm-workspace-main" aria-label={props.mainLabel} tabIndex={-1} />
-        <Paper ref={bottom} className="lm-workspace-bottom lm-workspace-card" shadow="none" hidden={!props.bottomVisible} />
+        <Paper ref={bottom} className="lm-workspace-bottom lm-workspace-card" shadow="none" hidden={compact || !props.bottomVisible} />
       </Splitter.Pane>
     </Splitter>
-  </Box>;
+    <UnstyledButton className="lm-workspace-backdrop" hidden={!overlayOpen} tabIndex={-1} aria-label={props.mainLabel} onClick={closeOverlay} />
+    <Box className="lm-workspace-swipe-edge" hidden={!compact || overlayOpen || !props.railVisible} aria-hidden="true"
+      onTouchStart={event => { const touch = event.touches[0]; swipe.current = event.touches.length === 1 && touch ? { x: touch.clientX, y: touch.clientY, id: touch.identifier } : null; }}
+      onTouchMove={event => { const start = swipe.current; const touch = event.touches[0]; if (!touch || event.touches.length !== 1 || (start && Math.abs(touch.clientY - start.y) > 24)) swipe.current = null; }}
+      onTouchCancel={() => { swipe.current = null; }}
+      onTouchEnd={event => {
+        const start = swipe.current; swipe.current = null;
+        const touch = Array.from(event.changedTouches).find(item => item.identifier === start?.id);
+        if (start && touch && touch.clientX - start.x >= 56 && touch.clientX - start.x > Math.abs(touch.clientY - start.y) * 1.5) setMobileOpen(true);
+      }} />
+    <Paper className="lm-workspace-mobile-toolbar lm-workspace-card" hidden={!compact || !props.railVisible}>
+      <ActionIcon ref={toggleButton} className="lm-sidebar-tab lm-focus" size={44} variant="subtle" aria-label={props.panelLabel} title={props.panelLabel} aria-expanded={overlayOpen}
+        onClick={() => { if (overlayOpen) closeOverlay(); else setMobileOpen(true); }}><Icon name="sidebar" /></ActionIcon>
+    </Paper>
+  </Box></FocusTrap>;
 }
 
 interface RailProps {

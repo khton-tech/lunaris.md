@@ -880,7 +880,7 @@ test('Workspace leaves Tab and Shift+Tab to embedded controls and sibling views'
  sibling.remove(); await s.stop();
 });
 
-test('compact Workspace keeps contributed targets and drafts while switching accessible regions', async () => {
+test('compact Workspace opens a modal layer by button or edge swipe without replacing editor targets', async () => {
  const s = await setup(); await s.start();
  const { flushSync } = await import('react-dom');
  const originalRect = s.dom.window.HTMLElement.prototype.getBoundingClientRect;
@@ -897,30 +897,61 @@ test('compact Workspace keeps contributed targets and drafts while switching acc
  };
  try {
    let targets; let publications = 0; let dismissals = 0;
-   const props = { railVisible:true, panelVisible:true, mainLabel:'Workspace', panelLabel:'Tools',
+   const props = { bottomVisible:true, railVisible:true, panelVisible:true, mainLabel:'Workspace', panelLabel:'Tools',
      panelWidth:320, onTargets(value) { targets=value; publications++; }, onDismiss() { dismissals++; } };
    const mounted = s.components.mount('lunaris.workspace-layout', s.target, props, s.ctx.signal);
-   assert.equal(mounted.ok, true);
+   assert.equal(mounted.ok, true, JSON.stringify(s.logs, (_key, value) => value instanceof Error ? value.stack : value));
    const initial = targets; const root = s.target.querySelector('.lm-workspace-layout');
    const pane = targets.main.parentElement;
-   assert.equal(root.dataset.compact, 'true'); assert.equal(pane.hidden, true); assert.equal(pane.hasAttribute('inert'), true);
+   const toggle = root.querySelector('.lm-workspace-mobile-toolbar button');
+   assert.equal(root.dataset.compact, 'true'); assert.equal(pane.hidden, false); assert.equal(pane.hasAttribute('inert'), false);
+   assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+   assert.equal(targets['left-rail'].hasAttribute('inert'), true);
+   assert.equal(targets.bottom.hidden, true);
    const draft = s.dom.window.document.createElement('input'); draft.value = 'Unsaved draft'; targets.main.append(draft);
    const panelInput = s.dom.window.document.createElement('input'); targets['left-panel'].append(panelInput);
    const back = root.querySelector('.lm-workspace-return button');
-   assert.equal(back.textContent, 'Workspace'); back.click(); assert.equal(dismissals, 1);
+   draft.focus(); flushSync(() => toggle.click());
+   assert.equal(root.getAttribute('aria-modal'), 'true'); assert.equal(pane.hidden, false); assert.equal(pane.hasAttribute('inert'), true);
+   assert.equal(targets['left-rail'].hasAttribute('inert'), false);
+   assert.equal(back.textContent, 'Workspace'); flushSync(() => back.click()); assert.equal(dismissals, 0);
+   assert.equal(s.dom.window.document.activeElement, toggle);
    mounted.value.update({ ...props, panelVisible:false });
    assert.equal(pane.hidden, false); assert.equal(pane.hasAttribute('inert'), false); assert.equal(targets['left-panel'].hidden, true);
+   flushSync(() => toggle.click());
+   assert.equal(toggle.getAttribute('aria-expanded'), 'true', 'Rail must open even without an active tool');
+   flushSync(() => toggle.click());
    assert.equal(draft.value, 'Unsaved draft'); assert.equal(targets, initial); assert.equal(publications, 1);
-   draft.focus(); mounted.value.update(props);
+   mounted.value.update(props); flushSync(() => toggle.click());
    assert.equal(s.dom.window.document.activeElement, back);
    width = 1000; flushSync(() => resize());
    assert.equal(root.hasAttribute('data-compact'), false); assert.equal(pane.hidden, false);
+   assert.equal(pane.hasAttribute('inert'), false); assert.equal(targets.bottom.hidden, false);
    assert.equal(root.querySelector('.lm-workspace-return').hidden, true);
-   assert.equal(s.dom.window.document.activeElement, targets.main);
+   assert.equal(root.querySelector('.lm-workspace-mobile-toolbar').hidden, true);
    assert.equal(targets['left-panel'].contains(panelInput), true); assert.equal(targets.main.contains(draft), true);
    width = 360; flushSync(() => resize());
+   const edge = root.querySelector('.lm-workspace-swipe-edge');
+   const touch = (type, x, y = 100, count = 1) => {
+     const event = new s.dom.window.Event(type, { bubbles:true });
+     const touches = Array.from({length:count}, (_, identifier) => ({identifier,clientX:x,clientY:y}));
+     Object.defineProperties(event, {touches:{value:type === 'touchend' ? [] : touches},changedTouches:{value:touches}});
+     flushSync(() => edge.dispatchEvent(event));
+   };
+   touch('touchstart', 5); touch('touchmove', 12, 150); touch('touchend', 100, 150);
+   assert.equal(toggle.getAttribute('aria-expanded'), 'false', 'Vertical scroll must not open tools');
+   touch('touchstart', 5, 100, 2); touch('touchend', 100);
+   assert.equal(toggle.getAttribute('aria-expanded'), 'false', 'Multitouch must not open tools');
+   touch('touchstart', 5); touch('touchcancel', 70); touch('touchend', 100);
+   assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+   touch('touchstart', 5); touch('touchend', 100);
+   assert.equal(toggle.getAttribute('aria-expanded'), 'true');
    const escape = new s.dom.window.KeyboardEvent('keydown', {key:'Escape', bubbles:true, cancelable:true});
-   panelInput.dispatchEvent(escape); assert.equal(escape.defaultPrevented, true); assert.equal(dismissals, 2);
+   flushSync(() => panelInput.dispatchEvent(escape)); assert.equal(escape.defaultPrevented, true); assert.equal(dismissals, 0);
+   assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+   flushSync(() => toggle.click()); flushSync(() => root.querySelector('.lm-workspace-backdrop').click());
+   assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+   assert.equal(draft.value, 'Unsaved draft'); assert.equal(targets, initial);
    mounted.value.dispose(); assert.equal(disconnected, true); assert.equal(targets, null);
  } finally {
    s.dom.window.HTMLElement.prototype.getBoundingClientRect = originalRect;

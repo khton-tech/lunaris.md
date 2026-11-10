@@ -23,6 +23,20 @@ future tools use the Sidebar API. See the [full reference](../../../../DOCS/refe
 for API examples, lifecycle, keyboard behavior, overlay and manual acceptance.
 Run `npm run sidebar:check` and the Tauri frontend build.
 
+## Mobile overlay integration
+
+The existing WorkspaceLayout role owns a floating bottom action and edge-swipe
+presentation at compact widths. Opening/closing that modal layer does not call
+Sidebar.select: this controller keeps the selected tool and its contributed
+content intact. Tab clicks still use the same public Sidebar contracts. Desktop
+Escape retains the existing onDismiss behavior; mobile Escape closes only the
+presentation layer. No provider or controller API changes are required.
+
+A composed regression verifies opening, tool selection, backdrop dismissal,
+reopening and stable main content through the real Workspace/Sidebar controllers.
+Visual acceptance on a device remains pending: slide geometry, safe areas,
+opened tool menus, touch/keyboard focus and browser edge-swipe conflicts.
+
 Sidebar API 1.1 supports `placement: "start" | "end"` (default start). End tabs
 form a bottom group; numeric order stays local to each group. Snapshot and keyboard
 order follow visual order. Updates preserve placement; existing consumers remain compatible.

@@ -45,6 +45,32 @@ test('keyboard navigation and Escape retain deliberate focus and collapse the ac
   content.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await flush();
   assert.equal(s.tools.sidebar.snapshot().activeId, null); assert.equal(s.dom.window.document.activeElement, button(s, 'Search')); await s.stop();
 });
+
+test('mobile overlay preserves Sidebar selection and the composed editor when opened and closed', async () => {
+  const s = await setup();
+  try {
+    s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 360, 720);
+    panel(s, 'test.content');
+    s.tools.sidebar.register(tab('test.files', 'test.content'), s.ctx.signal);
+    s.tools.sidebar.register(tab('test.search', 'test.content'), s.ctx.signal);
+    await s.open();
+    const root = s.surface.querySelector('.lm-workspace-layout');
+    const main = root.querySelector('.lm-workspace-main'); const editor = main.firstElementChild;
+    const toggle = root.querySelector('.lm-workspace-mobile-toolbar button');
+    assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+    toggle.click(); await flush();
+    assert.equal(toggle.getAttribute('aria-expanded'), 'true');
+    assert.equal(main.parentElement.hasAttribute('inert'), true);
+    button(s, 'Search').click(); await flush();
+    assert.equal(s.tools.sidebar.snapshot().activeId, 'test.search');
+    root.querySelector('.lm-workspace-backdrop').click(); await flush();
+    assert.equal(toggle.getAttribute('aria-expanded'), 'false');
+    assert.equal(s.tools.sidebar.snapshot().activeId, 'test.search');
+    assert.equal(main.firstElementChild, editor); assert.equal(main.parentElement.hasAttribute('inert'), false);
+    toggle.click(); await flush();
+    assert.equal(button(s, 'Search').getAttribute('aria-pressed'), 'true');
+  } finally { await s.stop(); }
+});
 test('missing and replacement content roles retain the tab and show a localized unavailable panel', async () => {
   const s = await setup(); await s.open(); s.tools.sidebar.register(tab('test.files', 'test.file-tree', { icon: 'unknown-custom-icon' }), s.ctx.signal); await flush();
   assert.match(s.surface.querySelector('.lm-workspace-panel').textContent, /Panel unavailable/); assert.ok(button(s, 'Files').querySelector('svg'));

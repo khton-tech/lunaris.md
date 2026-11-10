@@ -4,8 +4,7 @@
 
 Reference: the existing Workspace rail, Files and Settings compositions, and
 [Mantine UI navigation](https://ui.mantine.dev/category/navbars/). The compact
-mode intentionally switches between the selected tool panel and main instead
-of placing the tool panel over an interactive editor.
+mode uses the Owner's floating bottom action and left sliding sidebar reference.
 
 WorkspaceLayout owns region geometry, surfaces, overflow and the compact return
 control. Sidebar continues to own tool selection; Explorer, Settings and editor
@@ -13,12 +12,28 @@ roles own only their embedded content. Existing public `onDismiss`, `mainLabel`
 and stable `onTargets` contracts provide the integration; no consumer imports
 React/Mantine or changes another plugin's DOM. No new provider is required.
 
-At an allocated Workspace width of 640 CSS pixels or less, the rail remains
-available and the open tool panel fills the remaining width. Main and its bottom
-region are hidden/inert while tools are open; the localized main-label button,
-selected rail toggle or Escape returns to the working area. This does not
-automatically dismiss tools when a file/category is selected. Targets and mounted
-drafts survive width and visibility changes. Resizing is desktop-only and does
+At an allocated Workspace width of 640 CSS pixels or less, the status strip is
+hidden and one floating bottom action opens the sidebar. Its localized accessible
+label is the existing `panelLabel`. The rail and selected tool panel slide over
+the editor as one modal layer, leaving a trailing backdrop to dismiss it. The
+editor stays mounted and visible underneath, but is inert while the layer is
+open. Mantine FocusTrap contains keyboard traversal. The main-label return button,
+floating toggle, backdrop or Escape closes the layer and restores toggle focus.
+Opening/closing changes local layout presentation, not Sidebar selection or
+plugin registrations; even a rail without an active tool remains reachable.
+
+A single-finger right swipe starting in the 20px left-edge strip also opens it:
+at least 56px horizontally, with horizontal movement dominant. Vertical travel
+over 24px, multitouch or cancellation rejects the gesture. The strip uses pan-y;
+editor gestures outside it remain untouched. Native browser edge navigation may
+still take priority and requires device verification. Motion uses theme timing
+and is disabled for reduced-motion users. Closed overlay regions are inert and
+hidden from assistive technology immediately. On desktop, the ordinary sidebar
+and status strip return. The host shell already owns safe-area insets; the toolbar
+is inset within that safe region. Workspace reserves editor space below content.
+
+This does not automatically dismiss tools when a file/category is selected.
+Targets and mounted drafts survive width and visibility changes. Resizing is desktop-only and does
 not overwrite the saved desktop panel width in compact mode. Navigation buttons
 have 44px compact targets. Coarse pointers enlarge shared actions/menu options;
 editable UIKit inputs use at least 16px text to avoid focus zoom. The shared host
@@ -28,8 +43,9 @@ Native Android/iOS remain `unadapted` in this plugin's manifest: responsive work
 does not certify native platform support. Other target entries remain undeclared.
 There are no mobile-only plugins or mobile driver changes in this stage.
 
-DOM regression covers stable contributed targets/drafts, hidden/inert main,
-return/Escape, focus transfer and observer cleanup. Visual acceptance is pending
+DOM regression covers stable contributed targets/drafts, the visible/inert editor,
+button/backdrop/Escape, valid and rejected edge swipes, focus transfer and observer
+cleanup. Visual acceptance is pending
 in the actual Workspace: 320/360/390/640px widths and return to desktop; short
 landscape; Files and Settings selection then return; long Russian labels;
 opened menus; both themes; keyboard and touch focus; safe areas and the virtual
