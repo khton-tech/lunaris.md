@@ -686,9 +686,17 @@ the temporary width. The controller owns persistence and error text.
 Reference: the Owner's direct-resize request, existing quiet separator/focus
 styles and [Mantine UI inputs](https://ui.mantine.dev/category/inputs/).
 These are embedded controls without new panels, surfaces or layout providers.
+The Owner's follow-up Workspace screenshot defines the correction: handles sit
+at 50% of the editor height, with thin/short, 8%-opacity resting marks rather than
+prominent lines beside the first content block. Hover/drag increases visibility;
+keyboard focus retains its semantic indicator. Their owned root is observed for
+the existing 640px compact breakpoint; viewport compactness and coarse primary
+input also disable them. Controls are unmounted in these modes and active
+previews are cancelled. Touch cannot start a drag. No Workspace DOM or private
+presentation state is inferred; external geometry/surface ownership is unchanged.
 Text Editor integration through Components is complete. Automated composed tests
 cover preview, save, rollback, cancellation, keyboard and Vault changes; native
-mouse/touch hit geometry, light/dark appearance, focus and narrow/short Workspace
+desktop mouse hit geometry, light/dark appearance, focus, mobile absence and short Workspace
 acceptance remain manual.
 
 `lunaris.task-checkbox` provides a controlled Mantine Core Checkbox for inline

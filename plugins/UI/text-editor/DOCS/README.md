@@ -160,7 +160,10 @@ enabled, with no source-mode, input-behavior, spellcheck or autosave setting.
 
 ### Direct column resizing
 
-Two subtle vertical handles sit at the sides of the centered reading column.
+Two subtle vertical handles sit at the sides of the centered reading column,
+vertically centered within the allocated editor region. Following the Owner's
+Workspace screenshot, their resting marks are 1px wide, 20px tall and use 8%
+opacity; hover/drag raises visibility while keyboard focus remains clear.
 Drag either handle to change both sides symmetrically; the title and document
 update together. Pointer capture keeps the interaction attached to the handle.
 Release saves one `textWidth` value through Config in the current Vault. Preview
@@ -172,6 +175,10 @@ Focused handles support Left/Right (20px), Shift+Left/Right (80px), Home (320px)
 and End (available width, capped at 1920px). Handles remain within the editor's
 allocated width, use theme colors and keyboard focus, and do not add a surface.
 They are hidden when line wrapping is off or preferences are unavailable.
+Direct resizing is desktop-only: handles are removed from keyboard/pointer
+interaction at editor allocations or viewports of 640px or less and with a
+coarse primary pointer. Touch cannot initiate resizing. Entering this layout
+during a drag cancels the preview without saving; the stored width is preserved.
 Full-width mode can be narrowed directly; custom pixel values appear in the
 existing themed Settings picker alongside the usual presets.
 
@@ -181,7 +188,7 @@ Text Editor owns transient preferences and SDK persistence; CodeMirror owns
 document geometry. The public role callback connects those existing plugins;
 no additional provider or driver is needed. Reference: the Owner's request for
 side regulators and the current centered document column. Native acceptance is
-pending for both themes, mouse/touch dragging, focus, narrow/short windows and
+pending for both themes, desktop mouse dragging, focus, mobile absence, short windows and
 alignment of the title, handles and document inside Workspace.
 
 Font size and line spacing now register numeric `slider` items. The usual ranges

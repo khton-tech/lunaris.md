@@ -42,6 +42,25 @@ const flush = async () => { for (let i = 0; i < 5; i++) await new Promise(setImm
 const metadata = (id, provides, requires = [], permissions = []) => ({ manifestVersion: 1, id, version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides, requires, permissions, optionalPermissions: [] });
 async function setup(options = {}) {
   const dom = useBrowser(new JSDOM('<div id="target"></div>', { pretendToBeVisual: true }));
+  // Simulate the owned editor allocation and input mode without desktop automation.
+  const widthEnvironment = options.widthEnvironment;
+  const widthObservers = new Set(); const mediaListeners = new Set();
+  if (widthEnvironment) {
+    const rect = dom.window.HTMLElement.prototype.getBoundingClientRect;
+    dom.window.HTMLElement.prototype.getBoundingClientRect = function () {
+      return this.classList.contains('lm-text-editor') ? { width: widthEnvironment.width } : rect.call(this);
+    };
+    const matchMedia = dom.window.matchMedia;
+    dom.window.matchMedia = query => query === '(max-width: 640px), (pointer: coarse)' ? {
+      get matches() { return widthEnvironment.mobile; },
+      addEventListener(_, listener) { mediaListeners.add(listener); }, removeEventListener(_, listener) { mediaListeners.delete(listener); },
+    } : matchMedia(query);
+    globalThis.ResizeObserver = class {
+      constructor(callback) { this.callback = callback; }
+      observe(element) { if (element.classList.contains('lm-text-editor')) widthObservers.add(this.callback); }
+      unobserve() {} disconnect() { widthObservers.delete(this.callback); }
+    };
+  }
   Object.defineProperty(globalThis, 'Window', { configurable: true, value: dom.window.Window });
   Object.defineProperty(globalThis, 'MutationObserver', { configurable: true, value: dom.window.MutationObserver });
   // JSDOM supplies no text geometry. These stubs exercise behavior, not layout.
@@ -121,6 +140,7 @@ async function setup(options = {}) {
   host = api.components.mount(content.componentId, editorTarget, { workspace: { vaultId: 'a', vaultName: 'A' } }, api.ctx.signal);
   assert.equal(host.ok, true); await api.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
   return { ...api, target, dom, disk, calls, logs, kernel, clipboardCalls, preferenceWrites, beforeClose: closeGuard.beforeClose,
+    async resizeWidthEnvironment(values) { Object.assign(widthEnvironment, values); for (const callback of [...widthObservers, ...mediaListeners]) callback(); await flush(); },
     async showVault(vaultId) { host.value.dispose(); await flush(); host = api.components.mount(content.componentId, editorTarget, { workspace: { vaultId, vaultName: vaultId } }, api.ctx.signal); assert.equal(host.ok, true); },
     cm() { const node = target.querySelector('.cm-editor'); assert.ok(node, target.textContent); return EditorView.findFromDOM(node); },
     edit(text) { const view = this.cm(); view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: text } }); },
@@ -208,8 +228,8 @@ test('display preferences apply without replacing the editor, selection, source 
 });
 
 // Pointer capture/geometry are supplied explicitly: JSDOM does not lay out controls.
-function widthControls(s) {
-  s.target.querySelector('.lm-text-editor').getBoundingClientRect = () => ({ width: 1200 });
+function widthControls(s, mockGeometry = true) {
+  if (mockGeometry) s.target.querySelector('.lm-text-editor').getBoundingClientRect = () => ({ width: 1200 });
   const handles = [...s.target.querySelectorAll('.lm-editor-width-handle')];
   for (const handle of handles) {
     handle.setPointerCapture = () => {};
@@ -278,6 +298,28 @@ test('column drag cancellation restores full width and cannot persist into anoth
     await pointer(right, 'pointerup', 1100);
     assert.equal(s.preferenceWrites.length, 0);
     assert.equal(s.target.querySelector('.lm-editor-heading').style.maxWidth, '780px');
+  } finally { await s.stop(); }
+});
+
+test('column handles are absent on mobile and cancel an active desktop drag when its allocation becomes compact', async () => {
+  const s = await setup({ widthEnvironment: { width: 640, mobile: false } });
+  try {
+    assert.equal(s.target.querySelector('.lm-editor-width-handle'), null);
+    await s.resizeWidthEnvironment({ width: 1200, mobile: true });
+    assert.equal(s.target.querySelector('.lm-editor-width-handle'), null);
+    await s.resizeWidthEnvironment({ mobile: false });
+    const { handles: [, right], pointer } = widthControls(s, false);
+    assert.ok(right);
+    await pointer(right, 'pointerdown', 900); await pointer(right, 'pointermove', 950);
+    assert.equal(s.target.querySelector('.lm-editor-heading').style.maxWidth, '880px');
+    await s.resizeWidthEnvironment({ width: 640 });
+    assert.equal(s.target.querySelector('.lm-editor-width-handle'), null);
+    assert.equal(s.target.querySelector('.lm-editor-heading').style.maxWidth, '780px');
+    await pointer(right, 'pointerup', 950);
+    right.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); await flush();
+    assert.equal(s.preferenceWrites.length, 0);
+    await s.resizeWidthEnvironment({ width: 641 });
+    assert.equal(s.target.querySelectorAll('.lm-editor-width-handle').length, 2);
   } finally { await s.stop(); }
 });
 
