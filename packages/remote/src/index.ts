@@ -10,7 +10,15 @@ export function decodeRemoteReference(reference: string): { readonly server: str
   try { const value: unknown = JSON.parse(reference); return Array.isArray(value) && value.length === 3 && value[0] === "lunaris-remote-v1" && typeof value[1] === "string" && !!value[1] && typeof value[2] === "string" && !!value[2] ? { server: value[1], reference: value[2] } : null; }
   catch { return null; }
 }
-export interface ServerInfo { readonly protocol: number; readonly buildId: string; readonly registration: "open" | "invitation" }
+/** Protocol v1 conservative content ceiling and encoded file-request admission limit, in bytes. */
+export const REMOTE_FILE_LIMITS = Object.freeze({ maxFileBytes: 1024 * 1024, maxRequestBytes: 16 * 1024 * 1024 });
+function utf8Bytes(text: string): number { let bytes = 0; for (const char of text) { const code = char.codePointAt(0)!; bytes += code > 0xffff ? 4 : code > 0x7ff ? 3 : code > 0x7f ? 2 : 1; if (bytes > REMOTE_FILE_LIMITS.maxFileBytes) break; } return bytes; }
+export function remoteFileContentFits(operation: string, args: { readonly text?: unknown; readonly data?: unknown }): boolean {
+  if (operation === "writeText" && typeof args.text === "string") return args.text.length <= REMOTE_FILE_LIMITS.maxFileBytes && utf8Bytes(args.text) <= REMOTE_FILE_LIMITS.maxFileBytes;
+  if (operation === "writeFile" && Array.isArray(args.data)) return args.data.length <= REMOTE_FILE_LIMITS.maxFileBytes;
+  return true;
+}
+export interface ServerInfo { readonly limits?: Readonly<typeof REMOTE_FILE_LIMITS>; readonly protocol: number; readonly buildId: string; readonly registration: "open" | "invitation" }
 export interface Account { readonly id: string; readonly login: string }
 export interface AccountState { readonly server: string; readonly account: Account; readonly epoch: string }
 export type RemoteFailure = FsFailure | { readonly code: "LIMIT_REACHED" | "INVALID_CREDENTIALS" | "INVITATION_REQUIRED" | "INVITATION_INVALID" | "LOGIN_TAKEN" | "BUSY" | "PREPARATION_FAILED" | "STOPPED"; readonly message: string };

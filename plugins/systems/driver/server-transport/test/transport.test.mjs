@@ -83,3 +83,11 @@ test('JSON and plain 503 stay offline while business refusals preserve connectiv
  assert.equal((await api.request('GET','server')).error.code,'INVALID_ARGUMENT'); assert.equal(status.current().state,'connected');
  await host.stopAll(); host.assertNoResources();
 });
+
+test('oversized file content is rejected before serialization or fetch', async()=>{
+ const {REMOTE_FILE_LIMITS}=await import('@lunaris/remote');const host=testHost({'test.consumer':['account.network']});let api,ctx,calls=0;
+ host.register(createServerTransport({mode:'desktop',fetch:async()=>{calls++;return json({protocol:1,buildId:'test',registration:'open'});}}));
+ host.register(consumer([ServerTransport],c=>{ctx=c;api=c.use(ServerTransport);},['account.network']));await host.start('test.consumer');await api.connect('https://a.invalid',ctx.signal);
+ const body={operation:'writeFile',args:{data:Array(REMOTE_FILE_LIMITS.maxFileBytes+1).fill(255)},toJSON(){assert.fail('must reject before JSON serialization');}};
+ assert.equal((await api.request('POST','vaults/id/files',body)).error.code,'TOO_LARGE');assert.equal(calls,1);await host.stopAll();host.assertNoResources();
+});
