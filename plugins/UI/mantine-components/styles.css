@@ -85,11 +85,21 @@
 .lm-root .lm-sidebar-tab { flex-shrink:0;color:var(--vault-secondary);background:transparent;--ai-hover:var(--vault-hover);--ai-hover-color:var(--vault-text);border-radius:var(--vault-radius) }
 .lm-root .lm-sidebar-tab[aria-pressed=true] { color:var(--vault-text);background:var(--vault-selection) }
 .lm-root .lm-sidebar-tab:enabled:active { color:var(--vault-text);background:var(--vault-selection) }
-@container(max-width:40rem) {
- .lm-workspace-layout[data-panel] .lm-workspace-panel-pane { flex:0 0 0!important;overflow:visible }
- .lm-workspace-layout .mantine-Splitter-handle { display:none }
- .lm-workspace-layout[data-panel]:not([data-rail]) { --workspace-rail-width:0px }
- .lm-workspace-layout[data-panel] .lm-workspace-panel { position:absolute;inset-block:var(--workspace-gap);inset-inline-start:max(var(--workspace-gap),var(--workspace-rail-width));width:min(var(--workspace-panel-width),calc(100% - max(var(--workspace-gap),var(--workspace-rail-width)) - var(--workspace-gap)));margin:0;z-index:2 }
+/* Workspace owns responsive geometry; tool views keep their stable targets. */
+.lm-workspace-layout[data-compact],.lm-workspace-layout[data-compact][data-window-chrome] { --workspace-rail-width:60px;--workspace-gap:4px }
+.lm-workspace-layout[data-compact] .mantine-Splitter-handle { display:none }
+.lm-workspace-layout[data-compact] .lm-workspace-panel-pane { flex:1 1 0%!important;flex-direction:column;max-width:100%!important;overflow:hidden }
+.lm-workspace-layout[data-compact] .lm-workspace-main-pane { flex:1 1 0%!important;max-width:100%!important }
+.lm-workspace-layout[data-compact] .lm-workspace-panel { margin-block-start:0;margin-inline-end:var(--workspace-gap) }
+.lm-workspace-return { flex-shrink:0;padding-block:var(--workspace-gap) }
+.lm-workspace-layout[data-compact] .lm-sidebar-rail { padding:4px }
+.lm-root .lm-workspace-return .lm-button { min-height:44px }
+.lm-workspace-layout[data-compact] .lm-sidebar-tab { min-width:44px;min-height:44px }
+@media(pointer:coarse) {
+ .lm-root .lm-explorer-actions .mantine-ActionIcon-root,.lm-root .lm-account-icon { min-width:44px;min-height:44px }
+ .lm-root .lm-button,.lm-root .lm-tool-navigation-item,.lm-setting-dropdown [role=option],.lm-context-menu [role=menuitem] { min-height:44px }
+ /* Keep mobile browsers from zooming the viewport when focusing text fields. */
+ .lm-root input.lm-input { font-size:max(16px,var(--mantine-font-size-md)) }
 }
 .lm-root button,.lm-root input { font:inherit }
 .lm-root p { margin:0;overflow-wrap:anywhere }
@@ -300,7 +310,6 @@
 .lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Input-section[data-position=left] { inset-inline-start:auto;inset-inline-end:2px;width:20px;inset-block:2px;box-shadow:var(--vault-surface-shadow);background:var(--vault-panel) }
 .lm-root[data-window-chrome=true]>.lm-explorer .lm-explorer-tabs { min-height:26px;border-radius:0;box-shadow:var(--vault-surface-shadow);background:var(--vault-panel) }
 .lm-root[data-window-chrome=true]>.lm-explorer .lm-explorer-tree { margin-inline:4px;box-shadow:var(--vault-inset-shadow);background:var(--vault-content) }
-@container(max-width:40rem) { .lm-workspace-layout[data-window-chrome] .lm-workspace-panel { inset-block-start:var(--workspace-gap) } }
 
 .lm-account-access { --vault-row-height:calc(var(--vault-space)*12);--explorer-control-hover:color-mix(in srgb,var(--vault-hover) 35%,var(--vault-panel));--explorer-control-pressed:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel));display:flex;flex:1 1 0%;min-width:0;min-height:0;overflow:auto;padding:clamp(16px,5cqw,64px) }
 .lm-account-content { display:flex;flex-direction:column;gap:calc(var(--vault-space)*6);width:min(100%,48rem);margin:clamp(0px,5cqh,56px) auto auto;min-width:0 }

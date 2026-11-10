@@ -162,11 +162,11 @@ test('failed width preference reads/writes retain an adjustable panel and report
   await s.open(); assert.equal(s.surface.querySelector('.lm-workspace-layout').style.getPropertyValue('--workspace-panel-width'), '296px'); await s.stop();
 });
 
-test('Workspace temporarily blocks Tab traversal and releases that policy when the screen closes', async () => {
+test('Workspace preserves native Tab traversal while open and after closing', async () => {
   const s = await setup(); await s.open();
   for (const shiftKey of [false, true]) {
     const event = new s.dom.window.KeyboardEvent('keydown', { key: 'Tab', shiftKey, bubbles: true, cancelable: true });
-    s.dom.window.document.body.dispatchEvent(event); assert.equal(event.defaultPrevented, true);
+    s.dom.window.document.body.dispatchEvent(event); assert.equal(event.defaultPrevented, false);
   }
   await s.service.close(); await flush();
   const restored = new s.dom.window.KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true });

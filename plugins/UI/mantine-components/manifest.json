@@ -5,6 +5,7 @@
   "engine": "^0.1.0",
   "sdk": "^0.1.0",
   "entry": "./dist/src/index.js",
+  "targets": { "android": "unadapted", "ios": "unadapted" },
   "provides": [],
   "requires": [
     {

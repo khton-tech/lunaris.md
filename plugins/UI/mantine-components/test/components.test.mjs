@@ -880,6 +880,55 @@ test('Workspace leaves Tab and Shift+Tab to embedded controls and sibling views'
  sibling.remove(); await s.stop();
 });
 
+test('compact Workspace keeps contributed targets and drafts while switching accessible regions', async () => {
+ const s = await setup(); await s.start();
+ const { flushSync } = await import('react-dom');
+ const originalRect = s.dom.window.HTMLElement.prototype.getBoundingClientRect;
+ const originalObserver = globalThis.ResizeObserver;
+ let width = 360; let resize; let disconnected = false;
+ s.dom.window.HTMLElement.prototype.getBoundingClientRect = function () {
+   return { ...originalRect.call(this), width: this.classList.contains('lm-workspace-layout') ? width : Math.max(0, width - 60) };
+ };
+ globalThis.ResizeObserver = class {
+   constructor(callback) { this.callback = callback; }
+   observe(element) { if (element.classList.contains('lm-workspace-layout')) { resize = this.callback; this.owned = true; } }
+   unobserve() {}
+   disconnect() { if (this.owned) disconnected = true; }
+ };
+ try {
+   let targets; let publications = 0; let dismissals = 0;
+   const props = { railVisible:true, panelVisible:true, mainLabel:'Workspace', panelLabel:'Tools',
+     panelWidth:320, onTargets(value) { targets=value; publications++; }, onDismiss() { dismissals++; } };
+   const mounted = s.components.mount('lunaris.workspace-layout', s.target, props, s.ctx.signal);
+   assert.equal(mounted.ok, true);
+   const initial = targets; const root = s.target.querySelector('.lm-workspace-layout');
+   const pane = targets.main.parentElement;
+   assert.equal(root.dataset.compact, 'true'); assert.equal(pane.hidden, true); assert.equal(pane.hasAttribute('inert'), true);
+   const draft = s.dom.window.document.createElement('input'); draft.value = 'Unsaved draft'; targets.main.append(draft);
+   const panelInput = s.dom.window.document.createElement('input'); targets['left-panel'].append(panelInput);
+   const back = root.querySelector('.lm-workspace-return button');
+   assert.equal(back.textContent, 'Workspace'); back.click(); assert.equal(dismissals, 1);
+   mounted.value.update({ ...props, panelVisible:false });
+   assert.equal(pane.hidden, false); assert.equal(pane.hasAttribute('inert'), false); assert.equal(targets['left-panel'].hidden, true);
+   assert.equal(draft.value, 'Unsaved draft'); assert.equal(targets, initial); assert.equal(publications, 1);
+   draft.focus(); mounted.value.update(props);
+   assert.equal(s.dom.window.document.activeElement, back);
+   width = 1000; flushSync(() => resize());
+   assert.equal(root.hasAttribute('data-compact'), false); assert.equal(pane.hidden, false);
+   assert.equal(root.querySelector('.lm-workspace-return').hidden, true);
+   assert.equal(s.dom.window.document.activeElement, targets.main);
+   assert.equal(targets['left-panel'].contains(panelInput), true); assert.equal(targets.main.contains(draft), true);
+   width = 360; flushSync(() => resize());
+   const escape = new s.dom.window.KeyboardEvent('keydown', {key:'Escape', bubbles:true, cancelable:true});
+   panelInput.dispatchEvent(escape); assert.equal(escape.defaultPrevented, true); assert.equal(dismissals, 2);
+   mounted.value.dispose(); assert.equal(disconnected, true); assert.equal(targets, null);
+ } finally {
+   s.dom.window.HTMLElement.prototype.getBoundingClientRect = originalRect;
+   globalThis.ResizeObserver = originalObserver;
+   await s.stop();
+ }
+});
+
 test('editor recovery choices use public themed actions without selecting a candidate implicitly',async()=>{
  const s=await setup();await s.start();const chosen=[];
  const props={documentKey:'note',name:'note.md',status:'',error:'Conflict',ready:true,dirty:false,busy:false,saveLabel:'Save',retryLabel:'Retry',reloadLabel:'Reload',discardLabel:'Discard',cancelLabel:'Cancel',onSave(){},onReload(){},onTarget(){},recoveryLabel:'Choose draft',recoveryCandidates:[{id:'a',label:'First <draft>'},{id:'b',label:'Second draft'}],onRecovery:id=>chosen.push(id),presentation:{mode:'embedded',sizing:'fill'}};

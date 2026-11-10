@@ -1,5 +1,42 @@
 # Mantine components
 
+## Initial mobile adaptation
+
+Reference: the existing Workspace rail, Files and Settings compositions, and
+[Mantine UI navigation](https://ui.mantine.dev/category/navbars/). The compact
+mode intentionally switches between the selected tool panel and main instead
+of placing the tool panel over an interactive editor.
+
+WorkspaceLayout owns region geometry, surfaces, overflow and the compact return
+control. Sidebar continues to own tool selection; Explorer, Settings and editor
+roles own only their embedded content. Existing public `onDismiss`, `mainLabel`
+and stable `onTargets` contracts provide the integration; no consumer imports
+React/Mantine or changes another plugin's DOM. No new provider is required.
+
+At an allocated Workspace width of 640 CSS pixels or less, the rail remains
+available and the open tool panel fills the remaining width. Main and its bottom
+region are hidden/inert while tools are open; the localized main-label button,
+selected rail toggle or Escape returns to the working area. This does not
+automatically dismiss tools when a file/category is selected. Targets and mounted
+drafts survive width and visibility changes. Resizing is desktop-only and does
+not overwrite the saved desktop panel width in compact mode. Navigation buttons
+have 44px compact targets. Coarse pointers enlarge shared actions/menu options;
+editable UIKit inputs use at least 16px text to avoid focus zoom. The shared host
+shell respects safe-area insets and dynamic viewport height.
+
+Native Android/iOS remain `unadapted` in this plugin's manifest: responsive work
+does not certify native platform support. Other target entries remain undeclared.
+There are no mobile-only plugins or mobile driver changes in this stage.
+
+DOM regression covers stable contributed targets/drafts, hidden/inert main,
+return/Escape, focus transfer and observer cleanup. Visual acceptance is pending
+in the actual Workspace: 320/360/390/640px widths and return to desktop; short
+landscape; Files and Settings selection then return; long Russian labels;
+opened menus; both themes; keyboard and touch focus; safe areas and the virtual
+keyboard on a real mobile browser. Existing virtualized file rows and editor
+gesture interactions still need a separate touch audit. Integration through the
+public Workspace/Sidebar roles is implemented; mobile visual acceptance is not.
+
 ## Account and browser update roles
 
 `lunaris.account-access` accepts mode connect/login/register/vaults/trash,
