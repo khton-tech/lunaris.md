@@ -172,12 +172,19 @@ export function isolatedDefinition(manifest: PluginManifest, source: ExecutionSo
     const code = `import __entry from ${JSON.stringify(captured.entry)};\n${guestBridge}`;
     const realm = await createRealm({ pluginId: ctx.pluginId, activationId: ctx.activationId, ...bound }, { entry, modules: { ...captured.modules, [entry]: code } }, [{ name: 'sdk.call', invoke: bridge.invoke }], owner, driver, limits);
     bridge.realm = realm;
+    let owned = false;
     try {
       ctx.scope.own({ dispose() { bridge.dispose(); realm.dispose(); } });
+      owned = true;
       const actual = realm.call('__sdkManifest', []);
       const canonical = (value: unknown): string => JSON.stringify(value, (_key, item: unknown) => item && typeof item === 'object' && !Array.isArray(item) ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) : item);
       if (canonical(actual) !== canonical(manifest)) throw new Error('Package entry manifest differs from inspected metadata.');
       return await bridge.unpack(realm.call('__sdkActivate', [bridge.pack(scopedContext(ctx, bound.vaultId))])) as Awaited<ReturnType<PluginDefinition['activate']>>;
-    } catch (error) { bridge.dispose(); realm.dispose(); throw error; }
+    } catch (error) {
+      // Once owned, kernel rollback must run guest disposers before this realm's
+      // final disposer. Early VM destruction would turn safe rollback into failure.
+      if (!owned) { bridge.dispose(); realm.dispose(); }
+      throw error;
+    }
   } });
 }

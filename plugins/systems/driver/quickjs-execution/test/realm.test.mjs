@@ -100,6 +100,15 @@ test('isolated loader rejects manifest drift before activation side effects', as
   await f.kernel.stopAll(); f.kernel.assertNoResources();
 });
 
+test('failed activation keeps its realm alive until owned guest resources finish cleanup', async () => {
+  const f = await fixture();
+  const manifest = { manifestVersion: 1, id: 'test.package', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './plugin.js', provides: [], requires: [], permissions: [], optionalPermissions: [] };
+  f.kernel.register(f.load(manifest, `export default { manifest: ${JSON.stringify(manifest)}, activate(ctx) { ctx.scope.own({ dispose() {} }); throw Error('activation failed'); } };`), { ownerId: execution.manifest.id });
+  await assert.rejects(f.kernel.start('test.package'), { code: 'ACTIVATION_FAILED' });
+  assert.equal(f.kernel.diagnostics().some(item => item.code === 'CLEANUP_FAILED'), false);
+  await f.kernel.stopAll(); f.kernel.assertNoResources();
+});
+
 test('SDK broker binds Config and Filesystem calls to captured identity and rejects global/native access', async () => {
   const f = await fixture(); const calls = [];
   const Config = defineApi({ id: 'lunaris.config', version: '1.0.0', consumePermission: 'config.access' });
