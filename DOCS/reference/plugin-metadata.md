@@ -33,3 +33,9 @@ warning cannot bypass unavailable required public contracts.
 
 Verification: build of manifest/SDK and 37 manifest tests passed on 2026-11-10.
 Installer, UI and CLI consumption remain separate Lime integration work.
+
+Language checking uses well-formed RFC 5646 syntax, including extensions and
+private use, and rejects duplicate variants/extension singletons. It does not
+depend on Intl, perform an IANA registry lookup or rewrite author casing. This
+keeps the same validator runnable in the isolated interpreter. A real bundled
+SDK/Logger plugin with display metadata is verified through the host runtime.

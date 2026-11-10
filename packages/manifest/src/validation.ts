@@ -1,4 +1,5 @@
 import { isExactVersion, isValidId, isVersionRange, versionSatisfies } from "./versions.js";
+import { isLanguageTag } from "./languages.js";
 import type {
   ContractKind, HostVersions, ManifestDiagnostic, ManifestValidationResult,
   PluginManifest, PluginMetadata, PluginPlatform, PluginTarget, PluginTargetSupport, ProvidedContract, RequiredContract,
@@ -91,10 +92,7 @@ export function validateManifest(input: unknown, versions?: HostVersions): Manif
           }
           if (!platforms.length) issue("$.metadata.platforms", "Declare universal or at least one platform.");
         }
-        const language = (tag: unknown): tag is string => {
-          if (typeof tag !== "string" || tag.length > 80) return false;
-          try { return Intl.getCanonicalLocales(tag).length === 1; } catch { return false; }
-        };
+        const language = isLanguageTag;
         const languages: string[] = [];
         for (const [i, tag] of list(item.languages, "$.metadata.languages").entries()) {
           if (!language(tag) || languages.some(existing => existing.toLowerCase() === tag.toLowerCase())) issue(`$.metadata.languages[${i}]`, "Expected a unique BCP 47 language tag.");

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { build } from 'esbuild';
 import { createTestKernel } from '@lunaris/test';
 import { definePlugin } from '@lunaris/sdk';
 import { Logger } from '@lunaris/logging';
@@ -75,4 +76,13 @@ test('runtime update grants new declared permissions before candidate code runs'
   const candidate = { ...manifest('2.0.0'), permissions: ['example.new'] };
   const updated = await runtime.replace(env, candidate, source(candidate, "if (!ctx.permissions.has('example.new')) throw Error('missing automatic grant');"));
   assert.equal(updated.ok, true); assert.equal(runtime.snapshot(env).value[0].version, '2.0.0'); await kernel.stopAll();
+});
+
+test('actual bundled SDK and Logger execute a metadata-bearing author plugin without host Intl', async () => {
+  const { kernel, runtime } = await fixture(); const env = { vaultId: 'a', generation: 1 }; await runtime.open(env);
+  const data = { ...manifest(), metadata: { name: 'Author plugin', author: 'Author', description: 'Bundled SDK', platforms: 'universal', languages: ['en', 'ru'] }, requires: [{ kind: 'api', id: Logger.id, range: '^1.0.0' }] };
+  const output = await build({ stdin: { contents: `import { definePlugin } from '@lunaris/sdk'; import { Logger } from '@lunaris/logging'; export default definePlugin({manifest:${JSON.stringify(data)},activate(ctx){ctx.use(Logger).info(ctx.pluginId,'Author plugin ready');ctx.scope.own({dispose(){}});}});`, resolveDir: process.cwd(), sourcefile: 'author-plugin.js' }, bundle: true, platform: 'neutral', format: 'esm', write: false, logLevel: 'silent' });
+  const result = await runtime.register(env, data, { entry: 'plugin.js', modules: { 'plugin.js': output.outputFiles[0].text } }, true);
+  assert.equal(result.ok, true, JSON.stringify(kernel.inspect().diagnostics));
+  assert.equal(runtime.snapshot(env).value[0].state, 'active'); await kernel.stopAll(); kernel.assertNoResources();
 });

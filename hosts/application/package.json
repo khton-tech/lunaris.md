@@ -89,5 +89,5 @@
   "scripts": {
     "build": "tsc -b"
   },
-  "devDependencies": {}
+  "devDependencies": { "esbuild": "0.28.2" }
 }

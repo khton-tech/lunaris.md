@@ -36,3 +36,12 @@ test('invalid metadata produces field diagnostics and does not invoke accessors'
   assert.equal(validateManifest(manifest(input)).ok, false);
   assert.equal(executed, false);
 });
+
+test('language syntax works without Intl, including extensions, private use and duplicate rejection', () => {
+  const original = globalThis.Intl;
+  try {
+    globalThis.Intl = undefined;
+    for (const tag of ['en', 'ru', 'zh-Hans-CN', 'de-DE-u-co-phonebk', 'en-US-x-author', 'x-example', 'i-klingon']) assert.equal(validateManifest(manifest({ ...metadata(), languages: [tag], translations: undefined })).ok, true, tag);
+    for (const tag of ['en_US', 'en-u', 'de-1901-1901', 'en-u-ca-gregory-u-nu-latn', '-en', 'en--US']) assert.equal(validateManifest(manifest({ ...metadata(), languages: [tag], translations: undefined })).ok, false, tag);
+  } finally { globalThis.Intl = original; }
+});
