@@ -28,6 +28,7 @@ const catalogs = { en: {
   h1: "Heading 1", h2: "Heading 2", h3: "Heading 3", h4: "Heading 4", h5: "Heading 5", h6: "Heading 6", cut: "Cut", copy: "Copy", paste: "Paste", selectAll: "Select all", clipboardFailed: "Clipboard access failed. Use your keyboard shortcut or allow clipboard access.",
   empty: "Open a Markdown file", loading: "Loading", unsupported: "This file type is not supported", saved: "Saved", unsaved: "Unsaved", saving: "Saving",
   save: "Save", retry: "Retry save", reload: "Reload from disk", discard: "Discard changes and reload", cancel: "Cancel", editor: "Markdown editor", task: "Task",
+  title: "File name", renameFailed: "Cannot rename this file.",
   conflict: "The file changed outside the editor. Your changes are retained.", missing: "The file was removed. Your text is retained.",
   readFailed: "Cannot read this file.", saveFailed: "Cannot save changes. Your text is retained.",
   offline: "Server unavailable. Changes are saved on this device and will be retried after reconnection.",
@@ -37,6 +38,9 @@ const catalogs = { en: {
 const key = (target: FileTarget) => JSON.stringify([target.vaultId, target.path]);
 const inside = (target: FileTarget, parent: FileTarget) => target.vaultId === parent.vaultId && (target.path === parent.path || target.path.startsWith(parent.path + "/"));
 const markdownFile = (target: FileTarget) => /\.md$/i.test(target.path);
+const basename = (path: string) => path.slice(path.lastIndexOf("/") + 1);
+const parentPath = (path: string) => path.slice(0, Math.max(0, path.lastIndexOf("/")));
+const stem = (path: string) => basename(path).replace(/\.md$/i, "");
 
 export default definePlugin({ manifest, activate(ctx) {
   const menus = ctx.use(ContextMenu); const clipboard = ctx.use(Clipboard);
@@ -173,6 +177,7 @@ export default definePlugin({ manifest, activate(ctx) {
     const owner = ctx.scope.child(); let props = initial; let mounted: MountedComponent | undefined;
     let disposed = false; let editorTarget: HTMLElement | null = null;
     let taskUnavailableReported = false; let commandError = ""; let commandDocument = "";
+    let renameError = "";
     let editor: ReturnType<typeof mountEditor> | undefined; let rendered: DocumentSession | null = null;
     const onTarget = (value: HTMLElement | null) => { editorTarget = value; };
     function clearEditor(): void { if (editor && rendered) states.set(rendered, editor.dispose()); editor = undefined; rendered = null; }
@@ -184,15 +189,36 @@ export default definePlugin({ manifest, activate(ctx) {
       // draft must allow departure even though the removed file cannot be read.
       void session.load(true);
     };
+    const onRename = async (name: string): Promise<boolean> => {
+      if (disposed || signal.aborted || ctx.signal.aborted) return false;
+      const session = current;
+      if (!session?.active || session.locks || session.saving || session.loading) return false;
+      const cleaned = name.trim();
+      const source = session.target;
+      if (!cleaned || cleaned === stem(source.path)) { renameError = ""; changed(); return cleaned === stem(source.path); }
+      const parent = parentPath(source.path);
+      const destination = { vaultId: source.vaultId, path: `${parent ? `${parent}/` : ""}${cleaned}.md` };
+      const result = await documents.relocate(source, destination);
+      if (disposed || signal.aborted || ctx.signal.aborted) return result.ok;
+      if (!result.ok) {
+        renameError = text("renameFailed");
+        logger.warn(ctx.pluginId, "Cannot rename document", { error: result.error });
+        changed(); return false;
+      }
+      renameError = ""; logger.info(ctx.pluginId, "Document renamed"); changed(); return true;
+    };
     function render(): void {
       if (disposed || signal.aborted || ctx.signal.aborted) return;
       const context = props.workspace as { vaultId?: string } | undefined;
       const session = current?.target.vaultId === context?.vaultId ? current : null;
       const ready = !!session?.loaded;
       const documentKey = session ? key(session.target) : "";
-      if (commandDocument !== documentKey) { commandDocument = documentKey; commandError = ""; }
+      if (commandDocument !== documentKey) { commandDocument = documentKey; commandError = ""; renameError = ""; }
       const error = session?.draftError ? text("draftFailed") : session?.error ? text(session.error.code === "CONFLICT" ? "conflict" : session.missing ? "missing" : session.draftSaved && ["OFFLINE", "SERVER_UNAVAILABLE"].includes(session.error.code) ? "offline" : session.loaded ? "saveFailed" : "readFailed") : "";
       const next = { documentKey: session ? key(session.target) : "", name: session?.target.path ?? text(unsupported ? "unsupported" : "empty"),
+        title: session ? stem(session.target.path) : "", titleLabel: text("title"), renameError,
+        canRename: !!session?.active && !session.locks && !session.saving && !session.loading,
+        onRename,
         status: session?.loading ? text("loading") : session?.saving ? text("saving") : session?.loaded ? text(session.dirty ? "unsaved" : "saved") : "",
         recoveryLabel: text("recovery"), recoveryCandidates: session?.recoveryCandidates.map((record, index) => ({ id: String(index), label: `${new Date(record.updatedAt).toISOString()} · ${record.text.slice(0, 100)}` })) ?? [],
         onRecovery: (id: string) => { if (session?.active && !signal.aborted && !disposed) { states.delete(session); clearEditor(); session.selectRecovery(Number(id)); } },

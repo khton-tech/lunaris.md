@@ -77,8 +77,11 @@ tests cover four consecutive indentation/dedentation steps, standalone items,
 bullets, ordered/task lists, grouped siblings, inline formatting, Enter and disk
 persistence. No new SDK contract or cross-plugin wiring is required; native
 caret/wrapping acceptance remains manual in the actual Workspace.
-Live Preview is enabled. The editor has no persistent
-header, filename, saved status, mode toggle or Save button. Autosave and Mod-S
+Live Preview is enabled. The editor shows an editable file-name title above the
+document; renaming it through ActiveDocument.relocate moves the file on disk and
+remaps the open buffer. Empty names, unchanged names and failed renames restore
+the previous title and show a localized error. The editor has no persistent
+saved status, mode toggle or Save button. Autosave and Mod-S
 remain available. Source mode remains an internal adapter capability with no
 product control. No reading view, formatting toolbar, gutter or CodeMirror
 search panel is included. Unsupported extensions never decode as editable text.
@@ -203,16 +206,20 @@ edits on saving, and existing watch notifications improve clean-buffer freshness
 The plugin registers `lunaris.text-editor-host` for ActiveScreen and mounts
 `lunaris.text-editor` from Mantine Components. Role props:
 
-- Strings: documentKey, name, status, error, saveLabel, retryLabel, reloadLabel,
-  discardLabel, cancelLabel. Product messages are localized by the controller.
-- Booleans: ready, dirty, busy.
-- Callbacks: onSave(), onReload(), onTarget(HTMLElement | null).
+- Strings: documentKey, name, title, titleLabel, status, error, saveLabel,
+  retryLabel, reloadLabel, discardLabel, cancelLabel. Product messages are
+  localized by the controller. Optional renameError carries a localized alert.
+- Booleans: ready, dirty, busy, canRename.
+- Callbacks: onSave(), onReload(), onTarget(HTMLElement | null),
+  onRename(name) => Promise<boolean>.
 - Public presentation context: embedded/fill.
 
 onTarget lends a stable owned element and releases it with null on disposal.
 Preserve its identity across status/theme updates. Mount CodeMirror after SDK
 mount returns; do not style/reparent borrowed targets. The role confirms dirty
-discard before invoking onReload. Controller callbacks become inert on cancellation.
+discard before invoking onReload. The title field commits on blur or Enter and
+reverts on Escape; it stays read-only while the document is busy. Controller
+callbacks become inert on cancellation.
 
 ## Ownership and visual reference
 

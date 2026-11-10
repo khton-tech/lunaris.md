@@ -163,7 +163,7 @@ test('task checkbox role validates controlled state, forwards changes and inheri
 
 test('editor role preserves its borrowed target through status/theme changes and confirms destructive reload', async () => {
   const s = await setup(); await s.start(); let target; let reloads = 0;
-  const props = { documentKey: 'note', name: '<draft>.md', status: 'Unsaved', error: 'Conflict', ready: true, dirty: true, busy: false,
+  const props = { documentKey: 'note', name: '<draft>.md', title: '<draft>', titleLabel: 'File name', canRename: true, onRename: async () => true, status: 'Unsaved', error: 'Conflict', ready: true, dirty: true, busy: false,
     saveLabel: 'Save', retryLabel: 'Retry', reloadLabel: 'Reload', discardLabel: 'Discard', cancelLabel: 'Cancel', onSave() {}, onReload() { reloads++; }, onTarget(value) { target = value; } };
   const mounted = s.components.mount('lunaris.text-editor', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true);
   const borrowed = target; const owned = s.target.ownerDocument.createElement('div'); borrowed.append(owned);
@@ -997,7 +997,7 @@ test('mobile floating controls follow content swipes without scroll or keyboard 
 
 test('editor recovery choices use public themed actions without selecting a candidate implicitly',async()=>{
  const s=await setup();await s.start();const chosen=[];
- const props={documentKey:'note',name:'note.md',status:'',error:'Conflict',ready:true,dirty:false,busy:false,saveLabel:'Save',retryLabel:'Retry',reloadLabel:'Reload',discardLabel:'Discard',cancelLabel:'Cancel',onSave(){},onReload(){},onTarget(){},recoveryLabel:'Choose draft',recoveryCandidates:[{id:'a',label:'First <draft>'},{id:'b',label:'Second draft'}],onRecovery:id=>chosen.push(id),presentation:{mode:'embedded',sizing:'fill'}};
+ const props={documentKey:'note',name:'note.md',title:'note',titleLabel:'File name',canRename:true,onRename:async()=>true,status:'',error:'Conflict',ready:true,dirty:false,busy:false,saveLabel:'Save',retryLabel:'Retry',reloadLabel:'Reload',discardLabel:'Discard',cancelLabel:'Cancel',onSave(){},onReload(){},onTarget(){},recoveryLabel:'Choose draft',recoveryCandidates:[{id:'a',label:'First <draft>'},{id:'b',label:'Second draft'}],onRecovery:id=>chosen.push(id),presentation:{mode:'embedded',sizing:'fill'}};
  assert.equal(s.components.mount('lunaris.text-editor',s.target,props,s.ctx.signal).ok,true);
  const group=s.target.querySelector('[role=group][aria-label="Choose draft"]');assert.ok(group);assert.deepEqual(chosen,[]);assert.equal(group.querySelector('draft'),null);
  group.querySelectorAll('button')[1].click();assert.deepEqual(chosen,['b']);await s.stop();
