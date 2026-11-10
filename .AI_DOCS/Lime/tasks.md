@@ -1,11 +1,20 @@
 # Implementation task backlog
 
-All tasks are pending. IDs are stable tracking keys. Work in dependency order;
+L01 source audit/specification is delivered; its execution boundary gate is blocked.
+L02-L10 remain pending. IDs are stable tracking keys. Work in dependency order;
 each task must produce reviewable contracts/docs and targeted verification.
 
 ## L01 - Runtime boundary and integration specification
 
 Dependencies: none.
+
+Status (2026-11-10): source audit and prerequisite specification delivered in
+[`DOCS/design/lime-runtime.md`](../../DOCS/design/lime-runtime.md). Gate blocked:
+current synchronous DOM-bearing SDK contracts have no verified execution boundary
+that preserves extension parity and prevents out-of-Vault access. Native sessions
+and Config global access also need authenticated environment authority. Required
+runtime management, selected-package transport and awaited Vault lifecycle
+contracts are specified there as B01-B04. No dependent implementation started.
 
 - Map required/existing/new responsibilities using the decision inventory.
 - Trace current host composition, native bridge, Vault preparation/closure, Config,

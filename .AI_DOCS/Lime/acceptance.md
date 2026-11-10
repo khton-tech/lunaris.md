@@ -1,8 +1,22 @@
 # Acceptance and evidence plan
 
-All evidence is pending. These scenarios define completion; they are not claims of
+Runtime and manual evidence is pending. These scenarios define completion; they are not claims of
 implemented behavior. Choose focused checks for the changed contracts/components.
 No full-project test run is required for this planning-only change.
+
+## L01 evidence, 2026-11-10
+
+- Baseline: `feat/lime`, `4d259c199da4be969ec5e71eb451106d04fcdfa3`; working tree clean.
+- Source audit: shared/Tauri/web hosts, native session dispatcher, SDK/kernel,
+  Vault release/preparation, Config scopes, Filesystem, Components, ActiveScreen,
+  Settings, Startup and CLI/development reviewed. Findings and B01-B04 required
+  contracts: [public specification](../../DOCS/design/lime-runtime.md).
+- Outcome: L01 execution gate blocked; no installed code evaluated. A19 and A23
+  are unverified; source authority gaps prevent claiming isolation or recovery.
+- Documentation validation: `node tools/scripts/audit.mjs --docs-only` passed
+  (68 documentation files; local links); `git diff --check` passed.
+- Native/visual tests: not performed; no UI/runtime implementation changed.
+- Integration: all Lime runtime/provider/UI/tooling connections remain outstanding.
 
 ## User and runtime scenarios
 
