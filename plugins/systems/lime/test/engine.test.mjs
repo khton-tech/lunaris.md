@@ -4,6 +4,7 @@ import { createTestKernel } from '@lunaris/test';
 import { definePlugin } from '@lunaris/sdk';
 import { Logger } from '@lunaris/logging';
 import { Filesystem, filesystemMethods } from '@lunaris/filesystem';
+import { Config } from '@lunaris/config';
 import { Vault, VaultLifecycle } from '@lunaris/vault';
 import { Lime, LimeRuntime, LimePackagePicker } from '@lunaris/lime';
 import { packLup } from '@lunaris/lup';
@@ -17,8 +18,8 @@ function packageBytes(version = '1.0.0', id = 'test.package') {
   return packLup([{ path: 'manifest.json', data: encode(JSON.stringify(manifest)) }, { path: 'plugin.js', data: encode(`throw Error('preview must not evaluate');`) }]);
 }
 async function fixture() {
-  const kernel = createTestKernel(); const files = new Map(); const selected = []; const executions = []; const runtimes = new Map();
-  let root = { id: 'vault-a', name: 'A' }; let participant; let api; let revision = 0; let failWrites = false; let failActivation = false;
+  const kernel = createTestKernel(); const files = new Map(); const selected = []; const executions = []; const runtimes = new Map(); const settings = new Map(); const configCalls = [];
+  let root = { id: 'vault-a', name: 'A' }; let participant; let api; let revision = 0; let failWrites = false; let failActivation = false; let failConfig = false;
   kernel.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(name => [name, () => true])));
   const methods = Object.fromEntries(filesystemMethods.map(name => [name, async () => failure('NOT_FOUND')]));
   const key = target => `${target.vaultId}:${target.path}`;
@@ -33,7 +34,13 @@ async function fixture() {
   methods.writeText = (target, text, options) => write(target, new TextEncoder().encode(text), options);
   methods.writeFile = (target, bytes, options) => write(target, new Uint8Array(bytes), options);
   methods.createDirectory = async () => ok(null); methods.capabilities = () => ({ atomicReplace: true, watch: false, maxFileBytes: 64 * 1024 * 1024, versionCheck: 'optimistic', trash: false });
+  methods.remove = async target => { for (const name of [...files.keys()]) if (name === key(target) || name.startsWith(`${key(target)}/`)) files.delete(name); return ok(null); };
   kernel.installMock(Filesystem, methods);
+  kernel.installMock(Config, {
+    async read(id, target) { configCalls.push([id, target]); return failConfig ? failure('IO_ERROR') : ok(settings.get(id) ?? {}); },
+    async get() { return ok(undefined); }, async set() { return ok(true); },
+    async remove(id, key) { const table = settings.get(id); if (table) delete table[key]; return ok(true); },
+  });
   kernel.installMock(Vault, { current: () => root, async open() { return ok(root); }, async close() { root = null; return ok(null); } });
   kernel.installMock(VaultLifecycle, { register(value) { participant = value; return ok(null); } });
   kernel.installMock(LimePackagePicker, { async pick(owner) { const value = selected.shift() ?? null; return ok(typeof value === 'function' ? await value(owner) : value); } });
@@ -49,7 +56,7 @@ async function fixture() {
   for (const permission of plugin.manifest.permissions) kernel.grant(plugin.manifest.id, permission);
   kernel.register(definePlugin({ manifest: { manifestVersion: 1, id: 'test.consumer', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides: [], requires: [{ kind: 'api', id: Lime.id, range: '^1.0.0' }], permissions: [], optionalPermissions: [] }, activate(ctx) { api = ctx.use(Lime); } }));
   await kernel.start('test.consumer'); await api.restore();
-  return { kernel, files, selected, executions, runtimes, api, get participant() { return participant; }, setRoot: value => { root = value; }, setFailWrites: value => { failWrites = value; }, setFailActivation: value => { failActivation = value; } };
+  return { kernel, files, selected, executions, runtimes, settings, configCalls, api, get participant() { return participant; }, setRoot: value => { root = value; }, setFailWrites: value => { failWrites = value; }, setFailActivation: value => { failActivation = value; }, setFailConfig: value => { failConfig = value; } };
 }
 
 test('preview is inert and exact-byte confirmation persists only in the captured Vault', async () => {
@@ -91,4 +98,38 @@ test('Vault lifecycle discards previews, separates environments and restores ind
   assert.equal(f.api.snapshot().installations[0].version, '2.0.0'); assert.equal(f.executions.length, 0);
   await f.participant.beforeRelease({ id: 'vault-b' }, { id: 'vault-a' }); f.setRoot({ id: 'vault-a', name: 'A' }); await f.participant.settled({ id: 'vault-b' }, { id: 'vault-a' });
   assert.equal(f.api.snapshot().installations.length, 0); await f.kernel.stopAll();
+});
+
+test('remove retains or deletes only managed Vault data/settings according to the persisted choice', async () => {
+  const f = await fixture(); f.selected.push(packageBytes()); const preview = await f.api.preview(); await f.api.install(preview.value.ticket, false);
+  const dataKey = 'vault-a:.lunaris/plugins/data/test.package/value.json';
+  f.files.set(dataKey, { bytes: new TextEncoder().encode('data'), version: 'data' }); f.settings.set('test.package', { zoom: 2 });
+  assert.equal((await f.api.remove('test.package', false)).ok, true); assert.equal(f.api.snapshot().installations.length, 0);
+  assert.equal(f.files.has(dataKey), true); assert.deepEqual(f.settings.get('test.package'), { zoom: 2 });
+  f.selected.push(packageBytes('2.0.0')); const next = await f.api.preview(); await f.api.install(next.value.ticket, false);
+  assert.equal((await f.api.remove('test.package', true)).ok, true);
+  assert.equal(f.files.has(dataKey), false); assert.deepEqual(f.settings.get('test.package'), {});
+  assert.deepEqual(f.configCalls.at(-1), ['test.package', { scope: 'vault', vaultId: 'vault-a' }]);
+  await f.kernel.stopAll();
+});
+
+test('failed removal persists a non-executable cleanup journal and restore retries it idempotently', async () => {
+  const f = await fixture(); f.selected.push(packageBytes()); const preview = await f.api.preview(); await f.api.install(preview.value.ticket, false);
+  f.setFailConfig(true); assert.equal((await f.api.remove('test.package', true)).error.code, 'STORAGE_FAILED');
+  assert.equal(f.api.snapshot().installations[0].removalPending, true);
+  assert.equal((await f.api.enable('test.package')).error.code, 'CONFLICT');
+  assert.equal((await f.api.disable('test.package')).error.code, 'CONFLICT');
+  f.setFailConfig(false); assert.equal((await f.api.restore()).ok, true);
+  assert.equal(f.api.snapshot().installations.length, 0); assert.deepEqual(f.executions, []);
+  await f.kernel.stopAll();
+});
+
+test('explicit updates commit new identity and failed replacements retain recovery intent', async () => {
+  const f = await fixture(); f.selected.push(packageBytes()); const first = await f.api.preview(); await f.api.install(first.value.ticket, false);
+  f.selected.push(packageBytes('2.0.0')); const next = await f.api.preview(); assert.equal((await f.api.update(next.value.ticket)).ok, true);
+  assert.equal(f.api.snapshot().installations[0].version, '2.0.0'); assert.deepEqual(f.executions, []);
+  f.selected.push(packageBytes('3.0.0')); const failed = await f.api.preview(); f.setFailActivation(true);
+  assert.equal((await f.api.update(failed.value.ticket)).error.code, 'RUNTIME_FAILED');
+  assert.equal(f.api.snapshot().installations[0].version, '2.0.0'); assert.equal(f.api.snapshot().installations[0].recoveryRequired, true);
+  await f.kernel.stopAll();
 });

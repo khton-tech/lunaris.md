@@ -3,7 +3,7 @@ import path from 'node:path';
 import ts from 'typescript';
 
 export const dependencies = {
-  'lime-manager': ['sdk', 'manifest', 'logging', 'lime', 'lup', 'execution', 'vault', 'filesystem'],
+  'lime-manager': ['sdk', 'manifest', 'logging', 'lime', 'lup', 'execution', 'vault', 'filesystem', 'config'],
   lime: ['sdk', 'execution'],
   'lup-picker': ['sdk', 'logging', 'lime', 'lup'],
   lup: ['manifest'],

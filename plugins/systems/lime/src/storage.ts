@@ -6,6 +6,7 @@ import type { InspectedLup } from "@lunaris/lup";
 export interface InstallationRecord {
   readonly id: string; readonly version: string; readonly digest: string;
   readonly enabled: boolean; readonly recoveryRequired: boolean;
+  readonly removing?: { readonly deleteData: boolean };
 }
 interface Registry { readonly formatVersion: 1; readonly revision: number; readonly plugins: readonly InstallationRecord[] }
 const ROOT = '.lunaris/plugins';
@@ -24,7 +25,8 @@ export function createStorage(fs: FilesystemApi, vaultId: string) {
       if (!input || typeof input !== 'object' || Object.keys(input).some(key => !['formatVersion', 'revision', 'plugins'].includes(key)) || input.formatVersion !== 1 || !Number.isSafeInteger(input.revision) || input.revision! < 0 || !Array.isArray(input.plugins) || input.plugins.length > 256) throw new Error('Malformed plugin registry.');
       const seen = new Set<string>(); const records: InstallationRecord[] = [];
       for (const item of input.plugins) {
-        if (!item || typeof item !== 'object' || Object.keys(item).some(key => !['id', 'version', 'digest', 'enabled', 'recoveryRequired'].includes(key)) || !isValidId(item.id) || seen.has(item.id) || !isExactVersion(item.version) || typeof item.digest !== 'string' || !/^[a-f0-9]{64}$/.test(item.digest) || typeof item.enabled !== 'boolean' || typeof item.recoveryRequired !== 'boolean') throw new Error('Malformed plugin installation record.');
+        if (!item || typeof item !== 'object' || Object.keys(item).some(key => !['id', 'version', 'digest', 'enabled', 'recoveryRequired', 'removing'].includes(key)) || !isValidId(item.id) || seen.has(item.id) || !isExactVersion(item.version) || typeof item.digest !== 'string' || !/^[a-f0-9]{64}$/.test(item.digest) || typeof item.enabled !== 'boolean' || typeof item.recoveryRequired !== 'boolean') throw new Error('Malformed plugin installation record.');
+        if (item.removing !== undefined && (!item.removing || typeof item.removing !== 'object' || Object.keys(item.removing).length !== 1 || typeof item.removing.deleteData !== 'boolean' || item.enabled || !item.recoveryRequired)) throw new Error('Malformed plugin removal journal.');
         seen.add(item.id); records.push(Object.freeze({ ...item }));
       }
       version = result.value.version; revision = input.revision!;

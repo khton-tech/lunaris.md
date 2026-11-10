@@ -37,6 +37,7 @@ export interface LimeInstallation {
   readonly digest: string;
   readonly enabled: boolean;
   readonly recoveryRequired: boolean;
+  readonly removalPending: boolean;
   readonly manifest?: PluginManifest;
   readonly state: string;
 }
@@ -62,12 +63,13 @@ export interface LimeApi {
   enable(id: string): Promise<LimeResult<null>>;
   disable(id: string): Promise<LimeResult<null>>;
   retry(id: string): Promise<LimeResult<null>>;
+  remove(id: string, deleteData: boolean): Promise<LimeResult<null>>;
   /** Explicitly restore the current environment, optionally without evaluating packages. */
   restore(safeMode?: boolean): Promise<LimeResult<null>>;
 }
 export const Lime = defineApi<LimeApi>({
   id: 'lunaris.lime', version: '1.0.0',
-  validate: value => !!value && typeof value === 'object' && ['snapshot', 'preview', 'cancelPreview', 'install', 'update', 'enable', 'disable', 'retry', 'restore'].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === 'function'),
+  validate: value => !!value && typeof value === 'object' && ['snapshot', 'preview', 'cancelPreview', 'install', 'update', 'enable', 'disable', 'retry', 'remove', 'restore'].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === 'function'),
 });
 export const LimeChanged = defineEvent<LimeSnapshot>({
   id: 'lunaris.lime-changed', version: '1.0.0',

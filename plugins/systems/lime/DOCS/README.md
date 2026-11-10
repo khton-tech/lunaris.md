@@ -1,7 +1,7 @@
 # Lunaris Lime engine
 
 `createLime({ platform })` from `@lunaris/lime-manager` defines `lunaris.lime`.
-It requires public Filesystem, Vault, VaultLifecycle, LimeRuntime,
+It requires public Filesystem, Config, Vault, VaultLifecycle, LimeRuntime,
 LimePackagePicker and Logger APIs. It provides Lime 1.0 and LimeChanged 1.0
 from `@lunaris/lime`. No kernel, platform IPC, DOM or private driver is imported.
 
@@ -27,6 +27,13 @@ from `@lunaris/lime`. No kernel, platform IPC, DOM or private driver is imported
   the new identity. Runtime failure leaves recovery intent and reports failure.
   Registry commit failure attempts runtime code rollback. Same-version updates
   fail explicitly; version downgrades currently use the same explicit update path.
+- `remove(id, deleteData)` persists a removal journal, stops/unregisters runtime,
+  then removes package archives. The explicit data choice optionally deletes the
+  package's managed `.lunaris/plugins/data/<id>` directory and its Vault Config
+  namespace. Other Vault documents and global settings are untouched. Only after
+  cleanup succeeds is the registry entry removed. Failed/interrupted cleanup stays
+  non-executable and resumes idempotently on restore or another remove call;
+  the committed data choice cannot be changed after partial deletion begins.
 
 All UI-facing data is inert. Metadata language resolution and visible strings
 belong to the Settings/UI consumer. Busy mutations are rejected; previews and
@@ -48,8 +55,9 @@ compared with the committed ID/version/digest. Existing digest paths must contai
 matching validated bytes. Installation stages immutable archives before one
 optimistic create/replace of the registry, using Filesystem's expectedVersion.
 External writers are not transactional participants; conflicts fail visibly.
-Unreferenced archives can remain after interrupted staging/updates. This layout
-does not yet include an orphan sweep or removal/recovery journal.
+Unreferenced archives can remain after interrupted staging/updates; an orphan
+sweep remains pending. An optional record `removing: { deleteData }` is the durable
+removal journal; such records require disabled/recovery intent and are never loaded.
 
 ## Vault integration
 
@@ -73,7 +81,7 @@ preview, exact-byte confirmation, builtin collisions before commit, storage fail
 recovery intent, explicit retry, safe-mode skip and cross-Vault preview invalidation.
 Actual Kernel/QuickJS runtime tests are separate host adapter evidence.
 
-Still pending: remove with retained/deleted data/settings, storage cleanup journal,
+Still pending: staging/update orphan cleanup,
 managed-data migration backup/rollback, dependency/provider-choice disclosure,
 arbitrary view support, host recovery/bootstrap, product composition and Lime
 Settings UI. An update can run arbitrary package side effects against the Vault;
