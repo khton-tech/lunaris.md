@@ -13,7 +13,7 @@ The default provider/controller is plugins/UI/mobile-menu. It owns registration
 and contributes the lunaris.mobile-menu UIKit role to Workspace 1.4's exclusive
 mobile-menu region. Rendering stays in mantine-components: a horizontal row of
 44px rounded icon actions. WorkspaceLayout owns floating geometry, pill surface,
-scroll overflow, safe spacing and editor clearance. Embedded content is transparent.
+scroll overflow, safe spacing and overlay placement. Embedded content is transparent.
 Reference: the existing product icon rail and Owner's floating mobile panel.
 
 Sidebar optionally consumes MobileMenu and WorkspaceSidebar to contribute its
@@ -50,8 +50,9 @@ a shrink-wrapped floating surface.
 Downward main-content scrolling hides the launcher after 8px; upward scrolling
 or returning to the top shows it. Scroll capture includes nested editor scrollers,
 but ignores Sidebar and menu scrolling. Focused launcher controls remain visible,
-and opening the overlay keeps the launcher visible. The editor reserves top space
-so initial content is readable beneath the floating control.
+and opening the overlay keeps the launcher visible. Both floating regions overlay the editor canvas without reserving top or bottom
+space. The public role density prop is compact for the launcher (32px control
+with 2px surface padding) and comfortable for the bottom row (44px controls).
 
 Five temporary preview actions (search, files, outline, settings, account icons)
 are registered by the menu plugin for the Owner's design review. Their labels are

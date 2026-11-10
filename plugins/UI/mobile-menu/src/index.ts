@@ -16,7 +16,7 @@ export default definePlugin({ manifest, activate(ctx) {
  if (!catalog.ok) throw new Error("Cannot register mobile menu messages", { cause: catalog.error });
  const itemsFor = (placement: "panel" | "launcher") => list().filter(item => (item.placement ?? "panel") === placement);
  const list = () => Object.freeze([...entries.values()].map(e => e.item).sort((a,b) => (a.order ?? 0) - (b.order ?? 0) || a.id.localeCompare(b.id)));
- const publish = () => { if (ctx.signal.aborted) return; try { for (const [target, placement] of [[id,"panel"], [launcherId,"launcher"]] as const) { const result = workspace.update(target, { items: itemsFor(placement) }); if (!result.ok) logger.error(ctx.pluginId, "Cannot update mobile menu", { error: result.error }); } } catch (error) { if (!isSdkUnavailable(error)) throw error; } };
+ const publish = () => { if (ctx.signal.aborted) return; try { for (const [target, placement] of [[id,"panel"], [launcherId,"launcher"]] as const) { const result = workspace.update(target, { items: itemsFor(placement), density: placement === "launcher" ? "compact" : "comfortable" }); if (!result.ok) logger.error(ctx.pluginId, "Cannot update mobile menu", { error: result.error }); } } catch (error) { if (!isSdkUnavailable(error)) throw error; } };
  const copy = (input: MobileMenuItem): MobileMenuItem | undefined => {
   if (!input || typeof input !== "object" || ![Object.prototype, null].includes(Object.getPrototypeOf(input))) return;
   const fields = Object.getOwnPropertyDescriptors(input);
@@ -28,7 +28,7 @@ export default definePlugin({ manifest, activate(ctx) {
  };
  const initial = workspace.register({ id, componentId: "lunaris.mobile-menu", region: "mobile-menu", props: { items: [] } }, ctx.signal);
  if (!initial.ok) throw new Error("Cannot register mobile menu", { cause: initial.error });
- const launcher = workspace.register({ id: launcherId, componentId: "lunaris.mobile-menu", region: "mobile-launcher", props: { items: [] } }, ctx.signal);
+ const launcher = workspace.register({ id: launcherId, componentId: "lunaris.mobile-menu", region: "mobile-launcher", props: { items: [], density: "compact" } }, ctx.signal);
  if (!launcher.ok) throw new Error("Cannot register mobile launcher", { cause: launcher.error });
  const api: MobileMenuApi = {
   list,

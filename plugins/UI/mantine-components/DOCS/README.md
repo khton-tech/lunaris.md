@@ -29,7 +29,7 @@ still take priority and requires device verification. Motion uses theme timing
 and is disabled for reduced-motion users. Closed overlay regions are inert and
 hidden from assistive technology immediately. On desktop, the ordinary sidebar
 and status strip return. The host shell already owns safe-area insets; the toolbar
-is inset within that safe region. Workspace reserves editor space below content.
+is inset within that safe region. Floating surfaces overlay the editor without reserving content space.
 
 This does not automatically dismiss tools when a file/category is selected.
 Targets and mounted drafts survive width and visibility changes. Resizing is desktop-only and does
@@ -776,3 +776,5 @@ The existing text-editor role accepts optional recoveryLabel, recoveryCandidates
 The public lunaris.mobile-menu role renders registered action descriptors; WorkspaceLayout lends its mobile-menu target and owns the floating surface. The former built-in sidebar action has been removed. See DOCS/reference/mobile-menu.md for registration and integration.
 
 Mobile launcher correction: Workspace owns a top-left mobile-launcher surface separate from the bottom action row. The shared menu role uses normal inline containment to preserve its intrinsic width. Nested main-region scroll capture hides/shows the launcher by direction; Sidebar scrolling is ignored. Reference: Owner screenshot 2. Five temporary localized preview actions occupy the bottom row. Native comparison remains pending.
+
+Floating geometry correction follows the Owner screenshot: no top/bottom padding is added to main for mobile controls. Workspace owns absolute overlay surfaces; the mobile menu role receives explicit density compact for the 32px launcher and comfortable for the 44px bottom actions. Launcher surface padding is 2px. Manual acceptance of overlap, scroll/focus and both themes remains pending.
