@@ -1,4 +1,4 @@
-import { defineApi } from "@lunaris/sdk";
+import { defineApi, defineEvent } from "@lunaris/sdk";
 import type { CancellationSignal, PluginManifest } from "@lunaris/sdk";
 import type { ExecutionSource } from "@lunaris/execution";
 
@@ -29,4 +29,47 @@ export interface LimeRuntimeApi {
 export const LimeRuntime = defineApi<LimeRuntimeApi>({
   id: 'lunaris.lime-runtime', version: '1.0.0', consumePermission: 'runtime.manage',
   validate: value => !!value && typeof value === 'object' && ['open', 'close', 'snapshot', 'register', 'replace', 'enable', 'disable', 'remove'].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === 'function'),
+});
+
+export interface LimeInstallation {
+  readonly id: string;
+  readonly version: string;
+  readonly digest: string;
+  readonly enabled: boolean;
+  readonly recoveryRequired: boolean;
+  readonly manifest?: PluginManifest;
+  readonly state: string;
+}
+export interface LimeSnapshot {
+  readonly vaultId: string | null;
+  readonly busy: boolean;
+  readonly safeMode: boolean;
+  readonly error: string | null;
+  readonly installations: readonly LimeInstallation[];
+}
+export interface LimePreview {
+  readonly ticket: number;
+  readonly manifest: PluginManifest;
+  readonly digest: string;
+  readonly platformWarning: boolean;
+}
+export interface LimeApi {
+  snapshot(): LimeSnapshot;
+  preview(): Promise<LimeResult<LimePreview | null>>;
+  cancelPreview(ticket: number): void;
+  install(ticket: number, enabled?: boolean): Promise<LimeResult<null>>;
+  update(ticket: number): Promise<LimeResult<null>>;
+  enable(id: string): Promise<LimeResult<null>>;
+  disable(id: string): Promise<LimeResult<null>>;
+  retry(id: string): Promise<LimeResult<null>>;
+  /** Explicitly restore the current environment, optionally without evaluating packages. */
+  restore(safeMode?: boolean): Promise<LimeResult<null>>;
+}
+export const Lime = defineApi<LimeApi>({
+  id: 'lunaris.lime', version: '1.0.0',
+  validate: value => !!value && typeof value === 'object' && ['snapshot', 'preview', 'cancelPreview', 'install', 'update', 'enable', 'disable', 'retry', 'restore'].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === 'function'),
+});
+export const LimeChanged = defineEvent<LimeSnapshot>({
+  id: 'lunaris.lime-changed', version: '1.0.0',
+  validate: value => !!value && typeof value === 'object' && Array.isArray((value as LimeSnapshot).installations),
 });

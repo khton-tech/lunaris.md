@@ -1,6 +1,7 @@
 {
   "files": [],
   "references": [
+    { "path": "plugins/systems/lime" },
     { "path": "packages/lime" },
     { "path": "plugins/systems/driver/lup-picker" },
     { "path": "packages/lup" },
