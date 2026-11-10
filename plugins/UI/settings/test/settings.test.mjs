@@ -182,6 +182,9 @@ test('opening a settings category closes mobile presentation while preserving na
   s.tools.navigation.open(); await flush(); assert.equal(s.tools.navigation.isOpen(),true);
   category(s,'Example').click(); await flush(); assert.equal(s.tools.navigation.isOpen(),false);
   assert.equal(s.tools.screens.snapshot().activeId,'lunaris.settings.screen');
+  const reopen=s.surface.querySelector('.lm-settings-open-sidebar'); assert.ok(reopen);
+  reopen.click(); await flush(); assert.equal(s.tools.navigation.isOpen(),true);
+  category(s,'Example').click(); await flush(); assert.equal(s.tools.navigation.isOpen(),false);
   s.tools.navigation.open(); await flush(); category(s,'Example').click(); await flush();
   assert.equal(s.tools.navigation.isOpen(),false);
  } finally {await s.stop();}

@@ -13,7 +13,7 @@ import { mountSettingsPage } from "./page.js";
 import { mountSettingsGroup } from "./group.js";
 import manifest from "../manifest.json" with { type: "json" };
 
-const catalogs = { en: { settings: "Settings", empty: "No settings available", select: "Select a category",
+const catalogs = { en: { openSidebar: "Open sidebar", settings: "Settings", empty: "No settings available", select: "Select a category",
   emptyCategory: "No settings in this category", unavailable: "Section unavailable", unavailableDetail: "This settings section could not be displayed.", itemFailed: "Cannot update this setting. Try again." }, ru: russian };
 
 export default definePlugin({ manifest, activate(ctx) {
@@ -25,6 +25,7 @@ export default definePlugin({ manifest, activate(ctx) {
   const tabId = `${ctx.pluginId}.navigation`; const screenId = `${ctx.pluginId}.screen`;
   let categoryId: string | null = null; let vaultId = vaults.current()?.id ?? null;
   const text = (key: string) => localization.text(ctx.pluginId, key);
+  const navigationProps = () => navigation ? { navigationLabel: text("openSidebar"), onNavigation: () => { if (ctx.signal.aborted) return; const result = sidebar.select(tabId); if (!result.ok) { logger.warn(ctx.pluginId, "Cannot select Settings navigation", { error: result.error }); return; } navigation.open(); logger.debug(ctx.pluginId, "Settings navigation opened"); } } : {};
   const ensure = (result: { ok: boolean; error?: unknown }, message: string) => { if (!result.ok) throw new Error(message, { cause: result.error }); };
   function choose(id: string, viewVaultId: string): void {
     if (ctx.signal.aborted || vaults.current()?.id !== viewVaultId || !registry.snapshot().categories.some(item => item.id === id)) return;
@@ -55,7 +56,7 @@ export default definePlugin({ manifest, activate(ctx) {
   } }, ctx.signal), "Cannot register settings navigation host.");
   ensure(components.register({ id: "lunaris.settings-host", mount: (target, props, signal) => mountSettingsPage(ctx, components, logger, target, props, signal) }, ctx.signal), "Cannot register settings screen host.");
   ensure(components.register({ id: "lunaris.settings-group-host", mount: (target, props, signal) => mountSettingsGroup(ctx, registry, components, logger, target, props, signal) }, ctx.signal), "Cannot register settings group host.");
-  ensure(screens.register({ id: screenId, componentId: "lunaris.settings-host", props: { title: text("settings"), emptyLabel: text("select"), sections: [] } }, ctx.signal), "Cannot register settings screen.");
+  ensure(screens.register({ id: screenId, componentId: "lunaris.settings-host", props: { ...navigationProps(), title: text("settings"), emptyLabel: text("select"), sections: [] } }, ctx.signal), "Cannot register settings screen.");
   ensure(sidebar.register({ id: tabId, title: text("settings"), icon: "settings", placement: "end", componentId: "lunaris.settings-navigation-host",
     props: { title: text("settings"), emptyLabel: text("empty"), categories: [], selectedId: null } }, ctx.signal), "Cannot register settings tab.");
   let refreshing = false; let pending = false;
@@ -72,7 +73,7 @@ export default definePlugin({ manifest, activate(ctx) {
       ensure(sidebar.update(tabId, { title: text("settings"), icon: "settings", props: {
         title: text("settings"), emptyLabel: text("empty"), categories: snapshot.categories.map(item => ({ id: item.id, title: item.title, icon: item.icon })), selectedId: categoryId,
       } }), "Cannot update settings navigation.");
-      ensure(screens.update(screenId, { title: category?.title ?? text("settings"), emptyLabel: text(category ? "emptyCategory" : "select"),
+      ensure(screens.update(screenId, { ...navigationProps(), title: category?.title ?? text("settings"), emptyLabel: text(category ? "emptyCategory" : "select"),
         sections: category ? [...snapshot.sections.filter(item => item.categoryId === category.id),
           ...snapshot.groups.filter(group => group.categoryId === category.id).map(group => ({ id: group.id, title: group.title, description: group.description, order: group.order,
             componentId: "lunaris.settings-group-host", props: { groupId: group.id, items: snapshot.items.filter(item => item.groupId === group.id), failureLabel: text("itemFailed") } }))]

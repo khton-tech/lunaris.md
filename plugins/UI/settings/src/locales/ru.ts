@@ -1,5 +1,6 @@
 /** Russian product copy owned by this consumer. */
 export const russian = {
+  openSidebar: "Открыть боковую панель",
   settings: "Настройки",
   empty: "Нет доступных настроек",
   select: "Выберите категорию",

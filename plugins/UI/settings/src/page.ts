@@ -30,7 +30,7 @@ export function mountSettingsPage(ctx: PluginContext, components: ComponentsApi,
     for (const [id, section] of sections) if (!descriptions.some(item => item.id === id && item.componentId === section.componentId)) {
       release(section.owner); sections.delete(id);
     }
-    const layoutProps = { title: props.title, emptyLabel: props.emptyLabel, sections: descriptions.map(item => ({ id: item.id, title: item.title, description: (item as SettingsSection & { description?: string }).description })), onTargets, presentation: { mode: "embedded", sizing: "fill" } };
+    const layoutProps = { ...(typeof props.onNavigation === "function" ? { onNavigation: props.onNavigation, navigationLabel: props.navigationLabel } : {}), title: props.title, emptyLabel: props.emptyLabel, sections: descriptions.map(item => ({ id: item.id, title: item.title, description: (item as SettingsSection & { description?: string }).description })), onTargets, presentation: { mode: "embedded", sizing: "fill" } };
     if (layout) { const result = layout.update(layoutProps); if (!result.ok) { logger.warn(ctx.pluginId, "Settings layout needs replacement", { error: result.error }); clear(); } }
     if (!layout) {
       layoutOwner = owner.child(); const result = components.mount("lunaris.settings-page", target, layoutProps, layoutOwner.signal);

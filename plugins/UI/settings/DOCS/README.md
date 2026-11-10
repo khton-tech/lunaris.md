@@ -77,3 +77,7 @@ Run `npm run ui-localization:check` for complete keys and matching placeholders.
 Native acceptance of long Russian labels, menus and narrow layouts is pending.
 
 Successful content selection closes the optional WorkspaceSidebar overlay through its public API, including reselection of the current document/category. Failed selections leave navigation open; desktop Sidebar selection is unchanged. Mobile stacking/focus acceptance remains manual.
+
+## Persistent Settings navigation
+
+Reference: Owner screenshot of the compact Luna Settings page and existing sidebar icon controls. The Settings controller supplies localized navigationLabel/onNavigation through its page host to the public settings-page role. The UIKit header owns a compact 32px sidebar action at allocated widths <=640px and stays sticky inside Settings scrolling. The action selects the Settings tool and opens WorkspaceSidebar; it does not depend on the floating controls or their scroll visibility. No other plugin DOM is inspected or styled. Native acceptance remains pending in Luna and Monochrome: narrow/short Settings, scrolling, focus and reopening Sidebar then returning to Files.

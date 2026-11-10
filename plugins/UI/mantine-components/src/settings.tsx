@@ -1,7 +1,8 @@
 import { useId, useLayoutEffect, useRef } from "react";
-import { Box, Button, Stack, Text, Title } from "@mantine/core";
+import { ActionIcon, Box, Button, Stack, Text, Title } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
+import { Icon } from "./icons.js";
 import { SettingsSelect } from "./settings-select.js";
 import { ToolNavigationItem, ToolPanelHeader } from "./tool-navigation.js";
 
@@ -37,6 +38,7 @@ interface NavigationProps {
   readonly selectedId: string | null; readonly onSelect: (id: string) => void;
 }
 interface PageProps {
+  readonly navigationLabel?: string; readonly onNavigation?: () => void;
   readonly title: string; readonly emptyLabel: string; readonly sections: readonly Item[];
   readonly onTargets: (targets: ReadonlyMap<string, HTMLElement> | null) => void;
 }
@@ -47,6 +49,7 @@ export function settingsNavigationProps(value: ComponentProps): NavigationProps 
   return value as unknown as NavigationProps;
 }
 export function settingsPageProps(value: ComponentProps): PageProps {
+  if ((value.onNavigation !== undefined || value.navigationLabel !== undefined) && (typeof value.onNavigation !== "function" || typeof value.navigationLabel !== "string" || !value.navigationLabel.trim())) throw new TypeError("Invalid settings navigation action.");
   if (typeof value.title !== "string" || typeof value.emptyLabel !== "string" || !items(value.sections) || typeof value.onTargets !== "function") throw new TypeError("Invalid settings page props.");
   return value as unknown as PageProps;
 }
@@ -66,7 +69,7 @@ export function SettingsPage({ props, theme }: { props: PageProps; theme: Return
   useLayoutEffect(() => { publish(new Map(targets.current)); }, [signature, publish]);
   useLayoutEffect(() => () => publish(null), [publish]);
   return <Stack className="lm-settings-page" style={theme.contentStyle} gap={0}>
-    <Box component="header" className="lm-settings-page-header"><Title order={1} size="h2">{props.title}</Title></Box>
+    <Box component="header" className="lm-settings-page-header">{props.onNavigation && <ActionIcon className="lm-settings-open-sidebar lm-focus" variant="subtle" size={32} aria-label={props.navigationLabel!} title={props.navigationLabel!} onClick={props.onNavigation}><Icon name="sidebar" /></ActionIcon>}<Title order={1} size="h2">{props.title}</Title></Box>
     {props.sections.length ? props.sections.map(section => <Stack component="section" className="lm-settings-group" key={section.id} gap={0} aria-labelledby={`${headingId}-${section.id}`}>
       <Stack component="header" className="lm-settings-group-header" gap="xs">
         <Title id={`${headingId}-${section.id}`} order={2} size="sm" fw={600}>{section.title}</Title>
