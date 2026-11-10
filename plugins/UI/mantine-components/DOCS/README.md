@@ -57,8 +57,15 @@ Lucide strokes, semantic colors and focus states remain unchanged. Acceptance
 also requires checking icon alignment, long filenames, opened submenus and the
 unchanged document typography at phone and desktop widths.
 
-Settings owns its internal layout: fields move below their labels and use the
-available width; inline switches retain a compact label/control row. The renderer
+Settings owns its internal layout. Reference: the Owner's Gruvbox narrow Settings
+and Luna desktop screenshots. At an allocated form width up to 640px (independent
+of viewport width), fields move below their labels and span the available width
+with a shared leading edge. Values align to the start in both ordinary and Luna
+themes, and inputs have a 44px minimum height. Wider inline rows do not wrap:
+the label and trailing field remain on one line. Explicit stacked rows retain
+their public layout contract; inline switches keep a compact label/control row.
+This replaces accidental flex wrapping with an explicit responsive composition.
+The renderer
 publishes its own item type as data-type, without inspecting another role's DOM.
 Settings, navigation and Files contain scroll chaining inside their content.
 Workspace still owns drawer/floating surfaces and geometry; no additional surface

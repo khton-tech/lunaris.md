@@ -275,10 +275,10 @@
 .lm-settings-group-header h2 { line-height:1.4;overflow-wrap:anywhere }
 .lm-settings-section { display:flex; min-width:0; flex-direction:column }
 .lm-settings-items { flex:1; min-width:0;padding-inline-start:calc(var(--vault-space)*3) }
-.lm-setting-row { display:flex; flex-wrap:wrap; align-items:center; gap:calc(var(--vault-space)*3) calc(var(--vault-space)*6); min-width:0;padding-block:calc(var(--vault-space)*5) }
+.lm-setting-row { display:flex; flex-wrap:nowrap; align-items:center; gap:calc(var(--vault-space)*3) calc(var(--vault-space)*6); min-width:0;padding-block:calc(var(--vault-space)*5) }
 .lm-setting-row+.lm-setting-row { border-top:var(--vault-border) solid color-mix(in srgb,var(--vault-control-border) 7%,transparent) }
-.lm-setting-label { flex:1 1 16rem; min-width:0; overflow-wrap:anywhere }
-.lm-setting-control { flex:0 1 18rem; min-width:min(100%,12rem); max-width:100%; overflow-wrap:anywhere }
+.lm-setting-label { flex:1 1 0; min-width:0; overflow-wrap:anywhere }
+.lm-setting-control { flex:0 1 18rem; min-width:0; max-width:100%; overflow-wrap:anywhere }
 .lm-setting-row[data-layout=inline]>.lm-setting-control { margin-inline-start:auto }
 .lm-root .lm-setting-input { --input-height:calc(var(--vault-space)*8);--input-bd:color-mix(in srgb,var(--vault-control-border) 22%,transparent);--input-bg:var(--vault-panel);border-radius:var(--vault-radius);font-weight:500 }
 .lm-root .lm-setting-select { user-select:none;text-align:end;padding-inline-end:calc(var(--vault-space)*3);cursor:pointer }
@@ -516,15 +516,19 @@
  .lm-root .lm-input,.lm-root[data-window-chrome=true]>.lm-settings-items .lm-setting-input { --input-height:44px;min-height:44px }
  .lm-root input.lm-input,.lm-root .mantine-PasswordInput-innerInput { font-size:max(16px,var(--mantine-font-size-md)) }
  .lm-settings-page,.lm-settings-navigation,.lm-explorer { overscroll-behavior-y:contain }
- .lm-root .lm-settings-items { padding-inline:0 }
- .lm-setting-row:not([data-type=switch]) { flex-direction:column;align-items:stretch;gap:calc(var(--vault-space)*2) }
- .lm-setting-row:not([data-type=switch])>.lm-setting-label,.lm-setting-row:not([data-type=switch])>.lm-setting-control { flex:0 0 auto;min-width:0;width:100%;margin-inline:0 }
- .lm-setting-row[data-type=switch][data-layout=inline] { flex-wrap:nowrap;min-height:44px }
- .lm-setting-row[data-type=switch][data-layout=inline]>.lm-setting-label { flex:1 1 0 }
- .lm-setting-row[data-type=switch][data-layout=inline]>.lm-setting-control { flex:0 0 auto;min-width:0 }
- .lm-root .lm-setting-select { text-align:start }
- .lm-setting-static-value { justify-content:flex-start;padding-inline:0 }
- .lm-root .lm-setting-reset { align-self:flex-start }
  .lm-setting-slider-control { min-height:44px }
  .lm-settings-page-header { padding-block:8px }
+}
+
+/* Settings owns field composition at its allocated width, in every theme. */
+@container(max-width:640px) {
+ .lm-root>.lm-settings-items { padding-inline:0 }
+ .lm-setting-row:not([data-type=switch]) { flex-direction:column;align-items:stretch;gap:calc(var(--vault-space)*2) }
+ .lm-setting-row:not([data-type=switch])>.lm-setting-label,.lm-setting-row:not([data-type=switch])>.lm-setting-control { flex:0 0 auto;min-width:0;width:100%;margin-inline:0 }
+ .lm-setting-row[data-type=switch][data-layout=inline] { min-height:44px }
+ .lm-setting-row[data-type=switch][data-layout=inline]>.lm-setting-control { flex:0 0 auto }
+ .lm-root .lm-setting-input,.lm-root[data-window-chrome=true]>.lm-settings-items .lm-setting-input { --input-height:44px;min-height:44px }
+ .lm-root .lm-setting-select,.lm-root[data-window-chrome=true]>.lm-settings-items .lm-setting-select { text-align:start }
+ .lm-setting-static-value { justify-content:flex-start;padding-inline:0 }
+ .lm-root .lm-setting-reset { align-self:flex-start }
 }
