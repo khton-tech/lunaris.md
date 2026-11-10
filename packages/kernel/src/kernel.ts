@@ -77,7 +77,7 @@ class Runtime {
     this.#register(definition, options.ownerId);
   };
 
-  #register(definition: PluginDefinition, ownerId?: string): void {
+  #register(definition: PluginDefinition, ownerId?: string, grants?: readonly string[]): void {
     const checked = definePlugin(definition);
     const id = checked.manifest.id;
     const compatibility = validateManifest(checked.manifest, { engineVersion: "0.1.0", sdkVersion: "0.1.0" });
@@ -91,7 +91,7 @@ class Runtime {
     }
     if (ownerId !== undefined && (ownerId === id || !this.#plugins.has(ownerId))) throw new LunarisError('LIFECYCLE_INVALID', 'Lifecycle owner must be a different registered plugin.', { pluginId: id });
     const record: Registration = { definition: checked, ...(ownerId === undefined ? {} : { ownerId }), state: "registered", tail: Promise.resolve() };
-    this.#permissions.register(record);
+    this.#permissions.register(record, grants);
     this.#plugins.set(id, record);
     this.#dependencies.register(checked.manifest);
     if (ownerId !== undefined) this.#dependencies.own(id, ownerId);
@@ -431,12 +431,15 @@ class Runtime {
     } finally { this.#mutating = false; }
   };
 
-  replace = async (definition: PluginDefinition): Promise<void> => {
+  replace = async (definition: PluginDefinition, options: { readonly grants?: readonly string[] } = {}): Promise<void> => {
     // Validate the candidate before stopping anything or reserving a mutation.
     const checked = definePlugin(definition);
     const compatibility = validateManifest(checked.manifest, { engineVersion: "0.1.0", sdkVersion: "0.1.0" });
     if (!compatibility.ok) throw new LunarisError("VERSION_INCOMPATIBLE", "Replacement is incompatible.", { pluginId: checked.manifest.id }, { cause: compatibility.diagnostics });
     const id = checked.manifest.id;
+    const requested = options.grants === undefined ? undefined : [...options.grants];
+    const declared = [...checked.manifest.permissions, ...checked.manifest.optionalPermissions];
+    if (requested && (new Set(requested).size !== requested.length || requested.some(name => !declared.includes(name)))) throw new LunarisError('PERMISSION_DENIED', 'Replacement grants must be unique declared permissions.', { pluginId: id });
     const previous = this.#beginMutation(id);
     const active = this.#affected(previous).filter(record => record.state === "active").map(record => record.definition.manifest.id);
     const grants = this.#permissions.effective(id);
@@ -449,8 +452,9 @@ class Runtime {
       this.#remove(previous);
       installed = true;
       try {
-        this.#register(checked, previous.ownerId);
-        this.#restoreGrants(checked, grants);
+        const nextGrants = requested ?? grants.filter(name => declared.includes(name));
+        this.#register(checked, previous.ownerId, nextGrants);
+        this.#restoreGrants(checked, nextGrants);
         // A changed consumer declaration cannot inherit invalid selections.
         for (const key of this.#selections.keys()) if (key.startsWith(`${id}/`) && !checked.manifest.requires.some(requirement => key === `${id}/${requirementKey(requirement)}`)) this.#selections.delete(key);
         for (const consumer of active) await this.#start(consumer);
@@ -465,7 +469,7 @@ class Runtime {
             this.#remove(candidate);
           }
           this.#selections = selections;
-          this.#register(previous.definition, previous.ownerId);
+          this.#register(previous.definition, previous.ownerId, grants);
           this.#restoreGrants(previous.definition, grants);
           for (const consumer of active) await this.#start(consumer);
         } catch (rollback) {

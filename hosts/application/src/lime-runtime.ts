@@ -79,7 +79,7 @@ export function createLimeRuntime(kernel: Kernel, builtinIds: readonly string[])
       replace(environment, manifest: PluginManifest, source: ExecutionSource) {
         const captured = { ...environment }; const definition = execution.load(manifest, source, captured, ctx.signal);
         return operation(captured, definition.manifest.id, async () => {
-          if (registered(definition.manifest.id)) await kernel.replace(definition);
+          if (registered(definition.manifest.id)) await kernel.replace(definition, { grants: definition.manifest.permissions });
           managed.set(definition.manifest.id, definition);
         });
       },

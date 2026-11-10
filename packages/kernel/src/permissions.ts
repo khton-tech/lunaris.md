@@ -29,9 +29,9 @@ export class PermissionPolicy {
     return manifest.optionalPermissions.includes(name) || (!optional && manifest.permissions.includes(name));
   }
 
-  register(record: Registration): void {
+  register(record: Registration, override?: readonly string[]): void {
     const id = record.definition.manifest.id;
-    const initial = this.#initial.get(id) ?? new Set<string>();
+    const initial = override === undefined ? this.#initial.get(id) ?? new Set<string>() : new Set(override);
     if ([...initial].some(name => !this.#declared(record, name))) throw new LunarisError("PERMISSION_DENIED", "Initial grant was not requested by this manifest.", { pluginId: id });
     this.#grants.set(id, new Set(initial));
   }

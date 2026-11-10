@@ -79,3 +79,14 @@ test('replacement does not resurrect a revoked initial grant', async () => {
   await kernel.start('example.provider'); await kernel.replace(definition());
   assert.deepEqual(snapshot(kernel, 'example.provider').effectivePermissions, []); await kernel.stopAll();
 });
+
+test('host replacement grants are validated before stop and available during candidate activation', async () => {
+  const { kernel } = host({ initialGrants: { 'example.provider': ['example.old'] } }); const seen = [];
+  kernel.register(plugin('example.provider', undefined, { permissions: ['example.old'] })); await kernel.start('example.provider');
+  const candidate = plugin('example.provider', ctx => { seen.push(ctx.permissions.has('example.new')); }, { permissions: ['example.new'] });
+  const old = snapshot(kernel, 'example.provider').activationId;
+  await assert.rejects(kernel.replace(candidate, { grants: ['example.undeclared'] }), { code: 'PERMISSION_DENIED' });
+  assert.equal(snapshot(kernel, 'example.provider').activationId, old);
+  await kernel.replace(candidate, { grants: ['example.new'] }); assert.deepEqual(seen, [true]);
+  assert.deepEqual(snapshot(kernel, 'example.provider').effectivePermissions, ['example.new']); await kernel.stopAll();
+});

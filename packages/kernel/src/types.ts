@@ -54,7 +54,7 @@ export interface Kernel {
   /** Stop the affected graph and remove a registration. No implicit replacement. */
   unregister(pluginId: string): Promise<void>;
   /** Replace the same ID and restart its active graph; restore old code on failure. */
-  replace(definition: PluginDefinition): Promise<void>;
+  replace(definition: PluginDefinition, options?: { readonly grants?: readonly string[] }): Promise<void>;
   start(pluginId: string): Promise<void>;
   stop(pluginId: string): Promise<void>;
   restart(pluginId: string): Promise<void>;

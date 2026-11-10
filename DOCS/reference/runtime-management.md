@@ -1,7 +1,7 @@
 # Host registry mutations
 
 `Kernel` from `@lunaris/kernel` now exposes `unregister(pluginId): Promise<void>`
-and `replace(definition): Promise<void>`. These are privileged host operations;
+and `replace(definition, { grants? }?): Promise<void>`. These are privileged host operations;
 neither Kernel nor its implementation is exposed through PluginContext.
 
 Both operations reserve an exclusive registry mutation boundary synchronously.
@@ -33,6 +33,13 @@ with fresh scopes. The call still rejects with `ACTIVATION_FAILED` after success
 rollback. Candidate cleanup or rollback failure reports `CLEANUP_FAILED` and
 recovery-required text; no false successful rollback is returned. Kernel diagnostics
 retain original activation/cleanup causes under existing bounded retention.
+
+An explicit grants option is copied/validated before any stop and installed before
+candidate activation. This lets a no-prompt host apply newly declared permissions
+on update. It cannot include undeclared/duplicate permissions. Omission preserves
+only previous effective grants still declared by the candidate; revoked initial
+grants never reappear. Replacement can drop an initial permission without failing
+new registration, and rollback restores the previous exact grant set.
 
 These operations do not reverse arbitrary data/native effects, terminate host
 JavaScript or enforce built-in identity policy. The package manager must reject
