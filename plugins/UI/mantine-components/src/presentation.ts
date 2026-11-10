@@ -2,6 +2,7 @@ import type { ComponentPresentation, ComponentProps } from "@lunaris/components"
 
 /** Defaults describe the role itself, never the identity or DOM of its consumer. */
 export const presentationDefaults: Readonly<Record<string, Required<ComponentPresentation>>> = {
+  "lunaris.lime-settings": { mode: "embedded", sizing: "content" },
   "lunaris.callout-header": { mode: "embedded", sizing: "content" },
   "lunaris.mobile-menu": { mode: "embedded", sizing: "content" },
   "lunaris.status-bar": { mode: "embedded", sizing: "content" },

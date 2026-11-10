@@ -13,6 +13,7 @@
 - [Host registry mutations](reference/runtime-management.md): implemented explicit unregister/replacement, affected graph recovery, concurrency and rollback limits.
 - [Lime host runtime adapter](reference/lime-runtime.md): public environment-bound registration, activation, replacement and removal bridge; product composition remains pending.
 - [Lunaris Lime engine](../plugins/systems/lime/DOCS/README.md): implemented headless Vault-local preview/install/enable/disable/update/retry service and recovery intent; remaining integration is explicit.
+- [Lime Settings](../plugins/UI/lime-settings/DOCS/README.md): localized Settings controller and shared Mantine management role, composed preview/confirmation and removal checks; native acceptance remains pending.
 - [QuickJS execution driver](../plugins/systems/driver/quickjs-execution/DOCS/README.md): implemented isolated interpreter and synchronous data capabilities; full SDK and product-host integration remain pending.
 - [Remote service contracts](reference/remote.md): account sessions, Vault catalog, durable drafts and filesystem backend tokens.
 - [Local server development](guides/server-development.md): one-command source watching, shared builds, API restarts and paired local validation without a server remote.

@@ -3,6 +3,7 @@ import path from 'node:path';
 import ts from 'typescript';
 
 export const dependencies = {
+  'lime-settings': ['sdk', 'logging', 'lime', 'settings', 'localization'],
   'lime-manager': ['sdk', 'manifest', 'logging', 'lime', 'lup', 'execution', 'vault', 'filesystem', 'config'],
   lime: ['sdk', 'execution'],
   'lup-picker': ['sdk', 'logging', 'lime', 'lup'],
@@ -94,6 +95,7 @@ export const dependencies = {
 dependencies['application-host'].push('lime', 'execution');
 
 export const packagePath = scope => {
+  if (scope === 'lime-settings') return 'plugins/UI/lime-settings';
   if (scope === 'lime-manager') return 'plugins/systems/lime';
   if (scope === 'lup-picker') return 'plugins/systems/driver/lup-picker';
   if (scope === 'quickjs-execution') return 'plugins/systems/driver/quickjs-execution';

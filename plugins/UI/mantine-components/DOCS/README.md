@@ -1,5 +1,21 @@
 # Mantine components
 
+## Lime Settings role
+
+`lunaris.lime-settings` renders embedded/content management rows using shared
+Mantine Switch/Button/Text/Group/Stack controls and existing Settings row styles.
+Required props: localized labels, rows of inert metadata plus enabled/recovery/
+removing/state, nullable preview metadata with warning/action, busy/available/
+safeMode booleans, error text and onAdd/onConfirm/onCancel/onToggle/onRetry/
+onUpdate/onRemove/onSafeMode callbacks. Fields contain only label/value strings;
+there is no HTML injection or native/engine access. Metadata and descriptions wrap.
+The containing Settings page owns its surface/geometry; the role paints no card.
+Preview is inline, focuses confirmation and returns focus to Add when dismissed.
+Remove exposes retain/delete-data actions; pending removal retries its committed
+choice. Theme/locale updates preserve role controls through the existing adapter.
+Reference: existing Settings rows/quiet actions and Mantine UI buttons/tables.
+See [controller integration and pending native acceptance](../../lime-settings/DOCS/README.md).
+
 Explorer empty state follows the Owner's Files panel screenshot: omit the redundant
 "No files" caption above the Vault root and reserve no row for it. Loading status,
 errors and recovery actions remain available. This is internal to the existing
