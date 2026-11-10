@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
-import { ActionIcon, Box, Button, FocusTrap, Paper, Splitter, Stack, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Box, FocusTrap, Paper, Splitter, Stack, UnstyledButton } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
@@ -23,10 +23,9 @@ export function layoutProps(value: ComponentProps): LayoutProps {
 export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: ReturnType<typeof resolveTheme> }) {
   const bottom = useRef<HTMLDivElement>(null); const main = useRef<HTMLDivElement>(null); const rail = useRef<HTMLDivElement>(null); const panel = useRef<HTMLDivElement>(null);
   const root = useRef<HTMLDivElement>(null); const content = useRef<HTMLDivElement>(null);
-  const returnButton = useRef<HTMLButtonElement>(null);
   const mobileMenu = useRef<HTMLDivElement>(null);
   const mobileLauncher = useRef<HTMLDivElement>(null);
-  const [launcherHidden, setLauncherHidden] = useState(false);
+  const [floatingHidden, setFloatingHidden] = useState(false);
   const scrollPositions = useRef(new WeakMap<HTMLElement, number>());
   const swipe = useRef<{ x: number; y: number; id: number } | null>(null);
   const [localOpen, setLocalOpen] = useState(false);
@@ -53,7 +52,8 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
     const previous = previousPresentation.current;
     previousPresentation.current = { open: overlayOpen, compact };
     const focused = root.current?.ownerDocument.activeElement;
-    if (overlayOpen) (props.panelVisible ? returnButton.current : mobileLauncher.current?.querySelector<HTMLButtonElement>("button"))?.focus({ preventScroll: true });
+    if (previous.open && !overlayOpen) { setFloatingHidden(false); (compact ? mobileLauncher.current?.querySelector<HTMLButtonElement>("button") : main.current)?.focus({ preventScroll: true }); }
+    if (overlayOpen) (rail.current?.querySelector<HTMLButtonElement>("button[aria-pressed=true],button") ?? panel.current)?.focus({ preventScroll: true });
     else if ((previous.open || previous.compact !== compact) && focused && (focused === mobileLauncher.current?.querySelector<HTMLButtonElement>("button") || rail.current?.contains(focused) || content.current?.querySelector('.lm-workspace-panel-pane')?.contains(focused))) {
       (compact ? mobileLauncher.current?.querySelector<HTMLButtonElement>("button") : main.current)?.focus({ preventScroll: true });
     }
@@ -62,14 +62,14 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
     const region = main.current!;
     const onScroll = (event: Event) => {
       const target = event.target;
-      if (!compact || overlayOpen || !(target instanceof region.ownerDocument.defaultView!.HTMLElement) || mobileLauncher.current?.contains(region.ownerDocument.activeElement)) return;
+      if (!compact || overlayOpen || !(target instanceof region.ownerDocument.defaultView!.HTMLElement) || (mobileLauncher.current?.contains(region.ownerDocument.activeElement) || mobileMenu.current?.contains(region.ownerDocument.activeElement))) return;
       const position = Math.max(0, target.scrollTop); const previous = scrollPositions.current.get(target) ?? 0;
-      if (Math.abs(position - previous) >= 8 || position === 0) { setLauncherHidden(position > previous); scrollPositions.current.set(target, position); }
+      if (Math.abs(position - previous) >= 8 || position === 0) { setFloatingHidden(position > previous); scrollPositions.current.set(target, position); }
     };
     region.addEventListener("scroll", onScroll, true);
     return () => region.removeEventListener("scroll", onScroll, true);
   }, [compact, overlayOpen]);
-  const closeOverlay = () => { setLauncherHidden(false); setMobileOpen(false); mobileLauncher.current?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true }); };
+  const closeOverlay = () => { setFloatingHidden(false); setMobileOpen(false); mobileLauncher.current?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true }); };
   const dismiss = () => {
     if (compact) { closeOverlay(); return; }
     const selected = rail.current?.querySelector<HTMLButtonElement>("button[aria-pressed=true]");
@@ -96,10 +96,7 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
       onResizeEnd={commitWidth} onKeyUp={event => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key) && (event.target as HTMLElement).getAttribute("role") === "separator") commitWidth(); }}
       onDoubleClick={event => { if ((event.target as HTMLElement).closest("[role=separator]")) void Promise.resolve().then(commitWidth); }}>
       <Splitter.Pane className="lm-workspace-panel-pane" defaultSize="288px" min={compact ? 0 : "12rem"} max={compact ? "100%" : "60%"} inert={compact && !overlayOpen} aria-hidden={compact && !overlayOpen || undefined}>
-        <Box className="lm-workspace-return" hidden={!overlayOpen}>
-          <Button ref={returnButton} className="lm-button lm-focus" variant="subtle" leftSection={<Icon name="back" />} onClick={dismiss}>{props.mainLabel}</Button>
-        </Box>
-        <Paper component="aside" ref={panel} className="lm-workspace-panel lm-workspace-card" shadow="none" aria-label={props.panelLabel} hidden={!props.panelVisible} />
+        <Paper component="aside" ref={panel} tabIndex={-1} className="lm-workspace-panel lm-workspace-card" shadow="none" aria-label={props.panelLabel} hidden={!props.panelVisible} />
       </Splitter.Pane>
       <Splitter.Pane className="lm-workspace-main-pane" defaultSize={100} min={compact ? 0 : "16rem"} inert={overlayOpen} aria-hidden={overlayOpen || undefined}>
         <Box component="main" ref={main} className="lm-workspace-main" aria-label={props.mainLabel} tabIndex={-1} />
@@ -116,8 +113,8 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
         const touch = Array.from(event.changedTouches).find(item => item.identifier === start?.id);
         if (start && touch && touch.clientX - start.x >= 56 && touch.clientX - start.x > Math.abs(touch.clientY - start.y) * 1.5) setMobileOpen(true);
       }} />
-    <Paper ref={mobileLauncher} className="lm-workspace-mobile-launcher lm-workspace-card" hidden={!compact || !props.mobileLauncherVisible || (launcherHidden && !overlayOpen)} />
-    <Paper ref={mobileMenu} className="lm-workspace-mobile-toolbar lm-workspace-card" hidden={!compact || !props.mobileMenuVisible} />
+    <Paper ref={mobileLauncher} className="lm-workspace-mobile-launcher lm-workspace-card" style={{ display: overlayOpen ? "none" : undefined }} hidden={!compact || !props.mobileLauncherVisible || floatingHidden || overlayOpen} inert={overlayOpen} aria-hidden={overlayOpen || undefined} />
+    <Paper ref={mobileMenu} className="lm-workspace-mobile-toolbar lm-workspace-card" style={{ display: overlayOpen ? "none" : undefined }} hidden={!compact || !props.mobileMenuVisible || floatingHidden || overlayOpen} inert={overlayOpen} aria-hidden={overlayOpen || undefined} />
   </Box></FocusTrap>;
 }
 

@@ -1,3 +1,4 @@
+import { WorkspaceSidebar } from "@lunaris/workspace";
 import { ActiveDocument, ActiveDocumentChanged } from "@lunaris/active-document";
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -24,6 +25,8 @@ const flush = async () => { for (let n = 0; n < 4; n++) await new Promise(resolv
 const manifest = (id, provides = [], requires = [], permissions = []) => ({ manifestVersion: 1, id, version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides, requires, permissions, optionalPermissions: [] });
 async function setup(options = {}) {
   const kernel = createTestKernel({ initialGrants: { 'lunaris.file-explorer': ['config.access', 'filesystem.access', 'vault.access'], 'lunaris.context-menu-provider': ['ui.dom'], 'lunaris.component-provider': ['ui.dom'], 'test.inspect': ['ui.dom'] } });
+  let overlayOpen = true;
+  kernel.installMock(WorkspaceSidebar, { open() { overlayOpen=true; }, close() { overlayOpen=false; }, isOpen() { return overlayOpen; } });
   const logs = []; const watches = []; const lists = []; let current = { id: 'a', name: 'A' }; let emit;
   let document = null; let side; let locales; let menus; let components; let inspect; let settings;
   const values = options.preferences ?? new Map(); const writes = [];
@@ -43,7 +46,7 @@ async function setup(options = {}) {
   kernel.register(componentProvider); kernel.register(contextMenuProvider); kernel.register(sidebarProvider); kernel.register(localization); kernel.register(explorer);
   kernel.register(definePlugin({ manifest: manifest('test.inspect', [], [Settings, Sidebar, Localization, ContextMenu, Components].map(token => ({ kind: 'api', id: token.id, range: '^1.0.0' })), ['ui.dom']), activate(ctx) { settings = ctx.use(Settings); side = ctx.use(Sidebar); locales = ctx.use(Localization); menus = ctx.use(ContextMenu); components = ctx.use(Components); inspect = ctx; } }));
   await kernel.start('test.events'); await kernel.start('test.inspect'); await kernel.start(explorer.manifest.id); await flush();
-  return { kernel, logs, watches, lists, side, locales, menus, components, inspect, settings, writes, emit, tab: () => side.snapshot().tabs[0], async switch(root) { const previous = current; current = root; await emit(VaultChanged, { kind: root ? (previous ? 'switched' : 'opened') : 'closed', previous, current }); await flush(); } };
+  return { overlayOpen:()=>overlayOpen, kernel, logs, watches, lists, side, locales, menus, components, inspect, settings, writes, emit, tab: () => side.snapshot().tabs[0], async switch(root) { const previous = current; current = root; await emit(VaultChanged, { kind: root ? (previous ? 'switched' : 'opened') : 'closed', previous, current }); await flush(); } };
 }
 test('SDK controller registers a localized sidebar tool, preserves collapsed state and refreshes only its own watch', async () => {
   const s = await setup();
@@ -62,7 +65,7 @@ test('SDK controller registers a localized sidebar tool, preserves collapsed sta
 test('file preferences restore, control reveal and persist sorting from the existing toolbar', async () => {
   const s = await setup({ preferences: new Map([['a', { sortDirection: 'desc', revealActiveFile: false }]]) });
   assert.equal(s.tab().props.sortDirection, 'desc');
-  await s.tab().props.onOpen('folder/note-a.md'); await flush();
+  await s.tab().props.onOpen('folder/note-a.md'); await flush(); assert.equal(s.overlayOpen(), false);
   assert.deepEqual(s.tab().props.expanded, []); assert.equal(s.tab().props.activePath, 'folder/note-a.md');
   const item = s.settings.snapshot().items.find(item => item.id.endsWith('.reveal-active-file'));
   await item.onChange(true, { vaultId: 'a', signal: s.inspect.signal }); await flush();

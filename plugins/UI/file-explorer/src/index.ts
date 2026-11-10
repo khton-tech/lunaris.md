@@ -1,3 +1,4 @@
+import { WorkspaceSidebar } from "@lunaris/workspace";
 import { ActiveDocument, ActiveDocumentChanged } from "@lunaris/active-document";
 import { definePlugin } from "@lunaris/sdk";
 import type { ResourceScope } from "@lunaris/sdk";
@@ -16,6 +17,7 @@ import { createPreferences } from "./preferences.js";
 import manifest from "../manifest.json" with { type: "json" };
 
 export default definePlugin({ manifest, activate(ctx) {
+  const navigation = ctx.optional(WorkspaceSidebar);
   const logger = scopeLogger(ctx.use(Logger), ctx.signal); const sidebar = ctx.use(Sidebar); const fs = ctx.use(Filesystem);
   const documents = ctx.use(ActiveDocument);
   const menus = ctx.use(ContextMenu); let menu: MenuSession | undefined;
@@ -122,6 +124,7 @@ export default definePlugin({ manifest, activate(ctx) {
   async function openDocument(current: ExplorerModel | undefined, path: string): Promise<void> {
     if (!current?.active || current !== model || current.busy) return;
     const result = await documents.open({ vaultId: current.vaultId, path });
+    if (result.ok && current.active && current === model && !ctx.signal.aborted) navigation?.close();
     if (!result.ok && current.active) { current.error = result.error.code; changed(); logger.warn(ctx.pluginId, "Cannot open explorer document", { error: result.error }); }
   }
   async function revealActive(): Promise<void> {

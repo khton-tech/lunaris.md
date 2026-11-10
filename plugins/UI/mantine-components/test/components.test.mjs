@@ -892,8 +892,8 @@ test('compact Workspace lends a mobile menu target without replacing editor regi
   const launcher=targets['mobile-launcher']; assert.ok(launcher); assert.equal(launcher.hidden,false);
   const scroll=s.dom.window.document.createElement('div'); main.append(scroll);
   const {flushSync}=await import('react-dom');
-  scroll.scrollTop=60; flushSync(()=>scroll.dispatchEvent(new s.dom.window.Event('scroll'))); assert.equal(launcher.hidden,true);
-  scroll.scrollTop=30; flushSync(()=>scroll.dispatchEvent(new s.dom.window.Event('scroll'))); assert.equal(launcher.hidden,false);
+  scroll.scrollTop=60; flushSync(()=>scroll.dispatchEvent(new s.dom.window.Event('scroll'))); assert.equal(launcher.hidden,true); assert.equal(targets['mobile-menu'].hidden,true);
+  scroll.scrollTop=30; flushSync(()=>scroll.dispatchEvent(new s.dom.window.Event('scroll'))); assert.equal(launcher.hidden,false); assert.equal(targets['mobile-menu'].hidden,false);
   const menu=s.components.mount('lunaris.mobile-menu',targets['mobile-menu'],{items:Array.from({length:5},(_,i)=>({id:'test.'+i,label:'Test '+i,icon:'files',onPress(){}}))},s.ctx.signal);
   assert.equal(menu.ok,true); assert.equal(targets['mobile-menu'].querySelectorAll('button').length,5);
   assert.equal(targets['mobile-menu'].querySelector('.lm-root').style.containerType,'normal');
@@ -902,7 +902,7 @@ test('compact Workspace lends a mobile menu target without replacing editor regi
   const touch=(type,x,y)=>{const event=new s.dom.window.Event(type,{bubbles:true}); const points=[{identifier:0,clientX:x,clientY:y}]; Object.defineProperties(event,{touches:{value:type==='touchend'?[]:points},changedTouches:{value:points}});edge.dispatchEvent(event);};
   touch('touchstart',5,100);touch('touchmove',10,160);touch('touchend',100,160);assert.deepEqual(requests,[]);
   touch('touchstart',5,100);touch('touchend',100,100);assert.deepEqual(requests,[true]);
-  mounted.value.update({...props,mobileOpen:true}); assert.equal(main.parentElement.hasAttribute('inert'),true); assert.equal(main.parentElement.hidden,false);
+  mounted.value.update({...props,mobileOpen:true}); assert.equal(main.parentElement.hasAttribute('inert'),true); assert.equal(main.parentElement.hidden,false); assert.equal(targets['mobile-menu'].hasAttribute('inert'),true); assert.equal(launcher.hasAttribute('inert'),true); assert.equal(s.target.querySelector('.lm-workspace-return'),null);
   mounted.value.update({...props,mobileOpen:false}); assert.equal(main.parentElement.hasAttribute('inert'),false); assert.equal(targets,initial); assert.equal(draft.value,'Draft');
   mounted.value.dispose();
  } finally { s.dom.window.HTMLElement.prototype.getBoundingClientRect=original; await s.stop(); }

@@ -17,7 +17,7 @@ import { Components } from '@lunaris/components';
 import { Themes } from '@lunaris/themes';
 import { Localization } from '@lunaris/localization';
 import { Vault, VaultCreation, VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged } from '@lunaris/vault';
-import { Workspace } from '@lunaris/workspace';
+import { Workspace, WorkspaceSidebar } from '@lunaris/workspace';
 import { Sidebar } from "@lunaris/sidebar";
 import sidebarPlugin from "@lunaris/sidebar-plugin";
 import sidebarProvider from "@lunaris/sidebar-provider";
@@ -78,8 +78,8 @@ export async function setupWorkspace(options = {}) {
     context.provide(VaultLocations, { describe: async reference => ok({ reference, label: 'Folder' }), select: async () => ok({ reference: 'saved', label: 'Folder' }), open });
     context.provide(VaultHistory, { list: async () => ok([{ location: { reference: 'saved', label: 'Folder' }, name: 'Notes' }]), open: () => service.open() });
   } });
-  const consumer = definePlugin({ manifest: manifest('test.consumer', [], [Workspace, Components, Themes, Localization, ...(options.mobileMenu ? [MobileMenu] : []), ...(options.settings ? [Settings] : []), ...(options.activeScreen ? [ActiveScreen] : []), ...(options.sidebar ? [Sidebar] : [])], ['ui.dom']), activate(context) {
-    ctx = context; tools = { ...(options.mobileMenu ? { mobileMenu: context.use(MobileMenu) } : {}), ...(options.settings ? { settings: context.use(Settings) } : {}), ...(options.activeScreen ? { screens: context.use(ActiveScreen) } : {}), ...(options.sidebar ? { sidebar: context.use(Sidebar) } : {}), workspace: context.use(Workspace), components: context.use(Components), themes: context.use(Themes), localization: context.use(Localization) };
+  const consumer = definePlugin({ manifest: manifest('test.consumer', [], [Workspace, WorkspaceSidebar, Components, Themes, Localization, ...(options.mobileMenu ? [MobileMenu] : []), ...(options.settings ? [Settings] : []), ...(options.activeScreen ? [ActiveScreen] : []), ...(options.sidebar ? [Sidebar] : [])], ['ui.dom']), activate(context) {
+    ctx = context; tools = { ...(options.mobileMenu ? { mobileMenu: context.use(MobileMenu) } : {}), ...(options.settings ? { settings: context.use(Settings) } : {}), ...(options.activeScreen ? { screens: context.use(ActiveScreen) } : {}), ...(options.sidebar ? { sidebar: context.use(Sidebar) } : {}), navigation: context.use(WorkspaceSidebar), workspace: context.use(Workspace), components: context.use(Components), themes: context.use(Themes), localization: context.use(Localization) };
     tools.themes.select('lunaris.base-theme-engine.monochrome');
     options.onActivate?.(tools, context);
     options.beforeLoaded?.(surface);

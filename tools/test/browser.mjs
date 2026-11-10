@@ -10,7 +10,7 @@ export function useBrowser(dom) {
   view.HTMLElement.prototype.scrollIntoView ??= function () {};
   view.requestAnimationFrame ??= callback => view.setTimeout(() => callback(view.performance.now()), 16);
   view.cancelAnimationFrame ??= id => view.clearTimeout(id);
-  for (const [key, value] of Object.entries({ addEventListener: view.addEventListener.bind(view), removeEventListener: view.removeEventListener.bind(view), window: view, document: view.document, AbortController: view.AbortController, AbortSignal: view.AbortSignal, navigator: view.navigator, HTMLElement: view.HTMLElement, Image: view.Image, Element: view.Element, Node: view.Node, getComputedStyle: view.getComputedStyle.bind(view), ResizeObserver: view.ResizeObserver, requestAnimationFrame: view.requestAnimationFrame.bind(view), cancelAnimationFrame: view.cancelAnimationFrame.bind(view) })) {
+  for (const [key, value] of Object.entries({ addEventListener: view.addEventListener.bind(view), removeEventListener: view.removeEventListener.bind(view), window: view, document: view.document, AbortController: view.AbortController, AbortSignal: view.AbortSignal, navigator: view.navigator, HTMLElement: view.HTMLElement, HTMLAnchorElement: view.HTMLAnchorElement, Image: view.Image, Element: view.Element, Node: view.Node, getComputedStyle: view.getComputedStyle.bind(view), ResizeObserver: view.ResizeObserver, requestAnimationFrame: view.requestAnimationFrame.bind(view), cancelAnimationFrame: view.cancelAnimationFrame.bind(view) })) {
     Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
   }
   return dom;

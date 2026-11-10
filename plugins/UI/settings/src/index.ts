@@ -1,3 +1,4 @@
+import { WorkspaceSidebar } from "@lunaris/workspace";
 import { russian } from "./locales/ru.js";
 import { definePlugin } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
@@ -16,6 +17,7 @@ const catalogs = { en: { settings: "Settings", empty: "No settings available", s
   emptyCategory: "No settings in this category", unavailable: "Section unavailable", unavailableDetail: "This settings section could not be displayed.", itemFailed: "Cannot update this setting. Try again." }, ru: russian };
 
 export default definePlugin({ manifest, activate(ctx) {
+  const navigation = ctx.optional(WorkspaceSidebar);
   const logger = scopeLogger(ctx.use(Logger), ctx.signal); const registry = ctx.use(Settings); const sidebar = ctx.use(Sidebar);
   const screens = ctx.use(ActiveScreen); const components = ctx.use(Components); const localization = ctx.use(Localization); const vaults = ctx.use(Vault);
   const messages = localization.register(ctx.pluginId, catalogs, ctx.signal);
@@ -29,7 +31,7 @@ export default definePlugin({ manifest, activate(ctx) {
     categoryId = id; refresh();
     const selected = screens.select(screenId);
     if (!selected.ok) logger.error(ctx.pluginId, "Cannot open settings screen", { error: selected.error });
-    else logger.info(ctx.pluginId, "Settings category opened", { data: { id } });
+    else { navigation?.close(); logger.info(ctx.pluginId, "Settings category opened", { data: { id } }); }
   }
   ensure(components.register({ id: "lunaris.settings-navigation-host", mount(target, initial, signal) {
     const owner = ctx.scope.child(); let mounted: MountedComponent | undefined; let props = initial; let disposed = false;

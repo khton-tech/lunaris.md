@@ -39,6 +39,9 @@
     },
     {
       "path": "../../../packages/vault"
+    },
+    {
+      "path": "../../../packages/workspace"
     }
   ]
 }

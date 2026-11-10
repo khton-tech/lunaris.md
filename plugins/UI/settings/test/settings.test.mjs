@@ -173,3 +173,16 @@ test('declarative callback failures are contained, logged with the original erro
   assert.match(s.surface.querySelector('[role=alert]').textContent, /Cannot update this setting/); assert.equal(input.disabled, false);
   assert.ok(s.logs.some(log => log[0] === 'error' && log[3]?.error === original)); await s.stop();
 });
+
+test('opening a settings category closes mobile presentation while preserving navigation selection', async () => {
+ const s=await setupWorkspace({settings:true,mobileMenu:true});
+ try {
+  s.dom.window.HTMLElement.prototype.getBoundingClientRect=()=>new s.dom.window.DOMRect(0,0,360,720);
+  register(s); await s.open(); s.tools.sidebar.select('lunaris.settings.navigation'); await flush();
+  s.tools.navigation.open(); await flush(); assert.equal(s.tools.navigation.isOpen(),true);
+  category(s,'Example').click(); await flush(); assert.equal(s.tools.navigation.isOpen(),false);
+  assert.equal(s.tools.screens.snapshot().activeId,'lunaris.settings.screen');
+  s.tools.navigation.open(); await flush(); category(s,'Example').click(); await flush();
+  assert.equal(s.tools.navigation.isOpen(),false);
+ } finally {await s.stop();}
+});

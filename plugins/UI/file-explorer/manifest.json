@@ -91,6 +91,12 @@
       "kind": "api",
       "id": "lunaris.settings",
       "range": "^1.2.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.workspace-sidebar",
+      "range": "^1.0.0",
+      "optional": true
     }
   ],
   "permissions": [

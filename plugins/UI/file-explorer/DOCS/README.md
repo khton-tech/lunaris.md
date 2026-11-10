@@ -130,3 +130,5 @@ Behavioral tests cover restoration, toolbar/Settings consistency, reveal policy,
 Vault isolation, rollback and late completions. Native visual acceptance remains
 manual: check Files settings and opened menus, focus, both themes, narrow/short
 layouts, and the actual Files panel after changing either option.
+
+Successful content selection closes the optional WorkspaceSidebar overlay through its public API, including reselection of the current document/category. Failed selections leave navigation open; desktop Sidebar selection is unchanged. Mobile stacking/focus acceptance remains manual.

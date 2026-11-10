@@ -16,8 +16,7 @@ At an allocated Workspace width of 640 CSS pixels or less, the status strip is
 hidden and a separately contributed mobile menu opens the sidebar. The menu plugin supplies localized item labels. The rail and selected tool panel slide over
 the editor as one modal layer, leaving a trailing backdrop to dismiss it. The
 editor stays mounted and visible underneath, but is inert while the layer is
-open. Mantine FocusTrap contains keyboard traversal. The main-label return button,
-backdrop or Escape closes the layer and restores focus to the first mobile action.
+open. Mantine FocusTrap contains keyboard traversal. The backdrop or Escape closes the layer and restores focus to the first mobile action.
 Opening/closing uses the public WorkspaceSidebar presentation contract, not Sidebar selection or
 plugin registrations; even a rail without an active tool remains reachable.
 
@@ -31,7 +30,7 @@ hidden from assistive technology immediately. On desktop, the ordinary sidebar
 and status strip return. The host shell already owns safe-area insets; the toolbar
 is inset within that safe region. Floating surfaces overlay the editor without reserving content space.
 
-This does not automatically dismiss tools when a file/category is selected.
+Successful file or Settings-category opening closes the overlay through WorkspaceSidebar, including reopening the current target.
 Targets and mounted drafts survive width and visibility changes. Resizing is desktop-only and does
 not overwrite the saved desktop panel width in compact mode. Navigation buttons
 have 44px compact targets. Coarse pointers enlarge shared actions/menu options;
@@ -778,3 +777,5 @@ The public lunaris.mobile-menu role renders registered action descriptors; Works
 Mobile launcher correction: Workspace owns a top-left mobile-launcher surface separate from the bottom action row. The shared menu role uses normal inline containment to preserve its intrinsic width. Nested main-region scroll capture hides/shows the launcher by direction; Sidebar scrolling is ignored. Reference: Owner screenshot 2. Five temporary localized preview actions occupy the bottom row. Native comparison remains pending.
 
 Floating geometry correction follows the Owner screenshot: no top/bottom padding is added to main for mobile controls. Workspace owns absolute overlay surfaces; the mobile menu role receives explicit density compact for the 32px launcher and comfortable for the 44px bottom actions. Launcher surface padding is 2px. Manual acceptance of overlap, scroll/focus and both themes remains pending.
+
+Both floating regions share scroll-direction visibility. The Sidebar layer and backdrop stack above both floating regions, which become inert and aria-hidden while the overlay is open. There is no main-area return button. Files and Settings explicitly close WorkspaceSidebar after successful content selection; failures preserve the panel for recovery. Tool switching itself keeps navigation available. Desktop selection remains intact. Native stacking and scroll/focus acceptance remain pending.

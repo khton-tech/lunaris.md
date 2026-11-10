@@ -75,3 +75,5 @@ props; no renderer translation or SDK change is required. Interface Settings
 selects and persists Russian per Vault. Names and user content stay unchanged.
 Run `npm run ui-localization:check` for complete keys and matching placeholders.
 Native acceptance of long Russian labels, menus and narrow layouts is pending.
+
+Successful content selection closes the optional WorkspaceSidebar overlay through its public API, including reselection of the current document/category. Failed selections leave navigation open; desktop Sidebar selection is unchanged. Mobile stacking/focus acceptance remains manual.

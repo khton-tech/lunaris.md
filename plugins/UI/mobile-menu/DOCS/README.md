@@ -63,3 +63,5 @@ Manual acceptance remains pending: compare the top-left launcher and five-button
 bottom panel in the real container, both themes, scroll down/up, touch, focus and
 opened Sidebar. Automated tests cover routing, control counts, containment policy
 and nested-scroll visibility; they do not establish native geometry.
+
+Both floating regions share scroll-direction visibility. The Sidebar layer and backdrop stack above both floating regions, which become inert and aria-hidden while the overlay is open. There is no main-area return button. Files and Settings explicitly close WorkspaceSidebar after successful content selection; failures preserve the panel for recovery. Tool switching itself keeps navigation available. Desktop selection remains intact. Native stacking and scroll/focus acceptance remain pending.
