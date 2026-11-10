@@ -1,5 +1,10 @@
 # Mantine components
 
+Explorer empty state follows the Owner's Files panel screenshot: omit the redundant
+"No files" caption above the Vault root and reserve no row for it. Loading status,
+errors and recovery actions remain available. This is internal to the existing
+file-explorer role; no consumer integration or SDK contract changes are needed.
+
 ## Mobile layout audit corrections
 
 Floating-control gesture correction: reference is the Owner's report that panels

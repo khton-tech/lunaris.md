@@ -306,7 +306,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     if (form?.kind === "delete") confirm.current?.focus();
     else if (form) { tree.current?.openParents(DRAFT_ID); tree.current?.focus(DRAFT_ID, { scroll: false }); void tree.current?.scrollTo(DRAFT_ID); }
   }, [form, props.data]);
-  const empty = !props.data.length && (!form || form.kind === "delete");
+  const showLoading = props.loading && !props.data.length && (!form || form.kind === "delete");
   return <Box className="lm-explorer" style={theme.contentStyle} onKeyDownCapture={keyboard}
     onPointerDownCapture={() => setKeyboardNavigation(false)} data-keyboard-navigation={keyboardNavigation || undefined} aria-label={t.title} aria-busy={props.busy || props.loading}>
     <Group className="lm-explorer-toolbar" gap={0} wrap="nowrap">
@@ -339,10 +339,10 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     <Box ref={host} className="lm-explorer-tree" onClick={event => {
       if (!(event.target as HTMLElement).closest("[role=treeitem]") && !form) clearSelection();
     }} onContextMenu={event => { event.preventDefault(); event.stopPropagation(); openMenu(null, event.clientX, event.clientY); }}>
-      {empty && <Text role="status" className="lm-explorer-message">{props.loading ? t.loading : t.empty}</Text>}
+      {showLoading && <Text role="status" className="lm-explorer-message">{t.loading}</Text>}
       <ExplorerContext.Provider value={{ props, creation: form && form.kind !== "delete" ? { name, kind: form.kind, pending, onName: setName, submit, cancel: closeForm } : null, surface: () => host.current?.closest<HTMLElement>(".lm-explorer") ?? null,
         context: openMenu }}>
-        <Tree<Entry> ref={tree} data={data} width="100%" height={Math.max(1, size.height - (empty ? size.row : 0))} rowHeight={size.row} indent={size.row * 0.6}
+        <Tree<Entry> ref={tree} data={data} width="100%" height={Math.max(1, size.height - (showLoading ? size.row : 0))} rowHeight={size.row} indent={size.row * 0.6}
           openByDefault={false} selectionFollowsFocus={!form || form.kind === "delete"} initialOpenState={Object.fromEntries([ROOT_ID, ...props.expanded].map(path => [path, true]))} aria-label={t.title!} rowClassName="lm-explorer-row"
           renderRow={ExplorerRow} renderCursor={ExplorerCursor} renderDragPreview={ExplorerDragPreview}
           disableSelect={node => node.draft === true}
