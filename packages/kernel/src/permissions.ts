@@ -68,6 +68,11 @@ export class PermissionPolicy {
 
   effective(id: string): readonly string[] { return Object.freeze([...(this.#grants.get(id) ?? [])].sort()); }
 
+  unregister(id: string): void {
+    this.#grants.delete(id);
+    for (const key of this.#epochs.keys()) if (key.startsWith(`${id}/`)) this.#epochs.delete(key);
+  }
+
   #has(record: Registration, activation: Activation, permission: string, optional = false): boolean {
     activation.scope.assertOpen();
     if (record.activation !== activation) throw new LunarisError("SCOPE_CLOSED", "Stale permission context.", context(record, activation));

@@ -26,6 +26,7 @@ class Runtime {
   readonly #dispatch: DispatchRuntime;
   readonly #permissions: PermissionPolicy;
   #callbackDepth = 0;
+  #mutating = false;
   readonly #diagnostics: Diagnostics;
   readonly #scheduler: Scheduler;
   readonly #activationTimeout: number;
@@ -66,8 +67,17 @@ class Runtime {
     if (this.#callbackDepth) throw new LunarisError("LIFECYCLE_REENTRANT", "Management cannot reenter a plugin callback.");
   }
 
-  register = (definition: PluginDefinition): void => {
+  #externalGuard(): void {
     this.#guard();
+    if (this.#mutating) throw new LunarisError("LIFECYCLE_INVALID", "A registry mutation is in progress; await it before management calls.");
+  }
+
+  register = (definition: PluginDefinition): void => {
+    this.#externalGuard();
+    this.#register(definition);
+  };
+
+  #register(definition: PluginDefinition): void {
     const checked = definePlugin(definition);
     const id = checked.manifest.id;
     const compatibility = validateManifest(checked.manifest, { engineVersion: "0.1.0", sdkVersion: "0.1.0" });
@@ -83,7 +93,7 @@ class Runtime {
     this.#permissions.register(record);
     this.#plugins.set(id, record);
     this.#dependencies.register(checked.manifest);
-  };
+  }
 
   #enqueue(id: string, operation: (record: Registration) => Promise<void>, internal = false, stopping = false): Promise<void> {
     try {
@@ -297,7 +307,11 @@ class Runtime {
   }
 
   start = async (id: string): Promise<void> => {
-    this.#guard();
+    this.#externalGuard();
+    await this.#start(id);
+  };
+
+  async #start(id: string): Promise<void> {
     let plan: Plan;
     try { plan = resolve(id, this.#plugins, this.#selections, this.#dependencies); }
     catch (error) { await this.#enqueue(id, record => this.#activate(record, new Map(), error)); return; }
@@ -322,17 +336,21 @@ class Runtime {
       preceding = next === id ? operation : operation.catch(() => {});
     }
     await preceding;
-  };
+  }
   stop = async (id: string): Promise<void> => {
-    this.#guard();
+    this.#externalGuard();
+    await this.#stopId(id);
+  };
+
+  async #stopId(id: string): Promise<void> {
     const record = this.#plugins.get(id);
     if (!record) { await this.#enqueue(id, async () => {}); return; }
     await this.#reserveStops([record])[0];
-  };
+  }
   restart = async (id: string): Promise<void> => { this.#guard(); await this.stop(id); await this.start(id); };
 
   selectProvider = (consumerId: string, kind: ContractKind, contractId: string, providerId: string): void => {
-    this.#guard();
+    this.#externalGuard();
     const consumer = this.#plugins.get(consumerId);
     if (!consumer) throw new LunarisError("PLUGIN_NOT_FOUND", "Consumer is not registered.", { pluginId: consumerId });
     if (consumer.pending || ["resolving", "starting", "active", "stopping"].includes(consumer.state)) throw new LunarisError("LIFECYCLE_INVALID", "Stop the consumer before changing selection.", context(consumer));
@@ -342,7 +360,7 @@ class Runtime {
   };
 
   stopAll = async (): Promise<void> => {
-    this.#guard();
+    this.#externalGuard();
     const records = [...this.#plugins.keys()].sort().reverse().map(id => this.#plugins.get(id)!);
     const ready = Promise.all(records.map(record => record.tail)).then(() => {});
     const results = await Promise.allSettled(this.#reserveStops(records, ready));
@@ -350,8 +368,110 @@ class Runtime {
     if (errors.length) throw new LunarisError("CLEANUP_FAILED", "One or more plugins failed to stop.", {}, { cause: new AggregateError(errors) });
   };
 
-  grant = (id: string, permission: string): void => this.#permissions.grant(id, permission);
-  revoke = (id: string, permission: string): void => this.#permissions.revoke(id, permission);
+  grant = (id: string, permission: string): void => {
+    if (this.#mutating) throw new LunarisError("LIFECYCLE_INVALID", "Cannot change grants during registry mutation.");
+    this.#permissions.grant(id, permission);
+  };
+  revoke = (id: string, permission: string): void => {
+    if (this.#mutating) throw new LunarisError("LIFECYCLE_INVALID", "Cannot change grants during registry mutation.");
+    this.#permissions.revoke(id, permission);
+  };
+
+  #restoreGrants(definition: PluginDefinition, grants: readonly string[]): void {
+    const id = definition.manifest.id;
+    for (const name of this.#permissions.effective(id)) this.#permissions.revoke(id, name);
+    for (const name of grants) if ([...definition.manifest.permissions, ...definition.manifest.optionalPermissions].includes(name)) this.#permissions.grant(id, name);
+  }
+
+  /** Registry mutations require a quiescent graph and reserve the boundary before awaiting. */
+  #beginMutation(id: string): Registration {
+    this.#externalGuard();
+    const record = this.#plugins.get(id);
+    if (!record) throw new LunarisError("PLUGIN_NOT_FOUND", "Plugin is not registered.", { pluginId: id });
+    if ([...this.#plugins.values()].some(item => item.pending || ["starting", "resolving", "stopping"].includes(item.state))) {
+      throw new LunarisError("LIFECYCLE_INVALID", "Await pending lifecycle operations before changing the registry.", { pluginId: id });
+    }
+    this.#mutating = true;
+    return record;
+  }
+
+  #affected(root: Registration): Registration[] {
+    const affected = new Set([root]);
+    for (const provider of affected) for (const record of this.#plugins.values()) {
+      if (record.state === "active" && record.activation && [...record.activation.bindings.values()].some(binding => binding?.provider === provider)) affected.add(record);
+    }
+    return [...affected];
+  }
+
+  #remove(record: Registration): void {
+    const id = record.definition.manifest.id;
+    this.#plugins.delete(id);
+    this.#dependencies.unregister(id);
+    this.#permissions.unregister(id);
+    this.#starts.delete(record);
+  }
+
+  unregister = async (id: string): Promise<void> => {
+    const record = this.#beginMutation(id);
+    try {
+      // Include optional consumers so they never retain seemingly usable stale bindings.
+      const affected = this.#affected(record);
+      const results = await Promise.allSettled(this.#reserveStops(affected));
+      const errors = results.flatMap(result => result.status === "rejected" ? [result.reason as unknown] : []);
+      if (errors.length) throw new LunarisError("CLEANUP_FAILED", "Unregistration cleanup failed; registration retained for recovery.", { pluginId: id }, { cause: new AggregateError(errors) });
+      this.#remove(record);
+      for (const [key, provider] of this.#selections) if (key.startsWith(`${id}/`) || provider === id) this.#selections.delete(key);
+    } finally { this.#mutating = false; }
+  };
+
+  replace = async (definition: PluginDefinition): Promise<void> => {
+    // Validate the candidate before stopping anything or reserving a mutation.
+    const checked = definePlugin(definition);
+    const compatibility = validateManifest(checked.manifest, { engineVersion: "0.1.0", sdkVersion: "0.1.0" });
+    if (!compatibility.ok) throw new LunarisError("VERSION_INCOMPATIBLE", "Replacement is incompatible.", { pluginId: checked.manifest.id }, { cause: compatibility.diagnostics });
+    const id = checked.manifest.id;
+    const previous = this.#beginMutation(id);
+    const active = this.#affected(previous).filter(record => record.state === "active").map(record => record.definition.manifest.id);
+    const grants = this.#permissions.effective(id);
+    const selections = new Map(this.#selections);
+    let installed = false;
+    try {
+      const results = await Promise.allSettled(this.#reserveStops(this.#affected(previous)));
+      const errors = results.flatMap(result => result.status === "rejected" ? [result.reason as unknown] : []);
+      if (errors.length) throw new LunarisError("CLEANUP_FAILED", "Replacement cleanup failed; old registration retained.", { pluginId: id }, { cause: new AggregateError(errors) });
+      this.#remove(previous);
+      installed = true;
+      try {
+        this.#register(checked);
+        this.#restoreGrants(checked, grants);
+        // A changed consumer declaration cannot inherit invalid selections.
+        for (const key of this.#selections.keys()) if (key.startsWith(`${id}/`) && !checked.manifest.requires.some(requirement => key === `${id}/${requirementKey(requirement)}`)) this.#selections.delete(key);
+        for (const consumer of active) await this.#start(consumer);
+      } catch (cause) {
+        const rollbackErrors: unknown[] = [];
+        try {
+          const candidate = this.#plugins.get(id);
+          if (candidate) {
+            const stopped = await Promise.allSettled(this.#reserveStops(this.#affected(candidate)));
+            for (const result of stopped) if (result.status === "rejected") rollbackErrors.push(result.reason);
+            if (rollbackErrors.length) throw new AggregateError(rollbackErrors, "Candidate cleanup failed.");
+            this.#remove(candidate);
+          }
+          this.#selections = selections;
+          this.#register(previous.definition);
+          this.#restoreGrants(previous.definition, grants);
+          for (const consumer of active) await this.#start(consumer);
+        } catch (rollback) {
+          throw new LunarisError("CLEANUP_FAILED", "Replacement and rollback failed; recovery is required.", { pluginId: id }, { cause: new AggregateError([cause, rollback]) });
+        }
+        throw new LunarisError("ACTIVATION_FAILED", "Replacement failed; previous code and active graph restored. Data side effects are not rolled back.", { pluginId: id }, { cause });
+      }
+    } finally {
+      // A stop failure never removes the old registration.
+      if (!installed) this.#selections = selections;
+      this.#mutating = false;
+    }
+  };
 
   diagnosticCause = (sequence: number): Readonly<{ cause: unknown }> | undefined => this.#diagnostics.cause(sequence);
 
@@ -373,7 +493,7 @@ class Runtime {
 
 export function createKernel(options: KernelOptions): Kernel {
   const runtime = new Runtime(options);
-  return Object.freeze({ register: runtime.register, start: runtime.start, stop: runtime.stop,
+  return Object.freeze({ register: runtime.register, unregister: runtime.unregister, replace: runtime.replace, start: runtime.start, stop: runtime.stop,
     restart: runtime.restart, selectProvider: runtime.selectProvider, grant: runtime.grant, revoke: runtime.revoke, stopAll: runtime.stopAll, inspect: runtime.inspect,
     diagnosticCause: runtime.diagnosticCause });
 }

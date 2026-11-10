@@ -8,6 +8,7 @@
 - [Web server foundation](design/web-server.md): accepted account/Vault requirements, SDK blockers, required public contracts, bundle releases and pending delivery sequence.
 - [Lime runtime boundary](design/lime-runtime.md): L01 source audit, execution/authority blocker, required SDK and host contracts, integration ownership and unverified host matrix; proposed contracts are not implemented.
 - [Plugin display metadata](reference/plugin-metadata.md): implemented author fields, localization, compatibility declarations and validation limits.
+- [Host registry mutations](reference/runtime-management.md): implemented explicit unregister/replacement, affected graph recovery, concurrency and rollback limits.
 - [Remote service contracts](reference/remote.md): account sessions, Vault catalog, durable drafts and filesystem backend tokens.
 - [Local server development](guides/server-development.md): one-command source watching, shared builds, API restarts and paired local validation without a server remote.
 - [Browser host](../hosts/web/DOCS/README.md) and [shared application host](../hosts/application/DOCS/README.md): common product composition, build commands and integration checks.

@@ -35,4 +35,17 @@ export class DependencyIndex {
     }
     return reachable;
   }
+
+  unregister(id: string): void {
+    this.#dependencies.delete(id);
+    for (const values of this.#dependencies.values()) values.delete(id);
+    for (const [key, values] of this.providers) {
+      values.delete(id);
+      if (!values.size) this.providers.delete(key);
+    }
+    for (const [key, values] of this.#consumers) {
+      values.delete(id);
+      if (!values.size) this.#consumers.delete(key);
+    }
+  }
 }
