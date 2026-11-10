@@ -20,6 +20,12 @@ export interface HostVersions {
 /** Serializable contract kinds shared across installed package copies. */
 export type ContractKind = "api" | "event" | "hook";
 
+/** Deployment targets; viewport size is independent of the selected target. */
+export type PluginTarget = "web" | "windows" | "macos" | "linux" | "android" | "ios";
+/** Unadapted plugins may run, but are not ready for normal use on this target. */
+export type PluginTargetSupport = "supported" | "unadapted" | "unsupported";
+export type PluginTargets = Readonly<Partial<Record<PluginTarget, PluginTargetSupport>>>;
+
 export interface ProvidedContract {
   readonly kind: ContractKind;
   readonly id: string;
@@ -41,6 +47,8 @@ export interface PluginManifest {
   readonly engine: string;
   readonly sdk: string;
   readonly entry: string;
+  /** Missing targets are undeclared, never implicitly supported. Metadata only. */
+  readonly targets?: PluginTargets;
   readonly provides: readonly ProvidedContract[];
   readonly requires: readonly RequiredContract[];
   readonly permissions: readonly string[];

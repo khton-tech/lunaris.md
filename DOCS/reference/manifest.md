@@ -19,3 +19,28 @@ The validator accepts plain data objects (including null-prototype objects) and 
 Exact versions reject `v` prefixes, whitespace and incomplete forms; build metadata is preserved. Ranges and prerelease matching use pinned [`node-semver`](https://github.com/npm/node-semver#readme) semantics. `versionSatisfies` returns false for malformed input and does not opt into all prereleases. ID/version/range helpers are public so SDK/runtime validation shares these rules.
 
 Run `npm run check -- manifest` for the validator, affected consumers and negative type fixtures.
+
+## Deployment targets
+
+Optional `targets` records the author's support assessment per deployment target:
+
+```json
+"targets": { "web": "supported", "android": "unadapted", "ios": "unsupported" }
+```
+
+Keys are `web`, `windows`, `macos`, `linux`, `android` and `ios`. `web` means
+the browser deployment, including mobile browsers; native wrappers use their OS
+target. Window width, input capabilities and responsive layout are independent.
+`supported` means adapted for normal use; `unadapted` means the plugin may run
+but needs adaptation/acceptance; `unsupported` means it cannot be used on that
+target. Missing entries (and legacy manifests without `targets`) mean undeclared,
+never implicitly supported. Do not mark targets supported without verification.
+
+This is advisory metadata, preserved by validation, SDK definitions and runtime
+manifest snapshots. It does not grant capabilities, select a driver or prevent
+activation. Future host/catalog policies must resolve the actual deployment target
+explicitly and distinguish undeclared support from unsupported support. No mobile
+host or mobile-only plugins are introduced by this contract.
+
+The public SDK exports `PluginTarget`, `PluginTargetSupport` and `PluginTargets`.
+Declarations are validated as plain data and copied into an immutable snapshot.

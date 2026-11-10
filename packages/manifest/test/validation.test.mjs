@@ -19,6 +19,28 @@ function invalid(value, path, code = 'MANIFEST_INVALID') {
   return result;
 }
 
+test('target declarations are optional, copied and frozen without implying support', () => {
+  assert.equal(Object.hasOwn(validateManifest(fixture()).manifest, 'targets'), false);
+  const targets = { web: 'supported', android: 'unadapted', ios: 'unsupported' };
+  const result = validateManifest(fixture({ targets }));
+  assert.equal(result.ok, true);
+  assert.deepEqual(result.manifest.targets, targets);
+  targets.android = 'supported';
+  assert.equal(result.manifest.targets.android, 'unadapted');
+  assert.equal(result.manifest.targets.windows, undefined);
+  assert.throws(() => { result.manifest.targets.ios = 'supported'; }, TypeError);
+  assert.equal(validateManifest(fixture({ targets: {} })).ok, true);
+});
+
+test('target declarations reject unknown targets, states, accessors and non-data values', () => {
+  for (const targets of [null, [], undefined, 'android']) invalid(fixture({ targets }), '$.targets');
+  invalid(fixture({ targets: { mobile: 'supported' } }), '$.targets.mobile');
+  for (const state of [true, null, undefined, 'experimental', {}, ['supported']]) {
+    invalid(fixture({ targets: { android: state } }), '$.targets.android');
+  }
+  invalid(fixture({ targets: { get web() { throw new Error('must not execute'); } } }), '$.targets');
+});
+
 test('copies and deeply freezes valid metadata, preserving full versions', () => {
   const source = fixture();
   const result = validateManifest(source, { engineVersion: '0.1.0', sdkVersion: '0.1.9' });

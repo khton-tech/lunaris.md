@@ -1,7 +1,7 @@
 import { isExactVersion, isValidId, isVersionRange, versionSatisfies } from "./versions.js";
 import type {
   ContractKind, HostVersions, ManifestDiagnostic, ManifestValidationResult,
-  PluginManifest, ProvidedContract, RequiredContract,
+  PluginManifest, PluginTarget, PluginTargetSupport, ProvidedContract, RequiredContract,
 } from "./index.js";
 
 /** Inspect data descriptors before reading values; manifest accessors are not metadata. */
@@ -58,7 +58,7 @@ export function validateManifest(input: unknown, versions?: HostVersions): Manif
       return Object.freeze({ ok: false, diagnostics: Object.freeze(diagnostics) });
     }
     if (isValidId(record.id)) pluginId = record.id;
-    fields(record, ["manifestVersion", "id", "version", "engine", "sdk", "entry", "provides", "requires", "permissions", "optionalPermissions"], "$");
+    fields(record, ["manifestVersion", "id", "version", "engine", "sdk", "entry", "targets", "provides", "requires", "permissions", "optionalPermissions"], "$");
     if (record.manifestVersion !== 1) issue("$.manifestVersion", "Expected manifest version 1.");
     if (!pluginId) issue("$.id", "Expected a canonical dotted lowercase ID.");
     if (!isExactVersion(record.version)) issue("$.version", "Expected full strict SemVer.");
@@ -66,6 +66,24 @@ export function validateManifest(input: unknown, versions?: HostVersions): Manif
       if (!isVersionRange(record[key])) issue(`$.${key}`, "Expected a nonempty SemVer range.");
     }
     if (!isEntry(record.entry)) issue("$.entry", "Expected a contained ./ JavaScript entry path.");
+
+    let targets: Readonly<Partial<Record<PluginTarget, PluginTargetSupport>>> | undefined;
+    if (Object.hasOwn(record, "targets")) {
+      const declarations = dataRecord(record.targets);
+      if (!declarations) issue("$.targets", "Expected a target support data object.");
+      else {
+        fields(declarations, ["web", "windows", "macos", "linux", "android", "ios"], "$.targets");
+        const snapshot: Partial<Record<PluginTarget, PluginTargetSupport>> = {};
+        for (const [target, support] of Object.entries(declarations)) {
+          if (!["supported", "unadapted", "unsupported"].includes(support as string)) {
+            issue(`$.targets.${target}`, "Expected supported, unadapted or unsupported.");
+          } else if (["web", "windows", "macos", "linux", "android", "ios"].includes(target)) {
+            snapshot[target as PluginTarget] = support as PluginTargetSupport;
+          }
+        }
+        targets = Object.freeze(snapshot);
+      }
+    }
 
     function contracts(value: unknown, role: "provides"): ProvidedContract[];
     function contracts(value: unknown, role: "requires"): RequiredContract[];
@@ -128,6 +146,7 @@ export function validateManifest(input: unknown, versions?: HostVersions): Manif
     const manifest: PluginManifest = Object.freeze({
       manifestVersion: 1, id: pluginId!, version: record.version as string,
       engine: record.engine as string, sdk: record.sdk as string, entry: record.entry as string,
+      ...(targets === undefined ? {} : { targets }),
       provides: Object.freeze(provides), requires: Object.freeze(requires),
       permissions: Object.freeze(requiredPermissions), optionalPermissions: Object.freeze(optionalPermissions),
     });
