@@ -25,7 +25,7 @@ test('public runtime adapter manages actual isolated plugins and reports code ro
   assert.equal((await runtime.register(env, manifest(), source(manifest()), true)).ok, true);
   assert.deepEqual(runtime.snapshot(env).value, [{ id: 'test.package', version: '1.0.0', state: 'active' }]);
   assert.equal(kernel.inspect().plugins.find(item => item.manifest.id === 'test.package').ownerId, 'lunaris.lime-runtime-adapter');
-  assert.equal((await runtime.disable(env, 'test.package')).ok, true); assert.equal(runtime.snapshot(env).value[0].state, 'stopped');
+  assert.equal((await runtime.disable(env, 'test.package')).ok, true); assert.equal(runtime.snapshot(env).value[0].state, 'disabled');
   assert.equal((await runtime.enable(env, 'test.package')).ok, true);
   assert.equal((await runtime.replace(env, manifest('2.0.0'), source(manifest('2.0.0')))).ok, true);
   assert.equal((await runtime.replace(env, manifest('3.0.0'), source(manifest('3.0.0'), 'throw Error("failed update");'))).error.code, 'RUNTIME_FAILED');
@@ -51,4 +51,18 @@ test('host shutdown cleans managed guest scopes before runtime/driver cancellati
   await runtime.open(env); await runtime.register(env, manifest(), source(manifest()), true);
   await kernel.stopAll(); kernel.assertNoResources();
   assert.equal(kernel.diagnostics().some(item => item.code === 'CLEANUP_FAILED'), false);
+});
+
+test('disabled package providers never auto-start through another package requirement', async () => {
+  const { kernel, runtime } = await fixture(); const env = { vaultId: 'a', generation: 1 }; await runtime.open(env);
+  const provider = { ...manifest('1.0.0', 'test.provider'), provides: [{ kind: 'api', id: 'test.value', version: '1.0.0' }] };
+  const consumer = { ...manifest('1.0.0', 'test.consumer'), requires: [{ kind: 'api', id: 'test.value', range: '^1.0.0' }] };
+  await runtime.register(env, provider, source(provider, "ctx.provide({kind:'api',id:'test.value',version:'1.0.0'}, {read(){return 1}});"), false);
+  assert.equal((await runtime.register(env, consumer, source(consumer), true)).error.code, 'RUNTIME_FAILED');
+  assert.equal(runtime.snapshot(env).value.find(item => item.id === 'test.provider').state, 'disabled');
+  assert.equal((await runtime.enable(env, 'test.provider')).ok, true); assert.equal((await runtime.enable(env, 'test.consumer')).ok, true);
+  assert.equal((await runtime.disable(env, 'test.provider')).ok, true);
+  assert.equal((await runtime.enable(env, 'test.consumer')).error.code, 'RUNTIME_FAILED');
+  assert.equal(runtime.snapshot(env).value.find(item => item.id === 'test.provider').state, 'disabled');
+  await kernel.stopAll(); kernel.assertNoResources();
 });

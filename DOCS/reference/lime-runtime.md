@@ -16,8 +16,12 @@ its captured Vault/generation with the current environment; stale requests fail.
 Inputs to load/replace are captured before the asynchronous queue runs.
 
 `register(environment, manifest, source, enabled)` defers package evaluation until
-enabled activation, rejects collisions with protected/registered IDs and registers
-the definition as owned by the adapter. The adapter depends on the execution
+enabled activation and rejects collisions with protected/registered/managed IDs.
+Disabled definitions are held by the manager without kernel registration; a
+dependent cannot silently auto-start them. Enabling registers the definition as
+owned by the adapter; disabling unregisters it and stops its affected consumers.
+Re-enabling a consumer while its provider stays disabled reports the missing
+dependency. The adapter depends on the execution
 driver, producing guest -> adapter -> execution cleanup ordering. Required manifest
 permissions receive automatic internal grants; the execution broker still denies
 raw host management/native authority. Failed starts remain registered/failed for
