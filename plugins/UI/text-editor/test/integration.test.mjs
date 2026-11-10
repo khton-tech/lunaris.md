@@ -207,6 +207,80 @@ test('display preferences apply without replacing the editor, selection, source 
   await s.stop();
 });
 
+// Pointer capture/geometry are supplied explicitly: JSDOM does not lay out controls.
+function widthControls(s) {
+  s.target.querySelector('.lm-text-editor').getBoundingClientRect = () => ({ width: 1200 });
+  const handles = [...s.target.querySelectorAll('.lm-editor-width-handle')];
+  for (const handle of handles) {
+    handle.setPointerCapture = () => {};
+    handle.releasePointerCapture = () => {};
+  }
+  return { handles, async pointer(handle, type, x) {
+    const event = new s.dom.window.MouseEvent(type, { clientX: x, button: 0, bubbles: true });
+    Object.defineProperty(event, 'pointerId', { value: 1 });
+    handle.dispatchEvent(event); await flush();
+  } };
+}
+
+test('column handles preview both sides, cancel drags and persist only after release', async () => {
+  const s = await setup({ withLayout: true });
+  try {
+    const view = s.cm(); view.dispatch({ selection: { anchor: 3 } });
+    const { handles: [left, right], pointer } = widthControls(s);
+    const width = () => s.target.querySelector('.lm-editor-heading').style.maxWidth;
+    await pointer(right, 'pointerdown', 900); await pointer(right, 'pointermove', 950);
+    assert.equal(width(), '880px'); assert.equal(s.dom.window.getComputedStyle(view.contentDOM).maxWidth, '880px');
+    assert.equal(s.preferenceWrites.length, 0);
+    left.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await flush();
+    assert.equal(width(), '780px'); assert.equal(s.preferenceWrites.length, 0);
+    await pointer(left, 'pointerdown', 200); await pointer(left, 'pointermove', 140);
+    assert.equal(width(), '900px');
+    await pointer(left, 'pointerup', 140);
+    assert.equal(s.preferenceWrites.length, 1); assert.equal(s.preferenceWrites[0].value, '900');
+    assert.equal(s.preferenceWrites[0].scope.vaultId, 'a');
+    assert.equal(s.cm(), view); assert.equal(view.state.selection.main.head, 3); assert.equal(view.state.sliceDoc(), '# Note');
+    const setting = s.settings.snapshot().items.find(item => item.id.endsWith('.text-width'));
+    assert.equal(setting.value, '900'); assert.ok(setting.options.some(option => option.value === '900'));
+    await pointer(right, 'pointerdown', 950); await pointer(right, 'pointermove', 900);
+    await pointer(right, 'pointercancel', 900); assert.equal(width(), '900px'); assert.equal(s.preferenceWrites.length, 1);
+  } finally { await s.stop(); }
+});
+
+test('column width restores arbitrary pixels and supports keyboard bounds and failed-save rollback', async () => {
+  let broken = false;
+  const s = await setup({ preferences: new Map([['a', { textWidth: '845' }]]), preferenceWrite: () => broken ? fail('IO_ERROR') : ok(null) });
+  try {
+    const { handles: [, right] } = widthControls(s);
+    const width = () => s.target.querySelector('.lm-editor-heading').style.maxWidth;
+    const key = async key => { right.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key, bubbles: true })); await flush(); };
+    assert.equal(width(), '845px');
+    await key('ArrowRight'); assert.equal(width(), '865px');
+    await key('Home'); assert.equal(width(), '320px');
+    await key('End'); assert.equal(width(), '1200px');
+    broken = true; await key('ArrowLeft'); assert.equal(width(), '1200px');
+    assert.ok(s.target.querySelector('[role=alert]').textContent.includes('Cannot save'));
+  } finally { await s.stop(); }
+});
+
+test('column drag cancellation restores full width and cannot persist into another Vault', async () => {
+  const s = await setup({ preferences: new Map([['a', { textWidth: 'full' }]]) });
+  try {
+    const { handles: [, right], pointer } = widthControls(s);
+    await pointer(right, 'pointerdown', 1200); await pointer(right, 'pointerup', 1200);
+    assert.equal(s.target.querySelector('.lm-editor-heading').style.maxWidth, 'none');
+    assert.equal(s.preferenceWrites.length, 0);
+    await pointer(right, 'pointerdown', 1200); await pointer(right, 'pointermove', 1100);
+    assert.equal(s.target.querySelector('.lm-editor-heading').style.maxWidth, '1000px');
+    await pointer(right, 'lostpointercapture', 1100);
+    assert.equal(s.target.querySelector('.lm-editor-heading').style.maxWidth, 'none');
+    await pointer(right, 'pointerdown', 1200); await pointer(right, 'pointermove', 1100);
+    await s.vault.open(); await flush(); await s.showVault('b'); await s.documents.open({ vaultId: 'b', path: 'note.md' }); await flush();
+    await pointer(right, 'pointerup', 1100);
+    assert.equal(s.preferenceWrites.length, 0);
+    assert.equal(s.target.querySelector('.lm-editor-heading').style.maxWidth, '780px');
+  } finally { await s.stop(); }
+});
+
 test('display preferences restore before Settings opens and reset on Vault switch', async () => {
   const s = await setup({ preferences: new Map([['a', { fontSize: '24', wrapLines: false }]]) });
   assert.equal(s.dom.window.getComputedStyle(s.cm().dom).fontSize, '24px'); assert.equal(s.cm().contentDOM.classList.contains('cm-lineWrapping'), false);
@@ -293,7 +367,8 @@ test('headerless Live Preview retains the composed editor, source and history', 
   assert.ok(view.dom.querySelector('.cm-preview-strong'));
   assert.equal(s.target.querySelector('.lm-editor-header'), null);
   assert.equal(s.target.querySelector('[aria-pressed]'), null);
-  assert.equal(s.target.querySelector('button'), null);
+  assert.equal(s.target.querySelector('button:not([role=separator])'), null);
+  assert.equal(s.target.querySelectorAll('button[role=separator]').length, 2);
   assert.equal(view.state.sliceDoc(), original);
   assert.equal(s.calls.some(call => call[0] === 'write'), false);
   view.dispatch({ changes: { from: view.state.doc.length, insert: 'New' }, selection: { anchor: 0 } });

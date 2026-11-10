@@ -140,7 +140,7 @@ no editor service API or separate settings plugin is introduced.
 | --- | --- | --- |
 | `fontSize` | `theme` or canonical integer strings, 8–96 pixels | `theme` |
 | `lineHeight` | `theme` or canonical numeric strings, 1–3 in 0.1 increments | `theme` |
-| `textWidth` | `640`, `780`, `960` (pixels), `full` | `780` |
+| `textWidth` | integer pixel strings from `320` to `1920`, or `full` | `780` |
 | `wrapLines` | boolean | `true` |
 
 Config reads/writes use the editor's own `lunaris.text-editor` namespace and
@@ -157,6 +157,32 @@ text column; unwrapped lines use horizontal scrolling and retain the saved width
 for when wrapping is re-enabled. CodeMirror compartments apply changes without
 replacing the view, document, selection or undo history. Live Preview remains
 enabled, with no source-mode, input-behavior, spellcheck or autosave setting.
+
+### Direct column resizing
+
+Two subtle vertical handles sit at the sides of the centered reading column.
+Drag either handle to change both sides symmetrically; the title and document
+update together. Pointer capture keeps the interaction attached to the handle.
+Release saves one `textWidth` value through Config in the current Vault. Preview
+does not write storage; Escape, pointer cancellation/lost capture and document
+replacement discard it. Vault identity and SDK scope checks reject stale callbacks.
+Failed saves restore the saved width and show a localized editor alert.
+
+Focused handles support Left/Right (20px), Shift+Left/Right (80px), Home (320px)
+and End (available width, capped at 1920px). Handles remain within the editor's
+allocated width, use theme colors and keyboard focus, and do not add a surface.
+They are hidden when line wrapping is off or preferences are unavailable.
+Full-width mode can be narrowed directly; custom pixel values appear in the
+existing themed Settings picker alongside the usual presets.
+
+Ownership: Workspace retains outer geometry/surfaces; the Mantine text-editor
+role owns handle placement, hit targets and pointer/keyboard interaction;
+Text Editor owns transient preferences and SDK persistence; CodeMirror owns
+document geometry. The public role callback connects those existing plugins;
+no additional provider or driver is needed. Reference: the Owner's request for
+side regulators and the current centered document column. Native acceptance is
+pending for both themes, mouse/touch dragging, focus, narrow/short windows and
+alignment of the title, handles and document inside Workspace.
 
 Font size and line spacing now register numeric `slider` items. The usual ranges
 are 12–32 px (step 1) and 1.2–2 (step 0.1), extending to include an existing valid

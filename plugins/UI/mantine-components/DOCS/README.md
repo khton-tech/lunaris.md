@@ -672,6 +672,25 @@ Workspace retains outer layout and surfaces. Reference: the Owner's screenshot
 of the title offset to the left of the text column. Native alignment in narrow
 and wide Workspace allocations remains pending manual acceptance.
 
+Optional width controls extend the same public `lunaris.text-editor` role:
+`resizeWidthLabel` (nonempty localized text), `canResizeWidth` (boolean), and
+`onContentWidthChange(width, phase)` where phase is `preview`, `commit` or
+`cancel`. Supply all three to enable two Mantine UnstyledButton separator
+controls at the column sides. The renderer measures only its owned root and
+never reads or styles CodeMirror DOM. It clamps pointer/keyboard widths to
+320–1920px and the available allocation, preserving centered geometry.
+Keyboard Left/Right changes column width by 20px (80px with Shift); Home/End
+choose the bounds. Escape, lost capture, pointer cancellation and unmount cancel
+the temporary width. The controller owns persistence and error text.
+
+Reference: the Owner's direct-resize request, existing quiet separator/focus
+styles and [Mantine UI inputs](https://ui.mantine.dev/category/inputs/).
+These are embedded controls without new panels, surfaces or layout providers.
+Text Editor integration through Components is complete. Automated composed tests
+cover preview, save, rollback, cancellation, keyboard and Vault changes; native
+mouse/touch hit geometry, light/dark appearance, focus and narrow/short Workspace
+acceptance remain manual.
+
 `lunaris.task-checkbox` provides a controlled Mantine Core Checkbox for inline
 Markdown tasks. Required public props: `checked: boolean`, `disabled: boolean`,
 nonempty localized `label: string` (accessible name), and

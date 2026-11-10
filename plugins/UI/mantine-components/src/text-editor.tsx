@@ -3,6 +3,8 @@ import { Box, Button, Group, Text, TextInput } from "@mantine/core";
 import type { KeyboardEvent } from "react";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
+import { EditorWidthHandles } from "./editor-width-handles.js";
+import type { WidthPhase } from "./editor-width-handles.js";
 
 interface EditorProps {
   readonly recoveryLabel?: string;
@@ -13,6 +15,9 @@ interface EditorProps {
   readonly title: string;
   readonly titleLabel: string;
   readonly contentWidth?: number | "full";
+  readonly resizeWidthLabel?: string;
+  readonly canResizeWidth?: boolean;
+  readonly onContentWidthChange?: (width: number, phase: WidthPhase) => void;
   readonly renameError?: string;
   readonly canRename: boolean;
   readonly onRename: (name: string) => Promise<boolean>;
@@ -39,11 +44,13 @@ export function textEditorProps(value: ComponentProps): EditorProps {
   if (value.commandError !== undefined && typeof value.commandError !== "string") throw new TypeError("Invalid editor command error.");
   if (value.renameError !== undefined && typeof value.renameError !== "string") throw new TypeError("Invalid editor rename error.");
   if (value.contentWidth !== undefined && value.contentWidth !== "full" && (typeof value.contentWidth !== "number" || !Number.isFinite(value.contentWidth) || value.contentWidth <= 0)) throw new TypeError("Invalid editor content width.");
+  if (value.onContentWidthChange !== undefined && (typeof value.onContentWidthChange !== "function" || typeof value.resizeWidthLabel !== "string" || !value.resizeWidthLabel.trim() || typeof value.canResizeWidth !== "boolean")) throw new TypeError("Invalid editor width controls.");
   if (value.recoveryCandidates !== undefined && (!Array.isArray(value.recoveryCandidates) || value.recoveryCandidates.some(item => !item || typeof item.id !== "string" || typeof item.label !== "string") || typeof value.recoveryLabel !== "string" || typeof value.onRecovery !== "function")) throw new TypeError("Invalid recovery choices.");
   return value as unknown as EditorProps;
 }
 export function TextEditor({ props, theme }: { props: EditorProps; theme: ReturnType<typeof resolveTheme> }) {
   const target = useRef<HTMLDivElement>(null); const [confirm, setConfirm] = useState(false);
+  const container = useRef<HTMLDivElement>(null);
   const [title, setTitle] = useState(props.title);
   const committing = useRef(false);
   const publish = props.onTarget;
@@ -62,7 +69,9 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
     if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); }
     else if (event.key === "Escape") { event.preventDefault(); setTitle(props.title); event.currentTarget.blur(); }
   }
-  return <Box className="lm-text-editor" style={theme.contentStyle}>
+  return <Box ref={container} className="lm-text-editor" style={theme.contentStyle}>
+    {props.ready && props.onContentWidthChange && <EditorWidthHandles key={props.documentKey} container={container}
+      width={props.contentWidth ?? 780} label={props.resizeWidthLabel!} disabled={!props.canResizeWidth} onChange={props.onContentWidthChange} />}
     {props.ready && <Box className="lm-editor-heading" style={{ maxWidth: props.contentWidth === "full" ? "none" : props.contentWidth ?? 780 }}>
       <Box className="lm-editor-heading-line">
         <TextInput className="lm-editor-title" aria-label={props.titleLabel} value={title}

@@ -11,7 +11,7 @@ export interface Preferences { readonly fontSize: string; readonly lineHeight: s
 export const defaults: Preferences = Object.freeze({ fontSize: "theme", lineHeight: "theme", textWidth: "780", wrapLines: true });
 const textWidths = ["640", "780", "960", "full"];
 type Key = keyof Preferences;
-interface Session { vaultId: string; values: Preferences; loading: boolean; busy: boolean; reload: boolean; revision: number; error: string; errorKey: Key; ready: Promise<void> }
+interface Session { vaultId: string; values: Preferences; previewWidth?: string | undefined; loading: boolean; busy: boolean; reload: boolean; revision: number; error: string; errorKey: Key; ready: Promise<void> }
 const keys = Object.keys(defaults) as Key[];
 const itemId = (key: Key) => key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`);
 const catalogs = { en: { category: "Editor", group: "Display", fontSize: "Font size", lineHeight: "Line spacing", textWidth: "Text width", wrapLines: "Wrap long lines", full: "Full width", invalid: "Saved value is unavailable. Using the default.", readFailed: "Cannot read preferences.", saveFailed: "Cannot save the change. Try again.", retry: "Retry" }, ru: { category: "Редактор", group: "Отображение", fontSize: "Размер шрифта", lineHeight: "Межстрочный интервал", textWidth: "Ширина текста", wrapLines: "Переносить длинные строки", full: "На всю ширину", invalid: "Сохранённое значение недоступно. Используется значение по умолчанию.", readFailed: "Не удалось прочитать настройки.", saveFailed: "Не удалось сохранить изменение. Повторите попытку.", retry: "Повторить" } };
@@ -41,7 +41,7 @@ export function createPreferences(ctx: PluginContext, changed: () => void) {
   function valid(key: Key, value: unknown): boolean {
     if (key === "wrapLines") return typeof value === "boolean";
     if (typeof value !== "string") return false;
-    if (key === "textWidth") return textWidths.includes(value);
+    if (key === "textWidth") return value === "full" || (String(Number(value)) === value && Number.isInteger(Number(value)) && Number(value) >= 320 && Number(value) <= 1920);
     if (value === "theme") return true;
     const number = Number(value);
     return value === String(number) && Number.isFinite(number) && (key === "fontSize"
@@ -69,7 +69,8 @@ export function createPreferences(ctx: PluginContext, changed: () => void) {
         onChange: (value, context) => choose(key, String(Number(value.toFixed(key === "fontSize" ? 0 : 1))), context.vaultId, context.signal),
       };
     }
-    const options = textWidths.map(value => ({ value, label: value === "full" ? text(value) : `${value} px` }));
+    const widths = textWidths.includes(value as string) ? textWidths : [...textWidths.slice(0, -1), value as string, "full"];
+    const options = widths.map(value => ({ value, label: value === "full" ? text(value) : `${value} px` }));
     return { ...common, type: "select", value: value as string, options, onChange };
   }
   function publish(): void {
@@ -133,5 +134,17 @@ export function createPreferences(ctx: PluginContext, changed: () => void) {
   });
   switchVault();
   logger.info(ctx.pluginId, "Preferences ready");
-  return { current: (): Preferences => session?.values ?? defaults, ready: () => session?.ready ?? Promise.resolve(), choose };
+  function resizeWidth(width: number, phase: "preview" | "commit" | "cancel", vaultId: string): void {
+    const current = session;
+    if (!current || !alive(current) || current.vaultId !== vaultId) return;
+    if (phase === "cancel") { current.previewWidth = undefined; changed(); return; }
+    if (current.loading || current.busy || !current.values.wrapLines || !valid("textWidth", String(width))) return;
+    current.previewWidth = phase === "preview" ? String(width) : undefined;
+    if (phase === "preview") changed();
+    else { void choose("textWidth", String(width), vaultId); changed(); }
+  }
+  return { current: (): Preferences => session?.previewWidth ? { ...session.values, textWidth: session.previewWidth } : session?.values ?? defaults,
+    canResize: () => !!session && !session.loading && !session.busy && session.values.wrapLines,
+    widthError: () => session?.errorKey === "textWidth" && session.error ? text(session.error) : "",
+    resizeWidth, ready: () => session?.ready ?? Promise.resolve(), choose };
 }

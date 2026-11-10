@@ -28,7 +28,7 @@ const catalogs = { en: {
   h1: "Heading 1", h2: "Heading 2", h3: "Heading 3", h4: "Heading 4", h5: "Heading 5", h6: "Heading 6", cut: "Cut", copy: "Copy", paste: "Paste", selectAll: "Select all", clipboardFailed: "Clipboard access failed. Use your keyboard shortcut or allow clipboard access.",
   empty: "Open a Markdown file", loading: "Loading", unsupported: "This file type is not supported", saved: "Saved", unsaved: "Unsaved", saving: "Saving",
   save: "Save", retry: "Retry save", reload: "Reload from disk", discard: "Discard changes and reload", cancel: "Cancel", editor: "Markdown editor", task: "Task",
-  title: "File name", renameFailed: "Cannot rename this file.",
+  title: "File name", renameFailed: "Cannot rename this file.", resizeWidth: "Resize text column",
   conflict: "The file changed outside the editor. Your changes are retained.", missing: "The file was removed. Your text is retained.",
   readFailed: "Cannot read this file.", saveFailed: "Cannot save changes. Your text is retained.",
   offline: "Server unavailable. Changes are saved on this device and will be retried after reconnection.",
@@ -225,12 +225,16 @@ export default definePlugin({ manifest, activate(ctx) {
       const next = { documentKey: session ? key(session.target) : "", name: session?.target.path ?? text(unsupported ? "unsupported" : "empty"),
         title: session ? stem(session.target.path) : "", titleLabel: text("title"), renameError,
         contentWidth: display.wrapLines && display.textWidth !== "full" ? Number(display.textWidth) : "full",
+        resizeWidthLabel: text("resizeWidth"), canResizeWidth: preferences.canResize(),
+        onContentWidthChange: (width: number, phase: "preview" | "commit" | "cancel") => {
+          if (!disposed && !signal.aborted && !owner.signal.aborted && context?.vaultId) preferences.resizeWidth(width, phase, context.vaultId);
+        },
         canRename: !!session?.active && !session.locks && !session.saving && !session.loading,
         onRename,
         status: session?.loading ? text("loading") : session?.saving ? text("saving") : session?.loaded ? text(session.dirty ? "unsaved" : "saved") : "",
         recoveryLabel: text("recovery"), recoveryCandidates: session?.recoveryCandidates.map((record, index) => ({ id: String(index), label: `${new Date(record.updatedAt).toISOString()} · ${record.text.slice(0, 100)}` })) ?? [],
         onRecovery: (id: string) => { if (session?.active && !signal.aborted && !disposed) { states.delete(session); clearEditor(); session.selectRecovery(Number(id)); } },
-        error, commandError, ready, dirty: session?.dirty ?? false, busy: !!session && (session.loading || session.saving || session.locks > 0),
+        error, commandError: commandError || preferences.widthError(), ready, dirty: session?.dirty ?? false, busy: !!session && (session.loading || session.saving || session.locks > 0),
         saveLabel: text("save"), retryLabel: text("retry"), reloadLabel: text("reload"), discardLabel: text("discard"), cancelLabel: text("cancel"), onSave, onReload, onTarget,
         presentation: { mode: "embedded", sizing: "fill" } };
       if (mounted) {
@@ -274,6 +278,8 @@ export default definePlugin({ manifest, activate(ctx) {
     }
     const view = { render, refreshControls: clearEditor, removed() { clearEditor(); mounted = undefined; editorTarget = null; } };
     function dispose(): void {
+      const context = props.workspace as { vaultId?: string } | undefined;
+      if (context?.vaultId) preferences.resizeWidth(0, "cancel", context.vaultId);
       if (disposed) return; disposed = true; signal.removeEventListener("abort", dispose); views.delete(view); clearEditor();
       void owner.dispose().catch(() => {});
     }

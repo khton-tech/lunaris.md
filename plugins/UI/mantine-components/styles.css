@@ -289,7 +289,15 @@
 .lm-root .lm-setting-input:disabled { cursor:default }
 .lm-setting-row[data-layout=stacked] { flex-direction:column; align-items:stretch }
 .lm-setting-row[data-layout=stacked]>.lm-setting-label,.lm-setting-row[data-layout=stacked]>.lm-setting-control { flex:0 0 auto; min-width:0 }
-.lm-text-editor { display:flex;flex:1;flex-direction:column;min-width:0;min-height:0;background:transparent }
+.lm-text-editor { position:relative;display:flex;flex:1;flex-direction:column;min-width:0;min-height:0;background:transparent }
+.lm-editor-width-handles { position:absolute;inset:0;width:100%;margin-inline:auto;pointer-events:none;z-index:1 }
+.lm-editor-width-handle { position:absolute;top:clamp(72px,18cqh,160px);width:20px;height:48px;pointer-events:auto;cursor:ew-resize;touch-action:none;user-select:none;color:var(--vault-secondary);border-radius:var(--vault-radius) }
+.lm-editor-width-handle[data-side=start] { left:0 }
+.lm-editor-width-handle[data-side=end] { right:0 }
+.lm-editor-width-handle::after { content:"";position:absolute;inset:8px 9px;border-radius:2px;background:currentColor;opacity:.35;transition:opacity var(--vault-motion-fast) }
+.lm-editor-width-handle:hover::after,.lm-editor-width-handle:focus-visible::after,.lm-editor-width-handles[data-active] .lm-editor-width-handle::after { opacity:1 }
+.lm-editor-width-handle:disabled { display:none }
+@media (prefers-reduced-motion:reduce) { .lm-editor-width-handle::after { transition:none } }
 .lm-editor-heading { flex:0 0 auto;width:100%;max-width:780px;margin:0 auto;padding:clamp(24px,5cqi,56px) 0 0 }
 .lm-editor-heading-line { padding:0 clamp(12px,3cqi,40px) }
 .lm-editor-title { width:100% }
