@@ -28,6 +28,8 @@ export class DocumentSession {
   private recovered = false;
   private revision = "";
   private draftPending: Promise<FsResult<null>> = Promise.resolve(ok());
+  private recoveryWork = 0;
+  get hasUnprotectedChanges(): boolean { return (this.dirty && !this.draftSaved) || this.recoveryWork > 0 || this.draftError; }
   draftSaved = false;
   draftError = false;
   constructor(public target: FileTarget, private readonly fs: FilesystemApi,
@@ -49,6 +51,7 @@ export class DocumentSession {
     if (!this.draft || !this.active) return Promise.resolve(failed("UNSUPPORTED", "Local recovery is unavailable."));
     const text = this.text; const version = this.version; const revision = `${Date.now()}:${Math.random()}`;
     this.revision = revision; this.draftSaved = false;
+    this.recoveryWork++;
     this.draftPending = this.draftPending.then(async () => {
       if (!this.active) return failed("CANCELLED", "Document session closed.");
       const result = await this.draft!.save(text, version, revision);
@@ -62,6 +65,7 @@ export class DocumentSession {
       if (this.active) { this.draftError = true; this.draftSaved = false; this.log("error", "Local draft storage failed", error); this.changed(); }
       return failed("IO_ERROR", "Cannot persist local recovery draft.");
     });
+    this.draftPending = this.draftPending.finally(() => { this.recoveryWork--; if (this.active) this.changed(); });
     return this.draftPending;
   }
   hold(): () => void {
@@ -93,11 +97,18 @@ export class DocumentSession {
     const work = async () => {
       try {
         if (!this.active) return;
+        if (discard) await this.draftPending;
+        if (!this.active) return;
         const local = this.draft ? await this.draft.load() : null;
         if (!this.active) return;
         let draft = local?.ok ? local.value : null;
         if (local && !local.ok) { this.draftError = true; this.log("error", "Cannot load local recovery draft", local.error); }
-        if (discard && draft && this.draft) { await this.draft.remove(draft.revision); draft = null; this.recovered = false; this.draftSaved = false; }
+        if (discard && local && !local.ok) { this.error = local.error; return; }
+        if (discard && draft && this.draft) {
+          const removed = await this.draft.remove(draft.revision);
+          if (!removed.ok) { this.error = removed.error; this.draftError = true; this.log("error", "Cannot discard local recovery draft", removed.error); return; }
+          draft = null; this.recovered = false; this.draftSaved = false; this.draftError = false;
+        }
         if (!this.active) return;
         const result = await this.fs.readText(target);
         if (!this.active || this.target.path !== target.path) return;
@@ -118,7 +129,7 @@ export class DocumentSession {
         }
         this.log("info", "Document loaded");
       } catch (error) {
-        if (this.active) { this.error = { code: "IO_ERROR", message: "Cannot read document." }; this.log("error", "Document read failed", error); }
+        if (this.active) { if (discard) this.draftError = true; this.error = { code: "IO_ERROR", message: "Cannot read document." }; this.log("error", "Document read failed", error); }
       } finally { this.loading = false; this.reading = undefined; if (this.active) this.changed(); }
     };
     this.reading = Promise.resolve().then(work); return this.reading;
@@ -127,7 +138,7 @@ export class DocumentSession {
     this.cancelTimer();
     if (this.pending) return this.pending;
     if (!this.active) return Promise.resolve(failed("CANCELLED", "Document session is closed."));
-    if (!this.dirty) return Promise.resolve(ok());
+    if (!this.dirty) return this.settleRecovery();
     if (this.missing) return Promise.resolve(failed("NOT_FOUND", "The document was removed."));
     this.saving = true; this.changed();
     const work = async (): Promise<FsResult<null>> => {
@@ -146,7 +157,9 @@ export class DocumentSession {
           }
           this.savedText = text; this.version = result.value.version; this.error = null; this.recovered = false;
           if (this.draft) {
-            await this.draft.remove(revision);
+            await this.draftPending;
+            const removed = await this.draft.remove(revision);
+            if (!removed.ok) { this.error = removed.error; this.draftError = true; this.log("error", "Cannot remove acknowledged recovery draft", removed.error); return removed; }
             if (!this.active) return failed("CANCELLED", "Document session is closed.");
             if (this.dirty) await this.persistDraft(); else this.draftSaved = false;
           }
@@ -159,6 +172,24 @@ export class DocumentSession {
       } finally { this.saving = false; this.pending = undefined; if (this.active) this.changed(); }
     };
     this.pending = Promise.resolve().then(work); return this.pending;
+  }
+  private async settleRecovery(): Promise<FsResult<null>> {
+    let observed: Promise<FsResult<null>>; let result: FsResult<null>;
+    do { observed = this.draftPending; result = await observed; } while (observed !== this.draftPending);
+    if (!this.active) return failed("CANCELLED", "Document session is closed.");
+    if (!result.ok) return result;
+    if (this.dirty) return this.flush();
+    if (this.draft && this.revision) {
+      const revision = this.revision; this.recoveryWork++;
+      try {
+        const removed = await this.draft.remove(revision);
+        if (!removed.ok) { this.draftError = true; this.error = removed.error; return removed; }
+        if (this.revision === revision) { this.revision = ""; this.draftError = false; this.draftSaved = false; }
+      } catch (error) { this.draftError = true; this.log("error", "Cannot settle recovery cleanup", error); return failed("IO_ERROR", "Cannot remove obsolete recovery draft."); }
+      finally { this.recoveryWork--; if (this.active) this.changed(); }
+      if (this.revision !== "") return this.settleRecovery();
+    }
+    return result;
   }
   dispose(): void { this.closed = true; this.cancelTimer(); }
 }

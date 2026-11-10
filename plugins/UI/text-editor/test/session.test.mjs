@@ -129,3 +129,18 @@ test('a late remote save acknowledges its own draft revision while newer edits r
   s.session.edit('newer'); await s.session.persistDraft(); const newerRevision = stored.revision; finish.resolve(); await saving;
   assert.notEqual(removed[0][0], newerRevision); assert.equal(removed[0][1], newerRevision); assert.equal(s.session.dirty, false); assert.equal(stored, null); s.session.dispose();
 });
+
+test('clean flush settles delayed obsolete recovery writes before close', async()=>{
+ let stored=null; const entered=Promise.withResolvers(),release=Promise.withResolvers(); let count=0;
+ const draft={load:async()=>ok(stored),save:async(text,expectedVersion,revision)=>{if(++count===1){entered.resolve();await release.promise;}stored={text,expectedVersion,revision};return ok(null);},remove:async()=>{stored=null;return ok(null);}};
+ const s=setup({draft});await s.session.load();s.session.edit('obsolete');await entered.promise;s.session.edit('# Note');
+ assert.equal(s.session.dirty,false);assert.equal(s.session.hasUnprotectedChanges,true);
+ let settled=false;const flush=s.session.flush().then(r=>{settled=true;return r;});await Promise.resolve();assert.equal(settled,false);
+ release.resolve();assert.equal((await flush).ok,true);assert.equal(s.session.hasUnprotectedChanges,false);s.session.dispose();
+ const reopened=setup({draft});await reopened.session.load();assert.equal(reopened.session.text,'# Note');assert.equal(reopened.session.dirty,false);reopened.session.dispose();
+});
+for(const thrown of [false,true]) test('failed durable discard retains buffer: thrown='+thrown,async()=>{
+ const stored={text:'recover me',expectedVersion:'v1',revision:'r'};
+ const s=setup({draft:{load:async()=>ok(stored),save:async()=>ok(null),remove:async()=>{if(thrown)throw Error('Storage');return {ok:false,error:{code:'IO_ERROR',message:'Storage'}};}}});
+ await s.session.load();await s.session.load(true);assert.equal(s.session.text,'recover me');assert.equal(s.session.dirty,true);assert.equal(s.session.error.code,'IO_ERROR');s.session.dispose();
+});

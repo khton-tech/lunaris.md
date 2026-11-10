@@ -536,3 +536,5 @@ presentation and Enter handling through EditorExtensions. Text Editor continues
 owning sessions, persistence and undo; no callout-specific implementation or private
 contract is added to the editor. During extension teardown, scheduled statistics
 refresh tolerates retiring SDK dependencies instead of rejecting asynchronously.
+
+Recovery close safety: DocumentProtection includes unsettled draft work and storage failures even when the buffer equals disk. Clean flush waits for queued snapshots and conditionally removes the final obsolete revision before close. Explicit discard waits for pending saves and requires durable removal; failures retain the buffer and expose an error. Failed acknowledged-draft cleanup is retryable through clean flush. These changes use the existing Drafts result contract; multi-writer recovery remains a separate integration requirement.

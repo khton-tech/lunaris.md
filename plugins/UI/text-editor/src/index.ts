@@ -44,7 +44,7 @@ export default definePlugin({ manifest, activate(ctx) {
   const vaults = ctx.use(Vault); const themes = ctx.use(Themes);
   const drafts = ctx.permissions.has("drafts.access") ? ctx.optional(Drafts) : undefined; const sources = ctx.optional(FilesystemSources);
   const sessions = new Map<string, DocumentSession>(); const states = new Map<DocumentSession, EditorState>();
-  ctx.provide(DocumentProtection, { hasUnprotectedChanges: () => [...sessions.values()].some(session => session.dirty && !session.draftSaved) });
+  ctx.provide(DocumentProtection, { hasUnprotectedChanges: () => [...sessions.values()].some(session => session.hasUnprotectedChanges) });
   const views = new Set<{ render(): void; removed(): void; refreshControls(): void }>();
   const screenId = `${ctx.pluginId}.screen`;
   let current: DocumentSession | null = null; let unsupported = false; let scheduled = false;
