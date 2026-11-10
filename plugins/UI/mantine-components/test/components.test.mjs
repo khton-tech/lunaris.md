@@ -941,6 +941,60 @@ test('compact Workspace lends a mobile menu target without replacing editor regi
  } finally { s.dom.window.HTMLElement.prototype.getBoundingClientRect=original; await s.stop(); }
 });
 
+test('mobile floating controls follow content swipes without scroll or keyboard and preserve editing gestures', async () => {
+ const s = await setup(); await s.start();
+ const original = s.dom.window.HTMLElement.prototype.getBoundingClientRect;
+ let width = 360;
+ s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, width, 720);
+ try {
+  const { flushSync } = await import('react-dom');
+  let targets;
+  const props = { railVisible:true, panelVisible:true, mobileLauncherVisible:true, mobileMenuVisible:true, mainLabel:'Main', panelLabel:'Sidebar', onTargets:value=>{targets=value;}, onDismiss(){} };
+  const layout = s.components.mount('lunaris.workspace-layout', s.target, props, s.ctx.signal); assert.equal(layout.ok, true);
+  const launcher = targets['mobile-launcher']; const toolbar = targets['mobile-menu']; const main = targets.main;
+  const menu = s.components.mount('lunaris.mobile-menu', launcher, {density:'compact',items:[{id:'test.sidebar',label:'Sidebar',icon:'files',onPress(){}}]}, s.ctx.signal); assert.equal(menu.ok, true);
+  const editable = s.dom.window.document.createElement('div'); editable.setAttribute('contenteditable', 'true'); editable.tabIndex = 0; editable.textContent = 'Short document'; main.append(editable);
+  // Editor bubbling handlers must not prevent the owning container from seeing intent.
+  editable.addEventListener('touchmove', event => event.stopPropagation());
+  const point = (x, y, identifier=0) => ({clientX:x,clientY:y,identifier});
+  const touch = (type, points, target=editable) => {
+   const event = new s.dom.window.Event(type, {bubbles:true,cancelable:true});
+   Object.defineProperty(event, 'touches', {value:points});
+   flushSync(() => target.dispatchEvent(event));
+   assert.equal(event.defaultPrevented, false);
+  };
+  const visible = value => { assert.equal(launcher.hidden, !value); assert.equal(toolbar.hidden, !value); };
+  const swipe = (from, to) => { touch('touchstart',[point(100,from)]); touch('touchmove',[point(100,to)]); touch('touchend',[]); };
+  launcher.querySelector('button').focus();
+  swipe(200,120); visible(false); assert.equal(s.dom.window.document.activeElement, main);
+  assert.equal(editable.scrollTop, 0); assert.equal(editable.textContent, 'Short document');
+  flushSync(() => editable.dispatchEvent(new s.dom.window.Event('scroll'))); visible(false);
+  swipe(120,200); visible(true);
+  editable.focus(); swipe(200,120); visible(false); assert.equal(s.dom.window.document.activeElement, editable);
+  swipe(120,200); visible(true);
+  touch('touchstart',[point(100,200)]); touch('touchmove',[point(102,192)]); touch('touchend',[]); visible(true);
+  touch('touchstart',[point(100,200)]); touch('touchmove',[point(180,195)]); touch('touchmove',[point(180,100)]); touch('touchend',[]); visible(true);
+  touch('touchstart',[point(100,200)]); touch('touchmove',[point(100,190),point(120,190,1)]); touch('touchmove',[point(100,100)]); touch('touchend',[]); visible(true);
+  touch('touchstart',[point(100,200)]); touch('touchcancel',[]); touch('touchmove',[point(100,100)]); visible(true);
+  // An active vertical gesture wins over competing native scroll notifications.
+  touch('touchstart',[point(100,200)]); touch('touchmove',[point(100,120)]);
+  editable.scrollTop=20; flushSync(() => editable.dispatchEvent(new s.dom.window.Event('scroll')));
+  editable.scrollTop=0; flushSync(() => editable.dispatchEvent(new s.dom.window.Event('scroll'))); visible(false); touch('touchend',[]);
+  layout.value.update({...props,mobileOpen:true});
+  swipe(120,200); visible(false);
+  layout.value.update({...props,mobileOpen:false}); visible(true);
+  const removed = []; const remove = main.removeEventListener.bind(main);
+  main.removeEventListener = (type,...args) => { removed.push(type); remove(type,...args); };
+  menu.value.dispose(); layout.value.dispose();
+  for (const type of ['scroll','touchstart','touchmove','touchend','touchcancel']) assert.ok(removed.includes(type));
+  width=1000;
+  const desktop=s.components.mount('lunaris.workspace-layout',s.target,props,s.ctx.signal); assert.equal(desktop.ok,true);
+  touch('touchstart',[point(100,200)],targets.main); touch('touchmove',[point(100,120)],targets.main);
+  assert.equal(targets['mobile-launcher'].hidden,true); assert.equal(targets['mobile-menu'].hidden,true);
+  desktop.value.dispose();
+ } finally { s.dom.window.HTMLElement.prototype.getBoundingClientRect=original; await s.stop(); }
+});
+
 test('editor recovery choices use public themed actions without selecting a candidate implicitly',async()=>{
  const s=await setup();await s.start();const chosen=[];
  const props={documentKey:'note',name:'note.md',status:'',error:'Conflict',ready:true,dirty:false,busy:false,saveLabel:'Save',retryLabel:'Retry',reloadLabel:'Reload',discardLabel:'Discard',cancelLabel:'Cancel',onSave(){},onReload(){},onTarget(){},recoveryLabel:'Choose draft',recoveryCandidates:[{id:'a',label:'First <draft>'},{id:'b',label:'Second draft'}],onRecovery:id=>chosen.push(id),presentation:{mode:'embedded',sizing:'fill'}};

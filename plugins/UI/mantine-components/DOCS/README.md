@@ -2,6 +2,21 @@
 
 ## Mobile layout audit corrections
 
+Floating-control gesture correction: reference is the Owner's report that panels
+only disappear when the virtual keyboard makes the document scrollable. Workspace
+owns visibility of both floating surfaces and observes passive capture-phase touch
+events in its borrowed main region. A single-finger vertical movement of at least
+24px (dominant over horizontal movement by 1.5) hides controls on upward movement
+and shows them on downward movement, even without scroll overflow or keyboard.
+Horizontal gestures, multitouch, cancellation and the open Sidebar are ignored.
+No default editor scrolling, text selection or editing event is cancelled. A hiding
+gesture transfers stale floating-button focus to main; existing editor focus stays.
+Native scroll visibility remains supported; unchanged vertical offsets do nothing,
+and an active touch decision wins over competing scroll notifications. Listener
+cleanup and DOM regressions cover these cases. Integration stays inside the existing
+Workspace layout role; no SDK or contributing-plugin change is needed. Native
+short/long-document swipes, text selection, keyboard and themes remain manual checks.
+
 Reference: the existing mobile Workspace, Files rail and Settings header, plus
 [Mantine UI navigation](https://ui.mantine.dev/category/navbars/). Workspace retains
 ownership of floating surfaces and their scroll overflow. The launcher now scrolls

@@ -60,14 +60,47 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
   }, [overlayOpen, compact, props.panelVisible]);
   useLayoutEffect(() => {
     const region = main.current!;
+    if (!compact || overlayOpen) return;
+    let gesture: { id: number; x: number; y: number; hidden?: boolean } | null = null;
+    const floatingFocused = () => mobileLauncher.current?.contains(region.ownerDocument.activeElement) || mobileMenu.current?.contains(region.ownerDocument.activeElement);
     const onScroll = (event: Event) => {
       const target = event.target;
-      if (!compact || overlayOpen || !(target instanceof region.ownerDocument.defaultView!.HTMLElement) || (mobileLauncher.current?.contains(region.ownerDocument.activeElement) || mobileMenu.current?.contains(region.ownerDocument.activeElement))) return;
+      if (!(target instanceof region.ownerDocument.defaultView!.HTMLElement) || floatingFocused()) return;
       const position = Math.max(0, target.scrollTop); const previous = scrollPositions.current.get(target) ?? 0;
-      if (Math.abs(position - previous) >= 8 || position === 0) { setFloatingHidden(position > previous); scrollPositions.current.set(target, position); }
+      if (gesture?.hidden !== undefined) { scrollPositions.current.set(target, position); return; }
+      if (position !== previous && (Math.abs(position - previous) >= 8 || position === 0)) { setFloatingHidden(position > previous); scrollPositions.current.set(target, position); }
     };
+    const onTouchStart = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      gesture = event.touches.length === 1 && touch ? { id: touch.identifier, x: touch.clientX, y: touch.clientY } : null;
+    };
+    const onTouchMove = (event: TouchEvent) => {
+      const touch = event.touches[0];
+      if (!gesture || event.touches.length !== 1 || !touch || touch.identifier !== gesture.id) { gesture = null; return; }
+      const dx = touch.clientX - gesture.x; const dy = touch.clientY - gesture.y;
+      if (Math.abs(dx) >= 24 && Math.abs(dx) > Math.abs(dy)) { gesture = null; return; }
+      if (Math.abs(dy) < 24 || Math.abs(dy) <= Math.abs(dx) * 1.5) return;
+      const hidden = dy < 0;
+      // A deliberate content gesture takes over from restored launcher focus.
+      if (hidden && floatingFocused()) region.focus({ preventScroll: true });
+      setFloatingHidden(hidden);
+      gesture = { id: touch.identifier, x: touch.clientX, y: touch.clientY, hidden };
+    };
+    const endGesture = () => { gesture = null; };
+    // Observe intent even on short documents; leave scrolling/editing to the view.
+    const options = { capture: true, passive: true };
     region.addEventListener("scroll", onScroll, true);
-    return () => region.removeEventListener("scroll", onScroll, true);
+    region.addEventListener("touchstart", onTouchStart, options);
+    region.addEventListener("touchmove", onTouchMove, options);
+    region.addEventListener("touchend", endGesture, options);
+    region.addEventListener("touchcancel", endGesture, options);
+    return () => {
+      region.removeEventListener("scroll", onScroll, true);
+      region.removeEventListener("touchstart", onTouchStart, true);
+      region.removeEventListener("touchmove", onTouchMove, true);
+      region.removeEventListener("touchend", endGesture, true);
+      region.removeEventListener("touchcancel", endGesture, true);
+    };
   }, [compact, overlayOpen]);
   const closeOverlay = () => { setFloatingHidden(false); setMobileOpen(false); mobileLauncher.current?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true }); };
   const dismiss = () => {
