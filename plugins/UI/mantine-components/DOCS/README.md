@@ -47,6 +47,16 @@ opened menu options, reset actions and the compact launcher have a 44px minimum
 target. Editable fields retain a 16px minimum font to avoid focus zoom on phones.
 Desktop rules above that breakpoint remain unchanged.
 
+Phone typography uses a 16px minimum in Files, Settings, account/vault screens,
+navigation and context menus, while respecting larger theme font sizes. The theme
+adapter exposes the original size as --vault-ui-font-size and lets each owned
+role opt into --lm-ui-font-size; document, callout and task text do not opt in.
+Primary navigation/action icons use 22px, file/menu icons use 20px, extension
+badges use 12px and Settings page headings use 1.25em in both Luna and Monochrome.
+Lucide strokes, semantic colors and focus states remain unchanged. Acceptance
+also requires checking icon alignment, long filenames, opened submenus and the
+unchanged document typography at phone and desktop widths.
+
 Settings owns its internal layout: fields move below their labels and use the
 available width; inline switches retain a compact label/control row. The renderer
 publishes its own item type as data-type, without inspecting another role's DOM.

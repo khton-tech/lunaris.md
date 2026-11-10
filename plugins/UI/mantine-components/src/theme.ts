@@ -22,6 +22,7 @@ export function resolveTheme(theme: ThemeDefinition | null) {
   const fontSize = `${number(field(typography, "fontSize"), 14)}${text(field(typography, "fontSizeUnit"), "px")}`;
   const radius = dimension(field(field(geometry, "radius"), "medium"), 8);
   const variables: Record<string, string> = {};
+  variables["--vault-ui-font-size"] = fontSize;
   const palette = { background: "background", panel: "panel", content: "content", text: "text", secondary: "textSecondary", selection: "selection", separator: "separator", "control-border": "controlBorder", hover: "hover", focus: "focus", caret: "caret", error: "error", accent: "accent", "on-accent": "onAccent", "accent-hover": "accentHover" };
   for (const [variable, key] of Object.entries(palette)) variables[`--vault-${variable}`] = color(key, ["background", "panel", "content", "selection", "hover", "separator"].includes(variable) ? "transparent" : "currentColor");
   variables["--vault-space"] = dimension(field(field(geometry, "spacing"), "step"), 4);
@@ -79,7 +80,7 @@ export function resolveTheme(theme: ThemeDefinition | null) {
     scheme: props?.appearance === "light" ? "light" as const : "dark" as const,
     // Tokens and typography are safe to apply to embedded content. Painting a
     // surface is a separate decision made from the public presentation context.
-    contentStyle: { ...variables, color: color("text"), fontFamily: font, fontSize, lineHeight: number(field(typography, "lineHeight"), 1.5) } as CSSProperties,
+    contentStyle: { ...variables, color: color("text"), fontFamily: font, fontSize: `var(--lm-ui-font-size, ${fontSize})`, lineHeight: number(field(typography, "lineHeight"), 1.5) } as CSSProperties,
     pageBackground: color("background", "transparent"),
     cssVariables: { variables: semantic, light: semantic, dark: semantic },
     startup: {

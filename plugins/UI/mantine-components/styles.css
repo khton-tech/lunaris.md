@@ -500,6 +500,16 @@
 
 /* Phone density belongs to each UIKit role; desktop geometry stays unchanged. */
 @media(max-width:640px) {
+ /* Adapt chrome typography locally; document and callout metrics stay editor-owned. */
+ .lm-root :is(.lm-sidebar-rail,.lm-mobile-menu-items,.lm-explorer,.lm-settings-navigation,.lm-settings-page,.lm-settings-items,.lm-settings-choices,.lm-account-access,.lm-context-surface,.ln-vault) {
+  --lm-ui-font-size:max(16px,var(--vault-ui-font-size));
+  --mantine-font-size-sm:var(--lm-ui-font-size);--mantine-font-size-md:var(--lm-ui-font-size);
+ }
+ .lm-root :is(.lm-sidebar-tab,.lm-settings-open-sidebar,.lm-explorer-actions .mantine-ActionIcon-root,.lm-account-icon)>svg { width:22px;height:22px;flex-shrink:0 }
+ .lm-explorer-entry-icon { width:20px;height:20px }
+ .lm-root :is(.lm-tool-navigation-item,.lm-explorer-tabs,.lm-setting-option,.lm-context-menu) svg { width:20px;height:20px;flex-shrink:0 }
+ .lm-root .lm-settings-page-header h1,.lm-root[data-window-chrome=true]>.lm-settings-page>.lm-settings-page-header h1 { font-size:1.25em;line-height:1.4 }
+ .lm-explorer .lm-explorer-extension { font-size:12px }
  .lm-root .lm-mobile-menu-items[data-density=compact] .lm-sidebar-tab { width:44px;height:44px;min-width:44px;min-height:44px }
  .lm-root .lm-settings-open-sidebar,.lm-root .lm-explorer-actions .mantine-ActionIcon-root,.lm-root .lm-account-icon { min-width:44px;min-height:44px }
  .lm-root .lm-button,.lm-root .lm-tool-navigation-item,.lm-root .lm-explorer-tabs,.lm-root .lm-setting-reset,.lm-root .lm-setting-option,.lm-root .lm-context-menu [role=menuitem] { min-height:44px }
