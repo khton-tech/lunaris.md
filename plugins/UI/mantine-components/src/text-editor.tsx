@@ -62,11 +62,13 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
   }
   return <Box className="lm-text-editor" style={theme.contentStyle}>
     {props.ready && <Box className="lm-editor-heading">
-      <TextInput className="lm-editor-title" aria-label={props.titleLabel} value={title}
-        variant="unstyled" disabled={!props.canRename} spellCheck={false} placeholder={props.titleLabel}
-        onChange={event => setTitle(event.currentTarget.value.replace(/[\r\n]+/g, ""))}
-        onBlur={commitTitle} onKeyDown={onTitleKeyDown} />
-      {props.renameError && <Text size="sm" role="alert" className="lm-editor-error">{props.renameError}</Text>}
+      <Box className="lm-editor-heading-line">
+        <TextInput className="lm-editor-title" aria-label={props.titleLabel} value={title}
+          variant="unstyled" disabled={!props.canRename} spellCheck={false} placeholder={props.titleLabel}
+          onChange={event => setTitle(event.currentTarget.value.replace(/[\r\n]+/g, ""))}
+          onBlur={commitTitle} onKeyDown={onTitleKeyDown} />
+        {props.renameError && <Text size="sm" role="alert" className="lm-editor-error">{props.renameError}</Text>}
+      </Box>
     </Box>}
     {!!props.recoveryCandidates?.length && <Box role="group" aria-label={props.recoveryLabel}>
       <Text size="sm">{props.recoveryLabel}</Text>

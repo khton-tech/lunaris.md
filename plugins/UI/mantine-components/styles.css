@@ -290,7 +290,8 @@
 .lm-setting-row[data-layout=stacked] { flex-direction:column; align-items:stretch }
 .lm-setting-row[data-layout=stacked]>.lm-setting-label,.lm-setting-row[data-layout=stacked]>.lm-setting-control { flex:0 0 auto; min-width:0 }
 .lm-text-editor { display:flex;flex:1;flex-direction:column;min-width:0;min-height:0;background:transparent }
-.lm-editor-heading { flex:0 0 auto;width:min(100%,780px);margin-inline:auto;padding:clamp(24px,5cqh,56px) clamp(12px,3cqi,40px) 0 }
+.lm-editor-heading { flex:0 0 auto;width:100%;max-width:780px;margin:0 auto;padding:clamp(24px,5cqi,56px) 0 0 }
+.lm-editor-heading-line { padding:0 clamp(12px,3cqi,40px) }
 .lm-editor-title { width:100% }
 .lm-editor-title input { font:inherit;font-size:1.8em;line-height:1.2;font-weight:700;color:var(--vault-text);background:transparent;border:0;padding:0;overflow-wrap:anywhere;text-overflow:ellipsis }
 .lm-editor-title input::placeholder { color:var(--vault-secondary);opacity:1 }
