@@ -5,7 +5,7 @@ Plugin: `lunaris.text-editor`; package: `@lunaris/text-editor`. Tauri starts it
 with ui.dom, vault.access and filesystem.access.
 
 On mobile-sized editor allocations (640px or less), the document starts an
-additional 10% of the allocated height below its existing top inset, as requested
+additional 6% of the allocated height below its existing top inset, as requested
 by the Owner. This is scrollable document padding, so caret and selection geometry
 remain aligned. Text Editor owns this internal spacing; Workspace retains outer
 geometry and floating surfaces. The existing SDK target supplies size containment;

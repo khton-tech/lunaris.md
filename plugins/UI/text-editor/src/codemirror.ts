@@ -51,7 +51,7 @@ function appearance(theme: ThemeDefinition | null, preferences: Preferences) {
     ".cm-scroller::-webkit-scrollbar": { display: "none" },
     ".cm-content": { width: "100%", maxWidth: preferences.wrapLines && preferences.textWidth !== "full" ? `${preferences.textWidth}px` : "none", minWidth: "0", flexGrow: "0", margin: "0 auto", padding: "clamp(24px, 5cqi, 56px) 0 clamp(12px, 3cqi, 32px)", caretColor: color("caret"), minHeight: "100%" },
     "@container (max-width: 640px)": {
-      ".cm-content": { paddingTop: "calc(clamp(24px, 5cqi, 56px) + 10cqh)" },
+      ".cm-content": { paddingTop: "calc(clamp(24px, 5cqi, 56px) + 6cqh)" },
     },
     ".cm-line": { padding: "0 clamp(12px, 3cqi, 40px)" },
     ".cm-preview-code-language": { color: color("textSecondary", color("text")) },
