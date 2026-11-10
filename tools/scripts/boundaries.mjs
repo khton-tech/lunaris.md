@@ -3,6 +3,8 @@ import path from 'node:path';
 import ts from 'typescript';
 
 export const dependencies = {
+  execution: ['sdk'],
+  'quickjs-execution': ['sdk', 'logging', 'execution'],
   callouts: ['sdk', 'editor', 'logging', 'components', 'localization', 'themes'],
   editor: ['sdk'],
   clipboard: ['sdk'],
@@ -86,6 +88,7 @@ export const dependencies = {
 };
 
 export const packagePath = scope => {
+  if (scope === 'quickjs-execution') return 'plugins/systems/driver/quickjs-execution';
  if (scope === 'mobile-menu-plugin') return 'plugins/UI/mobile-menu';
  if (scope === 'clipboard-provider') return 'plugins/systems/clipboard';
  if (scope === 'browser-clipboard') return 'plugins/systems/driver/browser-clipboard';
@@ -156,6 +159,7 @@ export function checkSource(source, filename, scope) {
   }
   // The shared validator owns the reviewed, platform-neutral SemVer dependency.
   if (scope === 'manifest') allowed.add('semver');
+  if (scope === 'quickjs-execution') allowed.add('quickjs-emscripten');
   // The native browser-storage driver owns portable content fingerprinting.
   if (scope === 'browser-storage') allowed.add('@noble/hashes/sha2.js');
   if (scope === 'config-manager' && path.resolve(filename) === path.resolve('plugins/systems/config/src/codec.ts')) allowed.add('smol-toml');

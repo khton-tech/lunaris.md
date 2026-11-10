@@ -1,0 +1,6 @@
+{
+  "extends": "../../../../tsconfig.base.json",
+  "compilerOptions": { "lib": ["ES2022", "ESNext.Disposable", "DOM"], "rootDir": "src", "outDir": "dist" },
+  "include": ["src/**/*.ts"],
+  "references": [{ "path": "../../../../packages/sdk" }, { "path": "../../../../packages/logging" }, { "path": "../../../../packages/execution" }]
+}
