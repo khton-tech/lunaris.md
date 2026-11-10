@@ -1,6 +1,8 @@
 {
   "files": [],
   "references": [
+    { "path": "packages/lime" },
+    { "path": "plugins/systems/driver/lup-picker" },
     { "path": "packages/lup" },
     { "path": "packages/execution" },
     { "path": "plugins/systems/driver/quickjs-execution" },

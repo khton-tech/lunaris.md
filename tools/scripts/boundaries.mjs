@@ -3,6 +3,8 @@ import path from 'node:path';
 import ts from 'typescript';
 
 export const dependencies = {
+  lime: ['sdk', 'execution'],
+  'lup-picker': ['sdk', 'logging', 'lime', 'lup'],
   lup: ['manifest'],
   execution: ['sdk'],
   'quickjs-execution': ['sdk', 'logging', 'execution'],
@@ -89,6 +91,7 @@ export const dependencies = {
 };
 
 export const packagePath = scope => {
+  if (scope === 'lup-picker') return 'plugins/systems/driver/lup-picker';
   if (scope === 'quickjs-execution') return 'plugins/systems/driver/quickjs-execution';
  if (scope === 'mobile-menu-plugin') return 'plugins/UI/mobile-menu';
  if (scope === 'clipboard-provider') return 'plugins/systems/clipboard';
