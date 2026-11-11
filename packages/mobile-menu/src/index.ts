@@ -1,5 +1,10 @@
 import { defineApi } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
+export interface MobileMenuChoice {
+ readonly id: string;
+ readonly label: string;
+ readonly title?: string;
+}
 export interface MobileMenuItem {
  readonly id: string;
  readonly label: string;
@@ -9,7 +14,10 @@ export interface MobileMenuItem {
  readonly disabled?: boolean;
  /** When set, the action shows this number inside a page outline instead of its icon. */
  readonly count?: number;
- readonly onPress: () => void | Promise<void>;
+ readonly choices?: readonly MobileMenuChoice[];
+ readonly selectedChoiceId?: string | null;
+ /** An action with choices receives the chosen ID. A plain action receives no arguments. */
+ readonly onPress: (choiceId?: string) => void | Promise<void>;
 }
 export type MobileMenuResult = { readonly ok: true } | { readonly ok: false; readonly error: string };
 export interface MobileMenuApi {
@@ -17,4 +25,4 @@ export interface MobileMenuApi {
  update(item: MobileMenuItem): MobileMenuResult;
  list(): readonly MobileMenuItem[];
 }
-export const MobileMenu = defineApi<MobileMenuApi>({ id: "lunaris.mobile-menu", version: "1.2.0", validate: value => !!value && typeof value === "object" && ["register", "update", "list"].every(key => typeof Object.getOwnPropertyDescriptor(value,key)?.value === "function") });
+export const MobileMenu = defineApi<MobileMenuApi>({ id: "lunaris.mobile-menu", version: "1.3.0", validate: value => !!value && typeof value === "object" && ["register", "update", "list"].every(key => typeof Object.getOwnPropertyDescriptor(value,key)?.value === "function") });

@@ -1015,15 +1015,15 @@ The Owner's highlighted bottom panel defines the position of the tab action.
 The mobile-menu role accepts an optional count on an action descriptor. The
 44px Mantine ActionIcon contains a rounded page outline with the current count.
 The localized accessible name includes that number. WorkspaceLayout owns the
-surrounding pill and mobile visibility. The Active Screen role receives optional
-mobileTabs props (opened, dismissLabel and onClose) and renders a themed Mantine
-Modal with the existing tabs, selection and onSelect callback. Its current row
-uses the existing check icon and its dialog owns focus and overflow. The
-document-level dialog uses the Active Screen instance's scoped Mantine variables
-for sizes and spacing. Its header uses the shared Lucide close icon inside a
-44px Mantine CloseButton. Tab rows also have a minimum 44px touch target.
+surrounding pill and mobile visibility. Actions with choices open a Mantine Menu
+anchored to the trigger. It reuses the Files Vault switcher's menu surface,
+Menu.Item rows and trailing checkmark. The mobile rows have a minimum 44px touch
+target. The renderer portals the menu to its own themed root to clear the
+toolbar's scroll boundary. Active Screen supplies the choices and their callbacks
+through the MobileMenu registry. Mantine owns keyboard navigation, dismissal
+and focus return.
 Reference: [Mantine UI buttons](https://ui.mantine.dev/category/buttons/) and
-[Mantine Modal](https://mantine.dev/core/modal/). Native visual acceptance of
+[Mantine Menu](https://mantine.dev/core/menu/). Native visual acceptance of
 the action, list, long names, themes and keyboard focus remains pending.
 
 Floating geometry correction follows the Owner screenshot: no top/bottom padding is added to main for mobile controls. Workspace owns absolute overlay surfaces; the mobile menu role receives explicit density compact for the 32px launcher and comfortable for the 44px bottom actions. Launcher surface padding is 2px. Manual acceptance of overlap, scroll/focus and both themes remains pending.

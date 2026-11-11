@@ -19,7 +19,20 @@ test('mobile items validate, order, update, contain failures and follow contribu
   await api.list()[1].onPress(); await stale.onPress(); assert.equal(calls,1);
   assert.equal(api.update({...item,onPress:()=>{throw new Error('Action failure');}}).ok,true);
   await api.list()[1].onPress(); assert.ok(s.logs.some(log=>log[2]==='Mobile action failed'));
+  const choices=[{id:'one',label:'One'},{id:'two',label:'Two'}];
+  const select={...item,choices,selectedChoiceId:'one',onPress:id=>{if (id==='two') calls++;}};
+  assert.equal(api.update({...select,selectedChoiceId:'unknown'}).ok,false);
+  assert.equal(api.update(select).ok,true);
+  const choiceAction=api.list()[1];
+  choices[1].id='changed';
+  assert.equal(choiceAction.choices[1].id,'two');
+  assert.ok(Object.isFrozen(choiceAction.choices[1]));
+  await choiceAction.onPress();
+  await choiceAction.onPress('changed');
+  assert.equal(calls,1);
+  await choiceAction.onPress('two');
+  assert.equal(calls,2);
   await owner.dispose(); await flush(); assert.deepEqual(api.list(),[]);
-  await stale.onPress(); assert.equal(calls,1);
+  await stale.onPress(); await choiceAction.onPress('two'); assert.equal(calls,2);
  } finally {await s.stop();}
 });

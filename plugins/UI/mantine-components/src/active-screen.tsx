@@ -1,6 +1,6 @@
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import type { PointerEvent } from "react";
-import { ActionIcon, Badge, Box, Button, Modal, Stack, Tabs } from "@mantine/core";
+import { ActionIcon, Badge, Box, Tabs } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import { Icon } from "./icons.js";
 import type { resolveTheme } from "./theme.js";
@@ -24,13 +24,6 @@ interface ScreenProps {
   readonly activeId: string | null;
   readonly onTargets: (targets: ReadonlyMap<string, HTMLElement> | null) => void;
   readonly tabs?: TabProps;
-  readonly mobileTabs?: MobileTabsProps;
-}
-
-interface MobileTabsProps {
-  readonly opened: boolean;
-  readonly dismissLabel: string;
-  readonly onClose: () => void;
 }
 
 interface TabProps {
@@ -68,13 +61,6 @@ export function activeScreenProps(value: ComponentProps): ScreenProps {
   if (!Array.isArray(value.ids) || value.ids.some(id => typeof id !== "string") || new Set(value.ids).size !== value.ids.length ||
       (value.activeId !== null && (typeof value.activeId !== "string" || !value.ids.includes(value.activeId))) || typeof value.onTargets !== "function") throw new TypeError("Invalid active screen props.");
   if (value.tabs !== undefined) validateTabs(value.tabs);
-  if (value.mobileTabs !== undefined) {
-    const mobile = value.mobileTabs as Partial<MobileTabsProps> | null;
-    if (!value.tabs || !mobile || typeof mobile.opened !== "boolean" ||
-        typeof mobile.dismissLabel !== "string" || typeof mobile.onClose !== "function") {
-      throw new TypeError("Invalid mobile tabs props.");
-    }
-  }
   return value as unknown as ScreenProps;
 }
 
@@ -228,35 +214,7 @@ function WorkspaceTabs({ props, panelId }: { props: TabProps; panelId: string })
   </Box>;
 }
 
-function MobileTabs({ tabs, props, theme, overlayId }: {
-  tabs: TabProps; props: MobileTabsProps; theme: ReturnType<typeof resolveTheme>; overlayId: string;
-}) {
-  return <Modal id={overlayId} opened={props.opened} onClose={props.onClose} title={tabs.labels.tabs}
-    closeButtonProps={{ "aria-label": props.dismissLabel, size: 44, icon: <Icon name="window-close" /> }}
-    size="xs" padding="sm" centered xOffset="1rem" yOffset="1rem" data-mantine-color-scheme={theme.scheme}
-    style={theme.contentStyle} transitionProps={{ duration: 0 }}
-    classNames={{ content: "lm-mobile-tabs-dialog", header: "lm-mobile-tabs-header",
-      title: "lm-mobile-tabs-title", close: "lm-mobile-tabs-close" }}>
-    <Stack gap={4} aria-busy={tabs.busy}>
-      {tabs.tabs.map(tab => {
-        const selected = tab.id === tabs.selectedId;
-        return <Button key={tab.id} fullWidth justify="space-between" className="lm-mobile-tabs-row lm-focus"
-          aria-current={selected ? "true" : undefined} data-autofocus={selected || undefined} aria-disabled={tabs.busy}
-          title={tab.description} rightSection={selected ? <Icon name="check" /> : undefined}
-          onClick={() => {
-            if (tabs.busy) return;
-            if (selected) props.onClose();
-            else void tabs.onSelect(tab.id).then(completed => { if (completed) props.onClose(); });
-          }}>{tab.title}</Button>;
-      })}
-      {tabs.error && <Box className="lm-workspace-tab-error" role="status">{tabs.error}</Box>}
-    </Stack>
-  </Modal>;
-}
-
-export function ActiveScreenView({ props, theme, overlayId }: {
-  props: ScreenProps; theme: ReturnType<typeof resolveTheme>; overlayId: string;
-}) {
+export function ActiveScreenView({ props, theme }: { props: ScreenProps; theme: ReturnType<typeof resolveTheme> }) {
   const panelId = useId();
   const targets = useRef(new Map<string, HTMLElement>());
   const signature = JSON.stringify(props.ids); const publish = props.onTargets;
@@ -264,7 +222,6 @@ export function ActiveScreenView({ props, theme, overlayId }: {
   useLayoutEffect(() => () => publish(null), [publish]);
   return <Box className="lm-active-screen" style={theme.contentStyle}>
     {props.tabs && <WorkspaceTabs props={props.tabs} panelId={panelId} />}
-    {props.tabs && props.mobileTabs && <MobileTabs tabs={props.tabs} props={props.mobileTabs} theme={theme} overlayId={overlayId} />}
     <Box className="lm-screen-content" id={panelId} role={props.tabs ? "tabpanel" : undefined}
       aria-labelledby={props.tabs?.selectedId ? `${panelId}-${props.tabs.selectedId}` : undefined}>
       {props.ids.map(id => <Box key={id} className="lm-screen-target" data-screen-id={id}

@@ -1,7 +1,7 @@
 # Mobile menu
 
 The mobile action registry is public through @lunaris/mobile-menu. Require
-api:lunaris.mobile-menu@^1.2.0 and call ctx.use(MobileMenu).register(item, owner).
+api:lunaris.mobile-menu@^1.3.0 and call ctx.use(MobileMenu).register(item, owner).
 Items have a canonical dotted id, already-localized nonempty label, Lucide icon,
 optional integer order, optional disabled boolean and onPress callback. register
 rejects duplicate IDs. update replaces a registered descriptor; list returns an
@@ -10,6 +10,10 @@ Owner cancellation removes the action and renders the new list. Stale callbacks
 and disabled actions do nothing. The provider logs failures with the original error.
 An optional nonnegative safe-integer count shows a page outline with the number
 in place of the icon. Supply a localized accessible label that includes the count.
+Optional choices contain a unique id, localized label and optional title.
+selectedChoiceId marks the current choice. The provider takes an immutable
+snapshot and passes only a valid choice ID to onPress. Plain actions keep the
+same no-argument callback.
 
 The default provider/controller is plugins/UI/mobile-menu. It owns registration
 and contributes the lunaris.mobile-menu UIKit role to Workspace 1.4's exclusive
@@ -58,14 +62,15 @@ with 2px surface padding) and comfortable for the bottom row (44px controls).
 
 The provider publishes each placement while it has registered actions. Active
 Screen contributes the leading bottom action for the mounted Vault. Its count
-includes blank tabs. The action opens a themed Mantine dialog whose rows select
-tabs through the same callbacks as the top strip. The Owner's highlighted mobile
+includes blank tabs. The action opens an anchored Mantine menu using the Files
+Vault switcher pattern. Its rows select tabs through the same callbacks as the
+top strip. The Owner's highlighted mobile
 panel defines the placement and rounded page-outline glyph. WorkspaceLayout owns
 the floating surface. Mobile Menu supplies its action and Active Screen supplies
 the tab list, selection and localized names.
 
 The composed test covers the initial counter, add/close, localized labels,
-selection from the dialog and Vault closure. Manual acceptance covers the
+selection from the menu and Vault closure. Manual acceptance covers the
 top-left launcher and bottom action in the real container, both themes, portrait
 and landscape, scroll gestures, keyboard focus and the opened tab list.
 

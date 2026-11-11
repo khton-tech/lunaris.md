@@ -130,7 +130,7 @@ test('compact Workspace shows one live tab counter and switches through the shar
   const s = await setup({ mobileMenu: true, sidebar: true });
   const { document, HTMLElement, DOMRect } = s.dom.window;
   HTMLElement.prototype.getBoundingClientRect = () => new DOMRect(0, 0, 360, 720);
-  const dialog = () => document.querySelector('[role="dialog"]');
+  const menu = () => document.querySelector('.lm-mobile-choice-menu[role="menu"]');
   try {
     const stylesheet = document.createElement('style');
     stylesheet.textContent = readFileSync(new URL('../../mantine-components/styles.css', import.meta.url), 'utf8')
@@ -160,32 +160,27 @@ test('compact Workspace shows one live tab counter and switches through the shar
     button.focus();
     button.click();
     await flush();
-    assert.equal(dialog()?.querySelector('[aria-current="true"]')?.textContent, 'Новая вкладка');
-    const modalRoot = dialog().closest('.mantine-Modal-root');
-    const close = dialog().querySelector('button[aria-label="Скрыть список вкладок"]');
+    assert.equal(button.getAttribute('aria-expanded'), 'true');
+    assert.equal(button.getAttribute('aria-controls'), menu().id);
+    assert.equal(menu().querySelector('[aria-current="true"]')?.textContent, 'Новая вкладка');
+    assert.equal(menu().classList.contains('lm-explorer-tab-menu'), true);
+    const overlay = menu().closest('.lm-mobile-choice-overlay');
+    assert.ok(overlay);
+    assert.equal(s.surface.contains(menu()), false);
     const computed = s.dom.window.getComputedStyle;
-    assert.equal(computed(close).display, 'inline-flex');
-    assert.equal(computed(close).flexShrink, '0');
-    assert.equal(close.querySelector('svg').getAttribute('width'), '1.15em');
-    assert.equal(computed(dialog().querySelector('.lm-mobile-tabs-row')).minBlockSize, '44px');
+    assert.equal(computed(menu().querySelector('[role="menuitem"]')).minHeight, '44px');
     assert.ok([...document.styleSheets].some(sheet => [...sheet.cssRules].some(rule =>
-      rule.selectorText?.includes(`#${modalRoot.id}`) && rule.style?.getPropertyValue('--mantine-scale') === '1')));
-    close.click();
-    await flush();
-    assert.equal(dialog(), null);
-    button.focus();
-    button.click();
-    await flush();
-    document.activeElement.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      rule.selectorText?.includes(`#${overlay.id}`) && rule.style?.getPropertyValue('--mantine-scale') === '1')));
+    menu().dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     await delay(30);
-    assert.equal(dialog(), null);
+    assert.equal(menu(), null);
     assert.equal(document.activeElement, button);
     button.click();
     await flush();
-    const row = [...dialog().querySelectorAll('button')].find(item => item.textContent === 'First screen');
+    const row = [...menu().querySelectorAll('[role="menuitem"]')].find(item => item.textContent === 'First screen');
     row.click();
     await flush();
-    assert.equal(dialog(), null);
+    assert.equal(menu(), null);
     assert.equal(s.tools.screens.snapshot().activeId, 'test.one');
     assert.equal(button.textContent, '2');
 
@@ -195,10 +190,10 @@ test('compact Workspace shows one live tab counter and switches through the shar
     assert.equal(button.getAttribute('aria-label'), 'Открытые вкладки: 1');
     button.click();
     await flush();
-    assert.ok(dialog());
+    assert.ok(menu());
     await s.service.close();
     await flush();
-    assert.equal(dialog(), null);
+    assert.equal(menu(), null);
     assert.deepEqual(s.tools.mobileMenu.list().filter(item => item.placement !== 'launcher'), []);
   } finally { await s.stop(); }
 });

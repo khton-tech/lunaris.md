@@ -3,8 +3,28 @@ import type { CancellationSignal, ResourceScope } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
 import { Workspace } from "@lunaris/workspace";
 import { MobileMenu } from "@lunaris/mobile-menu";
-import type { MobileMenuApi, MobileMenuItem } from "@lunaris/mobile-menu";
+import type { MobileMenuApi, MobileMenuChoice, MobileMenuItem } from "@lunaris/mobile-menu";
 import manifest from "../manifest.json" with { type: "json" };
+
+function copyChoices(input: unknown): readonly MobileMenuChoice[] | undefined {
+ if (!Array.isArray(input) || !input.length) return;
+ const choices: MobileMenuChoice[] = [];
+ const ids = new Set<string>();
+ for (const choice of input) {
+  if (!choice || typeof choice !== "object" || ![Object.prototype, null].includes(Object.getPrototypeOf(choice))) return;
+  const fields = Object.getOwnPropertyDescriptors(choice);
+  if (Reflect.ownKeys(fields).some(key => typeof key !== "string" ||
+    !["id", "label", "title"].includes(key) || !("value" in fields[key]!))) return;
+  const id: unknown = fields.id?.value;
+  const label: unknown = fields.label?.value;
+  const title: unknown = fields.title?.value;
+  if (typeof id !== "string" || !id.trim() || ids.has(id) || typeof label !== "string" || !label.trim() ||
+    (title !== undefined && typeof title !== "string")) return;
+  ids.add(id);
+  choices.push(Object.freeze({ id, label, ...(title === undefined ? {} : { title }) }));
+ }
+ return Object.freeze(choices);
+}
 export default definePlugin({ manifest, activate(ctx) {
  const logger = scopeLogger(ctx.use(Logger), ctx.signal); const workspace = ctx.use(Workspace);
  const entries = new Map<string, { item: MobileMenuItem; owner: CancellationSignal; remove: () => void }>();
@@ -41,11 +61,25 @@ export default definePlugin({ manifest, activate(ctx) {
  const copy = (input: MobileMenuItem): MobileMenuItem | undefined => {
   if (!input || typeof input !== "object" || ![Object.prototype, null].includes(Object.getPrototypeOf(input))) return;
   const fields = Object.getOwnPropertyDescriptors(input);
-  if (Reflect.ownKeys(fields).some(key => typeof key !== "string" || !["id","label","icon","order","disabled","onPress","placement","count"].includes(key) || !("value" in fields[key]!))) return;
+  if (Reflect.ownKeys(fields).some(key => typeof key !== "string" || !["id","label","icon","order","disabled","onPress","placement","count","choices","selectedChoiceId"].includes(key) || !("value" in fields[key]!))) return;
   if ((input.placement !== undefined && !["panel","launcher"].includes(input.placement)) || typeof input.id !== "string" || !/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/.test(input.id) || typeof input.label !== "string" || !input.label.trim() || typeof input.icon !== "string" || typeof input.onPress !== "function" || (input.order !== undefined && !Number.isSafeInteger(input.order)) || (input.disabled !== undefined && typeof input.disabled !== "boolean")) return;
   if (input.count !== undefined && (!Number.isSafeInteger(input.count) || input.count < 0)) return;
+  const choices = input.choices === undefined ? undefined : copyChoices(input.choices);
+  if ((input.choices !== undefined && !choices) ||
+    (input.selectedChoiceId != null && !choices?.some(choice => choice.id === input.selectedChoiceId))) return;
   const action = input.onPress;
-  const item: MobileMenuItem = Object.freeze({ ...input, onPress: async () => { const current = entries.get(item.id); if (ctx.signal.aborted || !current || current.item !== item || current.owner.aborted || item.disabled) return; try { await action(); if (!ctx.signal.aborted) logger.info(ctx.pluginId, "Mobile action completed", { data: { id: item.id } }); } catch(error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Mobile action failed", { error, data: { id: item.id } }); } } });
+  const item: MobileMenuItem = Object.freeze({ ...input, ...(choices ? { choices } : {}), async onPress(choiceId?: string) {
+   const current = entries.get(item.id);
+   if (ctx.signal.aborted || !current || current.item !== item || current.owner.aborted || item.disabled) return;
+   if (choices && !choices.some(choice => choice.id === choiceId)) return;
+   try {
+    if (choices) await action(choiceId);
+    else await action();
+    if (!ctx.signal.aborted) logger.info(ctx.pluginId, "Mobile action completed", { data: { id: item.id } });
+   } catch (error) {
+    if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Mobile action failed", { error, data: { id: item.id } });
+   }
+  } });
   return item;
  };
  const api: MobileMenuApi = {

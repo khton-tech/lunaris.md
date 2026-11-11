@@ -29,7 +29,7 @@ const catalogs = { en: {
   empty: "No workspace plugins", emptyDetail: "Content will appear here when a workspace plugin is available.",
   unavailable: "Screen unavailable", unavailableDetail: "The selected screen could not be displayed.",
   newTab: "New tab", workspaceView: "Workspace view", tabs: "Workspace tabs",
-  mobileTabs: "Open tabs: {count}", dismissTabs: "Dismiss open tabs",
+  mobileTabs: "Open tabs: {count}",
   closeTab: "Close tab", back: "Back", forward: "Forward", tabFailed: "Could not complete the tab action.",
   blank: "Choose a file to open",
 }, ru: russian };
@@ -69,8 +69,7 @@ export default definePlugin({ manifest, activate(ctx) {
     if (typeof vaultId !== "string") throw new TypeError("Workspace context is required.");
     const owner = ctx.scope.child(); const cache = new Map<string, CachedScreen>();
     let disposed = false; let props = initial; let layout: MountedComponent | undefined; let layoutOwner: ResourceScope | undefined;
-    let mobileItem: MobileMenuItem | undefined;
-    let mobileTabsOpen = false;
+    let mobileSignature: string | undefined;
     let rendering = false; let pending = false;
     let targets: ReadonlyMap<string, HTMLElement> | null = null;
     let placeholder: MountedComponent | undefined; let placeholderOwner: ResourceScope | undefined;
@@ -88,28 +87,25 @@ export default definePlugin({ manifest, activate(ctx) {
       clearCache();
       if (layoutOwner) release(layoutOwner);
       layoutOwner = undefined; layout = undefined; targets = null;
-      mobileItem = undefined; mobileTabsOpen = false;
+      mobileSignature = undefined;
     }
-    function closeMobileTabs(): void {
-      if (!live() || !mobileTabsOpen) return;
-      mobileTabsOpen = false;
-      refresh();
-    }
-    function publishMobileTabs(count: number): void {
+    function publishMobileTabs(tabProps: ReturnType<WorkspaceTabs["presentation"]>): void {
       if (!mobileMenu || !layoutOwner) return;
+      const choices = tabProps.tabs.map(tab => ({ id: tab.id, label: tab.title.trim() ? tab.title : tab.description, title: tab.description }));
+      const count = choices.length;
       const label = localization.text(ctx.pluginId, "mobileTabs", { count });
-      if (mobileItem?.count === count && mobileItem.label === label) return;
+      const selectedChoiceId = tabProps.selectedId;
+      const signature = JSON.stringify([label, choices, selectedChoiceId]);
+      if (signature === mobileSignature) return;
       const item: MobileMenuItem = {
-        id: `${ctx.pluginId}.tabs`, label, icon: "file", count, order: 0,
-        onPress() {
-          if (!live() || !layout || mobileTabsOpen) return;
-          mobileTabsOpen = true;
-          refresh();
+        id: `${ctx.pluginId}.tabs`, label, icon: "file", count, order: 0, choices, selectedChoiceId,
+        async onPress(id) {
+          if (id && live()) await tabProps.onSelect(id);
         },
       };
       try {
-        const result = mobileItem ? mobileMenu.update(item) : mobileMenu.register(item, layoutOwner.signal);
-        if (result.ok) mobileItem = item;
+        const result = mobileSignature ? mobileMenu.update(item) : mobileMenu.register(item, layoutOwner.signal);
+        if (result.ok) mobileSignature = signature;
         else logger.warn(ctx.pluginId, "Cannot publish mobile tabs action", { data: { error: result.error } });
       } catch (error) {
         if (!isSdkUnavailable(error)) throw error;
@@ -153,8 +149,7 @@ export default definePlugin({ manifest, activate(ctx) {
       }
       const placeholderId = "__placeholder";
       const tabProps = tabs.presentation(snapshot);
-      const mobileTabs = mobileMenu ? { opened: mobileTabsOpen, dismissLabel: text("dismissTabs"), onClose: closeMobileTabs } : undefined;
-      const layoutProps = { ids: [...visited, placeholderId], activeId: snapshot.activeId, tabs: tabProps, mobileTabs,
+      const layoutProps = { ids: [...visited, placeholderId], activeId: snapshot.activeId, tabs: tabProps,
         onTargets, presentation: { mode: "embedded", sizing: "fill" } };
       if (layout) {
         const updated = layout.update(layoutProps);
@@ -170,7 +165,7 @@ export default definePlugin({ manifest, activate(ctx) {
         if (!mounted.ok) { logger.error(ctx.pluginId, "Cannot mount active screen layout", { error: mounted.error }); clearLayout(); showPlaceholder(target, "unavailable"); return; }
         layout = mounted.value;
       }
-      publishMobileTabs(tabProps.tabs.length);
+      publishMobileTabs(tabProps);
       let visible = false;
       for (const screen of snapshot.screens) {
         if (!visited.has(screen.id)) continue;
