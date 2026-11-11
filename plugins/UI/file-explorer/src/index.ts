@@ -142,7 +142,17 @@ export default definePlugin({ manifest, async activate(ctx) {
     }
     changed();
   }
-  ctx.events.on(ActiveDocumentChanged, () => { changed(); void revealActive().catch(error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot reveal active document", { error }); }); });
+  let previousDocument = documents.current();
+  ctx.events.on(ActiveDocumentChanged, () => {
+    const active = documents.current();
+    const previous = previousDocument; previousDocument = active;
+    // Retire a single old document selection, preserving deliberate operation selections.
+    if (model?.active && previous?.vaultId === model.vaultId &&
+        (active?.vaultId !== previous.vaultId || active?.path !== previous.path) &&
+        model.selection.length === 1 && model.selection[0] === previous.path) model.select([]);
+    changed();
+    void revealActive().catch(error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot reveal active document", { error }); });
+  });
   ctx.events.on(FileChanged, change => {
     if (change.vaultId === model?.vaultId && change.watchId === watchId) requestRefresh();
   });

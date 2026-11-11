@@ -141,3 +141,7 @@ Watch-driven rescans keep loading controls stable and publish only changed names
 ## Awaited preparation integration
 
 The optional Preparation API awaits watch/tree initialization in the content phase. Preference readiness synchronizes the current Vault before waiting, so preparation does not depend on VaultChanged notification order. Already prepared Vaults are not initialized again on notification. Sidebar/Workspace/Mantine integration continues through existing SDK roles; native first-paint acceptance remains manual.
+
+## Document navigation selection
+
+Reference: the Owner screenshot showing a gray previous-file row beside the newly active tab's accent row. The gray state is temporary operation selection, not CSS hover. On ActiveDocumentChanged, Explorer clears a single selection matching the former active document when the document identity changes. Folder selections, unrelated selections and multi-selection remain intact. The active marker still comes from ActiveDocument. Workspace owns surfaces, Sidebar lends the panel, and Mantine renders the existing role; no style or DOM ownership changes are introduced. SDK controller tests cover navigation and retained operation selections. Native top-tab/pointer/focus acceptance remains manual.

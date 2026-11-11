@@ -148,6 +148,22 @@ test('explorer opens shared contributions with explicit invocation context and e
 });
 
 
+test('document navigation clears only the single former document selection', async () => {
+  const s = await setup();
+  await s.tab().props.onOpen('file-a.md'); s.tab().props.onSelection(['file-a.md']); await flush();
+  // ActiveDocument is also the public path used by the top tabs.
+  await s.tab().props.onOpen('folder/note-a.md'); await flush();
+  assert.deepEqual(s.tab().props.selection, []);
+  assert.equal(s.tab().props.activePath, 'folder/note-a.md');
+  s.tab().props.onSelection(['folder']); await flush();
+  await s.tab().props.onOpen('file-a.md'); await flush();
+  assert.deepEqual(s.tab().props.selection, ['folder']);
+  s.tab().props.onSelection(['file-a.md', 'folder/note-a.md']); await flush();
+  await s.tab().props.onOpen('folder/note-a.md'); await flush();
+  assert.deepEqual(s.tab().props.selection, ['file-a.md', 'folder/note-a.md']);
+  await s.kernel.stopAll(); s.kernel.assertNoResources();
+});
+
 test('active document events reveal its parents and selection clearing does not close it', async () => {
   const s = await setup();
   await s.tab().props.onOpen('folder/note-a.md'); await flush();
