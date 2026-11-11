@@ -99,14 +99,15 @@
 .lm-workspace-layout:is([data-panel],[data-rail]):not([data-window-chrome],[data-compact]) .lm-workspace-main {
   border-start-start-radius:var(--vault-radius)
 }
-.lm-workspace-layout[data-bottom]:not([data-window-chrome],[data-compact]) .lm-workspace-main {
-  border-block-end:var(--vault-border) solid var(--vault-separator)
+.lm-workspace-layout[data-bottom]:not([data-window-chrome],[data-compact]) .lm-workspace-main-pane {
+  background:color-mix(in srgb,var(--vault-panel) 40%,var(--vault-background))
 }
-.lm-workspace-layout[data-bottom]:is([data-panel],[data-rail]):not([data-window-chrome],[data-compact]) .lm-workspace-main {
-  border-end-start-radius:var(--vault-radius)
+.lm-workspace-layout[data-bottom]:not([data-window-chrome],[data-compact]) .lm-workspace-main {
+  border-block-end:var(--vault-border) solid color-mix(in srgb,var(--vault-separator) 65%,transparent);
+  border-end-start-radius:var(--vault-radius);border-end-end-radius:var(--vault-radius)
 }
 .lm-workspace-layout:not([data-window-chrome],[data-compact]) .lm-workspace-bottom {
-  min-height:30px;margin:0;background:var(--vault-background);border-radius:0
+  min-height:32px;margin:0;background:transparent;border-radius:0
 }
 .lm-workspace-layout:not([data-window-chrome],[data-compact]) .lm-sidebar-rail { padding:10px 0 }
 .lm-workspace-layout:not([data-window-chrome],[data-compact]) .lm-sidebar-tab { width:36px;height:36px;border-radius:6px }
@@ -523,6 +524,9 @@
 .lm-status-server,.lm-status-metric { display:inline-flex;align-items:center;gap:var(--vault-space);flex:0 0 auto;color:var(--vault-secondary) }
 .lm-status-counts { flex:0 0 auto;margin-inline-start:auto;font-variant-numeric:tabular-nums }
 .lm-status-metric + .lm-status-metric { border-inline-start:var(--vault-border) solid var(--vault-separator);padding-inline-start:12px }
+.lm-root[data-window-chrome=false]>.lm-status-bar { padding-inline:calc(var(--vault-space)*3) }
+.lm-root[data-window-chrome=false]>.lm-status-bar .lm-status-file { color:var(--vault-secondary) }
+.lm-root[data-window-chrome=false]>.lm-status-bar .lm-status-metric + .lm-status-metric { border:0;padding-inline-start:0 }
 .lm-status-bar svg { flex:none;width:1.15em;height:1.15em }
 
 .lm-root .lm-context-composite { padding:0;border:0;background:transparent;box-shadow:none;display:flex;flex-direction:column;gap:calc(var(--vault-space)*1.5);overflow:visible }

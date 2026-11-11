@@ -884,7 +884,7 @@ sort callbacks and disabled controls. Native visual acceptance remains pending:
 both themes, open menu, selection/focus and narrow/short Workspace layouts.
 
 The FigCraft Lunaris design code sets the desktop rail to 56px, the default tool
-panel to 256px, and the status surface to 30px. WorkspaceLayout owns these surfaces
+panel to 256px, and the status surface to a minimum of 32px. WorkspaceLayout owns these surfaces
 and uses a single subdued divider at each shared desktop join. The Owner's
 close-up of the desktop shell is the reference for the rounded panel top and
 the workspace corners beside the panel and status bar. The panel owns its
@@ -898,6 +898,12 @@ Settings and status bar. Native acceptance covers Everforest and Lunaris, includ
 open menus, focus and narrow Workspace allocations.
 
 ## Workspace bottom target
+
+The Owner's desktop status-bar screenshot is the reference for the lower join.
+Workspace rounds both bottom corners of the editor surface above a subtly
+tinted footer. The status role uses muted labels and spacing between metrics.
+The existing bottom target and status role props connect the two surfaces.
+Check the join with the Files panel open and closed in native acceptance.
 
 WorkspaceLayout accepts optional bottomVisible and lends a stable bottom target beneath main within its pane. The layout owns Paper surface, spacing, corners and overflow. Embedded/content views inherit this surface. Files and the rail retain full height. Targets survive theme, visibility and prop updates.
 
