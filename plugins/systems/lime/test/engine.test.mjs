@@ -15,10 +15,10 @@ const failure = code => ({ ok: false, error: { code, message: code } });
 function packageBytes(version = '1.0.0', id = 'test.package') {
   const manifest = { manifestVersion: 1, id, version, engine: '^0.1.0', sdk: '^0.1.0', entry: './plugin.js', metadata: { name: 'Plugin', author: 'Author', description: 'A package', platforms: ['desktop'], languages: ['en'] }, provides: [], requires: [], permissions: [], optionalPermissions: [] };
   const encode = text => new TextEncoder().encode(text);
-  return packLup([{ path: 'manifest.json', data: encode(JSON.stringify(manifest)) }, { path: 'plugin.js', data: encode(`throw Error('preview must not evaluate');`) }]);
+  return packLup([{ path: 'manifest.json', data: encode(JSON.stringify(manifest)) }, { path: 'plugin.js', data: encode(`throw Error('preview must not evaluate');`) }, { path: 'assets/example.json', data: encode('{"message":"Hello"}') }]);
 }
 async function fixture(options = {}) {
-  const kernel = createTestKernel(); const files = new Map(); const selected = []; const executions = []; const runtimes = new Map(); const settings = new Map(); const configCalls = [];
+  const kernel = createTestKernel(); const files = new Map(); const selected = []; const executions = []; const runtimes = new Map(); const settings = new Map(); const configCalls = []; const sources = [];
   let root = { id: 'vault-a', name: 'A' }; let participant; let api; let revision = 0; let failWrites = false; let failActivation = false; let failConfig = false;
   kernel.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(name => [name, () => true])));
   if (options.bootSafeMode) kernel.installMock(LimeBootPolicy, { safeMode: () => true });
@@ -47,7 +47,7 @@ async function fixture(options = {}) {
   kernel.installMock(LimePackagePicker, { async pick(owner) { const value = selected.shift() ?? null; return ok(typeof value === 'function' ? await value(owner) : value); } });
   kernel.installMock(LimeRuntime, {
     async open() { runtimes.clear(); return ok(null); }, async close() { runtimes.clear(); return ok(null); }, snapshot() { return ok([...runtimes.values()]); },
-    async register(env, manifest, source, enabled) { if (manifest.id === 'test.builtin') return failure('CONFLICT'); runtimes.set(manifest.id, { id: manifest.id, version: manifest.version, state: enabled ? 'active' : 'disabled' }); return ok(null); },
+    async register(env, manifest, source, enabled) { if (manifest.id === 'test.builtin') return failure('CONFLICT'); sources.push(source); runtimes.set(manifest.id, { id: manifest.id, version: manifest.version, state: enabled ? 'active' : 'disabled' }); return ok(null); },
     async enable(env, id) { if (failActivation) { runtimes.get(id).state = 'failed'; return failure('RUNTIME_FAILED'); } executions.push(id); runtimes.get(id).state = 'active'; return ok(null); },
     async disable(env, id) { runtimes.get(id).state = 'disabled'; return ok(null); },
     async replace(env, manifest) { if (failActivation) return failure('RUNTIME_FAILED'); runtimes.get(manifest.id).version = manifest.version; return ok(null); },
@@ -58,7 +58,7 @@ async function fixture(options = {}) {
   kernel.register(definePlugin({ manifest: { manifestVersion: 1, id: 'test.consumer', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides: [], requires: [{ kind: 'api', id: Lime.id, range: '^1.0.0' }], permissions: ['runtime.manage'], optionalPermissions: [] }, activate(ctx) { api = ctx.use(Lime); } }));
   kernel.grant('test.consumer', 'runtime.manage');
   await kernel.start('test.consumer'); await api.restore();
-  return { kernel, files, selected, executions, runtimes, settings, configCalls, api, get participant() { return participant; }, setRoot: value => { root = value; }, setFailWrites: value => { failWrites = value; }, setFailActivation: value => { failActivation = value; }, setFailConfig: value => { failConfig = value; } };
+  return { kernel, files, selected, executions, runtimes, settings, configCalls, sources, api, get participant() { return participant; }, setRoot: value => { root = value; }, setFailWrites: value => { failWrites = value; }, setFailActivation: value => { failActivation = value; }, setFailConfig: value => { failConfig = value; } };
 }
 
 test('preview is inert and exact-byte confirmation persists only in the captured Vault', async () => {
@@ -67,6 +67,8 @@ test('preview is inert and exact-byte confirmation persists only in the captured
   assert.equal((await f.api.install(preview.value.ticket)).ok, true);
   assert.deepEqual(f.executions, ['test.package']); assert.equal(f.api.snapshot().installations[0].enabled, true);
   assert.equal(f.api.snapshot().installations[0].recoveryRequired, false);
+  assert.deepEqual(f.sources[0].resources, { 'assets/example.json': [...new TextEncoder().encode('{"message":"Hello"}')] });
+  assert.equal(f.sources[0].resources['manifest.json'], undefined);
   assert.ok([...f.files.keys()].every(key => key.startsWith('vault-a:.lunaris/plugins/')));
   assert.equal((await f.api.install(preview.value.ticket)).error.code, 'STALE');
   await f.kernel.stopAll(); f.kernel.assertNoResources();

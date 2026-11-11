@@ -1,4 +1,4 @@
-import { definePlugin, LunarisError } from "@lunaris/sdk";
+import { capturePackageResources, definePlugin, LunarisError } from "@lunaris/sdk";
 import type { ApiToken, CancellationSignal, PluginContext, PluginDefinition, PluginManifest } from "@lunaris/sdk";
 import type { ExecutionLimits, ExecutionRealm, ExecutionSource, ExecutionValue } from "@lunaris/execution";
 import { createRealm } from "./realm.js";
@@ -189,6 +189,7 @@ function scopedContext(ctx: PluginContext, vaultId: string): PluginContext {
 /** An isolated definition evaluates fresh code for each activation and cleans last. */
 export function isolatedDefinition(manifest: PluginManifest, source: ExecutionSource, environment: { readonly vaultId: string; readonly generation: number }, owner: CancellationSignal, driver: CancellationSignal, limits?: ExecutionLimits): PluginDefinition {
   const captured = { entry: source.entry, modules: Object.freeze({ ...source.modules }) };
+  const resources = capturePackageResources(source.resources);
   const bound = Object.freeze({ ...environment });
   return definePlugin({ manifest, async activate(ctx) {
     const bridge = new Bridge();
@@ -204,7 +205,8 @@ export function isolatedDefinition(manifest: PluginManifest, source: ExecutionSo
       const actual = realm.call('__sdkManifest', []);
       const canonical = (value: unknown): string => JSON.stringify(value, (_key, item: unknown) => item && typeof item === 'object' && !Array.isArray(item) ? Object.fromEntries(Object.entries(item).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0)) : item);
       if (canonical(actual) !== canonical(manifest)) throw new Error('Package entry manifest differs from inspected metadata.');
-      return await bridge.unpack(realm.call('__sdkActivate', [bridge.pack(scopedContext(ctx, bound.vaultId))])) as Awaited<ReturnType<PluginDefinition['activate']>>;
+      const context = { ...ctx, resources: resources(ctx.signal) };
+      return await bridge.unpack(realm.call('__sdkActivate', [bridge.pack(scopedContext(context, bound.vaultId))])) as Awaited<ReturnType<PluginDefinition['activate']>>;
     } catch (error) {
       // Once owned, kernel rollback must run guest disposers before this realm's
       // final disposer. Early VM destruction would turn safe rollback into failure.

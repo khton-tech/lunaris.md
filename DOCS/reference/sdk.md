@@ -22,6 +22,10 @@ export default definePlugin({
 
 ## Typed contracts
 
+The context also exposes activation-bound [package resources](package-resources.md)
+through `ctx.resources.list()`, `read()` and `text()`. These read captured assets
+only and revoke access on stop; they do not expose filesystem authority.
+
 ```ts
 import { defineApi, defineEvent, defineHook } from "@lunaris/sdk";
 

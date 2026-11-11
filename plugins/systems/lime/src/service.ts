@@ -17,7 +17,8 @@ const fail = (code: 'BUSY' | 'NO_VAULT' | 'STALE' | 'INVALID_PACKAGE' | 'STORAGE
 function source(preview: InspectedLup): ExecutionSource {
   const decoder = new TextDecoder('utf-8', { fatal: true }); const modules: Record<string, string> = {};
   for (const path of preview.paths) if (/\.(?:mjs|js)$/.test(path)) modules[path] = decoder.decode(preview.read(path)!);
-  return { entry: preview.manifest.entry.slice(2), modules };
+  const resources = Object.fromEntries(preview.paths.filter(path => path.startsWith('assets/')).map(path => [path, Array.from(preview.read(path)!)]));
+  return { entry: preview.manifest.entry.slice(2), modules, resources };
 }
 
 export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | 'mobile', initialSafeMode = false): void {

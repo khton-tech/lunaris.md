@@ -89,9 +89,11 @@ WASM asset; real WebView/browser CSP execution and native authority acceptance
 remain unverified. Tauri CSP permits wasm-unsafe-eval for the built-in interpreter,
 while ordinary host unsafe-eval, arbitrary frames and objects remain forbidden.
 
-Still required: complete host-contract authority review, scoped
-renderer contract for arbitrary viewports, Vault transition generation orchestration,
-package loader, Lime runtime management and safe-mode host composition. In
-particular this low-level JSON facade is not a replacement for the complete SDK
-authoring surface, and full extension parity is not yet established. Do not give
-third-party manifests the privileged execution-management token automatically.
+The SDK adapter delivers captured `assets/` through `ctx.resources`; the host and
+guest use the same bounded reader semantics, without a host path or URL. Capture
+happens before queued activation. Update rollback restores the old byte snapshot.
+Public declarative Views/viewport, awaited Vault orchestration, Lime loading,
+runtime management and host safe-mode composition are implemented separately.
+Still required: complete host-contract authority review and native/WebView
+acceptance. Full extension parity is not yet established. Do not give third-party
+code the privileged execution-management API through the broker.

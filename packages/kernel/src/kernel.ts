@@ -1,6 +1,6 @@
 import { validateManifest } from "@lunaris/manifest";
-import { contractKey, definePlugin, LunarisError } from "@lunaris/sdk";
-import type { ApiToken, ContractKind, ErrorCode, PluginContext, PluginDefinition } from "@lunaris/sdk";
+import { capturePackageResources, contractKey, definePlugin, LunarisError } from "@lunaris/sdk";
+import type { ApiToken, ContractKind, ErrorCode, PluginContext, PluginDefinition, PackageResourceFiles } from "@lunaris/sdk";
 import { Diagnostics } from "./diagnostics.js";
 import { OwnedScope } from "./scope.js";
 import type { Kernel, KernelOptions, KernelSnapshot, Scheduler } from "./types.js";
@@ -72,12 +72,12 @@ class Runtime {
     if (this.#mutating) throw new LunarisError("LIFECYCLE_INVALID", "A registry mutation is in progress; await it before management calls.");
   }
 
-  register = (definition: PluginDefinition, options: { readonly ownerId?: string } = {}): void => {
+  register = (definition: PluginDefinition, options: { readonly ownerId?: string; readonly resources?: PackageResourceFiles } = {}): void => {
     this.#externalGuard();
-    this.#register(definition, options.ownerId);
+    this.#register(definition, options.ownerId, undefined, capturePackageResources(options.resources));
   };
 
-  #register(definition: PluginDefinition, ownerId?: string, grants?: readonly string[]): void {
+  #register(definition: PluginDefinition, ownerId?: string, grants?: readonly string[], resources = capturePackageResources()): void {
     const checked = definePlugin(definition);
     const id = checked.manifest.id;
     const compatibility = validateManifest(checked.manifest, { engineVersion: "0.1.0", sdkVersion: "0.1.0" });
@@ -90,7 +90,7 @@ class Runtime {
       throw new LunarisError("PLUGIN_DUPLICATE", "Plugin ID is already registered.", { pluginId: id });
     }
     if (ownerId !== undefined && (ownerId === id || !this.#plugins.has(ownerId))) throw new LunarisError('LIFECYCLE_INVALID', 'Lifecycle owner must be a different registered plugin.', { pluginId: id });
-    const record: Registration = { definition: checked, ...(ownerId === undefined ? {} : { ownerId }), state: "registered", tail: Promise.resolve() };
+    const record: Registration = { definition: checked, resources, ...(ownerId === undefined ? {} : { ownerId }), state: "registered", tail: Promise.resolve() };
     this.#permissions.register(record, grants);
     this.#plugins.set(id, record);
     this.#dependencies.register(checked.manifest);
@@ -141,6 +141,7 @@ class Runtime {
     return Object.freeze({
       pluginId: record.definition.manifest.id, activationId: activation.id,
       signal: activation.scope.facade.signal, scope: activation.scope.facade,
+      resources: record.resources(activation.scope.facade.signal),
       provide: <T extends object>(token: ApiToken<T>, implementation: T) => this.#api.provide(record, activation, token, implementation),
       use: <T extends object>(token: ApiToken<T>): T => this.#api.use(record, activation, token, false)!,
       optional: <T extends object>(token: ApiToken<T>): T | undefined => this.#api.use(record, activation, token, true),
@@ -431,9 +432,10 @@ class Runtime {
     } finally { this.#mutating = false; }
   };
 
-  replace = async (definition: PluginDefinition, options: { readonly grants?: readonly string[] } = {}): Promise<void> => {
+  replace = async (definition: PluginDefinition, options: { readonly grants?: readonly string[]; readonly resources?: PackageResourceFiles } = {}): Promise<void> => {
     // Validate the candidate before stopping anything or reserving a mutation.
     const checked = definePlugin(definition);
+    const resources = capturePackageResources(options.resources);
     const compatibility = validateManifest(checked.manifest, { engineVersion: "0.1.0", sdkVersion: "0.1.0" });
     if (!compatibility.ok) throw new LunarisError("VERSION_INCOMPATIBLE", "Replacement is incompatible.", { pluginId: checked.manifest.id }, { cause: compatibility.diagnostics });
     const id = checked.manifest.id;
@@ -453,7 +455,7 @@ class Runtime {
       installed = true;
       try {
         const nextGrants = requested ?? grants.filter(name => declared.includes(name));
-        this.#register(checked, previous.ownerId, nextGrants);
+        this.#register(checked, previous.ownerId, nextGrants, resources);
         this.#restoreGrants(checked, nextGrants);
         // A changed consumer declaration cannot inherit invalid selections.
         for (const key of this.#selections.keys()) if (key.startsWith(`${id}/`) && !checked.manifest.requires.some(requirement => key === `${id}/${requirementKey(requirement)}`)) this.#selections.delete(key);
@@ -469,7 +471,7 @@ class Runtime {
             this.#remove(candidate);
           }
           this.#selections = selections;
-          this.#register(previous.definition, previous.ownerId, grants);
+          this.#register(previous.definition, previous.ownerId, grants, previous.resources);
           this.#restoreGrants(previous.definition, grants);
           for (const consumer of active) await this.#start(consumer);
         } catch (rollback) {

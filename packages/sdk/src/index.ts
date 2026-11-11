@@ -12,6 +12,8 @@ export type {
 } from "@lunaris/manifest";
 
 export type { CancellationSignal, Disposable, MaybePromise, PluginContext, ResourceScope } from "./context.js";
+export type { PackageResources, PackageResourceFiles } from './resources.js';
+export { capturePackageResources } from './resources.js';
 export type { PluginDefinition, PluginInput } from "./plugin.js";
 export { definePlugin } from "./plugin.js";
 export type { ErrorCode, ErrorContext } from "./errors.js";

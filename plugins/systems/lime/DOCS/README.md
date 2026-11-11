@@ -75,6 +75,10 @@ the independent recovery shell exposes the action in both hosts. This is not yet
 verified recovery from every essential provider replacement. All archive/module reads/writes
 use public Filesystem with explicit captured Vault IDs.
 
+The execution source includes only inspected `assets/` entries as package
+resources. Installed code reads them through `ctx.resources`, with bounded
+immutable copies and activation revocation. Manifest/source files are excluded.
+
 ## Verification and remaining integration
 
 Headless engine tests use public SDK mocks for storage/runtime and cover inert
@@ -84,7 +88,8 @@ Actual Kernel/QuickJS runtime tests are separate host adapter evidence.
 
 Still pending: staging/update orphan cleanup,
 managed-data migration backup/rollback, dependency/provider-choice disclosure,
-arbitrary view support and complete native/browser acceptance. The shared host now
+complete native/browser acceptance. Public declarative Views/viewport and package
+resources are implemented through SDK contracts. The shared host now
 composes the engine, SDK execution driver, picker, runtime adapter and Lime Settings.
 Lime management requires the host-only runtime.manage contract; guest code cannot
 use it through the execution broker. An update can run arbitrary package side effects against the Vault;

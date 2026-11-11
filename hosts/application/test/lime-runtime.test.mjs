@@ -86,3 +86,17 @@ test('actual bundled SDK and Logger execute a metadata-bearing author plugin wit
   assert.equal(result.ok, true, JSON.stringify(kernel.inspect().diagnostics));
   assert.equal(runtime.snapshot(env).value[0].state, 'active'); await kernel.stopAll(); kernel.assertNoResources();
 });
+
+test('isolated packages read only captured assets, including after update and rollback', async () => {
+  const { kernel, runtime } = await fixture(); const env = { vaultId: 'a', generation: 1 }; await runtime.open(env);
+  const bytes = [...new TextEncoder().encode('Привет')];
+  const data = manifest();
+  const packageSource = { ...source(data, `if(ctx.resources.text('assets/message')!=='Привет') throw Error('missing resource'); if(ctx.resources.read('assets/message',0,2).length!==2) throw Error('binary'); let denied=false; try{ctx.resources.read('../outside')}catch{denied=true} if(!denied) throw Error('escaped');`), resources: { 'assets/message': bytes } };
+  const loading = runtime.register(env, data, packageSource, true); bytes.fill(0);
+  assert.equal((await loading).ok, true);
+  const next = manifest('2.0.0');
+  assert.equal((await runtime.replace(env, next, { ...source(next, `if(ctx.resources.text('assets/message')!=='new') throw Error('old resource');`), resources: { 'assets/message': [110,101,119] } })).ok, true);
+  assert.equal((await runtime.replace(env, manifest('3.0.0'), source(manifest('3.0.0'), 'throw Error("failed");'))).ok, false);
+  assert.equal(runtime.snapshot(env).value[0].state, 'active'); assert.equal(runtime.snapshot(env).value[0].version, '2.0.0');
+  await runtime.close(env); await kernel.stopAll(); kernel.assertNoResources();
+});

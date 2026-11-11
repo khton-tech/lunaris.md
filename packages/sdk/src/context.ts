@@ -1,4 +1,5 @@
 import type { ApiToken, EventToken, HookToken } from "./tokens.js";
+import type { PackageResources } from './resources.js';
 
 export type MaybePromise<T> = T | Promise<T>;
 
@@ -28,6 +29,7 @@ export interface PluginContext {
   readonly activationId: string;
   readonly signal: CancellationSignal;
   readonly scope: ResourceScope;
+  readonly resources: PackageResources;
   provide<T extends object>(token: ApiToken<T>, implementation: NoInfer<T>): Disposable;
   use<T extends object>(token: ApiToken<T>): T;
   optional<T extends object>(token: ApiToken<T>): T | undefined;

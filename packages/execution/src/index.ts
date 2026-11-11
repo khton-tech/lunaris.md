@@ -1,5 +1,5 @@
 import { defineApi } from "@lunaris/sdk";
-import type { CancellationSignal, PluginDefinition, PluginManifest } from "@lunaris/sdk";
+import type { CancellationSignal, PluginDefinition, PluginManifest, PackageResourceFiles } from "@lunaris/sdk";
 
 /** Only explicit data crosses this lowest-level boundary. No host object references. */
 export type ExecutionValue = null | boolean | number | string | readonly ExecutionValue[] | { readonly [key: string]: ExecutionValue };
@@ -13,6 +13,7 @@ export interface ExecutionSource {
   readonly entry: string;
   /** Canonical package-relative names mapped to complete source text. */
   readonly modules: Readonly<Record<string, string>>;
+  readonly resources?: PackageResourceFiles;
 }
 export interface ExecutionLimits {
   readonly memoryBytes?: number;

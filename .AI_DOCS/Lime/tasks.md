@@ -21,7 +21,9 @@ acceptance or complete authority audit is claimed.
   planning/revisions and explicit provider/dependency choice remain pending.
 - L04: QuickJS/WASM execution, SDK wire bridge, bounded callback reclamation,
   selected-file picker and scoped Config/Filesystem restrictions implemented.
-  Asset resource contracts, complete authority review and native acceptance pending.
+  Own-package resource list/chunk/text reads now use the public activation-bound
+  ctx.resources contract, tested for capture, rollback, limits and revocation.
+  Complete authority review and native acceptance remain pending.
 - L05-L07: headless engine and localized Mantine settings UI are composed in the
   shared product host. Preview/install/update/toggle/retry/remove, safe startup,
   awaited Vault transitions and code rollback have focused tests. Arbitrary Vault

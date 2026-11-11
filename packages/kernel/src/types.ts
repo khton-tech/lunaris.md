@@ -1,4 +1,4 @@
-import type { ContractKind, ErrorCode, PluginDefinition, PluginManifest } from "@lunaris/sdk";
+import type { ContractKind, ErrorCode, PluginDefinition, PluginManifest, PackageResourceFiles } from "@lunaris/sdk";
 
 export type PluginState = "registered" | "resolving" | "starting" | "active" | "stopping" | "stopped" | "failed";
 
@@ -50,11 +50,11 @@ export interface KernelSnapshot {
 
 /** Privileged host composition surface; never included in plugin context. */
 export interface Kernel {
-  register(definition: PluginDefinition, options?: { readonly ownerId?: string }): void;
+  register(definition: PluginDefinition, options?: { readonly ownerId?: string; readonly resources?: PackageResourceFiles }): void;
   /** Stop the affected graph and remove a registration. No implicit replacement. */
   unregister(pluginId: string): Promise<void>;
   /** Replace the same ID and restart its active graph; restore old code on failure. */
-  replace(definition: PluginDefinition, options?: { readonly grants?: readonly string[] }): Promise<void>;
+  replace(definition: PluginDefinition, options?: { readonly grants?: readonly string[]; readonly resources?: PackageResourceFiles }): Promise<void>;
   start(pluginId: string): Promise<void>;
   stop(pluginId: string): Promise<void>;
   restart(pluginId: string): Promise<void>;

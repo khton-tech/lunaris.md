@@ -1,4 +1,4 @@
-import type { ContractToken, PluginDefinition, RequiredContract } from "@lunaris/sdk";
+import type { ContractToken, PluginDefinition, RequiredContract, capturePackageResources } from "@lunaris/sdk";
 import type { OwnedScope } from "./scope.js";
 import type { PluginState } from "./types.js";
 
@@ -23,6 +23,7 @@ export interface Activation {
 }
 export interface Registration {
   readonly definition: PluginDefinition;
+  readonly resources: ReturnType<typeof capturePackageResources>;
   readonly ownerId?: string;
   state: PluginState;
   tail: Promise<void>;

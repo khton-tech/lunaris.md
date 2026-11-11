@@ -116,7 +116,10 @@ The development host supplies replaceable logging and retains bounded original
 records without corrupting JSON output. Installed code uses a separate QuickJS
 interpreter with memory/turn/transfer limits. Await/callbacks and owned cleanup are
 bridged; arbitrary host class instances are not. Package assets need supported
-resource contracts; their presence alone is not a host resource URL.
+resource contracts: `ctx.resources.text('assets/file.json')` reads bounded UTF-8
+text, and `ctx.resources.read(path, offset, length)` reads up to 16 KiB of binary
+data per call. Only this package's captured assets are available. These are not
+host resource URLs; renderer media roles need explicit adapters.
 
 The current headless dev session requires rebuild/relaunch. Live disposable-Vault
 host attachment remains under implementation; do not claim --attach or hot reload
