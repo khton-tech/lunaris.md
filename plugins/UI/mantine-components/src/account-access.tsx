@@ -35,7 +35,7 @@ export function AccountAccessView({ props: p, theme }: { props: AccountAccessPro
     <Box className="lm-account-content">
       <Group component="header" className="lm-account-topbar" justify="space-between" wrap="wrap">
         <Text className="lm-account-brand">Lunaris</Text>
-        {catalog ? <Menu withinPortal={false} position="bottom-end" offset={6} returnFocus transitionProps={{ transition: "fade" }}>
+        {catalog ? <Menu withinPortal={false} position="bottom-end" offset={6} returnFocus>
           <Menu.Target><Button className="lm-account-identity" disabled={p.busy} aria-label={`${p.text.accountMenu}: ${p.account}`} leftSection={<Icon name="account" />} rightSection={<Icon name="expand" />}>{p.account}</Button></Menu.Target>
           <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu" aria-label={p.text.accountMenu}>
             <Menu.Label className="lm-account-server">{p.address}</Menu.Label>
@@ -67,7 +67,7 @@ export function AccountAccessView({ props: p, theme }: { props: AccountAccessPro
             {p.mode === "trash" ? <Box className="lm-account-trash-entry"><Icon name="folder" /><Box><Text>{entry.name}</Text><Text className="lm-account-context" size="sm">{entry.detail}</Text></Box></Box> :
               <CardRow label={entry.name} detail={entry.detail} icon={<Icon name="folder" />} disabled={p.busy} onClick={() => p.onOpen(entry.id)} />}
             {p.mode === "trash" ? <Button disabled={p.busy} leftSection={<Icon name="restore" />} onClick={() => p.onRestore(entry.id)}>{p.text.restore}</Button> :
-              <Menu withinPortal={false} position="bottom-end" offset={6} returnFocus transitionProps={{ transition: "fade" }}>
+              <Menu withinPortal={false} position="bottom-end" offset={6} returnFocus>
                 <Menu.Target><ActionIcon className="lm-account-icon" variant="subtle" size="lg" disabled={p.busy} aria-label={`${p.text.vaultActions}: ${entry.name}`} title={p.text.vaultActions}><Icon name="actions" /></ActionIcon></Menu.Target>
                 <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu"><Menu.Item disabled={p.busy} leftSection={<Icon name="trash" />} onClick={() => p.onTrash(entry.id)}>{p.text.delete}</Menu.Item></Menu.Dropdown>
               </Menu>}

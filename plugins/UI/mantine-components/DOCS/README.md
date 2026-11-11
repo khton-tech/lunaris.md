@@ -1,5 +1,25 @@
 # Mantine components
 
+## UI integrity audit (2026-11-11)
+
+Reference: existing Files/Settings menus, floating mobile actions and Workspace
+drawer; [Mantine UI navigation](https://ui.mantine.dev/category/navbars/) and
+[Mantine Menu](https://mantine.dev/core/menu/). Workspace still owns drawer
+geometry and surfaces; embedded roles own controls only. Closing the drawer
+delays visual visibility until its transform finishes, while existing inert and
+aria-hidden attributes disable interaction immediately. Reduced motion removes
+the delay. Menu defaults use the active theme's fast duration/easing; explicit
+instant menus remain instant and Mantine retains reduced-motion handling.
+Mobile/coarse-pointer menu rows, including tab choices and their trailing
+actions, now have a 44px minimum. The earlier 34px tab-choice description applies
+only to fine-pointer desktop density. The five-row popup cap follows row height.
+Textarea focus uses the shared 16px phone/coarse-pointer minimum.
+
+Integration uses existing Components/Themes/Workspace contracts; no SDK or
+consumer change is required. Targeted checks passed (143 tests, no skips,
+including application/web/Tauri consumers). Native drawer transitions, popup
+geometry, keyboard focus and phone keyboard acceptance are still pending.
+
 ## Declarative view role
 
 `lunaris.declarative-view` receives `{ tree, presentation? }` from public Views.

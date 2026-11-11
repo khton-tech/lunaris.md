@@ -320,7 +320,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
   return <Box className="lm-explorer" style={theme.contentStyle} onKeyDownCapture={keyboard}
     onPointerDownCapture={() => setKeyboardNavigation(false)} data-keyboard-navigation={keyboardNavigation || undefined} aria-label={t.title} aria-busy={props.busy || props.loading}>
     <Group className="lm-explorer-toolbar" gap={0} wrap="nowrap">
-      <Menu withinPortal={false} position="bottom-start" width="target" offset={6} transitionProps={{ transition: "fade" }} returnFocus>
+      <Menu withinPortal={false} position="bottom-start" width="target" offset={6} returnFocus>
         <Menu.Target><Button variant="subtle" fullWidth justify="space-between" className="lm-explorer-tabs" aria-label={t.tabs} title={t.title} rightSection={<Icon name="expand" />}>{t.title}</Button></Menu.Target>
         <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu"><Menu.Item aria-current="page" title={t.title} rightSection={<Icon name="check" />}>{t.title}</Menu.Item></Menu.Dropdown>
       </Menu>

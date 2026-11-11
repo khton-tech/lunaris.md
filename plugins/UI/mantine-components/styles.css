@@ -138,8 +138,8 @@
 .lm-workspace-layout[data-compact] .mantine-Splitter-handle { display:none }
 .lm-workspace-layout[data-compact] .lm-workspace-panel-pane { position:absolute;inset-block:0;left:var(--workspace-rail-width);width:calc(var(--mobile-drawer-width) - var(--workspace-rail-width));flex-direction:column;max-width:100%!important;overflow:hidden;z-index:7;background:var(--vault-content) }
 .lm-workspace-layout[data-compact] .lm-workspace-rail { position:absolute;inset-block:0;left:0;width:calc(var(--workspace-rail-width) - 8px);z-index:7 }
-.lm-workspace-layout[data-compact] .lm-workspace-rail,.lm-workspace-layout[data-compact] .lm-workspace-panel-pane { transform:translateX(calc(-1 * var(--mobile-drawer-width) - 60px));visibility:hidden;pointer-events:none;transition:transform var(--vault-motion-normal) var(--vault-motion-easing) }
-.lm-workspace-layout[data-mobile-open] .lm-workspace-rail,.lm-workspace-layout[data-mobile-open] .lm-workspace-panel-pane { transform:translateX(0);visibility:visible;pointer-events:auto }
+.lm-workspace-layout[data-compact] .lm-workspace-rail,.lm-workspace-layout[data-compact] .lm-workspace-panel-pane { transform:translateX(calc(-1 * var(--mobile-drawer-width) - 60px));visibility:hidden;pointer-events:none;transition:transform var(--vault-motion-normal) var(--vault-motion-easing),visibility 0s linear var(--vault-motion-normal) }
+.lm-workspace-layout[data-mobile-open] .lm-workspace-rail,.lm-workspace-layout[data-mobile-open] .lm-workspace-panel-pane { transform:translateX(0);visibility:visible;pointer-events:auto;transition-delay:0s }
 .lm-workspace-layout[data-compact] .lm-workspace-main-pane { flex:1 1 0%!important;max-width:100%!important }
 .lm-workspace-layout[data-compact] .lm-workspace-panel { margin-block-start:0;margin-inline-end:var(--workspace-gap) }
 .lm-workspace-backdrop { position:absolute;inset:0;z-index:6;background:color-mix(in srgb,var(--vault-text) 15%,transparent) }
@@ -155,7 +155,7 @@
  .lm-root .lm-explorer-actions .mantine-ActionIcon-root,.lm-root .lm-account-icon { min-width:44px;min-height:44px }
  .lm-root .lm-button,.lm-root .lm-tool-navigation-item,.lm-setting-dropdown [role=option],.lm-context-menu [role=menuitem] { min-height:44px }
  /* Keep mobile browsers from zooming the viewport when focusing text fields. */
- .lm-root input.lm-input,.lm-root .mantine-PasswordInput-innerInput { font-size:max(16px,var(--mantine-font-size-md)) }
+ .lm-root input.lm-input,.lm-root textarea.lm-input,.lm-root .mantine-PasswordInput-innerInput { font-size:max(16px,var(--mantine-font-size-md)) }
 }
 .lm-root button,.lm-root input { font:inherit }
 .lm-root p { margin:0;overflow-wrap:anywhere }
@@ -820,13 +820,23 @@
  .lm-root .lm-settings-open-sidebar,.lm-root .lm-explorer-actions .mantine-ActionIcon-root,.lm-root .lm-account-icon { min-width:44px;min-height:44px }
  .lm-root .lm-button,.lm-root .lm-tool-navigation-item,.lm-root .lm-explorer-tabs,.lm-root .lm-setting-reset,.lm-root .lm-setting-option,.lm-root .lm-context-menu [role=menuitem] { min-height:44px }
  .lm-root .lm-input,.lm-root[data-window-chrome=true]>.lm-settings-items .lm-setting-input { --input-height:44px;min-height:44px }
- .lm-root input.lm-input,.lm-root .mantine-PasswordInput-innerInput { font-size:max(16px,var(--mantine-font-size-md)) }
+ .lm-root input.lm-input,.lm-root textarea.lm-input,.lm-root .mantine-PasswordInput-innerInput { font-size:max(16px,var(--mantine-font-size-md)) }
  .lm-settings-page,.lm-settings-navigation,.lm-explorer { overscroll-behavior-y:contain }
  .lm-setting-slider-control { min-height:44px }
  .lm-settings-page-header { padding-block:8px }
 }
 
 /* Settings owns field composition at its allocated width, in every theme. */
+@media(max-width:640px),(pointer:coarse) {
+ .lm-root .lm-mobile-choice-menu { --mobile-choice-row-height:max(44px,calc(1lh + 2 * var(--vault-space))) }
+ .lm-root :is(.lm-explorer-menu,.lm-explorer-tab-menu) [role=menuitem] { min-height:44px }
+}
+
+/* Keep menu feedback quiet when motion is reduced, including the more specific tab menu. */
+@media(prefers-reduced-motion:reduce) {
+ .lm-root :is(.lm-explorer-menu,.lm-explorer-tab-menu) [role=menuitem] { transition:none }
+}
+
 @container(max-width:640px) {
  .lm-setting-row:not([data-type=switch]) { flex-direction:column;align-items:stretch;gap:calc(var(--vault-space)*2) }
  .lm-setting-row:not([data-type=switch])>.lm-setting-label,.lm-setting-row:not([data-type=switch])>.lm-setting-control { flex:0 0 auto;min-width:0;width:100%;margin-inline:0 }
