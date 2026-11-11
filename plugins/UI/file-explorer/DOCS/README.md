@@ -132,3 +132,8 @@ manual: check Files settings and opened menus, focus, both themes, narrow/short
 layouts, and the actual Files panel after changing either option.
 
 Successful content selection closes the optional WorkspaceSidebar overlay through its public API, including reselection of the current document/category. Failed selections leave navigation open; desktop Sidebar selection is unchanged. Mobile stacking/focus acceptance remains manual.
+
+## Background observation
+
+Watch-driven rescans keep loading controls stable and publish only changed names/kinds or errors. Content size and modification time are not rendered by this role. Initial and explicit directory loads retain loading feedback. Remote rescan notifications still require directory reads; this change removes redundant presentation work, not filesystem consistency checks. Existing Workspace/Sidebar/Mantine ownership and appearance are unchanged. SDK controller tests verify unchanged props and an open context menu survive repeated rescans; native autosave/focus acceptance remains manual.
+

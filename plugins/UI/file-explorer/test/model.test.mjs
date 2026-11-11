@@ -5,6 +5,21 @@ import { ExplorerModel, topLevel } from '../dist/src/model.js';
 const info = (path, kind = 'file') => ({ path, kind, size: 0, modifiedAt: null });
 const ok = value => ({ ok: true, value });
 const fail = code => ({ ok: false, error: { code, message: code } });
+test('background scans publish structural changes and failures without loading pulses', async () => {
+  let entries = [info('note.md')]; let failure = false; const states = [];
+  const model = new ExplorerModel('vault', { async list() { return failure ? fail('IO_ERROR') : ok(entries); } },
+    () => true, () => states.push({ loading: model.loading, error: model.error }), () => {});
+  await model.refresh(); states.length = 0;
+  entries = [{ ...info('note.md'), size: 42, modifiedAt: 100 }];
+  await model.refresh(true); assert.deepEqual(states, []);
+  entries = [info('renamed.md')]; await model.refresh(true);
+  assert.equal(states.length, 1); assert.deepEqual(model.tree().map(item => item.id), ['renamed.md']);
+  failure = true; await model.refresh(true); assert.equal(states.at(-1).error, 'IO_ERROR');
+  failure = false; await model.refresh(true); assert.equal(states.at(-1).error, '');
+  entries = []; await model.refresh(true); assert.deepEqual(model.tree(), []);
+  assert.ok(states.every(state => state.loading === 0));
+});
+
 function setup(overrides = {}, relocated) {
   const entries = new Map([['folder', info('folder', 'directory')], ['folder/note.md', info('folder/note.md')], ['a.md', info('a.md')]]);
   const calls = []; const logs = []; let active = true;

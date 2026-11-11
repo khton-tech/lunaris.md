@@ -91,7 +91,7 @@ export default definePlugin({ manifest, activate(ctx) {
     if (refreshing || ctx.signal.aborted) return;
     refreshing = true;
     void (async () => {
-      try { while (dirty && model?.active) { dirty = false; const current = model; await current.refresh(); if (current.active && current === model && !current.busy) await documents.reconcile(); } }
+      try { while (dirty && model?.active) { dirty = false; const current = model; await current.refresh(true); if (current.active && current === model && !current.busy) await documents.reconcile(); } }
       catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot refresh explorer", { error }); }
       finally { refreshing = false; }
     })();

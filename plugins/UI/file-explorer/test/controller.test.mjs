@@ -62,6 +62,26 @@ test('SDK controller registers a localized sidebar tool, preserves collapsed sta
   await s.kernel.stopAll(); s.kernel.assertNoResources();
 });
 
+test('autosave rescans preserve the published view and its open context menu', async () => {
+  const s = await setup(); const dom = new JSDOM('<button>Files</button>');
+  s.components.register({ id: 'lunaris.context-menu', mount() { return { update() {}, dispose() {} }; } }, s.inspect.signal);
+  s.tab().props.onToggle('folder', true); await flush();
+  const props = s.tab().props;
+  const menu = props.onContextMenu({ target: dom.window.document.querySelector('button'), x: 1, y: 1,
+    path: 'file-a.md', kind: 'file', selection: ['file-a.md'], destination: '',
+    entries: [{ kind: 'action', id: 'test.action', label: 'Action', run() {} }] });
+  assert.ok(menu);
+  const before = s.lists.length;
+  for (let n = 0; n < 3; n++) {
+    await s.emit(FileChanged, { vaultId: 'a', watchId: 'watch-a', kind: 'rescan', paths: [] }); await flush();
+    assert.equal(s.tab().props, props);
+    assert.equal(s.tab().props.loading, false);
+  }
+  assert.equal(s.lists.length - before, 6);
+  assert.equal((await menu.execute('test.action')).ok, true);
+  await s.kernel.stopAll(); s.kernel.assertNoResources(); dom.window.close();
+});
+
 test('file preferences restore, control reveal and persist sorting from the existing toolbar', async () => {
   const s = await setup({ preferences: new Map([['a', { sortDirection: 'desc', revealActiveFile: false }]]) });
   assert.equal(s.tab().props.sortDirection, 'desc');
