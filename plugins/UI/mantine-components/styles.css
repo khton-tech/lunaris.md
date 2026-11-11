@@ -418,11 +418,8 @@
 }
 @container(max-width:640px) { .lm-editor-heading { padding-block-start:calc(var(--editor-heading-inset) + 6cqh) } }
 .lm-root .lm-editor-title .lm-input {
-  height:auto;padding:0;font:inherit;font-size:1.8em;font-weight:700;line-height:1.2;
+  height:auto;padding:0;font:inherit;font-size:calc(1.8em + 2px);font-weight:700;line-height:1.2;
   color:var(--vault-text);background:transparent;border:0;box-shadow:none;text-overflow:ellipsis
-}
-.lm-root .lm-editor-title input:focus-visible {
-  outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset)
 }
 .lm-editor-title input::placeholder { color:var(--vault-secondary);opacity:1 }
 .lm-editor-placeholder { padding:calc(var(--vault-space)*2) clamp(12px,3cqi,40px);user-select:none;overflow-wrap:anywhere }

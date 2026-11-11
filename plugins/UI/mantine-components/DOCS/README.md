@@ -722,10 +722,12 @@ width, including preference changes and unwrapped/full-width mode. UIKit centers
 the heading with the same responsive horizontal inset as CodeMirror lines; it
 owns heading geometry only and does not inspect or style the borrowed editor DOM.
 Workspace retains outer layout and surfaces. Reference: the Owner's screenshot
-of the title offset to the left of the text column and the editable heading
-before the FigCraft restyle. The title shares the editor surface and uses the
-existing rename behavior and a visible keyboard focus outline. Native alignment
-in narrow and wide Workspace allocations remains pending manual acceptance.
+of the title offset to the left of the text column, the editable heading before
+the FigCraft restyle, and the Owner's Everforest screenshot of the focused title.
+The title shares the editor surface and uses `calc(1.8em + 2px)`. The caret
+indicates editing focus. The existing Mantine role and SDK rename callback
+connect UIKit to Text Editor. Verify the focused title and its alignment in
+narrow and wide Workspace allocations during native acceptance.
 
 At allocations up to 640px, the existing additional 6cqh document inset now sits
 before the heading. CodeMirror no longer repeats it above the document text.
