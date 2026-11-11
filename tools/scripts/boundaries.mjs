@@ -171,6 +171,7 @@ export function checkSource(source, filename, scope) {
   if (scope === 'manifest') allowed.add('semver');
   if (scope === 'quickjs-execution') { allowed.add('quickjs-emscripten-core'); allowed.add('@jitl/quickjs-wasmfile-release-sync'); }
   if (scope === 'lup') allowed.add('@noble/hashes/sha2.js');
+  if (scope === 'lime-manager' && path.resolve(filename) === path.resolve('plugins/systems/lime/src/backups.ts')) allowed.add('@noble/hashes/sha2.js');
   if (scope === 'cli') allowed.add('esbuild');
   // The native browser-storage driver owns portable content fingerprinting.
   if (scope === 'browser-storage') allowed.add('@noble/hashes/sha2.js');

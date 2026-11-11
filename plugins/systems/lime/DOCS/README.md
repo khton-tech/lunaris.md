@@ -112,3 +112,27 @@ use it through the execution broker. An update can run arbitrary package side ef
 code rollback does not reverse those data changes. Do not claim transactional data
 rollback or completed update acceptance until that policy/integration is implemented.
 No visual/native acceptance is claimed by these service tests.
+
+## Managed-data backup service
+
+The internal backups service uses public Filesystem and ConfigSnapshots only.
+It captures `.lunaris/plugins/data/<id>` and that plugin's explicit Vault namespace
+into `.lunaris/plugins/backups/<id>/<backup-id>`. A version 1 JSON descriptor binds
+plugin/code identity, directories, settings snapshot and SHA-256 file digests.
+The caller retains its descriptor digest for the durable update journal. Limits:
+32 MiB total data, 16 MiB per file, 2048 entries, 32 directory levels, 1024 path
+characters, 256 KiB Config snapshot and 1 MiB descriptor. Driver limits may be lower.
+Symlinks/special files and aliased/invalid paths are rejected; capture is exclusive.
+
+Restore validates the descriptor and all file bytes before changing settings or
+removing current managed data. Empty/absent roots are preserved, new candidate
+files are removed and arbitrary Vault documents remain untouched. Partial restore
+is idempotently retryable from the retained backup. Failed capture cannot create a
+committed descriptor; cleanup is best effort. SHA-256 uses the existing pinned pure
+JavaScript library, not native filesystem/crypto access.
+
+These services and runtime checkpoints have focused tests. Wiring durable update
+journals into install/restore/retry remains in progress; their presence alone does
+not make existing updates transactionally recoverable. External writers must be
+quiescent; the filesystem contract offers optimistic single-file commits, not a
+multi-file or cross-process transaction.
