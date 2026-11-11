@@ -129,6 +129,8 @@ async function setup(options = {}) {
   } }));
   for (const [id, grants] of Object.entries({ 'test.driver': ['filesystem.native'], 'lunaris.filesystem-provider': ['filesystem.access', 'filesystem.app-config'], 'lunaris.vault-manager': ['filesystem.access'], 'lunaris.active-document-provider': ['vault.access', 'config.access', 'filesystem.access'], 'lunaris.active-screen-provider': ['vault.access'], [screenHost.manifest.id]: ['ui.dom'], 'lunaris.component-provider': ['ui.dom'], 'lunaris.mantine-components': ['ui.dom'], 'lunaris.context-menu-provider': ['ui.dom'], 'lunaris.text-editor': ['clipboard.access', 'ui.dom', 'vault.access', 'filesystem.access'], 'test.consumer': ['vault.access', 'filesystem.access', 'ui.dom'] })) for (const grant of grants) kernel.grant(id, grant);
   kernel.grant(closeGuard.plugin.manifest.id, 'vault.access');
+  kernel.grant(screenHost.manifest.id, 'vault.access');
+  kernel.grant(screenHost.manifest.id, 'filesystem.access');
   kernel.grant(editor.manifest.id, 'config.access');
   if(options.drafts) kernel.grant(editor.manifest.id,'drafts.access');
   await kernel.start('test.consumer'); await kernel.start(mantine.manifest.id); await kernel.start(screenHost.manifest.id); await kernel.start(editor.manifest.id); await kernel.start(closeGuard.plugin.manifest.id);
@@ -152,6 +154,85 @@ async function setup(options = {}) {
     async stop() { await flush(); await kernel.stopAll(); await flush(); kernel.assertNoResources(); assert.equal(target.childElementCount, 0); assert.ok(!kernel.diagnostics().some(d => d.code === 'CLEANUP_FAILED')); dom.window.close(); },
   };
 }
+
+test('workspace tabs compose with the editor, Settings, history and Vault lifetime', async () => {
+  const s = await setup({ withLayout: true });
+  const strip = s.target.querySelector('.lm-workspace-main .lm-workspace-tabs');
+  const tabs = () => [...strip.querySelectorAll('[role=tab]')];
+  const active = () => tabs().find(tab => tab.getAttribute('aria-selected') === 'true');
+  const button = label => strip.querySelector(`button[aria-label="${label}"]`);
+  try {
+    assert.equal(active().textContent, 'note');
+    assert.equal(button('Back').disabled, true);
+    const note = active();
+    assert.equal(s.target.querySelector('[role=tabpanel]').id, note.getAttribute('aria-controls'));
+    s.edit('Unsaved edit'); await flush();
+    button('New tab').click(); await flush();
+    assert.equal(active().textContent, 'New tab');
+    assert.equal(s.documents.current(), null);
+    assert.equal(s.disk.get('a/note.md').text, 'Unsaved edit');
+    await s.documents.open({ vaultId: 'a', path: 'other.md' }); await flush();
+    assert.deepEqual(tabs().map(tab => tab.textContent), ['note', 'other']);
+    assert.equal(active().textContent, 'other');
+    button('Back').click(); await flush();
+    assert.equal(active(), note);
+    assert.equal(s.cm().state.doc.toString(), 'Unsaved edit');
+    button('Forward').click(); await flush();
+    assert.equal(active().textContent, 'other');
+    active().focus();
+    active().dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true }));
+    assert.equal(s.dom.window.document.activeElement, note);
+    assert.equal(active().textContent, 'other');
+    await s.documents.open({ vaultId: 'a', path: 'other.md' }); await flush();
+    assert.equal(tabs().length, 2);
+    button('Close tab — other').click(); await flush();
+    assert.deepEqual(tabs().map(tab => tab.textContent), ['note']);
+    assert.equal(s.documents.current().path, 'note.md');
+    await s.documents.open({ vaultId: 'a', path: 'other.md' }); await flush();
+
+    const screen = s.screens.register({ id: 'test.settings', componentId: 'lunaris.workspace-empty',
+      props: { title: 'Appearance', tabTitle: 'Settings', detail: '' } }, s.ctx.signal);
+    assert.equal(screen.ok, true);
+    s.screens.select('test.settings'); await flush();
+    assert.equal(active().textContent, 'Settings');
+    assert.equal(s.documents.current().path, 'other.md');
+    button('Close tab — other').click(); await flush();
+    assert.equal(active().textContent, 'Settings');
+    assert.equal(s.documents.current(), null);
+    note.focus();
+    note.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Delete', bubbles: true }));
+    await flush();
+    assert.equal(tabs().length, 1);
+    assert.equal(s.dom.window.document.activeElement, active());
+    assert.equal(button('Back').disabled, true);
+
+    await s.vault.open(); await s.showVault('b');
+    assert.equal(s.target.querySelector('[role=tab]').textContent, 'New tab');
+    assert.equal(s.target.querySelectorAll('[role=tab]').length, 1);
+  } finally { await s.stop(); }
+});
+
+test('tab changes preserve the selected document on conflicts and follow confirmed moves and removals', async () => {
+  const s = await setup();
+  const tabList = () => [...s.target.querySelectorAll('[role=tab]')];
+  const labels = () => tabList().map(tab => tab.textContent);
+  const file = path => ({ vaultId: 'a', path });
+  try {
+    await s.documents.open(file('other.md')); await flush();
+    s.edit('Local edit'); await flush();
+    s.disk.set('a/other.md', { text: 'External edit', version: 'external' });
+    tabList()[0].click(); await flush();
+    assert.equal(s.documents.current().path, 'other.md');
+    assert.equal(tabList()[1].getAttribute('aria-selected'), 'true');
+    assert.equal(s.cm().state.doc.toString(), 'Local edit');
+    assert.match(s.target.querySelector('.lm-workspace-tab-error').textContent, /Could not complete/);
+
+    assert.equal((await s.fs.move(file('note.md'), file('renamed.md'))).ok, true); await flush();
+    assert.deepEqual(labels(), ['renamed', 'other']);
+    assert.equal((await s.fs.remove(file('renamed.md'))).ok, true); await flush();
+    assert.deepEqual(labels(), ['other']);
+  } finally { await s.stop(); }
+});
 
 test('third-party particle recipe runs in QuickJS and detaches from the live editor on stop', async () => {
   const example = new URL('../../../../examples/deletion-particles/', import.meta.url);
@@ -456,11 +537,12 @@ test('headerless Live Preview retains the composed editor, source and history', 
   const original = '# Heading\r\n\r\n**bold** and [label](https://example.com)\r\n';
   const s = await setup({ initial: original });
   const view = s.cm();
+  const editorRegion = s.target.querySelector('[data-screen-id="lunaris.text-editor.screen"]');
   assert.ok(view.dom.querySelector('.cm-preview-strong'));
-  assert.equal(s.target.querySelector('.lm-editor-header'), null);
-  assert.equal(s.target.querySelector('[aria-pressed]'), null);
-  assert.equal(s.target.querySelector('button:not([role=separator])'), null);
-  assert.equal(s.target.querySelectorAll('button[role=separator]').length, 2);
+  assert.equal(editorRegion.querySelector('.lm-editor-header'), null);
+  assert.equal(editorRegion.querySelector('[aria-pressed]'), null);
+  assert.equal(editorRegion.querySelector('button:not([role=separator])'), null);
+  assert.equal(editorRegion.querySelectorAll('button[role=separator]').length, 2);
   assert.equal(view.state.sliceDoc(), original);
   assert.equal(s.calls.some(call => call[0] === 'write'), false);
   view.dispatch({ changes: { from: view.state.doc.length, insert: 'New' }, selection: { anchor: 0 } });
@@ -839,6 +921,7 @@ test('editor title renames the open document on disk and relocates the active bu
   await flush();
   const titleInput=s.target.querySelector('.lm-editor-title input');
   assert.ok(titleInput,s.target.textContent);
+  const tab=s.target.querySelector('[role=tab][aria-selected=true]');
   assert.equal(titleInput.value,'note');assert.equal(titleInput.disabled,false);
   typeInput(titleInput,'renamed');await flush();
   titleInput.dispatchEvent(new s.dom.window.FocusEvent('focusout',{bubbles:true}));
@@ -848,6 +931,8 @@ test('editor title renames the open document on disk and relocates the active bu
   assert.equal(move[1].path,'note.md');assert.equal(move[2].path,'renamed.md');
   assert.equal(s.disk.has('a/note.md'),false);assert.equal(s.disk.has('a/renamed.md'),true);
   assert.deepEqual(s.documents.current(),{vaultId:'a',path:'renamed.md'});
+  assert.equal(s.target.querySelector('[role=tab][aria-selected=true]'),tab);
+  assert.equal(tab.textContent,'renamed');
   assert.equal(s.target.querySelector('.lm-editor-title input').value,'renamed');
  }finally{await s.stop();}
 });

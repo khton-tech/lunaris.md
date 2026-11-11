@@ -10,7 +10,9 @@ Provides SDK `ActiveScreen` and `ActiveScreenChanged` version 1.0.0 from
 
 Methods: `register(description, owner)`, `update(id, props)`, `select(id | null)`
 and `snapshot()`. Registration is lazy and does not select. Snapshots and records
-are immutable. Ownership cancellation removes the screen; removing the active
+are immutable. The optional `document: true` registration field identifies an
+ActiveDocument renderer to the container and survives props updates.
+Ownership cancellation removes the screen; removing the active
 screen clears selection without choosing a fallback. VaultChanged clears selection
 but retains registrations. IDs express attribution rather than caller isolation.
 

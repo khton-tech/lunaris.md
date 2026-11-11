@@ -33,6 +33,15 @@
     },
     {
       "path": "../../../packages/localization"
+    },
+    {
+      "path": "../../../packages/vault"
+    },
+    {
+      "path": "../../../packages/active-document"
+    },
+    {
+      "path": "../../../packages/filesystem"
     }
   ]
 }

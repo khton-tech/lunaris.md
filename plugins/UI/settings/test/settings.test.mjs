@@ -47,11 +47,14 @@ test('categories open one settings screen and section views survive props, local
   const s = await setup(); const view = panel(s, 'test.controls'); register(s); section(s); await s.open();
   s.tools.sidebar.select('lunaris.settings.navigation'); await flush(); category(s, 'Example').click(); await flush();
   assert.equal(s.tools.screens.snapshot().activeId, 'lunaris.settings.screen');
+  const tab = s.surface.querySelector('.lm-workspace-tabs [role=tab][aria-selected=true]');
+  assert.equal(tab.textContent, 'Settings');
   const content = s.surface.querySelector('[data-settings-section="test.section"] article'); assert.ok(content);
   s.tools.settings.updateSection('test.section', { title: 'Updated controls', props: { label: 'Changed' } }); await flush();
   assert.equal(s.surface.querySelector('[data-settings-section="test.section"] article'), content); assert.match(content.textContent, /Changed/);
   s.tools.localization.register('test.translations', { en: {}, fr: {} }, s.ctx.signal); s.tools.localization.setLocale('fr');
   s.tools.themes.select(null); await flush(); assert.equal(s.surface.querySelector('[data-settings-section="test.section"] article'), content);
+  assert.equal(s.surface.querySelector('.lm-workspace-tabs [role=tab][aria-selected=true]'), tab);
   s.tools.sidebar.select(null); await flush(); assert.equal(content.isConnected, true);
   s.tools.sidebar.select('lunaris.settings.navigation'); await flush(); assert.equal(category(s, 'Example').getAttribute('aria-current'), 'page');
   assert.equal(view.releases.length, 0); assert.deepEqual(s.preferenceWrites, []); await s.stop();

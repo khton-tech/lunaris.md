@@ -294,7 +294,7 @@ export default definePlugin({ manifest, activate(ctx) {
     return { update(next) { props = next; render(); }, dispose };
   } }, ctx.signal);
   if (!registration.ok) throw new Error("Cannot register editor host.", { cause: registration.error });
-  const screen = screens.register({ id: screenId, componentId: "lunaris.text-editor-host" }, ctx.signal);
+  const screen = screens.register({ id: screenId, componentId: "lunaris.text-editor-host", document: true }, ctx.signal);
   if (!screen.ok) throw new Error("Cannot register editor screen.", { cause: screen.error });
   ctx.events.on(ActiveDocumentTransitioned, transition => {
     if (transition.reason === "relocate" && current && transition.current && transition.previous &&

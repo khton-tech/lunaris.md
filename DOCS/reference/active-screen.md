@@ -1,11 +1,8 @@
 # Active screen
 
-Status: implemented on 2026-11-07; native visual/focus acceptance remains manual.
-
-The independent active-screen container occupies Workspace main. It shows one
-screen without a tab strip, header or enclosing card. Workspace continues to own
-the overall layout and Sidebar regions. ActiveDocument still owns file identity;
-screen selection does not change the active file.
+The active-screen container occupies Workspace main and displays one selected
+screen below its tab strip. Workspace owns the main region and Sidebar layout.
+ActiveDocument owns file identity and guards document transitions.
 
 ## Public SDK contract
 
@@ -34,7 +31,7 @@ to the contributing plugin.
 
 | Method | Behavior |
 |---|---|
-| `register(screen, owner)` | Register an owned `{ id, componentId, props? }` without selecting or mounting. |
+| `register(screen, owner)` | Register an owned `{ id, componentId, document?, props? }` without selecting or mounting. |
 | `update(id, props)` | Replace custom props without changing identity, role, ownership or selection. |
 | `select(id)` | Activate a registered screen; selecting it again does nothing. |
 | `select(null)` | Hide screens, retain already mounted instances, show the empty state. |
@@ -50,6 +47,12 @@ descriptor keys, symbols, accessors and reserved `workspace`/`__proto__` props.
 Copy/freeze descriptors and top-level props; callbacks and nested values retain
 identity, consistently with Components/Workspace. IDs express attribution, not
 authenticated caller isolation.
+
+Set `document: true` when the role displays the current ActiveDocument. The
+container opens a tab for each file activated on that screen and reuses its mounted
+role. Other screens open one tab per registration. Supply a localized
+`props.tabTitle` when the tab needs a stable name while the screen title changes.
+The container falls back to `props.title` and then to a localized generic title.
 
 Owner cancellation removes the registration and any cached view. Removing the
 active screen clears selection; another screen is never implicitly selected.
@@ -86,36 +89,32 @@ VaultChanged clears selection. Reads and selections also check the current Vault
 so earlier Workspace event observers cannot mount the old selection in a new Vault.
 Workspace releases every view on Vault switch/close;
 plugin-owned registrations remain available for explicit selection in a new Vault.
-Old view callbacks cannot attach targets to a new view. No selection or drafts are
-persisted and no Config values are written by these plugins.
+Old view callbacks cannot attach targets to a new view. The tab list and history
+are session state. ActiveDocument continues to persist and restore its current
+file per Vault, which opens its tab on restore.
 
 ## Composition and integration
 
-Tauri composes `lunaris.active-screen-provider` and `lunaris.active-screen`.
+The shared Web and Tauri host composes `lunaris.active-screen-provider` and
+`lunaris.active-screen`.
 The provider requires Logger, Vault and VaultChanged, with `vault.access`. The controller
 requires Logger, ActiveScreen/ActiveScreenChanged, Workspace 1.1,
 Components/ComponentsChanged and Localization/LocaleChanged, with `ui.dom`.
+The host also grants `vault.access` and `filesystem.access` for the Vault,
+ActiveDocument/ActiveDocumentTransitioned and BeforeFileMutation integration.
 Both use `ctx.use` and mandatory structured logging; cleanup uses local resources
 and independent kernel diagnostics rather than closed SDK handles.
 
-Mantine supplies `lunaris.active-screen`: props `ids`, `activeId` and
-`onTargets(map | null)`. IDs identify stable owned targets; activeId is an included
-ID or null. Targets are borrowed and must not be reparented or restyled by consumers.
-The controller mounts screen roles after the layout call returns and supplies its
-own reserved placeholder target. No new controls or separate rendering framework
-are added.
+Mantine supplies `lunaris.active-screen` with stable owned targets and the tab
+controls. The controller mounts screen roles after the layout call returns and
+supplies a reserved placeholder target. See the
+[container guide](../../plugins/UI/active-screen/DOCS/README.md) for interactions,
+ownership, and links to the component role props.
 
-Completed: SDK registry, container, Workspace registration, Mantine role, Vault
-lifecycle and Tauri composition. Sidebar and File Explorer retain their existing
-behavior. [Settings foundation](settings.md) now registers its own screen and
-selects it through this API. Future editor integration must connect
-ActiveDocument/ActiveDocumentChanged to an editor screen. The container itself
-implements no settings controls or editor; opening file contents is still outstanding.
-No demonstration screen ships.
-
-Future user settings apply immediately and exclusively to the current Vault;
-the registry and Sidebar bottom placement now exist in Settings foundation. Concrete
-settings and theme-engine UI remain later work.
+File Explorer opens files through ActiveDocument. The editor selects its registered
+screen and maintains document sessions. Settings selects its own screen and retains
+the selected category while another tab is visible. The container coordinates
+these existing SDK entry points.
 
 ## Verification
 
@@ -126,12 +125,5 @@ Vault lifecycle and cleanup. Run `npm run build --workspace @lunaris/tauri` for 
 production frontend. Check tooling includes affected consumers, boundaries and
 type fixtures; desktop automation is prohibited.
 
-Manual acceptance: open a Vault and verify the unchanged empty main presentation,
-Sidebar behavior, theme inheritance and narrow/short-window sizing. With a real
-screen consumer, check retained drafts and scroll across switches, inactive focus
-exclusion and complete state release across Vault changes.
-
-Local evidence, 2026-11-07: targeted active-screen/provider/container/Mantine/host
-checks passed 102 tests with zero skipped, including build, boundaries and type
-fixtures. The Tauri frontend production build, public-export/documentation audit
-and CI scope-selection test passed. Native visual/focus acceptance was not run.
+Manual acceptance covers the screenshot geometry, theme inheritance, overflow in a
+narrow or short window, focus and disabled controls in the composed Workspace.

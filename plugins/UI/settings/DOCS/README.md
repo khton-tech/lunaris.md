@@ -15,7 +15,9 @@ ComponentsChanged, LocaleChanged and VaultChanged.
 
 Registers `lunaris.settings.navigation` through Sidebar with `placement: "end"`,
 and `lunaris.settings.screen` through ActiveScreen. Opening the Sidebar tab shows
-categories; selecting a category activates Settings in main. The plugin registers
+categories; selecting a category activates Settings in main. The localized
+`tabTitle` keeps the Settings tab stable as the page title follows the category.
+The plugin registers
 the orchestration roles `lunaris.settings-navigation-host` and
 `lunaris.settings-host` and `lunaris.settings-group-host`, while Mantine supplies
 `lunaris.settings-navigation`, `lunaris.settings-page` and `lunaris.settings-items`.

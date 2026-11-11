@@ -4,6 +4,8 @@ import type { CancellationSignal } from "@lunaris/sdk";
 export interface ScreenDefinition {
   readonly id: string;
   readonly componentId: string;
+  /** The screen renders the current ActiveDocument; its tabs are keyed by file. */
+  readonly document?: true;
   readonly props?: Readonly<Record<string, unknown>>;
 }
 export interface ScreenSnapshot {

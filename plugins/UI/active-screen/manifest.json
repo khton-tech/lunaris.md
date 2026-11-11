@@ -46,10 +46,34 @@
       "kind": "event",
       "id": "lunaris.locale-changed",
       "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.vault",
+      "range": "^1.0.0",
+      "optional": true
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.active-document",
+      "range": "^1.0.0",
+      "optional": true
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.active-document-transitioned",
+      "range": "^1.0.0",
+      "optional": true
+    },
+    {
+      "kind": "hook",
+      "id": "lunaris.before-file-mutation",
+      "range": "^1.0.0",
+      "optional": true
     }
   ],
   "permissions": [
     "ui.dom"
   ],
-  "optionalPermissions": []
+  "optionalPermissions": ["vault.access", "filesystem.access"]
 }

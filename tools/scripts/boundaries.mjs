@@ -42,7 +42,7 @@ export const dependencies = {
   'settings-plugin': ['workspace', 'sdk', 'logging', 'settings', 'sidebar', 'active-screen', 'components', 'localization', 'vault'],
   'active-screen': ['sdk'],
   'active-screen-provider': ['sdk', 'logging', 'active-screen', 'vault'],
-  'active-screen-plugin': ['sdk', 'logging', 'active-screen', 'workspace', 'components', 'localization'],
+  'active-screen-plugin': ['sdk', 'logging', 'active-screen', 'workspace', 'components', 'localization', 'vault', 'active-document', 'filesystem'],
   'active-document': ['sdk', 'filesystem'],
   'active-document-provider': ['sdk', 'logging', 'config', 'vault', 'filesystem', 'active-document'],
   'context-menu': ['sdk'],

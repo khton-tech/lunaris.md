@@ -118,7 +118,7 @@ export function composeApplication(target: HTMLElement, options: {
       [interfaceSettings.manifest.id]: ["config.access", "vault.access"],
       [settings.manifest.id]: ["ui.dom", "vault.access"],
       [activeScreenProvider.manifest.id]: ["vault.access"],
-      [activeScreen.manifest.id]: ["ui.dom"],
+      [activeScreen.manifest.id]: ["ui.dom", "vault.access", "filesystem.access"],
       [activeDocument.manifest.id]: ["vault.access", "config.access", "filesystem.access"],
       [runner.manifest.id]: ["config.access", "ui.dom"],
       ...(options.mode === "desktop" ? { [selector.manifest.id]: ["vault.access", "ui.dom", "account.access"] } : {}),

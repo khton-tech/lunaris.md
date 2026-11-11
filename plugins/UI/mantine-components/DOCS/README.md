@@ -685,9 +685,17 @@ No SDK/controller integration changes are required.
 
 ## Active screen role
 
-Added on 2026-11-07: `lunaris.active-screen` supplies a borderless full-size Mantine
-Box composition, with no tab strip, header or card shell. Props: `ids` (unique
-strings), `activeId` (one of those IDs or null), and `onTargets(map | null)`.
+The `lunaris.active-screen` role supplies a borderless full-size Mantine Box
+composition. Props include `ids` (unique strings), `activeId` (one of those IDs
+or null), and `onTargets(map | null)`. The optional `tabs` prop enables the tab
+strip and navigation row. Each entry in `tabs` supplies `id`, `title`,
+`description`, `location`, `closable` and optional `extension`.
+The remaining fields supply `selectedId`, `busy`, `error`, `canGoBack`,
+`canGoForward` and localized `labels` for `tabs`, `add`, `close`, `back`
+and `forward`. Callbacks `onAdd()`, `onSelect(id)`, `onClose(id)` and
+`onNavigate(-1 | 1)` return promises indicating whether the action succeeded.
+Mantine Tabs and ActionIcon supply keyboard and pointer controls. The role styles
+the internal strip and navigation. The screen surface inherits Workspace.
 Targets retain DOM identity on selection, props and theme updates. Inactive targets
 are hidden, inert, excluded from accessibility navigation and removed from layout.
 The active-screen controller owns lazy child mounting and releases hidden focus.

@@ -1,33 +1,68 @@
 import { russian } from "./locales/ru.js";
-import { definePlugin } from "@lunaris/sdk";
+import { definePlugin, LunarisError } from "@lunaris/sdk";
 import type { ResourceScope } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
 import { ActiveScreen, ActiveScreenChanged } from "@lunaris/active-screen";
+import { ActiveDocument, ActiveDocumentTransitioned } from "@lunaris/active-document";
+import type { DocumentTransition } from "@lunaris/active-document";
+import { BeforeFileMutation } from "@lunaris/filesystem";
+import type { FileMutation } from "@lunaris/filesystem";
+import { Vault } from "@lunaris/vault";
 import { Workspace } from "@lunaris/workspace";
 import type { WorkspaceContext } from "@lunaris/workspace";
 import { Components, ComponentsChanged } from "@lunaris/components";
 import type { ComponentProps, MountedComponent } from "@lunaris/components";
 import { Localization, LocaleChanged } from "@lunaris/localization";
+import { WorkspaceTabs } from "./tabs.js";
 import manifest from "../manifest.json" with { type: "json" };
 
 interface View {
   refresh(): void;
   removed(componentId: string): void;
+  transition(change: DocumentTransition): void;
+  fileMutated(change: FileMutation): void;
 }
 interface CachedScreen { readonly owner: ResourceScope; readonly mounted: MountedComponent; props: unknown }
 const catalogs = { en: {
   empty: "No workspace plugins", emptyDetail: "Content will appear here when a workspace plugin is available.",
   unavailable: "Screen unavailable", unavailableDetail: "The selected screen could not be displayed.",
+  newTab: "New tab", workspaceView: "Workspace view", tabs: "Workspace tabs",
+  closeTab: "Close tab", back: "Back", forward: "Forward", tabFailed: "Could not complete the tab action.",
+  blank: "Choose a file to open",
 }, ru: russian };
 
 export default definePlugin({ manifest, activate(ctx) {
   const logger = scopeLogger(ctx.use(Logger), ctx.signal); const screens = ctx.use(ActiveScreen);
   const components = ctx.use(Components); const workspace = ctx.use(Workspace); const localization = ctx.use(Localization);
+  const vaults = ctx.permissions.has("vault.access") ? ctx.optional(Vault) : undefined;
+  let documents = ctx.permissions.has("vault.access") ? ctx.optional(ActiveDocument) : undefined;
+  const text = (key: keyof typeof catalogs.en) => localization.text(ctx.pluginId, key);
   const messages = localization.register(ctx.pluginId, catalogs, ctx.signal);
   if (!messages.ok) throw new Error("Cannot register active screen messages.", { cause: messages.error });
   const views = new Set<View>();
+  function connectOptional(connect: () => void, message: string): boolean {
+    try { connect(); return true; }
+    catch (error) {
+      if (!(error instanceof LunarisError) || error.code !== "PROVIDER_UNAVAILABLE") throw error;
+      logger.warn(ctx.pluginId, message, { error });
+      return false;
+    }
+  }
+  if (documents && !connectOptional(() => {
+    ctx.events.on(ActiveDocumentTransitioned, change => { for (const view of views) view.transition(change); });
+  }, "Document transitions are unavailable")) documents = undefined;
+  if (documents && ctx.permissions.has("filesystem.access")) connectOptional(() => {
+    ctx.hooks.register(BeforeFileMutation, change => {
+      if (!change.error && change.operation !== "copy") change.onSettled(result => {
+        if (result.ok && !ctx.signal.aborted) for (const view of views) view.fileMutated(change);
+      });
+      return change;
+    });
+  }, "File mutation notifications are unavailable");
   const release = (owner: ResourceScope) => { void owner.dispose().catch(() => {}); };
   const registration = components.register({ id: "lunaris.active-screen-host", mount(target, initial, signal) {
+    const vaultId = (initial.workspace as WorkspaceContext | undefined)?.vaultId;
+    if (typeof vaultId !== "string") throw new TypeError("Workspace context is required.");
     const owner = ctx.scope.child(); const cache = new Map<string, CachedScreen>();
     let disposed = false; let props = initial; let layout: MountedComponent | undefined; let layoutOwner: ResourceScope | undefined;
     let rendering = false; let pending = false;
@@ -35,13 +70,17 @@ export default definePlugin({ manifest, activate(ctx) {
     let placeholder: MountedComponent | undefined; let placeholderOwner: ResourceScope | undefined;
     let placeholderTarget: HTMLElement | undefined;
     const visited = new Set<string>();
+    const live = () => !disposed && !signal.aborted && !ctx.signal.aborted && (!vaults || vaults.current()?.id === vaultId);
+    const tabs = new WorkspaceTabs({ vaultId, screens, documents, live, refresh, text,
+      report: (level, message, error) => logger[level](ctx.pluginId, message, error === undefined ? {} : { error }),
+    });
     // Callbacks only capture local targets. SDK mounts run after the parent render returns.
     const onTargets = (value: ReadonlyMap<string, HTMLElement> | null) => { if (!disposed) targets = value; };
     function clearPlaceholder(): void { if (placeholderOwner) release(placeholderOwner); placeholderOwner = undefined; placeholder = undefined; placeholderTarget = undefined; }
     function clearCache(): void { for (const item of cache.values()) release(item.owner); cache.clear(); clearPlaceholder(); }
     function clearLayout(): void { clearCache(); if (layoutOwner) release(layoutOwner); layoutOwner = undefined; layout = undefined; targets = null; }
-    function showPlaceholder(element: HTMLElement, kind: "empty" | "unavailable"): void {
-      const placeholderProps = { title: localization.text(ctx.pluginId, kind), detail: localization.text(ctx.pluginId, `${kind}Detail`), presentation: { mode: "embedded", sizing: "fill" } };
+    function showPlaceholder(element: HTMLElement, kind: "empty" | "blank" | "unavailable"): void {
+      const placeholderProps = { title: text(kind), detail: kind === "blank" ? "" : text(`${kind}Detail`), presentation: { mode: "embedded", sizing: "fill" } };
       if (placeholderTarget && placeholderTarget !== element) clearPlaceholder();
       if (placeholder) {
         const updated = placeholder.update(placeholderProps);
@@ -62,10 +101,11 @@ export default definePlugin({ manifest, activate(ctx) {
       } finally { rendering = false; }
     }
     function render(): void {
-      if (disposed || signal.aborted || ctx.signal.aborted) return;
+      if (!live()) return;
       const context = props.workspace as WorkspaceContext;
       if (!context || typeof context.vaultId !== "string" || typeof context.vaultName !== "string") throw new TypeError("Workspace context is required.");
       const snapshot = screens.snapshot();
+      tabs.synchronize(snapshot);
       const ids = new Set(snapshot.screens.map(screen => screen.id));
       for (const id of visited) if (!ids.has(id)) visited.delete(id);
       for (const [id, cached] of cache) if (!ids.has(id)) { release(cached.owner); cache.delete(id); }
@@ -76,7 +116,8 @@ export default definePlugin({ manifest, activate(ctx) {
         if (focused && "blur" in focused && typeof focused.blur === "function") focused.blur();
       }
       const placeholderId = "__placeholder";
-      const layoutProps = { ids: [...visited, placeholderId], activeId: snapshot.activeId, onTargets, presentation: { mode: "embedded", sizing: "fill" } };
+      const layoutProps = { ids: [...visited, placeholderId], activeId: snapshot.activeId, tabs: tabs.presentation(snapshot),
+        onTargets, presentation: { mode: "embedded", sizing: "fill" } };
       if (layout) {
         const updated = layout.update(layoutProps);
         if (!updated.ok) { logger.error(ctx.pluginId, "Cannot update active screen layout", { error: updated.error }); clearLayout(); }
@@ -114,12 +155,12 @@ export default definePlugin({ manifest, activate(ctx) {
         const hidden = layout.update({ ...layoutProps, activeId: placeholderId });
         if (!hidden.ok) { logger.error(ctx.pluginId, "Cannot show screen placeholder", { error: hidden.error }); clearLayout(); return; }
         const element = targets?.get(placeholderId); if (!element) return;
-        const kind = snapshot.activeId ? "unavailable" : "empty";
+        const kind = snapshot.activeId ? "unavailable" : documents ? "blank" : "empty";
         if (snapshot.activeId) logger.warn(ctx.pluginId, "Active screen is unavailable", { data: { id: snapshot.activeId } });
         showPlaceholder(element, kind);
       }
     }
-    const view: View = { refresh, removed(componentId) {
+    const view: View = { refresh, transition: change => tabs.transition(change), fileMutated: change => tabs.fileMutated(change), removed(componentId) {
       if (componentId === "lunaris.active-screen") clearLayout();
       if (componentId === "lunaris.workspace-empty") clearPlaceholder();
       for (const [id, cached] of cache) if (cached.mounted.componentId === componentId) { release(cached.owner); cache.delete(id); }

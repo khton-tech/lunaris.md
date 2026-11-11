@@ -1,18 +1,20 @@
 # Active screen container
 
-Purpose: display one selected screen inside Workspace main, preserving previously
-opened screen instances while hidden. Plugin `lunaris.active-screen` is exported
+Purpose: coordinate tabs and display the selected screen inside Workspace main,
+preserving previously opened screen instances while hidden. Plugin `lunaris.active-screen` is exported
 as the default from `@lunaris/active-screen-plugin`.
 
 Requires Logger, ActiveScreen/ActiveScreenChanged, Workspace 1.1,
 Components/ComponentsChanged and Localization/LocaleChanged. The host grants
-`ui.dom`. No Config, file access, editor implementation or settings implementation
-is included.
+`ui.dom`. Web and Tauri also grant `vault.access` and `filesystem.access` for
+Vault, ActiveDocument, ActiveDocumentTransitioned and BeforeFileMutation. Document
+tabs use these optional integrations when the providers are available.
 
 On activation it registers the orchestration role `lunaris.active-screen-host`
 through Components and one main content entry through Workspace. It provides no
 additional APIs or events. It subscribes to ActiveScreenChanged, ComponentsChanged
-and LocaleChanged. Every rendered host instance owns its layout, per-screen scopes
+and LocaleChanged. The document integration observes committed document transitions
+and successful structural mutation completions. Every rendered host instance owns its layout, per-screen scopes
 and placeholders. Workspace cancellation releases them on Vault switch or closure.
 
 Mantine's `lunaris.active-screen` role supplies stable child targets. The controller
@@ -33,11 +35,37 @@ The controller supplies `presentation: { mode: "embedded", sizing: "fill" }` to
 its layout, screens and placeholders after custom props. Screen roots inherit the
 Workspace surface, independently of their target DOM.
 
+## Tab interaction and ownership
+
+The Owner's screenshot defines the two-row composition. The top row holds rounded
+tabs with close icons and a trailing add button. The second row holds Back,
+Forward and the current title or Vault-relative path. Theme tokens determine the
+colors, spacing and geometry. The tab strip can scroll horizontally while the
+add button remains visible. Workspace owns the main area's geometry and content
+surface. The [Mantine role](../../mantine-components/DOCS/README.md#active-screen-role)
+owns the local tab controls and their presentation. Editor and Settings own
+their content inside borrowed targets.
+
+- Opening a file fills the selected empty tab or adds a file tab. Opening a file
+  with an existing tab selects it. Settings and other registered screens have
+  one tab each. Selecting Settings leaves the file marked in Explorer.
+- Add opens or selects one empty tab. Closing the active tab selects its right
+  neighbor, its left neighbor, or an empty tab. Back and Forward visit prior tab
+  selections. Closed tabs are removed from history.
+- Arrow keys and Home/End move focus across the strip. Enter or Space selects the
+  focused tab. Delete closes it. Keyboard close returns focus to the selected tab.
+- File changes use ActiveDocument's existing save and draft guards. Declined
+  transitions keep the document open and show a localized status. Confirmed
+  in-app moves and removals update affected tabs. An inactive file removed
+  outside the app is dropped if opening it confirms that the path is missing.
+- The tab list and history belong to the mounted Vault workspace. ActiveDocument
+  restores its persisted file after reopening a Vault.
+
 ## Russian UI copy
 
 English and Russian catalogs are owned by this consumer. Messages reach shared
-Mantine roles through Localization/LocaleChanged and existing public component
-props; no renderer translation or SDK change is required. Interface Settings
+Mantine roles through Localization/LocaleChanged and public component props.
+Interface Settings
 selects and persists Russian per Vault. Names and user content stay unchanged.
 Run `npm run ui-localization:check` for complete keys and matching placeholders.
 Native acceptance of long Russian labels, menus and narrow layouts is pending.

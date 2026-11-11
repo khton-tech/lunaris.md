@@ -21,6 +21,11 @@ CodeMirror 6 Markdown editor with Live Preview, integrated through public SDK co
 Plugin: `lunaris.text-editor`; package: `@lunaris/text-editor`. Tauri starts it
 with ui.dom, vault.access and filesystem.access.
 
+The editor registers its ActiveScreen role with `document: true`. Workspace
+tabs use ActiveDocument to select files and run the existing save and draft
+guards. The editor retains document sessions and remains responsible for
+loading content, editing and reporting save conflicts.
+
 On mobile-sized editor allocations (640px or less), the document starts an
 additional 6% of the allocated height below its existing top inset, as requested
 by the Owner. This inset now precedes the file-name heading instead of separating

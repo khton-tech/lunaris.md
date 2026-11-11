@@ -1,7 +1,8 @@
 # Active screen
 
-Status: accepted by the Owner and implemented on 2026-11-07. See the
-[public reference](../reference/active-screen.md) for shipped behavior and limits.
+Status: original milestone accepted by the Owner and implemented on 2026-11-07.
+The [public reference](../reference/active-screen.md) covers the subsequent tab
+strip and current behavior.
 
 ## Accepted scope
 
