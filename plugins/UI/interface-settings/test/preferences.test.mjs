@@ -57,7 +57,7 @@ test('composed controls apply and persist explicit Vault preferences, preserve i
   theme.click(); await flush();
   const options = s.dom.window.document.getElementById(theme.getAttribute('aria-controls'));
   assert.deepEqual([...options.querySelectorAll('[role=option]')].map(item => item.textContent.trim()), [
-    'Catppuccin Mocha', 'Dracula', 'Everforest Dark', 'Gruvbox Dark', 'Maiami Night',
+    'Catppuccin Mocha', 'Dracula', 'Everforest Dark', 'Gruvbox Dark', 'Lunaris', 'Maiami Night',
     'Monochrome', 'Nord', 'Rosé Pine', 'Sakura Night', 'Tokyo Night', 'Windows XP Luna', 'Windows XP Luna Dark', 'Alternate',
   ]);
   assert.ok(theme.closest('.lm-root').querySelector('.lm-setting-dropdown'));
