@@ -902,6 +902,8 @@ open menus, focus and narrow Workspace allocations.
 The Owner's desktop status-bar screenshot is the reference for the lower join.
 Workspace rounds both bottom corners of the editor surface above a subtly
 tinted footer. The status role uses muted labels and spacing between metrics.
+When the panel is open, the editor owns the shared vertical edge and its curve
+into the footer. The splitter hit area straddles the seam.
 The existing bottom target and status role props connect the two surfaces.
 Check the join with the Files panel open and closed in native acceptance.
 
