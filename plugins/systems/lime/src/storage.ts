@@ -61,5 +61,38 @@ export function createStorage(fs: FilesystemApi, vaultId: string) {
       if (preview.digest !== record.digest || preview.manifest.id !== record.id || preview.manifest.version !== record.version) throw new Error('Installed package identity differs from its committed record.');
       return preview;
     },
+    /** Best-effort optimistic cleanup; never recurse into unknown paths or data. */
+    async cleanup(records: readonly InstallationRecord[]): Promise<number> {
+      if (version === null) return 0;
+      const unchanged = async (): Promise<void> => {
+        const registry = await fs.readText(target(`${ROOT}/registry.json`));
+        if (!registry.ok || registry.value.version !== version) throw new Error('Plugin registry changed before archive cleanup.');
+      };
+      await unchanged();
+      const root = `${ROOT}/packages`; const directories = await fs.list(target(root));
+      if (!directories.ok) { if (directories.error.code === 'NOT_FOUND') return 0; throw new Error('Cannot list package archive storage.', { cause: directories.error }); }
+      if (directories.value.length > 512) throw new Error('Package cleanup directory limit reached.');
+      const retained = new Set(records.map(record => `${root}/${record.id}/${record.digest}.lup`));
+      const candidates: string[] = []; let scanned = 0;
+      for (const directory of directories.value) {
+        const id = directory.path.slice(root.length + 1);
+        if (directory.kind !== 'directory' || directory.path !== `${root}/${id}` || !isValidId(id)) continue;
+        const entries = await fs.list(target(directory.path));
+        if (!entries.ok) throw new Error('Cannot list plugin archive directory.', { cause: entries.error });
+        if ((scanned += entries.value.length) > 4096) throw new Error('Package cleanup entry limit reached.');
+        for (const entry of entries.value) {
+          const name = entry.path.slice(directory.path.length + 1);
+          if (entry.kind === 'file' && entry.path === `${directory.path}/${name}` && /^[a-f0-9]{64}\.lup$/.test(name) && !retained.has(entry.path)) candidates.push(entry.path);
+        }
+      }
+      let removed = 0;
+      for (const filename of candidates) {
+        await unchanged();
+        const result = await fs.remove(target(filename), false);
+        if (!result.ok && result.error.code !== 'NOT_FOUND') throw new Error('Cannot remove unused package archive.', { cause: result.error });
+        if (result.ok) removed++;
+      }
+      return removed;
+    },
   };
 }

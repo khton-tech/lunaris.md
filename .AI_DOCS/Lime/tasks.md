@@ -14,7 +14,8 @@ Status (2026-11-11): implementation evidence follows the public runtime design i
 acceptance or complete authority audit is claimed.
 
 - L02: shared metadata validator, bounded LUP codec, Vault registry, immutable
-  archives and resumable removal journal implemented. Managed-data migration
+  archives, bounded optimistic orphan cleanup and resumable removal journal
+  implemented. Managed-data migration
   backups and update transaction recovery remain pending.
 - L03: Kernel.replace/unregister, lifecycle ownership, host-backed public runtime
   adapter, protected built-ins and generation checks implemented. Environment

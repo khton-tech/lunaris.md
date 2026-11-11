@@ -86,8 +86,16 @@ preview, exact-byte confirmation, builtin collisions before commit, storage fail
 recovery intent, explicit retry, safe-mode skip and cross-Vault preview invalidation.
 Actual Kernel/QuickJS runtime tests are separate host adapter evidence.
 
-Still pending: staging/update orphan cleanup,
-managed-data migration backup/rollback, dependency/provider-choice disclosure,
+Unused hash-named archives are swept after restore and committed changes. Cleanup
+keeps every committed/tombstoned digest, ignores unknown files/symlinks and data,
+bounds scanning and checks the optimistic registry version before each removal.
+Failure only defers cleanup and is logged; it does not fail a committed install.
+An uncommitted first installation is cleaned after a later registry commit.
+External processes do not participate in filesystem locks: a race after a version
+check cannot be made atomic by this API. Concurrent synchronization must quiesce
+Lime storage; no cross-process transactional deletion guarantee is claimed.
+
+Still pending: managed-data migration backup/rollback, dependency/provider-choice disclosure,
 complete native/browser acceptance. Public declarative Views/viewport and package
 resources are implemented through SDK contracts. The shared host now
 composes the engine, SDK execution driver, picker, runtime adapter and Lime Settings.

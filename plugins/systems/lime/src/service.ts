@@ -39,6 +39,10 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
   const publish = (): void => { if (!ctx.signal.aborted) void ctx.events.emit(LimeChanged, snapshot()).catch(cause => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, 'Cannot publish Lime state', { error: cause }); }); };
   const valid = (captured: LimeEnvironment) => !ctx.signal.aborted && !!environment && environment.vaultId === captured.vaultId && environment.generation === captured.generation;
   const save = async (next: readonly InstallationRecord[]) => { await storage!.save(next); records = Object.freeze([...next]); publish(); };
+  const cleanup = async (): Promise<void> => {
+    try { const removed = await storage!.cleanup(records); if (removed) logger.info(ctx.pluginId, 'Unused package archives removed', { data: { count: removed } }); }
+    catch (cause) { if (!ctx.signal.aborted) logger.warn(ctx.pluginId, 'Unused archive cleanup deferred', { error: cause }); }
+  };
   const mutate = (work: (captured: LimeEnvironment) => Promise<LimeResult<null>>): Promise<LimeResult<null>> => {
     if (!environment) return Promise.resolve(fail('NO_VAULT', 'Open a Vault before managing plugins.'));
     if (busy || transitioning) return Promise.resolve(fail('BUSY', 'Plugin environment is busy.'));
@@ -95,6 +99,7 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
       storage = createStorage(fs, current.id); packages.clear(); records = []; error = null; safeMode = requestedSafeMode;
       const opened = await runtime.open(environment); if (!opened.ok) { error = opened.error.message; return opened; }
       records = await storage.read();
+      await cleanup();
       for (const record of [...records]) {
         if (record.removing) {
           try { const result = await finishRemoval(record, environment); if (!result.ok) error = result.error.message; }
@@ -165,9 +170,11 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
     catch (cause) {
       if (previous) { const old = packages.get(previous.id); if (old) await runtime.replace(captured, old.manifest, source(old)); }
       else await runtime.remove(captured, record.id);
+      await cleanup();
       throw cause;
     }
     packages.set(record.id, preview);
+    await cleanup();
     logger.info(ctx.pluginId, updating ? 'Plugin update committed' : 'Plugin installation committed', { data: { pluginId: record.id, version: record.version } });
     if (record.enabled && !updating && !safeMode) return await activate(record.id, captured);
     publish(); return ok();
