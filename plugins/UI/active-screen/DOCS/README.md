@@ -54,8 +54,9 @@ their content inside borrowed targets.
   Closing the active tab selects its right
   neighbor, its left neighbor, or an empty tab. Back and Forward visit prior tab
   selections. Closed tabs are removed from history.
-- Drag a tab along the strip to reorder it. The highlighted edge indicates the
-  insertion point. Reordering preserves the selected tab and visit history.
+- Drag a tab along the strip to reorder it. The tab moves horizontally and the
+  highlighted edge indicates the insertion point. Reordering preserves the
+  selected tab and visit history.
 - Arrow keys and Home/End move focus across the strip. Enter or Space selects the
   focused tab. Delete closes it. Keyboard close returns focus to the selected tab.
 - File changes use ActiveDocument's existing save and draft guards. Declined

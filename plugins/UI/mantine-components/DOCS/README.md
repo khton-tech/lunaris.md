@@ -696,8 +696,9 @@ and `forward`. Callbacks `onAdd()`, `onSelect(id)`, `onClose(id)` and
 `onNavigate(-1 | 1)` return promises indicating whether the action succeeded.
 The strip forwards middle clicks on unused space to `onAdd()` and middle clicks
 on closable tabs to `onClose(id)`. The optional
-`onReorder(id, targetId, "before" | "after")` enables native tab drag-and-drop.
-The role shows the insertion edge and sends the proposed move on drop.
+`onReorder(id, targetId, "before" | "after")` enables tab drag sorting. The role
+captures the pointer, translates the dragged tab horizontally and shows the
+insertion edge. It sends the proposed move when the pointer is released.
 Mantine Tabs and ActionIcon supply keyboard and pointer controls. The role styles
 the internal strip and navigation. The screen surface inherits Workspace.
 The Owner's follow-up tab reference uses one continuous selected surface behind

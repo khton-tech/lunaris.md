@@ -1,4 +1,5 @@
 import { useId, useLayoutEffect, useRef, useState } from "react";
+import type { PointerEvent } from "react";
 import { ActionIcon, Badge, Box, Tabs } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import { Icon } from "./icons.js";
@@ -6,6 +7,17 @@ import type { resolveTheme } from "./theme.js";
 
 type TabEdge = "before" | "after";
 interface TabDrop { readonly id: string; readonly edge: TabEdge }
+interface TabDrag {
+  readonly id: string;
+  readonly pointerId: number;
+  readonly button: HTMLButtonElement;
+  readonly element: HTMLElement;
+  readonly startX: number;
+  readonly startY: number;
+  readonly grip: number;
+  offset: number;
+  moved: boolean;
+}
 
 interface ScreenProps {
   readonly ids: readonly string[];
@@ -54,33 +66,61 @@ export function activeScreenProps(value: ComponentProps): ScreenProps {
 
 function WorkspaceTabs({ props, panelId }: { props: TabProps; panelId: string }) {
   const list = useRef<HTMLDivElement>(null);
-  const draggedId = useRef<string | null>(null);
+  const drag = useRef<TabDrag | null>(null);
+  const suppressClick = useRef(false);
   const [drop, setDrop] = useState<TabDrop | null>(null);
   const canReorder = !props.busy && !!props.onReorder && props.tabs.length > 1;
   const selected = props.tabs.find(tab => tab.id === props.selectedId);
   const selectedButton = () => list.current?.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]');
   useLayoutEffect(() => { selectedButton()?.parentElement?.scrollIntoView?.({ block: "nearest", inline: "nearest" }); }, [props.selectedId]);
   useLayoutEffect(() => {
-    if (draggedId.current && (!canReorder || !props.tabs.some(tab => tab.id === draggedId.current))) {
-      draggedId.current = null;
-      setDrop(null);
-    }
+    const current = drag.current;
+    if (current && (!canReorder || !props.tabs.some(tab => tab.id === current.id))) resetDrag();
   }, [canReorder, props.tabs]);
   const focusSelected = (action: Promise<boolean>) => { void action.then(completed => { if (completed) selectedButton()?.focus(); }); };
-  const resetDrag = () => { draggedId.current = null; setDrop(null); };
-  function dropAt(clientX: number): TabDrop | null {
-    const element = list.current;
-    if (!element) return null;
-    const rtl = element.ownerDocument.defaultView?.getComputedStyle(element).direction === "rtl";
-    let last: string | undefined;
-    for (const tab of element.querySelectorAll<HTMLElement>("[data-workspace-tab-id]")) {
-      const id = tab.dataset.workspaceTabId!;
-      const rect = tab.getBoundingClientRect();
-      const midpoint = rect.left + rect.width / 2;
-      if (rtl ? clientX > midpoint : clientX < midpoint) return { id, edge: "before" };
-      last = id;
+  function resetDrag(): void {
+    const current = drag.current;
+    if (!current) return;
+    drag.current = null;
+    current.element.style.removeProperty("transform");
+    delete current.element.dataset.dragging;
+    if (current.button.hasPointerCapture(current.pointerId)) current.button.releasePointerCapture(current.pointerId);
+    setDrop(null);
+  }
+  function startDrag(event: PointerEvent<HTMLButtonElement>, id: string): void {
+    if (!canReorder || drag.current || event.button !== 0 || event.pointerType === "touch") return;
+    const button = event.currentTarget;
+    const element = button.parentElement!;
+    button.setPointerCapture(event.pointerId);
+    drag.current = { id, button, element, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY,
+      grip: event.clientX - element.getBoundingClientRect().left, offset: 0, moved: false };
+  }
+  function positionTab(current: TabDrag, clientX: number): TabDrop | null {
+    const row = list.current;
+    if (!row) return null;
+    const tabs = [...row.querySelectorAll<HTMLElement>("[data-workspace-tab-id]")];
+    const index = tabs.indexOf(current.element);
+    if (index === -1) return null;
+    const direction = row.ownerDocument.defaultView?.getComputedStyle(row).direction === "rtl" ? -1 : 1;
+    const rect = current.element.getBoundingClientRect();
+    const origin = rect.left - current.offset;
+    const leftmost = tabs[direction === 1 ? 0 : tabs.length - 1]!;
+    const rightmost = tabs[direction === 1 ? tabs.length - 1 : 0]!;
+    const left = leftmost === current.element ? origin : leftmost.getBoundingClientRect().left;
+    const right = rightmost === current.element ? origin + rect.width : rightmost.getBoundingClientRect().right;
+    const nextLeft = Math.max(left, Math.min(right - rect.width, clientX - current.grip));
+    current.offset = nextLeft - origin;
+    const center = nextLeft + rect.width / 2;
+    const step = current.offset * direction < 0 ? -1 : 1;
+    let target: TabDrop | null = null;
+    for (let i = index + step; i >= 0 && i < tabs.length; i += step) {
+      const tab = tabs[i]!;
+      const box = tab.getBoundingClientRect();
+      if ((center - box.left - box.width / 2) * direction * step < 0) break;
+      target = { id: tab.dataset.workspaceTabId!, edge: step < 0 ? "before" : "after" };
     }
-    return last === undefined ? null : { id: last, edge: "after" };
+    current.element.style.transform = `translateX(${current.offset}px)`;
+    return target;
   }
   function scrollWhileDragging(clientX: number): void {
     const element = list.current;
@@ -90,47 +130,52 @@ function WorkspaceTabs({ props, panelId }: { props: TabProps; panelId: string })
     if (clientX >= left && clientX < left + edge) element.scrollLeft -= edge;
     if (clientX <= right && clientX > right - edge) element.scrollLeft += edge;
   }
+  function moveDrag(event: PointerEvent<HTMLDivElement>): void {
+    const current = drag.current;
+    if (!current || current.pointerId !== event.pointerId) return;
+    if (!current.moved) {
+      const horizontal = Math.abs(event.clientX - current.startX);
+      if (horizontal >= 5 || Math.abs(event.clientY - current.startY) >= 5) suppressClick.current = true;
+      if (horizontal < 5) return;
+      current.moved = true;
+      current.element.dataset.dragging = "";
+    }
+    scrollWhileDragging(event.clientX);
+    const next = positionTab(current, event.clientX);
+    setDrop(previous => previous?.id === next?.id && previous?.edge === next?.edge ? previous : next);
+  }
+  function finishDrag(event: PointerEvent<HTMLDivElement>): void {
+    const current = drag.current;
+    if (!current || current.pointerId !== event.pointerId) return;
+    const target = current.moved ? positionTab(current, event.clientX) : null;
+    resetDrag();
+    if (target) props.onReorder?.(current.id, target.id, target.edge);
+  }
+  function cancelDrag(event: PointerEvent<HTMLDivElement>): void {
+    if (drag.current?.pointerId === event.pointerId) resetDrag();
+  }
   const labels = props.labels;
   return <Box className="lm-workspace-tabs" aria-busy={props.busy}>
     <Tabs unstyled value={props.selectedId} activateTabWithKeyboard={false} onChange={id => { if (id) void props.onSelect(id); }}
       className="lm-workspace-tab-strip"
+      onPointerDownCapture={() => { if (!drag.current) suppressClick.current = false; }}
+      onPointerMove={moveDrag} onPointerUp={finishDrag} onPointerCancel={cancelDrag} onLostPointerCapture={cancelDrag}
+      onClickCapture={event => {
+        if (!suppressClick.current || event.detail === 0) return;
+        suppressClick.current = false;
+        event.preventDefault();
+        event.stopPropagation();
+      }}
       onMouseDownCapture={event => { if (event.button === 1) event.preventDefault(); }}
       onAuxClick={event => {
         if (event.button === 1 && (event.target === event.currentTarget || event.target === list.current)) {
           event.preventDefault();
           void props.onAdd();
         }
-      }}
-      onDragOver={event => {
-        if (!canReorder || !draggedId.current) return;
-        event.preventDefault();
-        event.dataTransfer.dropEffect = "move";
-        scrollWhileDragging(event.clientX);
-        const next = dropAt(event.clientX);
-        setDrop(previous => previous?.id === next?.id && previous?.edge === next?.edge ? previous : next);
-      }}
-      onDragLeave={event => {
-        if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) setDrop(null);
-      }}
-      onDrop={event => {
-        const id = draggedId.current;
-        if (!canReorder || !id) return;
-        event.preventDefault();
-        const target = dropAt(event.clientX);
-        resetDrag();
-        if (target && id !== target.id) props.onReorder?.(id, target.id, target.edge);
       }}>
       <Tabs.List className="lm-workspace-tab-list" ref={list} aria-label={labels.tabs}>
         {props.tabs.map(tab => <Box key={tab.id} role="presentation" className="lm-workspace-tab" mod={{ selected: tab.id === props.selectedId }}
-          data-workspace-tab-id={tab.id} data-drop={drop?.id === tab.id && tab.id !== draggedId.current ? drop.edge : undefined}
-          draggable={canReorder}
-          onDragStart={event => {
-            if (!canReorder) { event.preventDefault(); return; }
-            draggedId.current = tab.id;
-            event.dataTransfer.effectAllowed = "move";
-            event.dataTransfer.setData("application/x-lunaris-workspace-tab", tab.id);
-          }}
-          onDragEnd={resetDrag}
+          data-workspace-tab-id={tab.id} data-drop={drop?.id === tab.id ? drop.edge : undefined} data-sortable={canReorder || undefined}
           onAuxClick={event => {
             if (event.button !== 1) return;
             event.preventDefault();
@@ -139,7 +184,7 @@ function WorkspaceTabs({ props, panelId }: { props: TabProps; panelId: string })
           }}>
           <Tabs.Tab className="lm-workspace-tab-label lm-focus" classNames={{ tabSection: "lm-workspace-tab-section" }}
             value={tab.id} id={`${panelId}-${tab.id}`} aria-controls={panelId}
-            title={tab.description} onKeyDown={event => {
+            title={tab.description} onPointerDown={event => startDrag(event, tab.id)} onKeyDown={event => {
               if (event.key === "Delete" && tab.closable) { event.preventDefault(); focusSelected(props.onClose(tab.id)); }
             }} rightSection={tab.extension && <Badge className="lm-workspace-tab-extension" size="xs" radius="xl" variant="light">{tab.extension}</Badge>}>
             {tab.title}

@@ -212,7 +212,7 @@ test('workspace tabs compose with the editor, Settings, history and Vault lifeti
   } finally { await s.stop(); }
 });
 
-test('workspace tab strip handles middle clicks and drag sorting while preserving selection and history', async () => {
+test('workspace tab strip handles middle clicks and horizontal drag sorting while preserving selection and history', async () => {
   const s = await setup({ withLayout: true });
   const strip = s.target.querySelector('.lm-workspace-main .lm-workspace-tab-strip');
   const tabs = () => [...strip.querySelectorAll('[role=tab]')];
@@ -223,16 +223,22 @@ test('workspace tab strip handles middle clicks and drag sorting while preservin
     target.dispatchEvent(event);
     return event;
   };
-  function drag(type, target, clientX, dataTransfer) {
-    const event = new s.dom.window.MouseEvent(type, { bubbles: true, cancelable: true, clientX });
-    Object.defineProperty(event, 'dataTransfer', { value: dataTransfer });
+  function pointer(type, target, clientX, clientY = 16) {
+    const event = new s.dom.window.MouseEvent(type, { bubbles: true, cancelable: true, button: 0, clientX, clientY });
+    Object.defineProperties(event, { pointerId: { value: 1 }, pointerType: { value: 'mouse' } });
     target.dispatchEvent(event);
-    return event;
   }
   function layOutTabs() {
     return tabs().map((tab, index) => {
       const wrapper = tab.parentElement;
-      wrapper.getBoundingClientRect = () => ({ left: index * 100, right: (index + 1) * 100, width: 100 });
+      let captured = null;
+      tab.setPointerCapture = id => { captured = id; };
+      tab.hasPointerCapture = id => captured === id;
+      tab.releasePointerCapture = () => { captured = null; };
+      wrapper.getBoundingClientRect = () => {
+        const left = index * 100 + Number(wrapper.style.transform.match(/translateX\((-?\d+(?:\.\d+)?)px\)/)?.[1] ?? 0);
+        return { left, right: left + 100, width: 100 };
+      };
       return wrapper;
     });
   }
@@ -257,25 +263,40 @@ test('workspace tab strip handles middle clicks and drag sorting while preservin
     await s.documents.open({ vaultId: 'a', path: 'image.png' }); await flush();
     const image = active();
     const [first, , last] = layOutTabs();
-    assert.equal(first.draggable, true);
-    const transfer = { setData() {} };
-    assert.equal(drag('dragover', strip, 20, transfer).defaultPrevented, false);
-    drag('dragstart', last, 250, transfer);
-    assert.equal(drag('dragover', first, 20, transfer).defaultPrevented, true);
+    assert.equal(first.hasAttribute('draggable'), false);
+    pointer('pointerdown', image, 250);
+    pointer('pointermove', image, 250, 140);
+    assert.equal(last.style.transform, '');
+    pointer('pointerup', image, 250, 140); await flush();
+    assert.deepEqual(order(), ['note.md', 'other.md', 'image.png']);
+
+    pointer('pointerdown', image, 250);
+    pointer('pointermove', image, 20, 140);
     await flush();
+    assert.equal(image.hasPointerCapture(1), true);
+    assert.equal(last.style.transform, 'translateX(-200px)');
     assert.equal(first.dataset.drop, 'before');
-    drag('dragend', last, 250, transfer); await flush();
+    pointer('pointermove', image, 20, -30);
+    assert.equal(last.style.transform, 'translateX(-200px)');
+    pointer('pointercancel', image, 20, -30); await flush();
+    assert.equal(image.hasPointerCapture(1), false);
+    assert.equal(last.style.transform, '');
     assert.equal(first.hasAttribute('data-drop'), false);
     assert.deepEqual(order(), ['note.md', 'other.md', 'image.png']);
 
-    drag('dragstart', last, 250, transfer);
-    drag('drop', first, 20, transfer); await flush();
+    pointer('pointerdown', image, 250);
+    pointer('pointermove', image, 20, 140);
+    pointer('pointerup', image, 20, 140); await flush();
     assert.deepEqual(order(), ['image.png', 'note.md', 'other.md']);
     assert.equal(active(), image);
     assert.equal(s.documents.current().path, 'image.png');
-    const [, note] = layOutTabs();
-    drag('dragstart', note, 150, transfer);
-    drag('drop', strip, 325, transfer); await flush();
+    layOutTabs();
+    const [, note] = tabs();
+    pointer('pointerdown', note, 150);
+    pointer('pointermove', note, 325, 140);
+    pointer('pointerup', note, 325, 140); await flush();
+    note.dispatchEvent(new s.dom.window.MouseEvent('click', { bubbles: true, cancelable: true, button: 0, detail: 1 }));
+    await flush();
     assert.deepEqual(order(), ['image.png', 'other.md', 'note.md']);
     assert.equal(active(), image);
     s.target.querySelector('button[aria-label="Back"]').click(); await flush();
@@ -283,6 +304,12 @@ test('workspace tab strip handles middle clicks and drag sorting while preservin
     mouse(active(), 'auxclick', 1); await flush();
     assert.equal(active().title, 'note.md');
     assert.deepEqual(order(), ['image.png', 'note.md']);
+    layOutTabs();
+    pointer('pointerdown', image, 50);
+    pointer('pointerup', image, 50);
+    image.dispatchEvent(new s.dom.window.MouseEvent('click', { bubbles: true, cancelable: true, button: 0, detail: 1 }));
+    await flush();
+    assert.equal(active(), image);
   } finally { await s.stop(); }
 });
 
