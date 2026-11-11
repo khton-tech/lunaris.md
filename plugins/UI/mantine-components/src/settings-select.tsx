@@ -25,7 +25,9 @@ export function SettingsSelect({ options, onChange, ...props }: Props) {
       store.closeDropdown(); onChange(value);
     }}>
     <Combobox.Target targetType="button" withExpandedAttribute>
+      {/* Let the menu handle Escape before an enclosing Mantine modal. */}
       <InputBase {...props} component="button" type="button" size="sm" pointer
+        data-mantine-stop-propagation={store.dropdownOpened || undefined}
         classNames={{ input: "lm-input lm-setting-input lm-setting-select" }}
         leftSection={<Icon name="vault-switch" />} leftSectionWidth={32} leftSectionPointerEvents="none" rightSection={<span />} rightSectionWidth={0}
         onClick={() => { if (!props.disabled) store.toggleDropdown(); }}>

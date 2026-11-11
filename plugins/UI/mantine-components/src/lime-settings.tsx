@@ -1,13 +1,14 @@
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Box, Button, Group, Modal, Stack, Switch, Tabs, Text, Title } from "@mantine/core";
+import { Box, Button, Group, Modal, Stack, Switch, Tabs, Text } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from './icons.js';
 import { SettingsSelect } from './settings-select.js';
 
 interface Metadata { readonly id: string; readonly name: string; readonly version: string; readonly description: string; readonly fields: readonly { readonly label: string; readonly value: string }[] }
-interface Row extends Metadata { readonly enabled: boolean; readonly recovery: boolean; readonly state: string; readonly removing: boolean }
+interface Row extends Metadata { readonly requirements?: Metadata['fields']; readonly enabled: boolean; readonly recovery: boolean; readonly state: string; readonly removing: boolean }
 interface Dependency { readonly kind: 'api' | 'event' | 'hook'; readonly id: string; readonly range: string; readonly optional: boolean; readonly selected?: string; readonly candidates: readonly { readonly id: string; readonly version: string; readonly state: string }[] }
 interface DependencyPlan { readonly pluginId: string; readonly revision: number; readonly affected: readonly string[]; readonly dependencies: readonly Dependency[] }
 interface Props {
@@ -32,7 +33,7 @@ export function limeSettingsProps(value: ComponentProps): Props {
     return !!item && ['id', 'name', 'version', 'description'].every(key => typeof (item as Record<string, unknown>)[key] === 'string') && validFields(item.fields);
   };
   if (!value.labels || typeof value.labels !== 'object' || !labels.every(key => typeof (value.labels as Record<string, unknown>)[key] === 'string') ||
-    !Array.isArray(value.rows) || !value.rows.every(row => metadata(row) && ['enabled', 'recovery', 'removing'].every(key => typeof (row as unknown as Record<string, unknown>)[key] === 'boolean') && typeof (row as Row).state === 'string') || new Set(value.rows.map(row => row.id)).size !== value.rows.length ||
+    !Array.isArray(value.rows) || !value.rows.every(row => metadata(row) && ['enabled', 'recovery', 'removing'].every(key => typeof (row as unknown as Record<string, unknown>)[key] === 'boolean') && typeof (row as Row).state === 'string' && ((row as Row).requirements === undefined || validFields((row as Row).requirements))) || new Set(value.rows.map(row => row.id)).size !== value.rows.length ||
     (value.preview !== null && (!metadata(value.preview) || !validFields((value.preview as Props['preview'])?.requirements) || typeof (value.preview as Props['preview'])?.warning !== 'boolean' || typeof (value.preview as Props['preview'])?.action !== 'string')) ||
     !['busy', 'available', 'safeMode'].every(key => typeof value[key] === 'boolean') || typeof value.error !== 'string' ||
     !['onAdd', 'onConfirm', 'onCancel', 'onToggle', 'onRetry', 'onUpdate', 'onRemove', 'onSafeMode', 'onPlan', 'onSelectProvider'].every(key => typeof value[key] === 'function')) throw new TypeError('Invalid Lime Settings props.');
@@ -46,33 +47,42 @@ function Details({ item }: { item: Pick<Metadata, 'description' | 'fields'> }) {
     {item.fields.map((field, index) => <Text key={index} size="sm"><Text span c="dimmed">{field.label}: </Text>{field.value}</Text>)}
   </Stack>;
 }
-function PackagePreview({ preview, props }: { preview: NonNullable<Props['preview']>; props: Props }) {
-  return <Modal opened onClose={props.onCancel} title={preview.name} centered withinPortal={false} returnFocus={false}
-    closeOnEscape={!props.busy} closeOnClickOutside={false} withCloseButton={false}
+function PackageDialog({ item, labels, overview, dependencies, footer, onClose, closeOnEscape = true }: {
+  item: Metadata; labels: Props['labels']; overview: ReactNode; dependencies: ReactNode;
+  footer: ReactNode; onClose: () => void; closeOnEscape?: boolean;
+}) {
+  return <Modal opened onClose={onClose} title={item.name} centered withinPortal={false} returnFocus={false}
+    closeOnEscape={closeOnEscape} closeOnClickOutside={false} withCloseButton={false}
     transitionProps={{ duration: 0 }} size="lg" xOffset="1rem" yOffset="1rem"
     classNames={{ content: 'lm-lime-dialog', header: 'lm-lime-dialog-header', body: 'lm-lime-dialog-body' }}>
     <Tabs className="lm-lime-tabs" color="var(--vault-accent)" defaultValue="overview" keepMounted={false}>
-      <Tabs.List aria-label={props.labels.previewTabs}>
-        <Tabs.Tab value="overview" data-autofocus>{props.labels.overview}</Tabs.Tab>
-        <Tabs.Tab value="dependencies">{props.labels.requires}</Tabs.Tab>
+      <Tabs.List aria-label={labels.previewTabs}>
+        <Tabs.Tab value="overview" data-autofocus>{labels.overview}</Tabs.Tab>
+        <Tabs.Tab value="dependencies">{labels.requires}</Tabs.Tab>
       </Tabs.List>
       <Tabs.Panel value="overview" className="lm-lime-panel" tabIndex={0}>
-        <Text size="sm" c="dimmed" mb="xs">{preview.version}</Text>
-        <Details item={preview} />
+        <Text size="sm" c="dimmed" mb="xs">{item.version}</Text>
+        {overview}
       </Tabs.Panel>
       <Tabs.Panel value="dependencies" className="lm-lime-panel" tabIndex={0}>
-        {preview.requirements.length ? <Details item={{ description: '', fields: preview.requirements }} /> :
-          <Text size="sm" c="dimmed">{props.labels.noDependencies}</Text>}
+        {dependencies}
       </Tabs.Panel>
     </Tabs>
-    <Stack className="lm-lime-dialog-footer" gap="xs">
+    <Stack className="lm-lime-dialog-footer" gap="xs">{footer}</Stack>
+  </Modal>;
+}
+function PackagePreview({ preview, props }: { preview: NonNullable<Props['preview']>; props: Props }) {
+  return <PackageDialog item={preview} labels={props.labels} onClose={props.onCancel} closeOnEscape={!props.busy}
+    overview={<Details item={preview} />}
+    dependencies={preview.requirements.length ? <Details item={{ description: '', fields: preview.requirements }} /> :
+      <Text size="sm" c="dimmed">{props.labels.noDependencies}</Text>}
+    footer={<>
       {preview.warning && <Text role="alert" size="sm" c="var(--vault-error)">{props.labels.warning}</Text>}
       <Group gap="xs" wrap="wrap" justify="flex-end">
         <Button size="compact-sm" variant="subtle" disabled={props.busy} onClick={props.onCancel}>{props.labels.cancel}</Button>
         <Button size="compact-sm" disabled={props.busy || !props.available} onClick={props.onConfirm}>{preview.action}</Button>
       </Group>
-    </Stack>
-  </Modal>;
+    </>} />;
 }
 function ProviderSelection({ dependency, plan, props, enabled }: { dependency: Dependency; plan: DependencyPlan; props: Props; enabled: boolean }) {
   const [selected, setSelected] = useState(dependency.selected ?? '');
@@ -100,10 +110,10 @@ function ProviderSelection({ dependency, plan, props, enabled }: { dependency: D
     {needsEnable && <Text size="sm" c="dimmed">{props.labels.enableProvider}</Text>}
   </Box>;
 }
-function PackageDetails({ id, row, props, disabled }: { id: string; row: Row; props: Props; disabled: boolean }) {
+function PackageDetails({ row, props, onClose }: { row: Row; props: Props; onClose: () => void }) {
   const plan = props.dependencyPlan?.pluginId === row.id ? props.dependencyPlan : null;
-  return <Stack id={id} className="lm-lime-package-details" gap="md">
-    <Stack gap="xs">
+  return <PackageDialog item={row} labels={props.labels} onClose={onClose}
+    overview={<Stack gap="xs">
       {row.description && <Text size="sm">{row.description}</Text>}
       <Box component="dl" className="lm-lime-metadata">
         {row.fields.map((field, index) => <Box key={index} className="lm-lime-metadata-row">
@@ -111,38 +121,45 @@ function PackageDetails({ id, row, props, disabled }: { id: string; row: Row; pr
           <Text component="dd" size="sm">{field.value}</Text>
         </Box>)}
       </Box>
-    </Stack>
-    <Stack component="section" aria-labelledby={`${id}-dependencies`} className="lm-lime-dependencies" gap="xs">
-      <Group justify="space-between" gap="xs">
-        <Title id={`${id}-dependencies`} order={3} size="sm">{props.labels.requires}</Title>
-        <Button size="compact-sm" variant="subtle" leftSection={<Icon name="refresh" />} disabled={disabled}
+    </Stack>}
+    dependencies={<Stack gap="xs">
+      <Group justify="flex-end" gap="xs">
+        <Button size="compact-sm" variant="subtle" leftSection={<Icon name="refresh" />} disabled={props.busy}
           onClick={() => props.onPlan(row.id)}>{props.labels.refreshDependencies}</Button>
       </Group>
-      {plan && <>
+      {plan ? <>
         {plan.affected.some(pluginId => pluginId !== row.id) &&
           <Text size="sm" c="dimmed">{props.labels.affected}: {plan.affected.join(', ')}</Text>}
         {plan.dependencies.length ? <Box component="ul" className="lm-lime-dependency-list">
           {plan.dependencies.map(dependency => <ProviderSelection key={`${dependency.kind}:${dependency.id}`}
             dependency={dependency} plan={plan} props={props} enabled={row.enabled} />)}
         </Box> : <Text size="sm" c="dimmed">{props.labels.noDependencies}</Text>}
-      </>}
-    </Stack>
-  </Stack>;
+      </> : row.requirements?.length ? <Details item={{ description: '', fields: row.requirements }} /> :
+        <Text size="sm" c="dimmed">{props.labels.noDependencies}</Text>}
+    </Stack>}
+    footer={<>
+      {props.error && <Text size="sm" c="var(--vault-error)" role="alert">{props.error}</Text>}
+      <Group justify="flex-end">
+        <Button size="compact-sm" variant="subtle" onClick={onClose}>{props.labels.close ?? props.labels.cancel}</Button>
+      </Group>
+    </>} />;
 }
 export function LimeSettings({ props, theme, overlay }: {
   props: Props;
   theme: ReturnType<typeof resolveTheme>;
   overlay: { id: string; target: HTMLElement };
 }) {
-  const [expanded, setExpanded] = useState<string | null>(null); const [removing, setRemoving] = useState<string | null>(null);
-  const detailsId = useId();
-  const previewTrigger = useRef<HTMLButtonElement>(null);
-  const hadPreview = useRef(false);
+  const [detailsId, setDetailsId] = useState<string | null>(null); const [removing, setRemoving] = useState<string | null>(null);
+  const details = props.available ? props.rows.find(row => row.id === detailsId) : undefined;
+  const dialogOpen = !!(props.preview || details);
+  const dialogTrigger = useRef<HTMLButtonElement>(null);
+  const hadDialog = useRef(false);
   const removeButtons = useRef(new Map<string, HTMLButtonElement>());
   useEffect(() => {
-    if (!props.preview && hadPreview.current) previewTrigger.current?.focus();
-    hadPreview.current = !!props.preview;
-  }, [props.preview]);
+    if (!dialogOpen && hadDialog.current) dialogTrigger.current?.focus();
+    hadDialog.current = dialogOpen;
+  }, [dialogOpen]);
+  useEffect(() => { if (detailsId && !details) setDetailsId(null); }, [detailsId, details]);
   useEffect(() => { if (removing && !props.rows.some(row => row.id === removing)) setRemoving(null); }, [props.rows, removing]);
   const disabled = props.busy || !props.available;
   return <Stack className="lm-lime-settings" gap="md" style={{ ...theme.contentStyle, minWidth: 0, width: '100%' }}>
@@ -150,15 +167,16 @@ export function LimeSettings({ props, theme, overlay }: {
       {!props.available ? <Text size="sm" c="dimmed">{props.labels.noVault}</Text> : <>
         {!props.rows.length && !props.preview && <Text size="sm" c="dimmed">{props.labels.empty}</Text>}
         <Group gap="xs" wrap="wrap">
-          <Button size="sm" variant="filled" leftSection={<Icon name="create" />} disabled={disabled || !!props.preview} onClick={event => { previewTrigger.current = event.currentTarget; props.onAdd(); }}>{props.labels.add}</Button>
+          <Button size="sm" variant="filled" leftSection={<Icon name="create" />} disabled={disabled || dialogOpen} onClick={event => { dialogTrigger.current = event.currentTarget; props.onAdd(); }}>{props.labels.add}</Button>
           {(props.safeMode || props.rows.length > 0) && <Button size="compact-sm" variant="subtle" disabled={disabled || !!props.preview} onClick={() => props.onSafeMode(!props.safeMode)}>{props.safeMode ? props.labels.resume : props.labels.safeMode}</Button>}
         </Group>
       </>}
     </Group>
-    {props.error && <Text size="sm" c="var(--vault-error)" role="alert" style={{ overflowWrap: 'anywhere' }}>{props.error}</Text>}
-    {props.preview && createPortal(
+    {props.error && !details && <Text size="sm" c="var(--vault-error)" role="alert" style={{ overflowWrap: 'anywhere' }}>{props.error}</Text>}
+    {dialogOpen && createPortal(
       <div id={overlay.id} className="lm-root lm-lime-overlay" data-mantine-color-scheme={theme.scheme} style={theme.contentStyle}>
-        <PackagePreview key={props.preview.id} preview={props.preview} props={props} />
+        {props.preview ? <PackagePreview key={props.preview.id} preview={props.preview} props={props} /> :
+          details && <PackageDetails key={details.id} row={details} props={props} onClose={() => setDetailsId(null)} />}
       </div>,
       overlay.target,
     )}
@@ -170,11 +188,10 @@ export function LimeSettings({ props, theme, overlay }: {
         </Stack>
         <Group gap="xs" wrap="wrap">
           <Switch aria-label={`${props.labels.enabled} ${row.name}`} checked={row.enabled} disabled={disabled || row.removing || props.safeMode} onChange={event => props.onToggle(row.id, event.currentTarget.checked)} />
-          <Button size="compact-xs" variant="subtle" aria-expanded={expanded === row.id}
-            aria-controls={expanded === row.id ? `${detailsId}-${row.id}` : undefined}
-            onClick={() => { if (expanded !== row.id) props.onPlan(row.id); setExpanded(expanded === row.id ? null : row.id); }}>{props.labels.details}</Button>
+          <Button size="compact-xs" variant="subtle" aria-haspopup="dialog" disabled={disabled}
+            onClick={event => { dialogTrigger.current = event.currentTarget; props.onPlan(row.id); setDetailsId(row.id); }}>{props.labels.details}</Button>
           {row.recovery && !row.removing && <Button size="compact-xs" variant="subtle" disabled={disabled || props.safeMode} onClick={() => props.onRetry(row.id)}>{props.labels.retry}</Button>}
-          <Button size="compact-xs" variant="subtle" disabled={disabled || row.removing || !!props.preview} onClick={event => { previewTrigger.current = event.currentTarget; props.onUpdate(row.id); }}>{props.labels.update}</Button>
+          <Button size="compact-xs" variant="subtle" disabled={disabled || row.removing || dialogOpen} onClick={event => { dialogTrigger.current = event.currentTarget; props.onUpdate(row.id); }}>{props.labels.update}</Button>
           <Button ref={element => { if (element) removeButtons.current.set(row.id, element); else removeButtons.current.delete(row.id); }} size="compact-xs" variant="subtle" disabled={disabled} onClick={() => {
             if (row.removing) props.onRemove(row.id, false);
             else {
@@ -184,7 +201,6 @@ export function LimeSettings({ props, theme, overlay }: {
           }}>{row.removing ? props.labels.retry : props.labels.remove}</Button>
         </Group>
       </Box>
-      {expanded === row.id && <PackageDetails id={`${detailsId}-${row.id}`} row={row} props={props} disabled={disabled} />}
       {removing === row.id && <Stack gap="xs" role="group" aria-label={`${props.labels.remove} ${row.name}`}>
         <Text size="sm">{props.labels.removePrompt}</Text>
         {props.dependencyPlan?.pluginId === row.id && props.dependencyPlan.affected.length > 1 &&

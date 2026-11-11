@@ -16,7 +16,7 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-
   const text = (key: string) => localization.text(ctx.pluginId, key);
   let preview: LimePreview | null = null; let localBusy = false; let error = ''; let scheduled = false; let currentVault = engine.snapshot().vaultId;
   let dependencyPlan: LimeDependencyPlan | null = null;
-  function metadata(manifest: PluginManifest | undefined, id: string, version: string, includeRequirements = true) {
+  function metadata(manifest: PluginManifest | undefined, id: string, version: string) {
     const meta = manifest?.metadata; const locale = localization.locale().toLowerCase();
     const translationKey = Object.keys(meta?.translations ?? {}).find(key => key.toLowerCase() === locale) ?? Object.keys(meta?.translations ?? {}).find(key => key.toLowerCase() === locale.split('-')[0]);
     const translation = translationKey ? meta!.translations![translationKey] : undefined;
@@ -24,9 +24,13 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-
     if (meta) fields.push({ label: text('author'), value: meta.author }, { label: text('platforms'), value: meta.platforms === 'universal' ? text('universal') : meta.platforms.join(', ') }, { label: text('languages'), value: meta.languages.join(', ') });
     if (meta?.repository) fields.push({ label: text('repository'), value: meta.repository });
     if (manifest?.provides.length) fields.push({ label: text('provides'), value: manifest.provides.map(item => `${item.kind}:${item.id} ${item.version}`).join('; ') });
-    if (includeRequirements && manifest?.requires.length) fields.push({ label: text('requires'), value: manifest.requires.map(item => `${item.kind}:${item.id} ${item.range}${item.optional ? ` (${text('optional')})` : ''}`).join('; ') });
     if (meta?.fields) fields.push(...meta.fields);
     return { id, version, name: translation?.name ?? meta?.name ?? id, description: translation?.description ?? meta?.description ?? '', fields };
+  }
+  function declaredRequirements(manifest: PluginManifest | undefined) {
+    return (manifest?.requires ?? []).map(item => ({
+      label: `${item.kind}:${item.id}`, value: `${item.range}${item.optional ? ` (${text('optional')})` : ''}`,
+    }));
   }
   function changed(): void {
     if (scheduled || ctx.signal.aborted) return; scheduled = true;
@@ -63,11 +67,11 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-
   function props() {
     const state = engine.snapshot(); const busy = state.busy || localBusy;
     const rows = state.installations.map(item => ({
-      ...metadata(item.manifest, item.id, item.version, dependencyPlan?.pluginId !== item.id),
+      ...metadata(item.manifest, item.id, item.version), requirements: declaredRequirements(item.manifest),
       enabled: item.enabled, recovery: item.recoveryRequired, removing: item.removalPending,
       state: text(Object.hasOwn(catalogs.en, item.state) ? item.state : 'unavailable'),
     }));
-    const previewDetails = preview && metadata(preview.manifest, preview.manifest.id, preview.manifest.version, false);
+    const previewDetails = preview && metadata(preview.manifest, preview.manifest.id, preview.manifest.version);
     const requirements: { label: string; value: string }[] = [];
     if (preview?.dependencyPlan) {
       const plan = preview.dependencyPlan;
@@ -81,9 +85,7 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-
         });
       }
     }
-    if (!requirements.length) for (const item of preview?.manifest.requires ?? []) {
-      requirements.push({ label: `${item.kind}:${item.id}`, value: `${item.range}${item.optional ? ` (${text('optional')})` : ''}` });
-    }
+    if (!requirements.length) requirements.push(...declaredRequirements(preview?.manifest));
     return { labels: Object.fromEntries(Object.keys(catalogs.en).map(key => [key, text(key)])), rows,
       preview: preview && previewDetails ? { ...previewDetails, requirements, warning: preview.platformWarning, action: text(state.installations.some(item => item.id === preview!.manifest.id) ? 'update' : 'install') } : null,
       dependencyPlan,

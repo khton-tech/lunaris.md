@@ -33,12 +33,13 @@ Lime requests a fresh preview. Removal confirmation shows affected active plugin
 
 Opening Details loads `Lime.plan(id)` and shows direct requirements, compatible
 provider versions/states and affected plugin IDs when other packages are affected.
-The expanded view follows the Owner's Third-party plugins screenshot and the
-shared Settings rows. It aligns metadata labels and values and gives dependency
-rows their own heading and refresh action. An already selected sole provider is
-shown as text. When a change is possible, the shared themed SettingsSelect sits
-beside Apply provider, which submits the plan revision. The metadata grid and
-provider controls reflow at narrow widths within the inherited section surface.
+Details reuses the installation dialog's centered shell and Overview and
+Dependencies tabs. Overview aligns metadata labels and values. Dependencies
+hosts the refresh action and shows declared requirements when the live plan is
+unavailable. An already selected sole provider is shown as text. When a change is
+possible, the shared themed SettingsSelect sits beside Apply provider, which
+submits the plan revision. Escape closes an open provider menu before closing
+the dialog. Closing Details returns focus to its package row action.
 Missing providers direct users to Add plugin for an explicitly selected local
 package. Disabled providers are not enabled implicitly; running consumers require
 an enabled choice. Refresh dependencies obtains a new revision. Engine failures
@@ -62,9 +63,10 @@ rows, quiet action buttons and shared Switch controls. Mantine UI
 [tables](https://ui.mantine.dev/category/tables/) and
 [inputs](https://ui.mantine.dev/category/inputs/) were consulted; no gallery runtime
 or copied shell was added. The Mantine role owns the package preview modal and
-its Overview and Dependencies tabs. Each active tab has its own scroll area.
-The platform warning and confirmation actions stay in the modal footer. Removal
-confirmation remains in its installation row.
+its Overview and Dependencies tabs. Details uses the same modal surface, tab
+layout and scroll area. The platform warning and installation confirmation stay
+in the preview footer. Details puts its close action and operation errors in the
+footer. Removal confirmation remains in its installation row.
 
 Composed tests mount the actual controller, Settings, Workspace and Mantine role.
 They prove preview-before-install, metadata escaping/dependency disclosure,
