@@ -26,17 +26,12 @@ tabs use ActiveDocument to select files and run the existing save and draft
 guards. The editor retains document sessions and remains responsible for
 loading content, editing and reporting save conflicts.
 
-On mobile-sized editor allocations (640px or less), the document starts an
-additional 6% of the allocated height below its existing top inset, as requested
-by the Owner. This inset now precedes the file-name heading instead of separating
-the heading from the text. The Owner's narrow Workspace screenshot defines the
-correction: lower the heading toward the content while keeping the document's
-existing vertical position. UIKit owns the heading inset; CodeMirror keeps its
-normal document padding, caret and selection geometry. Workspace retains outer
-geometry and floating surfaces. The existing SDK target supplies size containment;
-no contract or consumer integration change is needed. Reference: the current mobile
-editor and Owner's requested downward offset. Native short/long documents, keyboard
-and landscape geometry still require visual acceptance.
+On editor allocations up to 640px, the file-name heading follows the Owner's
+phone reference. UIKit uses a smaller bold title with a compact line height and
+a bounded inset that clears the floating launcher. CodeMirror keeps its document
+heading styles, padding, caret and selection geometry. Workspace retains outer
+geometry and floating surfaces. The existing SDK target supplies size containment.
+Native acceptance covers long names, rename focus and short landscape allocations.
 
 ## Usage and saving
 

@@ -131,10 +131,17 @@ test('compact Workspace shows one live tab counter and switches through the shar
   const { document, HTMLElement, DOMRect } = s.dom.window;
   let width = 360;
   let measureLayout;
-  HTMLElement.prototype.getBoundingClientRect = () => new DOMRect(0, 0, width, 720);
+  let measureDock;
+  HTMLElement.prototype.getBoundingClientRect = function () {
+    if (this.classList.contains('lm-workspace-mobile-toolbar')) return new DOMRect(width * .15, 660, this.hidden ? 0 : Math.round(width * .7), 52);
+    return new DOMRect(0, 0, width, 720);
+  };
   globalThis.ResizeObserver = s.dom.window.ResizeObserver = class {
     constructor(callback) { this.callback = callback; }
-    observe(element) { if (element.classList.contains('lm-workspace-layout')) measureLayout = this.callback; }
+    observe(element) {
+      if (element.classList.contains('lm-workspace-layout')) measureLayout = this.callback;
+      if (element.classList.contains('lm-workspace-mobile-toolbar')) measureDock = this.callback;
+    }
     unobserve() {}
     disconnect() {}
   };
@@ -155,6 +162,7 @@ test('compact Workspace shows one live tab counter and switches through the shar
     assert.equal(s.surface.querySelector('.lm-workspace-tab-navigation'), null);
     const toolbar = s.surface.querySelector('.lm-workspace-mobile-toolbar');
     assert.equal(toolbar.hidden, false);
+    assert.equal(s.dom.window.getComputedStyle(toolbar).width, '70%');
     const [back, forward, add, button, sidebar] = toolbar.querySelectorAll('button');
     assert.deepEqual([...toolbar.querySelectorAll('button')].map(action => action.getAttribute('aria-label')),
       ['Back', 'Forward', 'Add tab', 'Open tabs: 1', 'Sidebar']);
@@ -193,6 +201,12 @@ test('compact Workspace shows one live tab counter and switches through the shar
     await flush();
     assert.equal(button.getAttribute('aria-expanded'), 'true');
     assert.equal(button.getAttribute('aria-controls'), menu().id);
+    assert.equal(menu().style.width, '252px');
+    const { flushSync } = await import('react-dom');
+    width = 420;
+    flushSync(() => { measureLayout(); measureDock(); });
+    await flush();
+    assert.equal(menu().style.width, '294px');
     assert.equal(command('Добавить вкладку'), undefined);
     assert.equal(menu().querySelector('[aria-current="true"]')?.textContent, 'Новая вкладка');
     assert.equal(menu().classList.contains('lm-explorer-tab-menu'), true);
@@ -238,7 +252,6 @@ test('compact Workspace shows one live tab counter and switches through the shar
     button.click();
     await flush();
 
-    const { flushSync } = await import('react-dom');
     width = 1000;
     flushSync(() => measureLayout());
     await flush();

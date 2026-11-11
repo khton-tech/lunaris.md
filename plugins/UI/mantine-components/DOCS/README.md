@@ -1018,7 +1018,10 @@ The localized accessible name includes that number. WorkspaceLayout owns the
 surrounding pill and mobile visibility. Actions with choices open a Mantine Menu
 anchored to the trigger. It reuses the Files Vault switcher's menu surface,
 Menu.Item rows and trailing checkmark. The Owner's annotated list defines the
-224px preferred width and dense rows. Each row starts at 34px and grows with
+dense rows and aligns the popup to the dock. WorkspaceLayout gives the dock 70%
+of its allocated width, subject to the side gutters. The mobile role observes
+its lent dock target and uses that width and center for the anchored popup.
+Each row starts at 34px and grows with
 theme typography. The floating surface fits up to five rows and scrolls
 internally above that limit, with a smaller cap in short viewports.
 The renderer portals the menu to its own themed root to clear the
@@ -1038,6 +1041,12 @@ rounded outline with a 2px stroke.
 Reference: [Mantine UI buttons](https://ui.mantine.dev/category/buttons/) and
 [Mantine Menu](https://mantine.dev/core/menu/). Native visual acceptance of
 the action, list, long names, themes and keyboard focus remains pending.
+
+At editor allocations up to 640px, the editable file-name heading follows the
+Owner's phone reference with a smaller 1.25–1.625rem title, weight 700 and a
+compact line height. Its inset keeps the heading clear of the floating launcher.
+The shared text-editor role owns this styling. Document text and Markdown
+heading metrics still come from CodeMirror.
 
 Floating geometry correction follows the Owner screenshot: no top/bottom padding is added to main for mobile controls. Workspace owns absolute overlay surfaces; the mobile menu role receives explicit density compact for the 32px launcher and comfortable for the 44px bottom actions. Launcher surface padding is 2px. Manual acceptance of overlap, scroll/focus and both themes remains pending.
 

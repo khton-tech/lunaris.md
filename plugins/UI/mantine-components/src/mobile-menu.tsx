@@ -1,5 +1,6 @@
-import { ActionIcon, Group, Menu } from "@mantine/core";
+import { ActionIcon, Group, Menu, useDirection } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
+import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
@@ -44,37 +45,70 @@ export function mobileMenuProps(value: ComponentProps): Props {
      new Set(value.items.map(item => item.id)).size !== value.items.length) throw new TypeError("Invalid mobile menu items");
  return value as unknown as Props;
 }
-export function MobileMenuView({ props, theme, overlay }: {
- props: Props; theme: ReturnType<typeof resolveTheme>; overlay: { id: string; target: HTMLElement };
+type Overlay = { readonly id: string; readonly target: HTMLElement };
+
+function MobileAction({ item, compact, dock, overlay }: {
+ item: Item; compact: boolean; dock: HTMLElement | undefined; overlay: Overlay;
 }) {
- return <Group style={theme.contentStyle} className="lm-mobile-menu-items" data-density={props.density ?? "comfortable"} gap={4} wrap="nowrap">
-  {props.items.map(item => {
-    const button = <ActionIcon key={item.id} className="lm-sidebar-tab lm-focus" size={props.density === "compact" ? 32 : 44}
-      radius="xl" variant="subtle" title={item.label} aria-label={item.label} disabled={item.disabled ?? false}
-      onClick={item.choices ? undefined : () => item.onPress()}>
-      {item.count === undefined ? <Icon name={item.icon} /> : <span className="lm-mobile-page-count" aria-hidden="true">{item.count}</span>}
-    </ActionIcon>;
-    if (!item.choices) return button;
-    return <Menu key={item.id} position="top" width={224} offset={8} returnFocus
-      portalProps={{ target: `#${overlay.id}` }} transitionProps={{ duration: 0 }}>
-      <Menu.Target>{button}</Menu.Target>
-      <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu lm-mobile-choice-menu" aria-label={item.label}>
-        {item.choices.map(choice => {
-          const selected = choice.id === item.selectedChoiceId;
-          const primary = <Menu.Item key={choice.id} title={choice.title ?? choice.label} aria-current={selected ? "true" : undefined}
-            leftSection={choice.icon ? <Icon name={choice.icon} /> : undefined}
-            rightSection={selected ? <Icon name="check" /> : undefined} onClick={() => item.onPress(choice.id)}>{choice.label}</Menu.Item>;
-          const trailing = choice.trailingAction;
-          if (!trailing) return primary;
-          return <div key={choice.id} className="lm-mobile-choice-row" role="group" aria-label={choice.label}>
-            {primary}
-            <Menu.Item className="lm-mobile-choice-trailing" aria-label={trailing.label} title={trailing.title ?? trailing.label}
-              onClick={() => item.onPress(trailing.id)}><Icon name={trailing.icon ?? "actions"} /></Menu.Item>
-          </div>;
-        })}
-      </Menu.Dropdown>
-    </Menu>;
-  })}
+  const trigger = useRef<HTMLButtonElement>(null);
+  const { dir } = useDirection();
+  const [geometry, setGeometry] = useState<{ width: number; crossAxis: number; mainAxis: number }>();
+  const measure = useCallback(() => {
+    if (!dock || !trigger.current) return;
+    const area = dock.getBoundingClientRect();
+    if (!area.width) return;
+    const anchor = trigger.current.getBoundingClientRect();
+    const crossAxis = (area.left + area.width / 2 - anchor.left - anchor.width / 2) * (dir === "rtl" ? -1 : 1);
+    const mainAxis = 8 + Math.max(0, anchor.top - area.top);
+    setGeometry(previous => previous?.width === area.width && previous.crossAxis === crossAxis && previous.mainAxis === mainAxis
+      ? previous : { width: area.width, crossAxis, mainAxis });
+  }, [dock, dir]);
+  const hasChoices = item.choices !== undefined;
+  useLayoutEffect(() => {
+    if (!dock || !hasChoices || !trigger.current) return;
+    const observer = new ResizeObserver(measure);
+    observer.observe(dock);
+    observer.observe(trigger.current);
+    dock.addEventListener("scroll", measure, { passive: true });
+    measure();
+    return () => { observer.disconnect(); dock.removeEventListener("scroll", measure); };
+  }, [dock, hasChoices, measure]);
+  const button = <ActionIcon ref={trigger} className="lm-sidebar-tab lm-focus" size={compact ? 32 : 44}
+    radius="xl" variant="subtle" title={item.label} aria-label={item.label} disabled={item.disabled ?? false}
+    onClick={item.choices ? undefined : () => item.onPress()}>
+    {item.count === undefined ? <Icon name={item.icon} /> : <span className="lm-mobile-page-count" aria-hidden="true">{item.count}</span>}
+  </ActionIcon>;
+  if (!item.choices) return button;
+  return <Menu position="top" onOpen={measure}
+    offset={geometry ? { mainAxis: geometry.mainAxis, crossAxis: geometry.crossAxis } : 8} returnFocus
+    portalProps={{ target: `#${overlay.id}` }} transitionProps={{ duration: 0 }}>
+    <Menu.Target>{button}</Menu.Target>
+    <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu lm-mobile-choice-menu" aria-label={item.label}
+      style={dock ? { width: geometry?.width ?? "70vw" } : undefined}>
+      {item.choices.map(choice => {
+        const selected = choice.id === item.selectedChoiceId;
+        const primary = <Menu.Item key={choice.id} title={choice.title ?? choice.label} aria-current={selected ? "true" : undefined}
+          leftSection={choice.icon ? <Icon name={choice.icon} /> : undefined}
+          rightSection={selected ? <Icon name="check" /> : undefined} onClick={() => item.onPress(choice.id)}>{choice.label}</Menu.Item>;
+        const trailing = choice.trailingAction;
+        if (!trailing) return primary;
+        return <div key={choice.id} className="lm-mobile-choice-row" role="group" aria-label={choice.label}>
+          {primary}
+          <Menu.Item className="lm-mobile-choice-trailing" aria-label={trailing.label} title={trailing.title ?? trailing.label}
+            onClick={() => item.onPress(trailing.id)}><Icon name={trailing.icon ?? "actions"} /></Menu.Item>
+        </div>;
+      })}
+    </Menu.Dropdown>
+  </Menu>;
+}
+
+export function MobileMenuView({ props, theme, overlay, target }: {
+ props: Props; theme: ReturnType<typeof resolveTheme>; overlay: Overlay; target: HTMLElement;
+}) {
+ const compact = props.density === "compact";
+ return <Group style={theme.contentStyle} className="lm-mobile-menu-items" data-density={props.density ?? "comfortable"}
+   gap={compact ? 4 : 0} justify={compact ? "start" : "space-evenly"} wrap="nowrap">
+  {props.items.map(item => <MobileAction key={item.id} item={item} compact={compact} overlay={overlay} dock={compact ? undefined : target} />)}
   {props.items.some(item => item.choices) && createPortal(
     <div id={overlay.id} className="lm-root lm-mobile-choice-overlay" data-mantine-color-scheme={theme.scheme} style={theme.contentStyle} />,
     overlay.target,

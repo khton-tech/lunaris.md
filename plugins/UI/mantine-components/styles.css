@@ -146,7 +146,7 @@
 .lm-workspace-swipe-edge { position:absolute;left:0;inset-block:0;width:20px;z-index:1;touch-action:pan-y }
 .lm-workspace-mobile-toolbar {
   position:absolute;bottom:calc(8px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);
-  z-index:4;display:flex;padding:4px 8px
+  z-index:4;display:flex;padding:4px 0
 }
 @media(prefers-reduced-motion:reduce) { .lm-workspace-layout[data-compact] .lm-workspace-rail,.lm-workspace-layout[data-compact] .lm-workspace-panel-pane { transition:none } }
 .lm-workspace-layout[data-compact] .lm-sidebar-rail { padding:4px }
@@ -521,11 +521,17 @@
   flex:0 0 auto;width:calc(100% - 2 * var(--editor-gutter));margin-inline:auto;
   padding-block-start:var(--editor-heading-inset)
 }
-@container(max-width:640px) { .lm-editor-heading { padding-block-start:calc(var(--editor-heading-inset) + 6cqh) } }
 .lm-root .lm-editor-title .lm-input {
   height:auto;padding:0;font:inherit;
   font-size:var(--editor-h1-size);font-weight:var(--editor-h1-weight);line-height:var(--editor-h1-line-height);
   color:var(--vault-text);background:transparent;border:0;box-shadow:none;text-overflow:ellipsis
+}
+@container(max-width:640px) {
+  .lm-editor-heading { padding-block-start:clamp(56px,8cqh,72px) }
+  .lm-root .lm-editor-title .lm-input {
+    min-height:32px;font-size:clamp(1.25rem,1.45em,1.625rem);font-weight:700;line-height:1.2;
+    font-synthesis-weight:auto
+  }
 }
 .lm-editor-title input::placeholder { color:var(--vault-secondary);opacity:1 }
 .lm-editor-placeholder { padding:calc(var(--vault-space)*2) clamp(12px,3cqi,40px);user-select:none;overflow-wrap:anywhere }
@@ -699,7 +705,7 @@
 .lm-root .lm-callout-title:hover { color: var(--vault-text); background: transparent; }
 
 .lm-root .lm-workspace-mobile-toolbar {
-  border-radius:999px;max-width:calc(100% - 32px);overflow:auto;
+  width:70%;border-radius:999px;max-width:calc(100% - 32px);overflow:auto;
   background:color-mix(in srgb,var(--vault-panel) 88%,var(--vault-text))
 }
 .lm-mobile-menu-items { flex-wrap:nowrap }
