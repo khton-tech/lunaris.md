@@ -197,7 +197,7 @@
 @media(hover:hover) { .lm-root .lm-explorer-tabs:enabled:hover:not(:active) { background:var(--tool-hover,var(--explorer-control-hover)) } }
 .lm-root .lm-explorer-tabs:enabled:active { background:var(--tool-pressed,var(--explorer-control-pressed)) }
 .lm-explorer-actions {
-  flex-shrink:0;position:relative;justify-content:flex-start;margin-inline:16px;padding-block-end:5px;
+  flex-shrink:0;position:relative;justify-content:safe center;margin-inline:16px;padding-block-end:5px;
   border-block-end:var(--vault-border) solid var(--vault-separator);gap:4px
 }
 .lm-root .lm-explorer-actions .mantine-ActionIcon-root { flex-shrink:0;--ai-size:calc(var(--vault-space)*7);color:var(--vault-secondary);border-radius:var(--vault-radius) }

@@ -509,6 +509,8 @@ recent rows, bright artwork and reduced-motion settings.
 
 ## File explorer role
 
+The four tree actions are centered as a group above the tree in the Files panel.
+
 The Owner's TestVault reference places the active file surface inside its
 tree indentation. Branch guides stay in the gutter, and the accent marker
 sits at the leading edge of the rounded row. Explorer owns these internal
