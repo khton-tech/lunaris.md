@@ -180,11 +180,14 @@ export default definePlugin({ manifest, activate(ctx) {
 
   const registration = components.register({ id: "lunaris.text-editor-host", mount(target, initial, signal) {
     const owner = ctx.scope.child(); let props = initial; let mounted: MountedComponent | undefined;
-    let disposed = false; let editorTarget: HTMLElement | null = null;
+    let disposed = false; let editorTarget: HTMLElement | null = null; let viewport: HTMLElement | undefined;
     let taskUnavailableReported = false; let commandError = ""; let commandDocument = "";
     let renameError = "";
     let editor: ReturnType<typeof mountEditor> | undefined; let rendered: DocumentSession | null = null;
-    const onTarget = (value: HTMLElement | null) => { editorTarget = value; };
+    const onTarget = (value: HTMLElement | null, scrollViewport?: HTMLElement) => {
+      editorTarget = value;
+      viewport = scrollViewport;
+    };
     function clearEditor(): void { if (editor && rendered) states.set(rendered, editor.dispose()); editor = undefined; rendered = null; }
     const onSave = () => { if (!disposed && !signal.aborted && current?.active && !current.locks) void current.flush(); };
     const onReload = () => {
@@ -256,6 +259,7 @@ export default definePlugin({ manifest, activate(ctx) {
       if (rendered !== session || !ready || (editor && editor.view.state.sliceDoc() !== session?.text)) clearEditor();
       if (session && ready && editorTarget) {
         if (!editor) {
+          if (viewport) { viewport.scrollTop = 0; viewport.scrollLeft = 0; }
           rendered = session;
           editor = mountEditor(editorTarget, session, states.get(session), themes.current(), text("editor"), onSave,
             error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "CodeMirror operation failed", { error }); }, true, {
@@ -282,7 +286,7 @@ export default definePlugin({ manifest, activate(ctx) {
         } else editor.update(themes.current(), text("editor"), true, preferences.current(), extensions.current());
       }
     }
-    const view = { render, refreshControls: clearEditor, removed() { clearEditor(); mounted = undefined; editorTarget = null; } };
+    const view = { render, refreshControls: clearEditor, removed() { clearEditor(); mounted = undefined; editorTarget = null; viewport = undefined; } };
     function dispose(): void {
       const context = props.workspace as { vaultId?: string } | undefined;
       if (context?.vaultId) preferences.resizeWidth(0, "cancel", context.vaultId);

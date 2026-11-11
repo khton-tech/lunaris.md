@@ -1,13 +1,25 @@
 # Mobile menu
 
 The mobile action registry is public through @lunaris/mobile-menu. Require
-api:lunaris.mobile-menu@^1.1.0 and call ctx.use(MobileMenu).register(item, owner).
+api:lunaris.mobile-menu@^1.6.0 and call ctx.use(MobileMenu).register(item, owner).
 Items have a canonical dotted id, already-localized nonempty label, Lucide icon,
 optional integer order, optional disabled boolean and onPress callback. register
 rejects duplicate IDs. update replaces a registered descriptor; list returns an
 immutable ordered snapshot (order then ID). Update labels on locale changes.
 Owner cancellation removes the action and renders the new list. Stale callbacks
-and disabled actions do nothing; failures are logged with the original error.
+and disabled actions do nothing. The provider logs failures with the original error.
+An optional nonnegative safe-integer count shows a page outline with the number
+in place of the icon. Supply a localized accessible label that includes the count.
+Optional choices contain a unique id, localized label and optional title, icon
+and disabled state.
+An optional trailingAction uses the same fields and a distinct id. It renders
+as its own menu item in the same row.
+selectedChoiceId marks the current choice. The provider takes an immutable
+snapshot and passes only an enabled choice ID to onPress. Plain actions keep the
+same no-argument callback.
+An optional onReorder(id, targetId, edge) callback enables vertical ordering of
+choices. The provider accepts distinct registered choice IDs, an enabled source
+and an edge of before or after. The contributor publishes the resulting order.
 
 The default provider/controller is plugins/UI/mobile-menu. It owns registration
 and contributes the lunaris.mobile-menu UIKit role to Workspace 1.4's exclusive
@@ -38,7 +50,7 @@ and shared web/desktop host are connected. Manual acceptance remains pending:
 phone portrait/landscape, floating panel and opened menus in both themes,
 edge swipe conflicts, keyboard/focus, many items and safe areas.
 
-## Floating launcher and preview actions
+## Floating launcher and tab action
 
 MobileMenu 1.1 items optionally declare placement: panel (default) or launcher.
 Sidebar contributes a launcher action. Workspace 1.4 lends the separate mobile-launcher
@@ -54,14 +66,30 @@ and opening the overlay keeps the launcher visible. Both floating regions overla
 space. The public role density prop is compact for the launcher (32px control
 with 2px surface padding) and comfortable for the bottom row (44px controls).
 
-Five temporary preview actions (search, files, outline, settings, account icons)
-are registered by the menu plugin for the Owner's design review. Their labels are
-localized and clicks have no business effect. They are not implementations of
-those features; remove these preview registrations when real actions replace them.
+The provider publishes each placement while it has registered actions. Active
+Screen contributes Back (order 0), Forward (10), Add tab (30) and the tab
+picker (40) for the mounted Vault. Sidebar contributes its drawer action at
+50 and also supplies the top-left launcher. Order 20 leaves room for a future
+public Search action. The picker count includes blank tabs. It opens an anchored Mantine menu using the Files
+Vault switcher pattern. Its rows select tabs through the same callbacks as the
+top strip. The menu lists open tabs with a close control on each row and marks
+the selected row with the Files active-file accent line. The final blank
+tab's close control is disabled. Drag the label with a mouse or start a touch
+drag at its leading edge to move a tab. Both layouts use the same tab ordering
+operation. The dock uses the theme panel color and a subdued separator.
+The dock's plus creates tabs. The anchored popup matches the dock's measured
+width and center. The dock takes 70% of the Workspace width within its side
+gutters. The popup fits up to five rows and scrolls internally when more tabs
+are open.
+The compact presentation replaces the tab strip and location/history row.
+The Owner's phone reference defines the dock order and horizontal rounded
+tab outline. WorkspaceLayout owns
+the floating surface. Mobile Menu supplies its action and Active Screen supplies
+the tab list, selection and localized names.
 
-Manual acceptance remains pending: compare the top-left launcher and five-button
-bottom panel in the real container, both themes, scroll down/up, touch, focus and
-opened Sidebar. Automated tests cover routing, control counts, containment policy
-and nested-scroll visibility; they do not establish native geometry.
+The composed test covers the initial counter, add/close, localized labels,
+selection from the menu and Vault closure. Manual acceptance covers the
+top-left launcher and bottom action in the real container, both themes, portrait
+and landscape, scroll gestures, keyboard focus and the opened tab list.
 
 Both floating regions share scroll-direction visibility. The Sidebar layer and backdrop stack above both floating regions, which become inert and aria-hidden while the overlay is open. There is no main-area return button. Files and Settings explicitly close WorkspaceSidebar after successful content selection; failures preserve the panel for recovery. Tool switching itself keeps navigation available. Desktop selection remains intact. Native stacking and scroll/focus acceptance remain pending.

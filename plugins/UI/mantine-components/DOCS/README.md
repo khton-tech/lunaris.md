@@ -1009,7 +1009,58 @@ The existing text-editor role accepts optional recoveryLabel, recoveryCandidates
 
 The public lunaris.mobile-menu role renders registered action descriptors; WorkspaceLayout lends its mobile-menu target and owns the floating surface. The former built-in sidebar action has been removed. See DOCS/reference/mobile-menu.md for registration and integration.
 
-Mobile launcher correction: Workspace owns a top-left mobile-launcher surface separate from the bottom action row. The shared menu role uses normal inline containment to preserve its intrinsic width. Nested main-region scroll capture hides/shows the launcher by direction; Sidebar scrolling is ignored. Reference: Owner screenshot 2. Five temporary localized preview actions occupy the bottom row. Native comparison remains pending.
+Workspace owns a top-left mobile-launcher surface separate from the bottom action row. The shared menu role uses normal inline containment to preserve its intrinsic width. Nested main-region scroll capture hides/shows the launcher by direction. Sidebar scrolling is ignored.
+
+The Owner's highlighted bottom panel defines the position of the tab action.
+The mobile-menu role accepts an optional count on an action descriptor. The
+44px Mantine ActionIcon contains a rounded page outline with the current count.
+The localized accessible name includes that number. WorkspaceLayout owns the
+surrounding pill and mobile visibility. Actions with choices open a Mantine Menu
+anchored to the trigger. It reuses the Files Vault switcher's menu surface and
+Menu.Item rows. The selected row shares the Files active-file accent line and
+selection surface. The Owner's annotated list defines the
+dense rows and aligns the popup to the dock. WorkspaceLayout gives the dock 70%
+of its allocated width, subject to the side gutters. The mobile role observes
+its lent dock target and uses that width and center for the anchored popup.
+The action group fills the dock and distributes its controls evenly across it.
+Each row starts at 34px and grows with
+theme typography. The mobile role sets the menu padding to two theme spacing
+steps on all sides. The floating surface fits up to five rows and scrolls
+internally above that limit, with a smaller cap in short viewports.
+The renderer portals the menu to its own themed root to clear the
+toolbar's scroll boundary. Active Screen supplies the choices and their callbacks
+through the MobileMenu registry. Mantine owns keyboard navigation, dismissal
+and focus return.
+Each choice can supply a trailing action. The mobile role renders it as an
+independent Mantine Menu.Item next to the tab label, with a localized name and
+a 44px-wide touch target. Unavailable actions keep their position and are
+disabled. A single row surface paints selected, hover and press feedback behind
+the label and trailing action. Enabled controls participate in menu keyboard
+navigation. A sortable choice uses the shared tab drag implementation on the
+vertical axis. Mouse users can drag the label and touch users start at its
+leading edge to preserve scrolling on the rest of the row. The mobile list has
+no drag glyph or insertion line. Longer lists retain edge scrolling.
+Alt+Up or Alt+Down on the label
+moves a row by one position. The Active Screen role accepts compactTabs, supplied from the
+owning Workspace context when its dock actions are available. It omits the tab
+strip and the location/history row in that presentation. The Owner's phone
+reference places history, creation and the horizontal tab counter in one
+floating bottom pill. WorkspaceLayout owns the pill, theme panel color,
+subdued separator and safe area offset. The mobile role owns the controls,
+the popup's subdued separator and the 24 by 20px minimum
+rounded outline with a 2px stroke.
+Reference: [Mantine UI buttons](https://ui.mantine.dev/category/buttons/) and
+[Mantine Menu](https://mantine.dev/core/menu/). Native visual acceptance of
+the action, list, long names, themes and keyboard focus remains pending.
+
+At editor allocations up to 640px, the editable file-name heading follows the
+Owner's phone reference with a smaller 1.25–1.625rem title, weight 700 and a
+compact line height. Its inset keeps the heading clear of the floating launcher.
+The Owner's scroll screenshot is the reference for scrolling the title with the
+document. The UIKit viewport contains both and supplies the larger mobile
+gutters. The desktop presentation keeps the title above the CodeMirror scroller.
+The shared text-editor role owns this styling. Document text and Markdown
+heading metrics still come from CodeMirror.
 
 Floating geometry correction follows the Owner screenshot: no top/bottom padding is added to main for mobile controls. Workspace owns absolute overlay surfaces; the mobile menu role receives explicit density compact for the 32px launcher and comfortable for the 44px bottom actions. Launcher surface padding is 2px. Manual acceptance of overlap, scroll/focus and both themes remains pending.
 

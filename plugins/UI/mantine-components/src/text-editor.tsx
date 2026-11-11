@@ -35,7 +35,7 @@ interface EditorProps {
   readonly cancelLabel: string;
   readonly onSave: () => void;
   readonly onReload: () => void;
-  readonly onTarget: (target: HTMLElement | null) => void;
+  readonly onTarget: (target: HTMLElement | null, viewport?: HTMLElement) => void;
 }
 export function textEditorProps(value: ComponentProps): EditorProps {
   for (const key of ["documentKey", "name", "title", "titleLabel", "status", "error", "saveLabel", "retryLabel", "reloadLabel", "discardLabel", "cancelLabel"])
@@ -56,7 +56,7 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
   const [title, setTitle] = useState(props.title);
   const committing = useRef(false);
   const publish = props.onTarget;
-  useLayoutEffect(() => { publish(target.current); return () => publish(null); }, [publish]);
+  useLayoutEffect(() => { publish(target.current, container.current ?? undefined); return () => publish(null); }, [publish]);
   useLayoutEffect(() => { setConfirm(false); setTitle(props.title); }, [props.documentKey]);
   // Reflect external renames while the field is not being actively committed.
   useLayoutEffect(() => { if (!committing.current) setTitle(props.title); }, [props.title]);

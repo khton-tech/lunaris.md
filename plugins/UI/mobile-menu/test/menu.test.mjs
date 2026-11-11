@@ -4,19 +4,55 @@ import { setupWorkspace, flush } from '../../../../tools/test/workspace.mjs';
 test('mobile items validate, order, update, contain failures and follow contributor lifetime', async () => {
  const s=await setupWorkspace({mobileMenu:true});
  try {
-  const service=s.tools.mobileMenu; const api={register:service.register,update:service.update,list:()=>service.list().filter(item=>item.id.startsWith('test.'))}; const owner=s.ctx.scope.child(); let calls=0;
+  const api=s.tools.mobileMenu; const owner=s.ctx.scope.child(); let calls=0;
+  assert.deepEqual(api.list(),[]);
   const item={id:'test.action',label:'Action',icon:'sidebar',onPress:()=>{calls++;}};
   assert.equal(api.register(item,owner.signal).ok,true);
   assert.equal(api.register(item,owner.signal).ok,false);
   assert.equal(api.register({...item,id:'bad'},owner.signal).ok,false);
+  assert.equal(api.register({...item,id:'test.count',count:-1},owner.signal).ok,false);
   assert.equal(api.register({...item,id:'test.first',order:-1},owner.signal).ok,true);
   assert.deepEqual(api.list().map(x=>x.id),['test.first','test.action']);
   const stale=api.list()[1]; await stale.onPress(); assert.equal(calls,1);
-  assert.equal(api.update({...item,disabled:true}).ok,true);
+  assert.equal(api.update({...item,count:0,disabled:true}).ok,true);
+  assert.equal(api.list()[1].count,0);
   await api.list()[1].onPress(); await stale.onPress(); assert.equal(calls,1);
   assert.equal(api.update({...item,onPress:()=>{throw new Error('Action failure');}}).ok,true);
   await api.list()[1].onPress(); assert.ok(s.logs.some(log=>log[2]==='Mobile action failed'));
+  const trailingAction={id:'close-two',label:'Close Two',icon:'window-close'};
+  const choices=[{id:'one',label:'One'},{id:'two',label:'Two',trailingAction}];
+  const moves=[];
+  const select={...item,choices,selectedChoiceId:'one',onPress:id=>{if (id==='two' || id==='close-two') calls++;},
+    onReorder:(...move)=>moves.push(move)};
+  assert.equal(api.update({...select,selectedChoiceId:'unknown'}).ok,false);
+  assert.equal(api.update({...select,choices:[{...choices[0],trailingAction:{...trailingAction,id:'two'}},choices[1]]}).ok,false);
+  assert.equal(api.update(select).ok,true);
+  const choiceAction=api.list()[1];
+  choices[1].id='changed';
+  trailingAction.id='changed-close';
+  assert.equal(choiceAction.choices[1].id,'two');
+  assert.ok(Object.isFrozen(choiceAction.choices[1]));
+  await choiceAction.onPress();
+  await choiceAction.onPress('changed');
+  await choiceAction.onPress('changed-close');
+  assert.equal(calls,1);
+  await choiceAction.onPress('two');
+  await choiceAction.onPress('close-two');
+  assert.equal(calls,3);
+  choiceAction.onReorder('close-two','one','before');
+  choiceAction.onReorder('two','one','left');
+  choiceAction.onReorder('two','one','before');
+  assert.deepEqual(moves,[['two','one','before']]);
+  assert.equal(api.update({...select,choices:[choices[0],{id:'two',label:'Two',disabled:true,
+    trailingAction:{id:'close-two',label:'Close Two',disabled:true}}]}).ok,true);
+  const disabledChoice=api.list()[1];
+  await disabledChoice.onPress('two');
+  await disabledChoice.onPress('close-two');
+  assert.equal(calls,3);
+  disabledChoice.onReorder('two','one','before');
+  choiceAction.onReorder('two','one','before');
+  assert.equal(moves.length,1);
   await owner.dispose(); await flush(); assert.deepEqual(api.list(),[]);
-  await stale.onPress(); assert.equal(calls,1);
+  await stale.onPress(); await choiceAction.onPress('close-two'); assert.equal(calls,3);
  } finally {await s.stop();}
 });

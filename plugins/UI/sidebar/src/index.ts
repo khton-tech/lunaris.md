@@ -1,4 +1,5 @@
 import { MobileMenu } from "@lunaris/mobile-menu";
+import type { MobileMenuItem } from "@lunaris/mobile-menu";
 import { definePlugin } from "@lunaris/sdk";
 import type { ResourceScope } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
@@ -15,8 +16,7 @@ export default definePlugin({ manifest, activate(ctx) {
   const registered = localization.register(ctx.pluginId, catalogs, ctx.signal);
   if (!registered.ok) throw new Error("Cannot register sidebar messages.", { cause: registered.error });
   const menu = ctx.optional(MobileMenu); const navigation = ctx.optional(WorkspaceSidebar);
-  const action = () => ({ id: ctx.pluginId + ".open", label: text("label"), icon: "sidebar", placement: "launcher" as const, disabled: !sidebar.snapshot().tabs.length, onPress: () => navigation?.open() });
-  let actionRegistered = false;
+  const mobileActions = new Set<string>();
   let rail: ResourceScope | undefined; let panel: ResourceScope | undefined; let panelKey = "";
   const text = (key: string) => localization.text(ctx.pluginId, key);
   const dismiss = () => { if (!ctx.signal.aborted) sidebar.select(null); };
@@ -24,7 +24,18 @@ export default definePlugin({ manifest, activate(ctx) {
   function refresh(): void {
     if (ctx.signal.aborted) return;
     const snapshot = sidebar.snapshot();
-    if (menu && navigation) { const result = actionRegistered ? menu.update(action()) : menu.register(action(), ctx.signal); if (result.ok) actionRegistered = true; else logger.warn(ctx.pluginId, "Cannot contribute mobile sidebar action", { data: { error: result.error } }); }
+    if (menu && navigation) {
+      const action = { label: text("label"), disabled: !snapshot.tabs.length, onPress: () => navigation.open() };
+      const items: MobileMenuItem[] = [
+        { ...action, id: `${ctx.pluginId}.open`, icon: "sidebar", placement: "launcher" },
+        { ...action, id: `${ctx.pluginId}.dock`, icon: "menu", order: 50 },
+      ];
+      for (const item of items) {
+        const result = mobileActions.has(item.id) ? menu.update(item) : menu.register(item, ctx.signal);
+        if (result.ok) mobileActions.add(item.id);
+        else logger.warn(ctx.pluginId, "Cannot contribute mobile sidebar action", { data: { id: item.id, error: result.error } });
+      }
+    }
     if (!snapshot.tabs.length || !components.has("lunaris.sidebar-rail")) {
       release(panel); panel = undefined; panelKey = ""; release(rail); rail = undefined; return;
     }

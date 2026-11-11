@@ -24,6 +24,11 @@ control the same screen lifecycle.
 
 ## Content API
 
+Workspace supplies `workspace.compact` from the layout role's public
+`onTargets(targets, compact?)` callback. Embedded controls can adapt when the
+owning Workspace enters or leaves its compact layout. The width of a borrowed
+content target can differ from that of Workspace.
+
 Require `api:lunaris.workspace@^1.1.0` and import `Workspace` from
 `@lunaris/workspace`. The provider plugin is `lunaris.workspace-provider`.
 Registration itself requires no DOM or filesystem permission.

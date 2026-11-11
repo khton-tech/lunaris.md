@@ -1,29 +1,17 @@
-import { useId, useLayoutEffect, useRef, useState } from "react";
-import type { PointerEvent } from "react";
+import { useId, useLayoutEffect, useRef } from "react";
 import { ActionIcon, Badge, Box, Tabs } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import { Icon } from "./icons.js";
+import { useListReorder } from "./list-reorder.js";
 import type { resolveTheme } from "./theme.js";
 
 type TabEdge = "before" | "after";
-interface TabDrop { readonly id: string; readonly edge: TabEdge }
-interface TabDrag {
-  readonly id: string;
-  readonly pointerId: number;
-  readonly button: HTMLButtonElement;
-  readonly element: HTMLElement;
-  readonly startX: number;
-  readonly startY: number;
-  readonly grip: number;
-  offset: number;
-  moved: boolean;
-}
-
 interface ScreenProps {
   readonly ids: readonly string[];
   readonly activeId: string | null;
   readonly onTargets: (targets: ReadonlyMap<string, HTMLElement> | null) => void;
   readonly tabs?: TabProps;
+  readonly compactTabs?: boolean;
 }
 
 interface TabProps {
@@ -59,113 +47,23 @@ function validateTabs(value: unknown): void {
 
 export function activeScreenProps(value: ComponentProps): ScreenProps {
   if (!Array.isArray(value.ids) || value.ids.some(id => typeof id !== "string") || new Set(value.ids).size !== value.ids.length ||
-      (value.activeId !== null && (typeof value.activeId !== "string" || !value.ids.includes(value.activeId))) || typeof value.onTargets !== "function") throw new TypeError("Invalid active screen props.");
+      (value.activeId !== null && (typeof value.activeId !== "string" || !value.ids.includes(value.activeId))) || typeof value.onTargets !== "function" ||
+      (value.compactTabs !== undefined && typeof value.compactTabs !== "boolean")) throw new TypeError("Invalid active screen props.");
   if (value.tabs !== undefined) validateTabs(value.tabs);
   return value as unknown as ScreenProps;
 }
 
 function WorkspaceTabs({ props, panelId }: { props: TabProps; panelId: string }) {
-  const list = useRef<HTMLDivElement>(null);
-  const drag = useRef<TabDrag | null>(null);
-  const suppressClick = useRef(false);
-  const [drop, setDrop] = useState<TabDrop | null>(null);
-  const canReorder = !props.busy && !!props.onReorder && props.tabs.length > 1;
+  const { list, drop, enabled: canReorder, start, handlers } = useListReorder("x", props.tabs, props.busy ? undefined : props.onReorder);
   const selected = props.tabs.find(tab => tab.id === props.selectedId);
   const selectedButton = () => list.current?.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]');
   useLayoutEffect(() => { selectedButton()?.parentElement?.scrollIntoView?.({ block: "nearest", inline: "nearest" }); }, [props.selectedId]);
-  useLayoutEffect(() => {
-    const current = drag.current;
-    if (current && (!canReorder || !props.tabs.some(tab => tab.id === current.id))) resetDrag();
-  }, [canReorder, props.tabs]);
   const focusSelected = (action: Promise<boolean>) => { void action.then(completed => { if (completed) selectedButton()?.focus(); }); };
-  function resetDrag(): void {
-    const current = drag.current;
-    if (!current) return;
-    drag.current = null;
-    current.element.style.removeProperty("transform");
-    delete current.element.dataset.dragging;
-    if (current.button.hasPointerCapture(current.pointerId)) current.button.releasePointerCapture(current.pointerId);
-    setDrop(null);
-  }
-  function startDrag(event: PointerEvent<HTMLButtonElement>, id: string): void {
-    if (!canReorder || drag.current || event.button !== 0 || event.pointerType === "touch") return;
-    const button = event.currentTarget;
-    const element = button.parentElement!;
-    button.setPointerCapture(event.pointerId);
-    drag.current = { id, button, element, pointerId: event.pointerId, startX: event.clientX, startY: event.clientY,
-      grip: event.clientX - element.getBoundingClientRect().left, offset: 0, moved: false };
-  }
-  function positionTab(current: TabDrag, clientX: number): TabDrop | null {
-    const row = list.current;
-    if (!row) return null;
-    const tabs = [...row.querySelectorAll<HTMLElement>("[data-workspace-tab-id]")];
-    const index = tabs.indexOf(current.element);
-    if (index === -1) return null;
-    const direction = row.ownerDocument.defaultView?.getComputedStyle(row).direction === "rtl" ? -1 : 1;
-    const rect = current.element.getBoundingClientRect();
-    const origin = rect.left - current.offset;
-    const leftmost = tabs[direction === 1 ? 0 : tabs.length - 1]!;
-    const rightmost = tabs[direction === 1 ? tabs.length - 1 : 0]!;
-    const left = leftmost === current.element ? origin : leftmost.getBoundingClientRect().left;
-    const right = rightmost === current.element ? origin + rect.width : rightmost.getBoundingClientRect().right;
-    const nextLeft = Math.max(left, Math.min(right - rect.width, clientX - current.grip));
-    current.offset = nextLeft - origin;
-    const center = nextLeft + rect.width / 2;
-    const step = current.offset * direction < 0 ? -1 : 1;
-    let target: TabDrop | null = null;
-    for (let i = index + step; i >= 0 && i < tabs.length; i += step) {
-      const tab = tabs[i]!;
-      const box = tab.getBoundingClientRect();
-      if ((center - box.left - box.width / 2) * direction * step < 0) break;
-      target = { id: tab.dataset.workspaceTabId!, edge: step < 0 ? "before" : "after" };
-    }
-    current.element.style.transform = `translateX(${current.offset}px)`;
-    return target;
-  }
-  function scrollWhileDragging(clientX: number): void {
-    const element = list.current;
-    if (!element || element.scrollWidth <= element.clientWidth) return;
-    const { left, right, width } = element.getBoundingClientRect();
-    const edge = Math.min(24, width / 4);
-    if (clientX >= left && clientX < left + edge) element.scrollLeft -= edge;
-    if (clientX <= right && clientX > right - edge) element.scrollLeft += edge;
-  }
-  function moveDrag(event: PointerEvent<HTMLDivElement>): void {
-    const current = drag.current;
-    if (!current || current.pointerId !== event.pointerId) return;
-    if (!current.moved) {
-      const horizontal = Math.abs(event.clientX - current.startX);
-      if (horizontal >= 5 || Math.abs(event.clientY - current.startY) >= 5) suppressClick.current = true;
-      if (horizontal < 5) return;
-      current.moved = true;
-      current.element.dataset.dragging = "";
-    }
-    scrollWhileDragging(event.clientX);
-    const next = positionTab(current, event.clientX);
-    setDrop(previous => previous?.id === next?.id && previous?.edge === next?.edge ? previous : next);
-  }
-  function finishDrag(event: PointerEvent<HTMLDivElement>): void {
-    const current = drag.current;
-    if (!current || current.pointerId !== event.pointerId) return;
-    const target = current.moved ? positionTab(current, event.clientX) : null;
-    resetDrag();
-    if (target) props.onReorder?.(current.id, target.id, target.edge);
-  }
-  function cancelDrag(event: PointerEvent<HTMLDivElement>): void {
-    if (drag.current?.pointerId === event.pointerId) resetDrag();
-  }
   const labels = props.labels;
   return <Box className="lm-workspace-tabs" aria-busy={props.busy}>
     <Tabs unstyled value={props.selectedId} activateTabWithKeyboard={false} onChange={id => { if (id) void props.onSelect(id); }}
       className="lm-workspace-tab-strip"
-      onPointerDownCapture={() => { if (!drag.current) suppressClick.current = false; }}
-      onPointerMove={moveDrag} onPointerUp={finishDrag} onPointerCancel={cancelDrag} onLostPointerCapture={cancelDrag}
-      onClickCapture={event => {
-        if (!suppressClick.current || event.detail === 0) return;
-        suppressClick.current = false;
-        event.preventDefault();
-        event.stopPropagation();
-      }}
+      {...handlers}
       onMouseDownCapture={event => { if (event.button === 1) event.preventDefault(); }}
       onAuxClick={event => {
         if (event.button === 1 && (event.target === event.currentTarget || event.target === list.current)) {
@@ -175,7 +73,7 @@ function WorkspaceTabs({ props, panelId }: { props: TabProps; panelId: string })
       }}>
       <Tabs.List className="lm-workspace-tab-list" ref={list} aria-label={labels.tabs}>
         {props.tabs.map(tab => <Box key={tab.id} role="presentation" className="lm-workspace-tab" mod={{ selected: tab.id === props.selectedId }}
-          data-workspace-tab-id={tab.id} data-drop={drop?.id === tab.id ? drop.edge : undefined} data-sortable={canReorder || undefined}
+          data-workspace-tab-id={tab.id} data-reorder-id={tab.id} data-drop={drop?.id === tab.id ? drop.edge : undefined} data-sortable={canReorder || undefined}
           onAuxClick={event => {
             if (event.button !== 1) return;
             event.preventDefault();
@@ -184,7 +82,7 @@ function WorkspaceTabs({ props, panelId }: { props: TabProps; panelId: string })
           }}>
           <Tabs.Tab className="lm-workspace-tab-label lm-focus" classNames={{ tabSection: "lm-workspace-tab-section" }}
             value={tab.id} id={`${panelId}-${tab.id}`} aria-controls={panelId}
-            title={tab.description} onPointerDown={event => startDrag(event, tab.id)} onKeyDown={event => {
+            title={tab.description} onPointerDown={event => start(event, event.currentTarget.parentElement!)} onKeyDown={event => {
               if (event.key === "Delete" && tab.closable) { event.preventDefault(); focusSelected(props.onClose(tab.id)); }
             }} rightSection={tab.extension && <Badge className="lm-workspace-tab-extension" size="xs" radius="xl" variant="light">{tab.extension}</Badge>}>
             {tab.title}
@@ -220,14 +118,16 @@ export function ActiveScreenView({ props, theme }: { props: ScreenProps; theme: 
   const signature = JSON.stringify(props.ids); const publish = props.onTargets;
   useLayoutEffect(() => { publish(new Map(targets.current)); }, [signature, publish]);
   useLayoutEffect(() => () => publish(null), [publish]);
+  const tabStrip = props.compactTabs ? undefined : props.tabs;
   return <Box className="lm-active-screen" style={theme.contentStyle}>
-    {props.tabs && <WorkspaceTabs props={props.tabs} panelId={panelId} />}
-    <Box className="lm-screen-content" id={panelId} role={props.tabs ? "tabpanel" : undefined}
-      aria-labelledby={props.tabs?.selectedId ? `${panelId}-${props.tabs.selectedId}` : undefined}>
+    {tabStrip && <WorkspaceTabs props={tabStrip} panelId={panelId} />}
+    <Box className="lm-screen-content" id={panelId} role={tabStrip ? "tabpanel" : undefined}
+      aria-labelledby={tabStrip?.selectedId ? `${panelId}-${tabStrip.selectedId}` : undefined}>
       {props.ids.map(id => <Box key={id} className="lm-screen-target" data-screen-id={id}
         ref={node => { if (node) targets.current.set(id, node); else targets.current.delete(id); }}
         hidden={id !== props.activeId} inert={id !== props.activeId} aria-hidden={id !== props.activeId}
         style={{ display: id === props.activeId ? "flex" : "none", flex: "1 1 0%", minWidth: 0, minHeight: 0 }} />)}
     </Box>
+    {props.compactTabs && props.tabs?.error && <Box className="lm-workspace-tab-error lm-workspace-tab-error-compact" role="status">{props.tabs.error}</Box>}
   </Box>;
 }
