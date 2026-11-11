@@ -6,6 +6,7 @@
   "sdk": "^0.1.0",
   "entry": "./dist/src/index.js",
   "provides": [
+    { "kind": "api", "id": "lunaris.config-snapshots", "version": "1.0.0" },
     {
       "kind": "api",
       "id": "lunaris.config",

@@ -154,9 +154,9 @@ function scopedContext(ctx: PluginContext, vaultId: string): PluginContext {
       methods[name] = (...args) => {
         const values = [...args];
         if (token.id === 'lunaris.vault' && name !== 'current') deny();
-        if (token.id === 'lunaris.config') {
+        if (token.id === 'lunaris.config' || token.id === 'lunaris.config-snapshots') {
           if (values[0] !== ctx.pluginId) deny();
-          const position = name === 'read' ? 1 : name === 'get' ? 2 : name === 'set' ? 3 : 2;
+          const position = name === 'read' || name === 'capture' ? 1 : name === 'get' ? 2 : name === 'set' ? 3 : 2;
           const options = values[position] as { scope?: string; vaultId?: string } | undefined;
           if (options?.scope === 'global' || (options?.vaultId !== undefined && options.vaultId !== vaultId)) deny();
           values[position] = { scope: 'vault', vaultId };

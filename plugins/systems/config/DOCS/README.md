@@ -33,4 +33,20 @@ a file occupying that name is rejected and preserved.
 See [API, format, consistency and error details](../../../../DOCS/reference/config.md).
 Run `npm run config:check` from the repository root.
 
+## Namespace snapshots
+
+Provides `api:lunaris.config-snapshots@1.0.0` (`ConfigSnapshots`, config.access).
+`capture(pluginId, explicitTarget)` returns a version 1 TOML snapshot of that
+namespace only, bounded to 256 KiB of text. `restore(pluginId, text, target)`
+validates/copies the snapshot before queuing and replaces only that namespace in
+one version-checked file write. Unrelated namespaces/root metadata remain current.
+Big integers and TOML date variants retain the existing codec semantics. Affected
+keys publish ConfigChanged after commit; logs contain no setting values.
+
+This is a portable backup contract, not a path to the provider's files. The
+isolated SDK adapter enforces the same own-namespace/captured-Vault rules as Config.
+The Lime managed-data journal can consume it without importing this implementation;
+that engine integration is still pending. The operation does not restore unrelated
+Vault documents, global settings through a Vault target, or arbitrary side effects.
+
 PrepareVault initializes storage only at priority -100. Vault display-name policy belongs to the Vault persistence owner; generic Config does not read or interpret Vault metadata.

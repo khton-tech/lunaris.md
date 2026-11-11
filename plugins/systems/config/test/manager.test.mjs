@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { definePlugin } from '@lunaris/sdk';
 import { createTestKernel } from '@lunaris/test';
 import { Logger } from '@lunaris/logging';
-import { Config, ConfigChanged } from '@lunaris/config';
+import { Config, ConfigSnapshots, ConfigChanged } from '@lunaris/config';
 import { Vault, VaultLocations, VaultHistory, PrepareVault } from '@lunaris/vault';
 import filesystem from '@lunaris/filesystem-provider';
 import vaultManager from '@lunaris/vault-manager';
@@ -24,7 +24,7 @@ const manifest = (id, requires) => ({ manifestVersion: 1, id, version: '0.1.0', 
 async function setup(options = {}) {
   const files = new Map(options.files ?? []); const dirs = new Set(options.dirs ?? []);
   const sessions = new Map(); const selections = []; const calls = []; const logs = []; const changes = [];
-  let config; let vaults; let locations; let history; let context; let configRoots = 0; let attachments = 0;
+  let config; let snapshots; let vaults; let locations; let history; let context; let configRoots = 0; let attachments = 0;
   const host = createTestKernel({ initialGrants: {
     'lunaris.tauri-filesystem': ['filesystem.native'],
     'lunaris.filesystem-provider': ['filesystem.access', 'filesystem.app-config'],
@@ -78,8 +78,9 @@ async function setup(options = {}) {
   } }));
   host.register(filesystem); host.register(vaultManager); host.register(configManager);
   if (options.history) host.register(historyProvider);
-  host.register(definePlugin({ manifest: manifest('test.consumer', [Config, ConfigChanged, Vault, VaultLocations, PrepareVault, ...(options.history ? [VaultHistory] : [])].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' }))), activate(ctx) {
+  host.register(definePlugin({ manifest: manifest('test.consumer', [Config, ConfigSnapshots, ConfigChanged, Vault, VaultLocations, PrepareVault, ...(options.history ? [VaultHistory] : [])].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' }))), activate(ctx) {
     context = ctx; config = ctx.use(Config); vaults = ctx.use(Vault); locations = ctx.use(VaultLocations);
+    snapshots = ctx.use(ConfigSnapshots);
     if (options.history) history = ctx.use(VaultHistory);
     ctx.events.on(ConfigChanged, change => { changes.push(change); });
     if (options.prepare) ctx.hooks.register(PrepareVault, preparation => options.prepare(preparation, config));
@@ -87,7 +88,7 @@ async function setup(options = {}) {
   const result = { host, files, dirs, calls, logs, changes, selections, select: (id, location = id) => selections.push({ id, location }) };
   if (options.autoStart === false || options.denied) return result;
   await host.start('test.consumer');
-  return { ...result, get config() { return config; }, get vaults() { return vaults; }, get locations() { return locations; }, get history() { return history; }, get context() { return context; } };
+  return { ...result, get config() { return config; }, get snapshots() { return snapshots; }, get vaults() { return vaults; }, get locations() { return locations; }, get history() { return history; }, get context() { return context; } };
 }
 
 test('real Config, Vault and history providers persist recent locations and restore names after restart', async () => {
@@ -412,5 +413,36 @@ test('consumers need config.access and receive events without configuration valu
   const s = await setup(); await s.config.set('other.plugin', 'secret', 'do-not-publish', global);
   assert.deepEqual(s.changes, [{ pluginId: 'other.plugin', key: 'secret', scope: 'global', vaultId: null, kind: 'set' }]);
   assert.ok(!JSON.stringify(s.logs).includes('do-not-publish'));
+  await s.host.stopAll(); s.host.assertNoResources();
+});
+
+test('namespace snapshots preserve typed TOML values and restore only the selected namespace', async () => {
+  const s = await setup();
+  await s.config.set('example.plugin', 'values', { count: 9223372036854775807n, date: new Date('2026-11-11T00:00:00Z'), nested: { text: 'private-value', items: [1,2] } }, global);
+  const original = (await s.config.read('example.plugin', global)).value;
+  const backup = await s.snapshots.capture('example.plugin', global); assert.equal(backup.ok, true);
+  await s.config.set('example.plugin', 'values', 'changed', global); await s.config.set('example.plugin', 'new', true, global);
+  await s.config.set('other.plugin', 'keep', 'unrelated', global);
+  s.changes.length = 0;
+  assert.equal((await s.snapshots.restore('example.plugin', backup.value, global)).ok, true);
+  assert.deepEqual((await s.config.read('example.plugin', global)).value, original);
+  assert.equal((await s.config.get('other.plugin', 'keep', global)).value, 'unrelated');
+  assert.ok(s.changes.some(change => change.key === 'new' && change.kind === 'removed'));
+  assert.ok(!JSON.stringify(s.logs).includes('private-value'));
+  await s.host.stopAll(); s.host.assertNoResources();
+  assert.throws(() => s.snapshots.capture('example.plugin', global), { code: 'SCOPE_CLOSED' });
+});
+
+test('invalid or conflicted namespace restore does not overwrite configuration', async () => {
+  let conflict = false;
+  const s = await setup({ writeFailure: () => conflict ? 'CONFLICT' : undefined });
+  await s.config.set('example.plugin', 'value', 'before', global);
+  const backup = (await s.snapshots.capture('example.plugin', global)).value;
+  const before = s.files.get('@global/config.toml');
+  for (const text of ['invalid [', 'formatVersion=2\n[values]\nvalue="after"', 'formatVersion=1\nvalues="invalid"', 'formatVersion=1\n[values]\n[unrelated]']) {
+    assert.equal((await s.snapshots.restore('example.plugin', text, global)).ok, false); assert.equal(s.files.get('@global/config.toml'), before);
+  }
+  conflict = true;
+  assert.equal((await s.snapshots.restore('example.plugin', backup, global)).error.code, 'CONFLICT'); assert.equal(s.files.get('@global/config.toml'), before);
   await s.host.stopAll(); s.host.assertNoResources();
 });

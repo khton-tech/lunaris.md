@@ -3,9 +3,9 @@ import { ApplicationDirectory, Filesystem } from "@lunaris/filesystem";
 import type { FileTarget } from "@lunaris/filesystem";
 import { Vault, PrepareVault } from "@lunaris/vault";
 import { Logger, scopeLogger } from "@lunaris/logging";
-import { Config, ConfigChanged, validConfigKey, validPluginId } from "@lunaris/config";
+import { Config, ConfigSnapshots, ConfigChanged, validConfigKey, validPluginId } from "@lunaris/config";
 import type { ConfigChange, ConfigReadOptions, ConfigResult, ConfigTable, ConfigTarget, ConfigValue } from "@lunaris/config";
-import { ConfigDataError, merge, snapshot } from "./codec.js";
+import { ConfigDataError, decode, encode, isTable, merge, snapshot } from "./codec.js";
 import { createStorage } from "./storage.js";
 import manifest from "../manifest.json" with { type: "json" };
 
@@ -107,6 +107,30 @@ export default definePlugin({ manifest, async activate(ctx) {
       return result.ok ? { ok: true, value: null } : result;
     }),
     remove: (pluginId, key, target) => invoke("remove", () => mutate(pluginId, key, undefined, target)),
+  });
+  ctx.provide(ConfigSnapshots, {
+    capture: (pluginId, target) => invoke('captureNamespace', async () => {
+      if (!validPluginId(pluginId)) return invalid();
+      const resolved = resolve(target, true); if (!resolved.ok) return resolved;
+      const current = await storage.read(resolved.value.scope === 'global' ? global : resolved.value.vault!, pluginId);
+      if (!current.ok) return current;
+      const text = encode({ formatVersion: 1, values: current.value });
+      if (text.length > 256 * 1024) return { ok: false, error: { code: 'TOO_LARGE', message: 'Configuration namespace snapshot exceeds 256 KiB.' } };
+      return { ok: true, value: text };
+    }),
+    restore: (pluginId, text, target) => invoke('restoreNamespace', async () => {
+      if (!validPluginId(pluginId) || typeof text !== 'string' || text.length > 256 * 1024) return invalid();
+      const resolved = resolve(target, true); if (!resolved.ok) return resolved;
+      const document = decode(text);
+      if (Object.keys(document).length !== 2 || document.formatVersion !== 1 || !isTable(document.values)) return { ok: false, error: { code: 'INVALID_CONFIG', message: 'A version 1 namespace snapshot and values table are required.' } };
+      const values = snapshot(document.values) as ConfigTable;
+      const { scope, vault } = resolved.value;
+      const result = await storage.replace(scope === 'global' ? global : vault!, pluginId, values);
+      if (!result.ok) return result;
+      for (const key of result.value) publish({ pluginId, key, scope: scope === 'global' ? 'global' : 'vault', vaultId: vault?.vaultId ?? null, kind: Object.hasOwn(values, key) ? 'set' : 'removed' });
+      logger.info(ctx.pluginId, 'Configuration namespace restored', { data: { pluginId, keyCount: result.value.length, scope } });
+      return { ok: true, value: null };
+    }),
   });
   logger.info(ctx.pluginId, "Config manager ready", { code: "CONFIG_READY" });
 } });

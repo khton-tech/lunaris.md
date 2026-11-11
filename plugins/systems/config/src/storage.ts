@@ -80,5 +80,18 @@ export function createStorage(fs: FilesystemApi, stopped: () => boolean) {
         return written.ok ? { ok: true, value: true } : written;
       });
     },
+    replace(target: FileTarget, pluginId: string, values: ConfigTable): Promise<ConfigResult<readonly string[]>> {
+      return queued(target, async () => {
+        const current = await load(target); if (!current.ok) return current;
+        const { document, version } = current.value;
+        const keys = [...new Set([...Object.keys(section(document, pluginId)), ...Object.keys(values)])].sort();
+        const plugins: Record<string, ConfigValue> = isTable(document.plugins) ? document.plugins : {};
+        document.plugins = plugins; plugins[pluginId] = values;
+        const text = encode(document); if (stopped()) return stoppedResult();
+        const written = await fs.writeText(target, text, version === null ? { mode: 'create' } : { mode: 'replace', expectedVersion: version });
+        if (stopped()) return stoppedResult();
+        return written.ok ? { ok: true, value: keys } : written;
+      });
+    },
   };
 }

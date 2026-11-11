@@ -1,5 +1,11 @@
 # Config manager
 
+`ConfigSnapshots` provides portable per-namespace capture/restore with typed TOML
+values and one version-checked replacement. See [namespace snapshot methods and
+limits](../../plugins/systems/config/DOCS/README.md#namespace-snapshots). It requires
+config.access and an explicit global/Vault target; isolated consumers are limited
+to their own namespace in their captured Vault.
+
 ## Responsibilities and storage
 
 Required: global settings outside Vaults, `.lunaris/config.toml` per Vault, local

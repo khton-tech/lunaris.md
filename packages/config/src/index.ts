@@ -45,3 +45,14 @@ export const ConfigChanged = defineEvent<ConfigChange>({
         (change.scope === "vault" && typeof change.vaultId === "string" && change.vaultId.length > 0));
   },
 });
+
+/** Portable namespace backup without knowledge of the provider's storage layout. */
+export interface ConfigSnapshotsApi {
+  capture(pluginId: string, target: ConfigTarget): Promise<ConfigResult<string>>;
+  /** Replace just this namespace atomically with respect to provider operations. */
+  restore(pluginId: string, snapshot: string, target: ConfigTarget): Promise<ConfigResult<null>>;
+}
+export const ConfigSnapshots = defineApi<ConfigSnapshotsApi>({
+  id: 'lunaris.config-snapshots', version: '1.0.0', consumePermission: 'config.access',
+  validate: value => !!value && typeof value === 'object' && ['capture', 'restore'].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === 'function'),
+});
