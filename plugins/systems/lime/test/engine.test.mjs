@@ -87,6 +87,20 @@ test('preview is inert and exact-byte confirmation persists only in the captured
   await f.kernel.stopAll(); f.kernel.assertNoResources();
 });
 
+test('install confirmation rejects a dependency graph that changed after preview', async () => {
+  const f = await fixture();
+  const plan = { pluginId: 'test.package', revision: 1, affected: ['test.package'], dependencies: [], graph: [] };
+  f.plans.set('test.package', plan);
+  f.selected.push(packageBytes());
+  const preview = (await f.api.preview()).value;
+  assert.equal(preview.dependencyPlan.revision, 1);
+  f.plans.set('test.package', { ...plan, revision: 2 });
+  assert.equal((await f.api.install(preview.ticket)).error.code, 'STALE');
+  assert.equal(f.files.size, 0);
+  assert.deepEqual(f.executions, []);
+  await f.kernel.stopAll();
+});
+
 test('provider choices persist only through revision-checked plans and restore before startup', async () => {
   const f = await fixture(); f.selected.push(packageBytes()); await f.api.install((await f.api.preview()).value.ticket);
   f.plans.set('test.package', { pluginId: 'test.package', revision: 7, affected: ['test.package'], dependencies: [{ kind: 'api', id: 'test.value', range: '^1.0.0', optional: false, candidates: [{ id: 'test.first', version: '1.0.0', state: 'active' }, { id: 'test.second', version: '1.0.0', state: 'active' }] }] });

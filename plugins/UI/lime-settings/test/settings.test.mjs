@@ -18,7 +18,14 @@ async function fixture() {
         { kind: 'event', id: 'test.missing', range: '^1.0.0', optional: true, candidates: [] },
       ] }); },
       async selectProvider(...args) { calls.push(['selectProvider', ...args]); selectedProvider = args[3]; revision++; return ok(null); },
-      async preview() { calls.push(['preview']); return ok({ ticket: 1, manifest, digest: 'a'.repeat(64), platformWarning: true }); },
+      async preview() {
+        calls.push(['preview']);
+        return ok({ ticket: 1, manifest, digest: 'a'.repeat(64), platformWarning: true,
+          dependencyPlan: { pluginId: manifest.id, revision, affected: [manifest.id], dependencies: [], graph: [
+            { pluginId: 'test.transitive', dependencies: [{ kind: 'api', id: 'test.missing', range: '^2.0.0', optional: false, candidates: [] }] },
+          ] },
+        });
+      },
       cancelPreview(ticket) { calls.push(['cancel', ticket]); },
       async install(ticket) { calls.push(['install', ticket]); state = { ...state, installations: [{ id: manifest.id, version: manifest.version, digest: 'a'.repeat(64), manifest, enabled: true, recoveryRequired: false, removalPending: false, state: 'active' }] }; await publish(); return ok(null); },
       async update(ticket) { calls.push(['update', ticket]); return ok(null); },
@@ -44,11 +51,14 @@ test('Lime composes inside real Settings/Workspace and confirms preview before i
     assert.match(view.textContent, /No third-party plugins installed/);
     s.button('Add plugin').click(); await flush();
     assert.deepEqual(s.calls, [['preview']]); assert.match(view.textContent, /test.dependency/); assert.match(view.textContent, /author has not declared support/);
+    assert.match(view.textContent, /test.transitive \/ api:test.missing/);
+    assert.match(view.textContent, /No compatible provider installed/);
     assert.equal(view.querySelector('img'), null); assert.equal(s.dom.window.document.activeElement.textContent, 'Install plugin');
     s.button('Install plugin').click(); await flush(); assert.ok(s.calls.some(call => call[0] === 'install'));
     assert.equal(s.dom.window.document.activeElement.textContent, 'Add plugin');
     const toggle = view.querySelector('input[type=checkbox]'); toggle.click(); await flush(); assert.deepEqual(s.calls.at(-1), ['disable', 'test.package']);
     s.button('Remove').click(); await flush(); assert.match(view.textContent, /retain its data and settings/);
+    assert.match(view.textContent, /Affected plugins: test.package, test.consumer/);
     s.button('Remove and keep data').click(); await flush(); assert.deepEqual(s.calls.at(-1), ['remove', 'test.package', false]);
   } finally { await s.stop(); }
 });

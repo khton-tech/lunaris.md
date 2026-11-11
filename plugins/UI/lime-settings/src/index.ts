@@ -63,8 +63,21 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-
   function props() {
     const state = engine.snapshot(); const busy = state.busy || localBusy;
     const rows = state.installations.map(item => ({ ...metadata(item.manifest, item.id, item.version), enabled: item.enabled, recovery: item.recoveryRequired, removing: item.removalPending, state: text(Object.hasOwn(catalogs.en, item.state) ? item.state : 'unavailable') }));
+    const previewDetails = preview && metadata(preview.manifest, preview.manifest.id, preview.manifest.version);
+    if (previewDetails && preview?.dependencyPlan) {
+      const plan = preview.dependencyPlan;
+      if (plan.affected.length > 1) previewDetails.fields.push({ label: text('affected'), value: plan.affected.join(', ') });
+      for (const node of plan.graph) for (const dependency of node.dependencies) {
+        const candidates = dependency.candidates.map(candidate =>
+          `${candidate.id} ${candidate.version} · ${text(Object.hasOwn(catalogs.en, candidate.state) ? candidate.state : 'unavailable')}`);
+        previewDetails.fields.push({
+          label: `${node.pluginId} / ${dependency.kind}:${dependency.id} ${dependency.range}`,
+          value: candidates.length ? candidates.join(', ') : text(dependency.optional ? 'optionalUnavailable' : 'missingDependency'),
+        });
+      }
+    }
     return { labels: Object.fromEntries(Object.keys(catalogs.en).map(key => [key, text(key)])), rows,
-      preview: preview ? { ...metadata(preview.manifest, preview.manifest.id, preview.manifest.version), warning: preview.platformWarning, action: text(state.installations.some(item => item.id === preview!.manifest.id) ? 'update' : 'install') } : null,
+      preview: preview && previewDetails ? { ...previewDetails, warning: preview.platformWarning, action: text(state.installations.some(item => item.id === preview!.manifest.id) ? 'update' : 'install') } : null,
       dependencyPlan,
       onPlan: (id: string) => {
         if (localBusy || state.busy) return;

@@ -22,7 +22,8 @@ acceptance or complete authority audit is claimed.
   dependency planning/revisions and graph-aware provider rebinding are implemented.
   Choices persist in Vault records and restore before startup. Settings Details
   exposes themed provider selection, affected IDs and revision-checked application.
-  Full prospective dependency graph disclosure remains pending.
+  Package preview follows transitive compatible providers without activating them.
+  Confirmation rejects stale graph revisions. Removal shows affected active consumers.
 - L04: QuickJS/WASM execution, SDK wire bridge, bounded callback reclamation,
   selected-file picker and scoped Config/Filesystem restrictions implemented.
   Own-package resource list/chunk/text reads now use the public activation-bound

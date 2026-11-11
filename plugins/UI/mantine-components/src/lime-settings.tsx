@@ -90,7 +90,13 @@ export function LimeSettings({ props, theme }: { props: Props; theme: ReturnType
           <Button size="compact-xs" variant="subtle" aria-expanded={expanded === row.id} onClick={() => { if (expanded !== row.id) props.onPlan(row.id); setExpanded(expanded === row.id ? null : row.id); }}>{props.labels.details}</Button>
           {row.recovery && !row.removing && <Button size="compact-xs" variant="subtle" disabled={disabled || props.safeMode} onClick={() => props.onRetry(row.id)}>{props.labels.retry}</Button>}
           <Button size="compact-xs" variant="subtle" disabled={disabled || row.removing || !!props.preview} onClick={() => props.onUpdate(row.id)}>{props.labels.update}</Button>
-          <Button ref={element => { if (element) removeButtons.current.set(row.id, element); else removeButtons.current.delete(row.id); }} size="compact-xs" variant="subtle" disabled={disabled} onClick={() => { if (row.removing) props.onRemove(row.id, false); else setRemoving(removing === row.id ? null : row.id); }}>{row.removing ? props.labels.retry : props.labels.remove}</Button>
+          <Button ref={element => { if (element) removeButtons.current.set(row.id, element); else removeButtons.current.delete(row.id); }} size="compact-xs" variant="subtle" disabled={disabled} onClick={() => {
+            if (row.removing) props.onRemove(row.id, false);
+            else {
+              if (removing !== row.id) props.onPlan(row.id);
+              setRemoving(removing === row.id ? null : row.id);
+            }
+          }}>{row.removing ? props.labels.retry : props.labels.remove}</Button>
         </Group>
       </Box>
       {expanded === row.id && <Stack gap="sm" style={{ minWidth: 0 }}><Details item={row} />
@@ -103,6 +109,8 @@ export function LimeSettings({ props, theme }: { props: Props; theme: ReturnType
       </Stack>}
       {removing === row.id && <Stack gap="xs" role="group" aria-label={`${props.labels.remove} ${row.name}`}>
         <Text size="sm">{props.labels.removePrompt}</Text>
+        {props.dependencyPlan?.pluginId === row.id && props.dependencyPlan.affected.length > 1 &&
+          <Text size="sm" style={{ overflowWrap: 'anywhere' }}>{props.labels.affected}: {props.dependencyPlan.affected.join(', ')}</Text>}
         <Group gap="xs" wrap="wrap">
           <Button size="compact-sm" variant="subtle" disabled={disabled} onClick={() => props.onRemove(row.id, false)}>{props.labels.keepData}</Button>
           <Button size="compact-sm" variant="subtle" disabled={disabled} onClick={() => props.onRemove(row.id, true)}>{props.labels.deleteData}</Button>

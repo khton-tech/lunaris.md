@@ -22,6 +22,24 @@ async function fixture() {
 const manifest = (version = '1.0.0', id = 'test.package') => ({ manifestVersion: 1, id, version, engine: '^0.1.0', sdk: '^0.1.0', entry: './plugin.js', provides: [], requires: [], permissions: [], optionalPermissions: [] });
 const source = (data, body = '') => ({ entry: 'plugin.js', modules: { 'plugin.js': `export default { manifest: ${JSON.stringify(data)}, activate(ctx) { ctx.scope.own({ dispose() {} }); ${body} } };` } });
 
+test('prospective package plan follows disabled and transitive providers without registering or running them', async () => {
+  const { kernel, runtime } = await fixture();
+  const env = { vaultId: 'a', generation: 1 };
+  await runtime.open(env);
+  const provider = { ...manifest('1.0.0', 'test.provider'),
+    provides: [{ kind: 'api', id: 'test.service', version: '1.1.0' }],
+    requires: [{ kind: 'api', id: 'test.missing', range: '^2.0.0' }] };
+  await runtime.register(env, provider, source(provider, 'throw Error("must remain disabled");'), false);
+  const candidate = { ...manifest(), requires: [{ kind: 'api', id: 'test.service', range: '^1.0.0' }] };
+  const before = kernel.inspect();
+  const plan = runtime.plan(env, candidate.id, candidate).value;
+  assert.deepEqual(plan.graph.map(node => node.pluginId), [candidate.id, provider.id]);
+  assert.deepEqual(plan.dependencies[0].candidates, [{ id: provider.id, version: '1.1.0', state: 'disabled' }]);
+  assert.deepEqual(plan.graph[1].dependencies[0].candidates, []);
+  assert.deepEqual(kernel.inspect(), before);
+  await kernel.stopAll();
+});
+
 test('public runtime adapter manages actual isolated plugins and reports code rollback', async () => {
   const { kernel, runtime } = await fixture(); const env = { vaultId: 'a', generation: 1 };
   assert.equal((await runtime.open(env)).ok, true);

@@ -21,6 +21,10 @@ Unsupported platform metadata appears as a warning before confirmation. Details
 include ID, author, platforms, languages, repository, provided/required contracts
 and custom fields. Metadata remains escaped plain text.
 
+The package preview also lists compatible providers, their runtime states and
+requirements reachable through them. If the graph changes before confirmation,
+Lime requests a fresh preview. Removal confirmation shows affected active plugins.
+
 Opening Details loads `Lime.plan(id)` and shows direct requirements, compatible
 provider versions/states and affected plugin IDs. The shared themed SettingsSelect
 offers candidates; a separate Apply provider action submits the plan revision.
@@ -60,5 +64,4 @@ and narrow/short Settings. Automated DOM tests do not establish native geometry.
 Engine/Settings/UIKit integration is tested and included in normal shared host
 composition. Provider-choice integration is implemented and tested with an opened
 Mantine menu, disabled candidates, explicit application and revision forwarding.
-The complete prospective dependency graph, native acceptance and live development
-host attachment remain pending; direct declarations are not a full graph resolver.
+Native acceptance and application-host development attachment remain pending.

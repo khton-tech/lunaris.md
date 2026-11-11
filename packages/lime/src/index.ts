@@ -21,15 +21,17 @@ export const LimeBootPolicy = defineApi<{ safeMode(): boolean }>({
 
 export interface LimeEnvironment { readonly vaultId: string; readonly generation: number }
 export interface LimeRuntimeEntry { readonly id: string; readonly state: string; readonly version: string }
+export interface LimeDependency {
+  readonly kind: ContractKind; readonly id: string; readonly range: string; readonly optional: boolean;
+  readonly selected?: string;
+  readonly candidates: readonly { readonly id: string; readonly version: string; readonly state: string }[];
+}
 export interface LimeDependencyPlan {
   readonly pluginId: string;
   readonly revision: number;
   readonly affected: readonly string[];
-  readonly dependencies: readonly {
-    readonly kind: ContractKind; readonly id: string; readonly range: string; readonly optional: boolean;
-    readonly selected?: string;
-    readonly candidates: readonly { readonly id: string; readonly version: string; readonly state: string }[];
-  }[];
+  readonly dependencies: readonly LimeDependency[];
+  readonly graph: readonly { readonly pluginId: string; readonly dependencies: readonly LimeDependency[] }[];
 }
 export interface LimeProviderChoice { readonly kind: ContractKind; readonly contractId: string; readonly providerId: string }
 export interface LimeRuntimeApi {
@@ -37,7 +39,7 @@ export interface LimeRuntimeApi {
   open(environment: LimeEnvironment): Promise<LimeResult<null>>;
   close(environment: LimeEnvironment): Promise<LimeResult<null>>;
   snapshot(environment: LimeEnvironment): LimeResult<readonly LimeRuntimeEntry[]>;
-  plan(environment: LimeEnvironment, id: string): LimeResult<LimeDependencyPlan>;
+  plan(environment: LimeEnvironment, id: string, candidate?: PluginManifest): LimeResult<LimeDependencyPlan>;
   selectProvider(environment: LimeEnvironment, id: string, kind: ContractKind, contractId: string, providerId: string, expectedRevision: number): Promise<LimeResult<null>>;
   /** Stop the active affected graph; the opaque checkpoint retains old code/resources. */
   suspend(environment: LimeEnvironment, id: string): Promise<LimeResult<number>>;
@@ -79,6 +81,7 @@ export interface LimePreview {
   readonly manifest: PluginManifest;
   readonly digest: string;
   readonly platformWarning: boolean;
+  readonly dependencyPlan?: LimeDependencyPlan;
 }
 export interface LimeApi {
   snapshot(): LimeSnapshot;

@@ -7,7 +7,7 @@ import { Vault } from "@lunaris/vault";
 import { PluginExecution } from "@lunaris/execution";
 import type { ExecutionSource } from "@lunaris/execution";
 import { LimeRuntime } from "@lunaris/lime";
-import type { LimeEnvironment, LimeResult } from "@lunaris/lime";
+import type { LimeDependency, LimeEnvironment, LimeResult } from "@lunaris/lime";
 
 /** Privileged host composition. Lime receives only the public token, never Kernel. */
 export function createLimeRuntime(kernel: Kernel, builtinIds: readonly string[]) {
@@ -78,23 +78,34 @@ export function createLimeRuntime(kernel: Kernel, builtinIds: readonly string[])
           const snapshot = registered(id); return Object.freeze({ id, version: snapshot?.manifest.version ?? definition.manifest.version, state: snapshot?.state ?? 'disabled' });
         })) };
       },
-      plan(environment, id) {
+      plan(environment, id, candidate) {
         if (!matches(environment)) return failure('STALE', 'Plugin environment changed.');
-        const definition = managed.get(id); if (!definition) return failure('NOT_FOUND', 'Plugin is not managed in this environment.');
+        if (candidate && candidate.id !== id) return failure('CONFLICT', 'Candidate identity does not match the plan target.');
+        const manifest = candidate ?? managed.get(id)?.manifest;
+        if (!manifest) return failure('NOT_FOUND', 'Plugin is not managed in this environment.');
         const snapshot = kernel.inspect(); const affected = new Set([id]);
         for (const provider of affected) for (const item of snapshot.plugins) if (item.state === 'active' && (item.ownerId === provider || item.bindings.some(binding => binding.providerId === provider))) affected.add(item.manifest.id);
         const available = new Map<string, { manifest: PluginManifest; state: string }>(snapshot.plugins.map(item => [item.manifest.id, { manifest: item.manifest, state: item.state }]));
         for (const [pluginId, candidate] of managed) if (!available.has(pluginId)) available.set(pluginId, { manifest: candidate.manifest, state: 'disabled' });
-        const bindings = registered(id)?.bindings;
-        const dependencies = definition.manifest.requires.map(requirement => {
+        available.set(id, { manifest, state: available.get(id)?.state ?? 'candidate' });
+        const bindings = new Map(snapshot.plugins.map(item => [item.manifest.id, item.bindings]));
+        const describe = (consumer: PluginManifest): readonly LimeDependency[] => Object.freeze(consumer.requires.map(requirement => {
           const candidates = [...available].flatMap(([pluginId, item]) => {
             const provided = item.manifest.provides.find(provided => provided.kind === requirement.kind && provided.id === requirement.id && versionSatisfies(provided.version, requirement.range));
             return provided ? [Object.freeze({ id: pluginId, version: provided.version, state: item.state })] : [];
           }).sort((a, b) => a.id < b.id ? -1 : 1);
-          const selected = choices.get(id)?.get(`${requirement.kind}:${requirement.id}`) ?? bindings?.find(binding => binding.contract === `${requirement.kind}:${requirement.id}`)?.providerId;
+          const key = `${requirement.kind}:${requirement.id}`;
+          const selected = choices.get(consumer.id)?.get(key) ?? bindings.get(consumer.id)?.find(binding => binding.contract === key)?.providerId;
           return Object.freeze({ kind: requirement.kind, id: requirement.id, range: requirement.range, optional: requirement.optional === true, ...(selected ? { selected } : {}), candidates: Object.freeze(candidates) });
-        });
-        return { ok: true, value: Object.freeze({ pluginId: id, revision: refresh(), affected: Object.freeze([...affected].sort()), dependencies: Object.freeze(dependencies) }) };
+        }));
+        const graph = [];
+        const reachable = new Set([id]);
+        for (const pluginId of reachable) {
+          const dependencies = describe(available.get(pluginId)!.manifest);
+          graph.push(Object.freeze({ pluginId, dependencies }));
+          for (const requirement of dependencies) for (const provider of requirement.candidates) reachable.add(provider.id);
+        }
+        return { ok: true, value: Object.freeze({ pluginId: id, revision: refresh(), affected: Object.freeze([...affected].sort()), dependencies: graph[0]!.dependencies, graph: Object.freeze(graph) }) };
       },
       selectProvider(environment, id, kind, contractId, providerId, expectedRevision) {
         const captured = { ...environment }; return serial(async () => {

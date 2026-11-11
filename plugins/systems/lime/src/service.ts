@@ -32,7 +32,8 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
   let storage: ReturnType<typeof createStorage> | null = null; let records: readonly InstallationRecord[] = [];
   let backups: ReturnType<typeof createBackups> | null = null; let nextBackup = 0;
   const updateCheckpoints = new Map<string, number>();
-  const packages = new Map<string, InspectedLup>(); const previews = new Map<number, { environment: LimeEnvironment; preview: InspectedLup }>();
+  const packages = new Map<string, InspectedLup>();
+  const previews = new Map<number, { environment: LimeEnvironment; preview: InspectedLup; revision?: number }>();
   let nextTicket = 0; let busy = false; let transitioning = false; let safeMode = initialSafeMode; let error: string | null = null; let tail = Promise.resolve();
   const snapshot = (): LimeSnapshot => {
     const observed = environment ? runtime.snapshot(environment) : null;
@@ -229,6 +230,11 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
     const selected = previews.get(ticket); previews.delete(ticket);
     if (!selected || selected.environment.vaultId !== captured.vaultId || selected.environment.generation !== captured.generation) return fail('STALE', 'Select and preview this package again.');
     const preview = selected.preview; const previous = records.find(item => item.id === preview.manifest.id);
+    if (selected.revision !== undefined) {
+      const plan = runtime.plan(captured, preview.manifest.id, preview.manifest);
+      if (!plan.ok) return plan;
+      if (plan.value.revision !== selected.revision) return fail('STALE', 'Dependency plan changed. Preview the package again.');
+    }
     if (previous?.removing || previous?.updating) return fail('CONFLICT', 'Finish recovering this plugin before installing another version.');
     if (updating ? !previous : !!previous) return fail('CONFLICT', updating ? 'Plugin is not installed.' : 'Plugin is already installed; choose update.');
     if (previous?.version === preview.manifest.version) return fail('CONFLICT', 'The same version is already installed.');
@@ -289,9 +295,11 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
         if (selected.value === null) return { ok: true, value: null };
         if (!valid(captured)) return fail('STALE', 'Vault changed during package selection.');
         const inspected = inspectLup(selected.value, { engineVersion: '0.1.0', sdkVersion: '0.1.0' });
-        previews.clear(); const ticket = ++nextTicket; previews.set(ticket, { environment: captured, preview: inspected });
+        previews.clear(); const ticket = ++nextTicket;
         const platforms = inspected.manifest.metadata!.platforms;
-        return { ok: true, value: Object.freeze({ ticket, manifest: inspected.manifest, digest: inspected.digest, platformWarning: platforms !== 'universal' && !platforms.includes(platform) }) };
+        const plan = runtime.plan(captured, inspected.manifest.id, inspected.manifest);
+        previews.set(ticket, { environment: captured, preview: inspected, ...(plan.ok ? { revision: plan.value.revision } : {}) });
+        return { ok: true, value: Object.freeze({ ticket, manifest: inspected.manifest, digest: inspected.digest, platformWarning: platforms !== 'universal' && !platforms.includes(platform), ...(plan.ok ? { dependencyPlan: plan.value } : {}) }) };
       } catch (cause) { logger.warn(ctx.pluginId, 'Package preview rejected', { error: cause }); return fail('INVALID_PACKAGE', 'Selected package is invalid or incompatible.'); }
       finally { await scope.dispose(); }
     },

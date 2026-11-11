@@ -44,9 +44,12 @@ tests separately cover failed rebind rollback and optional dependents. The Lime
 engine persists choices in its Vault registry and restores them before startup.
 The Settings Details panel consumes the plan with themed candidate menus and an
 explicit Apply action; native visual acceptance remains pending.
-Plans currently disclose direct requirements and active affected consumers rather
-than a full prospective graph. Other management operations still use environment
-generation without an expected plan revision.
+The plan includes a prospective graph of every reachable compatible provider.
+It lists each provider once, including disabled providers and the requirements of
+each candidate. An empty candidate list indicates a missing compatible provider.
+Lime previews substitute the candidate manifest without registering or evaluating
+it. Install and update confirmations reject a changed graph revision. The graph
+describes alternatives, while the kernel resolves actual bindings on activation.
 
 ## Update checkpoints
 
