@@ -21,6 +21,14 @@ Unsupported platform metadata appears as a warning before confirmation. Details
 include ID, author, platforms, languages, repository, provided/required contracts
 and custom fields. Metadata remains escaped plain text.
 
+Opening Details loads `Lime.plan(id)` and shows direct requirements, compatible
+provider versions/states and affected plugin IDs. The shared themed SettingsSelect
+offers candidates; a separate Apply provider action submits the plan revision.
+Missing providers direct users to Add plugin for an explicitly selected local
+package. Disabled providers are not enabled implicitly; running consumers require
+an enabled choice. Refresh dependencies obtains a new revision. Engine failures
+are localized and successful changes refresh the plan. Vault changes clear it.
+
 Enable/disable, retry, update and safe-mode restore call engine APIs only. Remove
 offers explicit retain/delete-data actions. A pending removal exposes Retry using
 the already committed data choice, never a misleading new choice. No Vault/busy,
@@ -36,7 +44,8 @@ owns its controls and internal spacing. It adds no outer card/background and nev
 inspects or styles another region. The product reference is existing Settings item
 rows, quiet action buttons and shared Switch controls. Mantine UI
 [buttons](https://ui.mantine.dev/category/buttons/) and
-[tables](https://ui.mantine.dev/category/tables/) were consulted; no gallery runtime
+[tables](https://ui.mantine.dev/category/tables/) and
+[inputs](https://ui.mantine.dev/category/inputs/) were consulted; no gallery runtime
 or copied shell was added. Confirmation stays inline within the section.
 
 Composed tests mount the actual controller, Settings, Workspace and Mantine role.
@@ -49,6 +58,7 @@ Native visual acceptance remains pending: real file dialog/gesture/cancel,
 light/dark control sizing and focus, long metadata/locales, removal/recovery states
 and narrow/short Settings. Automated DOM tests do not establish native geometry.
 Engine/Settings/UIKit integration is tested and included in normal shared host
-composition. Independent authoring acceptance remains pending. Provider-choice and dependency
-resolution workflows remain incomplete; displaying declarations is not a complete
-dependency resolver.
+composition. Provider-choice integration is implemented and tested with an opened
+Mantine menu, disabled candidates, explicit application and revision forwarding.
+The complete prospective dependency graph, native acceptance and live development
+host attachment remain pending; direct declarations are not a full graph resolver.

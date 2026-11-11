@@ -2,7 +2,7 @@ import { definePlugin } from "@lunaris/sdk";
 import type { PluginManifest } from "@lunaris/sdk";
 import { Logger } from "@lunaris/logging";
 import { Lime, LimeChanged } from "@lunaris/lime";
-import type { LimePreview, LimeResult } from "@lunaris/lime";
+import type { LimeDependencyPlan, LimePreview, LimeResult } from "@lunaris/lime";
 import { Settings } from "@lunaris/settings";
 import { Localization, LocaleChanged } from "@lunaris/localization";
 import { catalogs } from "./catalogs.js";
@@ -15,6 +15,7 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-
   const registered = localization.register(ctx.pluginId, catalogs, ctx.signal); if (!registered.ok) throw new Error('Cannot register Lime Settings catalogs.', { cause: registered.error });
   const text = (key: string) => localization.text(ctx.pluginId, key);
   let preview: LimePreview | null = null; let localBusy = false; let error = ''; let scheduled = false; let currentVault = engine.snapshot().vaultId;
+  let dependencyPlan: LimeDependencyPlan | null = null;
   function metadata(manifest: PluginManifest | undefined, id: string, version: string) {
     const meta = manifest?.metadata; const locale = localization.locale().toLowerCase();
     const translationKey = Object.keys(meta?.translations ?? {}).find(key => key.toLowerCase() === locale) ?? Object.keys(meta?.translations ?? {}).find(key => key.toLowerCase() === locale.split('-')[0]);
@@ -32,7 +33,8 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-
     void Promise.resolve().then(() => {
       scheduled = false; if (ctx.signal.aborted) return;
       const state = engine.snapshot();
-      if (state.vaultId !== currentVault) { preview = null; error = ''; currentVault = state.vaultId; }
+      if (state.vaultId !== currentVault) { preview = null; dependencyPlan = null; error = ''; currentVault = state.vaultId; }
+      if (dependencyPlan && !state.installations.some(item => item.id === dependencyPlan!.pluginId)) dependencyPlan = null;
       const category = settings.updateCategory(categoryId, { title: text('title'), icon: 'package' });
       const result = settings.updateSection(sectionId, { title: text('title'), props: props() });
       if (!category.ok || !result.ok) logger.error(ctx.pluginId, 'Cannot refresh Lime Settings', { error: !result.ok ? result.error : !category.ok ? category.error : undefined });
@@ -63,6 +65,17 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-
     const rows = state.installations.map(item => ({ ...metadata(item.manifest, item.id, item.version), enabled: item.enabled, recovery: item.recoveryRequired, removing: item.removalPending, state: text(Object.hasOwn(catalogs.en, item.state) ? item.state : 'unavailable') }));
     return { labels: Object.fromEntries(Object.keys(catalogs.en).map(key => [key, text(key)])), rows,
       preview: preview ? { ...metadata(preview.manifest, preview.manifest.id, preview.manifest.version), warning: preview.platformWarning, action: text(state.installations.some(item => item.id === preview!.manifest.id) ? 'update' : 'install') } : null,
+      dependencyPlan,
+      onPlan: (id: string) => {
+        if (localBusy || state.busy) return;
+        const result = engine.plan(id); dependencyPlan = result.ok ? result.value : null;
+        if (!result.ok) error = text(result.error.code); changed();
+      },
+      onSelectProvider: (id: string, kind: 'api' | 'event' | 'hook', contractId: string, providerId: string, revision: number) => { void operate(async () => {
+        const result = await engine.selectProvider(id, kind, contractId, providerId, revision);
+        if (!ctx.signal.aborted) { const refreshed = engine.plan(id); dependencyPlan = refreshed.ok ? refreshed.value : null; }
+        return result;
+      }); },
       busy, available: !!state.vaultId, safeMode: state.safeMode, error: error || (state.error ? text('environmentError') : ''),
       onAdd: () => { void choose(); }, onUpdate: (id: string) => { void choose(id); },
       onConfirm: () => { const selected = preview; if (!selected) return; void operate(async () => {

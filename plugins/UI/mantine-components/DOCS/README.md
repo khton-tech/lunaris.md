@@ -27,6 +27,14 @@ The containing Settings page owns its surface/geometry; the role paints no card.
 Preview is inline, focuses confirmation and returns focus to Add when dismissed.
 Remove exposes retain/delete-data actions; pending removal retries its committed
 choice. Theme/locale updates preserve role controls through the existing adapter.
+
+The role also accepts dependencyPlan (pluginId/revision/affected/direct dependencies
+and candidate ID/version/state), onPlan and onSelectProvider callbacks. Details
+shows the affected IDs before application. ProviderSelection reuses the existing
+themed SettingsSelect/Combobox and a quiet explicit Apply action; no NativeSelect
+or system option menu is used. Missing/disabled providers have localized guidance.
+The controller owns runtime calls/revisions and persistence; the role owns only
+draft selection and rendering. Workspace/Settings retain surface/geometry ownership.
 Reference: existing Settings rows/quiet actions and Mantine UI buttons/tables.
 See [controller integration and pending native acceptance](../../lime-settings/DOCS/README.md).
 

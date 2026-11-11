@@ -42,7 +42,8 @@ planning, immutable candidate data, disabled-provider behavior, successful rebin
 and stale confirmations, including changes initiated outside the adapter. Kernel
 tests separately cover failed rebind rollback and optional dependents. The Lime
 engine persists choices in its Vault registry and restores them before startup.
-Product settings controls remain subsequent integration work.
+The Settings Details panel consumes the plan with themed candidate menus and an
+explicit Apply action; native visual acceptance remains pending.
 Plans currently disclose direct requirements and active affected consumers rather
 than a full prospective graph. Other management operations still use environment
 generation without an expected plan revision.

@@ -20,8 +20,9 @@ acceptance or complete authority audit is claimed.
 - L03: Kernel.replace/unregister, lifecycle ownership, host-backed public runtime
   adapter, protected built-ins and generation checks implemented. Environment
   dependency planning/revisions and graph-aware provider rebinding are implemented.
-  Choices persist in Vault records and restore before startup. Product choice UI
-  and full prospective dependency graph disclosure remain pending.
+  Choices persist in Vault records and restore before startup. Settings Details
+  exposes themed provider selection, affected IDs and revision-checked application.
+  Full prospective dependency graph disclosure remains pending.
 - L04: QuickJS/WASM execution, SDK wire bridge, bounded callback reclamation,
   selected-file picker and scoped Config/Filesystem restrictions implemented.
   Own-package resource list/chunk/text reads now use the public activation-bound
