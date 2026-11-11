@@ -108,3 +108,34 @@ test('isolated packages read only captured assets, including after update and ro
   assert.equal(runtime.snapshot(env).value[0].state, 'active'); assert.equal(runtime.snapshot(env).value[0].version, '2.0.0');
   await runtime.close(env); await kernel.stopAll(); kernel.assertNoResources();
 });
+
+test('runtime dependency plans disclose disabled candidates and apply revision-bound provider choices', async () => {
+  const { kernel, runtime } = await fixture(); const env = { vaultId: 'a', generation: 1 }; await runtime.open(env);
+  for (const id of ['test.first', 'test.second']) {
+    const data = { ...manifest('1.0.0', id), provides: [{ kind: 'api', id: 'test.value', version: '1.0.0' }] };
+    await runtime.register(env, data, source(data, `ctx.provide({kind:'api',id:'test.value',version:'1.0.0'},{read(){return 1}});`), id === 'test.first');
+  }
+  const data = { ...manifest('1.0.0', 'test.dependent'), requires: [{ kind: 'api', id: 'test.value', range: '^1.0.0' }] };
+  await runtime.register(env, data, source(data, `ctx.use({kind:'api',id:'test.value',version:'1.0.0'}).read();`), false);
+  let plan = runtime.plan(env, data.id).value;
+  assert.deepEqual(plan.affected, [data.id]); assert.deepEqual(plan.dependencies[0].candidates.map(item => [item.id,item.state]), [['test.first','active'],['test.second','disabled']]);
+  assert.throws(() => plan.dependencies[0].candidates.push({}), TypeError);
+  assert.equal((await runtime.selectProvider(env, data.id, 'api', 'test.value', 'test.second', plan.revision)).ok, true);
+  assert.equal((await runtime.enable(env, data.id)).ok, false); assert.equal(runtime.snapshot(env).value.find(item => item.id === 'test.second').state, 'disabled');
+  await runtime.enable(env, 'test.second'); await runtime.enable(env, data.id);
+  assert.equal(kernel.inspect().plugins.find(item => item.manifest.id === data.id).bindings.find(item => item.contract === 'api:test.value').providerId, 'test.second');
+  plan = runtime.plan(env, data.id).value;
+  assert.equal((await runtime.selectProvider(env, data.id, 'api', 'test.value', 'test.first', plan.revision)).ok, true);
+  assert.equal(kernel.inspect().plugins.find(item => item.manifest.id === data.id).bindings.find(item => item.contract === 'api:test.value').providerId, 'test.first');
+  assert.equal((await runtime.selectProvider(env, data.id, 'api', 'test.value', 'test.second', plan.revision)).error.code, 'STALE');
+  await kernel.stopAll(); kernel.assertNoResources();
+});
+
+test('dependency plans become stale after host lifecycle changes outside the adapter', async () => {
+  const { kernel, runtime } = await fixture(); const env = { vaultId: 'a', generation: 1 }; await runtime.open(env);
+  await runtime.register(env, manifest(), source(manifest()), false);
+  const plan = runtime.plan(env, 'test.package').value;
+  kernel.register(definePlugin({ manifest: manifest('1.0.0','test.unrelated'), activate() {} }));
+  assert.equal((await runtime.selectProvider(env, 'test.package', 'api', 'test.value', 'test.provider', plan.revision)).error.code, 'STALE');
+  await kernel.stopAll();
+});

@@ -1,4 +1,5 @@
 import { definePlugin } from "@lunaris/sdk";
+import { versionSatisfies } from '@lunaris/manifest';
 import type { PluginDefinition, PluginManifest } from "@lunaris/sdk";
 import type { Kernel } from "@lunaris/kernel";
 import { Logger } from "@lunaris/logging";
@@ -17,6 +18,12 @@ export function createLimeRuntime(kernel: Kernel, builtinIds: readonly string[])
   }, activate(ctx) {
     const logger = ctx.use(Logger); const execution = ctx.use(PluginExecution);
     const managed = new Map<string, PluginDefinition>(); let current: LimeEnvironment | null = null; let tail = Promise.resolve(); let generation = 0;
+    const choices = new Map<string, Map<string, string>>(); let revision = 0; let signature = '';
+    const refresh = (): number => {
+      const observed = JSON.stringify(kernel.inspect().plugins.map(item => [item.manifest, item.state, item.activationId, item.ownerId, item.bindings, item.effectivePermissions]));
+      if (observed !== signature) { signature = observed; revision++; }
+      return revision;
+    };
     const registered = (id: string) => kernel.inspect().plugins.find(item => item.manifest.id === id);
     const start = async (id: string): Promise<void> => {
       const definition = managed.get(id)!;
@@ -24,15 +31,20 @@ export function createLimeRuntime(kernel: Kernel, builtinIds: readonly string[])
         kernel.register(definition, { ownerId: ctx.pluginId });
         for (const name of [...definition.manifest.permissions, ...definition.manifest.optionalPermissions]) kernel.grant(id, name);
       }
+      if (registered(id)?.state !== 'active') for (const requirement of definition.manifest.requires) {
+        const selected = choices.get(id)?.get(`${requirement.kind}:${requirement.id}`);
+        if (selected) kernel.selectProvider(id, requirement.kind, requirement.id, selected);
+      }
       await kernel.start(id);
     };
-    const failure = (code: 'STALE' | 'CONFLICT' | 'NOT_FOUND' | 'RUNTIME_FAILED', message: string): LimeResult<null> => ({ ok: false, error: { code, message } });
+    const failure = (code: 'STALE' | 'CONFLICT' | 'NOT_FOUND' | 'RUNTIME_FAILED', message: string): LimeResult<never> => ({ ok: false, error: { code, message } });
     const matches = (environment: LimeEnvironment) => !ctx.signal.aborted && !!current && current.vaultId === environment.vaultId && current.generation === environment.generation;
     const serial = (work: () => Promise<LimeResult<null>>): Promise<LimeResult<null>> => {
       const result = tail.then(async () => {
         if (ctx.signal.aborted) return failure('STALE', 'Runtime adapter is stopped.');
         try { return await work(); }
         catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, 'Plugin runtime operation failed', { error }); return failure('RUNTIME_FAILED', 'Runtime operation failed; inspect plugin diagnostics and recovery state.'); }
+        finally { revision++; signature = ''; }
       });
       tail = result.then(() => {}); return result;
     };
@@ -45,7 +57,7 @@ export function createLimeRuntime(kernel: Kernel, builtinIds: readonly string[])
     });
     const release = async (): Promise<void> => {
       for (const id of [...managed.keys()].sort().reverse()) { if (registered(id)) await kernel.unregister(id); managed.delete(id); }
-      current = null;
+      current = null; choices.clear();
     };
     ctx.provide(LimeRuntime, {
       open(environment) { const captured = { ...environment }; return serial(async () => {
@@ -62,6 +74,40 @@ export function createLimeRuntime(kernel: Kernel, builtinIds: readonly string[])
         return { ok: true, value: Object.freeze([...managed].sort(([a], [b]) => a < b ? -1 : 1).map(([id, definition]) => {
           const snapshot = registered(id); return Object.freeze({ id, version: snapshot?.manifest.version ?? definition.manifest.version, state: snapshot?.state ?? 'disabled' });
         })) };
+      },
+      plan(environment, id) {
+        if (!matches(environment)) return failure('STALE', 'Plugin environment changed.');
+        const definition = managed.get(id); if (!definition) return failure('NOT_FOUND', 'Plugin is not managed in this environment.');
+        const snapshot = kernel.inspect(); const affected = new Set([id]);
+        for (const provider of affected) for (const item of snapshot.plugins) if (item.state === 'active' && (item.ownerId === provider || item.bindings.some(binding => binding.providerId === provider))) affected.add(item.manifest.id);
+        const available = new Map<string, { manifest: PluginManifest; state: string }>(snapshot.plugins.map(item => [item.manifest.id, { manifest: item.manifest, state: item.state }]));
+        for (const [pluginId, candidate] of managed) if (!available.has(pluginId)) available.set(pluginId, { manifest: candidate.manifest, state: 'disabled' });
+        const bindings = registered(id)?.bindings;
+        const dependencies = definition.manifest.requires.map(requirement => {
+          const candidates = [...available].flatMap(([pluginId, item]) => {
+            const provided = item.manifest.provides.find(provided => provided.kind === requirement.kind && provided.id === requirement.id && versionSatisfies(provided.version, requirement.range));
+            return provided ? [Object.freeze({ id: pluginId, version: provided.version, state: item.state })] : [];
+          }).sort((a, b) => a.id < b.id ? -1 : 1);
+          const selected = choices.get(id)?.get(`${requirement.kind}:${requirement.id}`) ?? bindings?.find(binding => binding.contract === `${requirement.kind}:${requirement.id}`)?.providerId;
+          return Object.freeze({ kind: requirement.kind, id: requirement.id, range: requirement.range, optional: requirement.optional === true, ...(selected ? { selected } : {}), candidates: Object.freeze(candidates) });
+        });
+        return { ok: true, value: Object.freeze({ pluginId: id, revision: refresh(), affected: Object.freeze([...affected].sort()), dependencies: Object.freeze(dependencies) }) };
+      },
+      selectProvider(environment, id, kind, contractId, providerId, expectedRevision) {
+        const captured = { ...environment }; return serial(async () => {
+          if (!matches(captured)) return failure('STALE', 'Plugin environment changed.');
+          if (!managed.has(id)) return failure('NOT_FOUND', 'Plugin is not managed in this environment.');
+          if (!Number.isSafeInteger(expectedRevision) || refresh() !== expectedRevision) return failure('STALE', 'Dependency plan revision is stale.');
+          const requirement = managed.get(id)!.manifest.requires.find(item => item.kind === kind && item.id === contractId);
+          const provider = managed.get(providerId)?.manifest ?? registered(providerId)?.manifest;
+          if (!requirement || !provider?.provides.some(item => item.kind === kind && item.id === contractId && versionSatisfies(item.version, requirement.range))) return failure('CONFLICT', 'Provider does not satisfy the declared dependency.');
+          if (registered(id) && !registered(providerId)) return failure('CONFLICT', 'Enable the chosen provider before rebinding a registered consumer.');
+          if (registered(id)) await kernel.rebindProvider(id, kind, contractId, providerId);
+          let selections = choices.get(id); if (!selections) choices.set(id, selections = new Map());
+          selections.set(`${kind}:${contractId}`, providerId);
+          logger.info(ctx.pluginId, 'Plugin provider selection changed', { data: { pluginId: id, kind, contractId, providerId } });
+          return { ok: true, value: null };
+        });
       },
       register(environment, manifest, source, enabled) {
         const captured = { ...environment };
@@ -85,7 +131,7 @@ export function createLimeRuntime(kernel: Kernel, builtinIds: readonly string[])
       },
       enable(environment, id) { return operation({ ...environment }, id, () => start(id)); },
       disable(environment, id) { return operation({ ...environment }, id, async () => { if (registered(id)) await kernel.unregister(id); }); },
-      remove(environment, id) { return operation({ ...environment }, id, async () => { if (registered(id)) await kernel.unregister(id); managed.delete(id); }); },
+      remove(environment, id) { return operation({ ...environment }, id, async () => { if (registered(id)) await kernel.unregister(id); managed.delete(id); choices.delete(id); }); },
     });
     // Do not invoke kernel lifecycle from an SDK scope disposer: host shutdown
     // already owns that queue. Explicit close is required before Vault teardown.

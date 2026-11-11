@@ -15,6 +15,7 @@
     "src/**/*.ts"
   ],
   "references": [
+    { "path": "../../packages/manifest" },
     { "path": "../../plugins/systems/lime" },
     { "path": "../../plugins/UI/lime-settings" },
     { "path": "../../plugins/systems/driver/quickjs-execution" },

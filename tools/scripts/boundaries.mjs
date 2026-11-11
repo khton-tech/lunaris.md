@@ -92,7 +92,7 @@ export const dependencies = {
   tauri: ['application-host', 'window-titlebar', 'window-provider', 'tauri-window', 'vault', 'logging', 'text-editor', 'interface-settings', 'settings-provider', 'settings-plugin', 'active-screen-provider', 'active-screen-plugin', 'active-document', 'active-document-provider', 'context-menu-provider', 'file-explorer', 'sidebar-plugin', 'sidebar-provider', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'mantine-components', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'],
 };
 
-dependencies['application-host'].push('lime', 'execution', 'lime-manager', 'lime-settings', 'quickjs-execution', 'lup-picker');
+dependencies['application-host'].push('manifest', 'lime', 'execution', 'lime-manager', 'lime-settings', 'quickjs-execution', 'lup-picker');
 
 export const packagePath = scope => {
   if (scope === 'lime-settings') return 'plugins/UI/lime-settings';

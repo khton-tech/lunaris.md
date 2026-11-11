@@ -1,5 +1,5 @@
 import { defineApi, defineEvent } from "@lunaris/sdk";
-import type { CancellationSignal, PluginManifest } from "@lunaris/sdk";
+import type { CancellationSignal, ContractKind, PluginManifest } from "@lunaris/sdk";
 import type { ExecutionSource } from "@lunaris/execution";
 
 export type LimeFailure = { readonly code: "CANCELLED" | "BUSY" | "NO_VAULT" | "STALE" | "INVALID_PACKAGE" | "STORAGE_FAILED" | "RUNTIME_FAILED" | "NOT_FOUND" | "CONFLICT" | "UNSUPPORTED"; readonly message: string };
@@ -21,11 +21,23 @@ export const LimeBootPolicy = defineApi<{ safeMode(): boolean }>({
 
 export interface LimeEnvironment { readonly vaultId: string; readonly generation: number }
 export interface LimeRuntimeEntry { readonly id: string; readonly state: string; readonly version: string }
+export interface LimeDependencyPlan {
+  readonly pluginId: string;
+  readonly revision: number;
+  readonly affected: readonly string[];
+  readonly dependencies: readonly {
+    readonly kind: ContractKind; readonly id: string; readonly range: string; readonly optional: boolean;
+    readonly selected?: string;
+    readonly candidates: readonly { readonly id: string; readonly version: string; readonly state: string }[];
+  }[];
+}
 export interface LimeRuntimeApi {
   /** Stop/unregister previous environment before binding another one. */
   open(environment: LimeEnvironment): Promise<LimeResult<null>>;
   close(environment: LimeEnvironment): Promise<LimeResult<null>>;
   snapshot(environment: LimeEnvironment): LimeResult<readonly LimeRuntimeEntry[]>;
+  plan(environment: LimeEnvironment, id: string): LimeResult<LimeDependencyPlan>;
+  selectProvider(environment: LimeEnvironment, id: string, kind: ContractKind, contractId: string, providerId: string, expectedRevision: number): Promise<LimeResult<null>>;
   register(environment: LimeEnvironment, manifest: PluginManifest, source: ExecutionSource, enabled: boolean): Promise<LimeResult<null>>;
   replace(environment: LimeEnvironment, manifest: PluginManifest, source: ExecutionSource): Promise<LimeResult<null>>;
   enable(environment: LimeEnvironment, id: string): Promise<LimeResult<null>>;
@@ -34,7 +46,7 @@ export interface LimeRuntimeApi {
 }
 export const LimeRuntime = defineApi<LimeRuntimeApi>({
   id: 'lunaris.lime-runtime', version: '1.0.0', consumePermission: 'runtime.manage',
-  validate: value => !!value && typeof value === 'object' && ['open', 'close', 'snapshot', 'register', 'replace', 'enable', 'disable', 'remove'].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === 'function'),
+  validate: value => !!value && typeof value === 'object' && ['open', 'close', 'snapshot', 'plan', 'selectProvider', 'register', 'replace', 'enable', 'disable', 'remove'].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === 'function'),
 });
 
 export interface LimeInstallation {

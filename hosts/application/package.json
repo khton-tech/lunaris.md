@@ -27,6 +27,7 @@
     "./shell.css": "./assets/shell.css"
   },
   "dependencies": {
+    "@lunaris/manifest": "0.1.0",
     "@lunaris/lime-manager": "0.1.0",
     "@lunaris/lime-settings": "0.1.0",
     "@lunaris/quickjs-execution": "0.1.0",

@@ -46,6 +46,7 @@ async function fixture(options = {}) {
   kernel.installMock(VaultLifecycle, { register(value) { participant = value; return ok(null); } });
   kernel.installMock(LimePackagePicker, { async pick(owner) { const value = selected.shift() ?? null; return ok(typeof value === 'function' ? await value(owner) : value); } });
   kernel.installMock(LimeRuntime, {
+    plan() { return failure('NOT_FOUND'); }, async selectProvider() { return ok(null); },
     async open() { runtimes.clear(); return ok(null); }, async close() { runtimes.clear(); return ok(null); }, snapshot() { return ok([...runtimes.values()]); },
     async register(env, manifest, source, enabled) { if (manifest.id === 'test.builtin') return failure('CONFLICT'); sources.push(source); runtimes.set(manifest.id, { id: manifest.id, version: manifest.version, state: enabled ? 'active' : 'disabled' }); return ok(null); },
     async enable(env, id) { if (failActivation) { runtimes.get(id).state = 'failed'; return failure('RUNTIME_FAILED'); } executions.push(id); runtimes.get(id).state = 'active'; return ok(null); },

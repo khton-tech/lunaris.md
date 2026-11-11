@@ -21,6 +21,11 @@ before initial activation and replacement, without a permission prompt. Undeclar
 permissions remain denied. These grants do not bypass the isolated execution
 broker's captured-Vault/native authority restrictions.
 
+The adapter's [dependency planning contract](../../../DOCS/reference/lime-runtime.md)
+exposes immutable compatible candidates, affected consumers and revisions. Explicit
+provider changes delegate to kernel graph rebinding; stale plans are rejected.
+Persistent engine choices and product selection controls remain separate work.
+
 The host owns viewport and recovery geometry. Mantine roles own product surfaces;
 embedded views preserve their containers. Recovery is host-owned and remains
 available when product services fail.
