@@ -1024,8 +1024,8 @@ of its allocated width, subject to the side gutters. The mobile role observes
 its lent dock target and uses that width and center for the anchored popup.
 The action group fills the dock and distributes its controls evenly across it.
 Each row starts at 34px and grows with
-theme typography. The mobile role sets the menu padding to one and a half
-theme spacing steps on all sides. The floating surface fits up to five rows and scrolls
+theme typography. The mobile role sets the menu padding to two theme spacing
+steps on all sides. The floating surface fits up to five rows and scrolls
 internally above that limit, with a smaller cap in short viewports.
 The renderer portals the menu to its own themed root to clear the
 toolbar's scroll boundary. Active Screen supplies the choices and their callbacks

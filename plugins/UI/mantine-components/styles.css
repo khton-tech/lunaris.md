@@ -530,9 +530,9 @@
 }
 @container(max-width:640px) {
   .lm-text-editor {
-    --editor-gutter:clamp(18px,4.25cqi,28px);
-    --editor-padding-start:clamp(20px,4.5cqi,26px);
-    --editor-padding-end:clamp(24px,5cqi,36px);
+    --editor-gutter:clamp(24px,5.5cqi,34px);
+    --editor-padding-start:clamp(22px,5cqi,28px);
+    --editor-padding-end:clamp(34px,7cqi,46px);
     --editor-view-height:auto;--editor-view-overflow:visible;--editor-scroller-flex:1 0 auto;
     overflow:auto;overscroll-behavior:contain
   }
@@ -736,7 +736,7 @@
 }
 .lm-root .lm-mobile-choice-menu {
   --mobile-choice-row-height:max(34px,calc(1lh + 2 * var(--vault-space)));
-  --mobile-choice-inset:calc(var(--vault-space) * 1.5);
+  --mobile-choice-inset:calc(var(--vault-space) * 2);
   max-width:calc(100vw - 24px);
   padding:var(--mobile-choice-inset);
   max-height:min(calc(5 * var(--mobile-choice-row-height) + 2 * (var(--mobile-choice-inset) + var(--vault-border))),55dvh);
