@@ -100,7 +100,7 @@ export default definePlugin({ manifest, async activate(ctx) {
   function switchVault(): void {
     const root = vaults.current();
     if (root?.id === model?.vaultId) return;
-    const old = session; session = undefined; model = undefined; watchId = undefined;
+    const old = session; session = undefined; model = undefined; watchId = undefined; ready = Promise.resolve();
     if (old) void old.dispose().catch(() => {});
     if (!root) { changed(); return; }
     const owner = ctx.scope.child(); session = owner;
