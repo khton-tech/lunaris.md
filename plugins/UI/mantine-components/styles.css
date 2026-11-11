@@ -3,6 +3,7 @@
 @import '@mantine/core/styles/Button.css';
 @import '@mantine/core/styles/Badge.css';
 @import '@mantine/core/styles/ActionIcon.css';
+@import '@mantine/core/styles/CloseButton.css';
 @import '@mantine/core/styles/Input.css';
 @import '@mantine/core/styles/PasswordInput.css';
 @import '@mantine/core/styles/InlineInput.css';
@@ -702,9 +703,17 @@
   font-size:.8em;font-weight:600;font-variant-numeric:tabular-nums;line-height:1;
 }
 .lm-mobile-tabs-dialog,.lm-mobile-tabs-header { background:var(--vault-panel);color:var(--vault-text) }
-.lm-mobile-tabs-dialog { scrollbar-width:none }
+.lm-mobile-tabs-dialog {
+  box-sizing:border-box;border:var(--vault-border) solid var(--vault-menu-border,var(--vault-separator));
+  border-radius:var(--vault-radius);scrollbar-width:none;user-select:none;
+}
 .lm-mobile-tabs-dialog::-webkit-scrollbar { display:none }
-.lm-mobile-tabs-dialog .lm-mobile-tabs-row { color:var(--vault-text) }
+.lm-mobile-tabs-header { gap:var(--vault-space) }
+.lm-mobile-tabs-title { min-inline-size:0;overflow-wrap:anywhere;font-weight:600;line-height:inherit }
+.lm-mobile-tabs-dialog .lm-mobile-tabs-close { flex-shrink:0;color:var(--vault-secondary) }
+.lm-mobile-tabs-dialog .lm-mobile-tabs-close:hover { background:var(--vault-hover);color:var(--vault-text) }
+.lm-mobile-tabs-dialog .lm-mobile-tabs-close:active { background:var(--vault-selection);color:var(--vault-text) }
+.lm-mobile-tabs-dialog .lm-mobile-tabs-row { min-block-size:44px;color:var(--vault-text) }
 .lm-mobile-tabs-dialog .lm-mobile-tabs-row[aria-current=true] { background:var(--vault-selection) }
 .lm-mobile-tabs-dialog .lm-mobile-tabs-row:not([aria-disabled=true],[aria-current]):hover { background:var(--vault-hover) }
 .lm-mobile-tabs-dialog .lm-mobile-tabs-row:not([aria-disabled=true]):active { background:var(--vault-selection) }

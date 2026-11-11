@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
 import { setupWorkspace, panel, flush } from '../../../../tools/test/workspace.mjs';
 
@@ -131,6 +132,10 @@ test('compact Workspace shows one live tab counter and switches through the shar
   HTMLElement.prototype.getBoundingClientRect = () => new DOMRect(0, 0, 360, 720);
   const dialog = () => document.querySelector('[role="dialog"]');
   try {
+    const stylesheet = document.createElement('style');
+    stylesheet.textContent = readFileSync(new URL('../../mantine-components/styles.css', import.meta.url), 'utf8')
+      .replace(/^@import '([^']+)';$/gm, (_, path) => readFileSync(new URL(import.meta.resolve(path)), 'utf8'));
+    document.head.append(stylesheet);
     panel(s, 'test.content');
     await s.open();
     assert.equal(s.surface.querySelectorAll('.lm-active-screen').length, 1);
@@ -156,6 +161,21 @@ test('compact Workspace shows one live tab counter and switches through the shar
     button.click();
     await flush();
     assert.equal(dialog()?.querySelector('[aria-current="true"]')?.textContent, 'Новая вкладка');
+    const modalRoot = dialog().closest('.mantine-Modal-root');
+    const close = dialog().querySelector('button[aria-label="Скрыть список вкладок"]');
+    const computed = s.dom.window.getComputedStyle;
+    assert.equal(computed(close).display, 'inline-flex');
+    assert.equal(computed(close).flexShrink, '0');
+    assert.equal(close.querySelector('svg').getAttribute('width'), '1.15em');
+    assert.equal(computed(dialog().querySelector('.lm-mobile-tabs-row')).minBlockSize, '44px');
+    assert.ok([...document.styleSheets].some(sheet => [...sheet.cssRules].some(rule =>
+      rule.selectorText?.includes(`#${modalRoot.id}`) && rule.style?.getPropertyValue('--mantine-scale') === '1')));
+    close.click();
+    await flush();
+    assert.equal(dialog(), null);
+    button.focus();
+    button.click();
+    await flush();
     document.activeElement.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     await delay(30);
     assert.equal(dialog(), null);

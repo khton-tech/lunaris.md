@@ -1018,7 +1018,10 @@ The localized accessible name includes that number. WorkspaceLayout owns the
 surrounding pill and mobile visibility. The Active Screen role receives optional
 mobileTabs props (opened, dismissLabel and onClose) and renders a themed Mantine
 Modal with the existing tabs, selection and onSelect callback. Its current row
-uses the existing check icon and its dialog owns focus and overflow.
+uses the existing check icon and its dialog owns focus and overflow. The
+document-level dialog uses the Active Screen instance's scoped Mantine variables
+for sizes and spacing. Its header uses the shared Lucide close icon inside a
+44px Mantine CloseButton. Tab rows also have a minimum 44px touch target.
 Reference: [Mantine UI buttons](https://ui.mantine.dev/category/buttons/) and
 [Mantine Modal](https://mantine.dev/core/modal/). Native visual acceptance of
 the action, list, long names, themes and keyboard focus remains pending.
