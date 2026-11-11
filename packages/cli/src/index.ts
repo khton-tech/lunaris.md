@@ -2,17 +2,17 @@ import { readdir } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
-import { loadLocalPlugins, validateLocalPlugin, LoadError } from "@lunaris/development";
+import { createLiveSession, loadLocalPlugins, validateLocalPlugin, LoadError } from "@lunaris/development";
 import { LunarisError } from "@lunaris/sdk";
 import { createPlugin, GenerationError } from "./generate.js";
-import { buildPackage, inspectPackage, PackageBuildError } from "./pack.js";
+import { buildPackage, inspectPackage, preparePackage, PackageBuildError } from "./pack.js";
 import { LupError } from "@lunaris/lup";
 import { addContract, toolchain, ToolchainError } from './toolchain.js';
 
 export { createPlugin } from "./generate.js";
 export interface CLIOutput { out(line: string): void; error(line: string): void }
 const output: CLIOutput = { out: line => { process.stdout.write(`${line}\n`); }, error: line => { process.stderr.write(`${line}\n`); } };
-const usage = "Usage: lunaris-core create-plugin <directory> [--id plugin.id] | contracts | add-contract <package> [directory] | validate|test|inspect|dev [roots...] [--once for dev] | pack <directory> [output.lup] | inspect-package <package.lup>";
+const usage = "Usage: lunaris-core create-plugin <directory> [--id plugin.id] | contracts | add-contract <package> [directory] | validate|test|inspect [roots...] | dev [roots...] [--live] [--once] | pack <directory> [output.lup] | inspect-package <package.lup>";
 class UsageError extends Error {}
 
 async function tests(root: string): Promise<number> {
@@ -28,23 +28,50 @@ async function tests(root: string): Promise<number> {
   });
 }
 
-async function development(roots: readonly string[], once: boolean, io: CLIOutput): Promise<void> {
-  const session = await loadLocalPlugins(roots);
+async function development(roots: readonly string[], once: boolean, live: boolean, io: CLIOutput): Promise<void> {
+  const initial = live ? await Promise.all(roots.map(preparePackage)) : undefined;
+  const reloadable = initial ? createLiveSession(initial) : undefined;
+  const session = reloadable ?? await loadLocalPlugins(roots);
+  let ready = false;
+  let closing = false;
+  let pending = Promise.resolve();
   let resolve!: () => void;
   const stopped = new Promise<void>(done => { resolve = done; });
   const reader = once ? undefined : createInterface({ input: process.stdin });
-  const stop = () => resolve();
+  const stop = () => { closing = true; resolve(); };
   if (!once) {
     process.once("SIGINT", stop); process.once("SIGTERM", stop);
-    reader!.on("line", line => { if (line.trim() === "stop") stop(); else io.out("Type stop to shut down. Rebuild and relaunch for changed code."); });
+    reader!.on("line", line => {
+      if (line.trim() === "stop") { stop(); return; }
+      if (line.trim() !== 'reload' || !reloadable) {
+        io.out(JSON.stringify({ code: 'DEV_COMMAND', message: reloadable ? 'Commands: reload, stop.' : 'Command: stop. Use --live for reload.' }));
+        return;
+      }
+      if (!ready || closing) return;
+      pending = pending.then(async () => {
+        if (closing) return;
+        try {
+          const candidates = await Promise.all(roots.map(preparePackage));
+          if (candidates.some((item, index) => item.manifest.id !== initial![index]!.manifest.id)) throw new LoadError('MANIFEST_DRIFT', 'Reload must keep the original plugin IDs.', '');
+          for (const item of candidates) {
+            const changed = await reloadable.reload(item);
+            io.out(JSON.stringify({ code: changed ? 'DEV_RELOADED' : 'DEV_UNCHANGED', pluginId: item.manifest.id, digest: item.digest }));
+          }
+        } catch (error) {
+          io.error(JSON.stringify({ code: 'DEV_RELOAD_FAILED', reason: error instanceof LoadError || error instanceof PackageBuildError || error instanceof LunarisError ? error.code : 'DEV_FAILED', snapshot: session.kernel.inspect() }));
+        }
+      });
+    });
     reader!.once("close", stop);
   }
   try {
     await session.start();
-    io.out(JSON.stringify({ code: "DEV_READY", plugins: session.pluginIds }));
+    ready = true;
+    io.out(JSON.stringify({ code: "DEV_READY", plugins: session.pluginIds, mode: live ? 'isolated' : 'trusted' }));
     if (!once) await stopped;
   } finally {
     reader?.close(); process.removeListener("SIGINT", stop); process.removeListener("SIGTERM", stop);
+    await pending;
     await session.stop();
   }
   io.out(JSON.stringify({ code: "DEV_STOPPED", snapshot: session.kernel.inspect() }));
@@ -75,15 +102,15 @@ export async function run(args: readonly string[], io: CLIOutput = output): Prom
       io.out(JSON.stringify({ code: "PLUGIN_CREATED", root: await createPlugin(target, id) })); return 0;
     }
     if (!["validate", "test", "inspect", "dev"].includes(command ?? "")) throw new UsageError(usage);
-    if (rest.some(arg => arg.startsWith("--") && !(command === "dev" && arg === "--once"))) throw new UsageError(usage);
-    const roots = rest.filter(arg => arg !== "--once"); if (!roots.length) roots.push(".");
+    if (rest.some(arg => arg.startsWith("--") && !(command === "dev" && ['--once', '--live'].includes(arg)))) throw new UsageError(usage);
+    const roots = rest.filter(arg => !arg.startsWith('--')); if (!roots.length) roots.push(".");
     if (command === "validate" || command === "test") {
       const checked = await Promise.all(roots.map(validateLocalPlugin));
       for (const item of checked) {
         if (command === "test" && await tests(item.root) !== 0) return 1;
         io.out(JSON.stringify({ code: command === "test" ? "TEST_PASSED" : "VALIDATED", pluginId: item.manifest.id }));
       }
-    } else if (command === "dev") await development(roots, rest.includes("--once"), io);
+    } else if (command === "dev") await development(roots, rest.includes("--once"), rest.includes("--live"), io);
     else {
       const session = await loadLocalPlugins(roots);
       try { await session.start(); io.out(JSON.stringify(session.kernel.inspect())); }

@@ -11,6 +11,10 @@ import { Logger, LogSink } from "@lunaris/logging";
 import type { LogRecord } from "@lunaris/logging";
 import { createLogger } from "@lunaris/logger";
 import type { Kernel, KernelOptions, Scheduler } from "@lunaris/kernel";
+import { PluginExecution } from "@lunaris/execution";
+import type { PluginExecutionApi } from "@lunaris/execution";
+import type { InspectedLup } from "@lunaris/lup";
+import execution from "@lunaris/quickjs-execution";
 
 export class LoadError extends Error {
   constructor(readonly code: string, message: string, readonly location: string, options?: ErrorOptions) {
@@ -86,15 +90,7 @@ export async function loadLocalPlugins(roots: readonly string[], options: Omit<K
   if (new Set(ids).size !== ids.length) throw new LoadError("PLUGIN_DUPLICATE", "Duplicate plugin IDs in local roots.", "");
   const kernel = createKernel({ ...options, scheduler: createNodeScheduler() });
   const logs: LogRecord[] = [];
-  const provides = (id: string) => checked.some(item => item.manifest.provides.some(token => token.kind === 'api' && token.id === id));
-  const needsLogger = checked.some(item => item.manifest.requires.some(token => token.kind === 'api' && token.id === Logger.id));
-  const defaultLogger = needsLogger && !provides(Logger.id);
-  const needsSink = defaultLogger || checked.some(item => item.manifest.requires.some(token => token.kind === 'api' && token.id === LogSink.id));
-  if (needsSink && !provides(LogSink.id)) kernel.register(definePlugin({ manifest: {
-    manifestVersion: 1, id: 'lunaris.development-log-sink', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './development-sink.js',
-    provides: [{ kind: 'api', id: LogSink.id, version: LogSink.version }], requires: [], permissions: [], optionalPermissions: [],
-  }, activate(ctx) { ctx.provide(LogSink, { write(record) { logs.push(record); if (logs.length > 256) logs.shift(); return true; } }); } }));
-  if (defaultLogger) kernel.register(createLogger({ minimumLevel: 'debug' }));
+  registerLogging(kernel, checked.map(item => item.manifest), logs);
   for (const item of checked) {
     let definition;
     try {
@@ -118,4 +114,60 @@ export async function loadLocalPlugins(roots: readonly string[], options: Omit<K
     },
     stop: () => kernel.stopAll(),
   });
+}
+
+function registerLogging(kernel: Kernel, manifests: readonly PluginManifest[], logs: LogRecord[], needsExecution = false): void {
+  const provides = (id: string) => manifests.some(manifest => manifest.provides.some(token => token.kind === 'api' && token.id === id));
+  const needs = (id: string) => manifests.some(manifest => manifest.requires.some(token => token.kind === 'api' && token.id === id));
+  const defaultLogger = (needsExecution || needs(Logger.id)) && !provides(Logger.id);
+  if ((defaultLogger || needs(LogSink.id)) && !provides(LogSink.id)) kernel.register(definePlugin({ manifest: {
+    manifestVersion: 1, id: 'lunaris.development-log-sink', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './development-sink.js',
+    provides: [{ kind: 'api', id: LogSink.id, version: LogSink.version }], requires: [], permissions: [], optionalPermissions: [],
+  }, activate(ctx) { ctx.provide(LogSink, { write(record) { logs.push(record); if (logs.length > 256) logs.shift(); return true; } }); } }));
+  if (defaultLogger) kernel.register(createLogger({ minimumLevel: 'debug' }));
+}
+
+/** Reloadable author session using the installed package execution model. */
+export function createLiveSession(packages: readonly InspectedLup[]) {
+  const kernel = createKernel({ scheduler: createNodeScheduler() });
+  const logs: LogRecord[] = [];
+  const ids = new Set(packages.map(item => item.manifest.id));
+  if (!ids.size || ids.size !== packages.length) throw new LoadError('PLUGIN_DUPLICATE', 'Supply at least one package and use unique plugin IDs.', '');
+  const ownerId = 'lunaris.development-execution';
+  const authority = new AbortController();
+  let api: PluginExecutionApi;
+  const current = new Map(packages.map(item => [item.manifest.id, item.digest]));
+  const manifest = { manifestVersion: 1, id: ownerId, version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './development.js',
+    provides: [], requires: [{ kind: 'api', id: PluginExecution.id, range: '^1.0.0' }], permissions: ['runtime.manage'], optionalPermissions: [] };
+  registerLogging(kernel, [], logs, true);
+  kernel.register(execution);
+  kernel.register(definePlugin({ manifest, activate(ctx) { api = ctx.use(PluginExecution); } }));
+  kernel.grant(ownerId, 'runtime.manage');
+  const definition = (item: InspectedLup) => {
+    const entry = item.manifest.entry.slice(2);
+    const text = new TextDecoder('utf-8', { fatal: true }).decode(item.read(entry));
+    const resources = Object.fromEntries(item.paths.filter(name => name.startsWith('assets/')).map(name => [name, Array.from(item.read(name)!)]));
+    return api.load(item.manifest, { entry, modules: { [entry]: text }, resources }, { vaultId: ownerId, generation: 1 }, authority.signal);
+  };
+  const grants = (item: InspectedLup) => [...item.manifest.permissions, ...item.manifest.optionalPermissions];
+  return {
+    kernel, pluginIds: Object.freeze([...ids].sort()), logs: () => Object.freeze([...logs]),
+    async start() {
+      await kernel.start(ownerId);
+      for (const item of packages) {
+        kernel.register(definition(item), { ownerId });
+        for (const permission of grants(item)) kernel.grant(item.manifest.id, permission);
+      }
+      for (const id of ids) await kernel.start(id);
+    },
+    async reload(item: InspectedLup) {
+      const id = item.manifest.id;
+      if (!ids.has(id)) throw new LoadError('MANIFEST_DRIFT', 'Reload must keep the original plugin ID.', '');
+      if (current.get(id) === item.digest) return false;
+      await kernel.replace(definition(item), { grants: grants(item) });
+      current.set(id, item.digest);
+      return true;
+    },
+    async stop() { try { await kernel.stopAll(); } finally { authority.abort(); } },
+  };
 }

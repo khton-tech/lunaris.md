@@ -16,7 +16,7 @@ export async function inspectPackage(filename: string): Promise<InspectedLup> {
 }
 
 /** Bundle without evaluating user code; no project bundler config or plugins are loaded. */
-export async function buildPackage(root: string, output?: string): Promise<InspectedLup> {
+async function prepare(root: string): Promise<{ root: string; preview: InspectedLup }> {
   const checked = await validateLocalPlugin(root);
   if (!checked.manifest.metadata) throw new PackageBuildError('PACKAGE_METADATA_REQUIRED', 'Add plugin display metadata to manifest.json before packaging.');
   let bundled;
@@ -50,9 +50,18 @@ export async function buildPackage(root: string, output?: string): Promise<Inspe
   catch (error) { if ((error as { code?: string }).code === 'ENOENT') hasAssets = false; else throw error; }
   if (hasAssets) await assets(assetsRoot, 'assets');
   const bytes = packLup(entries, { engineVersion: '0.1.0', sdkVersion: '0.1.0' });
-  const preview = inspectLup(bytes);
-  const filename = output ?? path.join(checked.root, `${checked.manifest.id}-${checked.manifest.version}.lup`);
-  try { await writeFile(filename, bytes, { flag: 'wx' }); }
+  return { root: checked.root, preview: inspectLup(bytes) };
+}
+
+export async function preparePackage(root: string): Promise<InspectedLup> {
+  return (await prepare(root)).preview;
+}
+
+export async function buildPackage(root: string, output?: string): Promise<InspectedLup> {
+  const prepared = await prepare(root);
+  const { preview } = prepared;
+  const filename = output ?? path.join(prepared.root, `${preview.manifest.id}-${preview.manifest.version}.lup`);
+  try { await writeFile(filename, preview.bytes(), { flag: 'wx' }); }
   catch (cause) { throw new PackageBuildError('PACKAGE_WRITE_FAILED', 'Cannot create output package. Choose an existing output directory and a new filename.', { cause }); }
   return preview;
 }

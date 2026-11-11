@@ -31,6 +31,8 @@ try {
   const inspection = JSON.parse(await command([cli, 'inspect-package', archive], project));
   assert.equal(inspection.pluginId, 'author.independent');
   assert.ok((await command([cli, 'dev', project, '--once'], project)).includes('DEV_STOPPED'));
+  const isolated = await command([cli, 'dev', project, '--live', '--once'], project);
+  assert.ok(isolated.includes('"mode":"isolated"') && isolated.includes('DEV_STOPPED'));
   process.stdout.write('External DX passed: packed installation, generation, contract discovery/addition, independent SDK copies, build, validation, tests, LUP inspection and dev cleanup; no publication.\n');
 } catch (error) {
   process.stderr.write(`External DX failed: ${error.message}\n`); process.exitCode = 1;

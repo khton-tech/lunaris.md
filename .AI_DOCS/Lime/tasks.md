@@ -36,7 +36,8 @@ acceptance or complete authority audit is claimed.
   SDK archives, contract discovery/addition, generated human/agent docs and bounded
   dev logging implemented. External offline rehearsal installs packed CLI/SDK,
   generates, adds contracts, builds, tests, packs, inspects and stops development
-  without source links. Live disposable-Vault host attachment/reload pending.
+  without source links. Headless QuickJS reload uses packed code, graph replacement
+  and rollback. Disposable application Vault attachment remains pending.
 - L09: public declarative Views/viewport and actual bundled QuickJS counter/graph
   integration verified inside Workspace. Complete author recipes remain pending.
 - L10: targeted checks and web production build pass. Native/WebView/visual

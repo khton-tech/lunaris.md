@@ -26,7 +26,7 @@ export async function command(args, cwd = workspace, env = process.env) {
 export async function prepareEmbeddedToolchain({ build = true, output } = {}) {
   const npm = await npmCliPath();
   const scopes = (await readdir(path.join(workspace, 'packages'), { withFileTypes: true })).filter(entry => entry.isDirectory() && entry.name !== 'cli').map(entry => entry.name).sort();
-  const roots = [...scopes.map(scope => path.join('packages', scope)), packagePath('logger'), packagePath('development')];
+  const roots = [...scopes.map(scope => path.join('packages', scope)), packagePath('logger'), packagePath('quickjs-execution'), packagePath('development')];
   await command(['node_modules/typescript/bin/tsc', '-b', ...(build ? ['packages/cli'] : []), ...roots]);
   const embedded = path.join(workspace, 'packages/cli/dist/toolchain'); await mkdir(embedded, { recursive: true });
   const index = { formatVersion: 1, packages: {} };
@@ -46,7 +46,7 @@ export async function prepareEmbeddedToolchain({ build = true, output } = {}) {
   };
   for (const root of roots) {
     const metadata = JSON.parse(await readFile(path.join(workspace, root, 'package.json'), 'utf8'));
-    const tool = ['kernel', 'test', 'lup', 'execution', 'lime', 'logger', 'development'].includes(metadata.name.slice('@lunaris/'.length));
+    const tool = ['kernel', 'test', 'lup', 'execution', 'lime', 'logger', 'quickjs-execution', 'development'].includes(metadata.name.slice('@lunaris/'.length));
     index.packages[metadata.name] = { ...await pack(root, embedded), kind: tool ? 'tool' : 'sdk' };
   }
   await writeFile(path.join(embedded, 'index.json'), JSON.stringify(index, null, 2) + '\n');

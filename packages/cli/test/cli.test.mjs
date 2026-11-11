@@ -5,11 +5,41 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { spawn } from 'node:child_process';
+import { createInterface } from 'node:readline';
 import { performance } from 'node:perf_hooks';
 import { createPlugin, run } from '@lunaris/cli';
 
 const prefix = path.join(tmpdir(), 'lunaris-cli-');
 const bin = fileURLToPath(new URL('./bin.js', import.meta.resolve('@lunaris/cli')));
+
+test('isolated live CLI replaces a changed bundle and keeps the last good activation on failure', { timeout: 15000 }, async t => {
+  const root = await directory(t);
+  const manifest = { manifestVersion: 1, id: 'test.live', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './plugin.mjs',
+    metadata: { name: 'Live', author: 'Author', description: 'Development fixture', platforms: 'universal', languages: ['en'] },
+    provides: [], requires: [], permissions: [], optionalPermissions: [] };
+  await writeFile(path.join(root, 'manifest.json'), JSON.stringify(manifest));
+  const entry = path.join(root, 'plugin.mjs');
+  const write = body => writeFile(entry, `export default { manifest: ${JSON.stringify(manifest)}, activate(ctx) { ${body} } };`);
+  await write("if (typeof process !== 'undefined') throw Error('host leaked'); ctx.scope.own({dispose(){}});");
+  const child = spawn(process.execPath, [bin, 'dev', '--live', root], { stdio: ['pipe', 'pipe', 'pipe'], signal: t.signal });
+  t.after(() => child.kill());
+  const out = createInterface({ input: child.stdout })[Symbol.asyncIterator]();
+  const err = createInterface({ input: child.stderr })[Symbol.asyncIterator]();
+  const read = async lines => JSON.parse((await lines.next()).value);
+  assert.equal((await read(out)).mode, 'isolated');
+  await write('ctx.scope.own({dispose(){}});');
+  child.stdin.write('reload\n');
+  assert.equal((await read(out)).code, 'DEV_RELOADED');
+  await write("throw Error('candidate failed');");
+  child.stdin.write('reload\n');
+  const failure = await read(err);
+  assert.equal(failure.code, 'DEV_RELOAD_FAILED');
+  assert.equal(failure.snapshot.plugins.find(item => item.manifest.id === 'test.live').state, 'active');
+  child.stdin.end('stop\n');
+  const stopped = await read(out);
+  assert.equal(stopped.code, 'DEV_STOPPED');
+  assert.ok(stopped.snapshot.plugins.every(item => item.ownedResources === 0));
+});
 async function directory(t) {
   const root = await mkdtemp(prefix);
   t.after(async () => { assert.ok(path.resolve(root).startsWith(prefix)); await rm(root, { recursive: true, force: true }); });

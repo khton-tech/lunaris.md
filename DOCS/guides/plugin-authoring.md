@@ -121,9 +121,14 @@ text, and `ctx.resources.read(path, offset, length)` reads up to 16 KiB of binar
 data per call. Only this package's captured assets are available. These are not
 host resource URLs; renderer media roles need explicit adapters.
 
-The current headless dev session requires rebuild/relaunch. Live disposable-Vault
-host attachment remains under implementation; do not claim --attach or hot reload
-exists. Updates back up the package's managed directory and Vault Config namespace.
+Run `npm run core -- dev . --live` for a headless QuickJS session. After editing
+TypeScript, run the project build again and enter `reload` in the session.
+Reload bundles all project roots before applying changes. Each changed package
+replaces its code and restarts its affected consumers. If activation fails, the
+CLI reports the runtime snapshot after the kernel attempts rollback. Enter
+`stop` to release the session. Interactive reload currently runs with logging
+and supplied plugin contracts. Attachment to an application Vault remains pending.
+Updates back up the package's managed directory and Vault Config namespace.
 Keep migrations within those locations to benefit from rollback. Native dialogs,
 WebView execution, viewport geometry and visual
 acceptance have not been established by Node tests alone.
