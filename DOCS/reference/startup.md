@@ -2,6 +2,16 @@
 
 ## Awaited product preparation (2026-11-11)
 
+Preparation snapshots now include optional `phase` while preparing. A phase is
+published immediately before its registered participants execute; empty phases
+are skipped. Terminal snapshots omit the phase. The trusted startup controller
+exposes `preparationSnapshot()` and an optional progress callback on `prepare` so
+the host can update its first-paint loader without polling or exposing product UI.
+The initial HTML says Loading application before JavaScript runs. Host-owned
+status text then follows composition, registration, activation, preparation and
+mounting, using independent English/Russian host catalogs. No fabricated percentage
+or minimum phase duration is introduced.
+
 The shared application composition now mounts its product surface **after**
 activation and preparation. The existing host loading screen remains authoritative
 until then. Custom hosts may still explicitly opt into early surfaces. This

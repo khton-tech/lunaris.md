@@ -8,6 +8,7 @@ export interface PreparationContext {
   readonly signal: CancellationSignal;
 }
 export interface PreparationSnapshot {
+  readonly phase?: PreparationPhase;
   readonly epoch: number;
   readonly vaultId: string | null;
   readonly state: "idle" | "preparing" | "ready" | "failed";
@@ -29,7 +30,8 @@ export const PreparationChanged = defineEvent<PreparationSnapshot>({
     const state = value as PreparationSnapshot | null;
     return !!state && Number.isSafeInteger(state.epoch) && state.epoch >= 0 &&
       (state.vaultId === null || typeof state.vaultId === "string" && state.vaultId.length > 0) &&
-      ["idle", "preparing", "ready", "failed"].includes(state.state);
+      ["idle", "preparing", "ready", "failed"].includes(state.state) &&
+      (state.phase === undefined || state.state === "preparing" && ["settings", "document", "content", "presentation"].includes(state.phase));
   },
 });
 

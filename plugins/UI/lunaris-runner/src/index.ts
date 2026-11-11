@@ -6,7 +6,7 @@ import { Slots } from "@lunaris/slots";
 import { SlotDom } from "@lunaris/slot-dom";
 import { Components, ComponentsChanged } from "@lunaris/components";
 import type { ComponentProps, MountedComponent } from "@lunaris/components";
-import { Startup, StartupChanged } from "@lunaris/startup";
+import { Preparation, PreparationChanged, Startup, StartupChanged } from "@lunaris/startup";
 import type { StartupSnapshot } from "@lunaris/startup";
 import { catalogs } from "./catalog.js";
 import manifest from "../manifest.json" with { type: "json" };
@@ -35,6 +35,7 @@ export function createRunner(options: { readonly art: string; readonly hideWhenL
       const targets = ctx.use(SlotDom);
       const components = ctx.use(Components);
       const startup = ctx.use(Startup);
+      const preparation = ctx.optional(Preparation);
       const screenScope = ctx.scope.child();
       const slotId = `${ctx.pluginId}.screen`;
       const allocated = slots.create({ id: slotId, grow: 1 }, screenScope.signal);
@@ -47,13 +48,17 @@ export function createRunner(options: { readonly art: string; readonly hideWhenL
         const snapshot = latest!;
         const text = (key: string) => localization.text(ctx.pluginId, key);
         let detail = "";
-        if (showDetails && snapshot.state === "loading") {
+        const progress = preparation?.snapshot();
+        const status = snapshot.state !== "loading" ? text(snapshot.state) : progress?.state === "preparing" ? text(progress.phase ?? "preparing") :
+          text(snapshot.stage === "activation" ? "activationGeneric" : snapshot.stage);
+        if (showDetails && snapshot.state === "loading" && progress?.state !== "preparing") {
           detail = snapshot.stage === "activation" ? snapshot.pluginId ?
             localization.text(ctx.pluginId, "activation", { plugin: snapshot.pluginId }) : text("activationGeneric") : text(snapshot.stage);
         } else if (showDetails && snapshot.state === "failed" && snapshot.errorCode) {
           detail = localization.text(ctx.pluginId, "failureDetail", { code: snapshot.errorCode });
         }
-        return { presentation: { mode: "standalone", sizing: "fill" }, art, logoLabel: text("logo"), status: text(snapshot.state), detail };
+        if (detail === status) detail = "";
+        return { presentation: { mode: "standalone", sizing: "fill" }, art, logoLabel: text("logo"), status, detail };
       }
       function render(): void {
         if (!latest || ctx.signal.aborted || screenScope.signal.aborted) return;
@@ -95,6 +100,7 @@ export function createRunner(options: { readonly art: string; readonly hideWhenL
         else logger.debug(ctx.pluginId, "Runner milestone changed", { data: { state: snapshot.state, stage: snapshot.stage } });
       });
       ctx.events.on(LocaleChanged, refresh);
+      if (preparation) ctx.events.on(PreparationChanged, refresh);
       ctx.events.on(ComponentsChanged, change => {
         if (change.componentId !== role) return;
         if (change.kind === "removed") {

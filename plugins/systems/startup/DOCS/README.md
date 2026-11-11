@@ -16,3 +16,7 @@ Run `npm run startup:check` from the repository root.
 ## Awaited preparation integration
 
 The provider now supplies Preparation/PreparationChanged alongside Startup. Trusted composition awaits prepare(signal); optional vault.access connects VaultLifecycle 1.1 at settlement order 100, after runtime activation. Owned participants prepare settings, document, content and presentation in order with cancellation and a 15-second deadline. Late registrations await local preparation without reopening startup. Original errors are logged; the host owns application recovery. See DOCS/reference/startup.md for contracts and acceptance.
+
+## Live preparation progress
+
+PreparationSnapshot.phase identifies the current nonempty phase while preparing. The provider publishes each transition before calling participants and removes the phase in terminal snapshots. Trusted hosts can read preparationSnapshot() and pass a progress callback to prepare(signal, progress); plugin consumers continue using public Preparation contracts. Notifications share the attempt deadline. No artificial delays or percentages are used.

@@ -1,4 +1,13 @@
 export const english = Object.freeze({
+  bootComposition: "Preparing system",
+  bootRegistration: "Registering plugins",
+  bootActivation: "Starting plugins",
+  bootMounting: "Preparing interface",
+  bootPreparing: "Preparing workspace",
+  bootSettings: "Restoring settings",
+  bootDocument: "Restoring active document",
+  bootContent: "Loading workspace content",
+  bootPresentation: "Preparing workspace",
   safeRestart: 'Open without third-party plugins',
   title: "Lunaris", host: "Tauri host",
   phaseIdle: "Idle", phaseStarting: "Starting", phaseRunning: "Running", phaseFallback: "Recovery", phaseStopped: "Stopped",

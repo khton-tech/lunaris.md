@@ -51,9 +51,10 @@ export function createStartupProvider() {
   } });
   return {
     plugin,
-    async prepare(signal: CancellationSignal): Promise<void> {
+    preparationSnapshot: () => preparation?.api.snapshot(),
+    async prepare(signal: CancellationSignal, progress?: () => void): Promise<void> {
       if (!preparation || closed) throw new Error("Preparation provider is unavailable.");
-      try { await preparation.run(currentVault?.() ?? null, signal); }
+      try { await preparation.run(currentVault?.() ?? null, signal, progress); }
       catch (error) { reportFailure?.(error); throw error; }
     },
     update(value: StartupSnapshot): boolean {

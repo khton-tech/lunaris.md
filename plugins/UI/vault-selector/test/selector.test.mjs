@@ -78,7 +78,7 @@ const find = (s, label) => [...s.surface.querySelectorAll('button')].find(button
 
 test('host hands off runner to the two-panel selector only after loaded, without opening dialogs', async () => {
   const s = setup(); await s.entered.promise;
-  assert.equal(s.surface.querySelector('.ln-vault'), null); assert.match(s.surface.textContent, /Loading system/);
+  assert.equal(s.surface.querySelector('.ln-vault'), null); assert.equal(s.surface.querySelector('[role=status]').textContent, 'Starting plugins');
   s.finish.resolve(); await s.starting; await flush();
   assert.equal(s.surface.querySelectorAll('section').length, 1); assert.ok(s.surface.querySelector('.ln-vault'));
   assert.equal(s.surface.querySelector('pre').textContent, 'ASCII LOGO'); assert.equal(s.surface.querySelector('[data-slot-id="lunaris.runner.screen"]'), null);

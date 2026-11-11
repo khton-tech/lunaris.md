@@ -8,6 +8,8 @@ export function mountSystemView(root: HTMLElement, application: HTMLElement, ses
   const document = root.ownerDocument;
   root.lang = (options.locale ?? document.defaultView?.navigator.language ?? "en").startsWith("ru") ? "ru" : "en";
   const t = (key: MessageKey) => message(key, root.lang);
+  const startupStatus = options.startup?.querySelector<HTMLElement>('[role="status"]');
+  if (startupStatus) { startupStatus.setAttribute("aria-live", "polite"); startupStatus.setAttribute("aria-atomic", "true"); }
   const el = <K extends keyof HTMLElementTagNameMap>(tag: K, text?: string, className?: string) => {
     const node = document.createElement(tag);
     if (text !== undefined) node.textContent = text;
@@ -57,6 +59,15 @@ export function mountSystemView(root: HTMLElement, application: HTMLElement, ses
     const showSystem = !snapshot.applicationVisible && !showStartup &&
       (!options.startup || snapshot.phase === "fallback" || snapshot.phase === "running");
     if (options.startup) options.startup.hidden = !showStartup;
+    if (showStartup && startupStatus) {
+      const phases = { settings: "bootSettings", document: "bootDocument", content: "bootContent", presentation: "bootPresentation" } as const;
+      const stages = { composition: "bootComposition", registration: "bootRegistration", activation: "bootActivation", mounting: "bootMounting" } as const;
+      const preparation = snapshot.preparation;
+      const label = preparation?.state === "preparing" ? t(preparation.phase ? phases[preparation.phase] : "bootPreparing") :
+        t(stages[snapshot.startup?.stage as keyof typeof stages] ?? "bootComposition");
+      options.startup!.lang = root.lang;
+      if (startupStatus.textContent !== label) startupStatus.textContent = label;
+    }
     root.hidden = !showSystem;
     panel.hidden = !showSystem;
     application.hidden = !snapshot.applicationVisible;

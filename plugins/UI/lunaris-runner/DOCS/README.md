@@ -121,3 +121,7 @@ Native acceptance of long Russian labels, menus and narrow layouts is pending.
 
 After hideWhenLoaded releases the owned screen scope, later terminal startup notifications do not attempt to remount or update that released surface. Full shared-browser composition verifies start/stop without runner render errors.
 
+
+## Live loading stages
+
+Reference: the Owner screenshot of the centered ASCII logo and a single status line. The host owns the early static loader; the runner owns its isolated SDK slot and mounts the existing Mantine startup-screen role. Geometry, surfaces and artwork are unchanged. The runner optionally consumes Preparation/PreparationChanged and places the current phase in its primary status, even when showDetails is false. Settings, document, content and presentation phases have English/Russian copy. Duplicate detail/status text is suppressed; configured activation details and safe failure codes remain available. Host-owned loading DOM is never accessed by the plugin. Tests cover actual Mantine rendering, live locale changes and an awaited preparation stage; native first-paint/long-label acceptance remains manual.

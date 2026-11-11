@@ -54,3 +54,7 @@ Shared composition starts startup-provider and theme-settings first, awaits the 
 
 Healthy host monitoring reuses its kernel inspection for publication. Hidden recovery UI updates visibility only and skips snapshot serialization and table rebuilding; fault detection remains active. A regression verifies twenty healthy notifications perform no recovery serialization, while fallback immediately renders its diagnostics.
 
+
+## First-paint loading status
+
+The Owner screenshot is the visual reference: existing centered art and one status line. The host owns this early surface and its independent localized copy, while product rendering stays hidden through preparation. HostSession publishes preparation transitions immediately via trusted controller progress; mountSystemView updates only the owned status text and sets polite/atomic live-region semantics. Initial HTML labels bundle loading; composition, registration, activation, settings, document, content, presentation and mounting use actual milestones. The runner receives the same preparation phases through SDK events. DOM tests cover immediate localized progress with the real host session; native paint/long-label acceptance remains manual.

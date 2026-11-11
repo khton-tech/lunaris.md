@@ -39,7 +39,7 @@ export function createPreparation(publish: (snapshot: PreparationSnapshot) => Pr
         .catch(() => {});
     }).finally(() => cleanup());
   }
-  async function run(vaultId: string | null, external?: CancellationSignal): Promise<void> {
+  async function run(vaultId: string | null, external?: CancellationSignal, progress?: () => void): Promise<void> {
     if (closed) throw new Error("Preparation provider stopped.");
     external?.throwIfAborted();
     attempt?.abort(new Error("Preparation superseded."));
@@ -52,11 +52,18 @@ export function createPreparation(publish: (snapshot: PreparationSnapshot) => Pr
     const context = Object.freeze({ epoch, vaultId, signal: controller.signal });
     const current = () => attempt === controller && !closed;
     try {
-      snapshot = Object.freeze({ epoch, vaultId, state: "preparing" }); await deliver(snapshot, controller.signal);
+      snapshot = Object.freeze({ epoch, vaultId, state: "preparing" }); progress?.(); await deliver(snapshot, controller.signal);
       // Registration is sealed while this ordered attempt is running.
-      for (const phase of phases) for (const entry of [...entries.values()].filter(entry => entry.participant.phase === phase)) {
+      for (const phase of phases) {
         controller.signal.throwIfAborted();
-        if (entries.get(entry.participant.id) === entry) await invoke(entry, context);
+        const participants = [...entries.values()].filter(entry => entry.participant.phase === phase);
+        if (!participants.length) continue;
+        snapshot = Object.freeze({ epoch, vaultId, state: "preparing", phase }); progress?.();
+        await deliver(snapshot, controller.signal);
+        for (const entry of participants) {
+          controller.signal.throwIfAborted();
+          if (entries.get(entry.participant.id) === entry) await invoke(entry, context);
+        }
       }
       controller.signal.throwIfAborted();
       if (current()) { snapshot = Object.freeze({ epoch, vaultId, state: "ready" }); await deliver(snapshot, controller.signal); }

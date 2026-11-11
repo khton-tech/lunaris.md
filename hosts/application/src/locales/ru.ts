@@ -1,6 +1,15 @@
 import type { english } from "./en.js";
 
 export const russian: Record<keyof typeof english, string> = Object.freeze({
+  bootComposition: "Подготовка системы",
+  bootRegistration: "Регистрация плагинов",
+  bootActivation: "Запуск плагинов",
+  bootMounting: "Подготовка интерфейса",
+  bootPreparing: "Подготовка рабочего пространства",
+  bootSettings: "Восстановление настроек",
+  bootDocument: "Восстановление активного документа",
+  bootContent: "Загрузка содержимого",
+  bootPresentation: "Подготовка рабочего пространства",
   safeRestart: 'Открыть без сторонних плагинов',
   title: "Lunaris",
   host: "Среда Tauri",

@@ -1,4 +1,4 @@
-import type { StartupSnapshot, StartupStage, StartupState } from "@lunaris/startup";
+import type { PreparationSnapshot, StartupSnapshot, StartupStage, StartupState } from "@lunaris/startup";
 import { createKernel } from "@lunaris/kernel";
 import type { Kernel, KernelOptions, KernelSnapshot, Scheduler } from "@lunaris/kernel";
 import type { ContractKind, Disposable, MaybePromise, PluginDefinition } from "@lunaris/sdk";
@@ -17,7 +17,7 @@ export interface ApplicationDefinition {
   readonly grants?: Readonly<Record<string, readonly string[]>>;
   readonly view?: { readonly duringStartup?: boolean; mount(signal: AbortSignal): MaybePromise<Disposable> };
   /** Trusted ingress to a replaceable SDK startup provider. */
-  readonly startup?: { update(snapshot: StartupSnapshot): boolean; prepare?(signal: AbortSignal): Promise<void> };
+  readonly startup?: { update(snapshot: StartupSnapshot): boolean; prepare?(signal: AbortSignal, progress?: () => void): Promise<void>; preparationSnapshot?(): PreparationSnapshot | undefined };
   /** Product-owned save/release gate, invoked before normal window closure. */
   readonly beforeClose?: () => Promise<boolean>;
 }
@@ -35,6 +35,7 @@ export interface HostSnapshot {
   readonly pluginRuntimeAvailable: boolean;
   readonly phase: HostPhase;
   readonly startup: StartupSnapshot;
+  readonly preparation?: PreparationSnapshot | undefined;
   readonly busy: boolean;
   readonly applicationVisible: boolean;
   readonly recoveryBlocked: boolean;
@@ -83,7 +84,7 @@ export class HostSession {
 
   #snapshot(kernel: KernelSnapshot): HostSnapshot { return Object.freeze({
     thirdPartySafeMode: this.#thirdPartySafeMode, pluginRuntimeAvailable: this.#definition?.pluginRuntime === true,
-    phase: this.#phase, startup: this.#startup, busy: this.#busy,
+    phase: this.#phase, startup: this.#startup, preparation: this.#definition?.startup?.preparationSnapshot?.(), busy: this.#busy,
     applicationVisible: this.#view !== undefined && (this.#phase === "running" ||
       this.#phase === "starting" && this.#definition?.view?.duringStartup === true),
     recoveryBlocked: this.#cleanupUnsafe || this.#preservationBlocked,
@@ -242,7 +243,7 @@ export class HostSession {
       if (generation !== this.#generation) return;
       stage = "APPLICATION_PREPARATION_FAILED";
       pluginId = undefined;
-      await definition.startup?.prepare?.(abort.signal);
+      await definition.startup?.prepare?.(abort.signal, () => { if (generation === this.#generation) this.#publish(); });
       if (generation !== this.#generation) return;
       if (!definition.view?.duringStartup) await mountView();
       if (generation !== this.#generation) return;

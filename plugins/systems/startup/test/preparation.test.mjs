@@ -14,7 +14,8 @@ test('preparation orders settings, document, content and presentation before rea
   assert.deepEqual(calls, ['settings']); assert.equal(service.api.snapshot().state, 'preparing');
   pending.resolve(); await run;
   assert.deepEqual(calls, ['settings', 'document', 'content', 'presentation']);
-  assert.deepEqual(states.map(state => state.state), ['preparing', 'ready']);
+  assert.deepEqual(states.filter(state => state.phase).map(state => state.phase), ['settings', 'document', 'content', 'presentation']);
+  assert.equal(states.at(-1).state, 'ready');
   assert.ok(Object.isFrozen(service.api.snapshot())); service.dispose();
 });
 
