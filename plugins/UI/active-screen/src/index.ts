@@ -93,7 +93,7 @@ export default definePlugin({ manifest, activate(ctx) {
     }
     function publishMobileTabs(tabProps: ReturnType<WorkspaceTabs["presentation"]>): void {
       if (!mobileMenu || !layoutOwner) return;
-      const choices: MobileMenuChoice[] = [{ id: "add", label: text("addMobileTab"), icon: "create" }];
+      const choices: MobileMenuChoice[] = [];
       for (const tab of tabProps.tabs) {
         const label = tab.title.trim() ? tab.title : tab.description;
         const trailingAction = tab.closable ? { id: `close:${tab.id}`, label: `${tabProps.labels.close} — ${label}`, icon: "window-close" } : undefined;
@@ -101,13 +101,12 @@ export default definePlugin({ manifest, activate(ctx) {
       }
       const count = tabProps.tabs.length;
       const label = localization.text(ctx.pluginId, "mobileTabs", { count });
-      const selectedChoiceId = tabProps.selectedId;
       const tabPicker: MobileMenuItem = {
-        id: `${ctx.pluginId}.tabs`, label, icon: "file", count, order: 40, choices, selectedChoiceId,
+        id: `${ctx.pluginId}.tabs`, label, icon: "file", count, order: 40,
+        ...(choices.length ? { choices, selectedChoiceId: tabProps.selectedId } : { disabled: true }),
         async onPress(id) {
           if (!id || !live()) return;
-          if (id === "add") await tabProps.onAdd();
-          else if (id.startsWith("close:")) await tabProps.onClose(id.slice("close:".length));
+          if (id.startsWith("close:")) await tabProps.onClose(id.slice("close:".length));
           else await tabProps.onSelect(id);
         },
       };

@@ -73,15 +73,16 @@ opens a localized menu using the same tab selection and document guards as the
 strip above the editor. Workspace owns the lower floating surface and the
 Mantine Mobile Menu role owns the anchored menu. The Owner's
 highlighted bottom panel and the Files Vault switcher are the references.
-The compact menu starts with Add tab and gives each closable tab its own
-trailing close action. Both dispatch the existing tab operations. The last
-blank tab has no close control. Workspace reports compact presentation through
+The compact menu lists open tabs and gives each closable tab its own trailing
+close action. The dock's plus invokes the existing tab creation operation.
+The last blank tab has no close control. Workspace reports compact presentation through
 its public context. Active Screen suppresses both top rows in that mode when
 the dock actions are available. Desktop retains the full strip, history and
 reordering. See
 [mobile menu registration](../../../../DOCS/reference/mobile-menu.md).
-Native acceptance of menu alignment, touch actions and resize remains pending
-in both themes.
+The Owner's annotated compact list is the reference for the narrower menu
+and five-row scrolling viewport. Native acceptance of alignment, touch
+actions, scrolling and resize remains pending in both themes.
 
 ## Russian UI copy
 

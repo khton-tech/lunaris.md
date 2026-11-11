@@ -68,7 +68,9 @@ picker (40) for the mounted Vault. Sidebar contributes its drawer action at
 50 and also supplies the top-left launcher. Order 20 leaves room for a future
 public Search action. The picker count includes blank tabs. It opens an anchored Mantine menu using the Files
 Vault switcher pattern. Its rows select tabs through the same callbacks as the
-top strip. The menu contains Add tab and a close control on each closable row.
+top strip. The menu lists open tabs with a close control on each closable row.
+The dock's plus creates tabs. The anchored popup fits up to five rows and
+scrolls internally when more tabs are open.
 The compact presentation replaces the tab strip and location/history row.
 The Owner's phone reference defines the dock order and horizontal rounded
 tab outline. WorkspaceLayout owns

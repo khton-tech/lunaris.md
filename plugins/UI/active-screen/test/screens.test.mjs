@@ -193,14 +193,18 @@ test('compact Workspace shows one live tab counter and switches through the shar
     await flush();
     assert.equal(button.getAttribute('aria-expanded'), 'true');
     assert.equal(button.getAttribute('aria-controls'), menu().id);
-    assert.ok(command('Добавить вкладку'));
+    assert.equal(command('Добавить вкладку'), undefined);
     assert.equal(menu().querySelector('[aria-current="true"]')?.textContent, 'Новая вкладка');
     assert.equal(menu().classList.contains('lm-explorer-tab-menu'), true);
     const overlay = menu().closest('.lm-mobile-choice-overlay');
     assert.ok(overlay);
     assert.equal(s.surface.contains(menu()), false);
     const computed = s.dom.window.getComputedStyle;
-    assert.equal(computed(menu().querySelector('[role="menuitem"]')).minHeight, '44px');
+    const menuStyle = computed(menu());
+    assert.equal(menuStyle.overflowY, 'auto');
+    assert.match(menuStyle.getPropertyValue('--mobile-choice-row-height'), /34px/);
+    assert.match(menuStyle.maxHeight, /5\s*\*\s*var\(--mobile-choice-row-height\)/);
+    assert.equal(computed(menu().querySelector('[role="menuitem"]')).minHeight, 'var(--mobile-choice-row-height)');
     assert.ok([...document.styleSheets].some(sheet => [...sheet.cssRules].some(rule =>
       rule.selectorText?.includes(`#${overlay.id}`) && rule.style?.getPropertyValue('--mantine-scale') === '1')));
     menu().dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
@@ -247,8 +251,20 @@ test('compact Workspace shows one live tab counter and switches through the shar
     assert.equal(toolbar.hidden, false);
     assert.equal(s.surface.querySelector('.lm-workspace-tab-strip'), null);
     assert.equal(s.surface.querySelector('.lm-workspace-tab-navigation'), null);
+    for (let index = 0; index < 6; index++) {
+      add.click();
+      await flush();
+    }
+    assert.equal(button.textContent, '7');
     await openMenu(button);
-    assert.ok(menu());
+    assert.equal(menu().querySelectorAll('.lm-mobile-choice-row').length, 7);
+    assert.equal(menu().querySelectorAll('[aria-current="true"]').length, 1);
+    assert.equal(command('Добавить вкладку'), undefined);
+    const lastRow = menu().querySelector('.lm-mobile-choice-row:last-child');
+    lastRow.querySelector('.lm-mobile-choice-trailing').click();
+    await flush();
+    assert.equal(button.textContent, '6');
+    await openMenu(button);
     await s.service.close();
     await flush();
     assert.equal(menu(), null);

@@ -716,8 +716,16 @@
   --explorer-control-hover:color-mix(in srgb,var(--vault-hover) 35%,var(--vault-panel));
   --explorer-control-pressed:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel));
 }
-.lm-root .lm-mobile-choice-menu { max-width:calc(100vw - 24px);max-height:min(18rem,55dvh) }
-.lm-mobile-choice-menu [role=menuitem] { min-height:44px;user-select:none }
+.lm-root .lm-mobile-choice-menu {
+  --mobile-choice-row-height:max(34px,calc(1lh + 2 * var(--vault-space)));
+  max-width:calc(100vw - 24px);
+  max-height:min(calc(5 * var(--mobile-choice-row-height) + 2 * (var(--vault-space) + var(--vault-border))),55dvh);
+  overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain
+}
+.lm-mobile-choice-menu [role=menuitem] {
+  height:var(--mobile-choice-row-height);min-height:var(--mobile-choice-row-height);
+  padding-block:0;user-select:none
+}
 .lm-mobile-choice-menu [role=menuitem][aria-current=true] { color:var(--vault-text) }
 .lm-mobile-choice-row { display:flex;align-items:stretch }
 .lm-mobile-choice-row > [role=menuitem] { flex:1;min-width:0 }

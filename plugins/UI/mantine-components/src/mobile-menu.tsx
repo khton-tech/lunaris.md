@@ -55,7 +55,7 @@ export function MobileMenuView({ props, theme, overlay }: {
       {item.count === undefined ? <Icon name={item.icon} /> : <span className="lm-mobile-page-count" aria-hidden="true">{item.count}</span>}
     </ActionIcon>;
     if (!item.choices) return button;
-    return <Menu key={item.id} position="top" width={256} offset={10} returnFocus
+    return <Menu key={item.id} position="top" width={224} offset={8} returnFocus
       portalProps={{ target: `#${overlay.id}` }} transitionProps={{ duration: 0 }}>
       <Menu.Target>{button}</Menu.Target>
       <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu lm-mobile-choice-menu" aria-label={item.label}>
