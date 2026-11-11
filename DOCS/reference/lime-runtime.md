@@ -46,3 +46,32 @@ subsequent integration work; this API alone does not claim those are complete.
 Plans currently disclose direct requirements and active affected consumers rather
 than a full prospective graph. Other management operations still use environment
 generation without an expected plan revision.
+
+## Host ownership and recovery bootstrap
+
+`createLimeRuntime(kernel, builtinIds)` is exported by `@lunaris/application-host`.
+It creates lunaris.lime-runtime-adapter, requiring Logger, Vault and PluginExecution.
+Guest ownership produces guest -> adapter -> execution/root cleanup order. Failed
+starts remain registered/failed for explicit retry. The adapter logs original
+failures, and kernel diagnostics retain their causes. Explicit runtime close must
+precede Vault release; a scope disposer does not invoke kernel management while
+host shutdown owns that queue. Durable installations belong to the Lime engine.
+
+ApplicationDefinition.pluginRuntime enables protected adapter/policy composition.
+HostSession creates LimeBootPolicy before entrypoints start, capturing the current
+safe-mode choice. The policy is an essential host entrypoint and cannot silently
+disappear while safe mode is requested. It is independent of product Logger,
+Settings, Components and filesystem replacement. Installed code cannot consume
+its runtime.manage facade through the guest SDK broker.
+
+HostSession.startSafeMode respects the running application's save gate, tears down
+the old session and starts with the host-owned policy already set. The independent
+recovery shell exposes Open without third-party plugins in browser and desktop
+hosts. The engine registers/inspects installed packages but does not evaluate them
+until explicit resume. Enabled preferences remain intact. Cleanup-unsafe/frozen
+host recovery retains the documented process-restart limitation.
+
+Production browser bundling includes one release-sync QuickJS WASM asset. Tauri
+CSP permits WebAssembly compilation through wasm-unsafe-eval; host JavaScript
+unsafe-eval, arbitrary frames and objects remain blocked. Bundling/CSP source tests
+do not establish native dialog, WebView, filesystem or visual acceptance.
