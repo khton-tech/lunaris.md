@@ -27,6 +27,7 @@ export function resolveTheme(theme: ThemeDefinition | null) {
   for (const [variable, key] of Object.entries(palette)) variables[`--vault-${variable}`] = color(key, ["background", "panel", "content", "selection", "hover", "separator"].includes(variable) ? "transparent" : "currentColor");
   variables["--vault-space"] = dimension(field(field(geometry, "spacing"), "step"), 4);
   variables["--vault-radius"] = radius;
+  variables["--vault-radius-small"] = dimension(field(field(geometry, "radius"), "small"), 4);
   variables["--vault-border"] = dimension(field(geometry, "borderWidth"), 1);
   variables["--vault-focus-width"] = dimension(field(geometry, "focusWidth"), 2);
   variables["--vault-focus-offset"] = dimension(field(geometry, "focusOffset"), 2);

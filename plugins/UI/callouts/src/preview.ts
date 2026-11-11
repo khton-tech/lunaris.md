@@ -107,12 +107,12 @@ export const calloutPreview = StateField.define<Preview>({
 export function calloutTheme(colors: Readonly<Record<string, unknown>> = {}) {
   const color = (key: string, fallback: string) => typeof colors[key] === "string" ? colors[key] as string : fallback;
   return EditorView.baseTheme({
-    ".cm-line.cm-callout": { "--callout-color": color("accent", "currentColor"), backgroundColor: "color-mix(in srgb, currentColor 5%, transparent)", margin: "0 clamp(12px, 3cqi, 40px)", marginInlineStart: "calc(clamp(12px, 3cqi, 40px) + (var(--callout-depth) - 1) * 0.9em)", padding: "0 0.9em", borderLeft: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderRight: "1px solid color-mix(in srgb, currentColor 25%, transparent)", whiteSpace: "pre-wrap", overflowWrap: "anywhere", backgroundImage: "none !important" },
+    ".cm-line.cm-callout": { "--callout-color": color("accent", "currentColor"), backgroundColor: "color-mix(in srgb, var(--callout-color) 9%, transparent)", marginInlineStart: "calc((var(--callout-depth) - 1) * 0.9em)", padding: "0 calc(var(--editor-block-inset, 2.4em) - 1px)", borderLeft: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderRight: "1px solid color-mix(in srgb, currentColor 25%, transparent)", whiteSpace: "pre-wrap", overflowWrap: "anywhere", backgroundImage: "none !important" },
     '.cm-callout[data-callout="warning"]': { "--callout-color": color("warning", color("colorfulError", color("accent", "currentColor"))) },
     '.cm-callout[data-callout="danger"], .cm-callout[data-callout="failure"], .cm-callout[data-callout="bug"]': { "--callout-color": color("error", "currentColor") },
     '.cm-callout[data-callout="success"]': { "--callout-color": color("success", color("accent", "currentColor")) },
-    ".cm-line.cm-callout-start": { borderTop: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderTopLeftRadius: "0.4em", borderTopRightRadius: "0.4em", paddingTop: "0.9em" },
-    ".cm-line.cm-callout-end": { borderBottom: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderBottomLeftRadius: "0.4em", borderBottomRightRadius: "0.4em", paddingBottom: "0.9em" },
+    ".cm-line.cm-callout-start": { borderTop: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderTopLeftRadius: "var(--vault-radius, 10px)", borderTopRightRadius: "var(--vault-radius, 10px)", paddingTop: "0.9em" },
+    ".cm-line.cm-callout-end": { borderBottom: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderBottomLeftRadius: "var(--vault-radius, 10px)", borderBottomRightRadius: "var(--vault-radius, 10px)", paddingBottom: "0.9em" },
     ".cm-line.cm-callout-header": { paddingBottom: "0.65em" },
     ".cm-line.cm-callout-header.cm-callout-end": { paddingBottom: "0.9em" },
   });

@@ -141,10 +141,18 @@ function RenameInput({ node }: NodeRendererProps<Entry>) {
 function ExplorerNode(payload: NodeRendererProps<Entry>) {
   const { node, tree, style, dragHandle } = payload; const { props, context } = useContext(ExplorerContext)!;
   const label = fileLabel(node.data.name, node.data.kind, props.supportedExtensions);
+  const guides = [];
+  for (let entry = node; entry.level > 0 && entry.parent; entry = entry.parent) {
+    const last = entry.nextSibling === null;
+    if (entry !== node && last) continue;
+    guides.push(<span className="lm-explorer-guide" key={entry.id} data-last={last || undefined}
+      style={{ insetInlineStart: (entry.level - 1) * tree.indent + 8 }}>
+      {entry === node && <span className="lm-explorer-branch" />}
+    </span>);
+  }
   return <Box ref={dragHandle} style={style} className="lm-explorer-node" data-directory={node.data.kind === "directory" || undefined} data-root={node.id === ROOT_ID || undefined} data-active={props.activePath === node.id || undefined} aria-current={props.activePath === node.id ? "page" : undefined} data-selected={node.isSelected || undefined} data-focused={node.isFocused || undefined} data-drop={node.willReceiveDrop || undefined}
     title={node.id === ROOT_ID ? node.data.name : node.id} onContextMenu={event => { event.preventDefault(); event.stopPropagation(); context(node.id, event.clientX, event.clientY); }}>
-    {node.level > 0 && <span className="lm-explorer-indent-guides" aria-hidden="true"
-      style={{ width: node.level * tree.indent, backgroundSize: `${tree.indent}px 100%` }} />}
+    {guides.length > 0 && <span className="lm-explorer-indent-guides" aria-hidden="true">{guides}</span>}
     {node.isInternal ? <ActionIcon className="lm-explorer-disclosure" variant="subtle" size="xs" tabIndex={-1} aria-label={node.data.name} aria-expanded={node.isOpen}
       disabled={props.busy} onClick={event => { event.stopPropagation(); node.toggle(); }}><span data-open={node.isOpen || undefined}><Icon name="expand" /></span></ActionIcon>
       : <span className="lm-explorer-spacer" />}
@@ -162,7 +170,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
   const host = useRef<HTMLDivElement>(null); const tree = useRef<TreeApi<Entry>>(null); const alive = useRef(true);
   const synchronizing = useRef(false);
   const initializing = useRef(true);
-  const [size, setSize] = useState({ height: 1, row: 28 });
+  const [size, setSize] = useState({ height: 1, row: 34 });
   const [keyboardNavigation, setKeyboardNavigation] = useState(false);
   const menu = useRef<MenuSession | undefined>(undefined);
   useEffect(() => () => { const previous = menu.current; void Promise.resolve().then(() => previous?.dispose()); }, []);
@@ -186,7 +194,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     const measure = () => {
       const css = element.ownerDocument.defaultView!.getComputedStyle(element);
       const height = Math.max(1, element.getBoundingClientRect().height);
-      const row = Math.max(pointer.matches ? 44 : 24, Math.ceil((parseFloat(css.fontSize) || 14) * 2));
+      const row = Math.max(pointer.matches ? 44 : 34, Math.ceil((parseFloat(css.fontSize) || 14) * 2));
       setSize(previous => previous.height === height && previous.row === row ? previous : { height, row });
     };
     const observer = new ResizeObserver(measure); observer.observe(element); pointer.addEventListener("change", measure); measure();

@@ -48,10 +48,10 @@ function appearance(theme: ThemeDefinition | null, preferences: Preferences) {
   return [EditorView.theme({
     "&": { height: "100%", minHeight: "0", flex: "1 1 0%", minWidth: "0", backgroundColor: "transparent", color: color("text"), fontSize },
     "&.cm-focused": { outline: "none" },
-    ".cm-scroller": { overflow: "auto", fontFamily: "var(--vault-mono, ui-monospace, monospace)", lineHeight: preferences.lineHeight !== "theme" ? preferences.lineHeight : String(typeof typography?.lineHeight === "number" ? typography.lineHeight : 1.6), scrollbarWidth: "none" },
+    ".cm-scroller": { overflow: "auto", fontFamily: "inherit", lineHeight: preferences.lineHeight !== "theme" ? preferences.lineHeight : String(typeof typography?.lineHeight === "number" ? typography.lineHeight : 1.6), scrollbarWidth: "none" },
     ".cm-scroller::-webkit-scrollbar": { display: "none" },
-    ".cm-content": { width: "100%", maxWidth: preferences.wrapLines && preferences.textWidth !== "full" ? `${preferences.textWidth}px` : "none", minWidth: "0", flexGrow: "0", margin: "0 auto", padding: "clamp(24px, 5cqi, 56px) 0 clamp(12px, 3cqi, 32px)", caretColor: color("caret"), minHeight: "100%" },
-    ".cm-line": { padding: "0 clamp(12px, 3cqi, 40px)" },
+    ".cm-content": { width: "calc(100% - 2 * var(--editor-gutter, 12px))", maxWidth: preferences.wrapLines && preferences.textWidth !== "full" ? `${preferences.textWidth}px` : "none", minWidth: "0", flexGrow: "0", margin: "0 auto", padding: "clamp(24px, 5cqi, 56px) 0 clamp(12px, 3cqi, 32px)", caretColor: color("caret"), minHeight: "100%" },
+    ".cm-line": { padding: "0" },
     ".cm-preview-code-language": { color: color("textSecondary", color("text")) },
     ".cm-cursor, .cm-dropCursor": { borderLeftColor: color("caret") },
     // Match the focused layer's specificity so CM's default dark teal cannot win.

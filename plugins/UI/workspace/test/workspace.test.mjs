@@ -156,10 +156,10 @@ test('failed width preference reads/writes retain an adjustable panel and report
   const handle = s.surface.querySelector('[role=separator]');
   handle.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true })); await flush();
   handle.dispatchEvent(new s.dom.window.KeyboardEvent('keyup', { key: 'ArrowRight', bubbles: true })); await flush();
-  assert.equal(s.surface.querySelector('.lm-workspace-layout').style.getPropertyValue('--workspace-panel-width'), '296px');
+  assert.equal(s.surface.querySelector('.lm-workspace-layout').style.getPropertyValue('--workspace-panel-width'), '264px');
   assert.ok(s.logs.some(log => log[0] === 'warn' && log[2] === 'Cannot restore side panel width'));
   assert.ok(s.logs.some(log => log[0] === 'warn' && log[2] === 'Cannot save side panel width'));
-  await s.open(); assert.equal(s.surface.querySelector('.lm-workspace-layout').style.getPropertyValue('--workspace-panel-width'), '296px'); await s.stop();
+  await s.open(); assert.equal(s.surface.querySelector('.lm-workspace-layout').style.getPropertyValue('--workspace-panel-width'), '264px'); await s.stop();
 });
 
 test('Workspace preserves native Tab traversal while open and after closing', async () => {

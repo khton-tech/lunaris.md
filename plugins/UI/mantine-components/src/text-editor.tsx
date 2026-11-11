@@ -71,8 +71,8 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
   }
   return <Box ref={container} className="lm-text-editor" style={theme.contentStyle}>
     {props.ready && props.onContentWidthChange && <EditorWidthHandles key={props.documentKey} container={container}
-      width={props.contentWidth ?? 780} label={props.resizeWidthLabel!} disabled={!props.canResizeWidth} onChange={props.onContentWidthChange} />}
-    {props.ready && <Box className="lm-editor-heading" style={{ maxWidth: props.contentWidth === "full" ? "none" : props.contentWidth ?? 780 }}>
+      width={props.contentWidth ?? 698} label={props.resizeWidthLabel!} disabled={!props.canResizeWidth} onChange={props.onContentWidthChange} />}
+    {props.ready && <Box className="lm-editor-heading" style={{ maxWidth: props.contentWidth === "full" ? "none" : props.contentWidth ?? 698 }}>
       <Box className="lm-editor-heading-line">
         <TextInput className="lm-editor-title" aria-label={props.titleLabel} value={title}
           variant="unstyled" readOnly={!props.canRename} spellCheck={false} placeholder={props.titleLabel}

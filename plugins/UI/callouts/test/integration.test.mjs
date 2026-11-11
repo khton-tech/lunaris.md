@@ -178,7 +178,7 @@ test('callout card matches code-block boundaries and keeps normal body typograph
   const codeStart=s.target.querySelector('.cm-preview-code-start'),codeEnd=s.target.querySelector('.cm-preview-code-end');
   assert.ok(header);assert.ok(end);assert.ok(body);assert.notEqual(header,end);
   const style=node=>s.dom.window.getComputedStyle(node);
-  assert.equal(style(header).borderTopLeftRadius,style(codeStart).borderTopLeftRadius);assert.ok(parseFloat(style(header).borderTopLeftRadius)>0);
+  assert.equal(style(header).borderTopLeftRadius,style(codeStart).borderTopLeftRadius);assert.equal(style(header).borderTopLeftRadius,'var(--vault-radius, 10px)');
   assert.equal(style(end).borderBottomRightRadius,style(codeEnd).borderBottomRightRadius);
   assert.equal(style(body).fontWeight,style(view.contentDOM).fontWeight);
   assert.equal(view.state.sliceDoc(),source);assert.equal(s.calls.filter(x=>x[0]==='write').length,0);

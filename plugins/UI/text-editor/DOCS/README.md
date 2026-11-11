@@ -144,7 +144,7 @@ no editor service API or separate settings plugin is introduced.
 | --- | --- | --- |
 | `fontSize` | `theme` or canonical integer strings, 8–96 pixels | `theme` |
 | `lineHeight` | `theme` or canonical numeric strings, 1–3 in 0.1 increments | `theme` |
-| `textWidth` | integer pixel strings from `320` to `1920`, or `full` | `780` |
+| `textWidth` | integer pixel strings from `320` to `1920`, or `full` | `698` |
 | `wrapLines` | boolean | `true` |
 
 Config reads/writes use the editor's own `lunaris.text-editor` namespace and
@@ -335,8 +335,8 @@ is hidden while wheel/touch/keyboard scrolling remains available.
 
 The Owner's Lunaris/Obsidian comparison defines the document geometry: a centered
 reading column within the available editor region, with left-aligned text. The
-CodeMirror content is at most 780px wide including its existing responsive line
-insets (up to 40px on each side, giving about 700px of text). It shrinks to the
+CodeMirror content is at most 698px wide by default, with responsive outer
+insets (up to 40px on each side). It shrinks to the
 region width on narrow windows. CodeMirror owns this internal content width;
 Workspace/ActiveScreen and the Mantine target retain their full allocated size
 and surface. Quote rails and code remain within the same centered column. Existing

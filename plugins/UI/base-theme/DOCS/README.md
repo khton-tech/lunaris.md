@@ -19,7 +19,8 @@ selection and falls back from unavailable saved IDs without rewriting config.
 Extra error and colorful error colors are exposed for future consumers, with no
 colorful-mode UI added. Monochrome geometry, typography and motion remain unchanged.
 
-Tauri defaults to Monochrome. Optional Windows XP Luna uses gray panels, blue
+The application defaults to the Lunaris preset (`lunaris.base-theme-engine.lunaris`).
+It uses the palette and typography from the FigCraft redesign. Optional Windows XP Luna uses gray panels, blue
 window captions, Tahoma and control finishes interpreted by Mantine. Saved startup and Vault
 preferences still take priority; select Windows XP Luna under Customization
 for an existing Vault. Monochrome remains available for comparison.

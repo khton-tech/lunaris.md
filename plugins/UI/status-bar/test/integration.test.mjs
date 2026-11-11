@@ -36,7 +36,7 @@ test('composed status bar shows local document counts, hides stale counts and fo
   s.state.statistics = { target: s.state.active, state: 'ready', words: 2, letters: 9 };
   await s.emit(ActiveDocumentChanged, { current: s.state.active });
   assert.equal(s.surface.querySelector('.lm-status-bar'), bar); assert.ok(bar.textContent.includes('Пример')); assert.ok(!bar.textContent.includes('Пример.md'));
-  assert.equal(bar.querySelector('.lm-status-file').title, 'folder/Пример.md'); assert.ok(bar.querySelector('[aria-label="Words: 2"]')); assert.ok(bar.querySelector('[aria-label="Letters: 9"]')); assert.ok(!bar.textContent.includes('Words:')); assert.equal(bar.querySelector('.lm-status-counts').textContent, '29'); assert.equal(bar.querySelector('.lm-status-server'), null);
+  assert.equal(bar.querySelector('.lm-status-file').title, 'folder/Пример.md'); assert.ok(bar.querySelector('[aria-label="Words: 2"]')); assert.ok(bar.querySelector('[aria-label="Letters: 9"]')); assert.equal(bar.querySelector('.lm-status-counts').textContent, 'Words: 2Letters: 9'); assert.equal(bar.querySelector('.lm-status-server'), null);
   s.state.statistics = { ...s.state.statistics, words: 4, letters: 20 }; await s.emit(DocumentStatisticsChanged, { current: s.state.statistics }); assert.ok(bar.querySelector('[aria-label="Letters: 20"]'));
   s.state.active = { ...s.state.active, path: 'other.md' }; await s.emit(ActiveDocumentChanged, { current: s.state.active }); assert.equal(bar.querySelector('.lm-status-counts'), null);
   s.state.statistics = { target: s.state.active, state: 'loading', words: null, letters: null }; await s.emit(DocumentStatisticsChanged, { current: s.state.statistics }); assert.equal(bar.querySelector('.lm-status-counts'), null);

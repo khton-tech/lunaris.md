@@ -8,8 +8,8 @@ import { Logger, scopeLogger } from "@lunaris/logging";
 import { Themes, ThemeChanged } from "@lunaris/themes";
 
 export interface Preferences { readonly fontSize: string; readonly lineHeight: string; readonly textWidth: string; readonly wrapLines: boolean }
-export const defaults: Preferences = Object.freeze({ fontSize: "theme", lineHeight: "theme", textWidth: "780", wrapLines: true });
-const textWidths = ["640", "780", "960", "full"];
+export const defaults: Preferences = Object.freeze({ fontSize: "theme", lineHeight: "theme", textWidth: "698", wrapLines: true });
+const textWidths = ["640", "698", "780", "960", "full"];
 type Key = keyof Preferences;
 interface Session { vaultId: string; values: Preferences; previewWidth?: string | undefined; loading: boolean; busy: boolean; reload: boolean; revision: number; error: string; errorKey: Key; ready: Promise<void> }
 const keys = Object.keys(defaults) as Key[];

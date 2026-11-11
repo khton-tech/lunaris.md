@@ -143,7 +143,7 @@ function decorations(view: EditorView): DecorationSet {
   } });
   for (const [from, depth] of quoteLines) {
     const bars = Array.from({ length: depth }, () => "linear-gradient(color-mix(in srgb, currentColor 35%, transparent), color-mix(in srgb, currentColor 35%, transparent))").join(",");
-    const positions = Array.from({ length: depth }, (_, index) => `calc(clamp(12px, 3cqi, 40px) + 0.35em + ${index * 0.85}em) 0`).join(",");
+    const positions = Array.from({ length: depth }, (_, index) => `${index * 0.85}em 0`).join(",");
     ranges.push(Decoration.line({ class: "cm-preview-quote", attributes: {
       style: `--cm-preview-quote-depth:${depth};background-image:${bars};background-position:${positions}`,
     } }).range(from));
@@ -178,18 +178,18 @@ export const livePreviewTheme = EditorView.baseTheme({
   ".cm-preview-emphasis": { fontStyle: "italic" },
   ".cm-preview-strike": { textDecoration: "line-through" },
   ".cm-preview-code, .cm-preview-code-block": { fontFamily: "var(--vault-mono, 'Cascadia Code', Consolas, ui-monospace, monospace)", backgroundColor: "color-mix(in srgb, currentColor 5%, transparent)" },
-  ".cm-preview-code": { fontSize: "0.95em", fontWeight: "500", padding: "0.05em 0.3em", border: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderRadius: "0.3em", backgroundColor: "color-mix(in srgb, currentColor 10%, transparent)", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone" },
-  ".cm-line.cm-preview-code-block": { margin: "0 clamp(12px, 3cqi, 40px)", padding: "0 0.9em", borderLeft: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderRight: "1px solid color-mix(in srgb, currentColor 25%, transparent)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" },
-  ".cm-line.cm-preview-code-start": { borderTop: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderTopLeftRadius: "0.4em", borderTopRightRadius: "0.4em", paddingTop: "0.45em" },
-  ".cm-line.cm-preview-code-end": { borderBottom: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderBottomLeftRadius: "0.4em", borderBottomRightRadius: "0.4em", paddingBottom: "0.45em" },
+  ".cm-preview-code": { fontSize: "0.867em", fontWeight: "500", padding: "0.05em 0.3em", border: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderRadius: "var(--vault-radius-small, 4px)", backgroundColor: "var(--vault-selection, transparent)", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone" },
+  ".cm-line.cm-preview-code-block": { padding: "0 calc(var(--editor-block-inset, 2.4em) - 1px)", borderLeft: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderRight: "1px solid color-mix(in srgb, currentColor 25%, transparent)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" },
+  ".cm-line.cm-preview-code-start": { borderTop: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderTopLeftRadius: "var(--vault-radius, 10px)", borderTopRightRadius: "var(--vault-radius, 10px)", paddingTop: "0.45em" },
+  ".cm-line.cm-preview-code-end": { borderBottom: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderBottomLeftRadius: "var(--vault-radius, 10px)", borderBottomRightRadius: "var(--vault-radius, 10px)", paddingBottom: "0.45em" },
   ".cm-preview-code-language": { fontSize: "0.8em", fontWeight: "500" },
-  ".cm-preview-heading": { fontWeight: "600", lineHeight: "1.4" },
-  ".cm-preview-h1": { fontSize: "2.4em" }, ".cm-preview-h2": { fontSize: "2em" },
-  ".cm-preview-h3": { fontSize: "1.7em" }, ".cm-preview-h4": { fontSize: "1.45em" },
+  ".cm-preview-heading": { fontWeight: "600", lineHeight: "1.25" },
+  ".cm-preview-h1": { fontSize: "2.267em", lineHeight: "1.206" }, ".cm-preview-h2": { fontSize: "1.533em" },
+  ".cm-preview-h3": { fontSize: "1.4em" }, ".cm-preview-h4": { fontSize: "1.3em" },
   ".cm-preview-h5": { fontSize: "1.25em" }, ".cm-preview-h6": { fontSize: "1.1em" },
   ".cm-preview-link": { textDecoration: "underline" },
   ".cm-preview-bullet": { whiteSpace: "pre" },
   ".cm-preview-task": { display: "inline-flex", verticalAlign: "middle", lineHeight: "1" },
-  ".cm-line.cm-preview-quote": { paddingLeft: "calc(clamp(12px, 3cqi, 40px) + 0.6em + var(--cm-preview-quote-depth) * 0.85em)", backgroundSize: "2px 100%", backgroundRepeat: "no-repeat" },
+  ".cm-line.cm-preview-quote": { paddingLeft: "calc(var(--editor-block-inset, 2.4em) + (var(--cm-preview-quote-depth) - 1) * 0.85em)", backgroundSize: "2px 100%", backgroundRepeat: "no-repeat" },
   ".cm-preview-rule": { display: "inline-block", width: "100%", borderTop: "1px solid currentColor", opacity: "0.25", verticalAlign: "middle" },
 });

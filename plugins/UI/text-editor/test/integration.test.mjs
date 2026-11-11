@@ -250,7 +250,7 @@ test('display preferences apply without replacing the editor, selection, source 
     assert.equal(heading.style.maxWidth, width);
     assert.equal(s.dom.window.getComputedStyle(view.contentDOM).maxWidth, width);
   };
-  assertColumn('780px');
+  assertColumn('698px');
   for (const width of ['640', '960', '780']) {
     await choose('text-width', width); assertColumn(`${width}px`);
   }
@@ -296,20 +296,20 @@ test('column handles preview both sides, cancel drags and persist only after rel
     const { handles: [left, right], pointer } = widthControls(s);
     const width = () => s.target.querySelector('.lm-editor-heading').style.maxWidth;
     await pointer(right, 'pointerdown', 900); await pointer(right, 'pointermove', 950);
-    assert.equal(width(), '880px'); assert.equal(s.dom.window.getComputedStyle(view.contentDOM).maxWidth, '880px');
+    assert.equal(width(), '798px'); assert.equal(s.dom.window.getComputedStyle(view.contentDOM).maxWidth, '798px');
     assert.equal(s.preferenceWrites.length, 0);
     left.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await flush();
-    assert.equal(width(), '780px'); assert.equal(s.preferenceWrites.length, 0);
+    assert.equal(width(), '698px'); assert.equal(s.preferenceWrites.length, 0);
     await pointer(left, 'pointerdown', 200); await pointer(left, 'pointermove', 140);
-    assert.equal(width(), '900px');
+    assert.equal(width(), '818px');
     await pointer(left, 'pointerup', 140);
-    assert.equal(s.preferenceWrites.length, 1); assert.equal(s.preferenceWrites[0].value, '900');
+    assert.equal(s.preferenceWrites.length, 1); assert.equal(s.preferenceWrites[0].value, '818');
     assert.equal(s.preferenceWrites[0].scope.vaultId, 'a');
     assert.equal(s.cm(), view); assert.equal(view.state.selection.main.head, 3); assert.equal(view.state.sliceDoc(), '# Note');
     const setting = s.settings.snapshot().items.find(item => item.id.endsWith('.text-width'));
-    assert.equal(setting.value, '900'); assert.ok(setting.options.some(option => option.value === '900'));
+    assert.equal(setting.value, '818'); assert.ok(setting.options.some(option => option.value === '818'));
     await pointer(right, 'pointerdown', 950); await pointer(right, 'pointermove', 900);
-    await pointer(right, 'pointercancel', 900); assert.equal(width(), '900px'); assert.equal(s.preferenceWrites.length, 1);
+    await pointer(right, 'pointercancel', 900); assert.equal(width(), '818px'); assert.equal(s.preferenceWrites.length, 1);
   } finally { await s.stop(); }
 });
 
@@ -344,7 +344,7 @@ test('column drag cancellation restores full width and cannot persist into anoth
     await s.vault.open(); await flush(); await s.showVault('b'); await s.documents.open({ vaultId: 'b', path: 'note.md' }); await flush();
     await pointer(right, 'pointerup', 1100);
     assert.equal(s.preferenceWrites.length, 0);
-    assert.equal(s.target.querySelector('.lm-editor-heading').style.maxWidth, '780px');
+    assert.equal(s.target.querySelector('.lm-editor-heading').style.maxWidth, '698px');
   } finally { await s.stop(); }
 });
 
@@ -358,10 +358,10 @@ test('column handles are absent on mobile and cancel an active desktop drag when
     const { handles: [, right], pointer } = widthControls(s, false);
     assert.ok(right);
     await pointer(right, 'pointerdown', 900); await pointer(right, 'pointermove', 950);
-    assert.equal(s.target.querySelector('.lm-editor-heading').style.maxWidth, '880px');
+    assert.equal(s.target.querySelector('.lm-editor-heading').style.maxWidth, '798px');
     await s.resizeWidthEnvironment({ width: 640 });
     assert.equal(s.target.querySelector('.lm-editor-width-handle'), null);
-    assert.equal(s.target.querySelector('.lm-editor-heading').style.maxWidth, '780px');
+    assert.equal(s.target.querySelector('.lm-editor-heading').style.maxWidth, '698px');
     await pointer(right, 'pointerup', 950);
     right.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); await flush();
     assert.equal(s.preferenceWrites.length, 0);

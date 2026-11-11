@@ -33,8 +33,8 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
   const setMobileOpen = (open: boolean) => { setLocalOpen(open); props.onMobileOpen?.(open); };
   const previousPresentation = useRef({ open: false, compact: false });
   const [available, setAvailable] = useState(0); const [compact, setCompact] = useState(false);
-  const [width, setWidth] = useState(props.panelWidth ?? 288); const latestWidth = useRef(width);
-  useLayoutEffect(() => { latestWidth.current = props.panelWidth ?? 288; setWidth(latestWidth.current); }, [props.panelWidth]);
+  const [width, setWidth] = useState(props.panelWidth ?? 256); const latestWidth = useRef(width);
+  useLayoutEffect(() => { latestWidth.current = props.panelWidth ?? 256; setWidth(latestWidth.current); }, [props.panelWidth]);
   useLayoutEffect(() => {
     const element = root.current!;
     const measure = () => {
@@ -128,7 +128,7 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
       onSizeChange={sizes => { const next = Number.parseFloat(String(sizes[0])); if (Number.isFinite(next) && next >= 120) { latestWidth.current = next; setWidth(next); } }}
       onResizeEnd={commitWidth} onKeyUp={event => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key) && (event.target as HTMLElement).getAttribute("role") === "separator") commitWidth(); }}
       onDoubleClick={event => { if ((event.target as HTMLElement).closest("[role=separator]")) void Promise.resolve().then(commitWidth); }}>
-      <Splitter.Pane className="lm-workspace-panel-pane" defaultSize="288px" min={compact ? 0 : "12rem"} max={compact ? "100%" : "60%"} inert={compact && !overlayOpen} aria-hidden={compact && !overlayOpen || undefined}>
+      <Splitter.Pane className="lm-workspace-panel-pane" defaultSize="256px" min={compact ? 0 : "12rem"} max={compact ? "100%" : "60%"} inert={compact && !overlayOpen} aria-hidden={compact && !overlayOpen || undefined}>
         <Paper component="aside" ref={panel} tabIndex={-1} className="lm-workspace-panel lm-workspace-card" shadow="none" aria-label={props.panelLabel} hidden={!props.panelVisible} />
       </Splitter.Pane>
       <Splitter.Pane className="lm-workspace-main-pane" defaultSize={100} min={compact ? 0 : "16rem"} inert={overlayOpen} aria-hidden={overlayOpen || undefined}>

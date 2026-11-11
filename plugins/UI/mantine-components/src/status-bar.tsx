@@ -20,7 +20,7 @@ export function statusBarProps(value: ComponentProps): StatusBarProps {
   return value as unknown as StatusBarProps;
 }
 export function StatusBar({ props, theme }: { props: StatusBarProps; theme: ReturnType<typeof resolveTheme> }) {
-  return <Box component="footer" className="lm-status-bar" aria-label={props.label} style={theme.contentStyle}>
+  return <Box component="footer" className="lm-status-bar" aria-label={props.label} style={{ ...theme.contentStyle, fontSize: "12px" }}>
     <Group className="lm-status-context" gap="xs" wrap="nowrap">
       <Text component="span" className="lm-status-file" title={props.fileTitle || props.filename} inherit>{props.filename}</Text>
       {props.serverState && <Box component="span" className="lm-status-server" role="img" aria-label={props.serverLabel}
@@ -30,10 +30,10 @@ export function StatusBar({ props, theme }: { props: StatusBarProps; theme: Retu
     </Group>
     {(props.words !== null || props.letters !== null) && <Group className="lm-status-counts" gap="md" wrap="nowrap">
       {props.words !== null && <Box component="span" className="lm-status-metric" role="img" aria-label={props.wordsLabel} title={props.wordsLabel}>
-        <Icon name="word-count" /><Text component="span" inherit aria-hidden="true">{props.words}</Text>
+        <Text component="span" inherit aria-hidden="true">{props.wordsLabel || props.words}</Text>
       </Box>}
       {props.letters !== null && <Box component="span" className="lm-status-metric" role="img" aria-label={props.lettersLabel} title={props.lettersLabel}>
-        <Icon name="letter-count" /><Text component="span" inherit aria-hidden="true">{props.letters}</Text>
+        <Text component="span" inherit aria-hidden="true">{props.lettersLabel || props.letters}</Text>
       </Box>}
     </Group>}
   </Box>;

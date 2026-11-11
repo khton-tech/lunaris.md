@@ -18,7 +18,7 @@ type Regions = Readonly<Record<"main" | "left-rail" | "left-panel" | "bottom" | 
 
 export default definePlugin({ manifest, async activate(ctx) {
   const logger = scopeLogger(ctx.use(Logger), ctx.signal);
-  const config = ctx.use(Config); let panelWidth = 288; let saveWidth = Promise.resolve();
+  const config = ctx.use(Config); let panelWidth = 256; let saveWidth = Promise.resolve();
   const validWidth = (value: unknown): value is number => typeof value === "number" && Number.isFinite(value) && value >= 120 && value <= 4096;
   try {
     const stored = await config.get(ctx.pluginId, "sidePanelWidth", { scope: "global" });

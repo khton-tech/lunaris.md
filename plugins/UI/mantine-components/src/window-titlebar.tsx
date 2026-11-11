@@ -29,6 +29,7 @@ export function WindowTitlebar({ props, theme }: { props: Props; theme: ReturnTy
     <Box className="lm-window-titlebar-drag" onMouseDown={event => {
       if (event.button === 0 && event.detail < 2 && props.canDrag) props.onDrag();
     }} onDoubleClick={event => { if (event.button === 0 && props.canMaximize) props.onToggleMaximize(); }}>
+      {!theme.windowChrome && <Icon name="moon" />}
       <Text component="span" className="lm-window-titlebar-title" title={props.title}>{props.title}</Text>
     </Box>
     <Box className="lm-window-titlebar-actions">

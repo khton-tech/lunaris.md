@@ -38,6 +38,25 @@ const darkPalette = (background: string, panel: string, text: string, accent: st
 /** Engine-owned presets consumed through the shared semantic theme contract. */
 export const baseThemes: readonly ThemeDefinition[] = [
   {
+    id: "lunaris.base-theme-engine.lunaris",
+    name: "Lunaris",
+    properties: {
+      schema: "lunaris.base-theme",
+      schemaVersion: 1,
+      appearance: "dark",
+      colors: {
+        ...darkPalette("#242B2C", "#252D2E", "#EEEDE5", "#C1D8A5", "#303A3B", "#39483D", "#394344", "#C1D8A5", "#202628"),
+        content: "#202628",
+        textSecondary: "#ACB9B3",
+        controlBorder: "#899E85",
+      },
+      geometry: { ...geometry, radius: { small: 4, medium: 10 } },
+      typography: { ...typography, monoFontFamily: ["Consolas", "ui-monospace", "monospace"], fontSize: 15, lineHeight: 1.3 },
+      components,
+      motion,
+    },
+  },
+  {
     id: "lunaris.base-theme-engine.monochrome",
     name: "Monochrome",
     properties: {
