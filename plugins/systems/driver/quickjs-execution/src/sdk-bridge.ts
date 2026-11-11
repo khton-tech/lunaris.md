@@ -1,8 +1,9 @@
 import { capturePackageResources, definePlugin, LunarisError } from "@lunaris/sdk";
-import type { ApiToken, CancellationSignal, PluginContext, PluginDefinition, PluginManifest } from "@lunaris/sdk";
+import type { ApiToken, EventToken, HookToken, CancellationSignal, PluginContext, PluginDefinition, PluginManifest } from "@lunaris/sdk";
 import type { ExecutionLimits, ExecutionRealm, ExecutionSource, ExecutionValue } from "@lunaris/execution";
 import { createRealm } from "./realm.js";
 import { guestBridge } from "./guest-bridge.js";
+import { assertScopedToken, denyAuthority } from './authority.js';
 
 type Wire = ExecutionValue;
 type Fn = (...args: unknown[]) => unknown;
@@ -142,10 +143,7 @@ class Bridge {
 
 /** Public provider gateways are narrowed by captured authority, never guest IDs. */
 function scopedContext(ctx: PluginContext, vaultId: string): PluginContext {
-  const deny = (): never => { throw new LunarisError('PERMISSION_DENIED', 'This operation is outside the captured Vault.'); };
-  const allowed = (token: { readonly id: string; readonly providePermission?: string; readonly consumePermission?: string }): void => {
-    if ([token.providePermission, token.consumePermission].some(permission => permission && ['runtime.manage', 'filesystem.native', 'filesystem.app-config', 'account.network'].includes(permission))) deny();
-  };
+  const deny = denyAuthority; const allowed = assertScopedToken;
   const bind = <T extends object>(token: ApiToken<T>, optional: boolean): T | undefined => {
     allowed(token);
     const api = optional ? ctx.optional(token) : ctx.use(token);
@@ -155,6 +153,7 @@ function scopedContext(ctx: PluginContext, vaultId: string): PluginContext {
       const method = (api as Record<string, unknown>)[name]; if (typeof method !== 'function') deny();
       methods[name] = (...args) => {
         const values = [...args];
+        if (token.id === 'lunaris.vault' && name !== 'current') deny();
         if (token.id === 'lunaris.config') {
           if (values[0] !== ctx.pluginId) deny();
           const position = name === 'read' ? 1 : name === 'get' ? 2 : name === 'set' ? 3 : 2;
@@ -162,7 +161,7 @@ function scopedContext(ctx: PluginContext, vaultId: string): PluginContext {
           if (options?.scope === 'global' || (options?.vaultId !== undefined && options.vaultId !== vaultId)) deny();
           values[position] = { scope: 'vault', vaultId };
         }
-        if (token.id === 'lunaris.filesystem' || token.id === 'lunaris.filesystem-observation') {
+        if (token.id === 'lunaris.filesystem' || token.id === 'lunaris.filesystem-observation' || token.id === 'lunaris.active-document') {
           if (['selectVault', 'closeVault'].includes(name)) deny();
           const inspect = (value: unknown): void => {
             if (value && typeof value === 'object' && 'vaultId' in value && (value as { vaultId: unknown }).vaultId !== vaultId) deny();
@@ -183,6 +182,25 @@ function scopedContext(ctx: PluginContext, vaultId: string): PluginContext {
     provide<T extends object>(token: ApiToken<T>, implementation: T) { allowed(token); return ctx.provide(token, implementation); },
     use<T extends object>(token: ApiToken<T>): T { return bind(token, false)!; },
     optional<T extends object>(token: ApiToken<T>): T | undefined { return bind(token, true); },
+    events: Object.freeze({
+      on<T>(token: EventToken<T>, listener: (payload: Readonly<T>) => void | Promise<void>) {
+        allowed(token);
+        return ctx.events.on(token, payload => {
+          if (token.id === 'lunaris.config-changed') {
+            const change = payload as { pluginId?: string; vaultId?: string; scope?: string };
+            if (change.pluginId !== ctx.pluginId || change.vaultId !== vaultId || change.scope !== 'vault') return;
+          }
+          return listener(payload as Readonly<T>);
+        });
+      },
+      emit<T>(token: EventToken<T>, payload: Readonly<T>) { allowed(token); return ctx.events.emit(token, payload); },
+    }),
+    hooks: Object.freeze({
+      register<T>(token: HookToken<T>, handler: (value: T) => T | Promise<T>, options?: { readonly priority?: number }) {
+        allowed(token); return ctx.hooks.register(token, handler, options);
+      },
+      run<T>(token: HookToken<T>, value: T) { allowed(token); return ctx.hooks.run(token, value); },
+    }),
   });
 }
 

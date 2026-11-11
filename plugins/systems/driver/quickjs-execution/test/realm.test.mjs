@@ -132,3 +132,27 @@ test('SDK broker binds Config and Filesystem calls to captured identity and reje
   assert.equal(calls.length, 1); assert.equal(guest.file('vault-a').ok, true);
   await f.kernel.stopAll(); f.kernel.assertNoResources();
 });
+
+test('isolated SDK cannot acquire ambient roots/accounts or trigger a Vault transition', async () => {
+  const f = await fixture(); let transitions = 0;
+  const Vault = defineApi({ id: 'lunaris.vault', version: '1.0.0', consumePermission: 'vault.access' });
+  f.kernel.installMock(Vault, { current() { return { id: 'vault-a', name: 'A' }; }, open() { transitions++; }, close() { transitions++; } });
+  const blocked = [
+    ['lunaris.filesystem-locations', 'filesystem.access'], ['lunaris.filesystem-roots', 'filesystem.access'],
+    ['lunaris.directory-locations', 'filesystem.access'], ['lunaris.vault-locations', 'vault.access'],
+    ['lunaris.vault-creation', 'vault.access'], ['lunaris.vault-history', 'vault.access'],
+    ['lunaris.account-vaults', 'account.access'], ['lunaris.account-session', 'account.access'],
+    ['lunaris.drafts', 'drafts.access'], ['test.native', 'example.native'],
+  ].map(([id, consumePermission]) => ({ kind: 'api', id, version: '1.0.0', consumePermission }));
+  const manifest = { manifestVersion: 1, id: 'test.package', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './plugin.js', provides: [], requires: [{ kind: 'api', id: Vault.id, range: '^1.0.0' }], permissions: ['vault.access'], optionalPermissions: [] };
+  const code = `export default {manifest:${JSON.stringify(manifest)},activate(ctx){
+    const denied = work => { let code; try { work(); } catch(error) { code = error.code; } if(code!=='PERMISSION_DENIED') throw Error('ambient authority admitted: '+code); };
+    for(const token of ${JSON.stringify(blocked)}) { denied(()=>ctx.optional(token)); denied(()=>ctx.provide(token,{})); }
+    denied(()=>ctx.events.on({kind:'event',id:'lunaris.account-session-changed',version:'1.0.0',consumePermission:'account.access'},()=>{}));
+    denied(()=>ctx.hooks.register({kind:'hook',id:'lunaris.prepare-vault',version:'1.1.0',consumePermission:'vault.access'},value=>value));
+    const vault = ctx.use(${JSON.stringify(Vault)}); if(vault.current().id!=='vault-a') throw Error('lost captured Vault');
+    denied(()=>vault.open()); denied(()=>vault.close());
+  }};`;
+  f.kernel.register(f.load(manifest, code), { ownerId: execution.manifest.id }); f.kernel.grant('test.package', 'vault.access');
+  await f.kernel.start('test.package'); assert.equal(transitions, 0); await f.kernel.stopAll(); f.kernel.assertNoResources();
+});

@@ -97,3 +97,10 @@ runtime management and host safe-mode composition are implemented separately.
 Still required: complete host-contract authority review and native/WebView
 acceptance. Full extension parity is not yet established. Do not give third-party
 code the privileged execution-management API through the broker.
+
+The [incremental authority audit](../../../../../DOCS/design/lime-authority-audit.md)
+records enforced contracts and unresolved deputies. Ambient root/location/history
+acquisition, Vault transitions and account/draft access are denied. Native
+permission checks cover API, event and hook admission. ConfigChanged subscriptions
+are filtered to the captured namespace/Vault. Ordinary custom contracts remain
+extensible; these checks do not constitute a complete transitive authority proof.

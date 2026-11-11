@@ -2,15 +2,19 @@
 
 Status: original L01 source audit and prerequisite specification; implementation in progress.
 Audited on 2026-11-10 at `4d259c199da4be969ec5e71eb451106d04fcdfa3` on
-`feat/lime`. No contracts proposed below are implemented exports. No third-party
-code loading, installation, isolation or host acceptance is delivered by this document.
+`feat/lime`. Sections B01-B04 retain the original prerequisite specification;
+implemented contracts are documented by the references below. This design document
+does not by itself establish host acceptance.
 Follow-up implementations: [kernel management](../reference/runtime-management.md),
 [metadata](../reference/plugin-metadata.md), [package codec](../reference/lup.md),
 [CLI packaging](../guides/plugin-packaging.md) and
 [QuickJS/SDK bridge](../../plugins/systems/driver/quickjs-execution/DOCS/README.md).
-These supersede the corresponding missing primitive findings below; full custom
-UI, generation orchestration, host authority review and product integration remain
-open. The Owner has explicitly authorized implementing the prerequisite changes.
+These supersede corresponding missing primitive findings below. Public declarative
+Views/viewport, captured package resources, awaited Vault generation orchestration,
+engine/settings/product composition and packed external authoring are implemented.
+Environment planning/provider choice, managed-data update recovery, live host
+attachment, the [authority audit](lime-authority-audit.md) and native/visual
+acceptance remain open. The Owner authorized all prerequisite changes.
 
 ## Product boundary
 
