@@ -51,6 +51,7 @@ export async function prepareEmbeddedToolchain({ build = true, output } = {}) {
   }
   await writeFile(path.join(embedded, 'index.json'), JSON.stringify(index, null, 2) + '\n');
   await copyFile(path.join(workspace, 'DOCS/guides/plugin-authoring.md'), path.join(embedded, 'authoring.md'));
+  await copyFile(path.join(workspace, 'DOCS/guides/plugin-recipes.md'), path.join(embedded, 'plugin-recipes.md'));
   if (output) {
     const destination = path.resolve(output); const artifacts = path.join(destination, 'packages'); await mkdir(artifacts, { recursive: true });
     for (const entry of Object.values(index.packages)) await copyFile(path.join(embedded, entry.file), path.join(artifacts, entry.file));

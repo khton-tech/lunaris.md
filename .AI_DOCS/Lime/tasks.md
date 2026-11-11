@@ -41,7 +41,9 @@ acceptance or complete authority audit is claimed.
   and rollback. A disposable headless Vault supports session-local file IO
   across reloads. Application host attachment remains pending.
 - L09: public declarative Views/viewport and actual bundled QuickJS counter/graph
-  integration verified inside Workspace. Complete author recipes remain pending.
+  integration verified inside Workspace. The bundled counter recipe compiles and
+  packs in the external project and runs inside Workspace with a Config fixture.
+  Provider and managed-file recipes are documented.
 - L10: targeted checks and web production build pass. Native/WebView/visual
   acceptance and the remaining failure/recovery matrix remain outstanding.
 

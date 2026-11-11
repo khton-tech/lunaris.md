@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, realpath, rm } from 'node:fs/promises';
+import { mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
@@ -33,7 +33,28 @@ try {
   assert.ok((await command([cli, 'dev', project, '--once'], project)).includes('DEV_STOPPED'));
   const isolated = await command([cli, 'dev', project, '--live', '--once'], project);
   assert.ok(isolated.includes('"mode":"isolated"') && isolated.includes('DEV_STOPPED'));
-  process.stdout.write('External DX passed: packed installation, generation, contract discovery/addition, independent SDK copies, build, validation, tests, LUP inspection and dev cleanup; no publication.\n');
+
+  const recipes = await readFile(path.join(project, 'DOCS/plugin-recipes.md'), 'utf8');
+  const snippet = language => {
+    const match = recipes.match(new RegExp('```' + language + '\\r?\\n([\\s\\S]+?)\\r?\\n```'));
+    assert.ok(match, `Missing ${language} recipe`);
+    return match[1];
+  };
+  const recipeManifest = JSON.parse(snippet('json'));
+  for (const name of ['config', 'localization', 'settings', 'vault']) {
+    await command([cli, 'add-contract', '@lunaris/' + name], project);
+  }
+  await command([npm, 'install', '--ignore-scripts', '--no-audit', '--no-fund', '--offline'], project);
+  const filename = path.join(project, 'manifest.json');
+  const manifest = JSON.parse(await readFile(filename, 'utf8'));
+  await writeFile(filename, JSON.stringify({ ...manifest, ...recipeManifest }, null, 2) + '\n');
+  await writeFile(path.join(project, 'src/plugin.ts'), snippet('ts'));
+  await command([npm, 'run', 'check'], project);
+  const recipeArchive = path.join(project, 'counter.lup');
+  await command([cli, 'pack', project, recipeArchive], project);
+  const counter = JSON.parse(await command([cli, 'inspect-package', recipeArchive], project));
+  assert.deepEqual(counter.manifest.requires, recipeManifest.requires);
+  process.stdout.write('External DX passed: packed installation, generation, checks, LUP inspection, isolated dev cleanup and documented counter recipe.\n');
 } catch (error) {
   process.stderr.write(`External DX failed: ${error.message}\n`); process.exitCode = 1;
 } finally {

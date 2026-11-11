@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { isValidId } from "@lunaris/manifest";
-import { authoringGuide, vendor } from "./toolchain.js";
+import { authoringGuide, authoringRecipes, vendor } from "./toolchain.js";
 
 export class GenerationError extends Error {
   constructor(readonly code: string, message: string) { super(message); this.name = "GenerationError"; }
@@ -37,6 +37,7 @@ export async function createPlugin(target: string, requestedId?: string): Promis
     "test/plugin.test.mjs": 'import test from "node:test";\nimport { createTestKernel } from "@lunaris/test";\nimport { Logger } from "@lunaris/logging";\nimport plugin from "../dist/src/plugin.js";\n\ntest("activates and releases owned resources", async () => {\n  const kernel = createTestKernel();\n  kernel.installMock(Logger, Object.fromEntries(["log","debug","info","warn","error"].map(name => [name, () => true])));\n  kernel.register(plugin);\n  try {\n    await kernel.start(plugin.manifest.id);\n    kernel.assertState(plugin.manifest.id, "active");\n  } finally {\n    await kernel.stopAll();\n  }\n  kernel.assertNoResources();\n});\n',
     "DOCS/README.md": `# ${id}\n\nPurpose: an SDK-only plugin starting point. Implement one responsibility in src/plugin.ts.\n\nUsage: npm install --ignore-scripts, npm run check, npm test, npm run pack. The installed toolchain supplies lunaris-core. See [the bundled authoring guide](authoring.md).\n\nRequired API: lunaris.logger@^1.0.0 via Logger from @lunaris/logging. No APIs/events/hooks are provided by default. Every additional contract belongs in manifest.json and its own documentation.\n\nLifecycle: activation owns cleanup; SDK registrations are released on stop. No SDK access after scope closure. The tools/vendor archives are distributable SDK artifacts, not source-checkout links.\n`,
     'DOCS/authoring.md': await authoringGuide(),
+    'DOCS/plugin-recipes.md': await authoringRecipes(),
     'AGENTS.md': '# Plugin author instructions\n\nRead DOCS/README.md, DOCS/authoring.md and manifest.json first. Use actual public SDK package exports/declarations; do not invent APIs or import host/kernel/private implementations. Discover optional SDK contracts with lunaris-core contracts and add them with lunaris-core add-contract. Do not edit tools/vendor archives.\n\nRequire Logger and use ctx.use(Logger) with ctx.pluginId; preserve original errors without sensitive payloads. Use owned scopes/signals and release resources. New UI uses Views/shared component roles and localization, never raw DOM/React/Mantine in a consumer. Native/filesystem work goes through captured Vault providers.\n\nRun npm run check, npm test and npm run pack after meaningful changes. Metadata must match exported definition. Report missing SDK contracts with concrete requirements rather than bypassing the boundary. Do not publish tooling/packages without separate authorization.\n',
   };
   for (const [relative, content] of Object.entries(files)) {

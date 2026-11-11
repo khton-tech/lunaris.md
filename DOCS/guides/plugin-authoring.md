@@ -1,5 +1,8 @@
 # Independent plugin authoring
 
+[Plugin recipes](plugin-recipes.md) cover persisted settings, custom screens,
+provider selection and managed files.
+
 Supported toolchain: Node >=26.13.0 <27, npm >=11 <12, SDK/kernel/CLI 0.1.0,
 LUP format 1. Tool packages are currently private; use the prepared local packed
 distribution. Preparing it is not package registry publication.
