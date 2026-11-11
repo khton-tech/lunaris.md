@@ -1,5 +1,9 @@
 # Startup and autosave performance review
 
+Follow-up: the Owner authorized SDK changes. See the
+[implementation and final verification report](startup-performance-followup-2026-11-11.md).
+The blocked status below describes the original review baseline.
+
 1. **Status: partial remediation; startup work blocked on a public SDK contract.**
    The working tree was clean before development. Work is isolated on
    `fix/startup-and-autosave-performance`; no merge was performed. This is a
