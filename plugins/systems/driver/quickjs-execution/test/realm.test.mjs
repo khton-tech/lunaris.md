@@ -115,12 +115,19 @@ test('SDK broker binds Config and Filesystem calls to captured identity and reje
   const Filesystem = defineApi({ id: 'lunaris.filesystem', version: '1.0.0', consumePermission: 'filesystem.access' });
   const Guest = defineApi({ id: 'test.guest', version: '1.0.0' }); let guest;
   f.kernel.installMock(Config, { get(id, key, options) { calls.push(['config', id, options]); return { ok: true, value: 1 }; } });
-  f.kernel.installMock(Filesystem, { readText(target) { calls.push(['fs', target]); return { ok: true, value: { text: 'value' } }; } });
+  f.kernel.installMock(Filesystem, {
+    readText(target) { calls.push(['fs', target]); return { ok: true, value: { text: 'value' } }; },
+    remove(target) { calls.push(['remove', target]); return { ok: true, value: null }; },
+  });
   const manifest = { manifestVersion: 1, id: 'test.package', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './plugin.js', provides: [{ kind: 'api', id: Guest.id, version: '1.0.0' }], requires: [{ kind: 'api', id: Config.id, range: '^1.0.0' }, { kind: 'api', id: Filesystem.id, range: '^1.0.0' }], permissions: ['config.access', 'filesystem.access'], optionalPermissions: [] };
   const code = `export default { manifest: ${JSON.stringify(manifest)}, activate(ctx) {
     const config = ctx.use({ kind: 'api', id: 'lunaris.config', version: '1.0.0', consumePermission: 'config.access' });
     const fs = ctx.use({ kind: 'api', id: 'lunaris.filesystem', version: '1.0.0', consumePermission: 'filesystem.access' });
-    ctx.provide({ kind: 'api', id: 'test.guest', version: '1.0.0' }, { config(scope) { return config.get(ctx.pluginId, 'key', scope); }, file(id) { return fs.readText({ vaultId: id, path: 'file.txt' }); } });
+    ctx.provide({ kind: 'api', id: 'test.guest', version: '1.0.0' }, {
+      config(scope) { return config.get(ctx.pluginId, 'key', scope); },
+      file(id, path = 'file.txt') { return fs.readText({ vaultId: id, path }); },
+      remove(path) { return fs.remove({ vaultId: 'vault-a', path }, true); }
+    });
   } };`;
   f.kernel.register(f.load(manifest, code), { ownerId: execution.manifest.id });
   f.kernel.grant('test.package', 'config.access'); f.kernel.grant('test.package', 'filesystem.access');
@@ -130,6 +137,11 @@ test('SDK broker binds Config and Filesystem calls to captured identity and reje
   assert.deepEqual(calls[0], ['config', 'test.package', { scope: 'vault', vaultId: 'vault-a' }]);
   assert.throws(() => guest.config({ scope: 'global' })); assert.throws(() => guest.file('foreign-vault'));
   assert.equal(calls.length, 1); assert.equal(guest.file('vault-a').ok, true);
+  for (const path of ['.LUNARIS/Plugins/registry.json', '.lunaris/plugins/backups/test.package/file', '.lunaris/plugins/data/test.other/file']) {
+    assert.throws(() => guest.file('vault-a', path));
+  }
+  assert.throws(() => guest.remove('.lunaris')); assert.equal(calls.length, 2);
+  assert.equal(guest.file('vault-a', '.lunaris/plugins/data/test.package/file').ok, true);
   await f.kernel.stopAll(); f.kernel.assertNoResources();
 });
 

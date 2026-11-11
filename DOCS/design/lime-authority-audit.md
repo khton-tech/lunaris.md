@@ -15,6 +15,7 @@ permission grants do not grant access through the broker.
 | Runtime management | runtime.manage contracts rejected, including optional access and provision |
 | Native drivers | Any *.native permission rejected; filesystem application-directory authority rejected |
 | Filesystem | Targets must use captured vaultId; root select/close denied; picker/unwatch IDs checked |
+| Lime storage | Direct access to `.lunaris/plugins` is limited to the caller's managed data directory. Structural operations on its ancestors are rejected. |
 | Location acquisition | Filesystem roots/locations/directory locations and their drivers rejected |
 | Vault | current remains usable; open/close rejected; location/creation/history/preparation contracts rejected |
 | Config | Own plugin namespace only; global rejected; effective narrowed to explicit captured Vault |

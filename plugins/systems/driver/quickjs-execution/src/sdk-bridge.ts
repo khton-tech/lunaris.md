@@ -3,7 +3,7 @@ import type { ApiToken, EventToken, HookToken, CancellationSignal, PluginContext
 import type { ExecutionLimits, ExecutionRealm, ExecutionSource, ExecutionValue } from "@lunaris/execution";
 import { createRealm } from "./realm.js";
 import { guestBridge } from "./guest-bridge.js";
-import { assertScopedToken, denyAuthority } from './authority.js';
+import { assertPackageStoragePath, assertScopedToken, denyAuthority } from './authority.js';
 
 type Wire = ExecutionValue;
 type Fn = (...args: unknown[]) => unknown;
@@ -164,7 +164,9 @@ function scopedContext(ctx: PluginContext, vaultId: string): PluginContext {
         if (token.id === 'lunaris.filesystem' || token.id === 'lunaris.filesystem-observation' || token.id === 'lunaris.active-document') {
           if (['selectVault', 'closeVault'].includes(name)) deny();
           const inspect = (value: unknown): void => {
-            if (value && typeof value === 'object' && 'vaultId' in value && (value as { vaultId: unknown }).vaultId !== vaultId) deny();
+            if (!value || typeof value !== 'object' || !('vaultId' in value)) return;
+            if (value.vaultId !== vaultId) deny();
+            if ('path' in value) assertPackageStoragePath(value.path, ctx.pluginId, ['remove', 'move', 'copy'].includes(name));
           };
           for (const value of values) inspect(value);
           if (['pickFile', 'pickDirectory', 'pickSaveLocation', 'unwatch'].includes(name) && values[0] !== vaultId) deny();

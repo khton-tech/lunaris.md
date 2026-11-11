@@ -14,3 +14,14 @@ export function assertScopedToken(token: { readonly id: string; readonly provide
   if (ambientContracts.has(token.id) || [token.providePermission, token.consumePermission].some(permission => permission &&
     (permission.endsWith('.native') || ['runtime.manage', 'filesystem.app-config', 'account.network', 'account.access', 'drafts.access', 'drafts.storage'].includes(permission)))) denyAuthority();
 }
+
+/** Keep the update journal and its backups outside guest filesystem authority. */
+export function assertPackageStoragePath(path: unknown, pluginId: string, structural: boolean): void {
+  if (typeof path !== 'string') return;
+  const normalized = path.toLowerCase();
+  const root = '.lunaris/plugins';
+  const ownData = `${root}/data/${pluginId}`;
+  if (normalized === ownData || normalized.startsWith(`${ownData}/`)) return;
+  if (normalized === root || normalized.startsWith(`${root}/`) ||
+      (structural && (normalized === '' || root.startsWith(`${normalized}/`)))) denyAuthority();
+}
