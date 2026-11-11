@@ -22,7 +22,7 @@ export function createLimeRuntime(kernel: Kernel, builtinIds: readonly string[])
       const definition = managed.get(id)!;
       if (!registered(id)) {
         kernel.register(definition, { ownerId: ctx.pluginId });
-        for (const name of definition.manifest.permissions) kernel.grant(id, name);
+        for (const name of [...definition.manifest.permissions, ...definition.manifest.optionalPermissions]) kernel.grant(id, name);
       }
       await kernel.start(id);
     };
@@ -79,7 +79,7 @@ export function createLimeRuntime(kernel: Kernel, builtinIds: readonly string[])
       replace(environment, manifest: PluginManifest, source: ExecutionSource) {
         const captured = { ...environment }; const definition = execution.load(manifest, source, captured, ctx.signal);
         return operation(captured, definition.manifest.id, async () => {
-          if (registered(definition.manifest.id)) await kernel.replace(definition, { grants: definition.manifest.permissions });
+          if (registered(definition.manifest.id)) await kernel.replace(definition, { grants: [...definition.manifest.permissions, ...definition.manifest.optionalPermissions] });
           managed.set(definition.manifest.id, definition);
         });
       },

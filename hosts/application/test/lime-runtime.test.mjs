@@ -73,9 +73,17 @@ test('disabled package providers never auto-start through another package requir
 test('runtime update grants new declared permissions before candidate code runs', async () => {
   const { kernel, runtime } = await fixture(); const env = { vaultId: 'a', generation: 1 }; await runtime.open(env);
   await runtime.register(env, manifest(), source(manifest()), true);
-  const candidate = { ...manifest('2.0.0'), permissions: ['example.new'] };
-  const updated = await runtime.replace(env, candidate, source(candidate, "if (!ctx.permissions.has('example.new')) throw Error('missing automatic grant');"));
+  const candidate = { ...manifest('2.0.0'), permissions: ['example.new'], optionalPermissions: ['example.optional'] };
+  const updated = await runtime.replace(env, candidate, source(candidate, "if (!ctx.permissions.has('example.new') || !ctx.permissions.has('example.optional')) throw Error('missing automatic grant');"));
   assert.equal(updated.ok, true); assert.equal(runtime.snapshot(env).value[0].version, '2.0.0'); await kernel.stopAll();
+});
+
+test('initial activation automatically grants declared optional permissions without a prompt', async () => {
+  const { kernel, runtime } = await fixture(); const env = { vaultId: 'a', generation: 1 }; await runtime.open(env);
+  const data = { ...manifest(), optionalPermissions: ['example.optional'] };
+  assert.equal((await runtime.register(env, data, source(data, "if (!ctx.permissions.has('example.optional')) throw Error('missing optional grant');"), true)).ok, true);
+  assert.deepEqual(kernel.inspect().plugins.find(item => item.manifest.id === data.id).effectivePermissions, ['example.optional']);
+  await kernel.stopAll();
 });
 
 test('actual bundled SDK and Logger execute a metadata-bearing author plugin without host Intl', async () => {

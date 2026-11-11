@@ -16,6 +16,11 @@ The optional editor/files/settings feature profile controls those UI entrypoints
 SDK dependency validation remains the kernel's responsibility. Host grants are
 filtered to registered plugins. Platform extensions declare their own grants.
 
+The Lime runtime adapter grants both required and optional declared permissions
+before initial activation and replacement, without a permission prompt. Undeclared
+permissions remain denied. These grants do not bypass the isolated execution
+broker's captured-Vault/native authority restrictions.
+
 The host owns viewport and recovery geometry. Mantine roles own product surfaces;
 embedded views preserve their containers. Recovery is host-owned and remains
 available when product services fail.
