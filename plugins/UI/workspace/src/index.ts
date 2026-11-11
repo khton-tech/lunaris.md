@@ -1,3 +1,4 @@
+import { Preparation, PreparationChanged } from "@lunaris/startup";
 import { definePlugin } from "@lunaris/sdk";
 import type { ResourceScope } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
@@ -51,6 +52,8 @@ export default definePlugin({ manifest, async activate(ctx) {
   let empty: View | undefined; let sideEmpty: View | undefined; let layout: View | undefined; let regions: Regions | undefined; let sequence = 0;
   const contentSignatures = new Map<string, string>();
   let latest = startup.snapshot();
+  const preparation = ctx.optional(Preparation);
+  let presentingVaultId: string | undefined;
   let rendering = false;
   let refreshPending = false;
   let compact = false;
@@ -103,7 +106,7 @@ export default definePlugin({ manifest, async activate(ctx) {
   function render(): void {
     if (ctx.signal.aborted) return;
     const current = vaults.current();
-    if (!current || latest.state !== "loaded") { releaseScreen(); return; }
+    if (!current || (latest.state !== "loaded" && presentingVaultId !== current.id) || (preparation && (preparation.tracksVault() && preparation.snapshot().vaultId !== current.id || preparation.snapshot().state === "preparing") && presentingVaultId !== current.id)) { releaseScreen(); return; }
     if (screenVaultId !== current.id) {
       releaseScreen(); screen = ctx.scope.child(); screenVaultId = current.id;
       const result = slots.create({ id: rootId, grow: 1 }, screen.signal);
@@ -179,6 +182,12 @@ export default definePlugin({ manifest, async activate(ctx) {
   });
   ctx.events.on(StartupChanged, snapshot => { if (snapshot.sequence <= latest.sequence) return; latest = snapshot; refresh(); });
   ctx.events.on(VaultChanged, refresh);
+  if (preparation) ctx.events.on(PreparationChanged, snapshot => {
+    const latest = preparation.snapshot();
+    if (snapshot.epoch !== latest.epoch || snapshot.state !== latest.state) return;
+    if (snapshot.state === "preparing") presentingVaultId = undefined;
+    refresh();
+  });
   ctx.events.on(LocaleChanged, refresh);
   ctx.events.on(ComponentsChanged, change => {
     if (change.kind === "removed") {
@@ -195,6 +204,7 @@ export default definePlugin({ manifest, async activate(ctx) {
     }
     if (change.componentId.startsWith("lunaris.workspace-") || workspace.list().some(entry => entry.componentId === change.componentId)) refresh();
   });
+  await preparation?.register({ id: ctx.pluginId, phase: "presentation", async prepare() { presentingVaultId = vaults.current()?.id; refresh(); } }, ctx.signal);
   refresh();
   for (const role of ["lunaris.workspace-empty", "lunaris.workspace-layout"]) {
     if (!components.has(role)) logger.warn(ctx.pluginId, "Waiting for workspace component role", { code: "WORKSPACE_COMPONENT_MISSING", data: { componentId: role } });

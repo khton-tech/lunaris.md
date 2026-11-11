@@ -17,7 +17,7 @@ export interface ApplicationDefinition {
   readonly grants?: Readonly<Record<string, readonly string[]>>;
   readonly view?: { readonly duringStartup?: boolean; mount(signal: AbortSignal): MaybePromise<Disposable> };
   /** Trusted ingress to a replaceable SDK startup provider. */
-  readonly startup?: { update(snapshot: StartupSnapshot): boolean };
+  readonly startup?: { update(snapshot: StartupSnapshot): boolean; prepare?(signal: AbortSignal): Promise<void> };
   /** Product-owned save/release gate, invoked before normal window closure. */
   readonly beforeClose?: () => Promise<boolean>;
 }
@@ -237,6 +237,10 @@ export class HostSession {
         if (generation !== this.#generation) return;
         await this.#kernel.start(id);
       }
+      if (generation !== this.#generation) return;
+      stage = "APPLICATION_PREPARATION_FAILED";
+      pluginId = undefined;
+      await definition.startup?.prepare?.(abort.signal);
       if (generation !== this.#generation) return;
       if (!definition.view?.duringStartup) await mountView();
       if (generation !== this.#generation) return;

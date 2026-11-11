@@ -119,3 +119,7 @@ props; no renderer translation or SDK change is required. Interface Settings
 selects and persists Russian per Vault. Names and user content stay unchanged.
 Run `npm run ui-localization:check` for complete keys and matching placeholders.
 Native acceptance of long Russian labels, menus and narrow layouts is pending.
+
+## Awaited preparation integration
+
+The optional public Preparation API registers a settings-phase participant and awaits the current Vault preference read. A Vault switch no longer applies a temporary default theme/language before reading the saved choices. VaultChanged remains a compatibility path and does not reread an already prepared Vault. Existing Settings controls and Workspace surface ownership are unchanged. A composed regression delays storage and verifies Workspace is absent until language/theme restoration settles; native appearance remains manual acceptance.

@@ -108,5 +108,5 @@ export function createPreferences(ctx: PluginContext, changed: () => void) {
   });
   switchVault();
   logger.info(ctx.pluginId, "Preferences ready");
-  return { current: (): Preferences => session?.values ?? defaults, ready: () => session?.ready ?? Promise.resolve(), choose };
+  return { current: (): Preferences => session?.values ?? defaults, ready: () => { switchVault(); return session?.ready ?? Promise.resolve(); }, choose };
 }

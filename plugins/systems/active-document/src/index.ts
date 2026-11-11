@@ -1,3 +1,4 @@
+import { Preparation } from "@lunaris/startup";
 import { definePlugin } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
 import { Config } from "@lunaris/config";
@@ -12,7 +13,7 @@ const ok = (): FsResult<null> => ({ ok: true, value: null });
 const fail = (code: "INVALID_ARGUMENT" | "CANCELLED", message: string): FsResult<null> => ({ ok: false, error: { code, message } });
 export default definePlugin({ manifest, async activate(ctx) {
   const logger = scopeLogger(ctx.use(Logger), ctx.signal); const config = ctx.use(Config); const vaults = ctx.use(Vault); const fs = ctx.use(Filesystem);
-  let current: ActiveDocumentState = null; let epoch = 0; let queue: Promise<unknown> = Promise.resolve();
+  let current: ActiveDocumentState = null; let restoredVault: string | null | undefined; let epoch = 0; let queue: Promise<unknown> = Promise.resolve();
   const live = (version: number, vaultId?: string) => !ctx.signal.aborted && epoch === version && (!vaultId || vaults.current()?.id === vaultId);
   function publish(next: ActiveDocumentState, reason: DocumentTransition["reason"]) {
     const previous = current;
@@ -59,11 +60,14 @@ export default definePlugin({ manifest, async activate(ctx) {
     if (!live(version, target.vaultId)) return fail("CANCELLED", "Vault session changed.");
     if (!result.ok) { logger.warn(ctx.pluginId, "Cannot activate document", { error: result.error }); return result; }
     if (result.value.kind !== "file") return fail("INVALID_ARGUMENT", "A regular file is required.");
-    const commit = async () => { publish(target, reason); await persist(target.vaultId, target.path, version); return ok(); };
+    const commit = async () => { publish(target, reason); if (reason !== "restore") await persist(target.vaultId, target.path, version); return ok(); };
     return reason === "open" ? guarded(target, reason, version, commit) : commit();
   }
   function switchVault() {
-    const version = ++epoch; const root = vaults.current(); publish(null, "vault");
+    const root = vaults.current();
+    if ((root?.id ?? null) === restoredVault) return queue;
+    restoredVault = root?.id ?? null;
+    const version = ++epoch; publish(null, "vault");
     return enqueue(async () => {
       if (!root || !live(version, root.id)) return ok();
       const saved = await config.get(ctx.pluginId, "path", { scope: "vault", vaultId: root.id });
@@ -110,5 +114,6 @@ export default definePlugin({ manifest, async activate(ctx) {
   });
   ctx.events.on(VaultChanged, async () => { await switchVault(); });
   await switchVault();
+  await ctx.optional(Preparation)?.register({ id: ctx.pluginId, phase: "document", async prepare() { await switchVault(); } }, ctx.signal);
   if (!ctx.signal.aborted) logger.info(ctx.pluginId, "Active document provider ready");
 } });

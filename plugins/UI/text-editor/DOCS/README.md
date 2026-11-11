@@ -629,3 +629,7 @@ Recovery close safety: DocumentProtection includes unsettled draft work and stor
 ## Competing recovery drafts
 
 Drafts 2.0 integration uses a random per-document-session writer identity, lists all candidates and copies selected content into that writer. Multiple candidates pause editing and require explicit selection; normal autosave never chooses among them. Public text-editor role props are recoveryLabel, recoveryCandidates ({ id, label }[]), and onRecovery(id). The editor owns translated copy, candidate state and operations; Mantine owns the embedded action composition. Workspace retains all outer geometry and surfaces. Unselected records remain recoverable. Native acceptance remains pending for long previews, narrow/short Workspace, keyboard focus, both themes and two real browser tabs.
+
+## Awaited preparation integration
+
+The optional Preparation API awaits current Vault preferences and initial document loading in the content phase before Workspace presentation. Loaded documents are not reread just to satisfy preparation. Existing recovery/error controls remain authoritative for recoverable read failures. Direct Vault/document notifications remain supported by hosts without preparation. No UIKit surfaces, controls or styles changed; native first-paint and focus acceptance remain manual.

@@ -1,4 +1,37 @@
 import { defineApi, defineEvent } from "@lunaris/sdk";
+import type { CancellationSignal } from "@lunaris/sdk";
+
+export type PreparationPhase = "settings" | "document" | "content" | "presentation";
+export interface PreparationContext {
+  readonly epoch: number;
+  readonly vaultId: string | null;
+  readonly signal: CancellationSignal;
+}
+export interface PreparationSnapshot {
+  readonly epoch: number;
+  readonly vaultId: string | null;
+  readonly state: "idle" | "preparing" | "ready" | "failed";
+}
+export interface PreparationParticipant {
+  readonly id: string;
+  readonly phase: PreparationPhase;
+  prepare(context: PreparationContext): Promise<void>;
+}
+/** Register during activation. Late registrations await their own preparation. */
+export const Preparation = defineApi<{
+  snapshot(): PreparationSnapshot;
+  tracksVault(): boolean;
+  register(participant: PreparationParticipant, owner: CancellationSignal): Promise<void>;
+}>({ id: "lunaris.preparation", version: "1.0.0", validate: value => !!value && typeof value === "object" &&
+  ["snapshot", "register", "tracksVault"].every(key => typeof Object.getOwnPropertyDescriptor(value, key)?.value === "function") });
+export const PreparationChanged = defineEvent<PreparationSnapshot>({
+  id: "lunaris.preparation-changed", version: "1.0.0", validate: value => {
+    const state = value as PreparationSnapshot | null;
+    return !!state && Number.isSafeInteger(state.epoch) && state.epoch >= 0 &&
+      (state.vaultId === null || typeof state.vaultId === "string" && state.vaultId.length > 0) &&
+      ["idle", "preparing", "ready", "failed"].includes(state.state);
+  },
+});
 
 export type StartupState = "loading" | "loaded" | "failed" | "stopped";
 export type StartupStage = "composition" | "registration" | "activation" | "mounting" | "ready" | "failed" | "stopped";

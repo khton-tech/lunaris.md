@@ -6,10 +6,48 @@
   "sdk": "^0.1.0",
   "entry": "./dist/src/index.js",
   "provides": [
-    { "kind": "api", "id": "lunaris.startup", "version": "1.0.0" },
-    { "kind": "event", "id": "lunaris.startup-changed", "version": "1.0.0" }
+    {
+      "kind": "api",
+      "id": "lunaris.startup",
+      "version": "1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.startup-changed",
+      "version": "1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.preparation",
+      "version": "1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.preparation-changed",
+      "version": "1.0.0"
+    }
   ],
-  "requires": [{ "kind": "api", "id": "lunaris.logger", "range": "^1.0.0" }],
+  "requires": [
+    {
+      "kind": "api",
+      "id": "lunaris.logger",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.vault-lifecycle",
+      "range": "^1.1.0",
+      "optional": true
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.vault",
+      "range": "^1.0.0",
+      "optional": true
+    }
+  ],
   "permissions": [],
-  "optionalPermissions": []
+  "optionalPermissions": [
+    "vault.access"
+  ]
 }

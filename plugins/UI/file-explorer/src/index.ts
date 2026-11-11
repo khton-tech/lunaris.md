@@ -1,3 +1,4 @@
+import { Preparation } from "@lunaris/startup";
 import { WorkspaceSidebar } from "@lunaris/workspace";
 import { ActiveDocument, ActiveDocumentChanged } from "@lunaris/active-document";
 import { definePlugin } from "@lunaris/sdk";
@@ -16,7 +17,7 @@ import { createVaultSwitcher } from "./vault-switcher.js";
 import { createPreferences } from "./preferences.js";
 import manifest from "../manifest.json" with { type: "json" };
 
-export default definePlugin({ manifest, activate(ctx) {
+export default definePlugin({ manifest, async activate(ctx) {
   const navigation = ctx.optional(WorkspaceSidebar);
   const logger = scopeLogger(ctx.use(Logger), ctx.signal); const sidebar = ctx.use(Sidebar); const fs = ctx.use(Filesystem);
   const documents = ctx.use(ActiveDocument);
@@ -26,7 +27,7 @@ export default definePlugin({ manifest, activate(ctx) {
   if (!messages.ok) throw new Error("Cannot register explorer localization.", { cause: messages.error });
   const tabId = `${ctx.pluginId}.files`; let registered = false; let scheduled = false;
   let session: ResourceScope | undefined; let model: ExplorerModel | undefined; let watchId: string | undefined;
-  let refreshing = false; let dirty = false;
+  let refreshing = false; let dirty = false; let ready = Promise.resolve();
   const text = (key: string) => localization.text(ctx.pluginId, key);
   const switcher = createVaultSwitcher(ctx, changed);
   const preferences = createPreferences(ctx, changed);
@@ -107,7 +108,7 @@ export default definePlugin({ manifest, activate(ctx) {
       changed, (level, message, error) => { if (!ctx.signal.aborted) logger[level](ctx.pluginId, message, error === undefined ? {} : { error }); },
       async (source, destination) => { if (current.active) { const result = await documents.relocate({ vaultId: root.id, path: source }, { vaultId: root.id, path: destination }); if (!result.ok && current.active) logger.warn(ctx.pluginId, "Cannot relocate active document", { error: result.error }); } });
     model = current; changed();
-    void (async () => {
+    ready = (async () => {
       try {
         await preferences.ready();
         if (!current.active) return;
@@ -147,5 +148,6 @@ export default definePlugin({ manifest, activate(ctx) {
   });
   ctx.events.on(VaultChanged, switchVault); ctx.events.on(LocaleChanged, changed);
   publish(); switchVault();
+  await ctx.optional(Preparation)?.register({ id: ctx.pluginId, phase: "content", async prepare() { switchVault(); await ready; } }, ctx.signal);
   logger.info(ctx.pluginId, "File explorer ready", { code: "EXPLORER_READY" });
 } });

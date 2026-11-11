@@ -1,5 +1,62 @@
 # Startup progress
 
+## Awaited product preparation (2026-11-11)
+
+The shared application composition now mounts its product surface **after**
+activation and preparation. The existing host loading screen remains authoritative
+until then. Custom hosts may still explicitly opt into early surfaces. This
+supersedes the historical Tauri early-mount policy described below.
+
+`Preparation` and `PreparationChanged` are additive public contracts in
+`@lunaris/startup`; the version 1 Startup payload and validator are unchanged.
+Register an owned participant during activation and await registration:
+
+```ts
+await ctx.use(Preparation).register({
+  id: ctx.pluginId,
+  phase: "settings",
+  async prepare({ vaultId, signal }) {
+    // Restore owned state through SDK providers; respect cancellation before commit.
+    await restore(vaultId, signal);
+  },
+}, ctx.signal);
+```
+
+Phases run in order: settings, document, content, presentation. Participants
+within one phase retain registration order. Registration is sealed during a run;
+do not activate additional participants from a preparation callback. Runtime
+plugins should be activated during Vault runtime settlement, before preparation.
+After a completed attempt, registration awaits only the new participant's work
+without reopening global startup. When a new Vault is being committed, new
+participants join its upcoming preparation instead of running against the old
+snapshot. Duplicate IDs are rejected. Owner cancellation removes registrations
+and cancels/unblocks their pending work. Consumers must honor the supplied signal
+and their own session identity before committing delayed results.
+
+The snapshot contains an epoch, explicit Vault ID (or null), and idle/preparing/
+ready/failed state. `tracksVault()` declares whether trusted composition connected
+Vault lifecycle management; application-only hosts remain supported. Subscribe
+before reading the API, and reject stale events by comparing the current snapshot.
+There is a 15-second preparation deadline, including notification dispatch.
+Superseding runs, host cancellation and provider disposal cancel pending work.
+Required thrown failures prevent readiness; components may instead deliberately
+settle with their existing error/retry state for recoverable I/O failures.
+
+Trusted hosts call the startup controller's `prepare(signal)` after entrypoints
+activate and before mounting/revealing the product surface or publishing loaded.
+The provider uses VaultLifecycle 1.1 settlement order 100, after runtime order 0.
+It receives optional vault.access from shared composition. Workspace owns its
+existing region surfaces and gates construction through this contract; no consumer
+inspects another plugin's DOM. Settings, active-document restoration, editor
+preferences/document reads and explorer initialization participate through SDK.
+The final presentation phase constructs Workspace before the surface is exposed.
+
+Vault preparation failure cannot roll back an already committed root: it is logged
+and publishes failed, permitting existing recoverable error views. Application
+preparation failure enters host recovery. Native paint, focus and sizing remain
+manual acceptance; automated tests cover deferred preferences in a real composed
+Workspace, phase ordering, cancellation, deadlines, late additions and host failure.
+
 Required: a product loading screen must observe real startup milestones without
 importing the host/kernel, including when its activation follows configuration
 loading. Existing: SDK APIs/events, Logger and isolated slot surfaces. Added:

@@ -1,3 +1,4 @@
+import { Preparation } from "@lunaris/startup";
 import { EditorEffects, EditorExtensions } from "@lunaris/editor";
 import { createDeletionEffects } from "./deletion-effects.js";
 import { createExtensions } from "./extensions.js";
@@ -43,7 +44,7 @@ const basename = (path: string) => path.slice(path.lastIndexOf("/") + 1);
 const parentPath = (path: string) => path.slice(0, Math.max(0, path.lastIndexOf("/")));
 const stem = (path: string) => basename(path).replace(/\.md$/i, "");
 
-export default definePlugin({ manifest, activate(ctx) {
+export default definePlugin({ manifest, async activate(ctx) {
   const menus = ctx.use(ContextMenu); const clipboard = ctx.use(Clipboard);
   const logger = scopeLogger(ctx.use(Logger), ctx.signal); const fs = ctx.use(Filesystem); const documents = ctx.use(ActiveDocument);
   const screens = ctx.use(ActiveScreen); const components = ctx.use(Components); const localization = ctx.use(Localization);
@@ -333,5 +334,11 @@ export default definePlugin({ manifest, activate(ctx) {
   });
   ctx.scope.own({ dispose() { for (const session of sessions.values()) session.dispose(); sessions.clear(); states.clear(); } });
   choose(documents.current()); if (documents.current()) selectScreen();
+  await ctx.optional(Preparation)?.register({ id: ctx.pluginId, phase: "content", async prepare() {
+    await preferences.ready();
+    choose(documents.current());
+    if (current && (!current.loaded || current.loading)) await current.load();
+    if (documents.current()) selectScreen();
+  } }, ctx.signal);
   logger.info(ctx.pluginId, "Text editor ready", { data: { autosaveDelay: 1000 } });
 } });

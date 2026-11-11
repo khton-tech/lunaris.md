@@ -61,3 +61,7 @@ file-explorer mantine-components. Tests cover persisted restoration, per-Vault
 isolation, missing files, permission/storage failures, folder relocation, stale
 asynchronous operations, active marking after focus/selection changes, revealing
 ancestors and stale controller callbacks.
+
+## Awaited preparation integration
+
+The optional Preparation API restores the selected document in the document phase. Repeated notification for the same Vault reuses the restoration queue. Restoring a valid saved selection no longer writes the identical path back to Config; explicit user selection and clearing invalid paths still persist. Integration with text-editor and Workspace uses public contracts.

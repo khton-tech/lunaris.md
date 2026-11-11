@@ -89,6 +89,16 @@ test('startup has no dialog; open/switch/close publish explicit identities after
   await s.host.stopAll(); s.host.assertNoResources(); assert.deepEqual(s.host.diagnostics(), []);
 });
 
+test('settlement ordering runs runtime before presentation regardless of registration order', async () => {
+  const s = await setup(); const lifecycle = s.context.use(VaultLifecycle); const calls = [];
+  for (const [id, settlementOrder] of [['presentation', 100], ['runtime', 0]]) {
+    assert.equal(lifecycle.register({ id, settlementOrder, async beforeRelease() { return ok(null); }, async settled() { calls.push(id); } }, s.context.signal).ok, true);
+  }
+  assert.equal(lifecycle.register({ id: 'invalid', settlementOrder: NaN, async beforeRelease() { return ok(null); }, async settled() {} }, s.context.signal).ok, false);
+  s.select('a'); await s.manager.open(); assert.deepEqual(calls, ['runtime', 'presentation']);
+  await s.host.stopAll(); s.host.assertNoResources();
+});
+
 test('runtime lifecycle waits after committed open and stops plugins before root release', async () => {
   const s = await setup(); const lifecycle = s.context.use(VaultLifecycle); const order = []; const gate = deferred();
   const owner = new AbortController();
