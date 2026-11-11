@@ -87,7 +87,7 @@ export const dependencies = {
   'config-manager': ['sdk', 'filesystem', 'vault', 'logging', 'config'],
   kernel: ['manifest', 'sdk'],
   test: ['sdk', 'kernel'],
-  development: ['manifest', 'sdk', 'kernel', 'logging', 'logger', 'lup', 'execution', 'quickjs-execution'],
+  development: ['manifest', 'sdk', 'kernel', 'logging', 'logger', 'lup', 'execution', 'quickjs-execution', 'filesystem', 'vault'],
   cli: ['manifest', 'lup', 'sdk', 'kernel', 'test', 'development'],
   tauri: ['application-host', 'window-titlebar', 'window-provider', 'tauri-window', 'vault', 'logging', 'text-editor', 'interface-settings', 'settings-provider', 'settings-plugin', 'active-screen-provider', 'active-screen-plugin', 'active-document', 'active-document-provider', 'context-menu-provider', 'file-explorer', 'sidebar-plugin', 'sidebar-provider', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'mantine-components', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'],
 };

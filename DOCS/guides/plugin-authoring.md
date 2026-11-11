@@ -126,8 +126,12 @@ TypeScript, run the project build again and enter `reload` in the session.
 Reload bundles all project roots before applying changes. Each changed package
 replaces its code and restarts its affected consumers. If activation fails, the
 CLI reports the runtime snapshot after the kernel attempts rollback. Enter
-`stop` to release the session. Interactive reload currently runs with logging
-and supplied plugin contracts. Attachment to an application Vault remains pending.
+`stop` to release the session. Each live session owns a disposable, in-memory
+Vault. The public Vault and Filesystem APIs support reading, writing, inspecting
+and removing files in that session. Data survives a code reload and is discarded
+when the session stops. The development driver caps files at 128 KiB and storage
+at 16 MiB. Directory operations, native pickers, watches and application Vault
+attachment are unavailable in this host.
 Updates back up the package's managed directory and Vault Config namespace.
 Keep migrations within those locations to benefit from rollback. Native dialogs,
 WebView execution, viewport geometry and visual

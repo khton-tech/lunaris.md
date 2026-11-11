@@ -16,18 +16,24 @@ test('isolated live CLI replaces a changed bundle and keeps the last good activa
   const root = await directory(t);
   const manifest = { manifestVersion: 1, id: 'test.live', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './plugin.mjs',
     metadata: { name: 'Live', author: 'Author', description: 'Development fixture', platforms: 'universal', languages: ['en'] },
-    provides: [], requires: [], permissions: [], optionalPermissions: [] };
+    provides: [], requires: [{ kind: 'api', id: 'lunaris.vault', range: '^1.0.0' }, { kind: 'api', id: 'lunaris.filesystem', range: '^1.0.0' }],
+    permissions: ['vault.access', 'filesystem.access'], optionalPermissions: [] };
   await writeFile(path.join(root, 'manifest.json'), JSON.stringify(manifest));
   const entry = path.join(root, 'plugin.mjs');
-  const write = body => writeFile(entry, `export default { manifest: ${JSON.stringify(manifest)}, activate(ctx) { ${body} } };`);
-  await write("if (typeof process !== 'undefined') throw Error('host leaked'); ctx.scope.own({dispose(){}});");
+  const write = body => writeFile(entry, `export default { manifest: ${JSON.stringify(manifest)}, async activate(ctx) {
+    const vault = ctx.use({ kind: 'api', id: 'lunaris.vault', version: '1.0.0', consumePermission: 'vault.access' });
+    const fs = ctx.use({ kind: 'api', id: 'lunaris.filesystem', version: '1.0.0', consumePermission: 'filesystem.access' });
+    const file = { vaultId: vault.current().id, path: 'sample.txt' };
+    ${body}
+  } };`);
+  await write("if (typeof process !== 'undefined') throw Error('host leaked'); if (!(await fs.writeText(file, 'hello', { mode: 'upsert' })).ok) throw Error('write failed'); ctx.scope.own({dispose(){}});");
   const child = spawn(process.execPath, [bin, 'dev', '--live', root], { stdio: ['pipe', 'pipe', 'pipe'], signal: t.signal });
   t.after(() => child.kill());
   const out = createInterface({ input: child.stdout })[Symbol.asyncIterator]();
   const err = createInterface({ input: child.stderr })[Symbol.asyncIterator]();
   const read = async lines => JSON.parse((await lines.next()).value);
   assert.equal((await read(out)).mode, 'isolated');
-  await write('ctx.scope.own({dispose(){}});');
+  await write("if ((await fs.readText(file)).value?.text !== 'hello') throw Error('data lost'); ctx.scope.own({dispose(){}});");
   child.stdin.write('reload\n');
   assert.equal((await read(out)).code, 'DEV_RELOADED');
   await write("throw Error('candidate failed');");

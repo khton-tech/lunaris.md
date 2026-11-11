@@ -14,13 +14,15 @@
   ],
   "dependencies": {
     "@lunaris/execution": "0.1.0",
+    "@lunaris/filesystem": "0.1.0",
     "@lunaris/kernel": "0.1.0",
     "@lunaris/logger": "0.1.0",
     "@lunaris/logging": "0.1.0",
     "@lunaris/lup": "0.1.0",
     "@lunaris/manifest": "0.1.0",
     "@lunaris/quickjs-execution": "0.1.0",
-    "@lunaris/sdk": "0.1.0"
+    "@lunaris/sdk": "0.1.0",
+    "@lunaris/vault": "0.1.0"
   },
   "scripts": {
     "build": "tsc -b"

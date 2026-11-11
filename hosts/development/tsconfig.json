@@ -2,5 +2,5 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": { "types": ["node"], "rootDir": "src", "outDir": "dist" },
   "include": ["src/**/*.ts"],
-  "references": [{ "path": "../../packages/manifest" }, { "path": "../../packages/sdk" }, { "path": "../../packages/kernel" }, { "path": "../../packages/logging" }, { "path": "../../plugins/systems/logger" }, { "path": "../../packages/lup" }, { "path": "../../packages/execution" }, { "path": "../../plugins/systems/driver/quickjs-execution" }]
+  "references": [{ "path": "../../packages/manifest" }, { "path": "../../packages/sdk" }, { "path": "../../packages/kernel" }, { "path": "../../packages/logging" }, { "path": "../../plugins/systems/logger" }, { "path": "../../packages/lup" }, { "path": "../../packages/filesystem" }, { "path": "../../packages/vault" }, { "path": "../../packages/execution" }, { "path": "../../plugins/systems/driver/quickjs-execution" }]
 }

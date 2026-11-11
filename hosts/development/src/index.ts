@@ -15,6 +15,7 @@ import { PluginExecution } from "@lunaris/execution";
 import type { PluginExecutionApi } from "@lunaris/execution";
 import type { InspectedLup } from "@lunaris/lup";
 import execution from "@lunaris/quickjs-execution";
+import { createDevelopmentVault, developmentVault } from './vault.js';
 
 export class LoadError extends Error {
   constructor(readonly code: string, message: string, readonly location: string, options?: ErrorOptions) {
@@ -141,13 +142,14 @@ export function createLiveSession(packages: readonly InspectedLup[]) {
     provides: [], requires: [{ kind: 'api', id: PluginExecution.id, range: '^1.0.0' }], permissions: ['runtime.manage'], optionalPermissions: [] };
   registerLogging(kernel, [], logs, true);
   kernel.register(execution);
+  kernel.register(createDevelopmentVault());
   kernel.register(definePlugin({ manifest, activate(ctx) { api = ctx.use(PluginExecution); } }));
   kernel.grant(ownerId, 'runtime.manage');
   const definition = (item: InspectedLup) => {
     const entry = item.manifest.entry.slice(2);
     const text = new TextDecoder('utf-8', { fatal: true }).decode(item.read(entry));
     const resources = Object.fromEntries(item.paths.filter(name => name.startsWith('assets/')).map(name => [name, Array.from(item.read(name)!)]));
-    return api.load(item.manifest, { entry, modules: { [entry]: text }, resources }, { vaultId: ownerId, generation: 1 }, authority.signal);
+    return api.load(item.manifest, { entry, modules: { [entry]: text }, resources }, { vaultId: developmentVault.id, generation: 1 }, authority.signal);
   };
   const grants = (item: InspectedLup) => [...item.manifest.permissions, ...item.manifest.optionalPermissions];
   return {
