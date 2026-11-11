@@ -1036,15 +1036,17 @@ a 44px-wide touch target. Unavailable actions keep their position and are
 disabled. A single row surface paints selected, hover and press feedback behind
 the label and trailing action. Enabled controls participate in menu keyboard
 navigation. A sortable choice uses the shared tab drag implementation on the
-vertical axis. Mouse users can drag the label and touch users use the grip to
-preserve scrolling on the rest of the row. A boundary line previews the insertion
-point, with edge scrolling for longer lists. Alt+Up or Alt+Down on the label
+vertical axis. Mouse users can drag the label and touch users start at its
+leading edge to preserve scrolling on the rest of the row. The mobile list has
+no drag glyph or insertion line. Longer lists retain edge scrolling.
+Alt+Up or Alt+Down on the label
 moves a row by one position. The Active Screen role accepts compactTabs, supplied from the
 owning Workspace context when its dock actions are available. It omits the tab
 strip and the location/history row in that presentation. The Owner's phone
 reference places history, creation and the horizontal tab counter in one
-floating bottom pill. WorkspaceLayout owns the pill, themed surface and safe
-area offset. The mobile role owns the controls and the 24 by 20px minimum
+floating bottom pill. WorkspaceLayout owns the pill, theme panel color,
+subdued separator and safe area offset. The mobile role owns the controls,
+the popup's subdued separator and the 24 by 20px minimum
 rounded outline with a 2px stroke.
 Reference: [Mantine UI buttons](https://ui.mantine.dev/category/buttons/) and
 [Mantine Menu](https://mantine.dev/core/menu/). Native visual acceptance of

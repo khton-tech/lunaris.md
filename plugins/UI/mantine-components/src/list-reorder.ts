@@ -109,7 +109,7 @@ export function useListReorder(
   function updatePosition(current: Drag, pointer: number): void {
     const scrolled = scrollWhileDragging(pointer);
     const target = position(current, pointer);
-    setDrop(previous => previous?.id === target?.id && previous?.edge === target?.edge ? previous : target);
+    if (horizontal) setDrop(previous => previous?.id === target?.id && previous?.edge === target?.edge ? previous : target);
     if (!horizontal && scrolled) frame.current = requestAnimationFrame(() => {
       frame.current = undefined;
       if (drag.current === current) updatePosition(current, pointer);

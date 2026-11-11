@@ -96,13 +96,14 @@ function MobileAction({ item, compact, dock, overlay }: {
         const sortable = reorder.enabled && !choice.disabled;
         return <div key={choice.id} className="lm-mobile-choice-row" data-selected={selected || undefined}
           data-reorder-id={choice.id} data-sortable={sortable || undefined}
-          data-drop={reorder.drop?.id === choice.id ? reorder.drop.edge : undefined}
           role={trailing ? "group" : undefined} aria-label={trailing ? choice.label : undefined}>
-          {sortable && <span className="lm-mobile-choice-grip" aria-hidden="true"
-            onPointerDown={event => reorder.start(event, event.currentTarget.parentElement!, true)}><Icon name="grip-vertical" /></span>}
           <Menu.Item title={choice.title ?? choice.label} aria-current={selected ? "true" : undefined} disabled={choice.disabled ?? false}
             aria-keyshortcuts={sortable ? "Alt+ArrowUp Alt+ArrowDown" : undefined}
-            onPointerDown={event => reorder.start(event, event.currentTarget.parentElement!)}
+            onPointerDown={event => {
+              const target = event.target;
+              const fromEdge = target instanceof HTMLElement && target.classList.contains("lm-mobile-choice-drag-zone");
+              reorder.start(event, event.currentTarget.parentElement!, fromEdge);
+            }}
             onKeyDownCapture={event => {
               if (!sortable || !event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
               event.preventDefault();
@@ -115,7 +116,10 @@ function MobileAction({ item, compact, dock, overlay }: {
                 event.currentTarget.scrollIntoView?.({ block: "nearest" });
               }
             }}
-            leftSection={choice.icon ? <Icon name={choice.icon} /> : undefined} onClick={() => item.onPress(choice.id)}>{choice.label}</Menu.Item>
+            leftSection={choice.icon ? <Icon name={choice.icon} /> : undefined} onClick={() => item.onPress(choice.id)}>
+            {choice.label}
+            {sortable && <span className="lm-mobile-choice-drag-zone" aria-hidden="true" />}
+          </Menu.Item>
           {trailing && <Menu.Item className="lm-mobile-choice-trailing" aria-label={trailing.label} title={trailing.title ?? trailing.label}
             disabled={trailing.disabled ?? false} onClick={() => item.onPress(trailing.id)}><Icon name={trailing.icon ?? "actions"} /></Menu.Item>}
         </div>;

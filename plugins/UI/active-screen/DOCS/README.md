@@ -84,7 +84,7 @@ reordering. See
 The Owner's annotated compact list is the reference for the narrower menu
 and five-row scrolling viewport. The mobile list uses the same reorder operation
 as the desktop strip. Dragging vertically changes order while preserving the
-current tab and its visit history. Native acceptance covers drag handles,
+current tab and its visit history. Native acceptance covers touch dragging,
 edge scrolling, selection and close feedback in both themes.
 
 ## Russian UI copy

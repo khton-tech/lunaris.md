@@ -74,8 +74,9 @@ public Search action. The picker count includes blank tabs. It opens an anchored
 Vault switcher pattern. Its rows select tabs through the same callbacks as the
 top strip. The menu lists open tabs with a close control on each row and marks
 the selected row with the Files active-file accent line. The final blank
-tab's close control is disabled. Drag the label with a mouse or the grip with
-touch to move a tab. Both platforms use the same tab ordering operation.
+tab's close control is disabled. Drag the label with a mouse or start a touch
+drag at its leading edge to move a tab. Both layouts use the same tab ordering
+operation. The dock uses the theme panel color and a subdued separator.
 The dock's plus creates tabs. The anchored popup matches the dock's measured
 width and center. The dock takes 70% of the Workspace width within its side
 gutters. The popup fits up to five rows and scrolls internally when more tabs

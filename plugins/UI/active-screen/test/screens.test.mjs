@@ -163,6 +163,9 @@ test('compact Workspace shows one live tab counter and switches through the shar
     const toolbar = s.surface.querySelector('.lm-workspace-mobile-toolbar');
     assert.equal(toolbar.hidden, false);
     assert.equal(s.dom.window.getComputedStyle(toolbar).width, '70%');
+    assert.ok([...stylesheet.sheet.cssRules].some(rule =>
+      rule.selectorText === '.lm-root .lm-workspace-mobile-toolbar' &&
+      rule.style?.getPropertyValue('background') === 'var(--vault-panel)'));
     const dockActions = toolbar.querySelector('.lm-mobile-menu-items');
     assert.equal(s.dom.window.getComputedStyle(dockActions).flexGrow, '1');
     assert.equal(dockActions.style.getPropertyValue('--group-justify'), 'space-evenly');
@@ -245,12 +248,14 @@ test('compact Workspace shows one live tab counter and switches through the shar
         return new DOMRect(0, 400 + choices().indexOf(element) * 34 + offset, 252, 34);
       };
     }
-    const grip = second.querySelector('.lm-mobile-choice-grip');
+    const label = command('Новая вкладка');
+    const dragZone = label.querySelector('.lm-mobile-choice-drag-zone');
+    assert.equal(dragZone.childElementCount, 0);
     let captured;
-    grip.setPointerCapture = id => { captured = id; };
-    grip.hasPointerCapture = id => captured === id;
-    grip.releasePointerCapture = () => { captured = undefined; };
-    const pointer = (type, x, y, source = grip) => {
+    label.setPointerCapture = id => { captured = id; };
+    label.hasPointerCapture = id => captured === id;
+    label.releasePointerCapture = () => { captured = undefined; };
+    const pointer = (type, x, y, source = dragZone) => {
       const event = new s.dom.window.MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, detail: 1 });
       Object.defineProperties(event, { pointerType: { value: 'touch' }, pointerId: { value: 1 } });
       flushSync(() => source.dispatchEvent(event));
@@ -263,7 +268,7 @@ test('compact Workspace shows one live tab counter and switches through the shar
     pointer('pointermove', 90, 410);
     await flush();
     assert.equal(second.style.transform, 'translateY(-34px)');
-    assert.equal(first.dataset.drop, 'before');
+    assert.equal(menu().querySelector('[data-drop]'), null);
     pointer('pointerup', 90, 410);
     pointer('click', 90, 410, command('Новая вкладка'));
     await flush();
