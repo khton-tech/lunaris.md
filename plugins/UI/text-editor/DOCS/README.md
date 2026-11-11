@@ -93,8 +93,9 @@ Live Preview is enabled. The editor shows an editable file-name title above the
 document; renaming it through ActiveDocument.relocate moves the file on disk and
 remaps the open buffer. Empty names, unchanged names and failed renames restore
 the previous title and show a localized error. The editor has no persistent
-saved status, mode toggle or Save button. Autosave and Mod-S
-remain available. Source mode remains an internal adapter capability with no
+saved status, mode toggle or Save button. During autosave and Mod-S, the Mantine
+title field is temporarily read-only and retains its normal styling and focus.
+Source mode remains an internal adapter capability with no
 product control. No reading view, formatting toolbar, gutter or CodeMirror
 search panel is included. Unsupported extensions never decode as editable text.
 

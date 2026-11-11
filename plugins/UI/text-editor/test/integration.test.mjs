@@ -99,6 +99,7 @@ async function setup(options = {}) {
     async readText(t) { if (options.read) { const result = await options.read(t); if (result) return result; } return closed.has(t.vaultId) ? fail('VAULT_CLOSED') : disk.has(`${t.vaultId}/${t.path}`) ? ok({ ...disk.get(`${t.vaultId}/${t.path}`) }) : fail('NOT_FOUND'); },
     async writeText(t, text, policy) {
       calls.push(['write', { ...t }, text, policy]); const previous = disk.get(`${t.vaultId}/${t.path}`);
+      if (options.beforeWrite) await options.beforeWrite();
       if (options.writeFailure) return fail(options.writeFailure);
       if (closed.has(t.vaultId)) return fail('VAULT_CLOSED'); if (!previous) return fail('NOT_FOUND');
       if (previous.version !== policy.expectedVersion) return fail('CONFLICT');
@@ -785,6 +786,46 @@ test('editor writer identities remain distinct across independent kernels with m
  for(let i=0;i<2;i++){const s=await setup({drafts});s.cm().dispatch({changes:{from:0,to:s.cm().state.doc.length,insert:'Writer '+i}});await flush();assert.ok(records.length>i,JSON.stringify(s.kernel.diagnostics()));await s.stop();}
  assert.ok(records.length>=2);assert.notEqual(records[0].key.writerId,records.at(-1).key.writerId);
 });
+
+for (const saveMode of ['manual save', 'autosave']) {
+  test(`Workspace title stays stable during ${saveMode}`, { timeout: 5000 }, async () => {
+    const writing = Promise.withResolvers();
+    const release = Promise.withResolvers();
+    const s = await setup({ withLayout: true, beforeWrite() {
+      writing.resolve();
+      return release.promise;
+    } });
+    try {
+      const title = s.target.querySelector('.lm-editor-title input');
+      s.edit('Updated document');
+      title.focus();
+      if (saveMode === 'manual save') {
+        const mac = /Mac/.test(s.dom.window.navigator.platform);
+        s.cm().contentDOM.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', {
+          key: 's', code: 'KeyS', ctrlKey: !mac, metaKey: mac, bubbles: true, cancelable: true,
+        }));
+        await flush();
+        assert.equal(s.calls.filter(call => call[0] === 'write').length, 1);
+      }
+      await writing.promise;
+      await flush();
+      assert.equal(s.target.querySelector('.lm-editor-title input'), title);
+      assert.equal(title.value, 'note');
+      assert.equal(title.disabled, false);
+      assert.equal(title.readOnly, true);
+      assert.equal(s.dom.window.document.activeElement, title);
+
+      release.resolve();
+      await flush();
+      assert.equal(title.readOnly, false);
+      assert.equal(s.dom.window.document.activeElement, title);
+      assert.equal(s.disk.get('a/note.md').text, 'Updated document');
+    } finally {
+      release.resolve();
+      await s.stop();
+    }
+  });
+}
 
 test('editor title renames the open document on disk and relocates the active buffer',async()=>{
  const s=await setup();

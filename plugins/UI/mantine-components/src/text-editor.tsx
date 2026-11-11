@@ -75,7 +75,7 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
     {props.ready && <Box className="lm-editor-heading" style={{ maxWidth: props.contentWidth === "full" ? "none" : props.contentWidth ?? 780 }}>
       <Box className="lm-editor-heading-line">
         <TextInput className="lm-editor-title" aria-label={props.titleLabel} value={title}
-          variant="unstyled" disabled={!props.canRename} spellCheck={false} placeholder={props.titleLabel}
+          variant="unstyled" readOnly={!props.canRename} spellCheck={false} placeholder={props.titleLabel}
           onChange={event => setTitle(event.currentTarget.value.replace(/[\r\n]+/g, ""))}
           onBlur={commitTitle} onKeyDown={onTitleKeyDown} />
         {props.renameError && <Text size="sm" role="alert" className="lm-editor-error">{props.renameError}</Text>}
