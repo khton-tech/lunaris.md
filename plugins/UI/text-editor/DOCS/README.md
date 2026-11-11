@@ -633,3 +633,6 @@ Drafts 2.0 integration uses a random per-document-session writer identity, lists
 ## Awaited preparation integration
 
 The optional Preparation API awaits current Vault preferences and initial document loading in the content phase before Workspace presentation. Loaded documents are not reread just to satisfy preparation. Existing recovery/error controls remain authoritative for recoverable read failures. Direct Vault/document notifications remain supported by hosts without preparation. No UIKit surfaces, controls or styles changed; native first-paint and focus acceptance remain manual.
+
+Initial statistics are exposed by the API snapshot. Initialization suppresses change events until the baseline is established, preventing publication through an uncommitted endpoint during awaited activation. Subsequent edits continue to publish statistics changes.
+

@@ -58,6 +58,7 @@ export default definePlugin({ manifest, async activate(ctx) {
   const messages = localization.register(ctx.pluginId, catalogs, ctx.signal);
   if (!messages.ok) throw new Error("Cannot register editor messages.", { cause: messages.error });
   const text = (id: keyof typeof catalogs.en) => localization.text(ctx.pluginId, id);
+  let initializing = true;
   let statisticsSignature = ""; let cachedText: string | undefined; let cachedCounts = { words: 0, letters: 0 };
   function statistics(): DocumentStatisticsSnapshot {
     const target = documents.current();
@@ -70,6 +71,8 @@ export default definePlugin({ manifest, async activate(ctx) {
   }
   ctx.provide(DocumentStatistics, { current: statistics });
   function publishStatistics(): void {
+    // Initial consumers read the API; events describe changes after initialization.
+    if (initializing) return;
     const snapshot = statistics(); const signature = JSON.stringify(snapshot);
     if (signature === statisticsSignature) return;
     statisticsSignature = signature;
@@ -340,5 +343,7 @@ export default definePlugin({ manifest, async activate(ctx) {
     if (current && (!current.loaded || current.loading)) await current.load();
     if (documents.current()) selectScreen();
   } }, ctx.signal);
+  statisticsSignature = JSON.stringify(statistics());
+  initializing = false;
   logger.info(ctx.pluginId, "Text editor ready", { data: { autosaveDelay: 1000 } });
 } });

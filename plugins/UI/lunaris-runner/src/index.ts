@@ -56,7 +56,7 @@ export function createRunner(options: { readonly art: string; readonly hideWhenL
         return { presentation: { mode: "standalone", sizing: "fill" }, art, logoLabel: text("logo"), status: text(snapshot.state), detail };
       }
       function render(): void {
-        if (!latest || ctx.signal.aborted) return;
+        if (!latest || ctx.signal.aborted || screenScope.signal.aborted) return;
         if (hideWhenLoaded && latest.state === "loaded") {
           mounted = undefined;
           // Abort the owned rendering surface, without touching another plugin's DOM.

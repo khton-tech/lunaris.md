@@ -118,3 +118,6 @@ props; no renderer translation or SDK change is required. Interface Settings
 selects and persists Russian per Vault. Names and user content stay unchanged.
 Run `npm run ui-localization:check` for complete keys and matching placeholders.
 Native acceptance of long Russian labels, menus and narrow layouts is pending.
+
+After hideWhenLoaded releases the owned screen scope, later terminal startup notifications do not attempt to remount or update that released surface. Full shared-browser composition verifies start/stop without runner render errors.
+
