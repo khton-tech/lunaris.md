@@ -15,6 +15,13 @@ actions, now have a 44px minimum. The earlier 34px tab-choice description applie
 only to fine-pointer desktop density. The five-row popup cap follows row height.
 Textarea focus uses the shared 16px phone/coarse-pointer minimum.
 
+Desktop Workspace tabs now reflect the controller's busy state in selection,
+creation, close and history controls. Delete and middle-click shortcuts obey the
+same state; disabled tabs retain selection without hover/pressed feedback.
+Controls recover in place when the operation settles. Integration with the
+existing Active Screen role is complete; targeted UIKit/Active Screen/host
+checks passed (154 tests, no skips). Native disabled-state appearance is pending.
+
 Integration uses existing Components/Themes/Workspace contracts; no SDK or
 consumer change is required. Targeted checks passed (143 tests, no skips,
 including application/web/Tauri consumers). Native drawer transitions, popup

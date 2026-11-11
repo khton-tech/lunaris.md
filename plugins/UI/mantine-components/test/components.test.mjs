@@ -277,6 +277,36 @@ test('workspace tab controls share the selected surface and reset native button 
   } finally { await s.stop(); }
 });
 
+test('busy workspace tabs block pointer, keyboard and middle-click actions and recover in place', async () => {
+  const s = await setup(); await s.start(); const calls = [];
+  const action = name => async (...args) => { calls.push([name, ...args]); return true; };
+  const props = { ids: ['one'], activeId: 'one', onTargets() {}, tabs: {
+    tabs: [{ id: 'one', title: 'Example', description: 'Example.md', location: 'Example', closable: true }],
+    selectedId: 'one', busy: true, error: '', canGoBack: true, canGoForward: true,
+    labels: { tabs: 'Tabs', add: 'Add', close: 'Close', back: 'Back', forward: 'Forward' },
+    onAdd: action('add'), onSelect: action('select'), onClose: action('close'), onNavigate: action('navigate'),
+  } };
+  const mounted = s.components.mount('lunaris.active-screen', s.target, props, s.ctx.signal);
+  assert.equal(mounted.ok, true);
+  const tab = s.target.querySelector('[role=tab]');
+  const buttons = [...s.target.querySelectorAll('.lm-workspace-tabs button')];
+  assert.equal(buttons.length, 5);
+  for (const button of buttons) { assert.equal(button.disabled, true); button.click(); }
+  tab.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Delete', bubbles: true }));
+  for (const element of [tab.parentElement, s.target.querySelector('[role=tablist]')]) {
+    element.dispatchEvent(new s.dom.window.MouseEvent('auxclick', { button: 1, bubbles: true }));
+  }
+  await settle(); assert.deepEqual(calls, []);
+  mounted.value.update({ ...props, tabs: { ...props.tabs, busy: false } });
+  assert.equal(s.target.querySelector('[role=tab]'), tab);
+  for (const button of buttons) assert.equal(button.disabled, false);
+  s.target.querySelector('[aria-label=Add]').click();
+  s.target.querySelector('[aria-label=Back]').click();
+  tab.parentElement.dispatchEvent(new s.dom.window.MouseEvent('auxclick', { button: 1, bubbles: true }));
+  await settle(); assert.deepEqual(calls, [['add'], ['navigate', -1], ['close', 'one']]);
+  await s.stop();
+});
+
 test('settings roles escape labels, preserve borrowed targets and validate navigation and section identity', async () => {
   const s = await setup(); await s.start(); let targets;
   const props = { title: 'Example', emptyLabel: 'Empty', sections: [{ id: 'test.section', title: 'Controls' }], onTargets: value => { targets = value; } };
