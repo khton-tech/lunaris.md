@@ -51,14 +51,14 @@ function WorkspaceTabs({ props, panelId }: { props: TabProps; panelId: string })
   const list = useRef<HTMLDivElement>(null);
   const selected = props.tabs.find(tab => tab.id === props.selectedId);
   const selectedButton = () => list.current?.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]');
-  useLayoutEffect(() => { selectedButton()?.scrollIntoView?.({ block: "nearest", inline: "nearest" }); }, [props.selectedId]);
+  useLayoutEffect(() => { selectedButton()?.parentElement?.scrollIntoView?.({ block: "nearest", inline: "nearest" }); }, [props.selectedId]);
   const focusSelected = (action: Promise<boolean>) => { void action.then(completed => { if (completed) selectedButton()?.focus(); }); };
   const labels = props.labels;
   return <Box className="lm-workspace-tabs" aria-busy={props.busy}>
     <Tabs unstyled value={props.selectedId} activateTabWithKeyboard={false} onChange={id => { if (id) void props.onSelect(id); }} className="lm-workspace-tab-strip">
       <Tabs.List className="lm-workspace-tab-list" ref={list} aria-label={labels.tabs}>
         {props.tabs.map(tab => <Box key={tab.id} role="presentation" className="lm-workspace-tab" mod={{ selected: tab.id === props.selectedId }}>
-          <Tabs.Tab className="lm-workspace-tab-label" classNames={{ tabSection: "lm-workspace-tab-section" }}
+          <Tabs.Tab className="lm-workspace-tab-label lm-focus" classNames={{ tabSection: "lm-workspace-tab-section" }}
             value={tab.id} id={`${panelId}-${tab.id}`} aria-controls={panelId}
             title={tab.description} onKeyDown={event => {
               if (event.key === "Delete" && tab.closable) { event.preventDefault(); focusSelected(props.onClose(tab.id)); }

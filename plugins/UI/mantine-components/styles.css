@@ -319,30 +319,45 @@
   --tab-hover:color-mix(in srgb,var(--vault-hover) 40%,var(--vault-panel));
   --tab-pressed:color-mix(in srgb,var(--vault-selection) 70%,var(--vault-panel));
   --tab-action-size:calc(var(--vault-space)*6);
+  --tab-join-radius:calc(var(--vault-space)*2);
   flex:0 0 auto;min-width:0;container-type:inline-size;user-select:none
 }
 .lm-workspace-tab-strip {
-  display:flex;align-items:center;gap:var(--vault-space);min-width:0;
-  padding-inline:calc(var(--vault-space)*2);background:var(--vault-panel);
+  display:flex;align-items:center;min-width:0;
+  padding-inline-end:var(--tab-join-radius);background:var(--vault-panel);
   box-shadow:inset 0 calc(-1*var(--vault-border)) var(--vault-separator)
 }
 .lm-workspace-tab-list {
-  display:flex;flex:0 1 auto;align-items:stretch;gap:var(--vault-space);min-width:0;
-  overflow:auto hidden;scrollbar-width:none;padding-block-start:var(--vault-space)
+  display:flex;flex:0 1 auto;align-items:stretch;gap:var(--tab-join-radius);min-width:0;
+  overflow:auto hidden;scrollbar-width:none;padding:var(--vault-space) var(--tab-join-radius) 0
 }
 .lm-workspace-tab-list::-webkit-scrollbar { display:none }
 .lm-workspace-tab {
-  display:flex;align-items:center;flex:0 0 auto;inline-size:clamp(6em,60cqi,14em);
-  min-height:calc(var(--vault-space)*8);padding-inline-end:var(--vault-space);
+  --tab-surface:transparent;
+  display:flex;align-items:center;flex:0 0 auto;inline-size:clamp(6em,60cqi,calc(var(--vault-space)*50));
+  min-height:calc(var(--vault-space)*8.5);padding-inline-end:var(--vault-space);
+  scroll-margin-inline:var(--tab-join-radius);background:var(--tab-surface);
   border:var(--vault-border) solid transparent;border-radius:var(--vault-radius) var(--vault-radius) 0 0;color:var(--vault-secondary)
 }
 .lm-workspace-tab[data-selected] {
-  border-color:var(--vault-separator);border-block-end-color:var(--vault-content);
-  background:var(--vault-content);color:var(--vault-text)
+  --tab-surface:var(--vault-content);
+  position:relative;border-color:var(--vault-separator);border-block-end-color:var(--tab-surface);color:var(--vault-text)
 }
-.lm-workspace-tab:not([data-selected]):hover { background:var(--tab-hover);color:var(--vault-text) }
+.lm-workspace-tab[data-selected]::before,.lm-workspace-tab[data-selected]::after {
+  content:"";position:absolute;inset-block-end:calc(-1*var(--vault-border));pointer-events:none;
+  width:var(--tab-join-radius);height:var(--tab-join-radius);
+  background:radial-gradient(circle at var(--tab-join-center) top,
+    transparent calc(var(--tab-join-radius) - var(--vault-border)),
+    var(--vault-separator) var(--tab-join-radius),
+    var(--tab-surface) calc(var(--tab-join-radius) + var(--vault-border)))
+}
+.lm-workspace-tab[data-selected]::before { --tab-join-center:left;right:100% }
+.lm-workspace-tab[data-selected]::after { --tab-join-center:right;left:100% }
+.lm-workspace-tab:not([data-selected]):hover { --tab-surface:var(--tab-hover);color:var(--vault-text) }
+.lm-workspace-tab:has(> .lm-workspace-tab-label:active) { --tab-surface:var(--tab-pressed) }
 .lm-root .lm-workspace-tab-label {
   align-self:stretch;display:flex;align-items:center;gap:var(--vault-space);flex:1;min-width:0;padding:0 calc(var(--vault-space)*2);
+  appearance:none;border:0;background:transparent;box-shadow:none;cursor:pointer;
   text-align:start;font:inherit;color:inherit
 }
 .lm-workspace-tab-label > span,.lm-workspace-tab-location { display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
@@ -358,7 +373,7 @@
 }
 .lm-workspace-tab-action svg { width:1em;height:1em }
 .lm-root .lm-workspace-tab-action:not(:disabled):hover { background:var(--tab-hover);color:var(--vault-text) }
-.lm-root .lm-workspace-tab-action:not(:disabled):active,.lm-workspace-tab-label:active { background:var(--tab-pressed) }
+.lm-root .lm-workspace-tab-action:not(:disabled):active { background:var(--tab-pressed) }
 .lm-root .lm-workspace-tab-action:disabled { opacity:.55 }
 .lm-workspace-tab .lm-focus:focus-visible { outline-offset:calc(-1*var(--vault-focus-width)) }
 .lm-workspace-tab-navigation {

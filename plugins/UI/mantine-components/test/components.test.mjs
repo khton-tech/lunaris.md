@@ -241,6 +241,42 @@ test('active screen role lends stable targets, hides inactive content and valida
   mounted.value.dispose(); assert.equal(targets, null); assert.equal(s.target.textContent, 'Sibling'); await s.stop();
 });
 
+test('workspace tab controls share the selected surface and reset native button appearance', async () => {
+  const s = await setup(); await s.start();
+  try {
+    const sheet = s.dom.window.document.createElement('style');
+    sheet.textContent = readFileSync(new URL('../styles.css', import.meta.url), 'utf8').replace(/^@import .*$/gm, '');
+    s.dom.window.document.head.append(sheet);
+    let regions;
+    const layout = s.components.mount('lunaris.workspace-layout', s.target, {
+      railVisible: true, panelVisible: true, mainLabel: 'Editor', panelLabel: 'Files',
+      onTargets: value => { regions = value; }, onDismiss() {},
+    }, s.ctx.signal);
+    assert.equal(layout.ok, true);
+    const action = async () => true;
+    const screen = s.components.mount('lunaris.active-screen', regions.main, {
+      ids: ['test.one'], activeId: 'test.one', onTargets() {}, presentation: { mode: 'embedded', sizing: 'fill' },
+      tabs: {
+        tabs: [{ id: 'one', title: 'Example', description: 'Example.md', location: 'Example', closable: true }],
+        selectedId: 'one', busy: false, error: '', canGoBack: false, canGoForward: false,
+        labels: { tabs: 'Workspace tabs', add: 'New tab', close: 'Close tab', back: 'Back', forward: 'Forward' },
+        onAdd: action, onSelect: action, onClose: action, onNavigate: action,
+      },
+    }, s.ctx.signal);
+    assert.equal(screen.ok, true);
+    const tab = regions.main.querySelector('[role=tab][aria-selected=true]');
+    const close = tab.parentElement.querySelector('[aria-label="Close tab — Example"]');
+    const computed = s.dom.window.getComputedStyle;
+    assert.equal(computed(tab).appearance, 'none');
+    assert.equal(computed(tab).backgroundColor, 'rgba(0, 0, 0, 0)');
+    assert.equal(computed(close).backgroundColor, 'rgba(0, 0, 0, 0)');
+    assert.equal(computed(tab.parentElement).getPropertyValue('--tab-surface'), 'var(--vault-content)');
+    assert.equal(tab.classList.contains('lm-focus'), true);
+    screen.value.dispose();
+    layout.value.dispose();
+  } finally { await s.stop(); }
+});
+
 test('settings roles escape labels, preserve borrowed targets and validate navigation and section identity', async () => {
   const s = await setup(); await s.start(); let targets;
   const props = { title: 'Example', emptyLabel: 'Empty', sections: [{ id: 'test.section', title: 'Controls' }], onTargets: value => { targets = value; } };

@@ -696,6 +696,10 @@ and `forward`. Callbacks `onAdd()`, `onSelect(id)`, `onClose(id)` and
 `onNavigate(-1 | 1)` return promises indicating whether the action succeeded.
 Mantine Tabs and ActionIcon supply keyboard and pointer controls. The role styles
 the internal strip and navigation. The screen surface inherits Workspace.
+The Owner's follow-up tab reference uses one continuous selected surface behind
+the label and close icon, with rounded joins into the content. The Mantine role
+owns that surface and resets the tab button's native background and border. Its
+keyboard focus ring stays on the control. Theme tokens supply colors and spacing.
 Targets retain DOM identity on selection, props and theme updates. Inactive targets
 are hidden, inert, excluded from accessibility navigation and removed from layout.
 The active-screen controller owns lazy child mounting and releases hidden focus.
