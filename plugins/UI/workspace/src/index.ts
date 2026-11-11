@@ -50,6 +50,8 @@ export default definePlugin({ manifest, async activate(ctx) {
   let empty: View | undefined; let sideEmpty: View | undefined; let layout: View | undefined; let regions: Regions | undefined; let sequence = 0;
   const contentSignatures = new Map<string, string>();
   let latest = startup.snapshot();
+  let rendering = false;
+  let refreshPending = false;
   const text = (key: string) => localization.text(ctx.pluginId, key);
   function release(owner: ResourceScope | undefined): void {
     // Owned scopes report cleanup failures through independent kernel diagnostics.
@@ -149,11 +151,18 @@ export default definePlugin({ manifest, async activate(ctx) {
   function onDismiss(): void { if (!ctx.signal.aborted) workspace.list().find(entry => entry.region === "left-panel")?.onDismiss?.(); }
 
   function refresh(): void {
-    try { render(); }
-    catch (error) {
+    // A contribution can emit WorkspaceChanged before Components.mount returns.
+    if (rendering) { refreshPending = true; return; }
+    rendering = true;
+    try {
+      do {
+        refreshPending = false;
+        render();
+      } while (refreshPending && !ctx.signal.aborted);
+    } catch (error) {
       if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot render workspace", { code: "WORKSPACE_RENDER_FAILED", error });
       throw error;
-    }
+    } finally { rendering = false; }
   }
   ctx.events.on(WorkspaceChanged, change => {
     const entry = workspace.list().find(item => item.id === change.id);

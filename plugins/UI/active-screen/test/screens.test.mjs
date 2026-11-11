@@ -109,11 +109,14 @@ test('failed mount and update release failed instances and recover through a lat
 });
 
 test('Vault switch and close clear selection, release cached views and create fresh context on later activation', async () => {
-  const s = await setup(); const view = panel(s, 'test.content'); await s.open();
+  const s = await setup({ mobileMenu: true }); const view = panel(s, 'test.content'); await s.open();
+  assert.equal(s.surface.querySelectorAll('.lm-active-screen').length, 1);
+  assert.equal(s.surface.querySelector('.lm-workspace-mobile-toolbar').hidden, true);
   s.tools.screens.register(definition('test.one'), s.ctx.signal); s.tools.screens.select('test.one'); await flush();
   const old = target(s, 'test.one'); const vaultId = view.seen.at(-1).workspace.vaultId;
   const previousMounts = view.seen.length;
   await s.open(); assert.equal(old.isConnected, false); assert.equal(s.tools.screens.snapshot().activeId, null);
+  assert.equal(s.surface.querySelectorAll('.lm-active-screen').length, 1);
   assert.equal(view.seen.length, previousMounts, 'a new Vault must not briefly mount the previously selected screen');
   assert.equal(s.tools.screens.snapshot().screens.length, 1); assert.equal(view.releases.length, 1);
   s.tools.screens.select('test.one'); await flush(); assert.notEqual(view.seen.at(-1).workspace.vaultId, vaultId);
@@ -130,6 +133,7 @@ test('compact Workspace shows one live tab counter and switches through the shar
   try {
     panel(s, 'test.content');
     await s.open();
+    assert.equal(s.surface.querySelectorAll('.lm-active-screen').length, 1);
     const toolbar = s.surface.querySelector('.lm-workspace-mobile-toolbar');
     assert.equal(toolbar.hidden, false);
     assert.equal(toolbar.querySelectorAll('button').length, 1);
