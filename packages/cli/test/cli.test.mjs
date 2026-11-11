@@ -17,7 +17,8 @@ async function directory(t) {
 }
 function command(args, cwd) {
   return new Promise((resolve, reject) => {
-    const child = spawn(process.execPath, args, { cwd, stdio: ['ignore', 'pipe', 'pipe'] });
+    const env = { ...process.env, PATH: `${fileURLToPath(new URL('../../../node_modules/.bin', import.meta.url))}${path.delimiter}${process.env.PATH ?? ''}` };
+    const child = spawn(process.execPath, args, { cwd, env, stdio: ['ignore', 'pipe', 'pipe'] });
     let output = ''; child.stdout.on('data', data => { output += data; }); child.stderr.on('data', data => { output += data; });
     child.once('error', reject); child.once('close', code => resolve({ code, output }));
   });
@@ -44,7 +45,7 @@ test('generated TypeScript plugin installs offline, builds, validates, inspects,
   const stopped = JSON.parse(result.output.trim().split('\n').at(-1));
   assert.equal(stopped.snapshot.plugins[0].ownedResources, 0);
   assert.equal(stopped.snapshot.plugins[0].state, 'stopped');
-  t.diagnostic(`Quickstart rehearsal: ${(performance.now() - started).toFixed(0)} ms (dependencies cached, offline local links).`);
+  t.diagnostic(`Quickstart rehearsal: ${(performance.now() - started).toFixed(0)} ms (dependencies cached, packed SDK artifacts).`);
 });
 
 test('generator refuses existing work and invalid CLI commands return nonzero', async t => {
@@ -54,6 +55,33 @@ test('generator refuses existing work and invalid CLI commands return nonzero', 
   const messages = []; const io = { out: line => messages.push(line), error: line => messages.push(line) };
   assert.equal(await run(['unknown'], io), 1); assert.equal(await run(['--help'], io), 0);
   assert.equal(await run(['dev', '--unknown'], io), 1);
+});
+
+test('contract discovery excludes tools and addition preserves conflicting dependencies', async t => {
+  const parent = await directory(t); const root = path.join(parent, 'plugin'); await createPlugin(root);
+  const messages = []; const io = { out: line => messages.push(JSON.parse(line)), error: line => messages.push(JSON.parse(line)) };
+  assert.equal(await run(['contracts'], io), 0);
+  assert.ok(messages[0].packages.some(item => item.name === '@lunaris/components'));
+  assert.ok(!messages[0].packages.some(item => item.name === '@lunaris/kernel'));
+  assert.equal(await run(['add-contract', '@lunaris/kernel', root], io), 1);
+  assert.equal(await run(['add-contract', '@lunaris/components', root], io), 0);
+  const filename = path.join(root, 'package.json'); const pkg = JSON.parse(await readFile(filename, 'utf8'));
+  assert.match(pkg.dependencies['@lunaris/components'], /^file:\.\/tools\/vendor\/[a-z0-9.-]+\.tgz$/);
+  assert.equal(pkg.overrides['@lunaris/components'], '$@lunaris/components');
+  pkg.dependencies['@lunaris/components'] = '^9.0.0'; await writeFile(filename, JSON.stringify(pkg));
+  const before = await readFile(filename, 'utf8');
+  assert.equal(await run(['add-contract', '@lunaris/components', root], io), 1);
+  assert.equal(messages.at(-1).code, 'CONTRACT_DEPENDENCY_CONFLICT');
+  assert.equal(await readFile(filename, 'utf8'), before);
+});
+
+test('contract addition rejects modified vendored SDK archives without overwriting them', async t => {
+  const parent = await directory(t); const root = path.join(parent, 'plugin'); await createPlugin(root);
+  const pkg = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
+  const archive = path.join(root, pkg.dependencies['@lunaris/sdk'].slice(5)); await writeFile(archive, 'modified');
+  const messages = []; const io = { out() {}, error: line => messages.push(JSON.parse(line)) };
+  assert.equal(await run(['add-contract', '@lunaris/sdk', root], io), 1);
+  assert.equal(messages[0].code, 'TOOLCHAIN_CONFLICT'); assert.equal(await readFile(archive, 'utf8'), 'modified');
 });
 
 test('CLI validation never evaluates an invalid entry and test failures return exit code 1', async t => {

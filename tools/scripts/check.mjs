@@ -27,6 +27,7 @@ try {
   // Tests use the public test kit even when it is not a production dependency.
   // Project references build prerequisites; checks include affected consumers.
   run(['node_modules/typescript/bin/tsc', '-b', 'packages/test', ...[...affected].map(scope => packagePath(scope))], 'Build');
+  if (affected.has('cli')) await (await import('./plugin-toolchain.mjs')).prepareEmbeddedToolchain({ build: false });
   await checkBoundaries(Object.keys(dependencies));
   let passed = 0; let skipped = 0;
   const totals = output => {

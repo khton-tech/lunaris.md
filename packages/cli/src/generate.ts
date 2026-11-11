@@ -1,16 +1,10 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
 import { isValidId } from "@lunaris/manifest";
+import { authoringGuide, vendor } from "./toolchain.js";
 
 export class GenerationError extends Error {
   constructor(readonly code: string, message: string) { super(message); this.name = "GenerationError"; }
-}
-
-function localPackage(name: string): string {
-  const entry = fileURLToPath(import.meta.resolve(name));
-  const root = name === "typescript/package.json" ? path.dirname(entry) : path.resolve(path.dirname(entry), "..");
-  return `file:${root.replaceAll("\\", "/")}`;
 }
 
 /** Generate only into a new directory. Every file write uses exclusive creation. */
@@ -25,23 +19,25 @@ export async function createPlugin(target: string, requestedId?: string): Promis
     if ((cause as { code?: string }).code === "EEXIST") throw new GenerationError("TARGET_EXISTS", "Target already exists; choose a new directory.");
     throw cause;
   }
-  const manifest = { manifestVersion: 1, id, version: "0.1.0", engine: "^0.1.0", sdk: "^0.1.0", entry: "./dist/src/plugin.js", provides: [], requires: [], permissions: [], optionalPermissions: [] };
+  const artifacts = await vendor(root, ['@lunaris/sdk', '@lunaris/logging', '@lunaris/test']);
+  const manifest = { manifestVersion: 1, id, version: "0.1.0", engine: "^0.1.0", sdk: "^0.1.0", entry: "./dist/src/plugin.js", metadata: { name: id, author: 'Local developer', description: 'A Lunaris plugin', platforms: 'universal', languages: ['en'] }, provides: [], requires: [{ kind: 'api', id: 'lunaris.logger', range: '^1.0.0' }], permissions: [], optionalPermissions: [] };
   const packageJson = {
     name: id, version: "0.1.0", private: true, type: "module",
-    scripts: { build: "tsc -p tsconfig.json", core: "node tools/core.mjs", validate: "node tools/core.mjs validate .", inspect: "node tools/core.mjs inspect .", dev: "node tools/core.mjs dev .", test: "npm run build && node tools/core.mjs test ." },
-    dependencies: { "@lunaris/sdk": localPackage("@lunaris/sdk") },
-    devDependencies: { "@lunaris/manifest": localPackage("@lunaris/manifest"), "@lunaris/kernel": localPackage("@lunaris/kernel"), "@lunaris/test": localPackage("@lunaris/test"), typescript: localPackage("typescript/package.json") },
+    scripts: { build: "tsc -p tsconfig.json", core: 'lunaris-core', validate: 'lunaris-core validate .', check: 'npm run build && lunaris-core validate .', inspect: 'lunaris-core inspect .', dev: 'lunaris-core dev .', pack: 'npm run build && lunaris-core pack .', test: 'npm run build && lunaris-core test .' },
+    dependencies: { '@lunaris/sdk': artifacts['@lunaris/sdk'], '@lunaris/logging': artifacts['@lunaris/logging'] },
+    devDependencies: { ...Object.fromEntries(Object.entries(artifacts).filter(([name]) => !['@lunaris/sdk', '@lunaris/logging'].includes(name))), typescript: '6.0.3' },
+    overrides: Object.fromEntries(Object.keys(artifacts).map(name => [name, `$${name}`])),
   };
   const json = (value: unknown) => `${JSON.stringify(value, null, 2)}\n`;
-  const cliUrl = new URL("./index.js", import.meta.url).href;
   const files: Record<string, string> = {
     "manifest.json": json(manifest), "package.json": json(packageJson),
-    "tsconfig.json": json({ compilerOptions: { target: "ES2022", lib: ["ES2022"], module: "NodeNext", moduleResolution: "NodeNext", strict: true, types: [], resolveJsonModule: true, rootDir: ".", outDir: "dist", noEmitOnError: true }, include: ["src/**/*.ts"] }),
-    ".gitignore": "node_modules/\ndist/\n",
-    "src/plugin.ts": 'import { definePlugin } from "@lunaris/sdk";\nimport manifest from "../manifest.json" with { type: "json" };\n\nexport default definePlugin({\n  manifest,\n  activate(ctx) {\n    ctx.scope.own({ dispose() {} });\n  }\n});\n',
-    "test/plugin.test.mjs": 'import test from "node:test";\nimport { createTestKernel } from "@lunaris/test";\nimport plugin from "../dist/src/plugin.js";\n\ntest("activates and releases owned resources", async () => {\n  const kernel = createTestKernel();\n  kernel.register(plugin);\n  try {\n    await kernel.start(plugin.manifest.id);\n    kernel.assertState(plugin.manifest.id, "active");\n  } finally {\n    await kernel.stopAll();\n  }\n  kernel.assertNoResources();\n});\n',
-    "tools/core.mjs": `import { run } from ${JSON.stringify(cliUrl)};\nprocess.exitCode = await run(process.argv.slice(2));\n`,
-    "DOCS/README.md": `# ${id}\n\nPurpose: a local SDK-only plugin starting point. Implement one responsibility in src/plugin.ts.\n\nUsage: npm install, npm run build, npm test, npm run validate, npm run dev. Type stop or press Ctrl+C to stop; rebuild and start a fresh process after source changes.\n\nAPIs provided/required: none. Events emitted/subscribed: none. Hooks: none. Permissions: none. Update the authoritative manifest.json when adding contracts/permissions.\n\nLifecycle: activation owns a disposable; stop releases it automatically. The plugin has no host/platform access through its context. Local dependency links point to the source checkout; this is not a published registry package.\n`,
+    "tsconfig.json": json({ compilerOptions: { target: "ES2022", lib: ["ES2022", "DOM"], module: "NodeNext", moduleResolution: "NodeNext", strict: true, types: [], resolveJsonModule: true, rootDir: ".", outDir: "dist", noEmitOnError: true }, include: ["src/**/*.ts"] }),
+    ".gitignore": "node_modules/\ndist/\n*.lup\n",
+    "src/plugin.ts": 'import { definePlugin } from "@lunaris/sdk";\nimport { Logger } from "@lunaris/logging";\nimport manifest from "../manifest.json" with { type: "json" };\n\nexport default definePlugin({\n  manifest,\n  activate(ctx) {\n    const logger = ctx.use(Logger);\n    ctx.scope.own({ dispose() { /* Release plugin-owned external resources here. */ } });\n    logger.info(ctx.pluginId, "Plugin ready");\n  }\n});\n',
+    "test/plugin.test.mjs": 'import test from "node:test";\nimport { createTestKernel } from "@lunaris/test";\nimport { Logger } from "@lunaris/logging";\nimport plugin from "../dist/src/plugin.js";\n\ntest("activates and releases owned resources", async () => {\n  const kernel = createTestKernel();\n  kernel.installMock(Logger, Object.fromEntries(["log","debug","info","warn","error"].map(name => [name, () => true])));\n  kernel.register(plugin);\n  try {\n    await kernel.start(plugin.manifest.id);\n    kernel.assertState(plugin.manifest.id, "active");\n  } finally {\n    await kernel.stopAll();\n  }\n  kernel.assertNoResources();\n});\n',
+    "DOCS/README.md": `# ${id}\n\nPurpose: an SDK-only plugin starting point. Implement one responsibility in src/plugin.ts.\n\nUsage: npm install --ignore-scripts, npm run check, npm test, npm run pack. The installed toolchain supplies lunaris-core. See [the bundled authoring guide](authoring.md).\n\nRequired API: lunaris.logger@^1.0.0 via Logger from @lunaris/logging. No APIs/events/hooks are provided by default. Every additional contract belongs in manifest.json and its own documentation.\n\nLifecycle: activation owns cleanup; SDK registrations are released on stop. No SDK access after scope closure. The tools/vendor archives are distributable SDK artifacts, not source-checkout links.\n`,
+    'DOCS/authoring.md': await authoringGuide(),
+    'AGENTS.md': '# Plugin author instructions\n\nRead DOCS/README.md, DOCS/authoring.md and manifest.json first. Use actual public SDK package exports/declarations; do not invent APIs or import host/kernel/private implementations. Discover optional SDK contracts with lunaris-core contracts and add them with lunaris-core add-contract. Do not edit tools/vendor archives.\n\nRequire Logger and use ctx.use(Logger) with ctx.pluginId; preserve original errors without sensitive payloads. Use owned scopes/signals and release resources. New UI uses Views/shared component roles and localization, never raw DOM/React/Mantine in a consumer. Native/filesystem work goes through captured Vault providers.\n\nRun npm run check, npm test and npm run pack after meaningful changes. Metadata must match exported definition. Report missing SDK contracts with concrete requirements rather than bypassing the boundary. Do not publish tooling/packages without separate authorization.\n',
   };
   for (const [relative, content] of Object.entries(files)) {
     const filename = path.join(root, relative);

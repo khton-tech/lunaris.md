@@ -9,33 +9,32 @@ each task must produce reviewable contracts/docs and targeted verification.
 
 Dependencies: none.
 
-Status (2026-11-10): source audit and prerequisite specification delivered in
-[`DOCS/design/lime-runtime.md`](../../DOCS/design/lime-runtime.md). Gate blocked:
-current synchronous DOM-bearing SDK contracts have no verified execution boundary
-that preserves extension parity and prevents out-of-Vault access. Native sessions
-and Config global access also need authenticated environment authority. Required
-runtime management, selected-package transport and awaited Vault lifecycle
-contracts are specified there as B01-B04. Follow-up implementation now includes
-QuickJS/WASM isolated execution and an SDK bridge (sync/async APIs, callbacks,
-validators, signals and scopes). Custom DOM-free viewport contracts, full host
-authority review, product composition and host acceptance remain outstanding.
+Status (2026-11-11): implementation evidence follows the public runtime design in
+[`DOCS/design/lime-runtime.md`](../../DOCS/design/lime-runtime.md). No full host
+acceptance or complete authority audit is claimed.
 
-Implementation evidence (2026-11-10):
-
-- L02 partial: shared metadata validator and bounded LUP codec implemented;
-  public references are `DOCS/reference/plugin-metadata.md` and `DOCS/reference/lup.md`.
-  Installation layout, registry and migration/transaction semantics remain pending.
-- L03 partial: Kernel.replace/unregister and host lifecycle ownership implemented;
-  focused kernel/affected-consumer checks pass. Public management adapter,
-  environment revisions and execution-driver factory rebinding remain pending.
-- L04 partial: QuickJS driver and SDK bridge execute isolated definitions against
-  the actual public kernel. Scoped Config/Filesystem calls tested. Package picker,
-  storage/extraction, real native/browser execution and authority review pending.
-- L08 partial: existing CLI now bundles and packs complete static code plus assets
-  and inspects .lup without evaluation. External portable generation, distribution
-  rehearsal, live host attachment and JSON diagnostic unification remain pending.
-- L05-L07, L09 full recipes and L10 acceptance remain pending. No engine/UI
-  integration or complete user install workflow is claimed.
+- L02: shared metadata validator, bounded LUP codec, Vault registry, immutable
+  archives and resumable removal journal implemented. Managed-data migration
+  backups and update transaction recovery remain pending.
+- L03: Kernel.replace/unregister, lifecycle ownership, host-backed public runtime
+  adapter, protected built-ins and generation checks implemented. Environment
+  planning/revisions and explicit provider/dependency choice remain pending.
+- L04: QuickJS/WASM execution, SDK wire bridge, bounded callback reclamation,
+  selected-file picker and scoped Config/Filesystem restrictions implemented.
+  Asset resource contracts, complete authority review and native acceptance pending.
+- L05-L07: headless engine and localized Mantine settings UI are composed in the
+  shared product host. Preview/install/update/toggle/retry/remove, safe startup,
+  awaited Vault transitions and code rollback have focused tests. Arbitrary Vault
+  side effects cannot be rolled back. Native dialogs and visual acceptance pending.
+- L08: CLI bundles/packs/inspects LUP. Packed portable toolchain, relative vendored
+  SDK archives, contract discovery/addition, generated human/agent docs and bounded
+  dev logging implemented. External offline rehearsal installs packed CLI/SDK,
+  generates, adds contracts, builds, tests, packs, inspects and stops development
+  without source links. Live disposable-Vault host attachment/reload pending.
+- L09: public declarative Views/viewport and actual bundled QuickJS counter/graph
+  integration verified inside Workspace. Complete author recipes remain pending.
+- L10: targeted checks and web production build pass. Native/WebView/visual
+  acceptance and the remaining failure/recovery matrix remain outstanding.
 
 - Map required/existing/new responsibilities using the decision inventory.
 - Trace current host composition, native bridge, Vault preparation/closure, Config,

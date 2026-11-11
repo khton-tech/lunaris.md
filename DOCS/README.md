@@ -6,10 +6,11 @@
 - [Logging contracts and composition](reference/logging.md): replaceable Logger/DevTools sink, record format, failure behavior and verification.
 - [Product backlog](Backlog.md): product component status and deferred scope.
 - [Web server foundation](design/web-server.md): accepted account/Vault requirements, SDK blockers, required public contracts, bundle releases and pending delivery sequence.
-- [Lime runtime boundary](design/lime-runtime.md): L01 source audit, execution/authority blocker, required SDK and host contracts, integration ownership and unverified host matrix; proposed contracts are not implemented.
+- [Lime runtime boundary](design/lime-runtime.md): execution/authority design, SDK and host integration ownership, implementation evidence and unverified host matrix.
 - [Plugin display metadata](reference/plugin-metadata.md): implemented author fields, localization, compatibility declarations and validation limits.
 - [LUP package format](reference/lup.md): implemented bounded file-only container, shared pack/inspect validation and immutable package-byte identity.
 - [Plugin packaging](guides/plugin-packaging.md): implemented CLI bundle/pack and inert package inspection commands, resources and diagnostics.
+- [Independent plugin authoring](guides/plugin-authoring.md): packed toolchain bootstrap, public contracts, generated projects, lifecycle, UI and current limitations.
 - [Host registry mutations](reference/runtime-management.md): implemented explicit unregister/replacement, affected graph recovery, concurrency and rollback limits.
 - [Lime host runtime adapter](reference/lime-runtime.md): public environment-bound registration, activation, replacement and removal bridge; product composition remains pending.
 - [Lunaris Lime engine](../plugins/systems/lime/DOCS/README.md): implemented headless Vault-local preview/install/enable/disable/update/retry service and recovery intent; remaining integration is explicit.

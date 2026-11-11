@@ -8,8 +8,8 @@ lunaris-core inspect-package ./my-plugin-1.0.0.lup
 ```
 
 In a source checkout, build the CLI and use `node packages/cli/dist/bin.js` in
-place of `lunaris-core`. These commands do not establish an externally published
-toolchain; registry publication remains separately authorized work.
+place of `lunaris-core`. For portable packed tools and project generation, follow
+[independent authoring](plugin-authoring.md). Registry publication remains separate.
 
 Build TypeScript first so `manifest.json` points to an existing `.js`/`.mjs`
 entry. Add required [display metadata](../reference/plugin-metadata.md).
@@ -27,7 +27,8 @@ SDK dependencies are bundled; token metadata works across package copies.
 
 The output uses the shared [LUP v1 codec](../reference/lup.md), validates the
 result again and writes exclusively to a new filename. Existing output is never
-overwritten. Asset symlinks, non-files, root escapes and format limits fail the
+overwritten. Omitting the output selects `<plugin-id>-<version>.lup` inside the
+project. Asset symlinks, non-files, root escapes and format limits fail the
 command. Move resources under `assets/` and refer to portable relative paths.
 An asset existing in a container does not itself provide a runtime resource URL;
 the execution/resource adapter remains responsible for that integration.
@@ -41,6 +42,7 @@ Notable codes: `PACKAGE_METADATA_REQUIRED`, `PACKAGE_BUILD_FAILED`,
 The existing `inspect` command still activates trusted development directories;
 use `inspect-package` for an inert package preview.
 
-Integration status: CLI/codec package build and inert inspection are implemented
-and tested together. UI install/update, live host attachment, portable external
-scaffolding and installed-plugin SDK execution remain Lime work in progress.
+Integration status: CLI/codec package build, portable scaffolding and inert
+inspection are tested together. The Lime engine/settings UI consume this format
+and execute installed code through the QuickJS driver. Live host attachment,
+resource access and native/visual acceptance remain in progress.
