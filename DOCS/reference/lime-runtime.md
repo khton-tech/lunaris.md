@@ -48,6 +48,28 @@ Plans currently disclose direct requirements and active affected consumers rathe
 than a full prospective graph. Other management operations still use environment
 generation without an expected plan revision.
 
+## Update checkpoints
+
+`suspend(environment, id)` stops the target and its active affected consumers, then
+returns an opaque environment-owned checkpoint number. It retains the original
+definition/resource snapshot, exact grants, target choices and previously active
+IDs. Disabled packages remain unevaluated. While a checkpoint exists, ordinary
+runtime mutations are rejected; replace is permitted only for its target. Host
+composition must also avoid direct competing kernel lifecycle calls.
+
+`replace` changes the stopped target without activating it. `resume(environment,
+checkpoint)` starts the retained active graph against the current target definition.
+The checkpoint remains available if activation fails. `rollback(environment,
+checkpoint)` stops candidate work and restores original code/grants/choices while
+leaving it inactive; the manager can restore durable managed data before resuming
+old code. `finish` releases the retained checkpoint. Environment close/reopen
+revokes every checkpoint; they are not portable recovery journals.
+
+Actual isolated tests cover failed candidate activation, old resource restoration
+before resume, dependent pause/resume, unrelated activation preservation, mutation
+exclusion, stale generations and disabled updates. Durable data backup/journaling
+is the engine's next integration; checkpoints alone do not provide data rollback.
+
 ## Host ownership and recovery bootstrap
 
 `createLimeRuntime(kernel, builtinIds)` is exported by `@lunaris/application-host`.

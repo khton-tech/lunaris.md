@@ -19,6 +19,7 @@ export function createLimeRuntime(kernel: Kernel, builtinIds: readonly string[])
     const logger = ctx.use(Logger); const execution = ctx.use(PluginExecution);
     const managed = new Map<string, PluginDefinition>(); let current: LimeEnvironment | null = null; let tail = Promise.resolve(); let generation = 0;
     const choices = new Map<string, Map<string, string>>(); let revision = 0; let signature = '';
+    const checkpoints = new Map<number, { id: string; definition: PluginDefinition; active: readonly string[]; grants: readonly string[]; choices: Map<string, string> }>(); let nextCheckpoint = 0;
     const refresh = (): number => {
       const observed = JSON.stringify(kernel.inspect().plugins.map(item => [item.manifest, item.state, item.activationId, item.ownerId, item.bindings, item.effectivePermissions]));
       if (observed !== signature) { signature = observed; revision++; }
@@ -37,38 +38,40 @@ export function createLimeRuntime(kernel: Kernel, builtinIds: readonly string[])
       }
       await kernel.start(id);
     };
-    const failure = (code: 'STALE' | 'CONFLICT' | 'NOT_FOUND' | 'RUNTIME_FAILED', message: string): LimeResult<never> => ({ ok: false, error: { code, message } });
+    const failure = (code: 'STALE' | 'CONFLICT' | 'NOT_FOUND' | 'RUNTIME_FAILED', message: string): Extract<LimeResult<never>, { ok: false }> => ({ ok: false, error: { code, message } });
     const matches = (environment: LimeEnvironment) => !ctx.signal.aborted && !!current && current.vaultId === environment.vaultId && current.generation === environment.generation;
-    const serial = (work: () => Promise<LimeResult<null>>): Promise<LimeResult<null>> => {
+    const serial = <T>(work: () => Promise<LimeResult<T>>, checkpointOperation = false): Promise<LimeResult<T>> => {
       const result = tail.then(async () => {
         if (ctx.signal.aborted) return failure('STALE', 'Runtime adapter is stopped.');
+        if (checkpoints.size && !checkpointOperation) return failure('CONFLICT', 'An update checkpoint holds the runtime graph.');
         try { return await work(); }
         catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, 'Plugin runtime operation failed', { error }); return failure('RUNTIME_FAILED', 'Runtime operation failed; inspect plugin diagnostics and recovery state.'); }
         finally { revision++; signature = ''; }
       });
       tail = result.then(() => {}); return result;
     };
-    const operation = (environment: LimeEnvironment, id: string, work: () => Promise<void>) => serial(async () => {
+    const operation = (environment: LimeEnvironment, id: string, work: () => Promise<void>, checkpointOperation = false) => serial(async () => {
       if (!matches(environment)) return failure('STALE', 'Plugin environment changed.');
       if (!managed.has(id)) return failure('NOT_FOUND', 'Plugin is not managed in this environment.');
+      if (checkpoints.size && checkpointOperation && ![...checkpoints.values()].some(saved => saved.id === id)) return failure('CONFLICT', 'A different plugin owns the update checkpoint.');
       await work();
       if (!ctx.signal.aborted) logger.info(ctx.pluginId, 'Plugin runtime state changed', { data: { pluginId: id } });
       return { ok: true, value: null };
-    });
+    }, checkpointOperation);
     const release = async (): Promise<void> => {
       for (const id of [...managed.keys()].sort().reverse()) { if (registered(id)) await kernel.unregister(id); managed.delete(id); }
-      current = null; choices.clear();
+      current = null; choices.clear(); checkpoints.clear();
     };
     ctx.provide(LimeRuntime, {
       open(environment) { const captured = { ...environment }; return serial(async () => {
         if (!captured.vaultId || !Number.isSafeInteger(captured.generation) || captured.generation <= generation) return failure('STALE', 'Environment generation must increase.');
         await release(); current = Object.freeze(captured); generation = captured.generation;
         logger.info(ctx.pluginId, 'Plugin runtime environment opened', { data: { generation } }); return { ok: true, value: null };
-      }); },
+      }, true); },
       close(environment) { const captured = { ...environment }; return serial(async () => {
         if (!matches(captured)) return failure('STALE', 'Plugin environment changed.');
         await release(); logger.info(ctx.pluginId, 'Plugin runtime environment closed'); return { ok: true, value: null };
-      }); },
+      }, true); },
       snapshot(environment) {
         if (!matches(environment)) return { ok: false, error: { code: 'STALE', message: 'Plugin environment changed.' } };
         return { ok: true, value: Object.freeze([...managed].sort(([a], [b]) => a < b ? -1 : 1).map(([id, definition]) => {
@@ -109,6 +112,51 @@ export function createLimeRuntime(kernel: Kernel, builtinIds: readonly string[])
           return { ok: true, value: null };
         });
       },
+      suspend(environment, id) {
+        const captured = { ...environment }; return serial(async () => {
+          if (!matches(captured)) return failure('STALE', 'Plugin environment changed.');
+          const definition = managed.get(id); if (!definition) return failure('NOT_FOUND', 'Plugin is not managed in this environment.');
+          if (nextCheckpoint >= Number.MAX_SAFE_INTEGER) return failure('CONFLICT', 'Update checkpoint sequence exhausted.');
+          if ([...checkpoints.values()].some(checkpoint => checkpoint.id === id)) return failure('CONFLICT', 'Plugin already has an update checkpoint.');
+          const observed = kernel.inspect(); const affected = new Set([id]);
+          for (const provider of affected) for (const item of observed.plugins) if (item.state === 'active' && (item.ownerId === provider || item.bindings.some(binding => binding.providerId === provider))) affected.add(item.manifest.id);
+          const active = observed.plugins.filter(item => affected.has(item.manifest.id) && item.state === 'active').map(item => item.manifest.id);
+          const grants = registered(id)?.effectivePermissions ?? [];
+          if (registered(id)) await kernel.stop(id);
+          const checkpoint = ++nextCheckpoint; checkpoints.set(checkpoint, { id, definition, active, grants, choices: new Map(choices.get(id)) });
+          logger.info(ctx.pluginId, 'Plugin update graph suspended', { data: { pluginId: id, count: active.length } });
+          return { ok: true, value: checkpoint };
+        });
+      },
+      resume(environment, checkpoint) {
+        const captured = { ...environment }; return serial(async () => {
+          if (!matches(captured)) return failure('STALE', 'Plugin environment changed.');
+          const saved = checkpoints.get(checkpoint); if (!saved) return failure('NOT_FOUND', 'Update checkpoint is unavailable.');
+          for (const id of saved.active) { if (managed.has(id)) await start(id); else await kernel.start(id); }
+          logger.info(ctx.pluginId, 'Plugin update graph resumed', { data: { pluginId: saved.id } });
+          return { ok: true, value: null };
+        }, true);
+      },
+      rollback(environment, checkpoint) {
+        const captured = { ...environment }; return serial(async () => {
+          if (!matches(captured)) return failure('STALE', 'Plugin environment changed.');
+          const saved = checkpoints.get(checkpoint); if (!saved) return failure('NOT_FOUND', 'Update checkpoint is unavailable.');
+          if (registered(saved.id)) {
+            await kernel.stop(saved.id);
+            await kernel.replace(saved.definition, { grants: saved.grants });
+          }
+          managed.set(saved.id, saved.definition); choices.set(saved.id, new Map(saved.choices));
+          logger.info(ctx.pluginId, 'Plugin update code rolled back while suspended', { data: { pluginId: saved.id } });
+          return { ok: true, value: null };
+        }, true);
+      },
+      finish(environment, checkpoint) {
+        const captured = { ...environment }; return serial(async () => {
+          if (!matches(captured)) return failure('STALE', 'Plugin environment changed.');
+          if (!checkpoints.delete(checkpoint)) return failure('NOT_FOUND', 'Update checkpoint is unavailable.');
+          return { ok: true, value: null };
+        }, true);
+      },
       register(environment, manifest, source, enabled) {
         const captured = { ...environment };
         const definition = execution.load(manifest, source, captured, ctx.signal);
@@ -127,7 +175,7 @@ export function createLimeRuntime(kernel: Kernel, builtinIds: readonly string[])
         return operation(captured, definition.manifest.id, async () => {
           if (registered(definition.manifest.id)) await kernel.replace(definition, { grants: [...definition.manifest.permissions, ...definition.manifest.optionalPermissions] });
           managed.set(definition.manifest.id, definition);
-        });
+        }, true);
       },
       enable(environment, id) { return operation({ ...environment }, id, () => start(id)); },
       disable(environment, id) { return operation({ ...environment }, id, async () => { if (registered(id)) await kernel.unregister(id); }); },

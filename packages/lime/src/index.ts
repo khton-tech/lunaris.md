@@ -39,6 +39,13 @@ export interface LimeRuntimeApi {
   snapshot(environment: LimeEnvironment): LimeResult<readonly LimeRuntimeEntry[]>;
   plan(environment: LimeEnvironment, id: string): LimeResult<LimeDependencyPlan>;
   selectProvider(environment: LimeEnvironment, id: string, kind: ContractKind, contractId: string, providerId: string, expectedRevision: number): Promise<LimeResult<null>>;
+  /** Stop the active affected graph; the opaque checkpoint retains old code/resources. */
+  suspend(environment: LimeEnvironment, id: string): Promise<LimeResult<number>>;
+  /** Restart the graph retained by the checkpoint; the checkpoint remains until finish. */
+  resume(environment: LimeEnvironment, checkpoint: number): Promise<LimeResult<null>>;
+  /** Stop candidate work and restore old code while keeping the graph inactive. */
+  rollback(environment: LimeEnvironment, checkpoint: number): Promise<LimeResult<null>>;
+  finish(environment: LimeEnvironment, checkpoint: number): Promise<LimeResult<null>>;
   register(environment: LimeEnvironment, manifest: PluginManifest, source: ExecutionSource, enabled: boolean): Promise<LimeResult<null>>;
   replace(environment: LimeEnvironment, manifest: PluginManifest, source: ExecutionSource): Promise<LimeResult<null>>;
   enable(environment: LimeEnvironment, id: string): Promise<LimeResult<null>>;
@@ -47,7 +54,7 @@ export interface LimeRuntimeApi {
 }
 export const LimeRuntime = defineApi<LimeRuntimeApi>({
   id: 'lunaris.lime-runtime', version: '1.0.0', consumePermission: 'runtime.manage',
-  validate: value => !!value && typeof value === 'object' && ['open', 'close', 'snapshot', 'plan', 'selectProvider', 'register', 'replace', 'enable', 'disable', 'remove'].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === 'function'),
+  validate: value => !!value && typeof value === 'object' && ['open', 'close', 'snapshot', 'plan', 'selectProvider', 'suspend', 'resume', 'rollback', 'finish', 'register', 'replace', 'enable', 'disable', 'remove'].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === 'function'),
 });
 
 export interface LimeInstallation {

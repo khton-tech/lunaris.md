@@ -139,3 +139,53 @@ test('dependency plans become stale after host lifecycle changes outside the ada
   assert.equal((await runtime.selectProvider(env, 'test.package', 'api', 'test.value', 'test.provider', plan.revision)).error.code, 'STALE');
   await kernel.stopAll();
 });
+
+test('update checkpoint keeps code/resources inactive until explicit resume and restores old code before data recovery', async () => {
+  const { kernel, runtime } = await fixture(); const env = { vaultId: 'a', generation: 1 }; await runtime.open(env);
+  const original = manifest();
+  await runtime.register(env, original, { ...source(original, `if(ctx.resources.text('assets/value')!=='old') throw Error('lost old bytes');`), resources: { 'assets/value': [111,108,100] } }, true);
+  const suspended = await runtime.suspend(env, original.id); assert.equal(suspended.ok, true);
+  assert.equal(runtime.snapshot(env).value[0].state, 'stopped');
+  assert.equal((await runtime.enable(env, original.id)).error.code, 'CONFLICT');
+  assert.equal((await runtime.remove(env, original.id)).error.code, 'CONFLICT');
+  assert.equal((await runtime.suspend(env, original.id)).error.code, 'CONFLICT');
+  const candidate = manifest('2.0.0');
+  assert.equal((await runtime.replace(env, candidate, source(candidate, 'throw Error("candidate migration failed");'))).ok, true);
+  assert.equal(runtime.snapshot(env).value[0].state, 'registered');
+  assert.equal((await runtime.resume(env, suspended.value)).error.code, 'RUNTIME_FAILED');
+  assert.equal((await runtime.rollback(env, suspended.value)).ok, true);
+  assert.equal(runtime.snapshot(env).value[0].version, '1.0.0'); assert.notEqual(runtime.snapshot(env).value[0].state, 'active');
+  // The manager restores its durable managed-data snapshot before this call.
+  assert.equal((await runtime.resume(env, suspended.value)).ok, true); assert.equal(runtime.snapshot(env).value[0].state, 'active');
+  assert.equal((await runtime.finish(env, suspended.value)).ok, true);
+  assert.equal((await runtime.rollback(env, suspended.value)).error.code, 'NOT_FOUND');
+  await runtime.close(env); await kernel.stopAll(); kernel.assertNoResources();
+});
+
+test('checkpoint closure revokes suspended generations and leaves disabled updates unevaluated', async () => {
+  const { kernel, runtime } = await fixture(); const env = { vaultId: 'a', generation: 1 }; await runtime.open(env);
+  await runtime.register(env, manifest(), source(manifest()), false);
+  const checkpoint = (await runtime.suspend(env, 'test.package')).value;
+  const candidate = manifest('2.0.0'); await runtime.replace(env, candidate, source(candidate, 'throw Error("disabled code evaluated");'));
+  assert.equal((await runtime.resume(env, checkpoint)).ok, true); assert.equal(runtime.snapshot(env).value[0].state, 'disabled');
+  await runtime.close(env); await runtime.open({ vaultId: 'b', generation: 2 });
+  assert.equal((await runtime.resume(env, checkpoint)).error.code, 'STALE');
+  await kernel.stopAll(); kernel.assertNoResources();
+});
+
+test('checkpoint pause/resume includes active dependents while unrelated plugins remain active', async () => {
+  const { kernel, runtime } = await fixture(); const env = { vaultId: 'a', generation: 1 }; await runtime.open(env);
+  const data = { ...manifest(), provides: [{ kind: 'api', id: 'test.value', version: '1.0.0' }] };
+  await runtime.register(env, data, source(data, `ctx.provide({kind:'api',id:'test.value',version:'1.0.0'},{read(){return 1}});`), true);
+  const dependent = { ...manifest('1.0.0','test.dependent'), requires: [{ kind: 'api', id: 'test.value', range: '^1.0.0' }] };
+  await runtime.register(env, dependent, source(dependent, `ctx.use({kind:'api',id:'test.value',version:'1.0.0'}).read();`), true);
+  await runtime.register(env, manifest('1.0.0','test.unrelated'), source(manifest('1.0.0','test.unrelated')), true);
+  const unrelated = kernel.inspect().plugins.find(item => item.manifest.id === 'test.unrelated').activationId;
+  const checkpoint = (await runtime.suspend(env, data.id)).value;
+  assert.equal(runtime.snapshot(env).value.find(item => item.id === dependent.id).state, 'stopped');
+  assert.equal(runtime.snapshot(env).value.find(item => item.id === 'test.unrelated').state, 'active');
+  assert.equal((await runtime.resume(env, checkpoint)).ok, true);
+  assert.equal(runtime.snapshot(env).value.find(item => item.id === dependent.id).state, 'active');
+  assert.equal(kernel.inspect().plugins.find(item => item.manifest.id === 'test.unrelated').activationId, unrelated);
+  await runtime.finish(env, checkpoint); await kernel.stopAll(); kernel.assertNoResources();
+});
