@@ -74,16 +74,27 @@ export default definePlugin({ manifest, activate(ctx) {
  const copy = (input: MobileMenuItem): MobileMenuItem | undefined => {
   if (!input || typeof input !== "object" || ![Object.prototype, null].includes(Object.getPrototypeOf(input))) return;
   const fields = Object.getOwnPropertyDescriptors(input);
-  if (Reflect.ownKeys(fields).some(key => typeof key !== "string" || !["id","label","icon","order","disabled","onPress","placement","count","choices","selectedChoiceId"].includes(key) || !("value" in fields[key]!))) return;
+  if (Reflect.ownKeys(fields).some(key => typeof key !== "string" || !["id","label","icon","order","disabled","onPress","placement","count","choices","selectedChoiceId","onReorder"].includes(key) || !("value" in fields[key]!))) return;
   if ((input.placement !== undefined && !["panel","launcher"].includes(input.placement)) || typeof input.id !== "string" || !/^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$/.test(input.id) || typeof input.label !== "string" || !input.label.trim() || typeof input.icon !== "string" || typeof input.onPress !== "function" || (input.order !== undefined && !Number.isSafeInteger(input.order)) || (input.disabled !== undefined && typeof input.disabled !== "boolean")) return;
   if (input.count !== undefined && (!Number.isSafeInteger(input.count) || input.count < 0)) return;
   const choices = input.choices === undefined ? undefined : copyChoices(input.choices);
   if ((input.choices !== undefined && !choices) ||
-    (input.selectedChoiceId != null && !choices?.some(choice => choice.id === input.selectedChoiceId))) return;
+    (input.selectedChoiceId != null && !choices?.some(choice => choice.id === input.selectedChoiceId)) ||
+    (input.onReorder !== undefined && (!choices || typeof input.onReorder !== "function"))) return;
   const action = input.onPress;
-  const item: MobileMenuItem = Object.freeze({ ...input, ...(choices ? { choices } : {}), async onPress(choiceId?: string) {
+  const reorder = input.onReorder;
+  const isLive = () => {
    const current = entries.get(item.id);
-   if (ctx.signal.aborted || !current || current.item !== item || current.owner.aborted || item.disabled) return;
+   return !ctx.signal.aborted && current?.item === item && !current.owner.aborted && !item.disabled;
+  };
+  const item: MobileMenuItem = Object.freeze({ ...input, ...(choices ? { choices } : {}),
+   ...(reorder ? { onReorder(id: string, targetId: string, edge: "before" | "after") {
+    if (!isLive() || id === targetId || (edge !== "before" && edge !== "after") ||
+      !choices?.some(choice => choice.id === id && !choice.disabled) || !choices.some(choice => choice.id === targetId)) return;
+    try { reorder(id, targetId, edge); }
+    catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot reorder mobile choices", { error, data: { id: item.id } }); }
+   } } : {}), async onPress(choiceId?: string) {
+   if (!isLive()) return;
    if (choices && (!choiceId || !choices.some(choice =>
      (choice.id === choiceId && !choice.disabled) || (choice.trailingAction?.id === choiceId && !choice.trailingAction.disabled)))) return;
    try {

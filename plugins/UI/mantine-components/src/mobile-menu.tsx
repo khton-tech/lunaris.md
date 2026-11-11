@@ -4,6 +4,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
+import { useListReorder } from "./list-reorder.js";
 interface Option { readonly id: string; readonly label: string; readonly title?: string; readonly icon?: string; readonly disabled?: boolean }
 interface Choice extends Option { readonly trailingAction?: Option }
 interface Item {
@@ -14,6 +15,7 @@ interface Item {
  readonly disabled?: boolean;
  readonly choices?: readonly Choice[];
  readonly selectedChoiceId?: string | null;
+ readonly onReorder?: (id: string, targetId: string, edge: "before" | "after") => void;
  readonly onPress: (choiceId?: string) => void;
 }
 interface Props { readonly density?: "compact" | "comfortable"; readonly items: readonly Item[] }
@@ -42,6 +44,7 @@ export function mobileMenuProps(value: ComponentProps): Props {
      typeof item.icon !== "string" || typeof item.onPress !== "function" || (item.disabled !== undefined && typeof item.disabled !== "boolean") ||
      (item.count !== undefined && (!Number.isSafeInteger(item.count) || item.count < 0)) ||
      (item.choices !== undefined && !validChoices(item.choices)) ||
+     (item.onReorder !== undefined && (!item.choices || typeof item.onReorder !== "function")) ||
      (item.selectedChoiceId != null && !item.choices?.some((choice: Choice) => choice.id === item.selectedChoiceId))) ||
      new Set(value.items.map(item => item.id)).size !== value.items.length) throw new TypeError("Invalid mobile menu items");
  return value as unknown as Props;
@@ -65,6 +68,7 @@ function MobileAction({ item, compact, dock, overlay }: {
       ? previous : { width: area.width, crossAxis, mainAxis });
   }, [dock, dir]);
   const hasChoices = item.choices !== undefined;
+  const reorder = useListReorder("y", item.choices ?? [], item.disabled ? undefined : item.onReorder);
   useLayoutEffect(() => {
     if (!dock || !hasChoices || !trigger.current) return;
     const observer = new ResizeObserver(measure);
@@ -80,18 +84,37 @@ function MobileAction({ item, compact, dock, overlay }: {
     {item.count === undefined ? <Icon name={item.icon} /> : <span className="lm-mobile-page-count" aria-hidden="true">{item.count}</span>}
   </ActionIcon>;
   if (!item.choices) return button;
-  return <Menu position="top" onOpen={measure}
+  return <Menu position="top" onOpen={measure} onClose={reorder.cancel}
     offset={geometry ? { mainAxis: geometry.mainAxis, crossAxis: geometry.crossAxis } : 8} returnFocus
     portalProps={{ target: `#${overlay.id}` }} transitionProps={{ duration: 0 }}>
     <Menu.Target>{button}</Menu.Target>
-    <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu lm-mobile-choice-menu" aria-label={item.label}
+    <Menu.Dropdown ref={reorder.list} {...reorder.handlers} className="lm-explorer-menu lm-explorer-tab-menu lm-mobile-choice-menu" aria-label={item.label}
       style={dock ? { width: geometry?.width ?? "70vw" } : undefined}>
-      {item.choices.map(choice => {
+      {item.choices.map((choice, index, choices) => {
         const selected = choice.id === item.selectedChoiceId;
         const trailing = choice.trailingAction;
+        const sortable = reorder.enabled && !choice.disabled;
         return <div key={choice.id} className="lm-mobile-choice-row" data-selected={selected || undefined}
+          data-reorder-id={choice.id} data-sortable={sortable || undefined}
+          data-drop={reorder.drop?.id === choice.id ? reorder.drop.edge : undefined}
           role={trailing ? "group" : undefined} aria-label={trailing ? choice.label : undefined}>
+          {sortable && <span className="lm-mobile-choice-grip" aria-hidden="true"
+            onPointerDown={event => reorder.start(event, event.currentTarget.parentElement!, true)}><Icon name="grip-vertical" /></span>}
           <Menu.Item title={choice.title ?? choice.label} aria-current={selected ? "true" : undefined} disabled={choice.disabled ?? false}
+            aria-keyshortcuts={sortable ? "Alt+ArrowUp Alt+ArrowDown" : undefined}
+            onPointerDown={event => reorder.start(event, event.currentTarget.parentElement!)}
+            onKeyDownCapture={event => {
+              if (!sortable || !event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
+              event.preventDefault();
+              event.stopPropagation();
+              const down = event.key === "ArrowDown";
+              const target = choices[index + (down ? 1 : -1)];
+              if (target) {
+                item.onReorder?.(choice.id, target.id, down ? "after" : "before");
+                event.currentTarget.focus({ preventScroll: true });
+                event.currentTarget.scrollIntoView?.({ block: "nearest" });
+              }
+            }}
             leftSection={choice.icon ? <Icon name={choice.icon} /> : undefined} onClick={() => item.onPress(choice.id)}>{choice.label}</Menu.Item>
           {trailing && <Menu.Item className="lm-mobile-choice-trailing" aria-label={trailing.label} title={trailing.title ?? trailing.label}
             disabled={trailing.disabled ?? false} onClick={() => item.onPress(trailing.id)}><Icon name={trailing.icon ?? "actions"} /></Menu.Item>}

@@ -21,6 +21,7 @@ export interface MobileMenuItem {
  readonly count?: number;
  readonly choices?: readonly MobileMenuChoice[];
  readonly selectedChoiceId?: string | null;
+ readonly onReorder?: (id: string, targetId: string, edge: "before" | "after") => void;
  /** An action with choices receives the chosen ID. A plain action receives no arguments. */
  readonly onPress: (choiceId?: string) => void | Promise<void>;
 }
@@ -30,4 +31,4 @@ export interface MobileMenuApi {
  update(item: MobileMenuItem): MobileMenuResult;
  list(): readonly MobileMenuItem[];
 }
-export const MobileMenu = defineApi<MobileMenuApi>({ id: "lunaris.mobile-menu", version: "1.5.0", validate: value => !!value && typeof value === "object" && ["register", "update", "list"].every(key => typeof Object.getOwnPropertyDescriptor(value,key)?.value === "function") });
+export const MobileMenu = defineApi<MobileMenuApi>({ id: "lunaris.mobile-menu", version: "1.6.0", validate: value => !!value && typeof value === "object" && ["register", "update", "list"].every(key => typeof Object.getOwnPropertyDescriptor(value,key)?.value === "function") });

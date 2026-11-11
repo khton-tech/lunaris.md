@@ -21,7 +21,9 @@ test('mobile items validate, order, update, contain failures and follow contribu
   await api.list()[1].onPress(); assert.ok(s.logs.some(log=>log[2]==='Mobile action failed'));
   const trailingAction={id:'close-two',label:'Close Two',icon:'window-close'};
   const choices=[{id:'one',label:'One'},{id:'two',label:'Two',trailingAction}];
-  const select={...item,choices,selectedChoiceId:'one',onPress:id=>{if (id==='two' || id==='close-two') calls++;}};
+  const moves=[];
+  const select={...item,choices,selectedChoiceId:'one',onPress:id=>{if (id==='two' || id==='close-two') calls++;},
+    onReorder:(...move)=>moves.push(move)};
   assert.equal(api.update({...select,selectedChoiceId:'unknown'}).ok,false);
   assert.equal(api.update({...select,choices:[{...choices[0],trailingAction:{...trailingAction,id:'two'}},choices[1]]}).ok,false);
   assert.equal(api.update(select).ok,true);
@@ -37,12 +39,19 @@ test('mobile items validate, order, update, contain failures and follow contribu
   await choiceAction.onPress('two');
   await choiceAction.onPress('close-two');
   assert.equal(calls,3);
+  choiceAction.onReorder('close-two','one','before');
+  choiceAction.onReorder('two','one','left');
+  choiceAction.onReorder('two','one','before');
+  assert.deepEqual(moves,[['two','one','before']]);
   assert.equal(api.update({...select,choices:[choices[0],{id:'two',label:'Two',disabled:true,
     trailingAction:{id:'close-two',label:'Close Two',disabled:true}}]}).ok,true);
   const disabledChoice=api.list()[1];
   await disabledChoice.onPress('two');
   await disabledChoice.onPress('close-two');
   assert.equal(calls,3);
+  disabledChoice.onReorder('two','one','before');
+  choiceAction.onReorder('two','one','before');
+  assert.equal(moves.length,1);
   await owner.dispose(); await flush(); assert.deepEqual(api.list(),[]);
   await stale.onPress(); await choiceAction.onPress('close-two'); assert.equal(calls,3);
  } finally {await s.stop();}

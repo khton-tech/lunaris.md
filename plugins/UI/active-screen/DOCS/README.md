@@ -66,7 +66,7 @@ their content inside borrowed targets.
 - The tab list and history belong to the mounted Vault workspace. ActiveDocument
   restores its persisted file after reopening a Vault.
 
-At compact widths, the optional MobileMenu 1.5 integration contributes Back,
+At compact widths, the optional MobileMenu 1.6 integration contributes Back,
 Forward, Add tab and the tab picker for the mounted Active Screen layout. The
 picker's horizontal rounded outline shows the Vault tab count, including blank tabs. Pressing it
 opens a localized menu using the same tab selection and document guards as the
@@ -82,8 +82,10 @@ the dock actions are available. Desktop retains the full strip, history and
 reordering. See
 [mobile menu registration](../../../../DOCS/reference/mobile-menu.md).
 The Owner's annotated compact list is the reference for the narrower menu
-and five-row scrolling viewport. Native acceptance of alignment, touch
-actions, scrolling and resize remains pending in both themes.
+and five-row scrolling viewport. The mobile list uses the same reorder operation
+as the desktop strip. Dragging vertically changes order while preserving the
+current tab and its visit history. Native acceptance covers drag handles,
+edge scrolling, selection and close feedback in both themes.
 
 ## Russian UI copy
 

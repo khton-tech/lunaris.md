@@ -105,6 +105,7 @@ export default definePlugin({ manifest, activate(ctx) {
       const tabPicker: MobileMenuItem = {
         id: `${ctx.pluginId}.tabs`, label, icon: "file", count, order: 40,
         ...(choices.length ? { choices, selectedChoiceId: tabProps.selectedId } : { disabled: true }),
+        ...(!tabProps.busy && choices.length > 1 ? { onReorder: tabProps.onReorder } : {}),
         async onPress(id) {
           if (!id || !live()) return;
           if (id.startsWith("close:")) await tabProps.onClose(id.slice("close:".length));
@@ -122,7 +123,7 @@ export default definePlugin({ manifest, activate(ctx) {
       ];
       for (const item of items) {
         const previous = mobileSignatures.get(item.id);
-        const signature = JSON.stringify(item);
+        const signature = JSON.stringify([item, !!item.onReorder]);
         if (signature === previous) continue;
         try {
           const result = previous ? mobileMenu.update(item) : mobileMenu.register(item, layoutOwner.signal);

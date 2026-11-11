@@ -1,7 +1,7 @@
 # Mobile menu
 
 The mobile action registry is public through @lunaris/mobile-menu. Require
-api:lunaris.mobile-menu@^1.5.0 and call ctx.use(MobileMenu).register(item, owner).
+api:lunaris.mobile-menu@^1.6.0 and call ctx.use(MobileMenu).register(item, owner).
 Items have a canonical dotted id, already-localized nonempty label, Lucide icon,
 optional integer order, optional disabled boolean and onPress callback. register
 rejects duplicate IDs. update replaces a registered descriptor; list returns an
@@ -17,6 +17,9 @@ as its own menu item in the same row.
 selectedChoiceId marks the current choice. The provider takes an immutable
 snapshot and passes only an enabled choice ID to onPress. Plain actions keep the
 same no-argument callback.
+An optional onReorder(id, targetId, edge) callback enables vertical ordering of
+choices. The provider accepts distinct registered choice IDs, an enabled source
+and an edge of before or after. The contributor publishes the resulting order.
 
 The default provider/controller is plugins/UI/mobile-menu. It owns registration
 and contributes the lunaris.mobile-menu UIKit role to Workspace 1.4's exclusive
@@ -71,7 +74,8 @@ public Search action. The picker count includes blank tabs. It opens an anchored
 Vault switcher pattern. Its rows select tabs through the same callbacks as the
 top strip. The menu lists open tabs with a close control on each row and marks
 the selected row with the Files active-file accent line. The final blank
-tab's close control is disabled.
+tab's close control is disabled. Drag the label with a mouse or the grip with
+touch to move a tab. Both platforms use the same tab ordering operation.
 The dock's plus creates tabs. The anchored popup matches the dock's measured
 width and center. The dock takes 70% of the Workspace width within its side
 gutters. The popup fits up to five rows and scrolls internally when more tabs

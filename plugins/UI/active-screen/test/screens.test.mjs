@@ -237,6 +237,46 @@ test('compact Workspace shows one live tab counter and switches through the shar
     assert.equal(document.activeElement, button);
     button.click();
     await flush();
+    const choices = () => [...menu().querySelectorAll('.lm-mobile-choice-row')];
+    const [first, second] = choices();
+    for (const element of choices()) {
+      element.getBoundingClientRect = () => {
+        const offset = Number(element.style.transform.match(/translateY\((-?\d+)px\)/)?.[1] ?? 0);
+        return new DOMRect(0, 400 + choices().indexOf(element) * 34 + offset, 252, 34);
+      };
+    }
+    const grip = second.querySelector('.lm-mobile-choice-grip');
+    let captured;
+    grip.setPointerCapture = id => { captured = id; };
+    grip.hasPointerCapture = id => captured === id;
+    grip.releasePointerCapture = () => { captured = undefined; };
+    const pointer = (type, x, y, source = grip) => {
+      const event = new s.dom.window.MouseEvent(type, { bubbles: true, cancelable: true, clientX: x, clientY: y, detail: 1 });
+      Object.defineProperties(event, { pointerType: { value: 'touch' }, pointerId: { value: 1 } });
+      flushSync(() => source.dispatchEvent(event));
+    };
+    pointer('pointerdown', 12, 450, command('Новая вкладка'));
+    pointer('pointermove', 90, 410, command('Новая вкладка'));
+    assert.equal(second.style.transform, '', 'Touching the label still allows scrolling.');
+    pointer('pointerup', 90, 410, command('Новая вкладка'));
+    pointer('pointerdown', 12, 450);
+    pointer('pointermove', 90, 410);
+    await flush();
+    assert.equal(second.style.transform, 'translateY(-34px)');
+    assert.equal(first.dataset.drop, 'before');
+    pointer('pointerup', 90, 410);
+    pointer('click', 90, 410, command('Новая вкладка'));
+    await flush();
+    assert.deepEqual(choices().map(element => element.getAttribute('aria-label')), ['Новая вкладка', 'First screen']);
+    assert.equal(s.tools.screens.snapshot().activeId, null);
+    assert.equal(menu().querySelector('[aria-current="true"]').textContent, 'Новая вкладка');
+    assert.equal(second.style.transform, '');
+    assert.equal(first.hasAttribute('data-drop'), false);
+    const moveDown = new s.dom.window.KeyboardEvent('keydown', { key: 'ArrowDown', altKey: true, bubbles: true, cancelable: true });
+    command('Новая вкладка').dispatchEvent(moveDown);
+    await flush();
+    assert.equal(moveDown.defaultPrevented, true);
+    assert.deepEqual(choices().map(element => element.getAttribute('aria-label')), ['First screen', 'Новая вкладка']);
     const row = command('First screen');
     const next = new s.dom.window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true });
     row.dispatchEvent(next);

@@ -1033,8 +1033,13 @@ and focus return.
 Each choice can supply a trailing action. The mobile role renders it as an
 independent Mantine Menu.Item next to the tab label, with a localized name and
 a 44px-wide touch target. Unavailable actions keep their position and are
-disabled. Enabled controls participate in menu keyboard
-navigation. The Active Screen role accepts compactTabs, supplied from the
+disabled. A single row surface paints selected, hover and press feedback behind
+the label and trailing action. Enabled controls participate in menu keyboard
+navigation. A sortable choice uses the shared tab drag implementation on the
+vertical axis. Mouse users can drag the label and touch users use the grip to
+preserve scrolling on the rest of the row. A boundary line previews the insertion
+point, with edge scrolling for longer lists. Alt+Up or Alt+Down on the label
+moves a row by one position. The Active Screen role accepts compactTabs, supplied from the
 owning Workspace context when its dock actions are available. It omits the tab
 strip and the location/history row in that presentation. The Owner's phone
 reference places history, creation and the horizontal tab counter in one
