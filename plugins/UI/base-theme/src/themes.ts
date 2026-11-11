@@ -31,7 +31,7 @@ const communityTheme = (slug: string, name: string, appearance: "dark" | "light"
 const darkPalette = (background: string, panel: string, text: string, accent: string, hover: string, selection: string, border: string, focus: string, onAccent = "#FFFFFF"): ThemeProperties => ({
   background, main: accent, sub: border, text, caret: text, subAlt: panel,
   error: "#FFB4AB", extraError: "#FFDAD4", colorfulError: "#F2C078", colorfulExtraError: "#FFE0A8",
-  panel, content: background, textSecondary: text, accent, onAccent, selection, separator: border,
+  panel, content: background, textSecondary: text, accent, onAccent, selection, separator: hover,
   controlBorder: border, hover, accentHover: accent, focus,
 });
 
@@ -48,6 +48,7 @@ export const baseThemes: readonly ThemeDefinition[] = [
         ...darkPalette("#242B2C", "#252D2E", "#EEEDE5", "#C1D8A5", "#303A3B", "#39483D", "#394344", "#C1D8A5", "#202628"),
         content: "#202628",
         textSecondary: "#ACB9B3",
+        separator: "#394344",
         controlBorder: "#899E85",
       },
       geometry: { ...geometry, radius: { small: 4, medium: 10 } },
@@ -200,7 +201,11 @@ export const baseThemes: readonly ThemeDefinition[] = [
   communityTheme("tokyo-night", "Tokyo Night", "dark", darkPalette("#1A1B26", "#16161E", "#C0CAF5", "#7AA2F7", "#292E42", "#343A52", "#7F89B4", "#BB9AF7", "#1A1B26")),
   communityTheme("rose-pine", "Rosé Pine", "dark", darkPalette("#191724", "#1F1D2E", "#E0DEF4", "#EBBCBA", "#26233A", "#403D52", "#9E9AAF", "#C4A7E7", "#191724")),
   communityTheme("gruvbox-dark", "Gruvbox Dark", "dark", darkPalette("#282828", "#1D2021", "#EBDBB2", "#FABD2F", "#3C3836", "#504945", "#BDAE93", "#FE8019", "#282828")),
-  communityTheme("everforest-dark", "Everforest Dark", "dark", darkPalette("#2D353B", "#343F44", "#D3C6AA", "#A7C080", "#3D484D", "#4A555B", "#A7C080", "#83C092", "#2D353B")),
+  communityTheme("everforest-dark", "Everforest Dark", "dark", {
+    ...darkPalette("#2D353B", "#343F44", "#D3C6AA", "#A7C080", "#3D484D", "#4A555B", "#A7C080", "#83C092", "#2D353B"),
+    separator: "#485357",
+    controlBorder: "#A0A9AD",
+  }),
   communityTheme("sakura-night", "Sakura Night", "dark", darkPalette("#211A22", "#2B202B", "#F4E8F0", "#E89AB8", "#392B38", "#50384B", "#C18AA9", "#F2B6D0", "#211A22")),
   communityTheme("maiami-night", "Maiami Night", "dark", {
     background: "#18181A", main: "#E4609B", sub: "#47BAC0",
@@ -209,7 +214,7 @@ export const baseThemes: readonly ThemeDefinition[] = [
     colorfulError: "#FFF591", colorfulExtraError: "#B6AF68",
     panel: "#0F0F10", content: "#18181A", textSecondary: "#47BAC0",
     accent: "#E4609B", onAccent: "#18181A", selection: "#40303B",
-    separator: "#47BAC0", controlBorder: "#47BAC0", hover: "#292327",
+    separator: "#343038", controlBorder: "#47BAC0", hover: "#292327",
     accentHover: "#E4609B", focus: "#E4609B",
   }),
 ];

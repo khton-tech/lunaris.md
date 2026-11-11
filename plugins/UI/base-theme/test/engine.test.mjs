@@ -91,6 +91,18 @@ test('community presets use the shared schema and include a dark Sakura palette'
   await s.stop();
 });
 const contrast = (a, b) => (Math.max(luminance(a), luminance(b)) + 0.05) / (Math.min(luminance(a), luminance(b)) + 0.05);
+test('Lunaris and community separators are subdued against workspace surfaces', async () => {
+  const s = await setup(); await s.host.start(engine.manifest.id);
+  for (const theme of s.themes.list()) {
+    if (theme.id === presetId || theme.properties.components.windowChrome?.enabled) continue;
+    const colors = theme.properties.colors;
+    for (const surface of ['background', 'panel', 'content']) {
+      assert.ok(contrast(colors.separator, colors[surface]) < 2, `${theme.name}: separator/${surface}`);
+    }
+  }
+  await s.stop();
+});
+
 test('text and meaningful controls meet contrast thresholds across their intended states', async () => {
   const s = await setup(); await s.host.start(engine.manifest.id);
   for (const theme of s.themes.list()) {

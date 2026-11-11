@@ -9,14 +9,15 @@ with the requested display name Maiami Night and the shared dark v1 schema.
 |---|---|---|
 | background | #18181A | background, content, onAccent |
 | main | #E4609B | main, accent, accentHover, focus |
-| sub | #47BAC0 | sub, textSecondary, separator, controlBorder |
+| sub | #47BAC0 | sub, textSecondary, controlBorder |
 | text | #FFFFFF | text |
 | caret | #E4609B | caret |
 | sub alt | #0F0F10 | subAlt, panel |
 | error / colorful error | #FFF591 | error, colorfulError |
 | extra error / colorful extra error | #B6AF68 | extraError, colorfulExtraError |
 
-Hover (#292327) and selection (#40303B) are restrained derived surfaces.
+Hover (#292327), selection (#40303B) and the separator (#343038) are restrained
+derived colors.
 Dark primary labels preserve contrast against the pink accent. Existing geometry,
 typography and motion are reused. This adapts the palette rather than the reference
 page layout. The engine registers data through Themes; Interface Settings lists

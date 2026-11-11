@@ -797,6 +797,9 @@ for (const saveMode of ['manual save', 'autosave']) {
     } });
     try {
       const title = s.target.querySelector('.lm-editor-title input');
+      const heading = title.closest('header.lm-editor-heading');
+      assert.ok(heading?.parentElement.classList.contains('lm-text-editor'));
+      assert.equal(heading.nextElementSibling, s.cm().dom.parentElement);
       s.edit('Updated document');
       title.focus();
       if (saveMode === 'manual save') {

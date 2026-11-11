@@ -27,6 +27,14 @@ for an existing Vault. Monochrome remains available for comparison.
 Themes/ThemeChanged connect Mantine and the editor; interface-settings exposes
 both presets. Existing public SDK contracts are sufficient. WorkspaceLayout
 retains layout/surface ownership; embedded views inherit their assigned surface.
+
+The Owner's Everforest Workspace screenshot showed accent-colored dividers
+around the Files panel, its tree and the status bar. Community palettes now
+provide subdued separator colors for these decorative joins. Everforest keeps
+its green accent for selection and uses a neutral control border with sufficient
+contrast for controls such as task checkboxes. Existing theme IDs preserve saved
+selections and Themes/ThemeChanged deliver the palette to the same consumers.
+
 The Owner's second reference (XP Paint) defines the revised chrome. No OS desktop
 or window-management behavior is supplied. Native visual acceptance remains pending; see the reference for manual checks.
 

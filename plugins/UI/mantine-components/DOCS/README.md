@@ -717,13 +717,15 @@ opened menus, focus and theme contrast in the application.
 ## Text editor role
 
 The file-name heading accepts optional `contentWidth: number | "full"` (positive
-finite pixels, default 780). Text Editor supplies the effective document column
+finite pixels, default 698). Text Editor supplies the effective document column
 width, including preference changes and unwrapped/full-width mode. UIKit centers
 the heading with the same responsive horizontal inset as CodeMirror lines; it
 owns heading geometry only and does not inspect or style the borrowed editor DOM.
 Workspace retains outer layout and surfaces. Reference: the Owner's screenshot
-of the title offset to the left of the text column. Native alignment in narrow
-and wide Workspace allocations remains pending manual acceptance.
+of the title offset to the left of the text column and the editable heading
+before the FigCraft restyle. The title shares the editor surface and uses the
+existing rename behavior and a visible keyboard focus outline. Native alignment
+in narrow and wide Workspace allocations remains pending manual acceptance.
 
 At allocations up to 640px, the existing additional 6cqh document inset now sits
 before the heading. CodeMirror no longer repeats it above the document text.
@@ -867,7 +869,16 @@ Integration through Sidebar is complete. Behavior tests cover creation targets,
 sort callbacks and disabled controls. Native visual acceptance remains pending:
 both themes, open menu, selection/focus and narrow/short Workspace layouts.
 
-The FigCraft Lunaris design code sets the desktop rail to 56px, the default tool panel to 256px, and the status surface to 30px. WorkspaceLayout owns these surfaces and their joins. The title bar owns its window chrome. Explorer and Settings inherit the assigned panel and style their internal selection, menus and controls using the active theme. The text-editor role places the editable file name in a compact document bar above the reading column. The text-editor and callout plugins own the document column and block typography.
+The FigCraft Lunaris design code sets the desktop rail to 56px, the default tool
+panel to 256px, and the status surface to 30px. WorkspaceLayout owns these surfaces
+and uses a single subdued divider at each shared desktop join. The title bar
+owns its window chrome. Explorer and Settings inherit the assigned panel and style
+their internal selection, menus and controls using the active theme. The Vault
+switcher uses a selection surface when its menu is open. Reference: the Owner's
+Everforest Workspace screenshot and the original FigCraft surface hierarchy.
+Existing Components and Themes contracts connect the layout, title bar, Explorer,
+Settings and status bar. Native acceptance covers Everforest and Lunaris, including
+open menus, focus and narrow Workspace allocations.
 
 ## Workspace bottom target
 

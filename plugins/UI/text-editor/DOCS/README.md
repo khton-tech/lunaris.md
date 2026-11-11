@@ -5,9 +5,10 @@ insets as document text, including live text-width and wrapping changes. The
 controller supplies effective `contentWidth` through the public UIKit role:
 the configured pixel width when wrapping, or `"full"` for full-width/unwrapped
 content. UIKit owns the title layout and CodeMirror owns document layout;
-Workspace retains outer geometry and surfaces. Reference: the Owner's screenshot
-showing the title left of the document column. Integration with Mantine Components
-is complete; native alignment at wide/narrow sizes remains manual acceptance.
+Workspace retains outer geometry and surfaces. The editable file name appears
+as a heading above the document, following the editor before the FigCraft
+restyle. The existing Mantine role renders it and forwards renames through the
+same callback. Native alignment at wide/narrow sizes remains manual acceptance.
 
 Strong Markdown emphasis uses weight 700 in both live preview and source syntax
 highlighting, including callout body text. Reference: the Owner's callout screenshot
@@ -343,8 +344,8 @@ and surface. Quote rails and code remain within the same centered column. Existi
 public SDK integrations require no changes. Native wide/narrow window geometry,
 caret hit testing, selection and scrolling remain pending manual verification.
 
-The document top inset is responsive from 24px to 56px; the bottom inset retains
-its previous 12–32px range. Selection rectangles use the SDK theme's selection
+The editor body starts 18–24px below the file-name heading and has a responsive
+12–32px bottom inset. Selection rectangles use the SDK theme's selection
 color in focused and unfocused states, with sufficient selector specificity to
 override CodeMirror's built-in dark teal/light purple defaults. Native selection
 is still suppressed by drawSelection to avoid painting two highlights. Tests
