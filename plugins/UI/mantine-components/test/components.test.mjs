@@ -38,6 +38,26 @@ async function setup() {
 }
 const startup = { art: '<img src=x> ASCII', logoLabel: 'Lunaris', status: 'Loading' };
 
+test('declarative content uses shared controls, preserves input focus and rejects unsafe trees', async () => {
+  const s = await setup(); await s.start(); const changes = [];
+  const tree = { kind: 'grid', columns: 2, children: [
+    { kind: 'input', label: 'Name', value: 'A', onChange: value => changes.push(value) },
+    { kind: 'checkbox', label: 'Done', checked: false, onChange: value => changes.push(value) },
+    { kind: 'textarea', label: 'Notes', value: '<script>inert</script>', onChange: value => changes.push(value) },
+  ] };
+  const mounted = s.components.mount('lunaris.declarative-view', s.target, { tree, presentation: { mode: 'embedded', sizing: 'content' } }, s.ctx.signal);
+  assert.equal(mounted.ok, true, s.logs.filter(item => item[0] === 'error').map(item => item[3]?.error?.stack ?? item[3]?.error).join('\n')); const input = s.target.querySelector('input:not([type=checkbox])'); input.focus();
+  typeInput(input, 'B'); s.target.querySelector('input[type=checkbox]').click(); await settle();
+  assert.deepEqual(changes, ['B', true]); assert.equal(s.target.querySelectorAll('script').length, 0);
+  mounted.value.update({ tree: { ...tree, children: [{ ...tree.children[0], value: 'B' }, ...tree.children.slice(1)] } });
+  assert.equal(s.target.querySelector('input:not([type=checkbox])'), input); assert.equal(s.dom.window.document.activeElement, input);
+  assert.equal(s.target.querySelector('.lm-declarative-view').closest('.lm-root').style.backgroundColor, 'transparent');
+  for (const invalid of [{ kind: 'html', html: '<img>' }, { kind: 'drawing', label: 'Bad', width: 10, height: 10, shapes: [{ kind: 'image', href: 'file:///outside' }] }, { kind: 'grid', columns: 0, children: [] }]) {
+    assert.equal(mounted.value.update({ tree: invalid }).ok, false);
+  }
+  mounted.value.dispose(); await s.stop();
+});
+
 test('real Luna presets adapt settings controls and opened menus without replacing inputs or embedded surfaces', async () => {
   const s = await setup(); await s.start();
   s.kernel.register(baseThemeEngine); await s.kernel.start(baseThemeEngine.manifest.id);
@@ -259,7 +279,7 @@ test('workspace header retains intrinsic block sizing while full-height surfaces
 
 test('registers the replaceable roles, renders real Mantine controls, preserves siblings and releases roots', async () => {
   const s = await setup(); await s.start();
-  assert.deepEqual(s.components.list(), ['lunaris.account-access', 'lunaris.active-screen', 'lunaris.callout-header', 'lunaris.client-update', 'lunaris.context-menu', 'lunaris.file-explorer', 'lunaris.lime-settings', 'lunaris.mobile-menu', 'lunaris.settings-choices', 'lunaris.settings-items', 'lunaris.settings-navigation', 'lunaris.settings-page', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.status-bar', 'lunaris.task-checkbox', 'lunaris.text-editor', 'lunaris.vault-selector', 'lunaris.window-titlebar', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
+  assert.deepEqual(s.components.list(), ['lunaris.account-access', 'lunaris.active-screen', 'lunaris.callout-header', 'lunaris.client-update', 'lunaris.context-menu', 'lunaris.declarative-view', 'lunaris.file-explorer', 'lunaris.lime-settings', 'lunaris.mobile-menu', 'lunaris.settings-choices', 'lunaris.settings-items', 'lunaris.settings-navigation', 'lunaris.settings-page', 'lunaris.sidebar-rail', 'lunaris.startup-screen', 'lunaris.status-bar', 'lunaris.task-checkbox', 'lunaris.text-editor', 'lunaris.vault-selector', 'lunaris.window-titlebar', 'lunaris.workspace-empty', 'lunaris.workspace-header', 'lunaris.workspace-layout']);
   const owner = s.ctx.scope.child();
   const mounted = s.components.mount('lunaris.vault-selector', s.target, selector, owner.signal); assert.equal(mounted.ok, true);
   assert.ok(s.target.querySelector('.mantine-Button-root')); assert.ok(s.target.querySelector('.mantine-TextInput-input'));

@@ -109,7 +109,7 @@ class Bridge {
         const invoke = (...args: unknown[]): unknown => {
           if (this.#closed || !this.realm) throw new Error('SDK execution closed.');
           const result = record(this.realm.call('__sdkCall', [id, this.pack(args)]));
-          if (result.ok !== true) throw new Error('Plugin callback failed.', { cause: result.code });
+          if (result.ok !== true) throw new Error(typeof result.message === 'string' ? result.message : 'Plugin callback failed.', { cause: Object.freeze(result) });
           return this.unpack(result.value!);
         };
         this.#guestCounts.set(id, (this.#guestCounts.get(id) ?? 0) + 1); this.#finalizer.register(invoke, id);

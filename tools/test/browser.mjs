@@ -4,6 +4,8 @@ import { JSDOM } from 'jsdom';
 export function useBrowser(dom) {
   if (dom.window.location.href === 'about:blank') dom.reconfigure({ url: 'https://lunaris.test/' });
   const view = dom.window;
+  // JSDOM omits the FontFaceSet events used by Mantine's autosizing textarea.
+  if (!view.document.fonts) Object.defineProperty(view.document, 'fonts', { configurable: true, value: new view.EventTarget() });
   view.matchMedia ??= query => ({ matches: false, media: query, onchange: null, addListener() {}, removeListener() {}, addEventListener() {}, removeEventListener() {}, dispatchEvent() { return true; } });
   view.ResizeObserver ??= class { observe() {} unobserve() {} disconnect() {} };
   // JSDOM has no layout/scrolling implementation; Combobox calls this browser API.

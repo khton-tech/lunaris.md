@@ -4,7 +4,7 @@ import { JSDOM } from 'jsdom';
 import { definePlugin } from '@lunaris/sdk';
 import { createTestKernel } from '@lunaris/test';
 import { Logger } from '@lunaris/logging';
-import { Components, ComponentsChanged } from '@lunaris/components';
+import { Components, ComponentsChanged, Views } from '@lunaris/components';
 import provider from '@lunaris/component-provider';
 
 const manifest = (id, tokens = [], permissions = ['ui.dom']) => ({ manifestVersion: 1, id, version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides: [],
@@ -26,7 +26,7 @@ async function setup() {
   const host = createTestKernel(); const logs = []; const changes = []; let components; let ctx;
   host.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(name => [name, (...args) => { logs.push([name, ...args]); return true; }])));
   host.register(provider); host.grant(provider.manifest.id, 'ui.dom');
-  host.register(definePlugin({ manifest: manifest('test.consumer', [Components, ComponentsChanged]), activate(context) {
+  host.register(definePlugin({ manifest: manifest('test.consumer', [Components, ComponentsChanged, Views]), activate(context) {
     ctx = context; components = ctx.use(Components); ctx.events.on(ComponentsChanged, change => changes.push(change));
   } }));
   host.grant('test.consumer', 'ui.dom');
@@ -51,6 +51,34 @@ test('startup is empty; registered components render, update and release through
   assert.deepEqual(events, [['mount', 'One'], ['update', 'Two'], ['abort'], ['dispose']]);
   await flush(); assert.deepEqual(s.changes, [{ kind: 'registered', componentId: 'test.label' }]);
   assert.ok(s.logs.some(([level, source, , details]) => level === 'info' && source === provider.manifest.id && details?.code === 'COMPONENTS_READY'));
+  await s.stop();
+});
+
+test('public declarative views receive data only and recover when the shared renderer is replaced', async () => {
+  const s = await setup(); const views = s.ctx.use(Views); const seen = [];
+  const renderer = { id: 'lunaris.declarative-view', mount(target, initial) {
+    const node = target.ownerDocument.createElement('span'); target.append(node);
+    const update = props => { seen.push(props.presentation); node.textContent = props.tree.text; }; update(initial);
+    return { update, dispose() { node.remove(); } };
+  } };
+  const owner = s.ctx.scope.child(); s.components.register(renderer, owner.signal);
+  const presentation = { mode: 'embedded', sizing: 'content' };
+  assert.equal(views.register({ id: 'test.novel-view', render(props) { assert.deepEqual(Object.keys(props).sort(), ['presentation', 'value']); return { kind: 'text', text: props.value }; } }, s.ctx.signal).ok, true);
+  const mounted = s.components.mount('test.novel-view', s.target, { value: 'A', presentation }, s.ctx.signal);
+  assert.equal(mounted.ok, true); assert.equal(s.target.textContent, 'A'); assert.deepEqual(seen.at(-1), presentation);
+  await owner.dispose(); assert.equal(s.target.textContent, '');
+  s.components.register(renderer, s.ctx.signal); assert.equal(s.target.textContent, 'A');
+  mounted.value.update({ value: 'B', presentation }); assert.equal(s.target.textContent, 'B');
+  mounted.value.dispose(); assert.equal(s.target.textContent, ''); await s.stop();
+});
+
+test('view action failures are logged with the original error and do not escape to the host', async () => {
+  const s = await setup(); let action; const original = new Error('View operation failed');
+  s.components.register({ id: 'lunaris.declarative-view', mount(_target, props) { action = props.tree.onPress; return { update() {}, dispose() {} }; } }, s.ctx.signal);
+  s.ctx.use(Views).register({ id: 'test.action-view', render() { return { kind: 'button', label: 'Fail', onPress() { throw original; } }; } }, s.ctx.signal);
+  assert.equal(s.components.mount('test.action-view', s.target, {}, s.ctx.signal).ok, true);
+  assert.doesNotThrow(() => action());
+  assert.ok(s.logs.some(([level, , , details]) => level === 'error' && details?.error === original && details?.data?.componentId === 'test.action-view'));
   await s.stop();
 });
 

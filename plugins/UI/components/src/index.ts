@@ -1,8 +1,8 @@
 import { definePlugin, LunarisError } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
-import { Components, ComponentsChanged } from "@lunaris/components";
-import type { ComponentChange, ComponentDefinition, ComponentErrorCode, ComponentInstance, ComponentProps, ComponentResult, MountedComponent } from "@lunaris/components";
+import { Components, ComponentsChanged, Views } from "@lunaris/components";
+import type { ComponentsApi, ComponentChange, ComponentDefinition, ComponentErrorCode, ComponentInstance, ComponentProps, ComponentResult, MountedComponent, ViewNode } from "@lunaris/components";
 import { isComponentId, isElement, isLiveOwner, readDefinition, readInstance, readProps } from "./input.js";
 import manifest from "../manifest.json" with { type: "json" };
 
@@ -24,6 +24,7 @@ function releaseAll(instances: Iterable<Instance>): void {
 export default definePlugin({ manifest, activate(ctx) {
   const logger = scopeLogger(ctx.use(Logger), ctx.signal);
   const registrations = new Map<string, Registration>();
+  const views = new Set<() => void>();
   function reject(code: ComponentErrorCode, message: string, data?: Record<string, unknown>): Failure {
     if (!ctx.signal.aborted) logger.warn(ctx.pluginId, message, { code, ...(data ? { data } : {}) });
     return { ok: false, error: { code, message } };
@@ -31,6 +32,9 @@ export default definePlugin({ manifest, activate(ctx) {
   function notify(kind: ComponentChange["kind"], componentId: string, cleanup = false): void {
     // Never publish after this provider's own scope closes.
     if (ctx.signal.aborted) return;
+    if (componentId === 'lunaris.declarative-view') for (const refresh of [...views]) {
+      try { refresh(); } catch (error) { logger.error(ctx.pluginId, 'Cannot refresh a declarative view renderer', { error }); }
+    }
     const change: ComponentChange = Object.freeze({ kind, componentId });
     // During owner cleanup, required dependencies such as Logger may already be stopping.
     if (!cleanup) logger.info(ctx.pluginId, "Component registry changed", { data: change });
@@ -103,7 +107,7 @@ export default definePlugin({ manifest, activate(ctx) {
     return { ok: true, value: handle };
   }
 
-  ctx.provide(Components, {
+  const api: ComponentsApi = {
     has: id => registrations.has(id),
     list: () => Object.freeze([...registrations.keys()].sort()),
     register(input, owner) {
@@ -136,6 +140,44 @@ export default definePlugin({ manifest, activate(ctx) {
       if (!registration) return reject("NOT_FOUND", "The component is not registered.", { componentId: id });
       return mountInstance(registration, target, copied, owner);
     },
-  });
+  };
+  ctx.provide(Components, api);
+  ctx.provide(Views, { register(input, owner) {
+    const id = input && Object.getOwnPropertyDescriptor(input, 'id')?.value;
+    const render = input && Object.getOwnPropertyDescriptor(input, 'render')?.value;
+    if (!isComponentId(id) || id === 'lunaris.declarative-view' || typeof render !== 'function') return reject('INVALID_ARGUMENT', 'A view ID and render callback are required.');
+    const renderer = render as (props: ComponentProps) => ViewNode;
+    return api.register({ id, mount(target, initial, signal) {
+      let props = initial; let inner: MountedComponent | undefined; let closed = false;
+      const actions = (tree: ViewNode, depth = 0): ViewNode => {
+        if (depth > 32) throw new Error('Declarative view nesting limit.');
+        if (!tree || typeof tree !== 'object') return tree;
+        const result = { ...tree };
+        for (const name of ['onPress', 'onChange', 'onPointer', 'onKey']) {
+          const callback = Object.getOwnPropertyDescriptor(tree, name)?.value;
+          if (typeof callback !== 'function') continue;
+          Object.defineProperty(result, name, { enumerable: true, value: (...args: unknown[]) => {
+            if (signal.aborted || closed) return;
+            const failed = (error: unknown) => { if (!signal.aborted && !ctx.signal.aborted) logger.error(ctx.pluginId, 'Declarative view action failed', { error, data: { componentId: id, action: name } }); };
+            try { void Promise.resolve(callback(...args)).catch(failed); } catch (error) { failed(error); }
+          } });
+        }
+        if ('children' in result && Array.isArray(result.children)) Object.defineProperty(result, 'children', { enumerable: true, value: result.children.map(child => actions(child, depth + 1)) });
+        return result;
+      };
+      const refresh = () => {
+        if (closed || signal.aborted) return;
+        if (!api.has('lunaris.declarative-view')) { inner?.dispose(); inner = undefined; return; }
+        const next = { tree: actions(renderer(props)), ...(props.presentation === undefined ? {} : { presentation: props.presentation }) };
+        if (inner) { const result = inner.update(next); if (result.ok) return; inner.dispose(); inner = undefined; }
+        const result = api.mount('lunaris.declarative-view', target, next, signal);
+        if (!result.ok) throw new Error('Declarative view renderer failed.', { cause: result.error });
+        inner = result.value;
+      };
+      views.add(refresh);
+      try { refresh(); } catch (error) { views.delete(refresh); inner?.dispose(); throw error; }
+      return { update(next) { props = next; refresh(); }, dispose() { if (closed) return; closed = true; views.delete(refresh); inner?.dispose(); inner = undefined; } };
+    } }, owner);
+  } });
   logger.info(ctx.pluginId, "Component provider ready", { code: "COMPONENTS_READY" });
 } });

@@ -69,7 +69,12 @@ const decode = (value, depth = 0) => {
 };
 export function __sdkCall(id, args) {
   try { const fn = functions.get(id); if (!fn) throw Error('Unknown guest function'); return { ok: true, value: encode(fn(...decode(args))) }; }
-  catch (error) { return { ok: false, code: typeof error?.code === 'string' ? error.code : 'GUEST_FAILED', message: 'Plugin callback failed' }; }
+  catch (error) {
+    const field = (name, fallback, limit) => {
+      try { const value = error && typeof error === 'object' ? Object.getOwnPropertyDescriptor(error, name)?.value : undefined; return typeof value === 'string' ? value.slice(0,limit) : fallback; } catch { return fallback; }
+    };
+    return { ok: false, code: field('code','GUEST_FAILED',120), name: field('name','Error',120), message: field('message',typeof error === 'string' ? error.slice(0,8192) : 'Plugin callback failed',8192), stack: field('stack','',32768) };
+  }
 }
 export function __sdkManifest() { return __entry.manifest; }
 export function __sdkActivate(context) { return encode(__entry.activate(decode(context))); }

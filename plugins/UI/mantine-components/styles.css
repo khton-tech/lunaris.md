@@ -20,6 +20,11 @@
 @import '@mantine/core/styles/Menu.css';
 @import '@mantine/core/styles/Splitter.css';
 
+.lm-root .lm-declarative-drawing { display:block;max-width:100%;max-height:100%;outline:none }
+.lm-root .lm-declarative-drawing:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset) }
+.lm-root .lm-declarative-grid { display:grid;grid-template-columns:repeat(var(--view-columns,1),minmax(0,1fr));gap:calc(var(--vault-space)*2);min-width:0 }
+@container(max-width:640px) { .lm-declarative-grid { grid-template-columns:minmax(0,1fr) } }
+
 .lm-root .lm-window-titlebar { display:flex;flex:1 1 0%;align-items:stretch;min-height:max(2.25em,calc(var(--vault-space)*8));margin:0;background:var(--vault-panel);border-radius:0;border:0;box-shadow:none;user-select:none;overflow:hidden }
 .lm-window-titlebar-drag { display:flex;flex:1;align-items:center;padding-inline:calc(var(--vault-space)*3);overflow:hidden;cursor:default }
 .lm-root .lm-window-titlebar-title { font:inherit;font-size:.9em;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }

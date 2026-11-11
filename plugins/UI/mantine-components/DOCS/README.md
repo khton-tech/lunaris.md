@@ -1,5 +1,19 @@
 # Mantine components
 
+## Declarative view role
+
+`lunaris.declarative-view` receives `{ tree, presentation? }` from public Views.
+The [ViewNode/shape contract](../../../../DOCS/reference/views.md) defines typed
+structures, controls, drawing data and limits. Product controls reuse shared
+Mantine Button, inputs, Checkbox and themed SettingsSelect/Combobox; drawing owns
+only its SVG viewport. No HTML/foreignObject/native event object is transported.
+The allocated container owns surfaces/overflow; this role is transparent and
+preserves explicit presentation. Grids collapse below 640px allocation; controls
+keep their native keyboard navigation. Reference: existing Settings controls and
+Mantine UI inputs/buttons. Composed isolated-view tests exercise the actual
+Workspace container, menus, themes and cleanup. Native graphics geometry,
+pointer mapping/focus and narrow/short visuals remain manual acceptance.
+
 ## Lime Settings role
 
 `lunaris.lime-settings` renders embedded/content management rows using shared

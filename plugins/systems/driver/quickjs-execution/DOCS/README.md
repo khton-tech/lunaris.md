@@ -54,7 +54,9 @@ management contracts are denied. Logger attribution is forced to the package ID.
 These wrappers cover the named providers, not every future provider or transitive
 host service. All additional host-backed contracts require an authority review.
 Real DOM elements and arbitrary host class instances require explicit adapters
-and cannot be transferred by this bridge. Custom view rendering remains pending.
+and cannot be transferred by this bridge. Public Views/ActiveScreen now supports
+custom layouts, controls and vector viewports using data/callbacks without DOM
+transfer; see [the view contract](../../../../../DOCS/reference/views.md).
 
 Defaults: 32 MiB interpreter memory, 256 KiB stack, 100 ms per guest turn.
 Configuration caps are 128 MiB, 1 MiB stack and 1000 ms. Transfer data is bounded

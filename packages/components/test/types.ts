@@ -1,4 +1,4 @@
-import { Components, ComponentsChanged } from "@lunaris/components";
+import { Components, ComponentsChanged, Views } from "@lunaris/components";
 import type { ComponentDefinition, MountedComponent } from "@lunaris/components";
 import type { PluginContext } from "@lunaris/sdk";
 declare const ctx: PluginContext;
@@ -20,6 +20,9 @@ if (result.ok) {
 }
 const ids: readonly string[] = components.list();
 void ids;
+ctx.use(Views).register({ id: 'example.novel-view', render(props) { return { kind: 'button', label: String(props.label ?? 'Run'), onPress() {} }; } }, ctx.signal);
+// @ts-expect-error Declarative render callbacks do not receive DOM targets.
+ctx.use(Views).register({ id: 'example.bad', render(target: HTMLElement) { return { kind: 'text', text: target.textContent ?? '' }; } }, ctx.signal);
 ctx.events.on(ComponentsChanged, change => { void change.componentId; });
 // @ts-expect-error Registrations require an ownership signal.
 components.register(button);

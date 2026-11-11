@@ -16,6 +16,32 @@ export interface ComponentPresentation {
   readonly sizing?: "fill" | "content";
 }
 
+export interface ViewOption { readonly value: string; readonly label: string }
+export interface ViewPointer { readonly x: number; readonly y: number; readonly button: number; readonly shift: boolean }
+export interface ViewKey { readonly key: string; readonly ctrl: boolean; readonly shift: boolean; readonly alt: boolean; readonly meta: boolean }
+export type ViewColor = 'text' | 'muted' | 'accent' | 'error' | 'surface' | 'none';
+export type ViewShape =
+  | { readonly kind: 'path'; readonly d: string; readonly color: ViewColor; readonly fill?: ViewColor }
+  | { readonly kind: 'circle'; readonly x: number; readonly y: number; readonly radius: number; readonly color: ViewColor; readonly fill?: ViewColor }
+  | { readonly kind: 'line'; readonly x: number; readonly y: number; readonly x2: number; readonly y2: number; readonly color: ViewColor }
+  | { readonly kind: 'text'; readonly x: number; readonly y: number; readonly text: string; readonly color: ViewColor };
+/** Data/callback UI surface; no borrowed DOM or framework objects cross into authors. */
+export type ViewNode =
+  | { readonly kind: 'text'; readonly text: string }
+  | { readonly kind: 'row' | 'column' | 'grid'; readonly children: readonly ViewNode[]; readonly columns?: number }
+  | { readonly kind: 'button'; readonly label: string; readonly disabled?: boolean; readonly onPress: () => void }
+  | { readonly kind: 'input' | 'textarea'; readonly label: string; readonly value: string; readonly disabled?: boolean; readonly onChange: (value: string) => void }
+  | { readonly kind: 'select'; readonly label: string; readonly value: string; readonly options: readonly ViewOption[]; readonly disabled?: boolean; readonly onChange: (value: string) => void }
+  | { readonly kind: 'checkbox'; readonly label: string; readonly checked: boolean; readonly disabled?: boolean; readonly onChange: (value: boolean) => void }
+  | { readonly kind: 'drawing'; readonly label: string; readonly width: number; readonly height: number; readonly shapes: readonly ViewShape[]; readonly onPointer?: (event: ViewPointer) => void; readonly onKey?: (event: ViewKey) => void };
+export interface ViewDefinition {
+  readonly id: string;
+  render(props: ComponentProps): ViewNode;
+}
+export interface ViewsApi {
+  register(definition: ViewDefinition, owner: CancellationSignal): ComponentResult<null>;
+}
+
 /** A live rendering created by a component implementation. */
 export interface ComponentInstance {
   /** Replace all props. Throwing reports a render failure to the consumer. */
@@ -76,4 +102,9 @@ export const ComponentsChanged = defineEvent<ComponentChange>({
     const field = (name: string): unknown => Object.getOwnPropertyDescriptor(value, name)?.value;
     return ["registered", "removed"].includes(field("kind") as string) && typeof field("componentId") === "string";
   },
+});
+
+export const Views = defineApi<ViewsApi>({
+  id: 'lunaris.views', version: '1.0.0', providePermission: 'ui.dom', consumePermission: 'ui.dom',
+  validate: value => !!value && typeof value === 'object' && fn(value, 'register'),
 });
