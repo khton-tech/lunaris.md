@@ -25,6 +25,8 @@ onUpdate/onRemove/onSafeMode callbacks. Fields contain only label/value strings;
 there is no HTML injection or native/engine access. Metadata and descriptions wrap.
 The containing Settings page owns its surface/geometry; the role paints no card.
 Package preview opens a themed Mantine modal with Overview and Dependencies tabs.
+The role mounts its overlay at the document level, above the Settings scroll
+region and its sticky header. The overlay shares the component theme scope.
 The scrollable panel is separate from the action footer. The first tab receives
 initial focus and dismissing the modal returns focus to the opening control.
 Remove exposes retain/delete-data actions; pending removal retries its committed

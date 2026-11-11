@@ -284,6 +284,8 @@
 .lm-settings-group-header h2 { line-height:1.4;overflow-wrap:anywhere }
 .lm-settings-section { display:flex; min-width:0; flex-direction:column }
 .lm-lime-toolbar { padding-block-start:calc(var(--vault-space)*4); min-width:0 }
+.lm-lime-overlay { position:fixed; inset:0; z-index:300 }
+.lm-lime-overlay .mantine-Modal-inner { inset-inline:0 }
 .lm-root .lm-lime-dialog { display:flex; flex-direction:column; max-height:min(42rem,calc(100dvh - 2rem)); background:var(--vault-panel); color:var(--vault-text); border:var(--vault-border) solid var(--settings-divider); border-radius:var(--vault-radius); overflow:auto; scrollbar-width:none }
 .lm-root .lm-lime-dialog-header { flex-shrink:0; background:var(--vault-panel); overflow-wrap:anywhere }
 .lm-lime-dialog-header .mantine-Modal-title { font-weight:600 }

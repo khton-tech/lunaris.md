@@ -39,7 +39,7 @@ async function fixture() {
   const s = await setupWorkspace({ settings: true, plugins: [plugin, ui], entrypoints: [ui.manifest.id], grants: { [ui.manifest.id]: ui.manifest.permissions } });
   await s.open(); s.tools.sidebar.select('lunaris.settings.navigation'); await flush();
   [...s.surface.querySelectorAll('.lm-settings-category')].find(element => element.textContent === 'Third-party plugins').click(); await flush();
-  const button = text => [...s.surface.querySelectorAll('.lm-lime-settings button')].find(element => element.textContent === text);
+  const button = text => [...s.dom.window.document.querySelectorAll('.lm-lime-settings button, .lm-lime-overlay button')].find(element => element.textContent === text);
   return { ...s, calls, button, async setVault(vaultId) { state = { ...state, vaultId }; await publish(); await flush(); } };
 }
 
@@ -58,8 +58,12 @@ test('Lime composes inside real Settings/Workspace and confirms preview before i
     assert.match(view.textContent, /No third-party plugins installed/);
     s.button('Add plugin').click(); await flush();
     assert.deepEqual(s.calls, [['preview']]);
-    const dialog = view.querySelector('[role=dialog]');
+    const overlay = s.dom.window.document.querySelector('.lm-lime-overlay');
+    const dialog = overlay?.querySelector('[role=dialog]');
     assert.ok(dialog);
+    assert.equal(overlay.parentElement, s.dom.window.document.body);
+    assert.equal(view.querySelector('[role=dialog]'), null);
+    assert.equal(overlay.dataset.mantineColorScheme, root.dataset.mantineColorScheme);
     const [overview, dependencies] = dialog.querySelectorAll('[role=tab]');
     assert.equal(overview.getAttribute('aria-selected'), 'true');
     assert.doesNotMatch(dialog.textContent, /test.transitive/);
@@ -71,6 +75,7 @@ test('Lime composes inside real Settings/Workspace and confirms preview before i
     assert.match(dialog.textContent, /author has not declared support/);
     assert.equal(s.button('Install plugin').closest('.lm-lime-panel'), null);
     s.button('Install plugin').click(); await flush(); assert.ok(s.calls.some(call => call[0] === 'install'));
+    assert.equal(s.dom.window.document.querySelector('.lm-lime-overlay'), null);
     assert.equal(s.dom.window.document.activeElement.textContent, 'Add plugin');
     const toggle = view.querySelector('input[type=checkbox]'); toggle.click(); await flush(); assert.deepEqual(s.calls.at(-1), ['disable', 'test.package']);
     s.button('Remove').click(); await flush(); assert.match(view.textContent, /retain its data and settings/);
@@ -83,7 +88,7 @@ test('cancel and locale/theme changes preserve the inherited surface and localiz
   const s = await fixture();
   try {
     s.button('Add plugin').click(); await flush(); s.tools.localization.setLocale('ru'); await flush();
-    assert.match(s.surface.querySelector('.lm-lime-settings').textContent, /Новый инструмент/);
+    assert.match(s.dom.window.document.querySelector('.lm-lime-overlay').textContent, /Новый инструмент/);
     s.button('Отмена').click(); await flush(); assert.deepEqual(s.calls.at(-1), ['cancel', 1]); assert.equal(s.calls.some(call => call[0] === 'install'), false);
     for (const theme of ['windows-xp', 'windows-xp-dark', 'monochrome']) {
       s.tools.themes.select(`lunaris.base-theme-engine.${theme}`); await flush();

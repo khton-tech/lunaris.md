@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Box, Button, Group, Modal, Stack, Switch, Tabs, Text } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
@@ -49,7 +50,7 @@ function PackagePreview({ preview, props }: { preview: NonNullable<Props['previe
     closeOnEscape={!props.busy} closeOnClickOutside={false} withCloseButton={false}
     transitionProps={{ duration: 0 }} size="lg" xOffset="1rem" yOffset="1rem"
     classNames={{ content: 'lm-lime-dialog', header: 'lm-lime-dialog-header', body: 'lm-lime-dialog-body' }}>
-    <Tabs className="lm-lime-tabs" defaultValue="overview" keepMounted={false}>
+    <Tabs className="lm-lime-tabs" color="var(--vault-accent)" defaultValue="overview" keepMounted={false}>
       <Tabs.List aria-label={props.labels.previewTabs}>
         <Tabs.Tab value="overview" data-autofocus>{props.labels.overview}</Tabs.Tab>
         <Tabs.Tab value="dependencies">{props.labels.requires}</Tabs.Tab>
@@ -85,7 +86,11 @@ function ProviderSelection({ dependency, plan, props, enabled }: { dependency: D
     </>}
   </Stack>;
 }
-export function LimeSettings({ props, theme }: { props: Props; theme: ReturnType<typeof resolveTheme> }) {
+export function LimeSettings({ props, theme, overlay }: {
+  props: Props;
+  theme: ReturnType<typeof resolveTheme>;
+  overlay: { id: string; target: HTMLElement };
+}) {
   const [expanded, setExpanded] = useState<string | null>(null); const [removing, setRemoving] = useState<string | null>(null);
   const previewTrigger = useRef<HTMLButtonElement>(null);
   const hadPreview = useRef(false);
@@ -107,7 +112,12 @@ export function LimeSettings({ props, theme }: { props: Props; theme: ReturnType
       </>}
     </Group>
     {props.error && <Text size="sm" c="var(--vault-error)" role="alert" style={{ overflowWrap: 'anywhere' }}>{props.error}</Text>}
-    {props.preview && <PackagePreview key={props.preview.id} preview={props.preview} props={props} />}
+    {props.preview && createPortal(
+      <div id={overlay.id} className="lm-root lm-lime-overlay" data-mantine-color-scheme={theme.scheme} style={theme.contentStyle}>
+        <PackagePreview key={props.preview.id} preview={props.preview} props={props} />
+      </div>,
+      overlay.target,
+    )}
     {props.rows.map(row => <Box key={row.id} data-lime-id={row.id} style={{ minWidth: 0 }}>
       <Box className="lm-setting-row" data-layout="inline">
         <Stack className="lm-setting-label" gap={4} style={{ overflowWrap: 'anywhere' }}>
