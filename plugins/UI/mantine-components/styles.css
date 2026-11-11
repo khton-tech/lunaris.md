@@ -696,6 +696,21 @@
 
 .lm-root .lm-workspace-mobile-toolbar { border-radius:999px;max-width:calc(100% - 32px);overflow:auto }
 .lm-mobile-menu-items { flex-wrap:nowrap }
+.lm-mobile-page-count {
+  display:grid;place-items:center;min-inline-size:1.45em;min-block-size:1.55em;padding-inline:.18em;
+  border:var(--vault-border) solid currentColor;border-radius:min(4px,var(--vault-radius));
+  font-size:.8em;font-weight:600;font-variant-numeric:tabular-nums;line-height:1;
+}
+.lm-mobile-tabs-dialog,.lm-mobile-tabs-header { background:var(--vault-panel);color:var(--vault-text) }
+.lm-mobile-tabs-dialog { scrollbar-width:none }
+.lm-mobile-tabs-dialog::-webkit-scrollbar { display:none }
+.lm-mobile-tabs-dialog .lm-mobile-tabs-row { color:var(--vault-text) }
+.lm-mobile-tabs-dialog .lm-mobile-tabs-row[aria-current=true] { background:var(--vault-selection) }
+.lm-mobile-tabs-dialog .lm-mobile-tabs-row:not([aria-disabled=true],[aria-current]):hover { background:var(--vault-hover) }
+.lm-mobile-tabs-dialog .lm-mobile-tabs-row:not([aria-disabled=true]):active { background:var(--vault-selection) }
+.lm-mobile-tabs-dialog .lm-mobile-tabs-row[aria-disabled=true] { color:var(--vault-secondary) }
+.lm-mobile-tabs-dialog .lm-mobile-tabs-row .mantine-Button-label { display:block;overflow:hidden;text-overflow:ellipsis }
+.lm-mobile-tabs-dialog .lm-focus:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
 
 .lm-workspace-mobile-launcher { position:absolute;top:8px;left:12px;z-index:4;display:flex;padding:2px;max-width:calc(100% - 24px);overflow:auto }
 .lm-root .lm-workspace-mobile-launcher { border-radius:999px }

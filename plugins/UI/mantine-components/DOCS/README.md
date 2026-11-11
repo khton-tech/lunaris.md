@@ -1009,7 +1009,19 @@ The existing text-editor role accepts optional recoveryLabel, recoveryCandidates
 
 The public lunaris.mobile-menu role renders registered action descriptors; WorkspaceLayout lends its mobile-menu target and owns the floating surface. The former built-in sidebar action has been removed. See DOCS/reference/mobile-menu.md for registration and integration.
 
-Mobile launcher correction: Workspace owns a top-left mobile-launcher surface separate from the bottom action row. The shared menu role uses normal inline containment to preserve its intrinsic width. Nested main-region scroll capture hides/shows the launcher by direction; Sidebar scrolling is ignored. Reference: Owner screenshot 2. Five temporary localized preview actions occupy the bottom row. Native comparison remains pending.
+Workspace owns a top-left mobile-launcher surface separate from the bottom action row. The shared menu role uses normal inline containment to preserve its intrinsic width. Nested main-region scroll capture hides/shows the launcher by direction. Sidebar scrolling is ignored.
+
+The Owner's highlighted bottom panel defines the position of the tab action.
+The mobile-menu role accepts an optional count on an action descriptor. The
+44px Mantine ActionIcon contains a rounded page outline with the current count.
+The localized accessible name includes that number. WorkspaceLayout owns the
+surrounding pill and mobile visibility. The Active Screen role receives optional
+mobileTabs props (opened, dismissLabel and onClose) and renders a themed Mantine
+Modal with the existing tabs, selection and onSelect callback. Its current row
+uses the existing check icon and its dialog owns focus and overflow.
+Reference: [Mantine UI buttons](https://ui.mantine.dev/category/buttons/) and
+[Mantine Modal](https://mantine.dev/core/modal/). Native visual acceptance of
+the action, list, long names, themes and keyboard focus remains pending.
 
 Floating geometry correction follows the Owner screenshot: no top/bottom padding is added to main for mobile controls. Workspace owns absolute overlay surfaces; the mobile menu role receives explicit density compact for the 32px launcher and comfortable for the 44px bottom actions. Launcher surface padding is 2px. Manual acceptance of overlap, scroll/focus and both themes remains pending.
 

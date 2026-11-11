@@ -14,6 +14,7 @@
     "@lunaris/logging": "0.1.0",
     "@lunaris/active-screen": "0.1.0",
     "@lunaris/workspace": "0.1.0",
+    "@lunaris/mobile-menu": "0.1.0",
     "@lunaris/components": "0.1.0",
     "@lunaris/localization": "0.1.0",
     "@lunaris/vault": "0.1.0",

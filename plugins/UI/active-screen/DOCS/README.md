@@ -66,6 +66,16 @@ their content inside borrowed targets.
 - The tab list and history belong to the mounted Vault workspace. ActiveDocument
   restores its persisted file after reopening a Vault.
 
+At compact widths, the optional MobileMenu 1.2 integration contributes the
+leading bottom action for the mounted Active Screen layout. Its outlined page
+glyph shows the number of tabs in that Vault, including blank tabs. Pressing it
+opens a localized list using the same tab selection and document guards as the
+strip above the editor. Workspace owns the lower floating surface, Mobile Menu
+owns its action and the Mantine Active Screen role owns the dialog. The Owner's
+highlighted bottom panel is the reference. The upper strip still supplies tab
+creation, closure, history and reordering. See [mobile menu registration](../../../../DOCS/reference/mobile-menu.md).
+Native acceptance of the counter and dialog remains pending in both themes.
+
 ## Russian UI copy
 
 English and Russian catalogs are owned by this consumer. Messages reach shared

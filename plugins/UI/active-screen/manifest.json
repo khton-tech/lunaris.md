@@ -49,6 +49,12 @@
     },
     {
       "kind": "api",
+      "id": "lunaris.mobile-menu",
+      "range": "^1.2.0",
+      "optional": true
+    },
+    {
+      "kind": "api",
       "id": "lunaris.vault",
       "range": "^1.0.0",
       "optional": true

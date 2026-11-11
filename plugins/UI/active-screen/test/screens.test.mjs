@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { setTimeout as delay } from 'node:timers/promises';
 import { setupWorkspace, panel, flush } from '../../../../tools/test/workspace.mjs';
 
 const setup = options => setupWorkspace({ activeScreen: true, ...options });
@@ -119,4 +120,61 @@ test('Vault switch and close clear selection, release cached views and create fr
   await s.service.close(); await flush(); assert.equal(s.surface.querySelector('.lm-active-screen'), null);
   assert.equal(s.tools.screens.snapshot().activeId, null); assert.equal(view.releases.length, 2);
   await s.open(); assert.match(s.surface.textContent, /No workspace plugins/); await s.stop();
+});
+
+test('compact Workspace shows one live tab counter and switches through the shared tab state', async () => {
+  const s = await setup({ mobileMenu: true, sidebar: true });
+  const { document, HTMLElement, DOMRect } = s.dom.window;
+  HTMLElement.prototype.getBoundingClientRect = () => new DOMRect(0, 0, 360, 720);
+  const dialog = () => document.querySelector('[role="dialog"]');
+  try {
+    panel(s, 'test.content');
+    await s.open();
+    const toolbar = s.surface.querySelector('.lm-workspace-mobile-toolbar');
+    assert.equal(toolbar.hidden, false);
+    assert.equal(toolbar.querySelectorAll('button').length, 1);
+    const button = toolbar.querySelector('button');
+    assert.equal(button.textContent, '1');
+    assert.equal(button.getAttribute('aria-label'), 'Open tabs: 1');
+
+    s.tools.screens.register(definition('test.one', 'test.content', { tabTitle: 'First screen' }), s.ctx.signal);
+    s.tools.screens.select('test.one');
+    await flush();
+    s.surface.querySelector('.lm-workspace-tab-add').click();
+    await flush();
+    assert.equal(toolbar.querySelector('button'), button);
+    assert.equal(button.textContent, '2');
+    s.tools.localization.setLocale('ru');
+    await flush();
+    assert.equal(button.getAttribute('aria-label'), 'Открытые вкладки: 2');
+
+    button.focus();
+    button.click();
+    await flush();
+    assert.equal(dialog()?.querySelector('[aria-current="true"]')?.textContent, 'Новая вкладка');
+    document.activeElement.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await delay(30);
+    assert.equal(dialog(), null);
+    assert.equal(document.activeElement, button);
+    button.click();
+    await flush();
+    const row = [...dialog().querySelectorAll('button')].find(item => item.textContent === 'First screen');
+    row.click();
+    await flush();
+    assert.equal(dialog(), null);
+    assert.equal(s.tools.screens.snapshot().activeId, 'test.one');
+    assert.equal(button.textContent, '2');
+
+    s.surface.querySelector('.lm-workspace-tab[data-selected] .lm-workspace-tab-action').click();
+    await flush();
+    assert.equal(button.textContent, '1');
+    assert.equal(button.getAttribute('aria-label'), 'Открытые вкладки: 1');
+    button.click();
+    await flush();
+    assert.ok(dialog());
+    await s.service.close();
+    await flush();
+    assert.equal(dialog(), null);
+    assert.deepEqual(s.tools.mobileMenu.list().filter(item => item.placement !== 'launcher'), []);
+  } finally { await s.stop(); }
 });
