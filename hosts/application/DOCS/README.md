@@ -51,3 +51,6 @@ Runtime recovery distinguishes failed operations from lost entrypoints and unsaf
 ## Awaited preparation integration
 
 Shared composition starts startup-provider and theme-settings first, awaits the preparation controller after all entrypoints, and mounts the product surface only after preparation. Existing static host loading UI stays visible. Custom early-mounted host definitions remain supported. Vault lifecycle preparation follows runtime settlement through public contracts. Failure/cancellation retain existing recovery and save-guard behavior; synthetic host tests are not native paint acceptance.
+
+Healthy host monitoring reuses its kernel inspection for publication. Hidden recovery UI updates visibility only and skips snapshot serialization and table rebuilding; fault detection remains active. A regression verifies twenty healthy notifications perform no recovery serialization, while fallback immediately renders its diagnostics.
+

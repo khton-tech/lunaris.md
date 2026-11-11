@@ -79,16 +79,18 @@ export class HostSession {
     if (!Number.isFinite(this.#timeout) || this.#timeout <= 0) throw new Error("Invalid host deadline.");
   }
 
-  snapshot = (): HostSnapshot => Object.freeze({
+  snapshot = (): HostSnapshot => this.#snapshot(this.#kernel?.inspect() ?? emptyKernel);
+
+  #snapshot(kernel: KernelSnapshot): HostSnapshot { return Object.freeze({
     thirdPartySafeMode: this.#thirdPartySafeMode, pluginRuntimeAvailable: this.#definition?.pluginRuntime === true,
     phase: this.#phase, startup: this.#startup, busy: this.#busy,
     applicationVisible: this.#view !== undefined && (this.#phase === "running" ||
       this.#phase === "starting" && this.#definition?.view?.duringStartup === true),
     recoveryBlocked: this.#cleanupUnsafe || this.#preservationBlocked,
     kernelVersion: "0.1.0", sdkVersion: "0.1.0",
-    kernel: this.#kernel?.inspect() ?? emptyKernel,
+    kernel,
     disabled: Object.freeze([...this.#disabled].sort()), incidents: Object.freeze([...this.#incidents]),
-  });
+  }); }
 
   subscribe(listener: (snapshot: HostSnapshot) => void): Disposable {
     this.#listeners.add(listener);
@@ -96,8 +98,8 @@ export class HostSession {
     return { dispose: () => { this.#listeners.delete(listener); } };
   }
 
-  #publish(): void {
-    const snapshot = this.snapshot();
+  #publish(kernel?: KernelSnapshot): void {
+    const snapshot = kernel ? this.#snapshot(kernel) : this.snapshot();
     for (const listener of this.#listeners) {
       try { listener(snapshot); } catch { this.#listeners.delete(listener); }
     }
@@ -336,7 +338,7 @@ export class HostSession {
         return;
       }
     }
-    this.#publish();
+    this.#publish(kernel);
   };
 
   requestClose = async (): Promise<boolean> => {

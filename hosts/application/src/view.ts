@@ -53,9 +53,6 @@ export function mountSystemView(root: HTMLElement, application: HTMLElement, ses
   safeRetry.onclick = () => action(session.startSafeMode);
 
   function render(snapshot: HostSnapshot): void {
-    const renderKey = JSON.stringify(snapshot);
-    if (renderKey === previousRender) return;
-    previousRender = renderKey;
     const showStartup = !!options.startup && (snapshot.phase === "idle" || snapshot.phase === "starting");
     const showSystem = !snapshot.applicationVisible && !showStartup &&
       (!options.startup || snapshot.phase === "fallback" || snapshot.phase === "running");
@@ -63,8 +60,13 @@ export function mountSystemView(root: HTMLElement, application: HTMLElement, ses
     root.hidden = !showSystem;
     panel.hidden = !showSystem;
     application.hidden = !snapshot.applicationVisible;
-    panel.setAttribute("aria-label", t("status"));
     root.dataset.phase = snapshot.phase;
+    // Polling still detects faults, but hidden recovery UI needs no table or serialization work.
+    if (!showSystem) { previousRender = ""; return; }
+    const renderKey = JSON.stringify(snapshot);
+    if (renderKey === previousRender) return;
+    previousRender = renderKey;
+    panel.setAttribute("aria-label", t("status"));
     heading.textContent = t(snapshot.phase);
     heading.setAttribute("role", snapshot.phase === "fallback" ? "alert" : "status");
     detail.textContent = snapshot.recoveryBlocked ? t("restartRequired") : snapshot.phase === "fallback" ? t("details") : "";
