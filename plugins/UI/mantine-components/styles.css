@@ -355,11 +355,15 @@
 .lm-workspace-tab[data-selected]::after { --tab-join-center:right;left:100% }
 .lm-workspace-tab:not([data-selected]):hover { --tab-surface:var(--tab-hover);color:var(--vault-text) }
 .lm-workspace-tab:has(> .lm-workspace-tab-label:active) { --tab-surface:var(--tab-pressed) }
+.lm-workspace-tab[data-drop=before] { border-inline-start-color:var(--vault-focus) }
+.lm-workspace-tab[data-drop=after] { border-inline-end-color:var(--vault-focus) }
 .lm-root .lm-workspace-tab-label {
   align-self:stretch;display:flex;align-items:center;gap:var(--vault-space);flex:1;min-width:0;padding:0 calc(var(--vault-space)*2);
   appearance:none;border:0;background:transparent;box-shadow:none;cursor:pointer;
   text-align:start;font:inherit;color:inherit
 }
+.lm-root .lm-workspace-tab[draggable=true] .lm-workspace-tab-label { cursor:grab }
+.lm-root .lm-workspace-tab[draggable=true] .lm-workspace-tab-label:active { cursor:grabbing }
 .lm-workspace-tab-label > span,.lm-workspace-tab-location { display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
 .lm-workspace-tab-section { order:1;margin-inline-start:auto;max-inline-size:40%;flex-shrink:0 }
 .lm-root .lm-workspace-tab-extension {

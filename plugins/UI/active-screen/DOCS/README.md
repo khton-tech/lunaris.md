@@ -49,9 +49,13 @@ their content inside borrowed targets.
 - Opening a file fills the selected empty tab or adds a file tab. Opening a file
   with an existing tab selects it. Settings and other registered screens have
   one tab each. Selecting Settings leaves the file marked in Explorer.
-- Add opens or selects one empty tab. Closing the active tab selects its right
+- Add and a middle click on unused strip space open a new empty tab. A middle
+  click on a tab closes it through the same action as its close button.
+  Closing the active tab selects its right
   neighbor, its left neighbor, or an empty tab. Back and Forward visit prior tab
   selections. Closed tabs are removed from history.
+- Drag a tab along the strip to reorder it. The highlighted edge indicates the
+  insertion point. Reordering preserves the selected tab and visit history.
 - Arrow keys and Home/End move focus across the strip. Enter or Space selects the
   focused tab. Delete closes it. Keyboard close returns focus to the selected tab.
 - File changes use ActiveDocument's existing save and draft guards. Declined

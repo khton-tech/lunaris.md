@@ -97,13 +97,14 @@ export class WorkspaceTabs {
       tabs, selectedId: this.#selected, busy: this.#busy, error: this.#failed ? text("tabFailed") : "",
       labels: { tabs: text("tabs"), add: text("newTab"), close: text("closeTab"), back: text("back"), forward: text("forward") },
       canGoBack: this.#cursor > 0, canGoForward: this.#cursor < this.#history.length - 1,
-      onAdd: () => this.#run("Blank workspace tab selected", async () => {
+      onAdd: () => this.#run("Blank workspace tab opened", async () => {
         if (!await this.#activate(blank)) return false;
-        this.#observe(blank);
+        this.#append(blank);
         return true;
       }),
       onSelect: (id: string) => this.#select(id),
       onClose: (id: string) => this.#close(id),
+      onReorder: (id: string, targetId: string, edge: "before" | "after") => this.#reorder(id, targetId, edge),
       onNavigate: (step: -1 | 1) => {
         const index = this.#cursor + step;
         const id = this.#history[index];
@@ -117,19 +118,36 @@ export class WorkspaceTabs {
   }
 
   #observe(destination: Destination): void {
+    const active = this.#tabs.find(tab => tab.id === this.#selected);
+    if (active?.kind === "blank" && destination.kind === "blank") return;
     const existing = this.#tabs.find(tab => tab.kind === "file"
       ? destination.kind === "file" && tab.screenId === destination.screenId && sameFile(tab.target, destination.target)
       : tab.kind === "screen" ? destination.kind === "screen" && tab.screenId === destination.screenId : destination.kind === "blank");
     if (existing) { this.#record(existing.id); return; }
-    const index = this.#tabs.findIndex(tab => tab.id === this.#selected && tab.kind === "blank");
-    if (index !== -1 && destination.kind !== "blank") {
-      const tab = this.#tabs[index]!;
-      this.#tabs[index] = this.#create(destination, tab.id);
+    if (active?.kind === "blank") {
+      this.#tabs[this.#tabs.indexOf(active)] = this.#create(destination, active.id);
       return;
     }
+    this.#append(destination);
+  }
+
+  #append(destination: Destination): void {
     const tab = this.#create(destination);
     this.#tabs.push(tab);
     this.#record(tab.id);
+  }
+
+  #reorder(id: string, targetId: string, edge: "before" | "after"): void {
+    if (!this.options.live() || this.#busy || id === targetId) return;
+    const from = this.#tabs.findIndex(tab => tab.id === id);
+    const target = this.#tabs.findIndex(tab => tab.id === targetId);
+    if (from === -1 || target === -1) return;
+    const to = target + Number(edge === "after") - Number(from < target);
+    if (from === to) return;
+    const [tab] = this.#tabs.splice(from, 1);
+    this.#tabs.splice(to, 0, tab!);
+    this.options.report("info", "Workspace tabs reordered");
+    this.options.refresh();
   }
 
   #record(id: string, index?: number): void {

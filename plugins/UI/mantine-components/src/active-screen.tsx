@@ -1,8 +1,11 @@
-import { useId, useLayoutEffect, useRef } from "react";
+import { useId, useLayoutEffect, useRef, useState } from "react";
 import { ActionIcon, Badge, Box, Tabs } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import { Icon } from "./icons.js";
 import type { resolveTheme } from "./theme.js";
+
+type TabEdge = "before" | "after";
+interface TabDrop { readonly id: string; readonly edge: TabEdge }
 
 interface ScreenProps {
   readonly ids: readonly string[];
@@ -23,6 +26,7 @@ interface TabProps {
   readonly onAdd: () => Promise<boolean>;
   readonly onSelect: (id: string) => Promise<boolean>;
   readonly onClose: (id: string) => Promise<boolean>;
+  readonly onReorder?: (id: string, targetId: string, edge: TabEdge) => void;
   readonly onNavigate: (step: -1 | 1) => Promise<boolean>;
 }
 
@@ -35,7 +39,8 @@ function validateTabs(value: unknown): void {
     (props.selectedId !== null && !props.tabs.some(tab => tab.id === props.selectedId)) ||
     !props.labels || ["tabs", "add", "close", "back", "forward"].some(key => typeof props.labels![key as keyof TabProps["labels"]] !== "string") ||
     typeof props.error !== "string" || ["busy", "canGoBack", "canGoForward"].some(key => typeof props[key as keyof TabProps] !== "boolean") ||
-    ["onAdd", "onSelect", "onClose", "onNavigate"].some(key => typeof props[key as keyof TabProps] !== "function")) {
+    ["onAdd", "onSelect", "onClose", "onNavigate"].some(key => typeof props[key as keyof TabProps] !== "function") ||
+    (props.onReorder !== undefined && typeof props.onReorder !== "function")) {
     throw new TypeError("Invalid workspace tabs props.");
   }
 }
@@ -49,15 +54,89 @@ export function activeScreenProps(value: ComponentProps): ScreenProps {
 
 function WorkspaceTabs({ props, panelId }: { props: TabProps; panelId: string }) {
   const list = useRef<HTMLDivElement>(null);
+  const draggedId = useRef<string | null>(null);
+  const [drop, setDrop] = useState<TabDrop | null>(null);
+  const canReorder = !props.busy && !!props.onReorder && props.tabs.length > 1;
   const selected = props.tabs.find(tab => tab.id === props.selectedId);
   const selectedButton = () => list.current?.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]');
   useLayoutEffect(() => { selectedButton()?.parentElement?.scrollIntoView?.({ block: "nearest", inline: "nearest" }); }, [props.selectedId]);
+  useLayoutEffect(() => {
+    if (draggedId.current && (!canReorder || !props.tabs.some(tab => tab.id === draggedId.current))) {
+      draggedId.current = null;
+      setDrop(null);
+    }
+  }, [canReorder, props.tabs]);
   const focusSelected = (action: Promise<boolean>) => { void action.then(completed => { if (completed) selectedButton()?.focus(); }); };
+  const resetDrag = () => { draggedId.current = null; setDrop(null); };
+  function dropAt(clientX: number): TabDrop | null {
+    const element = list.current;
+    if (!element) return null;
+    const rtl = element.ownerDocument.defaultView?.getComputedStyle(element).direction === "rtl";
+    let last: string | undefined;
+    for (const tab of element.querySelectorAll<HTMLElement>("[data-workspace-tab-id]")) {
+      const id = tab.dataset.workspaceTabId!;
+      const rect = tab.getBoundingClientRect();
+      const midpoint = rect.left + rect.width / 2;
+      if (rtl ? clientX > midpoint : clientX < midpoint) return { id, edge: "before" };
+      last = id;
+    }
+    return last === undefined ? null : { id: last, edge: "after" };
+  }
+  function scrollWhileDragging(clientX: number): void {
+    const element = list.current;
+    if (!element || element.scrollWidth <= element.clientWidth) return;
+    const { left, right, width } = element.getBoundingClientRect();
+    const edge = Math.min(24, width / 4);
+    if (clientX >= left && clientX < left + edge) element.scrollLeft -= edge;
+    if (clientX <= right && clientX > right - edge) element.scrollLeft += edge;
+  }
   const labels = props.labels;
   return <Box className="lm-workspace-tabs" aria-busy={props.busy}>
-    <Tabs unstyled value={props.selectedId} activateTabWithKeyboard={false} onChange={id => { if (id) void props.onSelect(id); }} className="lm-workspace-tab-strip">
+    <Tabs unstyled value={props.selectedId} activateTabWithKeyboard={false} onChange={id => { if (id) void props.onSelect(id); }}
+      className="lm-workspace-tab-strip"
+      onMouseDownCapture={event => { if (event.button === 1) event.preventDefault(); }}
+      onAuxClick={event => {
+        if (event.button === 1 && (event.target === event.currentTarget || event.target === list.current)) {
+          event.preventDefault();
+          void props.onAdd();
+        }
+      }}
+      onDragOver={event => {
+        if (!canReorder || !draggedId.current) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        scrollWhileDragging(event.clientX);
+        const next = dropAt(event.clientX);
+        setDrop(previous => previous?.id === next?.id && previous?.edge === next?.edge ? previous : next);
+      }}
+      onDragLeave={event => {
+        if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) setDrop(null);
+      }}
+      onDrop={event => {
+        const id = draggedId.current;
+        if (!canReorder || !id) return;
+        event.preventDefault();
+        const target = dropAt(event.clientX);
+        resetDrag();
+        if (target && id !== target.id) props.onReorder?.(id, target.id, target.edge);
+      }}>
       <Tabs.List className="lm-workspace-tab-list" ref={list} aria-label={labels.tabs}>
-        {props.tabs.map(tab => <Box key={tab.id} role="presentation" className="lm-workspace-tab" mod={{ selected: tab.id === props.selectedId }}>
+        {props.tabs.map(tab => <Box key={tab.id} role="presentation" className="lm-workspace-tab" mod={{ selected: tab.id === props.selectedId }}
+          data-workspace-tab-id={tab.id} data-drop={drop?.id === tab.id && tab.id !== draggedId.current ? drop.edge : undefined}
+          draggable={canReorder}
+          onDragStart={event => {
+            if (!canReorder) { event.preventDefault(); return; }
+            draggedId.current = tab.id;
+            event.dataTransfer.effectAllowed = "move";
+            event.dataTransfer.setData("application/x-lunaris-workspace-tab", tab.id);
+          }}
+          onDragEnd={resetDrag}
+          onAuxClick={event => {
+            if (event.button !== 1) return;
+            event.preventDefault();
+            event.stopPropagation();
+            if (tab.closable) void props.onClose(tab.id);
+          }}>
           <Tabs.Tab className="lm-workspace-tab-label lm-focus" classNames={{ tabSection: "lm-workspace-tab-section" }}
             value={tab.id} id={`${panelId}-${tab.id}`} aria-controls={panelId}
             title={tab.description} onKeyDown={event => {

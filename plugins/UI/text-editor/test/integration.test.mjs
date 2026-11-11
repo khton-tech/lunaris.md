@@ -212,6 +212,80 @@ test('workspace tabs compose with the editor, Settings, history and Vault lifeti
   } finally { await s.stop(); }
 });
 
+test('workspace tab strip handles middle clicks and drag sorting while preserving selection and history', async () => {
+  const s = await setup({ withLayout: true });
+  const strip = s.target.querySelector('.lm-workspace-main .lm-workspace-tab-strip');
+  const tabs = () => [...strip.querySelectorAll('[role=tab]')];
+  const active = () => tabs().find(tab => tab.getAttribute('aria-selected') === 'true');
+  const order = () => tabs().map(tab => tab.title);
+  const mouse = (target, type, button, clientX = 0) => {
+    const event = new s.dom.window.MouseEvent(type, { bubbles: true, cancelable: true, button, clientX });
+    target.dispatchEvent(event);
+    return event;
+  };
+  function drag(type, target, clientX, dataTransfer) {
+    const event = new s.dom.window.MouseEvent(type, { bubbles: true, cancelable: true, clientX });
+    Object.defineProperty(event, 'dataTransfer', { value: dataTransfer });
+    target.dispatchEvent(event);
+    return event;
+  }
+  function layOutTabs() {
+    return tabs().map((tab, index) => {
+      const wrapper = tab.parentElement;
+      wrapper.getBoundingClientRect = () => ({ left: index * 100, right: (index + 1) * 100, width: 100 });
+      return wrapper;
+    });
+  }
+  try {
+    assert.equal(mouse(strip, 'mousedown', 1).defaultPrevented, true);
+    mouse(strip, 'auxclick', 2); await flush();
+    assert.deepEqual(order(), ['note.md']);
+    mouse(strip, 'auxclick', 1); await flush();
+    assert.deepEqual(order(), ['note.md', 'New tab']);
+    await s.documents.open({ vaultId: 'a', path: 'other.md' }); await flush();
+    mouse(strip, 'auxclick', 1); await flush();
+    const firstBlank = active();
+    mouse(strip.querySelector('[role=tablist]'), 'auxclick', 1); await flush();
+    const secondBlank = active();
+    assert.notEqual(firstBlank, secondBlank);
+    assert.deepEqual(order(), ['note.md', 'other.md', 'New tab', 'New tab']);
+    mouse(firstBlank, 'auxclick', 1); await flush();
+    assert.equal(active(), secondBlank);
+    mouse(secondBlank, 'auxclick', 1); await flush();
+    assert.equal(active().title, 'other.md');
+
+    await s.documents.open({ vaultId: 'a', path: 'image.png' }); await flush();
+    const image = active();
+    const [first, , last] = layOutTabs();
+    assert.equal(first.draggable, true);
+    const transfer = { setData() {} };
+    assert.equal(drag('dragover', strip, 20, transfer).defaultPrevented, false);
+    drag('dragstart', last, 250, transfer);
+    assert.equal(drag('dragover', first, 20, transfer).defaultPrevented, true);
+    await flush();
+    assert.equal(first.dataset.drop, 'before');
+    drag('dragend', last, 250, transfer); await flush();
+    assert.equal(first.hasAttribute('data-drop'), false);
+    assert.deepEqual(order(), ['note.md', 'other.md', 'image.png']);
+
+    drag('dragstart', last, 250, transfer);
+    drag('drop', first, 20, transfer); await flush();
+    assert.deepEqual(order(), ['image.png', 'note.md', 'other.md']);
+    assert.equal(active(), image);
+    assert.equal(s.documents.current().path, 'image.png');
+    const [, note] = layOutTabs();
+    drag('dragstart', note, 150, transfer);
+    drag('drop', strip, 325, transfer); await flush();
+    assert.deepEqual(order(), ['image.png', 'other.md', 'note.md']);
+    assert.equal(active(), image);
+    s.target.querySelector('button[aria-label="Back"]').click(); await flush();
+    assert.equal(active().title, 'other.md');
+    mouse(active(), 'auxclick', 1); await flush();
+    assert.equal(active().title, 'note.md');
+    assert.deepEqual(order(), ['image.png', 'note.md']);
+  } finally { await s.stop(); }
+});
+
 test('tab changes preserve the selected document on conflicts and follow confirmed moves and removals', async () => {
   const s = await setup();
   const tabList = () => [...s.target.querySelectorAll('[role=tab]')];
@@ -226,6 +300,10 @@ test('tab changes preserve the selected document on conflicts and follow confirm
     assert.equal(tabList()[1].getAttribute('aria-selected'), 'true');
     assert.equal(s.cm().state.doc.toString(), 'Local edit');
     assert.match(s.target.querySelector('.lm-workspace-tab-error').textContent, /Could not complete/);
+    tabList()[1].dispatchEvent(new s.dom.window.MouseEvent('auxclick', { bubbles: true, cancelable: true, button: 1 }));
+    await flush();
+    assert.deepEqual(labels(), ['note', 'other']);
+    assert.equal(s.documents.current().path, 'other.md');
 
     assert.equal((await s.fs.move(file('note.md'), file('renamed.md'))).ok, true); await flush();
     assert.deepEqual(labels(), ['renamed', 'other']);
