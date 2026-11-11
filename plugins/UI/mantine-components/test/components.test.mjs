@@ -1002,6 +1002,43 @@ test('Workspace leaves Tab and Shift+Tab to embedded controls and sibling views'
  sibling.remove(); await s.stop();
 });
 
+test('compact sidebar shares desktop region surfaces with embedded Files and navigation', async () => {
+ const s = await setup(); await s.start();
+ const original = s.dom.window.HTMLElement.prototype.getBoundingClientRect;
+ let width = 900;
+ s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, width, 720);
+ const sheet = s.dom.window.document.createElement('style');
+ sheet.textContent = readFileSync(new URL('../styles.css', import.meta.url), 'utf8').replace(/^@import .*$/gm, '');
+ s.dom.window.document.head.append(sheet);
+ try {
+  const surfaces = [];
+  for (width of [900, 390]) {
+   let targets;
+   const layout = s.components.mount('lunaris.workspace-layout', s.target, {
+    railVisible: true, panelVisible: true, mobileOpen: true, mainLabel: 'Main', panelLabel: 'Files',
+    onTargets: value => { targets = value; }, onDismiss() {},
+   }, s.ctx.signal);
+   assert.equal(layout.ok, true);
+   const rail = s.components.mount('lunaris.sidebar-rail', targets['left-rail'], {
+    label: 'Tools', activeId: 'files', tabs: [{ id: 'files', title: 'Files', icon: 'files' }], onSelect() {},
+   }, s.ctx.signal);
+   const files = s.components.mount('lunaris.file-explorer', targets['left-panel'], explorerFixture(), s.ctx.signal);
+   assert.equal(rail.ok, true); assert.equal(files.ok, true); await settle();
+   const panelStyle = s.dom.window.getComputedStyle(targets['left-panel']);
+   const railStyle = s.dom.window.getComputedStyle(targets['left-rail']);
+   assert.equal(railStyle.margin, '0px');
+   assert.equal(panelStyle.margin, '0px');
+   surfaces.push([railStyle.borderRadius, panelStyle.borderEndStartRadius, panelStyle.borderEndEndRadius]);
+   assert.equal(targets['left-panel'].querySelector('.lm-root').style.backgroundColor, 'transparent');
+   assert.equal(targets['left-rail'].querySelector('.lm-root').style.backgroundColor, 'transparent');
+   assert.ok(targets['left-panel'].querySelector('[role=treeitem]'));
+   assert.equal(targets.main.parentElement.hasAttribute('inert'), width <= 640);
+   files.value.dispose(); rail.value.dispose(); layout.value.dispose();
+  }
+  assert.deepEqual(surfaces[1], surfaces[0]);
+ } finally { s.dom.window.HTMLElement.prototype.getBoundingClientRect = original; await s.stop(); }
+});
+
 test('compact Workspace lends a mobile menu target without replacing editor regions', async () => {
  const s = await setup(); await s.start();
  const original = s.dom.window.HTMLElement.prototype.getBoundingClientRect;

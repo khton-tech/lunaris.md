@@ -1,5 +1,29 @@
 # Mantine components
 
+## Mobile Sidebar composition parity (2026-11-11)
+
+Reference: the Owner's narrow Files screenshot showing a detached rounded rail,
+bright gaps and inconsistent panel edges, compared with the existing desktop
+Sidebar composition. Non-Luna Workspace now shares rail background and panel
+border/corner rules between desktop and compact presentation. Compact regions
+have no outer margins; the rail occupies its full allocated width and the panel
+wrapper uses the shell background rather than exposing an editor-colored strip.
+The backdrop blends the theme background instead of lightening content with the
+text color. Navigation focus is inset so its scrolling group does not clip it.
+Mobile drawer positioning, width cap, 44px controls, immediate inert state,
+gestures and theme-specific Luna finishes remain supported.
+
+WorkspaceLayout owns these region surfaces and geometry. SidebarRail owns button
+spacing/focus. Files and Settings continue to inherit the same borrowed panel
+through existing Components/Workspace/Sidebar contracts; no SDK or consumer
+changes are required. A composed regression mounts Files and navigation inside
+Workspace at desktop and phone widths, verifies matching region margins/corners,
+transparent embedded roots and modal isolation. Four targeted tests passed,
+including mobile targets, gestures and Luna theme replacement. Native acceptance
+is pending: compare Files and Settings at 320/390/640px and desktop, open their
+menus, check keyboard focus and short-height scrolling in the supplied theme
+and Luna light/dark. Tests do not establish pixel-level screenshot parity.
+
 ## UI integrity audit (2026-11-11)
 
 Reference: existing Files/Settings menus, floating mobile actions and Workspace

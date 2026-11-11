@@ -85,10 +85,10 @@
 .lm-workspace-rail,.lm-workspace-panel,.lm-workspace-main { display:flex;flex-direction:column;min-height:0;overflow:auto }
 .lm-root .lm-workspace-card { background:var(--vault-panel);border-radius:var(--vault-radius);border:0;box-shadow:none }
 .lm-workspace-rail { grid-column:1;grid-row:1;margin:var(--workspace-gap) }
-.lm-workspace-layout:not([data-window-chrome],[data-compact]) .lm-workspace-rail {
+.lm-workspace-layout:not([data-window-chrome]) .lm-workspace-rail {
   margin:0;background:var(--vault-background);border-radius:0
 }
-.lm-workspace-layout:not([data-window-chrome],[data-compact]) .lm-workspace-panel {
+.lm-workspace-layout:not([data-window-chrome]) .lm-workspace-panel {
   margin:0;border:var(--vault-border) solid var(--vault-separator);border-block-end:0;
   border-start-start-radius:var(--vault-radius);border-start-end-radius:var(--vault-radius);
   border-end-start-radius:0;border-end-end-radius:0
@@ -136,20 +136,20 @@
 .lm-workspace-layout[data-compact],.lm-workspace-layout[data-compact][data-window-chrome] { --workspace-rail-width:60px;--workspace-gap:4px;--mobile-drawer-width:min(24rem,calc(100% - 32px));grid-template-columns:minmax(0,1fr) }
 .lm-workspace-layout[data-compact] .lm-workspace-content { grid-column:1 }
 .lm-workspace-layout[data-compact] .mantine-Splitter-handle { display:none }
-.lm-workspace-layout[data-compact] .lm-workspace-panel-pane { position:absolute;inset-block:0;left:var(--workspace-rail-width);width:calc(var(--mobile-drawer-width) - var(--workspace-rail-width));flex-direction:column;max-width:100%!important;overflow:hidden;z-index:7;background:var(--vault-content) }
-.lm-workspace-layout[data-compact] .lm-workspace-rail { position:absolute;inset-block:0;left:0;width:calc(var(--workspace-rail-width) - 8px);z-index:7 }
+.lm-workspace-layout[data-compact] .lm-workspace-panel-pane { position:absolute;inset-block:0;left:var(--workspace-rail-width);width:calc(var(--mobile-drawer-width) - var(--workspace-rail-width));flex-direction:column;max-width:100%!important;overflow:hidden;z-index:7;background:var(--vault-background) }
+.lm-workspace-layout[data-compact] .lm-workspace-rail { position:absolute;inset-block:0;left:0;width:var(--workspace-rail-width);margin:0;z-index:7 }
 .lm-workspace-layout[data-compact] .lm-workspace-rail,.lm-workspace-layout[data-compact] .lm-workspace-panel-pane { transform:translateX(calc(-1 * var(--mobile-drawer-width) - 60px));visibility:hidden;pointer-events:none;transition:transform var(--vault-motion-normal) var(--vault-motion-easing),visibility 0s linear var(--vault-motion-normal) }
 .lm-workspace-layout[data-mobile-open] .lm-workspace-rail,.lm-workspace-layout[data-mobile-open] .lm-workspace-panel-pane { transform:translateX(0);visibility:visible;pointer-events:auto;transition-delay:0s }
 .lm-workspace-layout[data-compact] .lm-workspace-main-pane { flex:1 1 0%!important;max-width:100%!important }
-.lm-workspace-layout[data-compact] .lm-workspace-panel { margin-block-start:0;margin-inline-end:var(--workspace-gap) }
-.lm-workspace-backdrop { position:absolute;inset:0;z-index:6;background:color-mix(in srgb,var(--vault-text) 15%,transparent) }
+.lm-workspace-layout[data-compact] .lm-workspace-panel { margin:0 }
+.lm-workspace-backdrop { position:absolute;inset:0;z-index:6;background:color-mix(in srgb,var(--vault-background) 65%,transparent) }
 .lm-workspace-swipe-edge { position:absolute;left:0;inset-block:0;width:20px;z-index:1;touch-action:pan-y }
 .lm-workspace-mobile-toolbar {
   position:absolute;bottom:calc(8px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);
   z-index:4;display:flex;padding:4px 0
 }
 @media(prefers-reduced-motion:reduce) { .lm-workspace-layout[data-compact] .lm-workspace-rail,.lm-workspace-layout[data-compact] .lm-workspace-panel-pane { transition:none } }
-.lm-workspace-layout[data-compact] .lm-sidebar-rail { padding:4px }
+.lm-workspace-layout[data-compact] .lm-sidebar-rail { padding:10px 8px }
 .lm-workspace-layout[data-compact] .lm-sidebar-tab { min-width:44px;min-height:44px }
 @media(pointer:coarse) {
  .lm-root .lm-explorer-actions .mantine-ActionIcon-root,.lm-root .lm-account-icon { min-width:44px;min-height:44px }
@@ -164,6 +164,7 @@
 .lm-root .mantine-Button-label { height:auto;overflow:visible;white-space:normal;overflow-wrap:anywhere }
 .lm-root .lm-button:enabled:active { background:var(--vault-selection) }
 .lm-root .lm-focus:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset) }
+.lm-root .lm-sidebar-rail .lm-sidebar-tab:focus-visible { outline-offset:calc(-1 * var(--vault-focus-width)) }
 .lm-root .lm-button:disabled { cursor:default }
 /* Optional theme finishes apply only to controls, never borrowed region surfaces. */
 .lm-root .lm-input:not(:disabled) { box-shadow:var(--vault-input-shadow,none) }
