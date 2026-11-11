@@ -13,6 +13,7 @@ async function fixture() {
   const plugin = definePlugin({ manifest: { ...manifest, id: 'test.engine', provides: [Lime, LimeChanged].map(token => ({ kind: token.kind, id: token.id, version: token.version })), requires: [] }, activate(ctx) {
     provider = ctx; ctx.provide(Lime, {
       snapshot: () => state,
+      plan() { return ok({ pluginId: manifest.id, revision: 1, affected: [manifest.id], dependencies: [] }); }, async selectProvider() { return ok(null); },
       async preview() { calls.push(['preview']); return ok({ ticket: 1, manifest, digest: 'a'.repeat(64), platformWarning: true }); },
       cancelPreview(ticket) { calls.push(['cancel', ticket]); },
       async install(ticket) { calls.push(['install', ticket]); state = { ...state, installations: [{ id: manifest.id, version: manifest.version, digest: 'a'.repeat(64), manifest, enabled: true, recoveryRequired: false, removalPending: false, state: 'active' }] }; await publish(); return ok(null); },

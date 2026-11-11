@@ -19,7 +19,9 @@ acceptance or complete authority audit is claimed.
   backups and update transaction recovery remain pending.
 - L03: Kernel.replace/unregister, lifecycle ownership, host-backed public runtime
   adapter, protected built-ins and generation checks implemented. Environment
-  planning/revisions and explicit provider/dependency choice remain pending.
+  dependency planning/revisions and graph-aware provider rebinding are implemented.
+  Choices persist in Vault records and restore before startup. Product choice UI
+  and full prospective dependency graph disclosure remain pending.
 - L04: QuickJS/WASM execution, SDK wire bridge, bounded callback reclamation,
   selected-file picker and scoped Config/Filesystem restrictions implemented.
   Own-package resource list/chunk/text reads now use the public activation-bound

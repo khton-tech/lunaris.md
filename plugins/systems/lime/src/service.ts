@@ -112,12 +112,24 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
           if (!loaded.ok) logger.warn(ctx.pluginId, 'Installed plugin could not be registered', { data: { pluginId: record.id, code: loaded.error.code } });
         } catch (cause) { logger.error(ctx.pluginId, 'Installed package validation failed', { error: cause, data: { pluginId: record.id } }); }
       }
+      for (const record of [...records]) if (!record.removing && packages.has(record.id)) for (const choice of record.selections ?? []) {
+        const plan = runtime.plan(environment, record.id);
+        const result = plan.ok ? await runtime.selectProvider(environment, record.id, choice.kind, choice.contractId, choice.providerId, plan.value.revision) : plan;
+        if (!result.ok) {
+          await save(records.map(item => item.id === record.id ? { ...item, recoveryRequired: true } : item));
+          logger.warn(ctx.pluginId, 'Persisted provider choice requires recovery', { data: { pluginId: record.id, code: result.error.code } });
+          break;
+        }
+      }
       // Order only enabled required package dependencies. Built-ins resolve through
       // the runtime; optional cycles must not become required startup cycles.
       const pending = new Set(records.filter(record => record.enabled && !record.recoveryRequired && packages.has(record.id)).map(record => record.id));
       const order: string[] = [];
       while (pending.size) {
-        const ready = [...pending].sort().find(id => !packages.get(id)!.manifest.requires.some(requirement => !requirement.optional && [...pending].some(provider => provider !== id && packages.get(provider)!.manifest.provides.some(provided => provided.kind === requirement.kind && provided.id === requirement.id && versionSatisfies(provided.version, requirement.range)))));
+        const ready = [...pending].sort().find(id => !packages.get(id)!.manifest.requires.some(requirement => {
+          const choice = records.find(record => record.id === id)?.selections?.find(choice => choice.kind === requirement.kind && choice.contractId === requirement.id);
+          return !requirement.optional && [...pending].some(provider => provider !== id && (!choice || choice.providerId === provider) && packages.get(provider)!.manifest.provides.some(provided => provided.kind === requirement.kind && provided.id === requirement.id && versionSatisfies(provided.version, requirement.range)));
+        }));
         if (!ready) { order.push(...[...pending].sort()); break; }
         order.push(ready); pending.delete(ready);
       }
@@ -166,7 +178,9 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
       if (!changed.ok) return changed;
     }
     const record: InstallationRecord = { id: preview.manifest.id, version: preview.manifest.version, digest: preview.digest, enabled: updating ? previous!.enabled : enabled, recoveryRequired: false };
-    try { await save([...records.filter(item => item.id !== record.id), record]); }
+    const selections = previous?.selections?.filter(choice => preview.manifest.requires.some(requirement => requirement.kind === choice.kind && requirement.id === choice.contractId));
+    const committed: InstallationRecord = selections?.length ? { ...record, selections } : record;
+    try { await save([...records.filter(item => item.id !== record.id), committed]); }
     catch (cause) {
       if (previous) { const old = packages.get(previous.id); if (old) await runtime.replace(captured, old.manifest, source(old)); }
       else await runtime.remove(captured, record.id);
@@ -181,6 +195,27 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
   });
   ctx.provide(Lime, {
     snapshot, restore,
+    plan(id) { return environment ? runtime.plan(environment, id) : fail('NO_VAULT', 'Open a Vault first.'); },
+    selectProvider: (id, kind, contractId, providerId, expectedRevision) => mutate(async captured => {
+      const previous = records.find(item => item.id === id);
+      if (!previous) return fail('NOT_FOUND', 'Plugin is not installed.');
+      if (previous.removing || safeMode) return fail('CONFLICT', 'Finish recovery before changing providers.');
+      const plan = runtime.plan(captured, id);
+      if (!plan.ok) return plan;
+      if (plan.value.revision !== expectedRevision) return fail('STALE', 'Dependency plan changed.');
+      const dependency = plan.value.dependencies.find(item => item.kind === kind && item.id === contractId);
+      if (!dependency?.candidates.some(candidate => candidate.id === providerId)) return fail('CONFLICT', 'Select a compatible installed provider.');
+      const selections = [...previous.selections?.filter(choice => choice.kind !== kind || choice.contractId !== contractId) ?? [], { kind, contractId, providerId }];
+      await save(records.map(item => item.id === id ? { ...item, selections, recoveryRequired: true } : item));
+      const changed = await runtime.selectProvider(captured, id, kind, contractId, providerId, expectedRevision);
+      if (!changed.ok) {
+        await save(records.map(item => item.id === id ? { ...previous, recoveryRequired: true } : item));
+        return changed;
+      }
+      await save(records.map(item => item.id === id ? { ...item, recoveryRequired: previous.recoveryRequired } : item));
+      logger.info(ctx.pluginId, 'Plugin provider choice committed', { data: { pluginId: id, kind, contractId, providerId } });
+      return ok();
+    }),
     async preview(): Promise<LimeResult<LimePreview | null>> {
       if (!environment || !owner) return fail('NO_VAULT', 'Open a Vault before selecting a plugin.');
       if (transitioning) return fail('BUSY', 'Vault transition is in progress.');

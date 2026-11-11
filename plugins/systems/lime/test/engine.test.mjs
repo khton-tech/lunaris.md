@@ -18,7 +18,7 @@ function packageBytes(version = '1.0.0', id = 'test.package') {
   return packLup([{ path: 'manifest.json', data: encode(JSON.stringify(manifest)) }, { path: 'plugin.js', data: encode(`throw Error('preview must not evaluate');`) }, { path: 'assets/example.json', data: encode('{"message":"Hello"}') }]);
 }
 async function fixture(options = {}) {
-  const kernel = createTestKernel(); const files = new Map(); const selected = []; const executions = []; const runtimes = new Map(); const settings = new Map(); const configCalls = []; const sources = [];
+  const kernel = createTestKernel(); const files = new Map(); const selected = []; const executions = []; const runtimes = new Map(); const settings = new Map(); const configCalls = []; const sources = []; const plans = new Map(); const providerSelections = [];
   let root = { id: 'vault-a', name: 'A' }; let participant; let api; let revision = 0; let failWrites = false; let failActivation = false; let failConfig = false;
   kernel.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(name => [name, () => true])));
   if (options.bootSafeMode) kernel.installMock(LimeBootPolicy, { safeMode: () => true });
@@ -46,7 +46,8 @@ async function fixture(options = {}) {
   kernel.installMock(VaultLifecycle, { register(value) { participant = value; return ok(null); } });
   kernel.installMock(LimePackagePicker, { async pick(owner) { const value = selected.shift() ?? null; return ok(typeof value === 'function' ? await value(owner) : value); } });
   kernel.installMock(LimeRuntime, {
-    plan() { return failure('NOT_FOUND'); }, async selectProvider() { return ok(null); },
+    plan(env, id) { return plans.has(id) ? ok(plans.get(id)) : failure('NOT_FOUND'); },
+    async selectProvider(env, ...args) { providerSelections.push(args); return failActivation ? failure('RUNTIME_FAILED') : ok(null); },
     async open() { runtimes.clear(); return ok(null); }, async close() { runtimes.clear(); return ok(null); }, snapshot() { return ok([...runtimes.values()]); },
     async register(env, manifest, source, enabled) { if (manifest.id === 'test.builtin') return failure('CONFLICT'); sources.push(source); runtimes.set(manifest.id, { id: manifest.id, version: manifest.version, state: enabled ? 'active' : 'disabled' }); return ok(null); },
     async enable(env, id) { if (failActivation) { runtimes.get(id).state = 'failed'; return failure('RUNTIME_FAILED'); } executions.push(id); runtimes.get(id).state = 'active'; return ok(null); },
@@ -59,7 +60,7 @@ async function fixture(options = {}) {
   kernel.register(definePlugin({ manifest: { manifestVersion: 1, id: 'test.consumer', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides: [], requires: [{ kind: 'api', id: Lime.id, range: '^1.0.0' }], permissions: ['runtime.manage'], optionalPermissions: [] }, activate(ctx) { api = ctx.use(Lime); } }));
   kernel.grant('test.consumer', 'runtime.manage');
   await kernel.start('test.consumer'); await api.restore();
-  return { kernel, files, selected, executions, runtimes, settings, configCalls, sources, api, get participant() { return participant; }, setRoot: value => { root = value; }, setFailWrites: value => { failWrites = value; }, setFailActivation: value => { failActivation = value; }, setFailConfig: value => { failConfig = value; } };
+  return { kernel, files, selected, executions, runtimes, settings, configCalls, sources, plans, providerSelections, api, get participant() { return participant; }, setRoot: value => { root = value; }, setFailWrites: value => { failWrites = value; }, setFailActivation: value => { failActivation = value; }, setFailConfig: value => { failConfig = value; } };
 }
 
 test('preview is inert and exact-byte confirmation persists only in the captured Vault', async () => {
@@ -73,6 +74,24 @@ test('preview is inert and exact-byte confirmation persists only in the captured
   assert.ok([...f.files.keys()].every(key => key.startsWith('vault-a:.lunaris/plugins/')));
   assert.equal((await f.api.install(preview.value.ticket)).error.code, 'STALE');
   await f.kernel.stopAll(); f.kernel.assertNoResources();
+});
+
+test('provider choices persist only through revision-checked plans and restore before startup', async () => {
+  const f = await fixture(); f.selected.push(packageBytes()); await f.api.install((await f.api.preview()).value.ticket);
+  f.plans.set('test.package', { pluginId: 'test.package', revision: 7, affected: ['test.package'], dependencies: [{ kind: 'api', id: 'test.value', range: '^1.0.0', optional: false, candidates: [{ id: 'test.first', version: '1.0.0', state: 'active' }, { id: 'test.second', version: '1.0.0', state: 'active' }] }] });
+  const registry = () => JSON.parse(new TextDecoder().decode(f.files.get('vault-a:.lunaris/plugins/registry.json').bytes));
+  const before = registry();
+  assert.equal((await f.api.selectProvider('test.package', 'api', 'test.value', 'test.first', 6)).error.code, 'STALE');
+  assert.deepEqual(registry(), before); assert.deepEqual(f.providerSelections, []);
+  assert.equal((await f.api.selectProvider('test.package', 'api', 'test.value', 'test.first', 7)).ok, true);
+  assert.deepEqual(registry().plugins[0].selections, [{ kind: 'api', contractId: 'test.value', providerId: 'test.first' }]);
+  assert.equal(registry().plugins[0].recoveryRequired, false);
+  f.providerSelections.length = 0; await f.api.restore();
+  assert.deepEqual(f.providerSelections, [['test.package','api','test.value','test.first',7]]);
+  f.setFailActivation(true);
+  assert.equal((await f.api.selectProvider('test.package', 'api', 'test.value', 'test.second', 7)).error.code, 'RUNTIME_FAILED');
+  assert.equal(registry().plugins[0].selections[0].providerId, 'test.first'); assert.equal(registry().plugins[0].recoveryRequired, true);
+  await f.kernel.stopAll();
 });
 
 test('cancel, builtin collision and failed package storage cannot install/activate code', async () => {

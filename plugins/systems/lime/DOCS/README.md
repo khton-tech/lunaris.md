@@ -7,6 +7,14 @@ from `@lunaris/lime`. No kernel, platform IPC, DOM or private driver is imported
 
 ## Implemented service operations
 
+- `plan(id)` returns the runtime dependency plan and revision. `selectProvider(id,
+  kind, contractId, providerId, expectedRevision)` validates the exact plan, commits
+  selection/recovery intent, applies graph rebinding and settles the record.
+  Runtime failure restores the previous durable choice with recovery required.
+  Restore reapplies choices before activation; unavailable choices prevent automatic
+  restart. Choices survive code updates for still-declared contracts. No dependency
+  is downloaded or enabled implicitly. Runtime revisions are not persisted.
+
 - `snapshot()` returns Vault ID, busy/safe-mode/error state and installation rows
   with committed identity, enabled/recovery intent, inspected metadata and current
   runtime observation. Process state is not persisted as a running snapshot.

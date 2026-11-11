@@ -31,6 +31,7 @@ export interface LimeDependencyPlan {
     readonly candidates: readonly { readonly id: string; readonly version: string; readonly state: string }[];
   }[];
 }
+export interface LimeProviderChoice { readonly kind: ContractKind; readonly contractId: string; readonly providerId: string }
 export interface LimeRuntimeApi {
   /** Stop/unregister previous environment before binding another one. */
   open(environment: LimeEnvironment): Promise<LimeResult<null>>;
@@ -74,6 +75,8 @@ export interface LimePreview {
 }
 export interface LimeApi {
   snapshot(): LimeSnapshot;
+  plan(id: string): LimeResult<LimeDependencyPlan>;
+  selectProvider(id: string, kind: ContractKind, contractId: string, providerId: string, expectedRevision: number): Promise<LimeResult<null>>;
   preview(): Promise<LimeResult<LimePreview | null>>;
   cancelPreview(ticket: number): void;
   install(ticket: number, enabled?: boolean): Promise<LimeResult<null>>;
@@ -87,7 +90,7 @@ export interface LimeApi {
 }
 export const Lime = defineApi<LimeApi>({
   id: 'lunaris.lime', version: '1.0.0', consumePermission: 'runtime.manage',
-  validate: value => !!value && typeof value === 'object' && ['snapshot', 'preview', 'cancelPreview', 'install', 'update', 'enable', 'disable', 'retry', 'remove', 'restore'].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === 'function'),
+  validate: value => !!value && typeof value === 'object' && ['snapshot', 'plan', 'selectProvider', 'preview', 'cancelPreview', 'install', 'update', 'enable', 'disable', 'retry', 'remove', 'restore'].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === 'function'),
 });
 export const LimeChanged = defineEvent<LimeSnapshot>({
   id: 'lunaris.lime-changed', version: '1.0.0',

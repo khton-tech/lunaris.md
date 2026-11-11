@@ -40,9 +40,9 @@ remove/close clears them.
 Integration status: the public runtime adapter and actual QuickJS graph tests cover
 planning, immutable candidate data, disabled-provider behavior, successful rebind
 and stale confirmations, including changes initiated outside the adapter. Kernel
-tests separately cover failed rebind rollback and optional dependents. Persisting
-choices in the Lime installation registry and product settings controls remain
-subsequent integration work; this API alone does not claim those are complete.
+tests separately cover failed rebind rollback and optional dependents. The Lime
+engine persists choices in its Vault registry and restores them before startup.
+Product settings controls remain subsequent integration work.
 Plans currently disclose direct requirements and active affected consumers rather
 than a full prospective graph. Other management operations still use environment
 generation without an expected plan revision.
