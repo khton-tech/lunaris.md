@@ -7,6 +7,9 @@ import { validateManifest } from "@lunaris/manifest";
 import { definePlugin } from "@lunaris/sdk";
 import type { PluginInput, PluginManifest } from "@lunaris/sdk";
 import { createKernel } from "@lunaris/kernel";
+import { Logger, LogSink } from "@lunaris/logging";
+import type { LogRecord } from "@lunaris/logging";
+import { createLogger } from "@lunaris/logger";
 import type { Kernel, KernelOptions, Scheduler } from "@lunaris/kernel";
 
 export class LoadError extends Error {
@@ -70,6 +73,8 @@ export function createNodeScheduler(): Scheduler {
 export interface DevelopmentSession {
   readonly kernel: Kernel;
   readonly pluginIds: readonly string[];
+  /** Bounded developer diagnostics; never printed into normal CLI JSON output. */
+  logs(): readonly LogRecord[];
   start(): Promise<void>;
   stop(): Promise<void>;
 }
@@ -80,6 +85,16 @@ export async function loadLocalPlugins(roots: readonly string[], options: Omit<K
   const ids = checked.map(item => item.manifest.id);
   if (new Set(ids).size !== ids.length) throw new LoadError("PLUGIN_DUPLICATE", "Duplicate plugin IDs in local roots.", "");
   const kernel = createKernel({ ...options, scheduler: createNodeScheduler() });
+  const logs: LogRecord[] = [];
+  const provides = (id: string) => checked.some(item => item.manifest.provides.some(token => token.kind === 'api' && token.id === id));
+  const needsLogger = checked.some(item => item.manifest.requires.some(token => token.kind === 'api' && token.id === Logger.id));
+  const defaultLogger = needsLogger && !provides(Logger.id);
+  const needsSink = defaultLogger || checked.some(item => item.manifest.requires.some(token => token.kind === 'api' && token.id === LogSink.id));
+  if (needsSink && !provides(LogSink.id)) kernel.register(definePlugin({ manifest: {
+    manifestVersion: 1, id: 'lunaris.development-log-sink', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './development-sink.js',
+    provides: [{ kind: 'api', id: LogSink.id, version: LogSink.version }], requires: [], permissions: [], optionalPermissions: [],
+  }, activate(ctx) { ctx.provide(LogSink, { write(record) { logs.push(record); if (logs.length > 256) logs.shift(); return true; } }); } }));
+  if (defaultLogger) kernel.register(createLogger({ minimumLevel: 'debug' }));
   for (const item of checked) {
     let definition;
     try {
@@ -93,6 +108,7 @@ export async function loadLocalPlugins(roots: readonly string[], options: Omit<K
     kernel.register(definition);
   }
   return Object.freeze({ kernel, pluginIds: Object.freeze([...ids].sort()),
+    logs: () => Object.freeze([...logs]),
     async start() {
       try { for (const id of [...ids].sort()) await kernel.start(id); }
       catch (cause) {

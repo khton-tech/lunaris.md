@@ -20,6 +20,15 @@ test('valid local module loads through the public host and cleans up real timers
   await session.start(); assert.equal(session.kernel.inspect().plugins[0].state, 'active');
   await session.stop(); assert.equal(session.kernel.inspect().plugins[0].ownedResources, 0);
 });
+
+test('author plugins receive the normal replaceable Logger and bounded original diagnostics without console output', async t => {
+  const data = { manifestVersion: 1, id: 'test.local', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './plugin.mjs', provides: [], requires: [{ kind: 'api', id: 'lunaris.logger', range: '^1.0.0' }], permissions: [], optionalPermissions: [] };
+  const root = await fixture(t, { requires: data.requires }, `import {definePlugin} from ${JSON.stringify(import.meta.resolve('@lunaris/sdk'))}; import {Logger} from ${JSON.stringify(import.meta.resolve('@lunaris/logging'))}; export default definePlugin({manifest:${JSON.stringify(data)},activate(ctx){const logger=ctx.use(Logger);logger.info(ctx.pluginId,'Author ready');logger.error(ctx.pluginId,'Author operation failed',{error:new Error('original developer error')});}});`);
+  const session = await loadLocalPlugins([root]); await session.start();
+  assert.ok(session.logs().some(record => record.source === 'test.local' && record.message === 'Author ready'));
+  assert.equal(session.logs().find(record => record.message === 'Author operation failed').error.message, 'original developer error');
+  assert.ok(Object.isFrozen(session.logs())); await session.stop();
+});
 test('metadata and engine checks fail before entry evaluation', async t => {
   for (const change of [{ entry: './../escape.mjs' }, { engine: '^9.0.0' }, { version: 'invalid' }]) {
     const root = await fixture(t, change, 'throw new Error("must not evaluate");');

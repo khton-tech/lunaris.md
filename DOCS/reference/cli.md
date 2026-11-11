@@ -1,5 +1,11 @@
 # Local CLI
 
+The development host composes the existing replaceable Logger when authored roots
+require it and do not provide their own. A bounded owned LogSink retains up to 256
+original records for `DevelopmentSession.logs()`; normal CLI JSON output stays
+clean. Custom Logger/LogSink providers take precedence. This is trusted Node
+development composition, not the installed package isolation boundary.
+
 From a built checkout use `npm run core -- <command>`. Generated packages additionally expose `npm run core -- <command>` and convenience scripts. All failures return nonzero. CLI wrapper errors use stable codes and safe messages without raw causes; the Node test runner emits its normal assertion reports.
 
 | Command | Behavior |
