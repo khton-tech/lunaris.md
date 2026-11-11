@@ -1,8 +1,30 @@
 # Acceptance and evidence plan
 
-Runtime and manual evidence is pending. These scenarios define completion; they are not claims of
-implemented behavior. Choose focused checks for the changed contracts/components.
-Use focused checks for each implementation change.
+The scenario table defines completion. The following records distinguish automated
+evidence from native and visual evidence.
+
+## Current verification
+
+Automated runs use Node 26.13.0 on Windows and SDK/kernel 0.1.0. The application
+composition tests use JSDOM and the actual QuickJS WASM driver. Storage and
+selected-file test fixtures replace the corresponding native interfaces.
+
+| Scope | Current evidence | Remaining verification |
+| --- | --- | --- |
+| A01–A07 | Lime manager, codec and composed Settings tests cover inert preview, confirmation, cancellation, package identity, platform warnings and activation cleanup. | Native picker and actual host interaction. |
+| A08–A12, A20 | Prospective provider graph, stale preview rejection, affected consumers, provider choice and rollback, managed-data recovery and retain/delete behavior have focused tests. | Full scenario in a native application Vault, including recovery after an essential provider replacement. |
+| A13–A18 | Vault transitions, generation checks, separate installation registries, package revalidation and host safe mode have focused tests. | Real Vault copy/synchronization and native end-to-end transition exercise. |
+| A19, A23 | QuickJS tests cover denied ambient APIs, captured root checks, renderer callback admission and interruption of a synchronous loop. | Remaining delegated authority review and native/WebView checks. |
+| A21–A22 | Engine tests cover injected persistence failures, interrupted recovery, stale plans and concurrent operations. | Full storage failure matrix on each supported host. |
+| External authoring | `npm run lime:dx` installs packed tools in a temporary external directory, checks and packs the bundled counter recipe and starts/stops isolated development. | Full author exercise including interactive install/update/remove on a supported application host. |
+| Live development | CLI subprocess tests cover QuickJS replacement, rollback, file persistence within a disposable headless Vault and stop cleanup. | Attachment to a disposable Vault in a running application. |
+| Product builds | `npm run web:build` emits one QuickJS WASM asset. | Native dialog and WebView execution plus visual geometry and focus. |
+
+The counter recipe test uses actual Settings, Workspace, Mantine and QuickJS with
+a Config fixture. It verifies a write scoped to the captured Vault, cleanup on
+disable and restoration on enable. Key implementation commits include 36084d6
+(update journal), 173b64f and a6d22aa (live development), cfe77ca (prospective
+dependencies) and 06ac39e (author recipe).
 
 ## Implemented foundations, 2026-11-10
 

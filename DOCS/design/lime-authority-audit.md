@@ -22,6 +22,7 @@ permission grants do not grant access through the broker.
 | ConfigChanged | Subscription sees only own namespace in captured Vault; global/foreign notifications omitted |
 | Account/remote | account.access/network and drafts.access/storage rejected; no account-wide enumeration or drafts |
 | ActiveDocument | Foreign-vault target arguments rejected before the provider call |
+| Renderer registries | Settings, Sidebar and ActiveScreen callback snapshots/events are denied. Workspace/MobileMenu callback lists and ContextMenu command resolution/opening are denied. Registration APIs remain available. |
 | Logger | Source forced to captured plugin ID |
 | Package assets | Immutable captured own-package bytes, bounded reads and activation revocation |
 | API/events/hooks | Same privileged-token admission check applied to all SDK entry points |
@@ -46,7 +47,7 @@ same adapter used by browser/Tauri composition.
 Still required: review each trusted provider's returned callbacks, UI command
 registries and hooks for transitive authority. Public data/callback APIs can carry
 the provider's authority; checking the initial token alone does not prove every
-callback is safe. In particular Settings snapshots and contributions, global
+callback is safe. In particular contribution ownership, global
 preference persistence, native clipboard/window actions and migration hooks need
 explicit policies and focused evidence. Do not advertise complete out-of-Vault
 containment until this review and native/WebView verification are complete.

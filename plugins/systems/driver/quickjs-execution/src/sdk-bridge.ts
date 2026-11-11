@@ -3,7 +3,7 @@ import type { ApiToken, EventToken, HookToken, CancellationSignal, PluginContext
 import type { ExecutionLimits, ExecutionRealm, ExecutionSource, ExecutionValue } from "@lunaris/execution";
 import { createRealm } from "./realm.js";
 import { guestBridge } from "./guest-bridge.js";
-import { assertPackageStoragePath, assertScopedToken, denyAuthority } from './authority.js';
+import { assertPackageStoragePath, assertScopedMethod, assertScopedToken, denyAuthority } from './authority.js';
 
 type Wire = ExecutionValue;
 type Fn = (...args: unknown[]) => unknown;
@@ -152,6 +152,7 @@ function scopedContext(ctx: PluginContext, vaultId: string): PluginContext {
     for (const name of Object.keys(api)) {
       const method = (api as Record<string, unknown>)[name]; if (typeof method !== 'function') deny();
       methods[name] = (...args) => {
+        assertScopedMethod(token.id, name);
         const values = [...args];
         if (token.id === 'lunaris.vault' && name !== 'current') deny();
         if (token.id === 'lunaris.config' || token.id === 'lunaris.config-snapshots') {

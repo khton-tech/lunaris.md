@@ -168,3 +168,31 @@ test('isolated SDK cannot acquire ambient roots/accounts or trigger a Vault tran
   f.kernel.register(f.load(manifest, code), { ownerId: execution.manifest.id }); f.kernel.grant('test.package', 'vault.access');
   await f.kernel.start('test.package'); assert.equal(transitions, 0); await f.kernel.stopAll(); f.kernel.assertNoResources();
 });
+
+test('isolated settings contributions cannot read the trusted renderer callback registry', async () => {
+  const f = await fixture();
+  let registered = 0;
+  let snapshots = 0;
+  const token = defineApi({ id: 'lunaris.settings', version: '1.2.0' });
+  f.kernel.installMock(token, {
+    registerCategory() { registered++; return { ok: true, value: null }; },
+    snapshot() { snapshots++; return {}; },
+  });
+  const manifest = { manifestVersion: 1, id: 'test.package', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './plugin.js',
+    provides: [], requires: [{ kind: 'api', id: token.id, range: '^1.2.0' }], permissions: [], optionalPermissions: [] };
+  const code = `export default { manifest: ${JSON.stringify(manifest)}, activate(ctx) {
+    const settings = ctx.use(${JSON.stringify(token)});
+    const denied = work => {
+      try { work(); } catch (error) { if (error.code === 'PERMISSION_DENIED') return; throw error; }
+      throw Error('Expected renderer authority denial');
+    };
+    denied(() => settings.snapshot());
+    denied(() => ctx.events.on({kind:'event',id:'lunaris.settings-changed',version:'1.2.0'}, () => {}));
+    if (!settings.registerCategory({ id: ctx.pluginId, title: 'Fixture' }, ctx.signal).ok) throw Error('Registration failed');
+  } };`;
+  f.kernel.register(f.load(manifest, code), { ownerId: execution.manifest.id });
+  await f.kernel.start(manifest.id);
+  assert.equal(snapshots, 0);
+  assert.equal(registered, 1);
+  await f.kernel.stopAll();
+});
