@@ -32,6 +32,9 @@ consumer removal, locale changes and external Vault transitions update the scree
 A contribution can register Workspace content during its own mount. Workspace
 finishes mounting the current view before processing the resulting update, so
 the mobile tab action can appear without mounting a second Active Screen.
+The layout reports compact mode with its targets. Workspace propagates that
+mode as `workspace.compact` after layout effects complete, preserving mounted
+content while the allocation changes.
 
 Tauri starts this plugin and hides the selector while a Vault is open. A committed
 close through the public Vault service restores the selector. Workspace itself

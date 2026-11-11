@@ -9,7 +9,7 @@ type Regions = Readonly<Record<"main" | "left-rail" | "left-panel" | "bottom" | 
 interface LayoutProps {
   readonly mobileLauncherVisible?: boolean; readonly mobileMenuVisible?: boolean; readonly mobileOpen?: boolean; readonly onMobileOpen?: (open: boolean) => void;
   readonly bottomVisible?: boolean; readonly railVisible: boolean; readonly panelVisible: boolean; readonly mainLabel: string; readonly panelLabel: string;
-  readonly onTargets: (targets: Regions | null) => void; readonly onDismiss: () => void;
+  readonly onTargets: (targets: Regions | null, compact?: boolean) => void; readonly onDismiss: () => void;
   readonly panelWidth?: number; readonly resizeLabel?: string; readonly onPanelWidth?: (width: number) => void;
 }
 export function layoutProps(value: ComponentProps): LayoutProps {
@@ -114,9 +114,9 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
   const commitWidth = () => { if (!compact && props.panelVisible) props.onPanelWidth?.(Math.round(latestWidth.current)); };
   const publish = props.onTargets;
   useLayoutEffect(() => {
-    publish(Object.freeze({ main: main.current!, "left-rail": rail.current!, "left-panel": panel.current!, bottom: bottom.current!, "mobile-menu": mobileMenu.current!, "mobile-launcher": mobileLauncher.current! }));
-    return () => publish(null);
-  }, [publish]);
+    publish(Object.freeze({ main: main.current!, "left-rail": rail.current!, "left-panel": panel.current!, bottom: bottom.current!, "mobile-menu": mobileMenu.current!, "mobile-launcher": mobileLauncher.current! }), compact);
+  }, [publish, compact]);
+  useLayoutEffect(() => () => publish(null), [publish]);
   return <FocusTrap active={overlayOpen} innerRef={root}><Box className="lm-workspace-layout" style={{ ...theme.contentStyle, "--workspace-panel-width": `${width}px` }} data-launcher={props.mobileLauncherVisible || undefined} data-compact={compact || undefined} data-mobile-open={overlayOpen || undefined} data-mobile-menu={props.mobileMenuVisible || undefined} data-window-chrome={theme.windowChrome || undefined} data-bottom={props.bottomVisible || undefined} data-rail={props.railVisible || undefined} data-panel={props.panelVisible || undefined}
     role={overlayOpen ? "dialog" : undefined} aria-modal={overlayOpen || undefined} aria-label={overlayOpen ? props.panelLabel : undefined}
     onKeyDown={event => { if (event.key === "Escape" && (compact ? overlayOpen : props.panelVisible)) {

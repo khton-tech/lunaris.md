@@ -2,7 +2,12 @@ import { defineApi, defineEvent } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
 
 /** Component roles receive these props in addition to their registered props. */
-export interface WorkspaceContext { readonly vaultId: string; readonly vaultName: string }
+export interface WorkspaceContext {
+  readonly vaultId: string;
+  readonly vaultName: string;
+  /** The owning layout selected its compact presentation. */
+  readonly compact?: boolean;
+}
 export type WorkspaceProps = Readonly<Record<string, unknown>>;
 export interface WorkspaceContent {
   readonly id: string;

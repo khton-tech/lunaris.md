@@ -10,6 +10,7 @@ import type { ComponentProps, MountedComponent } from "@lunaris/components";
 import { Startup, StartupChanged } from "@lunaris/startup";
 import { Vault, VaultChanged } from "@lunaris/vault";
 import { Workspace, WorkspaceChanged, WorkspaceSidebar } from "@lunaris/workspace";
+import type { WorkspaceContext } from "@lunaris/workspace";
 import { catalogs } from "./catalog.js";
 import manifest from "../manifest.json" with { type: "json" };
 
@@ -52,6 +53,7 @@ export default definePlugin({ manifest, async activate(ctx) {
   let latest = startup.snapshot();
   let rendering = false;
   let refreshPending = false;
+  let compact = false;
   const text = (key: string) => localization.text(ctx.pluginId, key);
   function release(owner: ResourceScope | undefined): void {
     // Owned scopes report cleanup failures through independent kernel diagnostics.
@@ -126,7 +128,7 @@ export default definePlugin({ manifest, async activate(ctx) {
       }
     }
     let visible = 0; let sideVisible = false;
-    const context = Object.freeze({ vaultId: current.id, vaultName: current.name });
+    const context: WorkspaceContext = Object.freeze({ vaultId: current.id, vaultName: current.name, compact });
     for (const content of available) {
       const region = content.region ?? "main";
       let view = views.get(content.id);
@@ -145,9 +147,15 @@ export default definePlugin({ manifest, async activate(ctx) {
       if (!show(empty, { title: text("empty"), detail: text("emptyDetail"), presentation: { mode: "embedded", sizing: "fill" } })) { release(empty.owner); empty = undefined; }
     }
   }
-  // A layout role lends stable targets; this callback only captures local data.
-  // Mount other roots after Components.mount/update returns, outside React effects.
-  function onTargets(value: Regions | null): void { regions = value ?? undefined; }
+  // Publish a resize after the layout effect has returned.
+  function onTargets(value: Regions | null, nextCompact = false): void {
+    regions = value ?? undefined;
+    if (compact === nextCompact) return;
+    compact = nextCompact;
+    if (!value || ctx.signal.aborted) return;
+    if (rendering) refreshPending = true;
+    else void Promise.resolve().then(refresh).catch(() => {});
+  }
   function onDismiss(): void { if (!ctx.signal.aborted) workspace.list().find(entry => entry.region === "left-panel")?.onDismiss?.(); }
 
   function refresh(): void {

@@ -1,7 +1,7 @@
 # Mobile menu
 
 The mobile action registry is public through @lunaris/mobile-menu. Require
-api:lunaris.mobile-menu@^1.3.0 and call ctx.use(MobileMenu).register(item, owner).
+api:lunaris.mobile-menu@^1.4.0 and call ctx.use(MobileMenu).register(item, owner).
 Items have a canonical dotted id, already-localized nonempty label, Lucide icon,
 optional integer order, optional disabled boolean and onPress callback. register
 rejects duplicate IDs. update replaces a registered descriptor; list returns an
@@ -10,7 +10,9 @@ Owner cancellation removes the action and renders the new list. Stale callbacks
 and disabled actions do nothing. The provider logs failures with the original error.
 An optional nonnegative safe-integer count shows a page outline with the number
 in place of the icon. Supply a localized accessible label that includes the count.
-Optional choices contain a unique id, localized label and optional title.
+Optional choices contain a unique id, localized label and optional title and icon.
+An optional trailingAction uses the same fields and a distinct id. It renders
+as its own menu item in the same row.
 selectedChoiceId marks the current choice. The provider takes an immutable
 snapshot and passes only a valid choice ID to onPress. Plain actions keep the
 same no-argument callback.
@@ -64,7 +66,8 @@ The provider publishes each placement while it has registered actions. Active
 Screen contributes the leading bottom action for the mounted Vault. Its count
 includes blank tabs. The action opens an anchored Mantine menu using the Files
 Vault switcher pattern. Its rows select tabs through the same callbacks as the
-top strip. The Owner's highlighted mobile
+top strip. The menu contains Add tab and a close control on each closable row.
+The compact presentation replaces the top tab strip. The Owner's highlighted mobile
 panel defines the placement and rounded page-outline glyph. WorkspaceLayout owns
 the floating surface. Mobile Menu supplies its action and Active Screen supplies
 the tab list, selection and localized names.

@@ -8,6 +8,7 @@ export const russian = {
   workspaceView: "Рабочий экран",
   tabs: "Вкладки рабочей области",
   mobileTabs: "Открытые вкладки: {count}",
+  addMobileTab: "Добавить вкладку",
   closeTab: "Закрыть вкладку",
   back: "Назад",
   forward: "Вперёд",

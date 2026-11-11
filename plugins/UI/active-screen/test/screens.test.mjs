@@ -129,8 +129,19 @@ test('Vault switch and close clear selection, release cached views and create fr
 test('compact Workspace shows one live tab counter and switches through the shared tab state', async () => {
   const s = await setup({ mobileMenu: true, sidebar: true });
   const { document, HTMLElement, DOMRect } = s.dom.window;
-  HTMLElement.prototype.getBoundingClientRect = () => new DOMRect(0, 0, 360, 720);
+  let width = 360;
+  let measureLayout;
+  HTMLElement.prototype.getBoundingClientRect = () => new DOMRect(0, 0, width, 720);
+  globalThis.ResizeObserver = s.dom.window.ResizeObserver = class {
+    constructor(callback) { this.callback = callback; }
+    observe(element) { if (element.classList.contains('lm-workspace-layout')) measureLayout = this.callback; }
+    unobserve() {}
+    disconnect() {}
+  };
   const menu = () => document.querySelector('.lm-mobile-choice-menu[role="menu"]');
+  const command = label => [...menu().querySelectorAll('[role="menuitem"]')]
+    .find(item => (item.getAttribute('aria-label') ?? item.textContent) === label);
+  const openMenu = async button => { button.click(); await flush(); };
   try {
     const stylesheet = document.createElement('style');
     stylesheet.textContent = readFileSync(new URL('../../mantine-components/styles.css', import.meta.url), 'utf8')
@@ -139,6 +150,8 @@ test('compact Workspace shows one live tab counter and switches through the shar
     panel(s, 'test.content');
     await s.open();
     assert.equal(s.surface.querySelectorAll('.lm-active-screen').length, 1);
+    assert.equal(s.surface.querySelector('.lm-workspace-tab-strip'), null);
+    assert.ok(s.surface.querySelector('.lm-workspace-tab-navigation'));
     const toolbar = s.surface.querySelector('.lm-workspace-mobile-toolbar');
     assert.equal(toolbar.hidden, false);
     assert.equal(toolbar.querySelectorAll('button').length, 1);
@@ -149,7 +162,8 @@ test('compact Workspace shows one live tab counter and switches through the shar
     s.tools.screens.register(definition('test.one', 'test.content', { tabTitle: 'First screen' }), s.ctx.signal);
     s.tools.screens.select('test.one');
     await flush();
-    s.surface.querySelector('.lm-workspace-tab-add').click();
+    await openMenu(button);
+    command('Add tab').click();
     await flush();
     assert.equal(toolbar.querySelector('button'), button);
     assert.equal(button.textContent, '2');
@@ -177,19 +191,43 @@ test('compact Workspace shows one live tab counter and switches through the shar
     assert.equal(document.activeElement, button);
     button.click();
     await flush();
-    const row = [...menu().querySelectorAll('[role="menuitem"]')].find(item => item.textContent === 'First screen');
+    const row = command('First screen');
+    const next = new s.dom.window.KeyboardEvent('keydown', { key: 'ArrowDown', bubbles: true, cancelable: true });
+    row.dispatchEvent(next);
+    assert.equal(next.defaultPrevented, true);
     row.click();
     await flush();
     assert.equal(menu(), null);
     assert.equal(s.tools.screens.snapshot().activeId, 'test.one');
     assert.equal(button.textContent, '2');
 
-    s.surface.querySelector('.lm-workspace-tab[data-selected] .lm-workspace-tab-action').click();
+    await openMenu(button);
+    command('Закрыть вкладку — Новая вкладка').click();
     await flush();
     assert.equal(button.textContent, '1');
+    assert.equal(s.tools.screens.snapshot().activeId, 'test.one');
+    await openMenu(button);
+    command('Закрыть вкладку — First screen').click();
+    await flush();
+    assert.equal(s.tools.screens.snapshot().activeId, null);
     assert.equal(button.getAttribute('aria-label'), 'Открытые вкладки: 1');
+    await openMenu(button);
+    assert.equal(command('Закрыть вкладку — Новая вкладка'), undefined);
     button.click();
     await flush();
+
+    const { flushSync } = await import('react-dom');
+    width = 1000;
+    flushSync(() => measureLayout());
+    await flush();
+    assert.equal(toolbar.hidden, true);
+    assert.ok(s.surface.querySelector('.lm-workspace-tab-strip'));
+    width = 360;
+    flushSync(() => measureLayout());
+    await flush();
+    assert.equal(toolbar.hidden, false);
+    assert.equal(s.surface.querySelector('.lm-workspace-tab-strip'), null);
+    await openMenu(button);
     assert.ok(menu());
     await s.service.close();
     await flush();

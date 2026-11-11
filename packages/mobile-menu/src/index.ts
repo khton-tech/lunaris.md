@@ -1,9 +1,13 @@
 import { defineApi } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
-export interface MobileMenuChoice {
+export interface MobileMenuOption {
  readonly id: string;
  readonly label: string;
  readonly title?: string;
+ readonly icon?: string;
+}
+export interface MobileMenuChoice extends MobileMenuOption {
+ readonly trailingAction?: MobileMenuOption;
 }
 export interface MobileMenuItem {
  readonly id: string;
@@ -25,4 +29,4 @@ export interface MobileMenuApi {
  update(item: MobileMenuItem): MobileMenuResult;
  list(): readonly MobileMenuItem[];
 }
-export const MobileMenu = defineApi<MobileMenuApi>({ id: "lunaris.mobile-menu", version: "1.3.0", validate: value => !!value && typeof value === "object" && ["register", "update", "list"].every(key => typeof Object.getOwnPropertyDescriptor(value,key)?.value === "function") });
+export const MobileMenu = defineApi<MobileMenuApi>({ id: "lunaris.mobile-menu", version: "1.4.0", validate: value => !!value && typeof value === "object" && ["register", "update", "list"].every(key => typeof Object.getOwnPropertyDescriptor(value,key)?.value === "function") });

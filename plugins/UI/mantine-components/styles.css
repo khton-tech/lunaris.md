@@ -387,6 +387,10 @@
   display:flex;align-items:center;min-width:0;min-height:calc(var(--vault-space)*9);
   gap:var(--vault-space);padding-inline:calc(var(--vault-space)*3)
 }
+.lm-workspace-tabs[data-compact-tabs] .lm-workspace-tab-navigation {
+  --tab-action-size:44px;
+  min-height:56px;padding-block-start:8px;padding-inline-start:64px
+}
 .lm-workspace-tab-location { margin-inline-start:var(--vault-space) }
 .lm-workspace-tab-error { padding-inline:calc(var(--vault-space)*3);color:var(--vault-error);overflow-wrap:anywhere }
 
@@ -709,6 +713,10 @@
 .lm-root .lm-mobile-choice-menu { max-width:calc(100vw - 24px);max-height:min(18rem,55dvh) }
 .lm-mobile-choice-menu [role=menuitem] { min-height:44px;user-select:none }
 .lm-mobile-choice-menu [role=menuitem][aria-current=true] { color:var(--vault-text) }
+.lm-mobile-choice-row { display:flex;align-items:stretch }
+.lm-mobile-choice-row > [role=menuitem] { flex:1;min-width:0 }
+.lm-mobile-choice-menu .lm-mobile-choice-row > .lm-mobile-choice-trailing { flex:0 0 44px;justify-content:center;padding:0;color:var(--vault-secondary) }
+.lm-mobile-choice-trailing .mantine-Menu-itemLabel { flex:none;display:flex }
 .lm-mobile-menu-items .lm-sidebar-tab[aria-expanded=true] { color:var(--vault-text);background:var(--vault-selection) }
 .lm-workspace-mobile-launcher { position:absolute;top:8px;left:12px;z-index:4;display:flex;padding:2px;max-width:calc(100% - 24px);overflow:auto }
 .lm-root .lm-workspace-mobile-launcher { border-radius:999px }

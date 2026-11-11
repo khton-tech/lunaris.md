@@ -1022,6 +1022,12 @@ target. The renderer portals the menu to its own themed root to clear the
 toolbar's scroll boundary. Active Screen supplies the choices and their callbacks
 through the MobileMenu registry. Mantine owns keyboard navigation, dismissal
 and focus return.
+Each choice can supply a trailing action. The mobile role renders it as an
+independent Mantine Menu.Item next to the tab label, with a localized name and
+a 44px square touch target. Both controls participate in menu keyboard
+navigation. The Active Screen role accepts compactTabs, supplied from the
+owning Workspace context when its menu is available. It omits the tab strip
+while preserving history navigation and leaving space for the floating launcher.
 Reference: [Mantine UI buttons](https://ui.mantine.dev/category/buttons/) and
 [Mantine Menu](https://mantine.dev/core/menu/). Native visual acceptance of
 the action, list, long names, themes and keyboard focus remains pending.

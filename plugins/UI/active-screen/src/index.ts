@@ -11,7 +11,7 @@ import { Vault } from "@lunaris/vault";
 import { Workspace } from "@lunaris/workspace";
 import type { WorkspaceContext } from "@lunaris/workspace";
 import { MobileMenu } from "@lunaris/mobile-menu";
-import type { MobileMenuItem } from "@lunaris/mobile-menu";
+import type { MobileMenuChoice, MobileMenuItem } from "@lunaris/mobile-menu";
 import { Components, ComponentsChanged } from "@lunaris/components";
 import type { ComponentProps, MountedComponent } from "@lunaris/components";
 import { Localization, LocaleChanged } from "@lunaris/localization";
@@ -29,7 +29,7 @@ const catalogs = { en: {
   empty: "No workspace plugins", emptyDetail: "Content will appear here when a workspace plugin is available.",
   unavailable: "Screen unavailable", unavailableDetail: "The selected screen could not be displayed.",
   newTab: "New tab", workspaceView: "Workspace view", tabs: "Workspace tabs",
-  mobileTabs: "Open tabs: {count}",
+  mobileTabs: "Open tabs: {count}", addMobileTab: "Add tab",
   closeTab: "Close tab", back: "Back", forward: "Forward", tabFailed: "Could not complete the tab action.",
   blank: "Choose a file to open",
 }, ru: russian };
@@ -91,8 +91,13 @@ export default definePlugin({ manifest, activate(ctx) {
     }
     function publishMobileTabs(tabProps: ReturnType<WorkspaceTabs["presentation"]>): void {
       if (!mobileMenu || !layoutOwner) return;
-      const choices = tabProps.tabs.map(tab => ({ id: tab.id, label: tab.title.trim() ? tab.title : tab.description, title: tab.description }));
-      const count = choices.length;
+      const choices: MobileMenuChoice[] = [{ id: "add", label: text("addMobileTab"), icon: "create" }];
+      for (const tab of tabProps.tabs) {
+        const label = tab.title.trim() ? tab.title : tab.description;
+        const trailingAction = tab.closable ? { id: `close:${tab.id}`, label: `${tabProps.labels.close} — ${label}`, icon: "window-close" } : undefined;
+        choices.push({ id: tab.id, label, title: tab.description, ...(trailingAction ? { trailingAction } : {}) });
+      }
+      const count = tabProps.tabs.length;
       const label = localization.text(ctx.pluginId, "mobileTabs", { count });
       const selectedChoiceId = tabProps.selectedId;
       const signature = JSON.stringify([label, choices, selectedChoiceId]);
@@ -100,7 +105,10 @@ export default definePlugin({ manifest, activate(ctx) {
       const item: MobileMenuItem = {
         id: `${ctx.pluginId}.tabs`, label, icon: "file", count, order: 0, choices, selectedChoiceId,
         async onPress(id) {
-          if (id && live()) await tabProps.onSelect(id);
+          if (!id || !live()) return;
+          if (id === "add") await tabProps.onAdd();
+          else if (id.startsWith("close:")) await tabProps.onClose(id.slice("close:".length));
+          else await tabProps.onSelect(id);
         },
       };
       try {
@@ -149,7 +157,8 @@ export default definePlugin({ manifest, activate(ctx) {
       }
       const placeholderId = "__placeholder";
       const tabProps = tabs.presentation(snapshot);
-      const layoutProps = { ids: [...visited, placeholderId], activeId: snapshot.activeId, tabs: tabProps,
+      const compactTabs = context.compact === true && !!mobileSignature && components.has("lunaris.mobile-menu");
+      const layoutProps = { ids: [...visited, placeholderId], activeId: snapshot.activeId, tabs: tabProps, compactTabs,
         onTargets, presentation: { mode: "embedded", sizing: "fill" } };
       if (layout) {
         const updated = layout.update(layoutProps);
