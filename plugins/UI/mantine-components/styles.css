@@ -280,7 +280,6 @@
   background:color-mix(in srgb,var(--vault-accent) 16%,var(--vault-panel));color:var(--vault-text)
 }
 .lm-explorer-node[data-active] .lm-explorer-entry-icon { color:var(--vault-accent) }
-.lm-explorer-node[data-active][data-selected] > .lm-explorer-node-content { outline:var(--vault-border) solid var(--vault-secondary);outline-offset:calc(-1 * var(--vault-border)) }
 
 .lm-vault-switcher { flex-shrink:0;min-width:0;padding:12px;position:relative;border-block-start:var(--vault-border) solid var(--vault-separator) }
 .lm-root .lm-vault-switcher-toggle { justify-content:flex-start;background:color-mix(in srgb,var(--vault-panel) 75%,var(--vault-hover));border:var(--vault-border) solid var(--vault-separator);border-radius:6px }
