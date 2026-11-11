@@ -1,5 +1,12 @@
 # Awaited Vault runtime lifecycle
 
+Version 1.1 adds optional finite `settlementOrder` (default 0). Settlement runs
+in ascending order, preserving registration order for ties. Runtime services use
+0; product preparation uses 100 so runtime contributions exist before the prepared
+workspace is exposed. Release/save guards retain their original ordering and
+semantics. NaN and infinite orders are rejected. Version 1.0 consumers remain
+compatible. See [product preparation](startup.md#awaited-product-preparation-2026-11-11).
+
 `VaultLifecycle` 1.0 from `@lunaris/vault` is provided by Vault Manager.
 Consumers require `vault.access`. `register(participant, owner)` installs an owned
 participant with an ID, `beforeRelease(previous, next)` and

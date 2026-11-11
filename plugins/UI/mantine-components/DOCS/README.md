@@ -1,5 +1,56 @@
 # Mantine components
 
+## Mobile Sidebar composition parity (2026-11-11)
+
+Reference: the Owner's narrow Files screenshot showing a detached rounded rail,
+bright gaps and inconsistent panel edges, compared with the existing desktop
+Sidebar composition. Non-Luna Workspace now shares rail background and panel
+border/corner rules between desktop and compact presentation. Compact regions
+have no outer margins; the rail occupies its full allocated width and the panel
+wrapper uses the shell background rather than exposing an editor-colored strip.
+The backdrop blends the theme background instead of lightening content with the
+text color. Navigation focus is inset so its scrolling group does not clip it.
+Mobile drawer positioning, width cap, 44px controls, immediate inert state,
+gestures and theme-specific Luna finishes remain supported.
+
+WorkspaceLayout owns these region surfaces and geometry. SidebarRail owns button
+spacing/focus. Files and Settings continue to inherit the same borrowed panel
+through existing Components/Workspace/Sidebar contracts; no SDK or consumer
+changes are required. A composed regression mounts Files and navigation inside
+Workspace at desktop and phone widths, verifies matching region margins/corners,
+transparent embedded roots and modal isolation. Four targeted tests passed,
+including mobile targets, gestures and Luna theme replacement. Native acceptance
+is pending: compare Files and Settings at 320/390/640px and desktop, open their
+menus, check keyboard focus and short-height scrolling in the supplied theme
+and Luna light/dark. Tests do not establish pixel-level screenshot parity.
+
+## UI integrity audit (2026-11-11)
+
+Reference: existing Files/Settings menus, floating mobile actions and Workspace
+drawer; [Mantine UI navigation](https://ui.mantine.dev/category/navbars/) and
+[Mantine Menu](https://mantine.dev/core/menu/). Workspace still owns drawer
+geometry and surfaces; embedded roles own controls only. Closing the drawer
+delays visual visibility until its transform finishes, while existing inert and
+aria-hidden attributes disable interaction immediately. Reduced motion removes
+the delay. Menu defaults use the active theme's fast duration/easing; explicit
+instant menus remain instant and Mantine retains reduced-motion handling.
+Mobile/coarse-pointer menu rows, including tab choices and their trailing
+actions, now have a 44px minimum. The earlier 34px tab-choice description applies
+only to fine-pointer desktop density. The five-row popup cap follows row height.
+Textarea focus uses the shared 16px phone/coarse-pointer minimum.
+
+Desktop Workspace tabs now reflect the controller's busy state in selection,
+creation, close and history controls. Delete and middle-click shortcuts obey the
+same state; disabled tabs retain selection without hover/pressed feedback.
+Controls recover in place when the operation settles. Integration with the
+existing Active Screen role is complete; targeted UIKit/Active Screen/host
+checks passed (154 tests, no skips). Native disabled-state appearance is pending.
+
+Integration uses existing Components/Themes/Workspace contracts; no SDK or
+consumer change is required. Targeted checks passed (143 tests, no skips,
+including application/web/Tauri consumers). Native drawer transitions, popup
+geometry, keyboard focus and phone keyboard acceptance are still pending.
+
 ## Declarative view role
 
 `lunaris.declarative-view` receives `{ tree, presentation? }` from public Views.

@@ -1,3 +1,4 @@
+import { Preparation } from "@lunaris/startup";
 import { WorkspaceSidebar } from "@lunaris/workspace";
 import { ActiveDocument, ActiveDocumentChanged } from "@lunaris/active-document";
 import { definePlugin } from "@lunaris/sdk";
@@ -16,7 +17,7 @@ import { createVaultSwitcher } from "./vault-switcher.js";
 import { createPreferences } from "./preferences.js";
 import manifest from "../manifest.json" with { type: "json" };
 
-export default definePlugin({ manifest, activate(ctx) {
+export default definePlugin({ manifest, async activate(ctx) {
   const navigation = ctx.optional(WorkspaceSidebar);
   const logger = scopeLogger(ctx.use(Logger), ctx.signal); const sidebar = ctx.use(Sidebar); const fs = ctx.use(Filesystem);
   const documents = ctx.use(ActiveDocument);
@@ -26,7 +27,7 @@ export default definePlugin({ manifest, activate(ctx) {
   if (!messages.ok) throw new Error("Cannot register explorer localization.", { cause: messages.error });
   const tabId = `${ctx.pluginId}.files`; let registered = false; let scheduled = false;
   let session: ResourceScope | undefined; let model: ExplorerModel | undefined; let watchId: string | undefined;
-  let refreshing = false; let dirty = false;
+  let refreshing = false; let dirty = false; let ready = Promise.resolve();
   const text = (key: string) => localization.text(ctx.pluginId, key);
   const switcher = createVaultSwitcher(ctx, changed);
   const preferences = createPreferences(ctx, changed);
@@ -91,7 +92,7 @@ export default definePlugin({ manifest, activate(ctx) {
     if (refreshing || ctx.signal.aborted) return;
     refreshing = true;
     void (async () => {
-      try { while (dirty && model?.active) { dirty = false; const current = model; await current.refresh(); if (current.active && current === model && !current.busy) await documents.reconcile(); } }
+      try { while (dirty && model?.active) { dirty = false; const current = model; await current.refresh(true); if (current.active && current === model && !current.busy) await documents.reconcile(); } }
       catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot refresh explorer", { error }); }
       finally { refreshing = false; }
     })();
@@ -99,7 +100,7 @@ export default definePlugin({ manifest, activate(ctx) {
   function switchVault(): void {
     const root = vaults.current();
     if (root?.id === model?.vaultId) return;
-    const old = session; session = undefined; model = undefined; watchId = undefined;
+    const old = session; session = undefined; model = undefined; watchId = undefined; ready = Promise.resolve();
     if (old) void old.dispose().catch(() => {});
     if (!root) { changed(); return; }
     const owner = ctx.scope.child(); session = owner;
@@ -107,9 +108,9 @@ export default definePlugin({ manifest, activate(ctx) {
       changed, (level, message, error) => { if (!ctx.signal.aborted) logger[level](ctx.pluginId, message, error === undefined ? {} : { error }); },
       async (source, destination) => { if (current.active) { const result = await documents.relocate({ vaultId: root.id, path: source }, { vaultId: root.id, path: destination }); if (!result.ok && current.active) logger.warn(ctx.pluginId, "Cannot relocate active document", { error: result.error }); } });
     model = current; changed();
-    void (async () => {
+    ready = (async () => {
       try {
-        await preferences.ready();
+        await preferences.prepare();
         if (!current.active) return;
         const result = await observation.watch({ vaultId: root.id, path: "" }, owner.signal);
         if (!current.active) return;
@@ -141,11 +142,22 @@ export default definePlugin({ manifest, activate(ctx) {
     }
     changed();
   }
-  ctx.events.on(ActiveDocumentChanged, () => { changed(); void revealActive().catch(error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot reveal active document", { error }); }); });
+  let previousDocument = documents.current();
+  ctx.events.on(ActiveDocumentChanged, () => {
+    const active = documents.current();
+    const previous = previousDocument; previousDocument = active;
+    // Retire a single old document selection, preserving deliberate operation selections.
+    if (model?.active && previous?.vaultId === model.vaultId &&
+        (active?.vaultId !== previous.vaultId || active?.path !== previous.path) &&
+        model.selection.length === 1 && model.selection[0] === previous.path) model.select([]);
+    changed();
+    void revealActive().catch(error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot reveal active document", { error }); });
+  });
   ctx.events.on(FileChanged, change => {
     if (change.vaultId === model?.vaultId && change.watchId === watchId) requestRefresh();
   });
   ctx.events.on(VaultChanged, switchVault); ctx.events.on(LocaleChanged, changed);
   publish(); switchVault();
+  await ctx.optional(Preparation)?.register({ id: ctx.pluginId, phase: "content", async prepare() { switchVault(); await ready; } }, ctx.signal);
   logger.info(ctx.pluginId, "File explorer ready", { code: "EXPLORER_READY" });
 } });

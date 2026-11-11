@@ -1,4 +1,4 @@
-import { Button, Input, InputWrapper, TextInput, createTheme } from "@mantine/core";
+import { Button, Input, InputWrapper, Menu, TextInput, createTheme } from "@mantine/core";
 import type { CSSProperties } from "react";
 import type { ThemeDefinition, ThemeValue } from "@lunaris/themes";
 
@@ -101,6 +101,7 @@ export function resolveTheme(theme: ThemeDefinition | null) {
       focusClassName: "lm-focus",
       spacing: { xs: dimension(field(field(geometry, "spacing"), "step"), 4), sm: dimension(number(field(field(geometry, "spacing"), "step"), 4) * 3, 12) },
       components: {
+        Menu: Menu.extend({ defaultProps: { transitionProps: { transition: "fade", duration: number(field(motion, "fast"), 120), timingFunction: text(field(motion, "easing"), "cubic-bezier(0.2, 0, 0, 1)") } } }),
         Button: Button.extend({ defaultProps: { variant: "subtle", size: "md" }, classNames: { root: "lm-button" } }),
         Input: Input.extend({ defaultProps: { size: "md" }, classNames: { input: "lm-input" } }),
         InputWrapper: InputWrapper.extend({ defaultProps: { size: "md" }, classNames: { label: "lm-label" } }),

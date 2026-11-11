@@ -1,3 +1,4 @@
+import { Preparation } from "@lunaris/startup";
 import { russian } from "./locales/ru.js";
 import { definePlugin } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
@@ -22,14 +23,14 @@ const catalogs = { en: { customization: "Customization", interface: "Interface",
 /** Own Vault interface preferences independently of startup policy and presentation. */
 export function createInterfaceSettings(options: { readonly defaultThemeId: string }) {
   if (typeof options.defaultThemeId !== "string" || !options.defaultThemeId) throw new TypeError("A default theme ID is required.");
-  return definePlugin({ manifest, activate(ctx) {
+  return definePlugin({ manifest, async activate(ctx) {
     const logger = scopeLogger(ctx.use(Logger), ctx.signal); const config = ctx.use(Config); const settings = ctx.use(Settings);
     const language = ctx.use(Localization); const themes = ctx.use(Themes); const vaults = ctx.use(Vault);
     const ensure = (result: { ok: boolean; error?: unknown }) => { if (!result.ok) throw new Error("Cannot register interface preferences.", { cause: result.error }); };
     ensure(language.register(ctx.pluginId, catalogs, ctx.signal));
     // Catalogs are registered during activation. Runtime language-pack discovery is outside this contract.
     const locales = language.locales();
-    let epoch = 0; let session: Session | undefined; let scheduled = false;
+    let epoch = 0; let session: Session | undefined; let scheduled = false; let ready = Promise.resolve();
     const text = (key: string) => language.text(ctx.pluginId, key);
     const alive = (current: Session) => !ctx.signal.aborted && session === current && current.epoch === epoch && vaults.current()?.id === current.vaultId;
     const compatibleThemes = () => themes.list().filter(theme => theme.properties.schema === "lunaris.base-theme" && theme.properties.schemaVersion === 1);
@@ -111,8 +112,9 @@ export function createInterfaceSettings(options: { readonly defaultThemeId: stri
     function switchVault(): void {
       const vaultId = vaults.current()?.id;
       if (vaultId === session?.vaultId) return;
-      epoch++; session = undefined; baseline();
-      if (vaultId) { session = { vaultId, epoch, revision: 0, reload: false, loading: true, busy: false, error: "", errorKey: "locale", locale: "en", theme: options.defaultThemeId }; void load(session); }
+      epoch++; session = undefined; ready = Promise.resolve();
+      if (!vaultId) baseline();
+      if (vaultId) { session = { vaultId, epoch, revision: 0, reload: false, loading: true, busy: false, error: "", errorKey: "locale", locale: "en", theme: options.defaultThemeId }; ready = load(session); }
       changed();
     }
     ctx.events.on(VaultChanged, switchVault);
@@ -127,6 +129,7 @@ export function createInterfaceSettings(options: { readonly defaultThemeId: stri
       }
     });
     switchVault();
+    await ctx.optional(Preparation)?.register({ id: ctx.pluginId, phase: "settings", async prepare() { switchVault(); await ready; } }, ctx.signal);
     logger.info(ctx.pluginId, "Interface settings ready");
   } });
 }

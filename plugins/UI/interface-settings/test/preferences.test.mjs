@@ -10,7 +10,7 @@ const deferred = () => { let resolve; const promise = new Promise(r => { resolve
 async function setup(options = {}) {
   const plugin = createInterfaceSettings({ defaultThemeId: base });
   const reads = []; const writes = []; const values = options.values ?? new Map();
-  const s = await setupWorkspace({ settings: true, plugins: [plugin], entrypoints: [plugin.manifest.id],
+  const s = await setupWorkspace({ settings: true, preparation: options.preparation, plugins: [plugin], entrypoints: [plugin.manifest.id],
     grants: { [plugin.manifest.id]: ['vault.access', 'config.access'] },
     onActivate(tools, ctx) {
       tools.localization.register('test.languages', { en: { label: 'English' }, fr: { label: 'Français' } }, ctx.signal);
@@ -44,6 +44,20 @@ async function change(s, index, value) {
   assert.ok(option, 'Registered choice must be rendered by Mantine'); option.click(); await flush();
 }
 
+test('Vault preparation keeps the composed workspace absent until persisted language and theme settle', async () => {
+  const pending = deferred();
+  const s = await setup({ preparation: true, read: () => pending.promise });
+  let opened = false; const opening = s.service.open().then(() => { opened = true; });
+  await flush(); assert.equal(opened, false);
+  assert.equal(s.surface.querySelector('[data-lunaris-slot="lunaris.workspace.screen"]'), null);
+  pending.resolve(ok({ locale: 'fr', theme: 'test.alternate' }));
+  await opening; await flush();
+  assert.equal(s.tools.localization.locale(), 'fr');
+  assert.equal(s.reads.length, 1, 'VaultChanged must not repeat preparation reads');
+  assert.ok(s.surface.querySelector('[data-lunaris-slot="lunaris.workspace.screen"]'));
+  await s.stop();
+});
+
 test('composed controls apply and persist explicit Vault preferences, preserve inputs and inherit surfaces', async () => {
   const s = await setup(); await s.open(); await show(s);
   assert.deepEqual(s.reads, [{ id: 'lunaris.interface-settings', target: { scope: 'vault', vaultId: 'vault-1' } }]);
@@ -57,7 +71,7 @@ test('composed controls apply and persist explicit Vault preferences, preserve i
   theme.click(); await flush();
   const options = s.dom.window.document.getElementById(theme.getAttribute('aria-controls'));
   assert.deepEqual([...options.querySelectorAll('[role=option]')].map(item => item.textContent.trim()), [
-    'Catppuccin Mocha', 'Dracula', 'Everforest Dark', 'Gruvbox Dark', 'Maiami Night',
+    'Catppuccin Mocha', 'Dracula', 'Everforest Dark', 'Gruvbox Dark', 'Lunaris', 'Maiami Night',
     'Monochrome', 'Nord', 'Rosé Pine', 'Sakura Night', 'Tokyo Night', 'Windows XP Luna', 'Windows XP Luna Dark', 'Alternate',
   ]);
   assert.ok(theme.closest('.lm-root').querySelector('.lm-setting-dropdown'));

@@ -43,7 +43,7 @@ test('first HTML paint contains the runner artwork and hides recovery before Jav
   assert.equal(document.getElementById('application-root').hidden, true);
   assert.equal(document.getElementById('startup-root').hidden, false);
   assert.equal(document.querySelector('#startup-root pre').textContent, readFileSync(new URL('../../../resources/ascii_art.txt', import.meta.url), 'utf8').replaceAll('\r\n', '\n'));
-  assert.equal(document.querySelector('#startup-root [role=status]').textContent, 'Loading system');
+  assert.equal(document.querySelector('#startup-root [role=status]').textContent, 'Loading application');
   const native = JSON.parse(readFileSync(new URL('../src-tauri/tauri.conf.json', import.meta.url), 'utf8'));
   assert.equal(native.app.windows[0].backgroundColor, '#0F0F0F');
   const style = document.createElement('style'); style.textContent = readFileSync(new URL('../assets/shell.css', import.meta.url), 'utf8'); document.head.append(style);

@@ -26,8 +26,9 @@ export default definePlugin({ manifest, activate(ctx) {
   ctx.provide(VaultLifecycle, { register(participant, owner) {
     if (!participant || typeof participant.id !== 'string' || !participant.id || typeof participant.beforeRelease !== 'function' || typeof participant.settled !== 'function' || !owner || typeof owner.addEventListener !== 'function' || typeof owner.removeEventListener !== 'function') return { ok: false, error: { code: 'INVALID_ARGUMENT', message: 'A lifecycle participant and owner are required.' } };
     if (owner.aborted || ctx.signal.aborted) return failed('STOPPED', 'Participant owner is stopped.');
+    if (participant.settlementOrder !== undefined && !Number.isFinite(participant.settlementOrder)) return { ok: false, error: { code: 'INVALID_ARGUMENT', message: 'Settlement order must be finite.' } };
     if (participants.has(participant.id)) return failed('BUSY', 'Lifecycle participant ID is already registered.');
-    const captured = Object.freeze({ id: participant.id, beforeRelease: participant.beforeRelease.bind(participant), settled: participant.settled.bind(participant) });
+    const captured = Object.freeze({ id: participant.id, settlementOrder: participant.settlementOrder ?? 0, beforeRelease: participant.beforeRelease.bind(participant), settled: participant.settled.bind(participant) });
     participants.set(captured.id, captured);
     const remove = () => { if (participants.get(captured.id) === captured) participants.delete(captured.id); owner.removeEventListener('abort', remove); ctx.signal.removeEventListener('abort', remove); };
     owner.addEventListener('abort', remove, { once: true }); ctx.signal.addEventListener('abort', remove, { once: true });
@@ -75,7 +76,7 @@ export default definePlugin({ manifest, activate(ctx) {
       throw error;
     } finally {
       if (!ctx.signal.aborted && (releaseAttempted || previous?.id !== active?.vault.id)) {
-        for (const participant of [...participants.values()]) {
+        for (const participant of [...participants.values()].sort((a, b) => (a.settlementOrder ?? 0) - (b.settlementOrder ?? 0))) {
           if (participants.get(participant.id) !== participant) continue;
           try { await participant.settled(previous, active?.vault ?? null); }
           catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, 'Vault lifecycle settlement failed', { error, data: { participantId: participant.id } }); }

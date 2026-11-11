@@ -132,3 +132,16 @@ manual: check Files settings and opened menus, focus, both themes, narrow/short
 layouts, and the actual Files panel after changing either option.
 
 Successful content selection closes the optional WorkspaceSidebar overlay through its public API, including reselection of the current document/category. Failed selections leave navigation open; desktop Sidebar selection is unchanged. Mobile stacking/focus acceptance remains manual.
+
+## Background observation
+
+Watch-driven rescans keep loading controls stable and publish only changed names/kinds or errors. Content size and modification time are not rendered by this role. Initial and explicit directory loads retain loading feedback. Remote rescan notifications still require directory reads; this change removes redundant presentation work, not filesystem consistency checks. Existing Workspace/Sidebar/Mantine ownership and appearance are unchanged. SDK controller tests verify unchanged props and an open context menu survive repeated rescans; native autosave/focus acceptance remains manual.
+
+
+## Awaited preparation integration
+
+The optional Preparation API awaits watch/tree initialization in the content phase. Preference readiness synchronizes the current Vault before waiting, so preparation does not depend on VaultChanged notification order. Already prepared Vaults are not initialized again on notification. Sidebar/Workspace/Mantine integration continues through existing SDK roles; native first-paint acceptance remains manual.
+
+## Document navigation selection
+
+Reference: the Owner screenshot showing a gray previous-file row beside the newly active tab's accent row. The gray state is temporary operation selection, not CSS hover. On ActiveDocumentChanged, Explorer clears a single selection matching the former active document when the document identity changes. Folder selections, unrelated selections and multi-selection remain intact. The active marker still comes from ActiveDocument. Workspace owns surfaces, Sidebar lends the panel, and Mantine renders the existing role; no style or DOM ownership changes are introduced. SDK controller tests cover navigation and retained operation selections. Native top-tab/pointer/focus acceptance remains manual.

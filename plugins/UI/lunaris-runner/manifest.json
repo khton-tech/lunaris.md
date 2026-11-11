@@ -56,6 +56,18 @@
       "kind": "event",
       "id": "lunaris.components-changed",
       "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.preparation",
+      "range": "^1.0.0",
+      "optional": true
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.preparation-changed",
+      "range": "^1.0.0",
+      "optional": true
     }
   ],
   "permissions": [

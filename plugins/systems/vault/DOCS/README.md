@@ -38,3 +38,7 @@ Recent history refreshes legacy labels on listing and recording, retaining saved
 labels on recoverable failures. Display paths must never be logged.
 
 Provides `api:lunaris.vault-creation@1.0.0` with `create(parent, name)`. Requires DirectoryLocations and uses the existing preparation/transition lifecycle for the newly created child. History events contain its durable location. See [creation semantics](../../../../DOCS/reference/vault.md#create-a-named-child-vault).
+
+## Awaited preparation integration
+
+VaultLifecycle 1.1 accepts optional finite settlementOrder. Runtime settlement defaults to 0; startup-provider uses 100 for product preparation. Release guards retain their original order. Settlement failure is logged without pretending a committed root was rolled back. Version 1.0 consumers remain compatible.

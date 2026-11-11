@@ -17,7 +17,7 @@ export function validVaultSwitcher(value: unknown): value is VaultSwitcherProps 
 export function VaultSwitcher({ props, text }: { props: VaultSwitcherProps; text: Record<string, string> }) {
   return <Box className="lm-vault-switcher" aria-busy={props.busy}>
     {props.error && <Text className="lm-explorer-message" role="alert">{text[props.error]}</Text>}
-    <Menu withinPortal={false} position="top-start" width="target" offset={6} returnFocus transitionProps={{ transition: "fade" }}>
+    <Menu withinPortal={false} position="top-start" width="target" offset={6} returnFocus>
       <Menu.Target><Button className="lm-explorer-tabs lm-vault-switcher-toggle" fullWidth variant="subtle" justify="space-between"
         disabled={props.busy} aria-label={text.switchVault} title={props.name || text.switchVault} leftSection={<Icon name="folder" />} rightSection={<Icon name="expand" />}>
         {props.name || text.switchVault}

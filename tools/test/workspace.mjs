@@ -17,7 +17,7 @@ import { Config, ConfigChanged } from '@lunaris/config';
 import { Components } from '@lunaris/components';
 import { Themes } from '@lunaris/themes';
 import { Localization } from '@lunaris/localization';
-import { Vault, VaultCreation, VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged } from '@lunaris/vault';
+import { VaultLifecycle, Vault, VaultCreation, VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged } from '@lunaris/vault';
 import { Workspace, WorkspaceSidebar } from '@lunaris/workspace';
 import { Sidebar } from "@lunaris/sidebar";
 import sidebarPlugin from "@lunaris/sidebar-plugin";
@@ -61,9 +61,13 @@ export async function setupWorkspace(options = {}) {
   const logger = definePlugin({ manifest: manifest('test.logger', [Logger]), activate(context) {
     context.provide(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push([level, ...args]); return true; }])));
   } });
-  const vaults = definePlugin({ manifest: manifest('test.vaults', [Vault, VaultCreation, VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged]), activate(context) {
+  const vaults = definePlugin({ manifest: manifest('test.vaults', [VaultLifecycle, Vault, VaultCreation, VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged]), activate(context) {
+    const participants = new Set();
+    context.provide(VaultLifecycle, { register(participant, owner) { participants.add(participant); owner.addEventListener("abort", () => participants.delete(participant), { once: true }); return ok(null); } });
+    async function settle(previous) { for (const participant of [...participants].sort((a,b) => (a.settlementOrder ?? 0) - (b.settlementOrder ?? 0))) await participant.settled(previous, current); }
     async function open(location, input) {
       const previous = current; current = { id: `vault-${++serial}`, name: input?.name ?? 'Notes' };
+      await settle(previous);
       await context.events.emit(VaultChanged, { kind: previous ? 'switched' : 'opened', previous, current, location });
       return ok(current);
     }
@@ -71,7 +75,7 @@ export async function setupWorkspace(options = {}) {
       options.closeCalls = (options.closeCalls ?? 0) + 1;
       await options.beforeClose?.();
       if (options.closeFailure) return fail(options.closeFailure);
-      const previous = current; current = null;
+      const previous = current; current = null; await settle(previous);
       await context.events.emit(VaultChanged, { kind: 'closed', previous, current }); return ok(null);
     } };
     context.provide(Vault, service);
@@ -90,7 +94,7 @@ export async function setupWorkspace(options = {}) {
   const session = new HostSession({ scheduler: new TestScheduler(), load: async () => ({ ...layout, startup, pluginRuntime: options.pluginRuntime === true,
     plugins: [...(options.mobileMenu ? [mobileMenuPlugin] : []),...(options.plugins ?? []), ...(options.settings ? [settingsProvider, settingsPlugin] : []), ...(options.activeScreen ? [activeScreenProvider, activeScreenPlugin] : []), ...(options.sidebar ? [sidebarPlugin, sidebarProvider] : []), config, logger, vaults, localization, componentProvider, kit, themes, baseTheme, consumer, startup.plugin, selector, workspacePlugin, workspaceProvider, ...layout.plugins],
     entrypoints: [...(options.mobileMenu ? [mobileMenuPlugin.manifest.id] : []),startup.plugin.manifest.id, baseTheme.manifest.id, ...(options.noKit ? [] : [kit.manifest.id]), selector.manifest.id, workspacePlugin.manifest.id, ...(options.sidebar ? [sidebarPlugin.manifest.id] : []), ...(options.activeScreen ? [activeScreenPlugin.manifest.id] : []), ...(options.settings ? [settingsPlugin.manifest.id] : []), consumer.manifest.id, ...(options.entrypoints ?? [])],
-    grants: { ...layout.grants, ...(options.settings ? { [settingsPlugin.manifest.id]: ["ui.dom", "vault.access"] } : {}), ...(options.activeScreen ? { [activeScreenProvider.manifest.id]: ["vault.access"], [activeScreenPlugin.manifest.id]: ["ui.dom"] } : {}), [componentProvider.manifest.id]: ['ui.dom'], [kit.manifest.id]: ['ui.dom'], 'test.consumer': ['ui.dom', ...(options.pluginRuntime ? ['runtime.manage'] : [])], ...(options.sidebar ? { [sidebarPlugin.manifest.id]: ['ui.dom'] } : {}),
+    grants: { ...layout.grants, ...(options.preparation ? { [startup.plugin.manifest.id]: ["vault.access"] } : {}), ...(options.settings ? { [settingsPlugin.manifest.id]: ["ui.dom", "vault.access"] } : {}), ...(options.activeScreen ? { [activeScreenProvider.manifest.id]: ["vault.access"], [activeScreenPlugin.manifest.id]: ["ui.dom"] } : {}), [componentProvider.manifest.id]: ['ui.dom'], [kit.manifest.id]: ['ui.dom'], 'test.consumer': ['ui.dom', ...(options.pluginRuntime ? ['runtime.manage'] : [])], ...(options.sidebar ? { [sidebarPlugin.manifest.id]: ['ui.dom'] } : {}),
       [selector.manifest.id]: ['ui.dom', 'vault.access'], [workspacePlugin.manifest.id]: options.denied ? ['ui.dom', 'config.access'] : ['ui.dom', 'vault.access', 'config.access'], ...options.grants },
   }) });
   await session.start(); await flush();

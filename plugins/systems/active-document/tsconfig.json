@@ -27,6 +27,9 @@
     },
     {
       "path": "../../../packages/active-document"
+    },
+    {
+      "path": "../../../packages/startup"
     }
   ]
 }

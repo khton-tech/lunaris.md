@@ -60,6 +60,9 @@
     },
     {
       "path": "../../../packages/editor"
+    },
+    {
+      "path": "../../../packages/startup"
     }
   ]
 }

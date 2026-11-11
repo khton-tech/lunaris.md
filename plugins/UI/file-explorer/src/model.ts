@@ -35,19 +35,26 @@ export class ExplorerModel {
     if (!result.ok) { this.error = result.error.code; throw result.error; }
     return result.value;
   }
-  async load(path: string): Promise<void> {
+  async load(path: string, background = false): Promise<void> {
     if (!this.active || !validPath(path, true)) return;
-    const version = ++this.sequence; this.scans.set(path, version); this.loading++; this.changed();
+    const version = ++this.sequence; this.scans.set(path, version);
+    let changed = false;
+    if (!background) { this.loading++; this.changed(); }
     try {
       const result = await this.fs.list(this.target(path));
       if (!this.active || this.scans.get(path) !== version) return;
       if (!result.ok) {
+        changed = true;
         if (result.error.code === "NOT_FOUND" || result.error.code === "NOT_DIRECTORY") {
           this.forget(path);
         }
         this.check(result);
       } else {
         const present = new Map(result.value.map(item => [item.path, item.kind]));
+        const previousEntries = this.directories.get(path);
+        // Content/mtime changes do not affect the explorer's names-and-kinds view.
+        changed = !previousEntries || previousEntries.length !== result.value.length ||
+          previousEntries.some(item => present.get(item.path) !== item.kind);
         for (const previous of this.directories.get(path) ?? []) {
           if (present.get(previous.path) !== previous.kind) this.forget(previous.path);
         }
@@ -58,8 +65,8 @@ export class ExplorerModel {
         }
       }
     } catch (error) {
-      if (this.active) { if (!this.error) this.error = "IO_ERROR"; this.log("error", "Cannot list explorer directory", error); }
-    } finally { this.loading--; if (this.active) this.changed(); }
+      if (this.active) { changed = true; if (!this.error) this.error = "IO_ERROR"; this.log("error", "Cannot list explorer directory", error); }
+    } finally { if (!background) this.loading--; if (this.active && (!background || changed)) this.changed(); }
   }
   private forget(path: string): void {
     this.scans.set(path, ++this.sequence);
@@ -68,13 +75,15 @@ export class ExplorerModel {
     for (const expanded of this.expanded) if (inside(expanded, path)) this.expanded.delete(expanded);
     this.selection = this.selection.filter(selected => !inside(selected, path));
   }
-  async refresh(): Promise<void> {
+  async refresh(background = false): Promise<void> {
+    const hadError = !!this.error;
     this.error = "";
-    await this.load("");
+    if (background && hadError && this.active) this.changed();
+    await this.load("", background);
     // Refresh parents before children: removed directories invalidate cached descendants.
     for (const path of [...this.directories.keys()].filter(Boolean).sort((a, b) => a.split("/").length - b.split("/").length)) {
       if (!this.active) break;
-      if (this.directories.has(path)) await this.load(path);
+      if (this.directories.has(path)) await this.load(path, background);
     }
   }
   toggle(path: string, open: boolean): void {

@@ -2,6 +2,11 @@ import { russian } from "./locales/ru.js";
 /** Consumer copy; component sets receive already localized strings. */
 export const catalogs = {
   en: {
+    settings: "Restoring settings",
+    document: "Restoring active document",
+    content: "Loading workspace content",
+    presentation: "Preparing workspace",
+    preparing: "Preparing workspace",
     logo: "Lunaris.md",
     loading: "Loading system",
     loaded: "System Loaded",

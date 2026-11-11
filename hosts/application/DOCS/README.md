@@ -47,3 +47,14 @@ See [usage and integration](../../../plugins/UI/callouts/DOCS/README.md).
 Trusted extensions may declare excludeBuiltins (plugin IDs) and selections (consumerId, kind, contractId, providerId). Exclusions remove bundled definitions and their entrypoints/grants while retaining explicitly supplied extensions, including same-ID replacements. Supply replacement entrypoints/grants explicitly. The host applies selections through the public kernel API before activation. Required dependency validation stays authoritative; excluding required navigation without a replacement is invalid. Files remains a required product profile until Vault navigation has another owner.
 
 Runtime recovery distinguishes failed operations from lost entrypoints and unsafe cleanup. Caught API/hook/event failures and unused optional-provider failures remain kernel diagnostics and do not tear down healthy views. Both product compositions install a public-SDK Vault close bridge. Fatal recovery attempts that gate before aborting; a refused/thrown gate retains live buffers, records APPLICATION_RECOVERY_BLOCKED and blocks host relaunch until a guarded close succeeds. Successful preservation is recorded before teardown. This is preservation through live services, not an SDK call after abort or a guarantee against process termination.
+
+## Awaited preparation integration
+
+Shared composition starts startup-provider and theme-settings first, awaits the preparation controller after all entrypoints, and mounts the product surface only after preparation. Existing static host loading UI stays visible. Custom early-mounted host definitions remain supported. Vault lifecycle preparation follows runtime settlement through public contracts. Failure/cancellation retain existing recovery and save-guard behavior; synthetic host tests are not native paint acceptance.
+
+Healthy host monitoring reuses its kernel inspection for publication. Hidden recovery UI updates visibility only and skips snapshot serialization and table rebuilding; fault detection remains active. A regression verifies twenty healthy notifications perform no recovery serialization, while fallback immediately renders its diagnostics.
+
+
+## First-paint loading status
+
+The Owner screenshot is the visual reference: existing centered art and one status line. The host owns this early surface and its independent localized copy, while product rendering stays hidden through preparation. HostSession publishes preparation transitions immediately via trusted controller progress; mountSystemView updates only the owned status text and sets polite/atomic live-region semantics. Initial HTML labels bundle loading; composition, registration, activation, settings, document, content, presentation and mounting use actual milestones. The runner receives the same preparation phases through SDK events. DOM tests cover immediate localized progress with the real host session; native paint/long-label acceptance remains manual.

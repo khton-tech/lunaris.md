@@ -1,4 +1,4 @@
-import type { StartupSnapshot, StartupStage, StartupState } from "@lunaris/startup";
+import type { PreparationSnapshot, StartupSnapshot, StartupStage, StartupState } from "@lunaris/startup";
 import { createKernel } from "@lunaris/kernel";
 import type { Kernel, KernelOptions, KernelSnapshot, Scheduler } from "@lunaris/kernel";
 import type { ContractKind, Disposable, MaybePromise, PluginDefinition } from "@lunaris/sdk";
@@ -17,7 +17,7 @@ export interface ApplicationDefinition {
   readonly grants?: Readonly<Record<string, readonly string[]>>;
   readonly view?: { readonly duringStartup?: boolean; mount(signal: AbortSignal): MaybePromise<Disposable> };
   /** Trusted ingress to a replaceable SDK startup provider. */
-  readonly startup?: { update(snapshot: StartupSnapshot): boolean };
+  readonly startup?: { update(snapshot: StartupSnapshot): boolean; prepare?(signal: AbortSignal, progress?: () => void): Promise<void>; preparationSnapshot?(): PreparationSnapshot | undefined };
   /** Product-owned save/release gate, invoked before normal window closure. */
   readonly beforeClose?: () => Promise<boolean>;
 }
@@ -35,6 +35,7 @@ export interface HostSnapshot {
   readonly pluginRuntimeAvailable: boolean;
   readonly phase: HostPhase;
   readonly startup: StartupSnapshot;
+  readonly preparation?: PreparationSnapshot | undefined;
   readonly busy: boolean;
   readonly applicationVisible: boolean;
   readonly recoveryBlocked: boolean;
@@ -79,16 +80,18 @@ export class HostSession {
     if (!Number.isFinite(this.#timeout) || this.#timeout <= 0) throw new Error("Invalid host deadline.");
   }
 
-  snapshot = (): HostSnapshot => Object.freeze({
+  snapshot = (): HostSnapshot => this.#snapshot(this.#kernel?.inspect() ?? emptyKernel);
+
+  #snapshot(kernel: KernelSnapshot): HostSnapshot { return Object.freeze({
     thirdPartySafeMode: this.#thirdPartySafeMode, pluginRuntimeAvailable: this.#definition?.pluginRuntime === true,
-    phase: this.#phase, startup: this.#startup, busy: this.#busy,
+    phase: this.#phase, startup: this.#startup, preparation: this.#definition?.startup?.preparationSnapshot?.(), busy: this.#busy,
     applicationVisible: this.#view !== undefined && (this.#phase === "running" ||
       this.#phase === "starting" && this.#definition?.view?.duringStartup === true),
     recoveryBlocked: this.#cleanupUnsafe || this.#preservationBlocked,
     kernelVersion: "0.1.0", sdkVersion: "0.1.0",
-    kernel: this.#kernel?.inspect() ?? emptyKernel,
+    kernel,
     disabled: Object.freeze([...this.#disabled].sort()), incidents: Object.freeze([...this.#incidents]),
-  });
+  }); }
 
   subscribe(listener: (snapshot: HostSnapshot) => void): Disposable {
     this.#listeners.add(listener);
@@ -96,8 +99,8 @@ export class HostSession {
     return { dispose: () => { this.#listeners.delete(listener); } };
   }
 
-  #publish(): void {
-    const snapshot = this.snapshot();
+  #publish(kernel?: KernelSnapshot): void {
+    const snapshot = kernel ? this.#snapshot(kernel) : this.snapshot();
     for (const listener of this.#listeners) {
       try { listener(snapshot); } catch { this.#listeners.delete(listener); }
     }
@@ -238,6 +241,10 @@ export class HostSession {
         await this.#kernel.start(id);
       }
       if (generation !== this.#generation) return;
+      stage = "APPLICATION_PREPARATION_FAILED";
+      pluginId = undefined;
+      await definition.startup?.prepare?.(abort.signal, () => { if (generation === this.#generation) this.#publish(); });
+      if (generation !== this.#generation) return;
       if (!definition.view?.duringStartup) await mountView();
       if (generation !== this.#generation) return;
       if (generation === this.#generation) {
@@ -332,7 +339,7 @@ export class HostSession {
         return;
       }
     }
-    this.#publish();
+    this.#publish(kernel);
   };
 
   requestClose = async (): Promise<boolean> => {

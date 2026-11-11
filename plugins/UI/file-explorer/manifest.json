@@ -97,6 +97,12 @@
       "id": "lunaris.workspace-sidebar",
       "range": "^1.0.0",
       "optional": true
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.preparation",
+      "range": "^1.0.0",
+      "optional": true
     }
   ],
   "permissions": [

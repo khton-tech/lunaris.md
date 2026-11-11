@@ -21,6 +21,7 @@
 - [Local server development](guides/server-development.md): one-command source watching, shared builds, API restarts and paired local validation without a server remote.
 - [Browser host](../hosts/web/DOCS/README.md) and [shared application host](../hosts/application/DOCS/README.md): common product composition, build commands and integration checks.
 - [Interface foundation proposal](design/interface-foundation.md): code-based design review, researched direction, interactive study and approval/implementation criteria (proposed, not yet adopted).
+- [UI integrity audit](design/ui-integrity-audit-2026-11-11.md): application-wide source coverage, corrected interactions, remaining visual risks and native acceptance matrix.
 - [UI slots](reference/slots.md): portable regions, scoped ownership, DOM targets and host composition.
 - [Window API and custom titlebar](reference/window.md): replaceable native-window provider/driver, title and controls, owned chrome and save-gated closure.
 - [Startup progress](reference/startup.md): read-only SDK milestones, host bridge and early loading surfaces.

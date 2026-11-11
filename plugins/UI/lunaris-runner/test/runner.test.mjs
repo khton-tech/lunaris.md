@@ -1,3 +1,4 @@
+import { Preparation } from "@lunaris/startup";
 import { useBrowser } from '../../../../tools/test/browser.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -42,8 +43,8 @@ function setup(options = {}) {
       return { ok: true, value: options.theme ? { theme: options.theme } : {} };
     }, get() {}, set() {}, remove() {} });
   } });
-  const toolPlugin = definePlugin({ manifest: manifest('test.tools', [], [Components, Themes, Localization].map(token => ({ kind: 'api', id: token.id, range: '^1.0.0' })), ['ui.dom']), activate(ctx) {
-    context = ctx; tools = { components: ctx.use(Components), themes: ctx.use(Themes), localization: ctx.use(Localization) };
+  const toolPlugin = definePlugin({ manifest: manifest('test.tools', [], [Components, Themes, Localization, Preparation].map(token => ({ kind: 'api', id: token.id, range: '^1.0.0' })), ['ui.dom']), activate(ctx) {
+    context = ctx; tools = { preparation: ctx.use(Preparation), components: ctx.use(Components), themes: ctx.use(Themes), localization: ctx.use(Localization) };
   } });
   const slow = definePlugin({ manifest: manifest('test.slow'), async activate() { slowEntered.resolve(); await finish.promise; if (options.fail) throw Error('private failure'); } });
   const runner = createRunner({ art }); const settings = createThemeSettings({ defaultThemeId: 'lunaris.base-theme-engine.monochrome' });
@@ -62,11 +63,24 @@ function setup(options = {}) {
     get tools() { return tools; }, get context() { return context; }, get controller() { return controller; } };
 }
 
+test('runner shows preparation phases in its primary status even with details disabled', async () => {
+  const s = setup({ runnerSettings: { showDetails: false } }); await s.slowEntered.promise;
+  const entered = Promise.withResolvers(); const complete = Promise.withResolvers();
+  await s.tools.preparation.register({ id: 'test.settings', phase: 'settings', async prepare() { entered.resolve(); await complete.promise; } }, s.context.signal);
+  s.finish.resolve(); await entered.promise;
+  assert.equal(s.surface.querySelector('[role=status]').textContent, 'Restoring settings');
+  s.tools.localization.setLocale('ru'); await flush();
+  assert.equal(s.surface.querySelector('[role=status]').textContent, 'Восстановление настроек');
+  complete.resolve(); await s.starting;
+  assert.equal(s.surface.querySelector('[role=status]').textContent, 'Система загружена');
+  await s.session.stop(); s.dom.window.close();
+});
+
 test('runner renders supplied ASCII art, real milestones and configured theme, then stays at System Loaded', async () => {
   const s = setup({ theme: 'lunaris.base-theme-engine.monochrome' }); await s.slowEntered.promise;
   assert.equal(s.session.snapshot().phase, 'starting'); assert.equal(s.session.snapshot().applicationVisible, true);
   assert.equal(s.surface.querySelector('pre').textContent, art);
-  assert.equal(s.surface.querySelector('[role=status]').textContent, 'Loading system'); assert.match(s.surface.textContent, /Starting test.slow/);
+  assert.equal(s.surface.querySelector('[role=status]').textContent, 'Starting plugins'); assert.match(s.surface.textContent, /Starting test.slow/);
   assert.equal(s.surface.querySelector('section').closest('.lm-root').style.backgroundColor, 'rgb(15, 15, 15)');
   assert.equal(s.surface.querySelector('pre').style.fontSize, '10px');
   assert.deepEqual(s.reads, ['lunaris.theme-settings','lunaris.runner']);

@@ -12,7 +12,8 @@
   "dependencies": {
     "@lunaris/sdk": "0.1.0",
     "@lunaris/logging": "0.1.0",
-    "@lunaris/startup": "0.1.0"
+    "@lunaris/startup": "0.1.0",
+    "@lunaris/vault": "0.1.0"
   },
   "scripts": {
     "build": "tsc -b"

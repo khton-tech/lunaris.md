@@ -61,12 +61,12 @@ function WorkspaceTabs({ props, panelId }: { props: TabProps; panelId: string })
   const focusSelected = (action: Promise<boolean>) => { void action.then(completed => { if (completed) selectedButton()?.focus(); }); };
   const labels = props.labels;
   return <Box className="lm-workspace-tabs" aria-busy={props.busy}>
-    <Tabs unstyled value={props.selectedId} activateTabWithKeyboard={false} onChange={id => { if (id) void props.onSelect(id); }}
+    <Tabs unstyled value={props.selectedId} activateTabWithKeyboard={false} onChange={id => { if (id && !props.busy) void props.onSelect(id); }}
       className="lm-workspace-tab-strip"
       {...handlers}
       onMouseDownCapture={event => { if (event.button === 1) event.preventDefault(); }}
       onAuxClick={event => {
-        if (event.button === 1 && (event.target === event.currentTarget || event.target === list.current)) {
+        if (!props.busy && event.button === 1 && (event.target === event.currentTarget || event.target === list.current)) {
           event.preventDefault();
           void props.onAdd();
         }
@@ -78,16 +78,16 @@ function WorkspaceTabs({ props, panelId }: { props: TabProps; panelId: string })
             if (event.button !== 1) return;
             event.preventDefault();
             event.stopPropagation();
-            if (tab.closable) void props.onClose(tab.id);
+            if (tab.closable && !props.busy) void props.onClose(tab.id);
           }}>
           <Tabs.Tab className="lm-workspace-tab-label lm-focus" classNames={{ tabSection: "lm-workspace-tab-section" }}
-            value={tab.id} id={`${panelId}-${tab.id}`} aria-controls={panelId}
+            value={tab.id} id={`${panelId}-${tab.id}`} aria-controls={panelId} disabled={props.busy}
             title={tab.description} onPointerDown={event => start(event, event.currentTarget.parentElement!)} onKeyDown={event => {
-              if (event.key === "Delete" && tab.closable) { event.preventDefault(); focusSelected(props.onClose(tab.id)); }
+              if (event.key === "Delete" && tab.closable && !props.busy) { event.preventDefault(); focusSelected(props.onClose(tab.id)); }
             }} rightSection={tab.extension && <Badge className="lm-workspace-tab-extension" size="xs" radius="xl" variant="light">{tab.extension}</Badge>}>
             {tab.title}
           </Tabs.Tab>
-          {tab.closable && <ActionIcon type="button" variant="subtle" className="lm-workspace-tab-action" title={labels.close}
+          {tab.closable && <ActionIcon type="button" variant="subtle" className="lm-workspace-tab-action" title={labels.close} disabled={props.busy}
             aria-label={`${labels.close} — ${tab.title}`} tabIndex={tab.id === props.selectedId ? 0 : -1}
             onClick={event => {
               const closing = props.onClose(tab.id);
@@ -95,7 +95,7 @@ function WorkspaceTabs({ props, panelId }: { props: TabProps; panelId: string })
             }}><Icon name="window-close" /></ActionIcon>}
         </Box>)}
       </Tabs.List>
-      <ActionIcon type="button" variant="subtle" className="lm-workspace-tab-action lm-workspace-tab-add" title={labels.add}
+      <ActionIcon type="button" variant="subtle" className="lm-workspace-tab-action lm-workspace-tab-add" title={labels.add} disabled={props.busy}
         aria-label={labels.add} onClick={event => {
           const adding = props.onAdd();
           if (event.detail === 0) focusSelected(adding);
@@ -103,9 +103,9 @@ function WorkspaceTabs({ props, panelId }: { props: TabProps; panelId: string })
     </Tabs>
     <Box className="lm-workspace-tab-navigation">
       <ActionIcon type="button" variant="subtle" className="lm-workspace-tab-action" title={labels.back} aria-label={labels.back}
-        disabled={!props.canGoBack} onClick={() => { void props.onNavigate(-1); }}><Icon name="back" /></ActionIcon>
+        disabled={props.busy || !props.canGoBack} onClick={() => { void props.onNavigate(-1); }}><Icon name="back" /></ActionIcon>
       <ActionIcon type="button" variant="subtle" className="lm-workspace-tab-action" title={labels.forward} aria-label={labels.forward}
-        disabled={!props.canGoForward} onClick={() => { void props.onNavigate(1); }}><Icon name="next" /></ActionIcon>
+        disabled={props.busy || !props.canGoForward} onClick={() => { void props.onNavigate(1); }}><Icon name="next" /></ActionIcon>
       {selected && <Box className="lm-workspace-tab-location" title={selected.description}>{selected.location}</Box>}
     </Box>
     {props.error && <Box className="lm-workspace-tab-error" role="status">{props.error}</Box>}

@@ -85,10 +85,10 @@
 .lm-workspace-rail,.lm-workspace-panel,.lm-workspace-main { display:flex;flex-direction:column;min-height:0;overflow:auto }
 .lm-root .lm-workspace-card { background:var(--vault-panel);border-radius:var(--vault-radius);border:0;box-shadow:none }
 .lm-workspace-rail { grid-column:1;grid-row:1;margin:var(--workspace-gap) }
-.lm-workspace-layout:not([data-window-chrome],[data-compact]) .lm-workspace-rail {
+.lm-workspace-layout:not([data-window-chrome]) .lm-workspace-rail {
   margin:0;background:var(--vault-background);border-radius:0
 }
-.lm-workspace-layout:not([data-window-chrome],[data-compact]) .lm-workspace-panel {
+.lm-workspace-layout:not([data-window-chrome]) .lm-workspace-panel {
   margin:0;border:var(--vault-border) solid var(--vault-separator);border-block-end:0;
   border-start-start-radius:var(--vault-radius);border-start-end-radius:var(--vault-radius);
   border-end-start-radius:0;border-end-end-radius:0
@@ -136,26 +136,26 @@
 .lm-workspace-layout[data-compact],.lm-workspace-layout[data-compact][data-window-chrome] { --workspace-rail-width:60px;--workspace-gap:4px;--mobile-drawer-width:min(24rem,calc(100% - 32px));grid-template-columns:minmax(0,1fr) }
 .lm-workspace-layout[data-compact] .lm-workspace-content { grid-column:1 }
 .lm-workspace-layout[data-compact] .mantine-Splitter-handle { display:none }
-.lm-workspace-layout[data-compact] .lm-workspace-panel-pane { position:absolute;inset-block:0;left:var(--workspace-rail-width);width:calc(var(--mobile-drawer-width) - var(--workspace-rail-width));flex-direction:column;max-width:100%!important;overflow:hidden;z-index:7;background:var(--vault-content) }
-.lm-workspace-layout[data-compact] .lm-workspace-rail { position:absolute;inset-block:0;left:0;width:calc(var(--workspace-rail-width) - 8px);z-index:7 }
-.lm-workspace-layout[data-compact] .lm-workspace-rail,.lm-workspace-layout[data-compact] .lm-workspace-panel-pane { transform:translateX(calc(-1 * var(--mobile-drawer-width) - 60px));visibility:hidden;pointer-events:none;transition:transform var(--vault-motion-normal) var(--vault-motion-easing) }
-.lm-workspace-layout[data-mobile-open] .lm-workspace-rail,.lm-workspace-layout[data-mobile-open] .lm-workspace-panel-pane { transform:translateX(0);visibility:visible;pointer-events:auto }
+.lm-workspace-layout[data-compact] .lm-workspace-panel-pane { position:absolute;inset-block:0;left:var(--workspace-rail-width);width:calc(var(--mobile-drawer-width) - var(--workspace-rail-width));flex-direction:column;max-width:100%!important;overflow:hidden;z-index:7;background:var(--vault-background) }
+.lm-workspace-layout[data-compact] .lm-workspace-rail { position:absolute;inset-block:0;left:0;width:var(--workspace-rail-width);margin:0;z-index:7 }
+.lm-workspace-layout[data-compact] .lm-workspace-rail,.lm-workspace-layout[data-compact] .lm-workspace-panel-pane { transform:translateX(calc(-1 * var(--mobile-drawer-width) - 60px));visibility:hidden;pointer-events:none;transition:transform var(--vault-motion-normal) var(--vault-motion-easing),visibility 0s linear var(--vault-motion-normal) }
+.lm-workspace-layout[data-mobile-open] .lm-workspace-rail,.lm-workspace-layout[data-mobile-open] .lm-workspace-panel-pane { transform:translateX(0);visibility:visible;pointer-events:auto;transition-delay:0s }
 .lm-workspace-layout[data-compact] .lm-workspace-main-pane { flex:1 1 0%!important;max-width:100%!important }
-.lm-workspace-layout[data-compact] .lm-workspace-panel { margin-block-start:0;margin-inline-end:var(--workspace-gap) }
-.lm-workspace-backdrop { position:absolute;inset:0;z-index:6;background:color-mix(in srgb,var(--vault-text) 15%,transparent) }
+.lm-workspace-layout[data-compact] .lm-workspace-panel { margin:0 }
+.lm-workspace-backdrop { position:absolute;inset:0;z-index:6;background:color-mix(in srgb,var(--vault-background) 65%,transparent) }
 .lm-workspace-swipe-edge { position:absolute;left:0;inset-block:0;width:20px;z-index:1;touch-action:pan-y }
 .lm-workspace-mobile-toolbar {
   position:absolute;bottom:calc(8px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);
   z-index:4;display:flex;padding:4px 0
 }
 @media(prefers-reduced-motion:reduce) { .lm-workspace-layout[data-compact] .lm-workspace-rail,.lm-workspace-layout[data-compact] .lm-workspace-panel-pane { transition:none } }
-.lm-workspace-layout[data-compact] .lm-sidebar-rail { padding:4px }
+.lm-workspace-layout[data-compact] .lm-sidebar-rail { padding:10px 8px }
 .lm-workspace-layout[data-compact] .lm-sidebar-tab { min-width:44px;min-height:44px }
 @media(pointer:coarse) {
  .lm-root .lm-explorer-actions .mantine-ActionIcon-root,.lm-root .lm-account-icon { min-width:44px;min-height:44px }
  .lm-root .lm-button,.lm-root .lm-tool-navigation-item,.lm-setting-dropdown [role=option],.lm-context-menu [role=menuitem] { min-height:44px }
  /* Keep mobile browsers from zooming the viewport when focusing text fields. */
- .lm-root input.lm-input,.lm-root .mantine-PasswordInput-innerInput { font-size:max(16px,var(--mantine-font-size-md)) }
+ .lm-root input.lm-input,.lm-root textarea.lm-input,.lm-root .mantine-PasswordInput-innerInput { font-size:max(16px,var(--mantine-font-size-md)) }
 }
 .lm-root button,.lm-root input { font:inherit }
 .lm-root p { margin:0;overflow-wrap:anywhere }
@@ -164,6 +164,7 @@
 .lm-root .mantine-Button-label { height:auto;overflow:visible;white-space:normal;overflow-wrap:anywhere }
 .lm-root .lm-button:enabled:active { background:var(--vault-selection) }
 .lm-root .lm-focus:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset) }
+.lm-root .lm-sidebar-rail .lm-sidebar-tab:focus-visible { outline-offset:calc(-1 * var(--vault-focus-width)) }
 .lm-root .lm-button:disabled { cursor:default }
 /* Optional theme finishes apply only to controls, never borrowed region surfaces. */
 .lm-root .lm-input:not(:disabled) { box-shadow:var(--vault-input-shadow,none) }
@@ -358,8 +359,8 @@
 }
 .lm-workspace-tab[data-selected]::before { --tab-join-center:left;right:100% }
 .lm-workspace-tab[data-selected]::after { --tab-join-center:right;left:100% }
-.lm-workspace-tab:not([data-selected]):hover { --tab-surface:var(--tab-hover);color:var(--vault-text) }
-.lm-workspace-tab:has(> .lm-workspace-tab-label:active) { --tab-surface:var(--tab-pressed) }
+.lm-workspace-tab:not([data-selected]):has(> .lm-workspace-tab-label:enabled):hover { --tab-surface:var(--tab-hover);color:var(--vault-text) }
+.lm-workspace-tab:has(> .lm-workspace-tab-label:enabled:active) { --tab-surface:var(--tab-pressed) }
 .lm-workspace-tab[data-drop=before] { border-inline-start-color:var(--vault-focus) }
 .lm-workspace-tab[data-drop=after] { border-inline-end-color:var(--vault-focus) }
 .lm-workspace-tab[data-dragging] { position:relative;z-index:1 }
@@ -370,6 +371,7 @@
   text-align:start;font:inherit;color:inherit
 }
 .lm-root .lm-workspace-tab[data-sortable] .lm-workspace-tab-label { cursor:grab }
+.lm-root .lm-workspace-tab-label:disabled { cursor:default;color:var(--vault-secondary) }
 .lm-root .lm-workspace-tab[data-sortable] .lm-workspace-tab-label:active,
 .lm-root .lm-workspace-tab[data-dragging] .lm-workspace-tab-label { cursor:grabbing }
 .lm-workspace-tab-label > span,.lm-workspace-tab-location { display:block;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
@@ -820,13 +822,23 @@
  .lm-root .lm-settings-open-sidebar,.lm-root .lm-explorer-actions .mantine-ActionIcon-root,.lm-root .lm-account-icon { min-width:44px;min-height:44px }
  .lm-root .lm-button,.lm-root .lm-tool-navigation-item,.lm-root .lm-explorer-tabs,.lm-root .lm-setting-reset,.lm-root .lm-setting-option,.lm-root .lm-context-menu [role=menuitem] { min-height:44px }
  .lm-root .lm-input,.lm-root[data-window-chrome=true]>.lm-settings-items .lm-setting-input { --input-height:44px;min-height:44px }
- .lm-root input.lm-input,.lm-root .mantine-PasswordInput-innerInput { font-size:max(16px,var(--mantine-font-size-md)) }
+ .lm-root input.lm-input,.lm-root textarea.lm-input,.lm-root .mantine-PasswordInput-innerInput { font-size:max(16px,var(--mantine-font-size-md)) }
  .lm-settings-page,.lm-settings-navigation,.lm-explorer { overscroll-behavior-y:contain }
  .lm-setting-slider-control { min-height:44px }
  .lm-settings-page-header { padding-block:8px }
 }
 
 /* Settings owns field composition at its allocated width, in every theme. */
+@media(max-width:640px),(pointer:coarse) {
+ .lm-root .lm-mobile-choice-menu { --mobile-choice-row-height:max(44px,calc(1lh + 2 * var(--vault-space))) }
+ .lm-root :is(.lm-explorer-menu,.lm-explorer-tab-menu) [role=menuitem] { min-height:44px }
+}
+
+/* Keep menu feedback quiet when motion is reduced, including the more specific tab menu. */
+@media(prefers-reduced-motion:reduce) {
+ .lm-root :is(.lm-explorer-menu,.lm-explorer-tab-menu) [role=menuitem] { transition:none }
+}
+
 @container(max-width:640px) {
  .lm-setting-row:not([data-type=switch]) { flex-direction:column;align-items:stretch;gap:calc(var(--vault-space)*2) }
  .lm-setting-row:not([data-type=switch])>.lm-setting-label,.lm-setting-row:not([data-type=switch])>.lm-setting-control { flex:0 0 auto;min-width:0;width:100%;margin-inline:0 }
