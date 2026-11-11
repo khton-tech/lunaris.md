@@ -376,6 +376,40 @@ class Runtime {
     if (errors.length) throw new LunarisError("CLEANUP_FAILED", "One or more plugins failed to stop.", {}, { cause: new AggregateError(errors) });
   };
 
+  rebindProvider = async (consumerId: string, kind: ContractKind, contractId: string, providerId: string): Promise<void> => {
+    this.#externalGuard();
+    const consumer = this.#plugins.get(consumerId);
+    const requirement = consumer?.definition.manifest.requires.find(item => item.kind === kind && item.id === contractId);
+    if (!consumer || !requirement || !candidates(this.#plugins, requirement, this.#dependencies.providers).includes(providerId)) throw new LunarisError('PROVIDER_MISSING', 'Selected provider does not match the requirement.', { pluginId: consumerId, contractId });
+    const key = consumerId + '/' + requirementKey(requirement);
+    if (this.#selections.get(key) === providerId) return;
+    this.#beginMutation(consumerId);
+    const affected = this.#affected(consumer);
+    const active = affected.filter(record => record.state === 'active').map(record => record.definition.manifest.id);
+    const selections = new Map(this.#selections);
+    const stop = async (records: readonly Registration[]): Promise<void> => {
+      const outcomes = await Promise.allSettled(this.#reserveStops(records));
+      const failures = outcomes.flatMap(outcome => outcome.status === 'rejected' ? [outcome.reason as unknown] : []);
+      if (failures.length) throw new LunarisError('CLEANUP_FAILED', 'Provider transition cleanup failed.', { pluginId: consumerId }, { cause: new AggregateError(failures) });
+    };
+    try {
+      await stop(affected);
+      this.#selections.set(key, providerId);
+      try { for (const id of active) await this.#start(id); }
+      catch (cause) {
+        try {
+          await stop([...new Set([...affected, ...this.#affected(consumer)])]);
+          this.#selections = selections;
+          for (const id of active) await this.#start(id);
+        } catch (rollback) {
+          this.#selections = selections;
+          throw new LunarisError('CLEANUP_FAILED', 'Provider transition and rollback failed; recovery is required.', { pluginId: consumerId }, { cause: new AggregateError([cause, rollback]) });
+        }
+        throw new LunarisError('ACTIVATION_FAILED', 'Provider transition failed; previous selection and active consumers restored.', { pluginId: consumerId }, { cause });
+      }
+    } finally { this.#mutating = false; }
+  };
+
   grant = (id: string, permission: string): void => {
     if (this.#mutating) throw new LunarisError("LIFECYCLE_INVALID", "Cannot change grants during registry mutation.");
     this.#permissions.grant(id, permission);
@@ -508,6 +542,6 @@ class Runtime {
 export function createKernel(options: KernelOptions): Kernel {
   const runtime = new Runtime(options);
   return Object.freeze({ register: runtime.register, unregister: runtime.unregister, replace: runtime.replace, start: runtime.start, stop: runtime.stop,
-    restart: runtime.restart, selectProvider: runtime.selectProvider, grant: runtime.grant, revoke: runtime.revoke, stopAll: runtime.stopAll, inspect: runtime.inspect,
+    restart: runtime.restart, selectProvider: runtime.selectProvider, rebindProvider: runtime.rebindProvider, grant: runtime.grant, revoke: runtime.revoke, stopAll: runtime.stopAll, inspect: runtime.inspect,
     diagnosticCause: runtime.diagnosticCause });
 }

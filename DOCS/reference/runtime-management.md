@@ -51,6 +51,27 @@ unrelated activation preservation, stale handles, rollback, dependency-index and
 selection removal, concurrent operations, pending activation, cleanup failure and
 revoked initial grants.
 
+## Active provider changes
+
+`rebindProvider(consumerId, kind, contractId, providerId)` validates the matching
+registered provider before stopping anything. It reserves a registry mutation,
+stops the consumer and its active required/optional dependents, changes the explicit
+selection and restarts the previously active graph. Provider implementations and
+unrelated active services retain their activations. Existing handles remain revoked.
+An unchanged explicit selection is a no-op. A stopped consumer stays stopped.
+
+If candidate activation fails, the operation stops the attempted consumer graph,
+restores the exact prior selection map and restarts the prior active graph. It
+rejects with `ACTIVATION_FAILED` after successful rollback; rollback/cleanup failure
+rejects with `CLEANUP_FAILED` and requires recovery. Normal dependency startup can
+leave a newly started provider ready even when its consumer fails; this operation
+does not uninstall providers or reverse external data effects. Concurrent/reentrant
+management follows the same rejection policy as replacement.
+
+`selectProvider` remains available for inactive composition. This kernel contract
+does not persist choices or enforce Vault revisions: Lime's public runtime and
+registry own those requirements before exposing a product action.
+
 ## Host lifecycle ownership
 
 `register(definition, { ownerId })` adds a trusted host lifecycle dependency without

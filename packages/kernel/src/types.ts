@@ -59,6 +59,8 @@ export interface Kernel {
   stop(pluginId: string): Promise<void>;
   restart(pluginId: string): Promise<void>;
   selectProvider(consumerId: string, kind: ContractKind, contractId: string, providerId: string): void;
+  /** Rebind an active graph, restoring its previous selection on activation failure. */
+  rebindProvider(consumerId: string, kind: ContractKind, contractId: string, providerId: string): Promise<void>;
   grant(pluginId: string, permission: string): void;
   revoke(pluginId: string, permission: string): void;
   stopAll(): Promise<void>;
