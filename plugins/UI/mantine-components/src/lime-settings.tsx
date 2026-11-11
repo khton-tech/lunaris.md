@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { Box, Button, Group, Modal, Stack, Switch, Tabs, Text } from "@mantine/core";
+import { Box, Button, Group, Modal, Stack, Switch, Tabs, Text, Title } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from './icons.js';
@@ -78,13 +78,55 @@ function ProviderSelection({ dependency, plan, props, enabled }: { dependency: D
   const [selected, setSelected] = useState(dependency.selected ?? '');
   useEffect(() => { setSelected(dependency.selected ?? ''); }, [plan.revision, dependency.selected]);
   const candidate = dependency.candidates.find(item => item.id === selected);
-  return <Stack gap="xs" style={{ minWidth: 0 }}>
-    <Text size="sm" style={{ overflowWrap: 'anywhere' }}>{dependency.kind}:{dependency.id} {dependency.range}{dependency.optional ? ` (${props.labels.optional})` : ''}</Text>
-    {!dependency.candidates.length ? <Text size="sm" c="dimmed">{props.labels.missingDependency}</Text> : <>
-      <SettingsSelect aria-label={`${props.labels.provider} ${dependency.id}`} value={selected || props.labels.selectProvider!} options={dependency.candidates.map(item => ({ value: item.id, label: `${item.id} ${item.version} · ${props.labels[item.state] ?? item.state}` }))} disabled={props.busy || props.safeMode} onChange={setSelected} />
-      {enabled && candidate?.state === 'disabled' && <Text size="sm" c="dimmed">{props.labels.enableProvider}</Text>}
-      <Group><Button size="compact-xs" variant="subtle" disabled={props.busy || props.safeMode || !candidate || (enabled && candidate.state === 'disabled') || selected === dependency.selected} onClick={() => props.onSelectProvider(plan.pluginId, dependency.kind, dependency.id, selected, plan.revision)}>{props.labels.applyProvider}</Button></Group>
-    </>}
+  const options = dependency.candidates.map(item => ({
+    value: item.id, label: `${item.id} ${item.version} · ${props.labels[item.state] ?? item.state}`,
+  }));
+  const [onlyOption] = options;
+  const needsEnable = enabled && candidate?.state === 'disabled';
+  return <Box component="li" className="lm-lime-dependency">
+    <Text size="sm" fw={600}>
+      {dependency.kind}:{dependency.id}{' '}
+      <Text span fw={400} c="dimmed">{dependency.range}{dependency.optional ? ` (${props.labels.optional})` : ''}</Text>
+    </Text>
+    {!onlyOption ? <Text size="sm" c="dimmed">{props.labels.missingDependency}</Text> :
+      options.length === 1 && onlyOption.value === dependency.selected ? <Text size="sm">{onlyOption.label}</Text> :
+        <Group className="lm-lime-provider-actions" gap="xs">
+          <Box className="lm-lime-provider-select">
+            <SettingsSelect aria-label={`${props.labels.provider} ${dependency.id}`} value={selected || props.labels.selectProvider!} options={options} disabled={props.busy || props.safeMode} onChange={setSelected} />
+          </Box>
+          <Button size="compact-sm" variant="subtle" disabled={props.busy || props.safeMode || !candidate || needsEnable || selected === dependency.selected}
+            onClick={() => props.onSelectProvider(plan.pluginId, dependency.kind, dependency.id, selected, plan.revision)}>{props.labels.applyProvider}</Button>
+        </Group>}
+    {needsEnable && <Text size="sm" c="dimmed">{props.labels.enableProvider}</Text>}
+  </Box>;
+}
+function PackageDetails({ id, row, props, disabled }: { id: string; row: Row; props: Props; disabled: boolean }) {
+  const plan = props.dependencyPlan?.pluginId === row.id ? props.dependencyPlan : null;
+  return <Stack id={id} className="lm-lime-package-details" gap="md">
+    <Stack gap="xs">
+      {row.description && <Text size="sm">{row.description}</Text>}
+      <Box component="dl" className="lm-lime-metadata">
+        {row.fields.map((field, index) => <Box key={index} className="lm-lime-metadata-row">
+          <Text component="dt" size="sm" c="dimmed">{field.label}</Text>
+          <Text component="dd" size="sm">{field.value}</Text>
+        </Box>)}
+      </Box>
+    </Stack>
+    <Stack component="section" aria-labelledby={`${id}-dependencies`} className="lm-lime-dependencies" gap="xs">
+      <Group justify="space-between" gap="xs">
+        <Title id={`${id}-dependencies`} order={3} size="sm">{props.labels.requires}</Title>
+        <Button size="compact-sm" variant="subtle" leftSection={<Icon name="refresh" />} disabled={disabled}
+          onClick={() => props.onPlan(row.id)}>{props.labels.refreshDependencies}</Button>
+      </Group>
+      {plan && <>
+        {plan.affected.some(pluginId => pluginId !== row.id) &&
+          <Text size="sm" c="dimmed">{props.labels.affected}: {plan.affected.join(', ')}</Text>}
+        {plan.dependencies.length ? <Box component="ul" className="lm-lime-dependency-list">
+          {plan.dependencies.map(dependency => <ProviderSelection key={`${dependency.kind}:${dependency.id}`}
+            dependency={dependency} plan={plan} props={props} enabled={row.enabled} />)}
+        </Box> : <Text size="sm" c="dimmed">{props.labels.noDependencies}</Text>}
+      </>}
+    </Stack>
   </Stack>;
 }
 export function LimeSettings({ props, theme, overlay }: {
@@ -93,6 +135,7 @@ export function LimeSettings({ props, theme, overlay }: {
   overlay: { id: string; target: HTMLElement };
 }) {
   const [expanded, setExpanded] = useState<string | null>(null); const [removing, setRemoving] = useState<string | null>(null);
+  const detailsId = useId();
   const previewTrigger = useRef<HTMLButtonElement>(null);
   const hadPreview = useRef(false);
   const removeButtons = useRef(new Map<string, HTMLButtonElement>());
@@ -120,14 +163,16 @@ export function LimeSettings({ props, theme, overlay }: {
       overlay.target,
     )}
     {props.rows.map(row => <Box key={row.id} className="lm-lime-package" data-lime-id={row.id}>
-      <Box className="lm-setting-row" data-layout="inline">
-        <Stack className="lm-setting-label" gap={4} style={{ overflowWrap: 'anywhere' }}>
+      <Box className="lm-lime-package-header">
+        <Stack className="lm-lime-package-name" gap={4}>
           <Text size="sm" fw={600}>{row.name} <Text span fw={400} c="dimmed">{row.version}</Text></Text>
           <Text size="sm" c="dimmed">{row.state}</Text>
         </Stack>
         <Group gap="xs" wrap="wrap">
           <Switch aria-label={`${props.labels.enabled} ${row.name}`} checked={row.enabled} disabled={disabled || row.removing || props.safeMode} onChange={event => props.onToggle(row.id, event.currentTarget.checked)} />
-          <Button size="compact-xs" variant="subtle" aria-expanded={expanded === row.id} onClick={() => { if (expanded !== row.id) props.onPlan(row.id); setExpanded(expanded === row.id ? null : row.id); }}>{props.labels.details}</Button>
+          <Button size="compact-xs" variant="subtle" aria-expanded={expanded === row.id}
+            aria-controls={expanded === row.id ? `${detailsId}-${row.id}` : undefined}
+            onClick={() => { if (expanded !== row.id) props.onPlan(row.id); setExpanded(expanded === row.id ? null : row.id); }}>{props.labels.details}</Button>
           {row.recovery && !row.removing && <Button size="compact-xs" variant="subtle" disabled={disabled || props.safeMode} onClick={() => props.onRetry(row.id)}>{props.labels.retry}</Button>}
           <Button size="compact-xs" variant="subtle" disabled={disabled || row.removing || !!props.preview} onClick={event => { previewTrigger.current = event.currentTarget; props.onUpdate(row.id); }}>{props.labels.update}</Button>
           <Button ref={element => { if (element) removeButtons.current.set(row.id, element); else removeButtons.current.delete(row.id); }} size="compact-xs" variant="subtle" disabled={disabled} onClick={() => {
@@ -139,14 +184,7 @@ export function LimeSettings({ props, theme, overlay }: {
           }}>{row.removing ? props.labels.retry : props.labels.remove}</Button>
         </Group>
       </Box>
-      {expanded === row.id && <Stack gap="sm" style={{ minWidth: 0 }}><Details item={row} />
-        {props.dependencyPlan?.pluginId === row.id && <Stack gap="sm">
-          <Text size="sm" style={{ overflowWrap: 'anywhere' }}>{props.labels.affected}: {props.dependencyPlan.affected.join(', ')}</Text>
-          {!props.dependencyPlan.dependencies.length && <Text size="sm" c="dimmed">{props.labels.noDependencies}</Text>}
-          {props.dependencyPlan.dependencies.map(dependency => <ProviderSelection key={`${dependency.kind}:${dependency.id}`} dependency={dependency} plan={props.dependencyPlan!} props={props} enabled={row.enabled} />)}
-          <Group><Button size="compact-xs" variant="subtle" disabled={disabled} onClick={() => props.onPlan(row.id)}>{props.labels.refreshDependencies}</Button></Group>
-        </Stack>}
-      </Stack>}
+      {expanded === row.id && <PackageDetails id={`${detailsId}-${row.id}`} row={row} props={props} disabled={disabled} />}
       {removing === row.id && <Stack gap="xs" role="group" aria-label={`${props.labels.remove} ${row.name}`}>
         <Text size="sm">{props.labels.removePrompt}</Text>
         {props.dependencyPlan?.pluginId === row.id && props.dependencyPlan.affected.length > 1 &&

@@ -62,7 +62,11 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-
   }
   function props() {
     const state = engine.snapshot(); const busy = state.busy || localBusy;
-    const rows = state.installations.map(item => ({ ...metadata(item.manifest, item.id, item.version), enabled: item.enabled, recovery: item.recoveryRequired, removing: item.removalPending, state: text(Object.hasOwn(catalogs.en, item.state) ? item.state : 'unavailable') }));
+    const rows = state.installations.map(item => ({
+      ...metadata(item.manifest, item.id, item.version, dependencyPlan?.pluginId !== item.id),
+      enabled: item.enabled, recovery: item.recoveryRequired, removing: item.removalPending,
+      state: text(Object.hasOwn(catalogs.en, item.state) ? item.state : 'unavailable'),
+    }));
     const previewDetails = preview && metadata(preview.manifest, preview.manifest.id, preview.manifest.version, false);
     const requirements: { label: string; value: string }[] = [];
     if (preview?.dependencyPlan) {

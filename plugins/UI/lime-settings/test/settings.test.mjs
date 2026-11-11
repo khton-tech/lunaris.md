@@ -16,6 +16,7 @@ async function fixture() {
       plan() { return ok({ pluginId: manifest.id, revision, affected: [manifest.id, 'test.consumer'], dependencies: [
         { kind: 'api', id: 'test.dependency', range: '^1.0.0', optional: false, selected: selectedProvider, candidates: [{ id: 'test.first', version: '1.0.0', state: 'active' }, { id: 'test.second', version: '1.0.0', state: 'disabled' }, { id: 'test.third', version: '1.1.0', state: 'active' }] },
         { kind: 'event', id: 'test.missing', range: '^1.0.0', optional: true, candidates: [] },
+        { kind: 'api', id: 'test.fixed', range: '^1.0.0', optional: false, selected: 'test.only', candidates: [{ id: 'test.only', version: '1.0.0', state: 'active' }] },
       ] }); },
       async selectProvider(...args) { calls.push(['selectProvider', ...args]); selectedProvider = args[3]; revision++; return ok(null); },
       async preview() {
@@ -104,6 +105,15 @@ test('dependency details disclose affected plugins and use the themed provider m
   try {
     s.button('Add plugin').click(); await flush(); s.button('Install plugin').click(); await flush();
     s.button('Details').click(); await flush(); const view = s.surface.querySelector('.lm-lime-settings');
+    const details = s.dom.window.document.getElementById(s.button('Details').getAttribute('aria-controls'));
+    assert.equal(details.querySelector('dd').textContent, 'test.package');
+    const dependencies = details.querySelector('.lm-lime-dependencies');
+    assert.equal(dependencies.querySelector('h3').textContent, 'Dependencies');
+    assert.ok([...details.querySelectorAll('dt')].every(term => term.textContent !== 'Dependencies'));
+    const fixed = [...dependencies.querySelectorAll('li')].find(row => row.textContent.includes('test.fixed'));
+    assert.match(fixed.textContent, /test.only 1.0.0/);
+    assert.equal(fixed.querySelector('button'), null);
+    assert.equal(dependencies.querySelectorAll('[role=combobox]').length, 1);
     assert.match(view.textContent, /Affected plugins: test.package, test.consumer/);
     assert.match(view.textContent, /No compatible provider installed/); assert.equal(view.querySelector('select'), null);
     const menu = () => view.querySelector('[aria-label="Provider test.dependency"]');

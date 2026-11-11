@@ -32,8 +32,13 @@ requirements reachable through them. If the graph changes before confirmation,
 Lime requests a fresh preview. Removal confirmation shows affected active plugins.
 
 Opening Details loads `Lime.plan(id)` and shows direct requirements, compatible
-provider versions/states and affected plugin IDs. The shared themed SettingsSelect
-offers candidates; a separate Apply provider action submits the plan revision.
+provider versions/states and affected plugin IDs when other packages are affected.
+The expanded view follows the Owner's Third-party plugins screenshot and the
+shared Settings rows. It aligns metadata labels and values and gives dependency
+rows their own heading and refresh action. An already selected sole provider is
+shown as text. When a change is possible, the shared themed SettingsSelect sits
+beside Apply provider, which submits the plan revision. The metadata grid and
+provider controls reflow at narrow widths within the inherited section surface.
 Missing providers direct users to Add plugin for an explicitly selected local
 package. Disabled providers are not enabled implicitly; running consumers require
 an enabled choice. Refresh dependencies obtains a new revision. Engine failures
