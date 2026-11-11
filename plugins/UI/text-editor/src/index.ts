@@ -338,7 +338,7 @@ export default definePlugin({ manifest, async activate(ctx) {
   ctx.scope.own({ dispose() { for (const session of sessions.values()) session.dispose(); sessions.clear(); states.clear(); } });
   choose(documents.current()); if (documents.current()) selectScreen();
   await ctx.optional(Preparation)?.register({ id: ctx.pluginId, phase: "content", async prepare() {
-    await preferences.ready();
+    await preferences.prepare();
     choose(documents.current());
     if (current && (!current.loaded || current.loading)) await current.load();
     if (documents.current()) selectScreen();

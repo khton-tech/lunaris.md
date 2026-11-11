@@ -146,5 +146,10 @@ export function createPreferences(ctx: PluginContext, changed: () => void) {
   return { current: (): Preferences => session?.previewWidth ? { ...session.values, textWidth: session.previewWidth } : session?.values ?? defaults,
     canResize: () => !!session && !session.loading && !session.busy && session.values.wrapLines,
     widthError: () => session?.errorKey === "textWidth" && session.error ? text(session.error) : "",
-    resizeWidth, ready: () => { switchVault(); return session?.ready ?? Promise.resolve(); }, choose };
+    resizeWidth, ready: () => session?.ready ?? Promise.resolve(),
+    async prepare() {
+      if (ctx.signal.aborted) return;
+      try { switchVault(); } catch (error) { if (!isSdkUnavailable(error)) throw error; }
+      await session?.ready;
+    }, choose };
 }

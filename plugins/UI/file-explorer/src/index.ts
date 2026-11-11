@@ -110,7 +110,7 @@ export default definePlugin({ manifest, async activate(ctx) {
     model = current; changed();
     ready = (async () => {
       try {
-        await preferences.ready();
+        await preferences.prepare();
         if (!current.active) return;
         const result = await observation.watch({ vaultId: root.id, path: "" }, owner.signal);
         if (!current.active) return;
