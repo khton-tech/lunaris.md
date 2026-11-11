@@ -885,8 +885,11 @@ both themes, open menu, selection/focus and narrow/short Workspace layouts.
 
 The FigCraft Lunaris design code sets the desktop rail to 56px, the default tool
 panel to 256px, and the status surface to 30px. WorkspaceLayout owns these surfaces
-and uses a single subdued divider at each shared desktop join. The title bar
-owns its window chrome. Explorer and Settings inherit the assigned panel and style
+and uses a single subdued divider at each shared desktop join. The Owner's
+close-up of the desktop shell is the reference for the rounded panel top and
+the workspace corners beside the panel and status bar. The panel owns its
+top and side edges. Workspace draws the top and status joins on the main
+surface. The title bar owns its window chrome. Explorer and Settings inherit the assigned panel and style
 their internal selection, menus and controls using the active theme. The Vault
 switcher uses a selection surface when its menu is open. Reference: the Owner's
 Everforest Workspace screenshot and the original FigCraft surface hierarchy.
