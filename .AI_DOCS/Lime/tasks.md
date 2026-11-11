@@ -15,8 +15,8 @@ acceptance or complete authority audit is claimed.
 
 - L02: shared metadata validator, bounded LUP codec, Vault registry, immutable
   archives, bounded optimistic orphan cleanup and resumable removal journal
-  implemented. Managed-data migration
-  backups and update transaction recovery remain pending.
+  implemented. Managed-data backups and journaled update recovery cover the
+  updated package's managed directory and Vault Config namespace.
 - L03: Kernel.replace/unregister, lifecycle ownership, host-backed public runtime
   adapter, protected built-ins and generation checks implemented. Environment
   dependency planning/revisions and graph-aware provider rebinding are implemented.

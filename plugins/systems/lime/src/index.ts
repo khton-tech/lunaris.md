@@ -1,7 +1,7 @@
 import { definePlugin } from "@lunaris/sdk";
 import { Logger } from "@lunaris/logging";
 import { Filesystem } from "@lunaris/filesystem";
-import { Config } from "@lunaris/config";
+import { Config, ConfigSnapshots } from "@lunaris/config";
 import { Vault, VaultLifecycle } from "@lunaris/vault";
 import { Lime, LimeChanged, LimePackagePicker, LimeRuntime, LimeBootPolicy } from "@lunaris/lime";
 import { activateLime } from "./service.js";
@@ -9,7 +9,7 @@ import { activateLime } from "./service.js";
 export function createLime(options: { readonly platform: 'desktop' | 'web' | 'mobile'; readonly safeMode?: boolean }) {
   return definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './dist/index.js',
     provides: [{ kind: 'api', id: Lime.id, version: Lime.version }, { kind: 'event', id: LimeChanged.id, version: LimeChanged.version }],
-    requires: [...[Logger, Filesystem, Config, Vault, VaultLifecycle, LimePackagePicker, LimeRuntime].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' })), { kind: 'api', id: LimeBootPolicy.id, range: '^1.0.0', optional: true }],
+    requires: [...[Logger, Filesystem, Config, ConfigSnapshots, Vault, VaultLifecycle, LimePackagePicker, LimeRuntime].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' })), { kind: 'api', id: LimeBootPolicy.id, range: '^1.0.0', optional: true }],
     permissions: ['vault.access', 'filesystem.access', 'config.access', 'runtime.manage'], optionalPermissions: [],
   }, activate(ctx) { return activateLime(ctx, options.platform, ctx.optional(LimeBootPolicy)?.safeMode() ?? options.safeMode ?? false); } });
 }

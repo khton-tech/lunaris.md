@@ -4,7 +4,7 @@ import { createTestKernel } from '@lunaris/test';
 import { definePlugin } from '@lunaris/sdk';
 import { Logger } from '@lunaris/logging';
 import { Filesystem, filesystemMethods } from '@lunaris/filesystem';
-import { Config } from '@lunaris/config';
+import { Config, ConfigSnapshots } from '@lunaris/config';
 import { Vault, VaultLifecycle } from '@lunaris/vault';
 import { Lime, LimeRuntime, LimePackagePicker, LimeBootPolicy } from '@lunaris/lime';
 import { packLup } from '@lunaris/lup';
@@ -18,7 +18,7 @@ function packageBytes(version = '1.0.0', id = 'test.package') {
   return packLup([{ path: 'manifest.json', data: encode(JSON.stringify(manifest)) }, { path: 'plugin.js', data: encode(`throw Error('preview must not evaluate');`) }, { path: 'assets/example.json', data: encode('{"message":"Hello"}') }]);
 }
 async function fixture(options = {}) {
-  const kernel = createTestKernel(); const files = new Map(); const selected = []; const executions = []; const runtimes = new Map(); const settings = new Map(); const configCalls = []; const sources = []; const plans = new Map(); const providerSelections = [];
+  const kernel = createTestKernel(); const files = new Map(); const directories = new Set(); const selected = []; const executions = []; const runtimes = new Map(); const settings = new Map(); const configCalls = []; const sources = []; const plans = new Map(); const providerSelections = []; const checkpoints = new Map(); const updateLifecycle = []; let nextCheckpoint = 0;
   let root = { id: 'vault-a', name: 'A' }; let participant; let api; let revision = 0; let failWrites = false; let failActivation = false; let failConfig = false;
   kernel.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(name => [name, () => true])));
   if (options.bootSafeMode) kernel.installMock(LimeBootPolicy, { safeMode: () => true });
@@ -34,26 +34,36 @@ async function fixture(options = {}) {
   };
   methods.writeText = (target, text, options) => write(target, new TextEncoder().encode(text), options);
   methods.writeFile = (target, bytes, options) => write(target, new Uint8Array(bytes), options);
-  methods.createDirectory = async () => ok(null); methods.capabilities = () => ({ atomicReplace: true, watch: false, maxFileBytes: 64 * 1024 * 1024, versionCheck: 'optimistic', trash: false });
-  methods.remove = async target => { for (const name of [...files.keys()]) if (name === key(target) || name.startsWith(`${key(target)}/`)) files.delete(name); return ok(null); };
+  methods.createDirectory = async (target, recursive) => { if (!recursive && directories.has(key(target))) return failure('ALREADY_EXISTS'); directories.add(key(target)); return ok(null); };
+  methods.stat = async target => files.has(key(target)) || directories.has(key(target)) ? ok({ path: target.path, kind: directories.has(key(target)) ? 'directory' : 'file', size: files.get(key(target))?.bytes.length ?? 0, modifiedAt: null }) : failure('NOT_FOUND');
+  methods.list = async target => ok([...new Set([...files.keys(), ...directories])].filter(name => name.startsWith(key(target) + '/') && !name.slice(key(target).length + 1).includes('/')).map(name => ({ path: name.slice(target.vaultId.length + 1), kind: directories.has(name) ? 'directory' : 'file', size: files.get(name)?.bytes.length ?? 0, modifiedAt: null })));
+  methods.capabilities = () => ({ atomicReplace: true, watch: false, maxFileBytes: 64 * 1024 * 1024, versionCheck: 'optimistic', trash: false });
+  methods.remove = async target => { for (const name of [...files.keys()]) if (name === key(target) || name.startsWith(`${key(target)}/`)) files.delete(name); for (const name of [...directories]) if (name === key(target) || name.startsWith(`${key(target)}/`)) directories.delete(name); return ok(null); };
   kernel.installMock(Filesystem, methods);
   kernel.installMock(Config, {
     async read(id, target) { configCalls.push([id, target]); return failConfig ? failure('IO_ERROR') : ok(settings.get(id) ?? {}); },
     async get() { return ok(undefined); }, async set() { return ok(true); },
     async remove(id, key) { const table = settings.get(id); if (table) delete table[key]; return ok(true); },
   });
+  kernel.installMock(ConfigSnapshots, {
+    async capture(id) { return failConfig ? failure('IO_ERROR') : ok(JSON.stringify(settings.get(id) ?? {})); },
+    async restore(id, text) { if (failConfig) return failure('IO_ERROR'); updateLifecycle.push('restore-data'); settings.set(id, JSON.parse(text)); return ok(null); },
+  });
   kernel.installMock(Vault, { current: () => root, async open() { return ok(root); }, async close() { root = null; return ok(null); } });
   kernel.installMock(VaultLifecycle, { register(value) { participant = value; return ok(null); } });
   kernel.installMock(LimePackagePicker, { async pick(owner) { const value = selected.shift() ?? null; return ok(typeof value === 'function' ? await value(owner) : value); } });
   kernel.installMock(LimeRuntime, {
-    async suspend() { return ok(1); }, async resume() { return ok(null); }, async rollback() { return ok(null); }, async finish() { return ok(null); },
+    async suspend(env, id) { const entry = { ...runtimes.get(id) }; checkpoints.set(++nextCheckpoint, entry); if (entry.state === 'active') runtimes.get(id).state = 'stopped'; updateLifecycle.push('suspend'); return ok(nextCheckpoint); },
+    async resume(env, checkpoint, startTarget) { const saved = checkpoints.get(checkpoint); const current = runtimes.get(saved.id); updateLifecycle.push(`resume:${current.version}`); const result = await options.onResume?.({ current, settings, files, directories, failWrites: value => { failWrites = value; }, failConfig: value => { failConfig = value; } }); if (result) return result; if (saved.state === 'active' || startTarget) current.state = 'active'; return ok(null); },
+    async rollback(env, checkpoint) { const saved = checkpoints.get(checkpoint); runtimes.set(saved.id, { ...saved, state: saved.state === 'disabled' ? 'disabled' : 'stopped' }); updateLifecycle.push('rollback'); return ok(null); },
+    async finish(env, checkpoint) { checkpoints.delete(checkpoint); updateLifecycle.push('finish'); return ok(null); },
     plan(env, id) { return plans.has(id) ? ok(plans.get(id)) : failure('NOT_FOUND'); },
     async selectProvider(env, ...args) { providerSelections.push(args); return failActivation ? failure('RUNTIME_FAILED') : ok(null); },
-    async open() { runtimes.clear(); return ok(null); }, async close() { runtimes.clear(); return ok(null); }, snapshot() { return ok([...runtimes.values()]); },
+    async open() { runtimes.clear(); checkpoints.clear(); return ok(null); }, async close() { runtimes.clear(); checkpoints.clear(); return ok(null); }, snapshot() { return ok([...runtimes.values()]); },
     async register(env, manifest, source, enabled) { if (manifest.id === 'test.builtin') return failure('CONFLICT'); sources.push(source); runtimes.set(manifest.id, { id: manifest.id, version: manifest.version, state: enabled ? 'active' : 'disabled' }); return ok(null); },
     async enable(env, id) { if (failActivation) { runtimes.get(id).state = 'failed'; return failure('RUNTIME_FAILED'); } executions.push(id); runtimes.get(id).state = 'active'; return ok(null); },
     async disable(env, id) { runtimes.get(id).state = 'disabled'; return ok(null); },
-    async replace(env, manifest) { if (failActivation) return failure('RUNTIME_FAILED'); runtimes.get(manifest.id).version = manifest.version; return ok(null); },
+    async replace(env, manifest) { updateLifecycle.push('replace'); if (failActivation) return failure('RUNTIME_FAILED'); runtimes.get(manifest.id).version = manifest.version; return ok(null); },
     async remove(env, id) { runtimes.delete(id); return ok(null); },
   });
   const plugin = createLime({ platform: 'web' }); kernel.register(plugin);
@@ -61,7 +71,7 @@ async function fixture(options = {}) {
   kernel.register(definePlugin({ manifest: { manifestVersion: 1, id: 'test.consumer', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides: [], requires: [{ kind: 'api', id: Lime.id, range: '^1.0.0' }], permissions: ['runtime.manage'], optionalPermissions: [] }, activate(ctx) { api = ctx.use(Lime); } }));
   kernel.grant('test.consumer', 'runtime.manage');
   await kernel.start('test.consumer'); await api.restore();
-  return { kernel, files, selected, executions, runtimes, settings, configCalls, sources, plans, providerSelections, api, get participant() { return participant; }, setRoot: value => { root = value; }, setFailWrites: value => { failWrites = value; }, setFailActivation: value => { failActivation = value; }, setFailConfig: value => { failConfig = value; } };
+  return { kernel, files, directories, selected, executions, runtimes, settings, configCalls, sources, plans, providerSelections, updateLifecycle, api, get participant() { return participant; }, setRoot: value => { root = value; }, setFailWrites: value => { failWrites = value; }, setFailActivation: value => { failActivation = value; }, setFailConfig: value => { failConfig = value; } };
 }
 
 test('preview is inert and exact-byte confirmation persists only in the captured Vault', async () => {
@@ -156,6 +166,52 @@ test('explicit updates commit new identity and failed replacements retain recove
   f.selected.push(packageBytes('3.0.0')); const failed = await f.api.preview(); f.setFailActivation(true);
   assert.equal((await f.api.update(failed.value.ticket)).error.code, 'RUNTIME_FAILED');
   assert.equal(f.api.snapshot().installations[0].version, '2.0.0'); assert.equal(f.api.snapshot().installations[0].recoveryRequired, true);
+  await f.kernel.stopAll();
+});
+
+test('failed candidate activation restores managed data/settings before old code resumes', async () => {
+  const data = 'vault-a:.lunaris/plugins/data/test.package';
+  const f = await fixture({ onResume({ current, settings, files }) {
+    if (current.version === '2.0.0') { files.set(`${data}/value`, { bytes: new Uint8Array([9]), version: 'candidate' }); files.set(`${data}/new`, { bytes: new Uint8Array([8]), version: 'candidate' }); settings.set('test.package', { migrated: true }); return failure('RUNTIME_FAILED'); }
+    assert.deepEqual(settings.get('test.package'), { original: true }); assert.deepEqual([...files.get(`${data}/value`).bytes], [1,2]);
+  } });
+  f.selected.push(packageBytes()); await f.api.install((await f.api.preview()).value.ticket);
+  f.directories.add(data); f.files.set(`${data}/value`, { bytes: new Uint8Array([1,2]), version: 'old' }); f.files.set('vault-a:document.md', { bytes: new Uint8Array([7]), version: 'document' }); f.settings.set('test.package', { original: true });
+  f.selected.push(packageBytes('2.0.0')); assert.equal((await f.api.update((await f.api.preview()).value.ticket)).error.code, 'RUNTIME_FAILED');
+  assert.deepEqual(f.updateLifecycle, ['suspend','replace','resume:2.0.0','rollback','restore-data','resume:1.0.0','finish']);
+  assert.deepEqual([...f.files.get(`${data}/value`).bytes], [1,2]); assert.equal(f.files.has(`${data}/new`), false); assert.deepEqual([...f.files.get('vault-a:document.md').bytes], [7]);
+  assert.equal(f.api.snapshot().installations[0].version, '1.0.0'); assert.equal(f.api.snapshot().installations[0].recoveryRequired, true);
+  assert.equal([...f.files.keys()].some(path => path.includes('/backups/')), false);
+  await f.kernel.stopAll();
+});
+
+test('incomplete update recovery keeps its journal/backup and retries on environment restore', async () => {
+  const data = 'vault-a:.lunaris/plugins/data/test.package';
+  const f = await fixture({ onResume({ current, files, failWrites }) {
+    if (current.version === '2.0.0') { files.set(`${data}/value`, { bytes: new Uint8Array([9]), version: 'candidate' }); failWrites(true); return failure('RUNTIME_FAILED'); }
+  } });
+  f.selected.push(packageBytes()); await f.api.install((await f.api.preview()).value.ticket);
+  f.directories.add(data); f.files.set(`${data}/value`, { bytes: new Uint8Array([1,2]), version: 'old' });
+  f.selected.push(packageBytes('2.0.0')); assert.equal((await f.api.update((await f.api.preview()).value.ticket)).error.code, 'STORAGE_FAILED');
+  const registry = () => JSON.parse(new TextDecoder().decode(f.files.get('vault-a:.lunaris/plugins/registry.json').bytes));
+  assert.ok(registry().plugins[0].updating); assert.ok([...f.files.keys()].some(path => path.endsWith('/manifest.json') && path.includes('/backups/')));
+  assert.equal((await f.api.enable('test.package')).error.code, 'CONFLICT'); assert.equal((await f.api.remove('test.package', true)).error.code, 'CONFLICT');
+  f.setFailWrites(false); assert.equal((await f.api.restore()).ok, true);
+  assert.equal(registry().plugins[0].updating, undefined); assert.equal(registry().plugins[0].recoveryRequired, true);
+  assert.deepEqual([...f.files.get(`${data}/value`).bytes], [1,2]); assert.deepEqual(f.executions, ['test.package']);
+  assert.equal((await f.api.retry('test.package')).ok, true); assert.deepEqual(f.executions, ['test.package','test.package']);
+  await f.kernel.stopAll();
+});
+
+test('successful update commits candidate managed data and removes its recovery backup', async () => {
+  const data = 'vault-a:.lunaris/plugins/data/test.package';
+  const f = await fixture({ onResume({ current, files, settings }) { if (current.version === '2.0.0') { files.set(`${data}/value`, { bytes: new Uint8Array([9]), version: 'new' }); settings.set('test.package', { migrated: true }); } } });
+  f.selected.push(packageBytes()); await f.api.install((await f.api.preview()).value.ticket);
+  f.directories.add(data); f.files.set(`${data}/value`, { bytes: new Uint8Array([1]), version: 'old' });
+  f.selected.push(packageBytes('2.0.0')); assert.equal((await f.api.update((await f.api.preview()).value.ticket)).ok, true);
+  assert.equal(f.api.snapshot().installations[0].version, '2.0.0'); assert.equal(f.api.snapshot().installations[0].recoveryRequired, false);
+  assert.deepEqual([...f.files.get(`${data}/value`).bytes], [9]); assert.deepEqual(f.settings.get('test.package'), { migrated: true });
+  assert.equal([...f.files.keys()].some(path => path.includes('/backups/')), false);
   await f.kernel.stopAll();
 });
 

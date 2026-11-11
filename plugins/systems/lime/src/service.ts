@@ -1,7 +1,7 @@
 import type { PluginContext, ResourceScope } from "@lunaris/sdk";
 import { Logger } from "@lunaris/logging";
 import { Filesystem } from "@lunaris/filesystem";
-import { Config } from "@lunaris/config";
+import { Config, ConfigSnapshots } from "@lunaris/config";
 import { Vault, VaultLifecycle } from "@lunaris/vault";
 import { Lime, LimeChanged, LimePackagePicker, LimeRuntime } from "@lunaris/lime";
 import type { LimeEnvironment, LimeInstallation, LimePreview, LimeResult, LimeSnapshot } from "@lunaris/lime";
@@ -11,6 +11,7 @@ import { inspectLup } from "@lunaris/lup";
 import type { InspectedLup } from "@lunaris/lup";
 import { createStorage } from "./storage.js";
 import type { InstallationRecord } from "./storage.js";
+import { createBackups } from './backups.js';
 
 const ok = (): LimeResult<null> => ({ ok: true, value: null });
 const fail = (code: 'BUSY' | 'NO_VAULT' | 'STALE' | 'INVALID_PACKAGE' | 'STORAGE_FAILED' | 'RUNTIME_FAILED' | 'NOT_FOUND' | 'CONFLICT', message: string): LimeResult<never> => ({ ok: false, error: { code, message } });
@@ -24,16 +25,19 @@ function source(preview: InspectedLup): ExecutionSource {
 export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | 'mobile', initialSafeMode = false): void {
   const logger = ctx.use(Logger); const fs = ctx.use(Filesystem); const vault = ctx.use(Vault);
   const config = ctx.use(Config);
+  const configSnapshots = ctx.use(ConfigSnapshots);
   const runtime = ctx.use(LimeRuntime); const picker = ctx.use(LimePackagePicker);
   const lifecycle = ctx.use(VaultLifecycle);
   let environment: LimeEnvironment | null = null; let generation = 0; let owner: ResourceScope | null = null;
   let storage: ReturnType<typeof createStorage> | null = null; let records: readonly InstallationRecord[] = [];
+  let backups: ReturnType<typeof createBackups> | null = null; let nextBackup = 0;
+  const updateCheckpoints = new Map<string, number>();
   const packages = new Map<string, InspectedLup>(); const previews = new Map<number, { environment: LimeEnvironment; preview: InspectedLup }>();
   let nextTicket = 0; let busy = false; let transitioning = false; let safeMode = initialSafeMode; let error: string | null = null; let tail = Promise.resolve();
   const snapshot = (): LimeSnapshot => {
     const observed = environment ? runtime.snapshot(environment) : null;
     return Object.freeze({ vaultId: environment?.vaultId ?? null, busy: busy || transitioning, safeMode, error,
-      installations: Object.freeze(records.map(({ removing, ...record }) => Object.freeze({ ...record, removalPending: !!removing, ...(packages.get(record.id) ? { manifest: packages.get(record.id)!.manifest } : {}), state: removing ? 'removing' : observed?.ok ? observed.value.find(item => item.id === record.id)?.state ?? 'unavailable' : 'unavailable' } satisfies LimeInstallation))),
+      installations: Object.freeze(records.map(({ removing, updating: _updating, ...record }) => Object.freeze({ ...record, removalPending: !!removing, ...(packages.get(record.id) ? { manifest: packages.get(record.id)!.manifest } : {}), state: removing ? 'removing' : observed?.ok ? observed.value.find(item => item.id === record.id)?.state ?? 'unavailable' : 'unavailable' } satisfies LimeInstallation))),
     });
   };
   const publish = (): void => { if (!ctx.signal.aborted) void ctx.events.emit(LimeChanged, snapshot()).catch(cause => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, 'Cannot publish Lime state', { error: cause }); }); };
@@ -58,7 +62,7 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
   };
   const activate = async (id: string, captured: LimeEnvironment): Promise<LimeResult<null>> => {
     const record = records.find(item => item.id === id); if (!record) return fail('NOT_FOUND', 'Plugin is not installed.');
-    if (record.removing) return fail('CONFLICT', 'Plugin removal must finish before activation.');
+    if (record.removing || record.updating) return fail('CONFLICT', 'Plugin recovery must finish before activation.');
     if (safeMode) return fail('CONFLICT', 'Exit safe mode before activating packages.');
     await save(records.map(item => item.id === id ? { ...item, enabled: true, recoveryRequired: true } : item));
     const result = await runtime.enable(captured, id);
@@ -88,6 +92,27 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
     logger.info(ctx.pluginId, 'Plugin removal committed', { data: { pluginId: record.id, deletedData: record.removing?.deleteData === true } });
     return ok();
   };
+  const discardBackup = async (id: string, backupId: string): Promise<void> => {
+    try { await backups!.discard(id, backupId); }
+    catch (cause) { if (!ctx.signal.aborted) logger.warn(ctx.pluginId, 'Completed update backup cleanup deferred', { error: cause, data: { pluginId: id } }); }
+  };
+  const recoverUpdate = async (record: InstallationRecord, captured: LimeEnvironment): Promise<LimeResult<null>> => {
+    if (!record.updating) return ok();
+    const checkpoint = updateCheckpoints.get(record.id);
+    if (checkpoint !== undefined) { const stopped = await runtime.rollback(captured, checkpoint); if (!stopped.ok) return stopped; }
+    await backups!.restore(record.id, record.updating.backupId, record.digest, record.updating.backupDigest);
+    const { updating, ...restored } = record;
+    await save(records.map(item => item.id === record.id ? { ...restored, recoveryRequired: true } : item));
+    await discardBackup(record.id, updating.backupId);
+    if (checkpoint !== undefined) {
+      const resumed = await runtime.resume(captured, checkpoint);
+      const finished = await runtime.finish(captured, checkpoint);
+      if (finished.ok) updateCheckpoints.delete(record.id);
+      if (!resumed.ok) return resumed; if (!finished.ok) return finished;
+    }
+    logger.info(ctx.pluginId, 'Previous managed data and settings restored', { data: { pluginId: record.id } });
+    return ok();
+  };
   const restore = async (requestedSafeMode = safeMode): Promise<LimeResult<null>> => {
     const current = vault.current();
     if (!current) return fail('NO_VAULT', 'No Vault is active.');
@@ -96,11 +121,17 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
     try {
       if (owner) await owner.dispose();
       owner = ctx.scope.child(); environment = Object.freeze({ vaultId: current.id, generation: ++generation });
-      storage = createStorage(fs, current.id); packages.clear(); records = []; error = null; safeMode = requestedSafeMode;
+      storage = createStorage(fs, current.id); backups = createBackups(fs, configSnapshots, current.id); packages.clear(); records = []; error = null; safeMode = requestedSafeMode;
       const opened = await runtime.open(environment); if (!opened.ok) { error = opened.error.message; return opened; }
+      updateCheckpoints.clear();
       records = await storage.read();
+      for (const record of [...records]) if (record.updating) {
+        try { const recovered = await recoverUpdate(record, environment); if (!recovered.ok) error = recovered.error.message; }
+        catch (cause) { error = 'Interrupted update requires managed-data recovery.'; logger.error(ctx.pluginId, 'Cannot recover interrupted plugin update', { error: cause, data: { pluginId: record.id } }); }
+      }
       await cleanup();
       for (const record of [...records]) {
+        if (record.updating) continue;
         if (record.removing) {
           try { const result = await finishRemoval(record, environment); if (!result.ok) error = result.error.message; }
           catch (cause) { error = 'Pending plugin removal needs another cleanup attempt.'; logger.error(ctx.pluginId, 'Cannot recover pending plugin removal', { error: cause, data: { pluginId: record.id } }); }
@@ -154,11 +185,51 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
     },
   }, ctx.signal);
   if (!participation.ok) throw new Error('Cannot register Lime Vault lifecycle.', { cause: participation.error });
+  const updatePackage = async (previous: InstallationRecord, preview: InspectedLup, captured: LimeEnvironment): Promise<LimeResult<null>> => {
+    await save(records.map(item => item.id === previous.id ? { ...item, recoveryRequired: true } : item));
+    const suspended = await runtime.suspend(captured, previous.id); if (!suspended.ok) return suspended;
+    const checkpoint = suspended.value; updateCheckpoints.set(previous.id, checkpoint);
+    const backupId = `u-${Date.now().toString(36)}-${captured.generation}-${++nextBackup}`;
+    let hasBackup = false; let committed = false; let recoveryAttempted = false;
+    const recover = async (): Promise<LimeResult<null>> => {
+      recoveryAttempted = true;
+      const pending = records.find(item => item.id === previous.id)!;
+      if (pending.updating) return recoverUpdate(pending, captured);
+      const rolledBack = await runtime.rollback(captured, checkpoint); if (!rolledBack.ok) return rolledBack;
+      const resumed = await runtime.resume(captured, checkpoint);
+      const finished = await runtime.finish(captured, checkpoint); if (finished.ok) updateCheckpoints.delete(previous.id);
+      if (hasBackup) await discardBackup(previous.id, backupId);
+      return !resumed.ok ? resumed : finished;
+    };
+    try {
+      const backupDigest = await backups!.create(previous.id, backupId, previous.digest); hasBackup = true;
+      await save(records.map(item => item.id === previous.id ? { ...item, recoveryRequired: true, updating: { backupId, backupDigest } } : item));
+      const changed = await runtime.replace(captured, preview.manifest, source(preview));
+      if (!changed.ok) { const recovered = await recover(); return recovered.ok ? changed : recovered; }
+      const resumed = await runtime.resume(captured, checkpoint, previous.enabled && !safeMode);
+      if (!resumed.ok) { const recovered = await recover(); return recovered.ok ? resumed : recovered; }
+      const { updating: _updating, selections: oldSelections, ...base } = previous;
+      const selections = oldSelections?.filter(choice => preview.manifest.requires.some(requirement => requirement.kind === choice.kind && requirement.id === choice.contractId));
+      const next: InstallationRecord = { ...base, version: preview.manifest.version, digest: preview.digest, recoveryRequired: false, ...(selections?.length ? { selections } : {}) };
+      await save(records.map(item => item.id === previous.id ? next : item)); committed = true;
+      packages.set(previous.id, preview);
+      const finished = await runtime.finish(captured, checkpoint); if (!finished.ok) return finished;
+      updateCheckpoints.delete(previous.id); await discardBackup(previous.id, backupId); await cleanup();
+      logger.info(ctx.pluginId, 'Plugin update and managed data committed', { data: { pluginId: previous.id, version: preview.manifest.version } });
+      return ok();
+    } catch (cause) {
+      if (!committed && !recoveryAttempted) {
+        try { const recovered = await recover(); if (!recovered.ok) throw new Error('Runtime update recovery failed.', { cause: recovered.error }); }
+        catch (recovery) { throw new AggregateError([cause, recovery], 'Update failed and recovery remains pending.'); }
+      }
+      throw cause;
+    }
+  };
   const install = (ticket: number, enabled: boolean, updating: boolean) => mutate(async captured => {
     const selected = previews.get(ticket); previews.delete(ticket);
     if (!selected || selected.environment.vaultId !== captured.vaultId || selected.environment.generation !== captured.generation) return fail('STALE', 'Select and preview this package again.');
     const preview = selected.preview; const previous = records.find(item => item.id === preview.manifest.id);
-    if (previous?.removing) return fail('CONFLICT', 'Finish removing this plugin before installing another version.');
+    if (previous?.removing || previous?.updating) return fail('CONFLICT', 'Finish recovering this plugin before installing another version.');
     if (updating ? !previous : !!previous) return fail('CONFLICT', updating ? 'Plugin is not installed.' : 'Plugin is already installed; choose update.');
     if (previous?.version === preview.manifest.version) return fail('CONFLICT', 'The same version is already installed.');
     if (!updating) {
@@ -171,26 +242,18 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
       if (!updating) await runtime.remove(captured, preview.manifest.id);
       return fail('STALE', 'Vault transition interrupted installation.');
     }
-    if (updating) {
-      await save(records.map(item => item.id === previous!.id ? { ...item, recoveryRequired: true } : item));
-      // Runtime rollback restores code, not arbitrary Vault side effects.
-      const changed = await runtime.replace(captured, preview.manifest, source(preview));
-      if (!changed.ok) return changed;
-    }
-    const record: InstallationRecord = { id: preview.manifest.id, version: preview.manifest.version, digest: preview.digest, enabled: updating ? previous!.enabled : enabled, recoveryRequired: false };
-    const selections = previous?.selections?.filter(choice => preview.manifest.requires.some(requirement => requirement.kind === choice.kind && requirement.id === choice.contractId));
-    const committed: InstallationRecord = selections?.length ? { ...record, selections } : record;
-    try { await save([...records.filter(item => item.id !== record.id), committed]); }
+    if (updating) return updatePackage(previous!, preview, captured);
+    const record: InstallationRecord = { id: preview.manifest.id, version: preview.manifest.version, digest: preview.digest, enabled, recoveryRequired: false };
+    try { await save([...records.filter(item => item.id !== record.id), record]); }
     catch (cause) {
-      if (previous) { const old = packages.get(previous.id); if (old) await runtime.replace(captured, old.manifest, source(old)); }
-      else await runtime.remove(captured, record.id);
+      await runtime.remove(captured, record.id);
       await cleanup();
       throw cause;
     }
     packages.set(record.id, preview);
     await cleanup();
-    logger.info(ctx.pluginId, updating ? 'Plugin update committed' : 'Plugin installation committed', { data: { pluginId: record.id, version: record.version } });
-    if (record.enabled && !updating && !safeMode) return await activate(record.id, captured);
+    logger.info(ctx.pluginId, 'Plugin installation committed', { data: { pluginId: record.id, version: record.version } });
+    if (record.enabled && !safeMode) return await activate(record.id, captured);
     publish(); return ok();
   });
   ctx.provide(Lime, {
@@ -199,7 +262,7 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
     selectProvider: (id, kind, contractId, providerId, expectedRevision) => mutate(async captured => {
       const previous = records.find(item => item.id === id);
       if (!previous) return fail('NOT_FOUND', 'Plugin is not installed.');
-      if (previous.removing || safeMode) return fail('CONFLICT', 'Finish recovery before changing providers.');
+      if (previous.removing || previous.updating || safeMode) return fail('CONFLICT', 'Finish recovery before changing providers.');
       const plan = runtime.plan(captured, id);
       if (!plan.ok) return plan;
       if (plan.value.revision !== expectedRevision) return fail('STALE', 'Dependency plan changed.');
@@ -234,9 +297,21 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
     },
     cancelPreview(ticket) { previews.delete(ticket); },
     install: (ticket, enabled = true) => install(ticket, enabled, false), update: ticket => install(ticket, true, true),
-    enable: id => mutate(captured => activate(id, captured)), retry: id => mutate(captured => activate(id, captured)),
+    enable: id => mutate(captured => activate(id, captured)), retry: id => mutate(async captured => {
+      const record = records.find(item => item.id === id);
+      if (record?.updating) {
+        const recovered = await recoverUpdate(record, captured); if (!recovered.ok) return recovered;
+      }
+      if (record && !record.removing && !packages.has(id)) {
+        const inspected = await storage!.inspect(record);
+        const registered = await runtime.register(captured, inspected.manifest, source(inspected), false); if (!registered.ok) return registered;
+        packages.set(id, inspected);
+      }
+      return activate(id, captured);
+    }),
     remove: (id, deleteData) => mutate(async captured => {
       const record = records.find(item => item.id === id); if (!record) return fail('NOT_FOUND', 'Plugin is not installed.');
+      if (record.updating) return fail('CONFLICT', 'Recover the interrupted update before removal.');
       if (typeof deleteData !== 'boolean') return fail('CONFLICT', 'Choose whether plugin data and settings should be deleted.');
       const pending: InstallationRecord = record.removing ? record : { ...record, enabled: false, recoveryRequired: true, removing: { deleteData } };
       if (!record.removing) await save(records.map(item => item.id === id ? pending : item));
@@ -244,7 +319,7 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
     }),
     disable: id => mutate(async captured => {
       if (!records.some(item => item.id === id)) return fail('NOT_FOUND', 'Plugin is not installed.');
-      if (records.some(item => item.id === id && item.removing)) return fail('CONFLICT', 'Plugin removal must finish first.');
+      if (records.some(item => item.id === id && (item.removing || item.updating))) return fail('CONFLICT', 'Plugin recovery must finish first.');
       const result = await runtime.disable(captured, id); if (!result.ok) return result;
       await save(records.map(item => item.id === id ? { ...item, enabled: false, recoveryRequired: false } : item));
       logger.info(ctx.pluginId, 'Plugin disabled', { data: { pluginId: id } }); return ok();

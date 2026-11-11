@@ -30,11 +30,12 @@ from `@lunaris/lime`. No kernel, platform IPC, DOM or private driver is imported
 - `enable(id)`, `disable(id)` and `retry(id)` manage runtime and durable intent.
   Before activation, recoveryRequired is committed; success clears it. A failed
   or interrupted launch therefore does not automatically repeat on reopen.
-- `update(ticket)` requires an installed ID and a different version, writes the
-  candidate archive, marks recovery intent, replaces runtime code, then commits
-  the new identity. Runtime failure leaves recovery intent and reports failure.
-  Registry commit failure attempts runtime code rollback. Same-version updates
-  fail explicitly; version downgrades currently use the same explicit update path.
+- `update(ticket)` requires an installed ID and a different version. Lime suspends
+  the affected runtime graph, captures managed data and settings, and commits a
+  recovery journal before activating the candidate. Success commits the new
+  identity. Failure restores the previous managed data and settings before old
+  code resumes. Reopening a Vault retries interrupted recovery before loading the
+  package. Same-version updates fail. Downgrades use the explicit update path.
 - `remove(id, deleteData)` persists a removal journal, stops/unregisters runtime,
   then removes package archives. The explicit data choice optionally deletes the
   package's managed `.lunaris/plugins/data/<id>` directory and its Vault Config
@@ -63,8 +64,9 @@ compared with the committed ID/version/digest. Existing digest paths must contai
 matching validated bytes. Installation stages immutable archives before one
 optimistic create/replace of the registry, using Filesystem's expectedVersion.
 External writers are not transactional participants; conflicts fail visibly.
-Unreferenced archives can remain after interrupted staging/updates; an orphan
-sweep remains pending. An optional record `removing: { deleteData }` is the durable
+The archive sweep collects unreferenced package archives. An optional record
+`updating: { backupId, backupDigest }` points to the old identity's backup until
+commit or recovery. An optional record `removing: { deleteData }` is the durable
 removal journal; such records require disabled/recovery intent and are never loaded.
 
 ## Vault integration
@@ -103,15 +105,15 @@ External processes do not participate in filesystem locks: a race after a versio
 check cannot be made atomic by this API. Concurrent synchronization must quiesce
 Lime storage; no cross-process transactional deletion guarantee is claimed.
 
-Still pending: managed-data migration backup/rollback, dependency/provider-choice disclosure,
-complete native/browser acceptance. Public declarative Views/viewport and package
+Still pending: full prospective dependency disclosure and native/browser acceptance.
+Public declarative Views/viewport and package
 resources are implemented through SDK contracts. The shared host now
 composes the engine, SDK execution driver, picker, runtime adapter and Lime Settings.
 Lime management requires the host-only runtime.manage contract; guest code cannot
 use it through the execution broker. An update can run arbitrary package side effects against the Vault;
-code rollback does not reverse those data changes. Do not claim transactional data
-rollback or completed update acceptance until that policy/integration is implemented.
-No visual/native acceptance is claimed by these service tests.
+rollback covers the updated package's managed data and Vault Config namespace.
+Effects elsewhere in the Vault, including writes by restarted dependents, are
+outside the backup. Visual/native acceptance remains pending.
 
 ## Managed-data backup service
 
@@ -131,8 +133,7 @@ is idempotently retryable from the retained backup. Failed capture cannot create
 committed descriptor; cleanup is best effort. SHA-256 uses the existing pinned pure
 JavaScript library, not native filesystem/crypto access.
 
-These services and runtime checkpoints have focused tests. Wiring durable update
-journals into install/restore/retry remains in progress; their presence alone does
-not make existing updates transactionally recoverable. External writers must be
+Focused tests cover successful commit, candidate activation failure and recovery
+after an interrupted update. External writers must be
 quiescent; the filesystem contract offers optimistic single-file commits, not a
 multi-file or cross-process transaction.

@@ -42,7 +42,7 @@ export interface LimeRuntimeApi {
   /** Stop the active affected graph; the opaque checkpoint retains old code/resources. */
   suspend(environment: LimeEnvironment, id: string): Promise<LimeResult<number>>;
   /** Restart the graph retained by the checkpoint; the checkpoint remains until finish. */
-  resume(environment: LimeEnvironment, checkpoint: number): Promise<LimeResult<null>>;
+  resume(environment: LimeEnvironment, checkpoint: number, startTarget?: boolean): Promise<LimeResult<null>>;
   /** Stop candidate work and restore old code while keeping the graph inactive. */
   rollback(environment: LimeEnvironment, checkpoint: number): Promise<LimeResult<null>>;
   finish(environment: LimeEnvironment, checkpoint: number): Promise<LimeResult<null>>;

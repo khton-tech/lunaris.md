@@ -128,10 +128,11 @@ export function createLimeRuntime(kernel: Kernel, builtinIds: readonly string[])
           return { ok: true, value: checkpoint };
         });
       },
-      resume(environment, checkpoint) {
+      resume(environment, checkpoint, startTarget = false) {
         const captured = { ...environment }; return serial(async () => {
           if (!matches(captured)) return failure('STALE', 'Plugin environment changed.');
           const saved = checkpoints.get(checkpoint); if (!saved) return failure('NOT_FOUND', 'Update checkpoint is unavailable.');
+          if (startTarget && !saved.active.includes(saved.id)) await start(saved.id);
           for (const id of saved.active) { if (managed.has(id)) await start(id); else await kernel.start(id); }
           logger.info(ctx.pluginId, 'Plugin update graph resumed', { data: { pluginId: saved.id } });
           return { ok: true, value: null };

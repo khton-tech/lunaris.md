@@ -123,9 +123,9 @@ host resource URLs; renderer media roles need explicit adapters.
 
 The current headless dev session requires rebuild/relaunch. Live disposable-Vault
 host attachment remains under implementation; do not claim --attach or hot reload
-exists. Code update rollback cannot reverse arbitrary Vault side effects;
-managed-data migration backup/recovery and full provider-selection UX remain
-acceptance work. Native dialogs, WebView execution, viewport geometry and visual
+exists. Updates back up the package's managed directory and Vault Config namespace.
+Keep migrations within those locations to benefit from rollback. Native dialogs,
+WebView execution, viewport geometry and visual
 acceptance have not been established by Node tests alone.
 
 If a needed SDK operation or adapter is unavailable, describe the required public

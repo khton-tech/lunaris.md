@@ -9,6 +9,7 @@ export interface InstallationRecord {
   readonly enabled: boolean; readonly recoveryRequired: boolean;
   readonly removing?: { readonly deleteData: boolean };
   readonly selections?: readonly LimeProviderChoice[];
+  readonly updating?: { readonly backupId: string; readonly backupDigest: string };
 }
 interface Registry { readonly formatVersion: 1; readonly revision: number; readonly plugins: readonly InstallationRecord[] }
 const ROOT = '.lunaris/plugins';
@@ -27,7 +28,8 @@ export function createStorage(fs: FilesystemApi, vaultId: string) {
       if (!input || typeof input !== 'object' || Object.keys(input).some(key => !['formatVersion', 'revision', 'plugins'].includes(key)) || input.formatVersion !== 1 || !Number.isSafeInteger(input.revision) || input.revision! < 0 || !Array.isArray(input.plugins) || input.plugins.length > 256) throw new Error('Malformed plugin registry.');
       const seen = new Set<string>(); const records: InstallationRecord[] = [];
       for (const item of input.plugins) {
-        if (!item || typeof item !== 'object' || Object.keys(item).some(key => !['id', 'version', 'digest', 'enabled', 'recoveryRequired', 'removing', 'selections'].includes(key)) || !isValidId(item.id) || seen.has(item.id) || !isExactVersion(item.version) || typeof item.digest !== 'string' || !/^[a-f0-9]{64}$/.test(item.digest) || typeof item.enabled !== 'boolean' || typeof item.recoveryRequired !== 'boolean') throw new Error('Malformed plugin installation record.');
+        if (!item || typeof item !== 'object' || Object.keys(item).some(key => !['id', 'version', 'digest', 'enabled', 'recoveryRequired', 'removing', 'selections', 'updating'].includes(key)) || !isValidId(item.id) || seen.has(item.id) || !isExactVersion(item.version) || typeof item.digest !== 'string' || !/^[a-f0-9]{64}$/.test(item.digest) || typeof item.enabled !== 'boolean' || typeof item.recoveryRequired !== 'boolean') throw new Error('Malformed plugin installation record.');
+        if (item.updating !== undefined && (!item.updating || typeof item.updating !== 'object' || Object.keys(item.updating).length !== 2 || !/^u-[a-z0-9-]{1,76}$/.test(item.updating.backupId) || !/^[a-f0-9]{64}$/.test(item.updating.backupDigest) || !item.recoveryRequired || item.removing)) throw new Error('Malformed plugin update journal.');
         if (item.removing !== undefined && (!item.removing || typeof item.removing !== 'object' || Object.keys(item.removing).length !== 1 || typeof item.removing.deleteData !== 'boolean' || item.enabled || !item.recoveryRequired)) throw new Error('Malformed plugin removal journal.');
         if (item.selections !== undefined && (!Array.isArray(item.selections) || item.selections.length > 256 || item.selections.some((choice: LimeProviderChoice) => !choice || typeof choice !== 'object' || Object.keys(choice).some(key => !['kind', 'contractId', 'providerId'].includes(key)) || !['api', 'event', 'hook'].includes(choice.kind) || !isValidId(choice.contractId) || !isValidId(choice.providerId)) || new Set(item.selections.map((choice: LimeProviderChoice) => `${choice.kind}:${choice.contractId}`)).size !== item.selections.length)) throw new Error('Malformed plugin provider selections.');
         seen.add(item.id); records.push(Object.freeze({ ...item, ...(item.selections ? { selections: Object.freeze(item.selections.map((choice: LimeProviderChoice) => Object.freeze({ ...choice }))) } : {}) }));
