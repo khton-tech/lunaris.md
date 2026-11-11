@@ -40,13 +40,20 @@ async function fixture() {
   await s.open(); s.tools.sidebar.select('lunaris.settings.navigation'); await flush();
   [...s.surface.querySelectorAll('.lm-settings-category')].find(element => element.textContent === 'Third-party plugins').click(); await flush();
   const button = text => [...s.surface.querySelectorAll('.lm-lime-settings button')].find(element => element.textContent === text);
-  return { ...s, calls, button };
+  return { ...s, calls, button, async setVault(vaultId) { state = { ...state, vaultId }; await publish(); await flush(); } };
 }
 
 test('Lime composes inside real Settings/Workspace and confirms preview before installation', async () => {
   const s = await fixture();
   try {
     const view = s.surface.querySelector('.lm-lime-settings'); const root = view.closest('.lm-root');
+    assert.equal(s.surface.querySelector('.lm-settings-page h1').textContent, 'Third-party plugins');
+    assert.equal(s.surface.querySelector('.lm-settings-page h2').textContent, 'Installed plugins');
+    assert.deepEqual([...view.querySelectorAll('button')].map(button => button.textContent), ['Add plugin']);
+    await s.setVault(null);
+    assert.match(view.textContent, /Open a Vault/);
+    assert.equal(view.querySelector('button'), null);
+    await s.setVault('vault-1');
     assert.equal(root.dataset.presentation, 'embedded'); assert.equal(root.dataset.sizing, 'content'); assert.equal(root.style.backgroundColor, 'transparent');
     assert.match(view.textContent, /No third-party plugins installed/);
     s.button('Add plugin').click(); await flush();

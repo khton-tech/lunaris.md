@@ -36,7 +36,7 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-
       if (state.vaultId !== currentVault) { preview = null; dependencyPlan = null; error = ''; currentVault = state.vaultId; }
       if (dependencyPlan && !state.installations.some(item => item.id === dependencyPlan!.pluginId)) dependencyPlan = null;
       const category = settings.updateCategory(categoryId, { title: text('title'), icon: 'package' });
-      const result = settings.updateSection(sectionId, { title: text('title'), props: props() });
+      const result = settings.updateSection(sectionId, { title: text('section'), props: props() });
       if (!category.ok || !result.ok) logger.error(ctx.pluginId, 'Cannot refresh Lime Settings', { error: !result.ok ? result.error : !category.ok ? category.error : undefined });
     }).catch(cause => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, 'Lime Settings refresh failed', { error: cause }); });
   }
@@ -104,7 +104,7 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-
   }
   const category = settings.registerCategory({ id: categoryId, title: text('title'), icon: 'package', order: 80 }, ctx.signal);
   if (!category.ok) throw new Error('Cannot register Lime Settings category.', { cause: category.error });
-  const section = settings.registerSection({ id: sectionId, categoryId, title: text('title'), componentId: 'lunaris.lime-settings', props: props() }, ctx.signal);
+  const section = settings.registerSection({ id: sectionId, categoryId, title: text('section'), componentId: 'lunaris.lime-settings', props: props() }, ctx.signal);
   if (!section.ok) throw new Error('Cannot register Lime Settings section.', { cause: section.error });
   ctx.events.on(LimeChanged, changed); ctx.events.on(LocaleChanged, changed);
   logger.info(ctx.pluginId, 'Lime Settings ready');

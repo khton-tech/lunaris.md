@@ -279,6 +279,7 @@
 .lm-settings-group-header { padding-block-end:calc(var(--vault-space)*3);border-bottom:var(--vault-border) solid var(--settings-divider) }
 .lm-settings-group-header h2 { line-height:1.4;overflow-wrap:anywhere }
 .lm-settings-section { display:flex; min-width:0; flex-direction:column }
+.lm-lime-toolbar { padding-block-start:calc(var(--vault-space)*4); min-width:0 }
 .lm-settings-items { flex:1; min-width:0;padding-inline-start:calc(var(--vault-space)*3) }
 .lm-setting-row { display:flex; flex-wrap:nowrap; align-items:center; gap:calc(var(--vault-space)*3) calc(var(--vault-space)*6); min-width:0;padding-block:calc(var(--vault-space)*5) }
 .lm-setting-row+.lm-setting-row { border-top:var(--vault-border) solid color-mix(in srgb,var(--vault-control-border) 7%,transparent) }

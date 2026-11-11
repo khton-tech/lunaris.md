@@ -14,6 +14,12 @@ state into localized props, translates operation failure codes and selects metad
 translations by locale/base language. English and Russian catalogs are supplied.
 The native picker call runs before the first await to preserve user activation.
 
+The Settings page owns the category heading and its Installed plugins section.
+The shared Mantine role uses the section's surface and presents Add plugin as the
+primary action. An empty Vault shows the empty message and Add plugin. Without a
+Vault, the section shows the unavailable message. The safe-mode action is
+shown when packages exist or safe mode is active.
+
 Add plugin opens selection, then an inert metadata preview. Confirmation chooses
 Install or Update explicitly according to the installed ID. Per-row Update checks
 the selected ID before presenting confirmation. Cancellation discards the ticket.

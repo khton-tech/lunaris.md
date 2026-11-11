@@ -70,12 +70,14 @@ async function fixture(options = {}) {
   for (const permission of plugin.manifest.permissions) kernel.grant(plugin.manifest.id, permission);
   kernel.register(definePlugin({ manifest: { manifestVersion: 1, id: 'test.consumer', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides: [], requires: [{ kind: 'api', id: Lime.id, range: '^1.0.0' }], permissions: ['runtime.manage'], optionalPermissions: [] }, activate(ctx) { api = ctx.use(Lime); } }));
   kernel.grant('test.consumer', 'runtime.manage');
-  await kernel.start('test.consumer'); await api.restore();
+  await kernel.start('test.consumer');
+  if (options.initialSettlement) await participant.settled(null, root);
+  else await api.restore();
   return { kernel, files, directories, selected, executions, runtimes, settings, configCalls, sources, plans, providerSelections, updateLifecycle, api, get participant() { return participant; }, setRoot: value => { root = value; }, setFailWrites: value => { failWrites = value; }, setFailActivation: value => { failActivation = value; }, setFailConfig: value => { failConfig = value; } };
 }
 
 test('preview is inert and exact-byte confirmation persists only in the captured Vault', async () => {
-  const f = await fixture(); f.selected.push(packageBytes()); const preview = await f.api.preview();
+  const f = await fixture({ initialSettlement: true }); f.selected.push(packageBytes()); const preview = await f.api.preview();
   assert.equal(preview.ok, true); assert.equal(preview.value.platformWarning, true); assert.deepEqual(f.executions, []); assert.equal(f.files.size, 0);
   assert.equal((await f.api.install(preview.value.ticket)).ok, true);
   assert.deepEqual(f.executions, ['test.package']); assert.equal(f.api.snapshot().installations[0].enabled, true);

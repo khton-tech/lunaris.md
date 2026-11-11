@@ -63,11 +63,15 @@ export function LimeSettings({ props, theme }: { props: Props; theme: ReturnType
   useEffect(() => { if (removing && !props.rows.some(row => row.id === removing)) setRemoving(null); }, [props.rows, removing]);
   const disabled = props.busy || !props.available;
   return <Stack className="lm-lime-settings" gap="md" style={{ ...theme.contentStyle, minWidth: 0, width: '100%' }}>
-    <Group gap="xs" wrap="wrap">
-      <Button ref={add} size="compact-sm" variant="subtle" disabled={disabled || !!props.preview} onClick={props.onAdd}>{props.labels.add}</Button>
-      <Button size="compact-sm" variant="subtle" disabled={disabled || !!props.preview} onClick={() => props.onSafeMode(!props.safeMode)}>{props.safeMode ? props.labels.resume : props.labels.safeMode}</Button>
+    <Group className="lm-lime-toolbar" gap="sm" wrap="wrap" justify="space-between">
+      {!props.available ? <Text size="sm" c="dimmed">{props.labels.noVault}</Text> : <>
+        {!props.rows.length && !props.preview && <Text size="sm" c="dimmed">{props.labels.empty}</Text>}
+        <Group gap="xs" wrap="wrap">
+          <Button ref={add} size="compact-sm" disabled={disabled || !!props.preview} onClick={props.onAdd}>{props.labels.add}</Button>
+          {(props.safeMode || props.rows.length > 0) && <Button size="compact-sm" variant="subtle" disabled={disabled || !!props.preview} onClick={() => props.onSafeMode(!props.safeMode)}>{props.safeMode ? props.labels.resume : props.labels.safeMode}</Button>}
+        </Group>
+      </>}
     </Group>
-    {!props.available && <Text size="sm" c="dimmed">{props.labels.noVault}</Text>}
     {props.error && <Text size="sm" c="var(--vault-error)" role="alert" style={{ overflowWrap: 'anywhere' }}>{props.error}</Text>}
     {props.preview && <Stack gap="sm" role="group" aria-label={props.preview.name} style={{ minWidth: 0 }}>
       <Text size="sm" fw={500} style={{ overflowWrap: 'anywhere' }}>{props.preview.name} {props.preview.version}</Text>
@@ -78,7 +82,6 @@ export function LimeSettings({ props, theme }: { props: Props; theme: ReturnType
         <Button size="compact-sm" variant="subtle" disabled={props.busy} onClick={props.onCancel}>{props.labels.cancel}</Button>
       </Group>
     </Stack>}
-    {props.available && !props.rows.length && <Text size="sm" c="dimmed">{props.labels.empty}</Text>}
     {props.rows.map(row => <Box key={row.id} data-lime-id={row.id} style={{ minWidth: 0 }}>
       <Box className="lm-setting-row" data-layout="inline">
         <Stack className="lm-setting-label" gap={4} style={{ overflowWrap: 'anywhere' }}>

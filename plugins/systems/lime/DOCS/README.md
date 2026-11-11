@@ -75,6 +75,8 @@ VaultLifecycle runs release only after all save guards accept. Lime seals new
 operations, cancels file selection, drains pending work, closes its runtime and
 clears previews before the old root closes. Awaited settlement restores the current
 root (including recovery after failed native release) under a new generation.
+Desktop startup activates Lime before the Vault selector restores the most recent
+Vault, so the first committed open reaches the registered lifecycle participant.
 Preparation failures/save vetoes leave old execution untouched. An engine activated
 after a Vault is already open requires explicit `restore()` after its own activation
 commits; do not start guests depending on Lime from inside Lime activation.

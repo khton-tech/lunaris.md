@@ -1,5 +1,5 @@
 const en = {
-  title: 'Third-party plugins', add: 'Add plugin', install: 'Install plugin', update: 'Update',
+  title: 'Third-party plugins', section: 'Installed plugins', add: 'Add plugin', install: 'Install plugin', update: 'Update',
   empty: 'No third-party plugins installed.', noVault: 'Open a Vault to manage its plugins.', enabled: 'Enabled',
   details: 'Details', remove: 'Remove', cancel: 'Cancel', keepData: 'Remove and keep data', deleteData: 'Remove and delete data',
   removePrompt: 'Remove this plugin? Choose whether to retain its data and settings.',
@@ -21,7 +21,7 @@ const en = {
   CONFLICT: 'The operation conflicts with the installed package or recovery state.', UNSUPPORTED: 'This host does not support the requested operation.',
 };
 const ru: typeof en = {
-  title: 'Сторонние плагины', add: 'Добавить плагин', install: 'Установить плагин', update: 'Обновить',
+  title: 'Сторонние плагины', section: 'Установленные плагины', add: 'Добавить плагин', install: 'Установить плагин', update: 'Обновить',
   empty: 'Сторонние плагины не установлены.', noVault: 'Откройте хранилище для управления его плагинами.', enabled: 'Включён',
   details: 'Сведения', remove: 'Удалить', cancel: 'Отмена', keepData: 'Удалить, сохранив данные', deleteData: 'Удалить вместе с данными',
   removePrompt: 'Удалить плагин? Выберите, сохранять ли его данные и настройки.',

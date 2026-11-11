@@ -240,6 +240,17 @@ test('host applies explicit provider selections before activating consumers', as
  await session.start(); assert.equal(session.snapshot().phase,'running'); assert.equal(chosen,'test.b'); await session.stop();
 });
 
+test('desktop startup subscribes Lime before restoring the most recent Vault', async () => {
+ const {composeApplication}=await import('@lunaris/application-host'); const {JSDOM}=await import('jsdom');
+ const dom=new JSDOM('<div id="app"></div>');
+ try {
+  const definition=composeApplication(dom.window.document.getElementById('app'),{art:'L',mode:'desktop'});
+  const lime=definition.entrypoints.indexOf('lunaris.lime');
+  const selector=definition.entrypoints.indexOf('lunaris.vault-selector');
+  assert.ok(lime >= 0 && selector > lime, 'The Vault lifecycle participant must be registered before recent-Vault restore');
+ } finally { dom.window.close(); }
+});
+
 test('application extensions can replace a bundled provider with the same ID', async () => {
  const {composeApplication}=await import('@lunaris/application-host'); const {JSDOM}=await import('jsdom');
  const dom=new JSDOM('<div id="app"></div>'); const target=dom.window.document.getElementById('app');
