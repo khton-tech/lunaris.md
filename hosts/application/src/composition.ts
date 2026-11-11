@@ -54,6 +54,7 @@ import localizationManager from "@lunaris/localization-manager";
 // Reuse logging definitions across recovery attempts.
 const devTools = createDevToolsLogger();
 const logger = createLogger();
+const defaultThemeId = "lunaris.base-theme-engine.monochrome";
 
 /** Host composition point. Product plugins import only the public SDK. */
 export function composeApplication(target: HTMLElement, options: {
@@ -77,8 +78,8 @@ export function composeApplication(target: HTMLElement, options: {
   const account = createAccountAccess({ defaultOpen: options.mode === "browser", allowLocal: options.mode === "desktop", ...(options.defaultServer ? { defaultAddress: options.defaultServer } : {}) });
   const router = createFilesystemRouter([{ id: "local", ...LocalFilesystemBackend }, { id: "remote", ...RemoteFilesystemBackend }], "local");
   const extra = options.extensions ?? { plugins: [], entrypoints: [], grants: {} };
-  const themeSettings = createThemeSettings({ defaultThemeId: "lunaris.base-theme-engine.lunaris" });
-  const interfaceSettings = createInterfaceSettings({ defaultThemeId: "lunaris.base-theme-engine.lunaris" });
+  const themeSettings = createThemeSettings({ defaultThemeId });
+  const interfaceSettings = createInterfaceSettings({ defaultThemeId });
   const runner = createRunner({ art, hideWhenLoaded: true });
   const selector = createVaultSelector({ art, hideWhenVaultOpen: true });
   const startup = createStartupProvider();

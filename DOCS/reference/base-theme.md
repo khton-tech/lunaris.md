@@ -160,8 +160,9 @@ Themes/ThemeChanged already connect the engine, Mantine and CodeMirror.
 Contrast tests cover text, secondary text, borders, focus and primary labels.
 Native visual acceptance inside Workspace remains pending for both Luna variants.
 
-Tauri starts the engine before theme-settings and supplies the Monochrome ID as
-the default. Windows XP Luna remains available as an optional preset. Saved startup and Vault preferences take priority;
+The shared browser and desktop composition starts the engine before theme-settings
+and supplies Monochrome as the startup and Vault default. Windows XP Luna
+remains available as an optional preset. Saved startup and Vault preferences take priority;
 choose Windows XP Luna under Settings > Customization for an existing Vault.
 Saved retired Light/Dark IDs follow the settings plugin's existing
 unavailable-theme fallback with a warning; saved configuration is not rewritten.

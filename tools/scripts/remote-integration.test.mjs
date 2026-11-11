@@ -18,6 +18,7 @@ import { AccountSession, AccountVaults, AccountAccess, ClientUpdates } from '@lu
 import { Filesystem, FilesystemSources } from '@lunaris/filesystem';
 import { Vault, VaultLocations, VaultHistory } from '@lunaris/vault';
 import { ActiveDocument, DocumentProtection } from '@lunaris/active-document';
+import { Themes } from '@lunaris/themes';
 
 async function until(condition, label) {
   const deadline = Date.now() + 8000;
@@ -68,7 +69,7 @@ test('real server browser composition recovers drafts, gates updates and retires
   dom.window.Range.prototype.getClientRects = () => [];
   dom.window.Range.prototype.getBoundingClientRect = () => ({ left: 0, right: 0, top: 0, bottom: 0, width: 0, height: 0 });
   const target = dom.window.document.getElementById('application'); let api; let reloaded = 0;
-  const tokens = { account: AccountSession, catalog: AccountVaults, access: AccountAccess, updates: ClientUpdates, fs: Filesystem, sources: FilesystemSources, vault: Vault, locations: VaultLocations, history: VaultHistory, document: ActiveDocument };
+  const tokens = { account: AccountSession, catalog: AccountVaults, access: AccountAccess, updates: ClientUpdates, fs: Filesystem, sources: FilesystemSources, vault: Vault, locations: VaultLocations, history: VaultHistory, document: ActiveDocument, themes: Themes };
   const bridge = definePlugin({ manifest: { manifestVersion: 1, id: 'test.web-bridge', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides: [],
     requires: Object.values(tokens).map(token => ({ kind: token.kind, id: token.id, range: `^${token.version}` })), permissions: ['account.access', 'application.update', 'filesystem.access', 'vault.access'], optionalPermissions: [] },
     activate(ctx) { api = Object.fromEntries(Object.entries(tokens).map(([key, token]) => [key, ctx.use(token)])); api.owner = ctx.signal; } });
@@ -84,6 +85,7 @@ test('real server browser composition recovers drafts, gates updates and retires
   } });
   t.after(async () => { readGate.resolve(); shutdownGate.resolve(); await session.stop(); globalThis.fetch = nativeFetch; await server.close(); dom.window.close(); fs.rmSync(base, { recursive: true, force: true }); });
   await session.start(); assert.equal(session.snapshot().phase, 'running', JSON.stringify(session.snapshot().incidents));
+  assert.equal(api.themes.current()?.id, 'lunaris.base-theme-engine.monochrome');
   assert.equal(session.snapshot().kernel.plugins.some(p => p.manifest.id.includes('tauri')), false);
   assert.ok(target.querySelector('.lm-account-access'));
   typeInput(target.querySelector('.lm-account-access input[type=url]'), address);
@@ -107,6 +109,7 @@ test('real server browser composition recovers drafts, gates updates and retires
   assert.equal((await api.fs.writeText({ vaultId: rootId, path: 'note.md' }, '# Original', { mode: 'create' })).ok, true);
   assert.equal((await api.document.open({ vaultId: rootId, path: 'note.md' })).ok, true);
   await until(() => target.querySelector('.cm-editor'), 'editor mount');
+  assert.equal(api.themes.current()?.id, 'lunaris.base-theme-engine.monochrome');
   let editor = EditorView.findFromDOM(target.querySelector('.cm-editor'));
   const editableStates = [];
   editor.dispatch({ effects: StateEffect.appendConfig.of(EditorView.updateListener.of(update => editableStates.push(update.state.facet(EditorView.editable)))) });
