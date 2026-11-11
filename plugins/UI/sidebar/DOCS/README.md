@@ -50,6 +50,9 @@ selects and persists Russian per Vault. Names and user content stay unchanged.
 Run `npm run ui-localization:check` for complete keys and matching placeholders.
 Native acceptance of long Russian labels, menus and narrow layouts is pending.
 
-Sidebar contributes its localized open action through the optional MobileMenu API and opens WorkspaceSidebar. It updates availability as tabs change. See the mobile menu reference for host ordering and replacement lifetime.
-
-The mobile open action declares placement launcher via MobileMenu 1.1; Workspace 1.4 places it at the top left independently of bottom actions.
+Sidebar contributes two localized open actions through the optional MobileMenu
+API. Both open WorkspaceSidebar and update availability as tabs change. The
+launcher placement renders at top left. The dock placement renders the
+three-line menu icon after the tab counter at order 50, following the Owner's
+phone reference. Workspace owns the two surfaces and overlay geometry. See
+the mobile menu reference for host ordering and replacement lifetime.

@@ -1026,8 +1026,12 @@ Each choice can supply a trailing action. The mobile role renders it as an
 independent Mantine Menu.Item next to the tab label, with a localized name and
 a 44px square touch target. Both controls participate in menu keyboard
 navigation. The Active Screen role accepts compactTabs, supplied from the
-owning Workspace context when its menu is available. It omits the tab strip
-while preserving history navigation and leaving space for the floating launcher.
+owning Workspace context when its dock actions are available. It omits the tab
+strip and the location/history row in that presentation. The Owner's phone
+reference places history, creation and the horizontal tab counter in one
+floating bottom pill. WorkspaceLayout owns the pill, themed surface and safe
+area offset. The mobile role owns the controls and the 24 by 20px minimum
+rounded outline with a 2px stroke.
 Reference: [Mantine UI buttons](https://ui.mantine.dev/category/buttons/) and
 [Mantine Menu](https://mantine.dev/core/menu/). Native visual acceptance of
 the action, list, long names, themes and keyboard focus remains pending.

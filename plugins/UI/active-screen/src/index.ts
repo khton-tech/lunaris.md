@@ -69,7 +69,8 @@ export default definePlugin({ manifest, activate(ctx) {
     if (typeof vaultId !== "string") throw new TypeError("Workspace context is required.");
     const owner = ctx.scope.child(); const cache = new Map<string, CachedScreen>();
     let disposed = false; let props = initial; let layout: MountedComponent | undefined; let layoutOwner: ResourceScope | undefined;
-    let mobileSignature: string | undefined;
+    const mobileSignatures = new Map<string, string>();
+    let mobileDockReady = false;
     let rendering = false; let pending = false;
     let targets: ReadonlyMap<string, HTMLElement> | null = null;
     let placeholder: MountedComponent | undefined; let placeholderOwner: ResourceScope | undefined;
@@ -87,7 +88,8 @@ export default definePlugin({ manifest, activate(ctx) {
       clearCache();
       if (layoutOwner) release(layoutOwner);
       layoutOwner = undefined; layout = undefined; targets = null;
-      mobileSignature = undefined;
+      mobileSignatures.clear();
+      mobileDockReady = false;
     }
     function publishMobileTabs(tabProps: ReturnType<WorkspaceTabs["presentation"]>): void {
       if (!mobileMenu || !layoutOwner) return;
@@ -100,10 +102,8 @@ export default definePlugin({ manifest, activate(ctx) {
       const count = tabProps.tabs.length;
       const label = localization.text(ctx.pluginId, "mobileTabs", { count });
       const selectedChoiceId = tabProps.selectedId;
-      const signature = JSON.stringify([label, choices, selectedChoiceId]);
-      if (signature === mobileSignature) return;
-      const item: MobileMenuItem = {
-        id: `${ctx.pluginId}.tabs`, label, icon: "file", count, order: 0, choices, selectedChoiceId,
+      const tabPicker: MobileMenuItem = {
+        id: `${ctx.pluginId}.tabs`, label, icon: "file", count, order: 40, choices, selectedChoiceId,
         async onPress(id) {
           if (!id || !live()) return;
           if (id === "add") await tabProps.onAdd();
@@ -111,13 +111,28 @@ export default definePlugin({ manifest, activate(ctx) {
           else await tabProps.onSelect(id);
         },
       };
-      try {
-        const result = mobileSignature ? mobileMenu.update(item) : mobileMenu.register(item, layoutOwner.signal);
-        if (result.ok) mobileSignature = signature;
-        else logger.warn(ctx.pluginId, "Cannot publish mobile tabs action", { data: { error: result.error } });
-      } catch (error) {
-        if (!isSdkUnavailable(error)) throw error;
+      const items: MobileMenuItem[] = [
+        { id: `${ctx.pluginId}.back`, label: tabProps.labels.back, icon: "chevron-left", order: 0,
+          disabled: !tabProps.canGoBack, async onPress() { await tabProps.onNavigate(-1); } },
+        { id: `${ctx.pluginId}.forward`, label: tabProps.labels.forward, icon: "chevron-right", order: 10,
+          disabled: !tabProps.canGoForward, async onPress() { await tabProps.onNavigate(1); } },
+        { id: `${ctx.pluginId}.add-tab`, label: text("addMobileTab"), icon: "create", order: 30,
+          async onPress() { await tabProps.onAdd(); } },
+        tabPicker,
+      ];
+      for (const item of items) {
+        const previous = mobileSignatures.get(item.id);
+        const signature = JSON.stringify(item);
+        if (signature === previous) continue;
+        try {
+          const result = previous ? mobileMenu.update(item) : mobileMenu.register(item, layoutOwner.signal);
+          if (result.ok) mobileSignatures.set(item.id, signature);
+          else logger.warn(ctx.pluginId, "Cannot publish mobile dock action", { data: { id: item.id, error: result.error } });
+        } catch (error) {
+          if (!isSdkUnavailable(error)) throw error;
+        }
       }
+      mobileDockReady = items.every(item => mobileSignatures.has(item.id));
     }
     function showPlaceholder(element: HTMLElement, kind: "empty" | "blank" | "unavailable"): void {
       const placeholderProps = { title: text(kind), detail: kind === "blank" ? "" : text(`${kind}Detail`), presentation: { mode: "embedded", sizing: "fill" } };
@@ -157,7 +172,7 @@ export default definePlugin({ manifest, activate(ctx) {
       }
       const placeholderId = "__placeholder";
       const tabProps = tabs.presentation(snapshot);
-      const compactTabs = context.compact === true && !!mobileSignature && components.has("lunaris.mobile-menu");
+      const compactTabs = context.compact === true && mobileDockReady && components.has("lunaris.mobile-menu");
       const layoutProps = { ids: [...visited, placeholderId], activeId: snapshot.activeId, tabs: tabProps, compactTabs,
         onTargets, presentation: { mode: "embedded", sizing: "fill" } };
       if (layout) {

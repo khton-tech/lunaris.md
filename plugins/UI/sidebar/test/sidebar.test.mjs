@@ -57,9 +57,11 @@ test('mobile overlay preserves Sidebar selection and the composed editor when op
     const root = s.surface.querySelector('.lm-workspace-layout');
     const main = root.querySelector('.lm-workspace-main'); const editor = main.firstElementChild;
     const toggle = root.querySelector('.lm-workspace-mobile-launcher button');
-    assert.ok(toggle); assert.equal(root.querySelectorAll('.lm-workspace-mobile-toolbar button').length,5);
+    const dockToggle = root.querySelector('.lm-workspace-mobile-toolbar button');
+    assert.ok(toggle); assert.ok(dockToggle);
+    assert.equal(root.querySelectorAll('.lm-workspace-mobile-toolbar button').length,1);
     assert.equal(root.hasAttribute('data-mobile-open'), false);
-    toggle.click(); await flush();
+    dockToggle.click(); await flush();
     assert.equal(root.hasAttribute('data-mobile-open'), true);
     assert.equal(main.parentElement.hasAttribute('inert'), true);
     button(s, 'Search').click(); await flush();

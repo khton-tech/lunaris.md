@@ -63,12 +63,15 @@ space. The public role density prop is compact for the launcher (32px control
 with 2px surface padding) and comfortable for the bottom row (44px controls).
 
 The provider publishes each placement while it has registered actions. Active
-Screen contributes the leading bottom action for the mounted Vault. Its count
-includes blank tabs. The action opens an anchored Mantine menu using the Files
+Screen contributes Back (order 0), Forward (10), Add tab (30) and the tab
+picker (40) for the mounted Vault. Sidebar contributes its drawer action at
+50 and also supplies the top-left launcher. Order 20 leaves room for a future
+public Search action. The picker count includes blank tabs. It opens an anchored Mantine menu using the Files
 Vault switcher pattern. Its rows select tabs through the same callbacks as the
 top strip. The menu contains Add tab and a close control on each closable row.
-The compact presentation replaces the top tab strip. The Owner's highlighted mobile
-panel defines the placement and rounded page-outline glyph. WorkspaceLayout owns
+The compact presentation replaces the tab strip and location/history row.
+The Owner's phone reference defines the dock order and horizontal rounded
+tab outline. WorkspaceLayout owns
 the floating surface. Mobile Menu supplies its action and Active Screen supplies
 the tab list, selection and localized names.
 

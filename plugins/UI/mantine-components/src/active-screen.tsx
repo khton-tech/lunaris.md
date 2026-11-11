@@ -66,15 +66,15 @@ export function activeScreenProps(value: ComponentProps): ScreenProps {
   return value as unknown as ScreenProps;
 }
 
-function WorkspaceTabs({ props, panelId, compact }: { props: TabProps; panelId: string; compact: boolean }) {
+function WorkspaceTabs({ props, panelId }: { props: TabProps; panelId: string }) {
   const list = useRef<HTMLDivElement>(null);
   const drag = useRef<TabDrag | null>(null);
   const suppressClick = useRef(false);
   const [drop, setDrop] = useState<TabDrop | null>(null);
-  const canReorder = !compact && !props.busy && !!props.onReorder && props.tabs.length > 1;
+  const canReorder = !props.busy && !!props.onReorder && props.tabs.length > 1;
   const selected = props.tabs.find(tab => tab.id === props.selectedId);
   const selectedButton = () => list.current?.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]');
-  useLayoutEffect(() => { selectedButton()?.parentElement?.scrollIntoView?.({ block: "nearest", inline: "nearest" }); }, [props.selectedId, compact]);
+  useLayoutEffect(() => { selectedButton()?.parentElement?.scrollIntoView?.({ block: "nearest", inline: "nearest" }); }, [props.selectedId]);
   useLayoutEffect(() => {
     const current = drag.current;
     if (current && (!canReorder || !props.tabs.some(tab => tab.id === current.id))) resetDrag();
@@ -157,8 +157,8 @@ function WorkspaceTabs({ props, panelId, compact }: { props: TabProps; panelId: 
     if (drag.current?.pointerId === event.pointerId) resetDrag();
   }
   const labels = props.labels;
-  return <Box className="lm-workspace-tabs" data-compact-tabs={compact || undefined} aria-busy={props.busy}>
-    {!compact && <Tabs unstyled value={props.selectedId} activateTabWithKeyboard={false} onChange={id => { if (id) void props.onSelect(id); }}
+  return <Box className="lm-workspace-tabs" aria-busy={props.busy}>
+    <Tabs unstyled value={props.selectedId} activateTabWithKeyboard={false} onChange={id => { if (id) void props.onSelect(id); }}
       className="lm-workspace-tab-strip"
       onPointerDownCapture={() => { if (!drag.current) suppressClick.current = false; }}
       onPointerMove={moveDrag} onPointerUp={finishDrag} onPointerCancel={cancelDrag} onLostPointerCapture={cancelDrag}
@@ -204,7 +204,7 @@ function WorkspaceTabs({ props, panelId, compact }: { props: TabProps; panelId: 
           const adding = props.onAdd();
           if (event.detail === 0) focusSelected(adding);
         }}><Icon name="create" /></ActionIcon>
-    </Tabs>}
+    </Tabs>
     <Box className="lm-workspace-tab-navigation">
       <ActionIcon type="button" variant="subtle" className="lm-workspace-tab-action" title={labels.back} aria-label={labels.back}
         disabled={!props.canGoBack} onClick={() => { void props.onNavigate(-1); }}><Icon name="back" /></ActionIcon>
@@ -222,15 +222,16 @@ export function ActiveScreenView({ props, theme }: { props: ScreenProps; theme: 
   const signature = JSON.stringify(props.ids); const publish = props.onTargets;
   useLayoutEffect(() => { publish(new Map(targets.current)); }, [signature, publish]);
   useLayoutEffect(() => () => publish(null), [publish]);
-  const hasTabStrip = props.tabs && !props.compactTabs;
+  const tabStrip = props.compactTabs ? undefined : props.tabs;
   return <Box className="lm-active-screen" style={theme.contentStyle}>
-    {props.tabs && <WorkspaceTabs props={props.tabs} panelId={panelId} compact={props.compactTabs ?? false} />}
-    <Box className="lm-screen-content" id={panelId} role={hasTabStrip ? "tabpanel" : undefined}
-      aria-labelledby={hasTabStrip && props.tabs?.selectedId ? `${panelId}-${props.tabs.selectedId}` : undefined}>
+    {tabStrip && <WorkspaceTabs props={tabStrip} panelId={panelId} />}
+    <Box className="lm-screen-content" id={panelId} role={tabStrip ? "tabpanel" : undefined}
+      aria-labelledby={tabStrip?.selectedId ? `${panelId}-${tabStrip.selectedId}` : undefined}>
       {props.ids.map(id => <Box key={id} className="lm-screen-target" data-screen-id={id}
         ref={node => { if (node) targets.current.set(id, node); else targets.current.delete(id); }}
         hidden={id !== props.activeId} inert={id !== props.activeId} aria-hidden={id !== props.activeId}
         style={{ display: id === props.activeId ? "flex" : "none", flex: "1 1 0%", minWidth: 0, minHeight: 0 }} />)}
     </Box>
+    {props.compactTabs && props.tabs?.error && <Box className="lm-workspace-tab-error lm-workspace-tab-error-compact" role="status">{props.tabs.error}</Box>}
   </Box>;
 }
