@@ -64,6 +64,13 @@ test('block markers remain editable and decorations react to edits without chang
   assert.ok(s.view.dom.querySelector('.cm-preview-h2'));
 });
 
+test('an unfocused editor hides the first heading’s source marker', t => {
+  const s = setup('# Heading');
+  t.after(() => s.close());
+  assert.deepEqual(hidden(s.view), ['# ']);
+  assert.equal(s.view.state.sliceDoc(), '# Heading');
+});
+
 test('quote rails cover consecutive, empty, lazy and nested lines while source markers reveal', t => {
   const doc = 'start\n\n> first\n> second\n>\n> paragraph\nlazy continuation\n> > nested\n\noutside';
   const s = setup(doc);

@@ -31,7 +31,7 @@
 
 .lm-root .lm-window-titlebar { display:flex;flex:1 1 0%;align-items:stretch;min-height:max(2.25em,calc(var(--vault-space)*8));margin:0;background:var(--vault-panel);border-radius:0;border:0;box-shadow:none;user-select:none;overflow:hidden }
 .lm-window-titlebar-drag { display:flex;flex:1;align-items:center;gap:8px;padding-inline:16px;overflow:hidden;cursor:default }
-.lm-root .lm-window-titlebar[data-chrome=false] { min-height:36px;border-block-end:var(--vault-border) solid var(--vault-separator) }
+.lm-root .lm-window-titlebar[data-chrome=false] { min-height:36px;background:var(--vault-background);border-block-end:var(--vault-border) solid var(--vault-separator) }
 .lm-window-titlebar-drag > svg { flex:none;width:14px;height:14px;color:var(--vault-accent) }
 .lm-root .lm-window-titlebar-title { font:inherit;font-size:.9em;font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
 .lm-window-titlebar[data-focused=false] .lm-window-titlebar-title { color:var(--vault-secondary) }
@@ -90,10 +90,10 @@
 }
 .lm-workspace-layout:not([data-window-chrome],[data-compact]) .lm-workspace-panel {
   margin:0;border:var(--vault-border) solid var(--vault-separator);border-block-start:0;
-  border-radius:var(--vault-radius) 0 0 var(--vault-radius)
+  border-radius:var(--vault-radius) 0 0 0
 }
 .lm-workspace-layout:not([data-window-chrome],[data-compact]) .lm-workspace-bottom {
-  min-height:39px;margin:0;background:var(--vault-background);border-block-start:var(--vault-border) solid var(--vault-separator);
+  min-height:30px;margin:0;background:var(--vault-background);border-block-start:var(--vault-border) solid var(--vault-separator);
   border-radius:0 var(--vault-radius) 0 0
 }
 .lm-workspace-layout:not([data-window-chrome],[data-compact]) .lm-sidebar-rail { padding:10px 0 }
@@ -189,19 +189,23 @@
 @media(prefers-reduced-motion:reduce) { .lm-root .lm-button,.lm-root .lm-input,.lm-root .ln-vault-disclosure { transition:none } }
 .lm-explorer { --explorer-control-hover:color-mix(in srgb,var(--vault-hover) 35%,var(--vault-panel));--explorer-control-pressed:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel));position:relative;display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;overflow:auto;user-select:none }
 .lm-explorer-toolbar,.lm-tool-panel-toolbar { flex-shrink:0;padding:calc(var(--vault-space)*2);position:relative }
+.lm-explorer-toolbar { padding:8px 4px 0 }
 .lm-root :is(.lm-explorer-tabs,.lm-tool-panel-title) { width:100%;max-width:100%;min-width:0;min-height:calc(var(--vault-space)*8);padding:var(--vault-space) calc(var(--vault-space)*3);border:0;border-radius:var(--vault-radius);background:transparent;color:var(--vault-text);font-weight:500 }
 .lm-root .lm-explorer-tabs .mantine-Button-label { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;text-align:start }
 .lm-explorer-tabs .mantine-Button-section { transform:rotate(90deg);flex-shrink:0;color:var(--vault-secondary) }
 .lm-root .lm-explorer-tabs[aria-expanded=true] { background:var(--tool-hover,var(--explorer-control-hover)) }
 @media(hover:hover) { .lm-root .lm-explorer-tabs:enabled:hover:not(:active) { background:var(--tool-hover,var(--explorer-control-hover)) } }
 .lm-root .lm-explorer-tabs:enabled:active { background:var(--tool-pressed,var(--explorer-control-pressed)) }
-.lm-explorer-actions { flex-shrink:0;position:relative;justify-content:center;margin-inline:calc(var(--vault-space)*2);padding:var(--vault-space);gap:var(--vault-space) }
+.lm-explorer-actions {
+  flex-shrink:0;position:relative;justify-content:flex-start;margin-inline:16px;padding-block-end:5px;
+  border-block-end:var(--vault-border) solid var(--vault-separator);gap:4px
+}
 .lm-root .lm-explorer-actions .mantine-ActionIcon-root { flex-shrink:0;--ai-size:calc(var(--vault-space)*7);color:var(--vault-secondary);border-radius:var(--vault-radius) }
 @media(hover:hover) { .lm-root .lm-explorer-actions .mantine-ActionIcon-root:enabled:hover:not(:active) { background:var(--tool-hover,var(--explorer-control-hover));color:var(--vault-text) } }
 .lm-root .lm-explorer-actions .mantine-ActionIcon-root:enabled:active { background:var(--tool-pressed,var(--explorer-control-pressed)) }
 .lm-root .lm-explorer-actions .mantine-ActionIcon-root:disabled { color:var(--vault-secondary);opacity:0.45;background:transparent }
 .lm-explorer-menu-anchor { position:absolute;inset-inline-start:0;bottom:0;width:1px;height:1px }
-.lm-explorer-tree { flex:1;min-height:3em;min-width:0;padding-inline:calc(var(--vault-space)*2);overflow:hidden }
+.lm-explorer-tree { flex:1;min-height:3em;min-width:0;padding:4px 12px 0 4px;overflow:hidden }
 .lm-explorer-row { min-width:0;outline:none }
 .lm-explorer-cursor { position:absolute;pointer-events:none;height:var(--vault-focus-width);background:var(--vault-focus);z-index:1 }
 .lm-explorer-drag-preview { position:absolute;display:flex;align-items:center;gap:var(--vault-space);max-width:50%;padding:var(--vault-space);overflow:hidden;pointer-events:none;z-index:2;background:var(--vault-selection);color:var(--vault-text);border:var(--vault-border) solid var(--vault-control-border);border-radius:var(--vault-radius) }
@@ -279,9 +283,11 @@
 .lm-explorer-node[data-active][data-selected] { outline:var(--vault-border) solid var(--vault-secondary);outline-offset:calc(-1 * var(--vault-border)) }
 
 .lm-vault-switcher { flex-shrink:0;min-width:0;padding:12px;position:relative;border-block-start:var(--vault-border) solid var(--vault-separator) }
-.lm-root .lm-vault-switcher-toggle { background:color-mix(in srgb,var(--vault-panel) 75%,var(--vault-hover));border:var(--vault-border) solid var(--vault-separator);border-radius:6px }
+.lm-root .lm-vault-switcher-toggle { justify-content:flex-start;background:color-mix(in srgb,var(--vault-panel) 75%,var(--vault-hover));border:var(--vault-border) solid var(--vault-separator);border-radius:6px }
 .lm-root .lm-vault-switcher-toggle[aria-expanded=true] { background:var(--vault-selection);border-color:var(--vault-control-border) }
-.lm-vault-switcher-toggle .mantine-Button-section { transform:none }
+.lm-vault-switcher-toggle .mantine-Button-inner { justify-content:flex-start }
+.lm-vault-switcher-toggle .mantine-Button-label { flex:1 }
+.lm-vault-switcher-toggle .mantine-Button-section[data-position=left] { transform:none }
 .lm-vault-switcher .mantine-Menu-divider { border-color:color-mix(in srgb,var(--vault-control-border) 22%,transparent) }
 
 .lm-active-screen { display: flex; flex: 1 1 0%; min-width: 0; min-height: 0; }
@@ -405,10 +411,20 @@
 @container(max-width:640px) { .lm-editor-width-handles { display:none } }
 @media(max-width:640px),(pointer:coarse) { .lm-editor-width-handles { display:none } }
 @media (prefers-reduced-motion:reduce) { .lm-editor-width-handle::after { transition:none } }
-.lm-editor-heading { flex:0 0 auto;width:calc(100% - 2 * var(--editor-gutter));max-width:698px;margin:0 auto;padding:clamp(24px,5cqi,56px) 0 0 }
-@container(max-width:640px) { .lm-editor-heading { padding-top:calc(clamp(24px,5cqi,56px) + 6cqh) } }
-.lm-editor-title { width:100% }
-.lm-editor-title input { font:inherit;font-size:2.267em;line-height:1.206;font-weight:600;color:var(--vault-text);background:transparent;border:0;padding:0;overflow-wrap:anywhere;text-overflow:ellipsis }
+.lm-editor-document-bar {
+  flex:0 0 auto;padding-inline:8px;border-block-end:var(--vault-border) solid var(--vault-separator);
+  background:var(--vault-background)
+}
+.lm-editor-heading { width:100% }
+.lm-editor-title {
+  width:min(204px,100%);background:var(--vault-content);border:var(--vault-border) solid var(--vault-separator);
+  border-block-end:0;border-radius:var(--vault-radius) var(--vault-radius) 0 0
+}
+.lm-editor-title input {
+  min-height:30px;height:30px;padding-inline:12px;font:inherit;font-size:13px;font-weight:500;
+  color:var(--vault-text);background:transparent;border:0;text-overflow:ellipsis
+}
+@container(max-width:640px) { .lm-editor-document-bar { padding-inline-start:52px } }
 .lm-editor-title input::placeholder { color:var(--vault-secondary);opacity:1 }
 .lm-editor-placeholder { padding:calc(var(--vault-space)*2) clamp(12px,3cqi,40px);user-select:none;overflow-wrap:anywhere }
 .lm-editor-error { flex:0 0 auto;padding:calc(var(--vault-space)*2) clamp(12px,3cqi,40px);color:var(--vault-error);user-select:none }

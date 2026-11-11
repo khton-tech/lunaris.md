@@ -72,10 +72,10 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
   return <Box ref={container} className="lm-text-editor" style={theme.contentStyle}>
     {props.ready && props.onContentWidthChange && <EditorWidthHandles key={props.documentKey} container={container}
       width={props.contentWidth ?? 698} label={props.resizeWidthLabel!} disabled={!props.canResizeWidth} onChange={props.onContentWidthChange} />}
-    {props.ready && <Box className="lm-editor-heading" style={{ maxWidth: props.contentWidth === "full" ? "none" : props.contentWidth ?? 698 }}>
-      <Box className="lm-editor-heading-line">
+    {props.ready && <Box className="lm-editor-document-bar">
+      <Box className="lm-editor-heading" style={{ maxWidth: props.contentWidth === "full" ? "none" : props.contentWidth ?? 698 }}>
         <TextInput className="lm-editor-title" aria-label={props.titleLabel} value={title}
-          variant="unstyled" readOnly={!props.canRename} spellCheck={false} placeholder={props.titleLabel}
+          size="xs" variant="unstyled" readOnly={!props.canRename} spellCheck={false} placeholder={props.titleLabel}
           onChange={event => setTitle(event.currentTarget.value.replace(/[\r\n]+/g, ""))}
           onBlur={commitTitle} onKeyDown={onTitleKeyDown} />
         {props.renameError && <Text size="sm" role="alert" className="lm-editor-error">{props.renameError}</Text>}

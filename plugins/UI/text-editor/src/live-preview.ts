@@ -28,6 +28,7 @@ function decorations(view: EditorView): DecorationSet {
   const lines = new Set<number>();
   const quoteLines = new Map<number, number>();
   const fences = new Set<number>();
+  const listLines = new Set<number>();
   const hide = (from: number, to: number) => {
     // View plugins must not replace line breaks (vertical layout belongs to CM).
     if (from < to && state.doc.lineAt(from).number === state.doc.lineAt(to).number)
@@ -112,6 +113,10 @@ function decorations(view: EditorView): DecorationSet {
       }
     }
     if (["EmphasisMark", "StrikethroughMark", "CodeMark"].includes(name)) hide(from, to);
+    if (name === "ListMark" && !listLines.has(line.from)) {
+      listLines.add(line.from);
+      ranges.push(Decoration.line({ class: "cm-preview-list-line" }).range(line.from));
+    }
     if (name === "ListMark" && controls) {
       // Recognize task syntax only directly after a parsed list marker. This also
       // covers parent tasks interrupted by the hard-tab list dialect's parser.
@@ -127,7 +132,8 @@ function decorations(view: EditorView): DecorationSet {
         return;
       }
     }
-    if (["HeaderMark", "QuoteMark", "ListMark"].includes(name) && !selected(state, line.from, line.to)) {
+    if (["HeaderMark", "QuoteMark", "ListMark"].includes(name) &&
+      ((name === "HeaderMark" && !view.hasFocus) || !selected(state, line.from, line.to))) {
       const end = state.sliceDoc(to, to + 1) === " " ? to + 1 : to;
       if (name === "ListMark") {
         // Without a component renderer, retain editable task source.
@@ -163,7 +169,7 @@ export const livePreview = ViewPlugin.fromClass(class {
     this.decorations = all.update({ filter: (_from, _to, decoration) => decoration.spec.class !== "cm-preview-code" });
   }
   update(update: ViewUpdate) {
-    if (update.docChanged || update.selectionSet || update.viewportChanged || syntaxTree(update.startState) !== syntaxTree(update.state)
+    if (update.docChanged || update.selectionSet || update.focusChanged || update.viewportChanged || syntaxTree(update.startState) !== syntaxTree(update.state)
       || update.startState.readOnly !== update.state.readOnly || update.startState.facet(EditorView.editable) !== update.state.facet(EditorView.editable)
       || update.startState.facet(taskControls) !== update.state.facet(taskControls))
       this.refresh(update.view);
@@ -178,17 +184,18 @@ export const livePreviewTheme = EditorView.baseTheme({
   ".cm-preview-emphasis": { fontStyle: "italic" },
   ".cm-preview-strike": { textDecoration: "line-through" },
   ".cm-preview-code, .cm-preview-code-block": { fontFamily: "var(--vault-mono, 'Cascadia Code', Consolas, ui-monospace, monospace)", backgroundColor: "color-mix(in srgb, currentColor 5%, transparent)" },
-  ".cm-preview-code": { fontSize: "0.867em", fontWeight: "500", padding: "0.05em 0.3em", border: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderRadius: "var(--vault-radius-small, 4px)", backgroundColor: "var(--vault-selection, transparent)", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone" },
-  ".cm-line.cm-preview-code-block": { padding: "0 calc(var(--editor-block-inset, 2.4em) - 1px)", borderLeft: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderRight: "1px solid color-mix(in srgb, currentColor 25%, transparent)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" },
+  ".cm-preview-code": { fontSize: "0.867em", fontWeight: "500", padding: "0.12em 0.55em", color: "var(--vault-accent, currentColor)", borderRadius: "var(--vault-radius-small, 4px)", backgroundColor: "var(--vault-selection, transparent)", boxDecorationBreak: "clone", WebkitBoxDecorationBreak: "clone" },
+  ".cm-line.cm-preview-code-block": { fontSize: "0.867em", lineHeight: "1.45", padding: "0 calc(var(--editor-block-inset, 2.4em) - 1px)", borderLeft: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderRight: "1px solid color-mix(in srgb, currentColor 25%, transparent)", whiteSpace: "pre-wrap", overflowWrap: "anywhere" },
   ".cm-line.cm-preview-code-start": { borderTop: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderTopLeftRadius: "var(--vault-radius, 10px)", borderTopRightRadius: "var(--vault-radius, 10px)", paddingTop: "0.45em" },
   ".cm-line.cm-preview-code-end": { borderBottom: "1px solid color-mix(in srgb, currentColor 25%, transparent)", borderBottomLeftRadius: "var(--vault-radius, 10px)", borderBottomRightRadius: "var(--vault-radius, 10px)", paddingBottom: "0.45em" },
-  ".cm-preview-code-language": { fontSize: "0.8em", fontWeight: "500" },
+  ".cm-preview-code-language": { fontSize: "0.92em", fontWeight: "500" },
   ".cm-preview-heading": { fontWeight: "600", lineHeight: "1.25" },
-  ".cm-preview-h1": { fontSize: "2.267em", lineHeight: "1.206" }, ".cm-preview-h2": { fontSize: "1.533em" },
+  ".cm-preview-list-line": { paddingBlock: "0.14em" },
+  ".cm-preview-h1": { fontSize: "2.267em", lineHeight: "1.206", maxInlineSize: "17em", paddingBlockEnd: "0.22em" }, ".cm-preview-h2": { fontSize: "1.533em", paddingBlock: "0.12em" },
   ".cm-preview-h3": { fontSize: "1.4em" }, ".cm-preview-h4": { fontSize: "1.3em" },
   ".cm-preview-h5": { fontSize: "1.25em" }, ".cm-preview-h6": { fontSize: "1.1em" },
   ".cm-preview-link": { textDecoration: "underline" },
-  ".cm-preview-bullet": { whiteSpace: "pre" },
+  ".cm-preview-bullet": { display: "inline-block", minInlineSize: "1.4em", color: "var(--vault-accent, currentColor)", whiteSpace: "pre" },
   ".cm-preview-task": { display: "inline-flex", verticalAlign: "middle", lineHeight: "1" },
   ".cm-line.cm-preview-quote": { paddingLeft: "calc(var(--editor-block-inset, 2.4em) + (var(--cm-preview-quote-depth) - 1) * 0.85em)", backgroundSize: "2px 100%", backgroundRepeat: "no-repeat" },
   ".cm-preview-rule": { display: "inline-block", width: "100%", borderTop: "1px solid currentColor", opacity: "0.25", verticalAlign: "middle" },

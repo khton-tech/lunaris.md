@@ -867,7 +867,7 @@ Integration through Sidebar is complete. Behavior tests cover creation targets,
 sort callbacks and disabled controls. Native visual acceptance remains pending:
 both themes, open menu, selection/focus and narrow/short Workspace layouts.
 
-The FigCraft Lunaris design code sets the desktop rail to 56px, the default tool panel to 256px, and the status surface to 39px. WorkspaceLayout owns these surfaces and their joins. The title bar owns its window chrome. Explorer and Settings inherit the assigned panel and style their internal selection, menus and controls using the active theme. The text-editor and callout plugins own the document column and block typography.
+The FigCraft Lunaris design code sets the desktop rail to 56px, the default tool panel to 256px, and the status surface to 30px. WorkspaceLayout owns these surfaces and their joins. The title bar owns its window chrome. Explorer and Settings inherit the assigned panel and style their internal selection, menus and controls using the active theme. The text-editor role places the editable file name in a compact document bar above the reading column. The text-editor and callout plugins own the document column and block typography.
 
 ## Workspace bottom target
 

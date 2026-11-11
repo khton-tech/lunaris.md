@@ -50,9 +50,9 @@ function appearance(theme: ThemeDefinition | null, preferences: Preferences) {
     "&.cm-focused": { outline: "none" },
     ".cm-scroller": { overflow: "auto", fontFamily: "inherit", lineHeight: preferences.lineHeight !== "theme" ? preferences.lineHeight : String(typeof typography?.lineHeight === "number" ? typography.lineHeight : 1.6), scrollbarWidth: "none" },
     ".cm-scroller::-webkit-scrollbar": { display: "none" },
-    ".cm-content": { width: "calc(100% - 2 * var(--editor-gutter, 12px))", maxWidth: preferences.wrapLines && preferences.textWidth !== "full" ? `${preferences.textWidth}px` : "none", minWidth: "0", flexGrow: "0", margin: "0 auto", padding: "clamp(24px, 5cqi, 56px) 0 clamp(12px, 3cqi, 32px)", caretColor: color("caret"), minHeight: "100%" },
+    ".cm-content": { width: "calc(100% - 2 * var(--editor-gutter, 12px))", maxWidth: preferences.wrapLines && preferences.textWidth !== "full" ? `${preferences.textWidth}px` : "none", minWidth: "0", flexGrow: "0", margin: "0 auto", padding: "clamp(18px, 2cqi, 24px) 0 clamp(12px, 3cqi, 32px)", caretColor: color("caret"), minHeight: "100%" },
     ".cm-line": { padding: "0" },
-    ".cm-preview-code-language": { color: color("textSecondary", color("text")) },
+    ".cm-preview-code-language": { color: color("accent", color("textSecondary", color("text"))) },
     ".cm-cursor, .cm-dropCursor": { borderLeftColor: color("caret") },
     // Match the focused layer's specificity so CM's default dark teal cannot win.
     "&.cm-editor .cm-selectionBackground, &.cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": { backgroundColor: color("selection", `color-mix(in srgb, ${color("text")} 25%, transparent)`) },
