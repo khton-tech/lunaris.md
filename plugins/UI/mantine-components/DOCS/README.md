@@ -723,11 +723,13 @@ the heading with the same responsive horizontal inset as CodeMirror lines; it
 owns heading geometry only and does not inspect or style the borrowed editor DOM.
 Workspace retains outer layout and surfaces. Reference: the Owner's screenshot
 of the title offset to the left of the text column, the editable heading before
-the FigCraft restyle, and the Owner's Everforest screenshot of the focused title.
-The title shares the editor surface and uses `calc(1.8em + 2px)`. The caret
-indicates editing focus. The existing Mantine role and SDK rename callback
-connect UIKit to Text Editor. Verify the focused title and its alignment in
-narrow and wide Workspace allocations during native acceptance.
+the FigCraft restyle, and the Markdown H1 in the Owner's Everforest screenshot.
+The role supplies shared H1 typography variables to its file-name heading and
+the CodeMirror target. Optional `contentFontSize` (positive finite pixels) sets
+the title's base size when Text Editor has a custom font size. The theme provides
+the base size by default. The caret indicates editing focus. Verify the title
+alongside a Markdown H1 in narrow and wide Workspace allocations during native
+acceptance.
 
 At allocations up to 640px, the existing additional 6cqh document inset now sits
 before the heading. CodeMirror no longer repeats it above the document text.

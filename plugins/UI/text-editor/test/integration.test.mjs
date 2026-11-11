@@ -372,11 +372,14 @@ test('column handles are absent on mobile and cancel an active desktop drag when
 
 test('display preferences restore before Settings opens and reset on Vault switch', async () => {
   const s = await setup({ preferences: new Map([['a', { fontSize: '24', wrapLines: false }]]) });
+  const titleBaseSize = () => s.target.querySelector('.lm-editor-title').style.fontSize;
   assert.equal(s.dom.window.getComputedStyle(s.cm().dom).fontSize, '24px'); assert.equal(s.cm().contentDOM.classList.contains('cm-lineWrapping'), false);
+  assert.equal(titleBaseSize(), '24px');
   await s.vault.open(); await flush();
   await s.documents.open({ vaultId: 'b', path: 'note.md' }); await flush();
   await s.showVault('b'); await flush();
   assert.equal(s.dom.window.getComputedStyle(s.cm().dom).fontSize, '14px'); assert.equal(s.cm().contentDOM.classList.contains('cm-lineWrapping'), true);
+  assert.equal(titleBaseSize(), '');
   assert.equal(s.preferenceWrites.length, 0); await s.stop();
 });
 

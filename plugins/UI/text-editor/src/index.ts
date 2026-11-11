@@ -229,6 +229,7 @@ export default definePlugin({ manifest, activate(ctx) {
       const error = session?.draftError ? text("draftFailed") : session?.error ? text(session.error.code === "CONFLICT" ? "conflict" : session.missing ? "missing" : session.draftSaved && ["OFFLINE", "SERVER_UNAVAILABLE"].includes(session.error.code) ? "offline" : session.loaded ? "saveFailed" : "readFailed") : "";
       const next = { documentKey: session ? key(session.target) : "", name: session?.target.path ?? text(unsupported ? "unsupported" : "empty"),
         title: session ? stem(session.target.path) : "", titleLabel: text("title"), renameError,
+        contentFontSize: display.fontSize === "theme" ? undefined : Number(display.fontSize),
         contentWidth: display.wrapLines && display.textWidth !== "full" ? Number(display.textWidth) : "full",
         resizeWidthLabel: text("resizeWidth"), canResizeWidth: preferences.canResize(),
         onContentWidthChange: (width: number, phase: "preview" | "commit" | "cancel") => {

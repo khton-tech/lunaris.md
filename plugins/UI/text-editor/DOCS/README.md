@@ -422,8 +422,11 @@ literal. Link labels may contain nested formatting; reference-style destinations
 are not resolved. Multiline syntax that cannot be safely hidden without replacing
 line breaks remains visible.
 
-The Owner's Workspace screenshot is the visual reference for the typography
-refinement: H1–H6 use 2.4/2/1.7/1.45/1.25/1.1 times the editor font size.
+The Owner's Workspace screenshot is the visual reference for H1. The document
+title and Markdown H1 share size, weight and line height through the UIKit
+editor role. The controller passes a custom base size to the title through
+`contentFontSize` when the Vault specifies one. CodeMirror consumes the shared
+variables with its original H1 typography as the standalone default.
 Quote lines have an inset, full-height theme-derived rail rather than a text
 glyph; adjacent lines, empty quoted lines, lazy continuations and wrapped text
 share a continuous rail. Nested quotes add rails and indentation. Source markers

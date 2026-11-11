@@ -191,7 +191,11 @@ export const livePreviewTheme = EditorView.baseTheme({
   ".cm-preview-code-language": { fontSize: "0.92em", fontWeight: "500" },
   ".cm-preview-heading": { fontWeight: "600", lineHeight: "1.25" },
   ".cm-preview-list-line": { paddingBlock: "0.14em" },
-  ".cm-preview-h1": { fontSize: "2.267em", lineHeight: "1.206", maxInlineSize: "17em", paddingBlockEnd: "0.22em" }, ".cm-preview-h2": { fontSize: "1.533em", paddingBlock: "0.12em" },
+  ".cm-preview-h1": {
+    fontSize: "var(--editor-h1-size, 2.267em)", fontWeight: "var(--editor-h1-weight, 600)",
+    lineHeight: "var(--editor-h1-line-height, 1.206)", maxInlineSize: "17em", paddingBlockEnd: "0.22em",
+  },
+  ".cm-preview-h2": { fontSize: "1.533em", paddingBlock: "0.12em" },
   ".cm-preview-h3": { fontSize: "1.4em" }, ".cm-preview-h4": { fontSize: "1.3em" },
   ".cm-preview-h5": { fontSize: "1.25em" }, ".cm-preview-h6": { fontSize: "1.1em" },
   ".cm-preview-link": { textDecoration: "underline" },

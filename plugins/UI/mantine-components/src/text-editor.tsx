@@ -14,6 +14,7 @@ interface EditorProps {
   readonly name: string;
   readonly title: string;
   readonly titleLabel: string;
+  readonly contentFontSize?: number;
   readonly contentWidth?: number | "full";
   readonly resizeWidthLabel?: string;
   readonly canResizeWidth?: boolean;
@@ -43,6 +44,7 @@ export function textEditorProps(value: ComponentProps): EditorProps {
   for (const key of ["onSave", "onReload", "onTarget", "onRename"]) if (typeof value[key] !== "function") throw new TypeError(`Text editor requires ${key}.`);
   if (value.commandError !== undefined && typeof value.commandError !== "string") throw new TypeError("Invalid editor command error.");
   if (value.renameError !== undefined && typeof value.renameError !== "string") throw new TypeError("Invalid editor rename error.");
+  if (value.contentFontSize !== undefined && (typeof value.contentFontSize !== "number" || !Number.isFinite(value.contentFontSize) || value.contentFontSize <= 0)) throw new TypeError("Invalid editor content font size.");
   if (value.contentWidth !== undefined && value.contentWidth !== "full" && (typeof value.contentWidth !== "number" || !Number.isFinite(value.contentWidth) || value.contentWidth <= 0)) throw new TypeError("Invalid editor content width.");
   if (value.onContentWidthChange !== undefined && (typeof value.onContentWidthChange !== "function" || typeof value.resizeWidthLabel !== "string" || !value.resizeWidthLabel.trim() || typeof value.canResizeWidth !== "boolean")) throw new TypeError("Invalid editor width controls.");
   if (value.recoveryCandidates !== undefined && (!Array.isArray(value.recoveryCandidates) || value.recoveryCandidates.some(item => !item || typeof item.id !== "string" || typeof item.label !== "string") || typeof value.recoveryLabel !== "string" || typeof value.onRecovery !== "function")) throw new TypeError("Invalid recovery choices.");
@@ -75,6 +77,7 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
     {props.ready && <Box component="header" className="lm-editor-heading"
       style={{ maxWidth: props.contentWidth === "full" ? "none" : props.contentWidth ?? 698 }}>
       <TextInput className="lm-editor-title" aria-label={props.titleLabel} value={title} title={props.title}
+        style={{ fontSize: props.contentFontSize }}
         variant="unstyled" readOnly={!props.canRename} spellCheck={false} placeholder={props.titleLabel}
         onChange={event => setTitle(event.currentTarget.value.replace(/[\r\n]+/g, ""))}
         onBlur={commitTitle} onKeyDown={onTitleKeyDown} />
