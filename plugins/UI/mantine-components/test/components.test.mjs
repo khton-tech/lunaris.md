@@ -806,6 +806,9 @@ test('active document marking survives cleared selection and focus outside the t
   assert.equal(s.dom.window.document.activeElement, outside);
   assert.equal(s.target.querySelector('[data-active]').getAttribute('title'), 'a.md');
   assert.equal(s.target.querySelector('[data-active]').getAttribute('aria-current'), 'page');
+  const active = s.target.querySelector('.lm-explorer-node[data-active]');
+  assert.ok(active.querySelector(':scope > .lm-explorer-indent-guides'));
+  assert.ok(active.querySelector(':scope > .lm-explorer-node-content .lm-explorer-filename'));
   assert.equal(s.target.querySelector('[data-selected]'), null);
   await s.stop();
 });

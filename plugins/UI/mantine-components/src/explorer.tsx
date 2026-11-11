@@ -153,11 +153,13 @@ function ExplorerNode(payload: NodeRendererProps<Entry>) {
   return <Box ref={dragHandle} style={style} className="lm-explorer-node" data-directory={node.data.kind === "directory" || undefined} data-root={node.id === ROOT_ID || undefined} data-active={props.activePath === node.id || undefined} aria-current={props.activePath === node.id ? "page" : undefined} data-selected={node.isSelected || undefined} data-focused={node.isFocused || undefined} data-drop={node.willReceiveDrop || undefined}
     title={node.id === ROOT_ID ? node.data.name : node.id} onContextMenu={event => { event.preventDefault(); event.stopPropagation(); context(node.id, event.clientX, event.clientY); }}>
     {guides.length > 0 && <span className="lm-explorer-indent-guides" aria-hidden="true">{guides}</span>}
-    {node.isInternal ? <ActionIcon className="lm-explorer-disclosure" variant="subtle" size="xs" tabIndex={-1} aria-label={node.data.name} aria-expanded={node.isOpen}
-      disabled={props.busy} onClick={event => { event.stopPropagation(); node.toggle(); }}><span data-open={node.isOpen || undefined}><Icon name="expand" /></span></ActionIcon>
-      : <span className="lm-explorer-spacer" />}
-    <Box component="span" className="lm-explorer-entry-icon" aria-hidden="true"><Icon name={node.data.draft ? node.data.kind === "directory" ? "folder" : "file" : node.isInternal ? node.isOpen ? "browse" : "folder" : "file"} /></Box>
-    {node.data.draft ? <CreateInput /> : node.isEditing ? <RenameInput {...payload} /> : <><Text component="span" className="lm-explorer-filename">{label.name}</Text><ExtensionBadge extension={label.badge} /></>}
+    <Box className="lm-explorer-node-content">
+      {node.isInternal ? <ActionIcon className="lm-explorer-disclosure" variant="subtle" size="xs" tabIndex={-1} aria-label={node.data.name} aria-expanded={node.isOpen}
+        disabled={props.busy} onClick={event => { event.stopPropagation(); node.toggle(); }}><span data-open={node.isOpen || undefined}><Icon name="expand" /></span></ActionIcon>
+        : <span className="lm-explorer-spacer" />}
+      <Box component="span" className="lm-explorer-entry-icon" aria-hidden="true"><Icon name={node.data.draft ? node.data.kind === "directory" ? "folder" : "file" : node.isInternal ? node.isOpen ? "browse" : "folder" : "file"} /></Box>
+      {node.data.draft ? <CreateInput /> : node.isEditing ? <RenameInput {...payload} /> : <><Text component="span" className="lm-explorer-filename">{label.name}</Text><ExtensionBadge extension={label.badge} /></>}
+    </Box>
   </Box>;
 }
 export function FileExplorer({ props, theme }: { props: ExplorerProps; theme: ReturnType<typeof resolveTheme> }) {

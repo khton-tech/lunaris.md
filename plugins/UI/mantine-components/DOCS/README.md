@@ -509,6 +509,14 @@ recent rows, bright artwork and reduced-motion settings.
 
 ## File explorer role
 
+The Owner's TestVault reference places the active file surface inside its
+tree indentation. Branch guides stay in the gutter, and the accent marker
+sits at the leading edge of the rounded row. Explorer owns these internal
+styles and derives the active fill from the theme accent and panel colors.
+Workspace owns the enclosing panel surface. The existing Components contract
+connects Explorer to the active document; native acceptance covers nested
+folders, temporary selection, focus, drag targets and narrow panels.
+
 Tree focus chrome follows explicit navigation modality: arrows, Home/End and
 PageUp/PageDown enable a row focus indicator; pointer input clears it. Shift or
 other modifiers alone do not enable it. The tree container never draws a panel-

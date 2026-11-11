@@ -205,16 +205,17 @@
 .lm-root .lm-explorer-actions .mantine-ActionIcon-root:enabled:active { background:var(--tool-pressed,var(--explorer-control-pressed)) }
 .lm-root .lm-explorer-actions .mantine-ActionIcon-root:disabled { color:var(--vault-secondary);opacity:0.45;background:transparent }
 .lm-explorer-menu-anchor { position:absolute;inset-inline-start:0;bottom:0;width:1px;height:1px }
-.lm-explorer-tree { flex:1;min-height:3em;min-width:0;padding:4px 12px 0 4px;overflow:hidden }
+.lm-explorer-tree { flex:1;min-height:3em;min-width:0;padding:4px 12px 0 8px;overflow:hidden }
 .lm-explorer-row { min-width:0;outline:none }
 .lm-explorer-cursor { position:absolute;pointer-events:none;height:var(--vault-focus-width);background:var(--vault-focus);z-index:1 }
 .lm-explorer-drag-preview { position:absolute;display:flex;align-items:center;gap:var(--vault-space);max-width:50%;padding:var(--vault-space);overflow:hidden;pointer-events:none;z-index:2;background:var(--vault-selection);color:var(--vault-text);border:var(--vault-border) solid var(--vault-control-border);border-radius:var(--vault-radius) }
 .lm-explorer-drag-preview span { overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
-.lm-explorer-node { position:relative;display:flex;align-items:center;gap:calc(var(--vault-space)*1.5);height:calc(100% - var(--vault-space)*0.5);margin-block:calc(var(--vault-space)*0.25);padding-inline-end:calc(var(--vault-space)*2);min-width:0;border-radius:calc(var(--vault-radius)*0.5);cursor:default;color:var(--vault-text);transition:background-color var(--vault-motion-fast) var(--vault-motion-easing) }
+.lm-explorer-node { position:relative;height:calc(100% - var(--vault-space)*0.5);margin-block:calc(var(--vault-space)*0.25);min-width:0;cursor:default }
+.lm-explorer-node-content { position:relative;display:flex;align-items:center;gap:calc(var(--vault-space)*1.5);height:100%;padding-inline-end:calc(var(--vault-space)*2);min-width:0;border-radius:var(--vault-radius);color:var(--vault-secondary);transition:background-color var(--vault-motion-fast) var(--vault-motion-easing) }
 .lm-explorer-indent-guides { position:absolute;inset-inline-start:0;inset-block:-1px;pointer-events:none }
 .lm-explorer-guide { position:absolute;inset-block:0;inline-size:var(--vault-border);background:var(--vault-separator) }
 .lm-explorer-branch {
-  position:absolute;inset-inline-start:0;inset-block-start:0;inline-size:6px;block-size:50%;
+  position:absolute;inset-inline-start:0;inset-block-start:0;inline-size:8px;block-size:50%;
   border-block-end:var(--vault-border) solid var(--vault-separator)
 }
 .lm-explorer-guide[data-last] { background:transparent }
@@ -223,12 +224,13 @@
 }
 .lm-explorer-entry-icon { position:relative;display:flex;align-items:center;width:1.1em;height:1.1em;flex-shrink:0;color:var(--vault-secondary) }
 .lm-explorer-entry-icon>svg { width:100%;height:100% }
-.lm-explorer-node[data-active]:not([data-directory]) .lm-explorer-entry-icon::before { content:"";position:absolute;inset-inline-start:calc(var(--vault-space)*-1.75);inset-block-start:50%;transform:translateY(-50%);height:20px;width:2px;border-radius:1px;background:var(--vault-accent);pointer-events:none }
-.lm-explorer-node[data-root] .lm-explorer-filename { font-weight:500 }
-.lm-explorer-node[data-selected] { background:color-mix(in srgb,var(--vault-selection) 75%,var(--vault-panel)) }
-.lm-explorer:not([aria-busy=true]) .lm-explorer-node:active { background:var(--explorer-control-pressed) }
-.lm-explorer-node[data-drop] { outline:var(--vault-border) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-border)) }
-.lm-explorer[data-keyboard-navigation] .lm-explorer-row:focus-visible .lm-explorer-node { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
+.lm-explorer-node[data-active]:not([data-directory]) .lm-explorer-node-content::before { content:"";position:absolute;inset-inline-start:0;inset-block-start:50%;transform:translateY(-50%);height:20px;width:2px;border-radius:1px;background:var(--vault-accent);pointer-events:none }
+.lm-explorer-node[data-root] .lm-explorer-node-content { color:var(--vault-text) }
+.lm-root .lm-explorer-node:is([data-root],[data-active]) .lm-explorer-filename { font-weight:600 }
+.lm-explorer-node[data-selected] > .lm-explorer-node-content { background:color-mix(in srgb,var(--vault-selection) 75%,var(--vault-panel)) }
+.lm-explorer:not([aria-busy=true]) .lm-explorer-node:active > .lm-explorer-node-content { background:var(--explorer-control-pressed) }
+.lm-explorer-node[data-drop] > .lm-explorer-node-content { outline:var(--vault-border) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-border)) }
+.lm-explorer[data-keyboard-navigation] .lm-explorer-row:focus-visible .lm-explorer-node > .lm-explorer-node-content { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
 .lm-explorer-tree [role=tree] { outline:none }
 .lm-explorer-spacer { width:1.25em;flex-shrink:0 }
 .lm-explorer .lm-explorer-disclosure { --ai-size:1.25em;flex-shrink:0;color:var(--vault-secondary);background:transparent;cursor:default;border-radius:calc(var(--vault-radius)*0.5) }
@@ -254,8 +256,8 @@
 .lm-explorer-tab-menu .mantine-Menu-itemSection { flex-shrink:0;color:var(--vault-secondary) }
 .lm-explorer-tab-menu [role=menuitem][data-hovered]:not([data-disabled]) { background:var(--explorer-control-hover) }
 .lm-explorer-tab-menu [role=menuitem]:not([data-disabled]):active { background:var(--explorer-control-pressed) }
-@media(prefers-reduced-motion:reduce) { .lm-root .lm-explorer-tabs,.lm-explorer-menu [role=menuitem],.lm-explorer-node,.lm-explorer-disclosure span { transition:none } }
-@media(hover:hover) { .lm-explorer:not([aria-busy=true]) .lm-explorer-node:not([data-selected]):hover:not(:active) { background:var(--explorer-control-hover) } }
+@media(prefers-reduced-motion:reduce) { .lm-root .lm-explorer-tabs,.lm-explorer-menu [role=menuitem],.lm-explorer-node-content,.lm-explorer-disclosure span { transition:none } }
+@media(hover:hover) { .lm-explorer:not([aria-busy=true]) .lm-explorer-node:not([data-selected],[data-active]):hover:not(:active) > .lm-explorer-node-content { background:var(--explorer-control-hover) } }
 @container(max-height:44rem) {
  .lm-root .ln-vault-main { padding:calc(var(--vault-space)*4) }
  .ln-vault pre { margin-bottom:calc(var(--vault-space)*3) }
@@ -274,13 +276,11 @@
 
 .lm-explorer .lm-explorer-extension { flex-shrink:0;margin-inline-start:auto;max-width:40%;height:1.5em;min-width:0;padding-inline:0.45em;border-radius:999px;font-size:calc(var(--vault-font-size)*0.72 - 1.5pt);line-height:1;font-weight:400;letter-spacing:0;text-transform:none;color:var(--vault-secondary);background:color-mix(in srgb,var(--vault-hover) 25%,transparent);border:0;pointer-events:none }
 
-.lm-explorer-node[data-active]:not([data-directory]) {
-  background:var(--vault-selection);border-radius:6px;
-  box-shadow:calc(var(--vault-space) * -1) 0 0 var(--vault-selection)
+.lm-explorer-node[data-active]:not([data-directory]) > .lm-explorer-node-content {
+  background:color-mix(in srgb,var(--vault-accent) 16%,var(--vault-panel));color:var(--vault-text)
 }
-.lm-explorer-node[data-active] .lm-explorer-filename { font-weight:600 }
 .lm-explorer-node[data-active] .lm-explorer-entry-icon { color:var(--vault-accent) }
-.lm-explorer-node[data-active][data-selected] { outline:var(--vault-border) solid var(--vault-secondary);outline-offset:calc(-1 * var(--vault-border)) }
+.lm-explorer-node[data-active][data-selected] > .lm-explorer-node-content { outline:var(--vault-border) solid var(--vault-secondary);outline-offset:calc(-1 * var(--vault-border)) }
 
 .lm-vault-switcher { flex-shrink:0;min-width:0;padding:12px;position:relative;border-block-start:var(--vault-border) solid var(--vault-separator) }
 .lm-root .lm-vault-switcher-toggle { justify-content:flex-start;background:color-mix(in srgb,var(--vault-panel) 75%,var(--vault-hover));border:var(--vault-border) solid var(--vault-separator);border-radius:6px }
