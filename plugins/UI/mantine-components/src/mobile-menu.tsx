@@ -4,7 +4,7 @@ import { useCallback, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
-interface Option { readonly id: string; readonly label: string; readonly title?: string; readonly icon?: string }
+interface Option { readonly id: string; readonly label: string; readonly title?: string; readonly icon?: string; readonly disabled?: boolean }
 interface Choice extends Option { readonly trailingAction?: Option }
 interface Item {
  readonly id: string;
@@ -20,7 +20,8 @@ interface Props { readonly density?: "compact" | "comfortable"; readonly items: 
 function validOption(option: Option | undefined): option is Option {
  return !!option && typeof option.id === "string" && typeof option.label === "string" &&
    (option.title === undefined || typeof option.title === "string") &&
-   (option.icon === undefined || typeof option.icon === "string");
+   (option.icon === undefined || typeof option.icon === "string") &&
+   (option.disabled === undefined || typeof option.disabled === "boolean");
 }
 function validChoices(choices: readonly Choice[]): boolean {
  if (!Array.isArray(choices) || !choices.length) return false;
@@ -87,15 +88,13 @@ function MobileAction({ item, compact, dock, overlay }: {
       style={dock ? { width: geometry?.width ?? "70vw" } : undefined}>
       {item.choices.map(choice => {
         const selected = choice.id === item.selectedChoiceId;
-        const primary = <Menu.Item key={choice.id} title={choice.title ?? choice.label} aria-current={selected ? "true" : undefined}
-          leftSection={choice.icon ? <Icon name={choice.icon} /> : undefined}
-          rightSection={selected ? <Icon name="check" /> : undefined} onClick={() => item.onPress(choice.id)}>{choice.label}</Menu.Item>;
         const trailing = choice.trailingAction;
-        if (!trailing) return primary;
-        return <div key={choice.id} className="lm-mobile-choice-row" role="group" aria-label={choice.label}>
-          {primary}
-          <Menu.Item className="lm-mobile-choice-trailing" aria-label={trailing.label} title={trailing.title ?? trailing.label}
-            onClick={() => item.onPress(trailing.id)}><Icon name={trailing.icon ?? "actions"} /></Menu.Item>
+        return <div key={choice.id} className="lm-mobile-choice-row" data-selected={selected || undefined}
+          role={trailing ? "group" : undefined} aria-label={trailing ? choice.label : undefined}>
+          <Menu.Item title={choice.title ?? choice.label} aria-current={selected ? "true" : undefined} disabled={choice.disabled ?? false}
+            leftSection={choice.icon ? <Icon name={choice.icon} /> : undefined} onClick={() => item.onPress(choice.id)}>{choice.label}</Menu.Item>
+          {trailing && <Menu.Item className="lm-mobile-choice-trailing" aria-label={trailing.label} title={trailing.title ?? trailing.label}
+            disabled={trailing.disabled ?? false} onClick={() => item.onPress(trailing.id)}><Icon name={trailing.icon ?? "actions"} /></Menu.Item>}
         </div>;
       })}
     </Menu.Dropdown>

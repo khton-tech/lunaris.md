@@ -1,7 +1,7 @@
 # Mobile menu
 
 The mobile action registry is public through @lunaris/mobile-menu. Require
-api:lunaris.mobile-menu@^1.4.0 and call ctx.use(MobileMenu).register(item, owner).
+api:lunaris.mobile-menu@^1.5.0 and call ctx.use(MobileMenu).register(item, owner).
 Items have a canonical dotted id, already-localized nonempty label, Lucide icon,
 optional integer order, optional disabled boolean and onPress callback. register
 rejects duplicate IDs. update replaces a registered descriptor; list returns an
@@ -10,11 +10,12 @@ Owner cancellation removes the action and renders the new list. Stale callbacks
 and disabled actions do nothing. The provider logs failures with the original error.
 An optional nonnegative safe-integer count shows a page outline with the number
 in place of the icon. Supply a localized accessible label that includes the count.
-Optional choices contain a unique id, localized label and optional title and icon.
+Optional choices contain a unique id, localized label and optional title, icon
+and disabled state.
 An optional trailingAction uses the same fields and a distinct id. It renders
 as its own menu item in the same row.
 selectedChoiceId marks the current choice. The provider takes an immutable
-snapshot and passes only a valid choice ID to onPress. Plain actions keep the
+snapshot and passes only an enabled choice ID to onPress. Plain actions keep the
 same no-argument callback.
 
 The default provider/controller is plugins/UI/mobile-menu. It owns registration
@@ -68,7 +69,9 @@ picker (40) for the mounted Vault. Sidebar contributes its drawer action at
 50 and also supplies the top-left launcher. Order 20 leaves room for a future
 public Search action. The picker count includes blank tabs. It opens an anchored Mantine menu using the Files
 Vault switcher pattern. Its rows select tabs through the same callbacks as the
-top strip. The menu lists open tabs with a close control on each closable row.
+top strip. The menu lists open tabs with a close control on each row and marks
+the selected row with the Files active-file accent line. The final blank
+tab's close control is disabled.
 The dock's plus creates tabs. The anchored popup matches the dock's measured
 width and center. The dock takes 70% of the Workspace width within its side
 gutters. The popup fits up to five rows and scrolls internally when more tabs

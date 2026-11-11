@@ -9,16 +9,20 @@ import manifest from "../manifest.json" with { type: "json" };
 function copyChoice(input: unknown, ids: Set<string>, allowTrailing: boolean): MobileMenuChoice | undefined {
  if (!input || typeof input !== "object" || ![Object.prototype, null].includes(Object.getPrototypeOf(input))) return;
  const fields = Object.getOwnPropertyDescriptors(input);
- const keys = allowTrailing ? ["id", "label", "title", "icon", "trailingAction"] : ["id", "label", "title", "icon"];
+ const keys = ["id", "label", "title", "icon", "disabled"];
+ if (allowTrailing) keys.push("trailingAction");
  if (Reflect.ownKeys(fields).some(key => typeof key !== "string" || !keys.includes(key) || !("value" in fields[key]!))) return;
  const id: unknown = fields.id?.value;
  const label: unknown = fields.label?.value;
  const title: unknown = fields.title?.value;
  const icon: unknown = fields.icon?.value;
+ const disabled: unknown = fields.disabled?.value;
  if (typeof id !== "string" || !id.trim() || ids.has(id) || typeof label !== "string" || !label.trim() ||
-   (title !== undefined && typeof title !== "string") || (icon !== undefined && typeof icon !== "string")) return;
+   (title !== undefined && typeof title !== "string") || (icon !== undefined && typeof icon !== "string") ||
+   (disabled !== undefined && typeof disabled !== "boolean")) return;
  ids.add(id);
- const option = { id, label, ...(title === undefined ? {} : { title }), ...(icon === undefined ? {} : { icon }) };
+ const option = { id, label, ...(title === undefined ? {} : { title }), ...(icon === undefined ? {} : { icon }),
+   ...(disabled === undefined ? {} : { disabled }) };
  if (fields.trailingAction?.value === undefined) return Object.freeze(option);
  const trailingAction = copyChoice(fields.trailingAction.value, ids, false);
  return trailingAction && Object.freeze({ ...option, trailingAction });
@@ -80,7 +84,8 @@ export default definePlugin({ manifest, activate(ctx) {
   const item: MobileMenuItem = Object.freeze({ ...input, ...(choices ? { choices } : {}), async onPress(choiceId?: string) {
    const current = entries.get(item.id);
    if (ctx.signal.aborted || !current || current.item !== item || current.owner.aborted || item.disabled) return;
-   if (choices && !choices.some(choice => choice.id === choiceId || (choiceId !== undefined && choice.trailingAction?.id === choiceId))) return;
+   if (choices && (!choiceId || !choices.some(choice =>
+     (choice.id === choiceId && !choice.disabled) || (choice.trailingAction?.id === choiceId && !choice.trailingAction.disabled)))) return;
    try {
     if (choices) await action(choiceId);
     else await action();

@@ -37,6 +37,12 @@ test('mobile items validate, order, update, contain failures and follow contribu
   await choiceAction.onPress('two');
   await choiceAction.onPress('close-two');
   assert.equal(calls,3);
+  assert.equal(api.update({...select,choices:[choices[0],{id:'two',label:'Two',disabled:true,
+    trailingAction:{id:'close-two',label:'Close Two',disabled:true}}]}).ok,true);
+  const disabledChoice=api.list()[1];
+  await disabledChoice.onPress('two');
+  await disabledChoice.onPress('close-two');
+  assert.equal(calls,3);
   await owner.dispose(); await flush(); assert.deepEqual(api.list(),[]);
   await stale.onPress(); await choiceAction.onPress('close-two'); assert.equal(calls,3);
  } finally {await s.stop();}

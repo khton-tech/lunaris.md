@@ -96,8 +96,9 @@ export default definePlugin({ manifest, activate(ctx) {
       const choices: MobileMenuChoice[] = [];
       for (const tab of tabProps.tabs) {
         const label = tab.title.trim() ? tab.title : tab.description;
-        const trailingAction = tab.closable ? { id: `close:${tab.id}`, label: `${tabProps.labels.close} — ${label}`, icon: "window-close" } : undefined;
-        choices.push({ id: tab.id, label, title: tab.description, ...(trailingAction ? { trailingAction } : {}) });
+        choices.push({ id: tab.id, label, title: tab.description, trailingAction: {
+          id: `close:${tab.id}`, label: `${tabProps.labels.close} — ${label}`, icon: "window-close", disabled: !tab.closable,
+        } });
       }
       const count = tabProps.tabs.length;
       const label = localization.text(ctx.pluginId, "mobileTabs", { count });

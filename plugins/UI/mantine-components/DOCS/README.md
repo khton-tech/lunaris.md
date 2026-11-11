@@ -1016,11 +1016,13 @@ The mobile-menu role accepts an optional count on an action descriptor. The
 44px Mantine ActionIcon contains a rounded page outline with the current count.
 The localized accessible name includes that number. WorkspaceLayout owns the
 surrounding pill and mobile visibility. Actions with choices open a Mantine Menu
-anchored to the trigger. It reuses the Files Vault switcher's menu surface,
-Menu.Item rows and trailing checkmark. The Owner's annotated list defines the
+anchored to the trigger. It reuses the Files Vault switcher's menu surface and
+Menu.Item rows. The selected row shares the Files active-file accent line and
+selection surface. The Owner's annotated list defines the
 dense rows and aligns the popup to the dock. WorkspaceLayout gives the dock 70%
 of its allocated width, subject to the side gutters. The mobile role observes
 its lent dock target and uses that width and center for the anchored popup.
+The action group fills the dock and distributes its controls evenly across it.
 Each row starts at 34px and grows with
 theme typography. The floating surface fits up to five rows and scrolls
 internally above that limit, with a smaller cap in short viewports.
@@ -1030,7 +1032,8 @@ through the MobileMenu registry. Mantine owns keyboard navigation, dismissal
 and focus return.
 Each choice can supply a trailing action. The mobile role renders it as an
 independent Mantine Menu.Item next to the tab label, with a localized name and
-a 44px-wide touch target. Both controls participate in menu keyboard
+a 44px-wide touch target. Unavailable actions keep their position and are
+disabled. Enabled controls participate in menu keyboard
 navigation. The Active Screen role accepts compactTabs, supplied from the
 owning Workspace context when its dock actions are available. It omits the tab
 strip and the location/history row in that presentation. The Owner's phone

@@ -163,6 +163,9 @@ test('compact Workspace shows one live tab counter and switches through the shar
     const toolbar = s.surface.querySelector('.lm-workspace-mobile-toolbar');
     assert.equal(toolbar.hidden, false);
     assert.equal(s.dom.window.getComputedStyle(toolbar).width, '70%');
+    const dockActions = toolbar.querySelector('.lm-mobile-menu-items');
+    assert.equal(s.dom.window.getComputedStyle(dockActions).flexGrow, '1');
+    assert.equal(dockActions.style.getPropertyValue('--group-justify'), 'space-evenly');
     const [back, forward, add, button, sidebar] = toolbar.querySelectorAll('button');
     assert.deepEqual([...toolbar.querySelectorAll('button')].map(action => action.getAttribute('aria-label')),
       ['Back', 'Forward', 'Add tab', 'Open tabs: 1', 'Sidebar']);
@@ -208,7 +211,14 @@ test('compact Workspace shows one live tab counter and switches through the shar
     await flush();
     assert.equal(menu().style.width, '294px');
     assert.equal(command('Добавить вкладку'), undefined);
-    assert.equal(menu().querySelector('[aria-current="true"]')?.textContent, 'Новая вкладка');
+    const currentTab = menu().querySelector('.lm-mobile-choice-row[data-selected]');
+    const currentTabLabel = currentTab.querySelector('[aria-current="true"]');
+    assert.equal(currentTabLabel.textContent, 'Новая вкладка');
+    assert.equal(currentTabLabel.querySelector('svg'), null);
+    assert.equal(currentTab.querySelector('[aria-label="Закрыть вкладку — Новая вкладка"]').disabled, false);
+    assert.ok([...stylesheet.sheet.cssRules].some(rule =>
+      rule.selectorText?.includes('.lm-mobile-choice-row[data-selected]::before') &&
+      rule.style?.getPropertyValue('background') === 'var(--vault-accent)'));
     assert.equal(menu().classList.contains('lm-explorer-tab-menu'), true);
     const overlay = menu().closest('.lm-mobile-choice-overlay');
     assert.ok(overlay);
@@ -248,7 +258,12 @@ test('compact Workspace shows one live tab counter and switches through the shar
     assert.equal(s.tools.screens.snapshot().activeId, null);
     assert.equal(button.getAttribute('aria-label'), 'Открытые вкладки: 1');
     await openMenu(button);
-    assert.equal(command('Закрыть вкладку — Новая вкладка'), undefined);
+    const disabledClose = command('Закрыть вкладку — Новая вкладка');
+    assert.equal(disabledClose.disabled, true);
+    disabledClose.click();
+    await flush();
+    assert.ok(menu());
+    assert.equal(button.textContent, '1');
     button.click();
     await flush();
 

@@ -66,16 +66,17 @@ their content inside borrowed targets.
 - The tab list and history belong to the mounted Vault workspace. ActiveDocument
   restores its persisted file after reopening a Vault.
 
-At compact widths, the optional MobileMenu 1.4 integration contributes Back,
+At compact widths, the optional MobileMenu 1.5 integration contributes Back,
 Forward, Add tab and the tab picker for the mounted Active Screen layout. The
 picker's horizontal rounded outline shows the Vault tab count, including blank tabs. Pressing it
 opens a localized menu using the same tab selection and document guards as the
 strip above the editor. Workspace owns the lower floating surface and the
 Mantine Mobile Menu role owns the anchored menu. The Owner's
 highlighted bottom panel and the Files Vault switcher are the references.
-The compact menu lists open tabs and gives each closable tab its own trailing
-close action. The dock's plus invokes the existing tab creation operation.
-The last blank tab has no close control. Workspace reports compact presentation through
+The compact menu marks the current tab with the same leading accent line as
+the Files panel and renders a trailing close control on each row. The final
+blank tab's close control is disabled. The dock's plus invokes the existing
+tab creation operation. Workspace reports compact presentation through
 its public context. Active Screen suppresses both top rows in that mode when
 the dock actions are available. Desktop retains the full strip, history and
 reordering. See

@@ -5,6 +5,7 @@ export interface MobileMenuOption {
  readonly label: string;
  readonly title?: string;
  readonly icon?: string;
+ readonly disabled?: boolean;
 }
 export interface MobileMenuChoice extends MobileMenuOption {
  readonly trailingAction?: MobileMenuOption;
@@ -29,4 +30,4 @@ export interface MobileMenuApi {
  update(item: MobileMenuItem): MobileMenuResult;
  list(): readonly MobileMenuItem[];
 }
-export const MobileMenu = defineApi<MobileMenuApi>({ id: "lunaris.mobile-menu", version: "1.4.0", validate: value => !!value && typeof value === "object" && ["register", "update", "list"].every(key => typeof Object.getOwnPropertyDescriptor(value,key)?.value === "function") });
+export const MobileMenu = defineApi<MobileMenuApi>({ id: "lunaris.mobile-menu", version: "1.5.0", validate: value => !!value && typeof value === "object" && ["register", "update", "list"].every(key => typeof Object.getOwnPropertyDescriptor(value,key)?.value === "function") });
