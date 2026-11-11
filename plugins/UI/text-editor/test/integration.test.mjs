@@ -2,6 +2,7 @@ import { Drafts } from '@lunaris/remote';
 import { FilesystemSources } from '@lunaris/filesystem';
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
 import { useBrowser, typeInput } from '../../../../tools/test/browser.mjs';
 import { EditorView } from '@codemirror/view';
@@ -162,6 +163,19 @@ test('workspace tabs compose with the editor, Settings, history and Vault lifeti
   const active = () => tabs().find(tab => tab.getAttribute('aria-selected') === 'true');
   const button = label => strip.querySelector(`button[aria-label="${label}"]`);
   try {
+    const document = s.dom.window.document;
+    const stylesheet = document.createElement('style');
+    stylesheet.textContent = readFileSync(new URL('../../mantine-components/styles.css', import.meta.url), 'utf8')
+      .replace(/^@import .*$/gm, '');
+    document.head.append(stylesheet);
+    const viewport = s.target.querySelector('.lm-text-editor');
+    assert.equal(viewport.querySelector('.lm-editor-heading').parentElement, viewport);
+    assert.equal(s.cm().dom.parentElement.parentElement, viewport);
+    const compactStyles = [...stylesheet.sheet.cssRules].flatMap(rule => [...(rule.cssRules ?? [])]);
+    assert.ok(compactStyles.some(rule => rule.selectorText === '.lm-text-editor' &&
+      rule.style.getPropertyValue('overflow') === 'auto' &&
+      rule.style.getPropertyValue('--editor-view-overflow') === 'visible'));
+    viewport.scrollTop = 96;
     assert.equal(active().textContent, 'note');
     assert.equal(button('Back').disabled, true);
     const note = active();
@@ -172,6 +186,8 @@ test('workspace tabs compose with the editor, Settings, history and Vault lifeti
     assert.equal(s.documents.current(), null);
     assert.equal(s.disk.get('a/note.md').text, 'Unsaved edit');
     await s.documents.open({ vaultId: 'a', path: 'other.md' }); await flush();
+    assert.equal(s.target.querySelector('.lm-text-editor'), viewport);
+    assert.equal(viewport.scrollTop, 0);
     assert.deepEqual(tabs().map(tab => tab.textContent), ['note', 'other']);
     assert.equal(active().textContent, 'other');
     button('Back').click(); await flush();

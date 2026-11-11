@@ -529,6 +529,14 @@
   color:var(--vault-text);background:transparent;border:0;box-shadow:none;text-overflow:ellipsis
 }
 @container(max-width:640px) {
+  .lm-text-editor {
+    --editor-gutter:clamp(18px,4.25cqi,28px);
+    --editor-padding-start:clamp(20px,4.5cqi,26px);
+    --editor-padding-end:clamp(24px,5cqi,36px);
+    --editor-view-height:auto;--editor-view-overflow:visible;--editor-scroller-flex:1 0 auto;
+    overflow:auto;overscroll-behavior:contain
+  }
+  .lm-editor-target:not([hidden]) { flex:1 0 auto;overflow:visible }
   .lm-editor-heading { padding-block-start:clamp(56px,8cqh,72px) }
   .lm-root .lm-editor-title .lm-input {
     min-height:32px;font-size:clamp(1.25rem,1.45em,1.625rem);font-weight:700;line-height:1.2;
@@ -728,8 +736,10 @@
 }
 .lm-root .lm-mobile-choice-menu {
   --mobile-choice-row-height:max(34px,calc(1lh + 2 * var(--vault-space)));
+  --mobile-choice-inset:calc(var(--vault-space) * 1.5);
   max-width:calc(100vw - 24px);
-  max-height:min(calc(5 * var(--mobile-choice-row-height) + 2 * (var(--vault-space) + var(--vault-border))),55dvh);
+  padding:var(--mobile-choice-inset);
+  max-height:min(calc(5 * var(--mobile-choice-row-height) + 2 * (var(--mobile-choice-inset) + var(--vault-border))),55dvh);
   border-color:var(--vault-menu-border,color-mix(in srgb,var(--vault-separator) 65%,transparent));
   overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain
 }

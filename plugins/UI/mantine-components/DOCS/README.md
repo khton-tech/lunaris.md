@@ -1024,7 +1024,8 @@ of its allocated width, subject to the side gutters. The mobile role observes
 its lent dock target and uses that width and center for the anchored popup.
 The action group fills the dock and distributes its controls evenly across it.
 Each row starts at 34px and grows with
-theme typography. The floating surface fits up to five rows and scrolls
+theme typography. The mobile role sets the menu padding to one and a half
+theme spacing steps on all sides. The floating surface fits up to five rows and scrolls
 internally above that limit, with a smaller cap in short viewports.
 The renderer portals the menu to its own themed root to clear the
 toolbar's scroll boundary. Active Screen supplies the choices and their callbacks
@@ -1055,6 +1056,9 @@ the action, list, long names, themes and keyboard focus remains pending.
 At editor allocations up to 640px, the editable file-name heading follows the
 Owner's phone reference with a smaller 1.25–1.625rem title, weight 700 and a
 compact line height. Its inset keeps the heading clear of the floating launcher.
+The Owner's scroll screenshot is the reference for scrolling the title with the
+document. The UIKit viewport contains both and supplies the larger mobile
+gutters. The desktop presentation keeps the title above the CodeMirror scroller.
 The shared text-editor role owns this styling. Document text and Markdown
 heading metrics still come from CodeMirror.
 

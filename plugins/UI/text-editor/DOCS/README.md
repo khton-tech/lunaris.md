@@ -28,10 +28,15 @@ loading content, editing and reporting save conflicts.
 
 On editor allocations up to 640px, the file-name heading follows the Owner's
 phone reference. UIKit uses a smaller bold title with a compact line height and
-a bounded inset that clears the floating launcher. CodeMirror keeps its document
-heading styles, padding, caret and selection geometry. Workspace retains outer
-geometry and floating surfaces. The existing SDK target supplies size containment.
-Native acceptance covers long names, rename focus and short landscape allocations.
+a bounded inset that clears the floating launcher. The Owner's scroll screenshot
+defines the shared vertical viewport for the title and body and the wider content
+gutters. UIKit owns this viewport. CodeMirror grows inside its target and uses
+the inherited content insets. Desktop keeps its internal CodeMirror scroller.
+Opening a different document resets the shared viewport, while title updates,
+saves and theme updates keep the mounted view. Workspace retains the outer
+geometry and floating surfaces. Native acceptance covers long and short documents,
+touch and wheel scrolling, caret visibility, long names and landscape allocations.
+See the [CodeMirror styling guide](https://codemirror.net/examples/styling/#overflow-and-scrolling).
 
 ## Usage and saving
 
@@ -257,12 +262,13 @@ The plugin registers `lunaris.text-editor-host` for ActiveScreen and mounts
   retryLabel, reloadLabel, discardLabel, cancelLabel. Product messages are
   localized by the controller. Optional renameError carries a localized alert.
 - Booleans: ready, dirty, busy, canRename.
-- Callbacks: onSave(), onReload(), onTarget(HTMLElement | null),
+- Callbacks: onSave(), onReload(), onTarget(HTMLElement | null, viewport?: HTMLElement),
   onRename(name) => Promise<boolean>.
 - Public presentation context: embedded/fill.
 
-onTarget lends a stable owned element and releases it with null on disposal.
-Preserve its identity across status/theme updates. Mount CodeMirror after SDK
+onTarget lends a stable owned editor mount and optionally its enclosing scroll
+viewport. It releases them with null on disposal. Preserve their identity
+across status/theme updates. Mount CodeMirror after SDK
 mount returns; do not style/reparent borrowed targets. The role confirms dirty
 discard before invoking onReload. The title field commits on blur or Enter and
 reverts on Escape; it stays read-only while the document is busy. Controller
