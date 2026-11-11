@@ -1,12 +1,15 @@
 import type { FilesystemApi, FileTarget } from "@lunaris/filesystem";
 import type { ConfigResult, ConfigTable, ConfigValue } from "@lunaris/config";
-import { decode, encode, isTable, section } from "./codec.js";
+import { decode, encode, isTable, section, snapshot } from "./codec.js";
 
 export function createStorage(fs: FilesystemApi, stopped: () => boolean) {
   const queues = new Map<string, Promise<unknown>>();
+  const reads = new Map<string, ReturnType<typeof load>>();
   const stoppedResult = (): Extract<ConfigResult<never>, { ok: false }> => ({ ok: false, error: { code: "STOPPED", message: "The config manager is stopped." } });
   function queued<T>(target: FileTarget, work: () => Promise<ConfigResult<T>>): Promise<ConfigResult<T>> {
     const key = JSON.stringify([target.vaultId, target.path]);
+    // A queued write/initialization is a barrier: later reads must see its result.
+    reads.delete(key);
     const task = (queues.get(key) ?? Promise.resolve()).catch(() => {}).then(() => stopped() ? stoppedResult() : work());
     queues.set(key, task);
     void task.finally(() => { if (queues.get(key) === task) queues.delete(key); }).catch(() => {});
@@ -54,10 +57,15 @@ export function createStorage(fs: FilesystemApi, stopped: () => boolean) {
       return ensure({ vaultId, path: ".lunaris/config.toml" });
     },
     read(target: FileTarget, pluginId: string): Promise<ConfigResult<ConfigTable>> {
-      return queued(target, async () => {
-        const current = await load(target);
-        return current.ok ? { ok: true, value: section(current.value.document, pluginId) } : current;
-      });
+      const key = JSON.stringify([target.vaultId, target.path]);
+      let pending = reads.get(key);
+      if (!pending) {
+        pending = queued(target, () => load(target)); reads.set(key, pending);
+        const current = pending;
+        void pending.finally(() => { if (reads.get(key) === current) reads.delete(key); }).catch(() => {});
+      }
+      // Only in-flight reads share decoding. Each consumer owns its returned table.
+      return pending.then(current => current.ok ? { ok: true, value: snapshot(section(current.value.document, pluginId)) as ConfigTable } : current);
     },
     mutate(target: FileTarget, pluginId: string, key: string, value: ConfigValue | undefined): Promise<ConfigResult<boolean>> {
       return queued(target, async () => {
@@ -72,7 +80,10 @@ export function createStorage(fs: FilesystemApi, stopped: () => boolean) {
         if (value === undefined) {
           if (!Object.hasOwn(config, key)) return { ok: true, value: false };
           delete config[key];
-        } else config[key] = value;
+        } else {
+          if (Object.hasOwn(config, key) && Object.is(config[key], value)) return { ok: true, value: false };
+          config[key] = value;
+        }
         const text = encode(document);
         if (stopped()) return stoppedResult();
         const written = await fs.writeText(target, text, version === null ? { mode: "create" } : { mode: "replace", expectedVersion: version });

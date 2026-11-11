@@ -50,3 +50,8 @@ that engine integration is still pending. The operation does not restore unrelat
 Vault documents, global settings through a Vault target, or arbitrary side effects.
 
 PrepareVault initializes storage only at priority -100. Vault display-name policy belongs to the Vault persistence owner; generic Config does not read or interpret Vault metadata.
+
+## Concurrent reads and unchanged values
+
+Concurrent namespace reads of one file share only the pending filesystem read and TOML decode. Each caller receives an independent snapshot. Queued writes/initialization split read batches, and completed reads are never retained as a persistent cache, preserving external-edit visibility on subsequent reads. Setting an identical scalar value skips the write and ConfigChanged notification. Optimistic version checks remain intact. Storage regressions cover isolation, read/write ordering, external edits and failure retry.
+
