@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Box, Button, Group, Modal, Stack, Switch, Tabs, Text } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
+import { Icon } from './icons.js';
 import { SettingsSelect } from './settings-select.js';
 
 interface Metadata { readonly id: string; readonly name: string; readonly version: string; readonly description: string; readonly fields: readonly { readonly label: string; readonly value: string }[] }
@@ -106,7 +107,7 @@ export function LimeSettings({ props, theme, overlay }: {
       {!props.available ? <Text size="sm" c="dimmed">{props.labels.noVault}</Text> : <>
         {!props.rows.length && !props.preview && <Text size="sm" c="dimmed">{props.labels.empty}</Text>}
         <Group gap="xs" wrap="wrap">
-          <Button size="compact-sm" disabled={disabled || !!props.preview} onClick={event => { previewTrigger.current = event.currentTarget; props.onAdd(); }}>{props.labels.add}</Button>
+          <Button size="sm" variant="filled" leftSection={<Icon name="create" />} disabled={disabled || !!props.preview} onClick={event => { previewTrigger.current = event.currentTarget; props.onAdd(); }}>{props.labels.add}</Button>
           {(props.safeMode || props.rows.length > 0) && <Button size="compact-sm" variant="subtle" disabled={disabled || !!props.preview} onClick={() => props.onSafeMode(!props.safeMode)}>{props.safeMode ? props.labels.resume : props.labels.safeMode}</Button>}
         </Group>
       </>}
@@ -118,10 +119,10 @@ export function LimeSettings({ props, theme, overlay }: {
       </div>,
       overlay.target,
     )}
-    {props.rows.map(row => <Box key={row.id} data-lime-id={row.id} style={{ minWidth: 0 }}>
+    {props.rows.map(row => <Box key={row.id} className="lm-lime-package" data-lime-id={row.id}>
       <Box className="lm-setting-row" data-layout="inline">
         <Stack className="lm-setting-label" gap={4} style={{ overflowWrap: 'anywhere' }}>
-          <Text size="sm">{row.name} <Text span c="dimmed">{row.version}</Text></Text>
+          <Text size="sm" fw={600}>{row.name} <Text span fw={400} c="dimmed">{row.version}</Text></Text>
           <Text size="sm" c="dimmed">{row.state}</Text>
         </Stack>
         <Group gap="xs" wrap="wrap">

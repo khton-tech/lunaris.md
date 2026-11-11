@@ -276,14 +276,27 @@
 .lm-setting-dropdown [role=option][data-checked] { font-weight:500;background:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel)) }
 .lm-setting-option svg { flex-shrink:0 }
 .lm-setting-options { display:flex;flex-direction:column;gap:var(--vault-space);max-height:min(18rem,50dvh);overflow:auto }
-.lm-settings-page { flex:1; min-width:0; min-height:0; overflow:auto; padding:clamp(0.75rem, 3cqi, 2rem);--settings-divider:color-mix(in srgb,var(--vault-control-border) 12%,transparent) }
+.lm-settings-page {
+  --settings-divider:color-mix(in srgb,var(--vault-control-border) 20%,transparent);
+  --settings-column-width:60rem;
+  --settings-group-inset:clamp(0.75rem, 2cqi, 1.25rem);
+  flex:1; min-width:0; min-height:0; overflow:auto; padding:clamp(0.75rem, 3cqi, 2rem)
+}
 .lm-settings-page>*,.lm-settings-navigation>* { flex-shrink:0 }
-.lm-settings-page-header { width:100%;max-width:60rem;padding-block-end:calc(var(--vault-space)*5);margin-block-end:calc(var(--vault-space)*6);border-bottom:var(--vault-border) solid var(--settings-divider) }
-.lm-settings-group { width:100%;max-width:60rem;margin-block-end:calc(var(--vault-space)*7) }
+.lm-settings-page > :is(.lm-settings-page-header,.lm-settings-group,.lm-settings-empty) {
+  box-sizing:border-box; width:100%;max-width:var(--settings-column-width);margin-inline:auto
+}
+.lm-settings-page-header { padding-block-end:calc(var(--vault-space)*4);margin-block-end:calc(var(--vault-space)*4);border-bottom:var(--vault-border) solid var(--settings-divider) }
+.lm-settings-group {
+  padding:var(--settings-group-inset);margin-block-end:calc(var(--vault-space)*4);
+  background:color-mix(in srgb,var(--vault-panel) 55%,var(--vault-content));border-radius:var(--vault-radius)
+}
 .lm-settings-group-header { padding-block-end:calc(var(--vault-space)*3);border-bottom:var(--vault-border) solid var(--settings-divider) }
 .lm-settings-group-header h2 { line-height:1.4;overflow-wrap:anywhere }
 .lm-settings-section { display:flex; min-width:0; flex-direction:column }
-.lm-lime-toolbar { padding-block-start:calc(var(--vault-space)*4); min-width:0 }
+.lm-lime-toolbar { padding-block-start:calc(var(--vault-space)*3); min-width:0 }
+.lm-lime-package { min-width:0;border-block-start:var(--vault-border) solid var(--settings-divider) }
+.lm-lime-package .lm-setting-row > .mantine-Group-root { min-width:0 }
 .lm-lime-overlay { position:fixed; inset:0; z-index:300 }
 .lm-lime-overlay .mantine-Modal-inner { inset-inline:0 }
 .lm-root .lm-lime-dialog { display:flex; flex-direction:column; max-height:min(42rem,calc(100dvh - 2rem)); background:var(--vault-panel); color:var(--vault-text); border:var(--vault-border) solid var(--settings-divider); border-radius:var(--vault-radius); overflow:auto; scrollbar-width:none }
@@ -296,9 +309,9 @@
 .lm-lime-tabs .mantine-Tabs-list, .lm-lime-dialog-footer { flex-shrink:0 }
 .lm-lime-panel { min-height:0; overflow:auto; overscroll-behavior:contain; scrollbar-width:none; padding-block:calc(var(--vault-space)*3) }
 .lm-lime-dialog-footer { border-top:var(--vault-border) solid var(--settings-divider); padding-block-start:calc(var(--vault-space)*3) }
-.lm-settings-items { flex:1; min-width:0;padding-inline-start:calc(var(--vault-space)*3) }
-.lm-setting-row { display:flex; flex-wrap:nowrap; align-items:center; gap:calc(var(--vault-space)*3) calc(var(--vault-space)*6); min-width:0;padding-block:calc(var(--vault-space)*5) }
-.lm-setting-row+.lm-setting-row { border-top:var(--vault-border) solid color-mix(in srgb,var(--vault-control-border) 7%,transparent) }
+.lm-settings-items { flex:1; min-width:0 }
+.lm-setting-row { display:flex; flex-wrap:nowrap; align-items:center; gap:calc(var(--vault-space)*3) calc(var(--vault-space)*6); min-width:0;padding-block:calc(var(--vault-space)*3) }
+.lm-setting-row+.lm-setting-row { border-top:var(--vault-border) solid color-mix(in srgb,var(--vault-control-border) 14%,transparent) }
 .lm-setting-label { flex:1 1 0; min-width:0; overflow-wrap:anywhere }
 .lm-setting-control { flex:0 1 18rem; min-width:0; max-width:100%; overflow-wrap:anywhere }
 .lm-setting-row[data-layout=inline]>.lm-setting-control { margin-inline-start:auto }
@@ -345,11 +358,10 @@
 .lm-root[data-window-chrome=true]>.lm-settings-navigation>.lm-tool-panel-toolbar { padding:3px;background:var(--vault-caption-background);color:var(--vault-caption-text);margin:3px 3px 6px }
 .lm-root[data-window-chrome=true]>.lm-settings-navigation .lm-tool-panel-title { min-height:22px;padding:2px 4px;font-weight:700;color:inherit }
 .lm-root[data-window-chrome=true]>.lm-settings-page { padding:8px;gap:12px }
-.lm-root[data-window-chrome=true]>.lm-settings-page>.lm-settings-page-header { padding:4px 8px;margin:0;max-width:none;border:0;background:var(--vault-caption-background);color:var(--vault-caption-text);border-radius:3px 3px 0 0 }
+.lm-root[data-window-chrome=true]>.lm-settings-page>.lm-settings-page-header { padding:4px 8px;margin-block:0;border:0;background:var(--vault-caption-background);color:var(--vault-caption-text);border-radius:3px 3px 0 0 }
 .lm-root[data-window-chrome=true]>.lm-settings-page>.lm-settings-page-header h1 { font-size:13px;line-height:1.5;font-weight:700;color:inherit }
-.lm-root[data-window-chrome=true]>.lm-settings-page>.lm-settings-group { margin:0;max-width:none;padding:12px;box-shadow:var(--vault-inset-shadow) }
+.lm-root[data-window-chrome=true]>.lm-settings-page>.lm-settings-group { margin-block:0;padding:12px;background:transparent;box-shadow:var(--vault-inset-shadow) }
 .lm-root[data-window-chrome=true]>.lm-settings-page .lm-settings-group-header { padding-bottom:8px;border-color:var(--vault-separator) }
-.lm-root[data-window-chrome=true]>.lm-settings-items { padding-inline:0 }
 .lm-root[data-window-chrome=true]>.lm-settings-items .lm-setting-row { padding-block:calc(var(--vault-space)*4) }
 .lm-root[data-window-chrome=true]>.lm-settings-items .lm-setting-input { --input-bg:var(--vault-content);--input-bd:var(--vault-control-border);--input-height:26px;border-radius:0;font-weight:400 }
 .lm-root[data-window-chrome=true]>.lm-settings-items .lm-setting-select { text-align:start;padding-inline:6px 28px }
@@ -506,7 +518,9 @@
 
 .lm-settings-page-header { display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:1;background:var(--vault-content) }
 .lm-root .lm-settings-open-sidebar { display:none;flex-shrink:0;color:inherit;--ai-hover:var(--vault-hover);--ai-hover-color:var(--vault-text) }
-.lm-settings-page-header h1 { overflow-wrap:anywhere }
+.lm-settings-page-header h1 { display:flex;align-items:center;gap:calc(var(--vault-space)*2);min-width:0;overflow-wrap:anywhere }
+.lm-settings-page-header h1 > svg { flex:none }
+.lm-settings-page-header h1 > span { min-width:0 }
 @container(max-width:640px) { .lm-root .lm-settings-open-sidebar { display:inline-flex } }
 
 /* Luna floating surfaces belong to Workspace; the menu role owns only controls. */
@@ -562,7 +576,6 @@
 
 /* Settings owns field composition at its allocated width, in every theme. */
 @container(max-width:640px) {
- .lm-root>.lm-settings-items { padding-inline:0 }
  .lm-setting-row:not([data-type=switch]) { flex-direction:column;align-items:stretch;gap:calc(var(--vault-space)*2) }
  .lm-setting-row:not([data-type=switch])>.lm-setting-label,.lm-setting-row:not([data-type=switch])>.lm-setting-control { flex:0 0 auto;min-width:0;width:100%;margin-inline:0 }
  .lm-setting-row[data-type=switch][data-layout=inline] { min-height:44px }

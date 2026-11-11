@@ -240,7 +240,7 @@ Mantine supplies:
 - `lunaris.settings-navigation`: title, emptyLabel, categories `{ id, title }[]`,
   selectedId or null, and onSelect(id). Category labels wrap; aria-current exposes
   selection without forcing focus.
-- `lunaris.settings-page`: title, emptyLabel, sections `{ id, title }[]`, and
+- `lunaris.settings-page`: title, optional category icon, emptyLabel, sections `{ id, title }[]`, and
   onTargets(map or null). Stable section targets are borrowed; mount children only
   after the parent Components call returns. The container passes public
   `presentation: { mode: "embedded", sizing: "content" }` to section roles and

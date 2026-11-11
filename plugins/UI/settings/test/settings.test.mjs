@@ -120,6 +120,9 @@ test('category icons follow public metadata and slider reset shares item cancell
   await openCategory(s);
   const icons = ['Example', 'Editor', 'Files'].map(title => category(s, title).querySelector('svg').innerHTML);
   assert.equal(new Set(icons).size, 3);
+  const headingIcon = s.surface.querySelector('.lm-settings-page h1 svg');
+  assert.equal(headingIcon.innerHTML, icons[0]);
+  assert.equal(headingIcon.getAttribute('aria-hidden'), 'true');
   const slider = s.surface.querySelector('[role=slider]'); assert.equal(slider.getAttribute('aria-valuenow'), '18');
   const reset = s.surface.querySelector('.lm-setting-reset'); reset.click(); reset.click(); await flush();
   assert.equal(contexts.length, 1); assert.equal(contexts[0].vaultId, 'vault-1'); assert.equal(reset.disabled, true);

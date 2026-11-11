@@ -39,6 +39,7 @@ interface NavigationProps {
 }
 interface PageProps {
   readonly navigationLabel?: string; readonly onNavigation?: () => void;
+  readonly icon?: string;
   readonly title: string; readonly emptyLabel: string; readonly sections: readonly Item[];
   readonly onTargets: (targets: ReadonlyMap<string, HTMLElement> | null) => void;
 }
@@ -50,7 +51,8 @@ export function settingsNavigationProps(value: ComponentProps): NavigationProps 
 }
 export function settingsPageProps(value: ComponentProps): PageProps {
   if ((value.onNavigation !== undefined || value.navigationLabel !== undefined) && (typeof value.onNavigation !== "function" || typeof value.navigationLabel !== "string" || !value.navigationLabel.trim())) throw new TypeError("Invalid settings navigation action.");
-  if (typeof value.title !== "string" || typeof value.emptyLabel !== "string" || !items(value.sections) || typeof value.onTargets !== "function") throw new TypeError("Invalid settings page props.");
+  if (typeof value.title !== "string" || (value.icon !== undefined && typeof value.icon !== "string") ||
+      typeof value.emptyLabel !== "string" || !items(value.sections) || typeof value.onTargets !== "function") throw new TypeError("Invalid settings page props.");
   return value as unknown as PageProps;
 }
 export function SettingsNavigation({ props, theme }: { props: NavigationProps; theme: ReturnType<typeof resolveTheme> }) {
@@ -69,14 +71,20 @@ export function SettingsPage({ props, theme }: { props: PageProps; theme: Return
   useLayoutEffect(() => { publish(new Map(targets.current)); }, [signature, publish]);
   useLayoutEffect(() => () => publish(null), [publish]);
   return <Stack className="lm-settings-page" style={theme.contentStyle} gap={0}>
-    <Box component="header" className="lm-settings-page-header">{props.onNavigation && <ActionIcon className="lm-settings-open-sidebar lm-focus" variant="subtle" size={32} aria-label={props.navigationLabel!} title={props.navigationLabel!} onClick={props.onNavigation}><Icon name="sidebar" /></ActionIcon>}<Title order={1} size="h2">{props.title}</Title></Box>
+    <Box component="header" className="lm-settings-page-header">
+      {props.onNavigation && <ActionIcon className="lm-settings-open-sidebar lm-focus" variant="subtle" size={32} aria-label={props.navigationLabel!} title={props.navigationLabel!} onClick={props.onNavigation}><Icon name="sidebar" /></ActionIcon>}
+      <Title order={1} size="h2">
+        {props.icon && <Icon name={props.icon} />}
+        <span>{props.title}</span>
+      </Title>
+    </Box>
     {props.sections.length ? props.sections.map(section => <Stack component="section" className="lm-settings-group" key={section.id} gap={0} aria-labelledby={`${headingId}-${section.id}`}>
       <Stack component="header" className="lm-settings-group-header" gap="xs">
-        <Title id={`${headingId}-${section.id}`} order={2} size="sm" fw={600}>{section.title}</Title>
+        <Title id={`${headingId}-${section.id}`} order={2} size="md" fw={650}>{section.title}</Title>
         {section.description && <Text size="sm" c="dimmed">{section.description}</Text>}
       </Stack>
       <Box className="lm-settings-section" data-settings-section={section.id}
         ref={node => { if (node) targets.current.set(section.id, node); else targets.current.delete(section.id); }} />
-    </Stack>) : <Text c="dimmed">{props.emptyLabel}</Text>}
+    </Stack>) : <Text className="lm-settings-empty" c="dimmed">{props.emptyLabel}</Text>}
   </Stack>;
 }

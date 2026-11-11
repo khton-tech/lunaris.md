@@ -695,13 +695,24 @@ order follow visual order. Updates preserve placement; existing consumers remain
 
 `lunaris.settings-navigation` renders owned category buttons with wrapping labels,
 localized title/emptyLabel, categories, selectedId and onSelect.
-`lunaris.settings-page` renders title, emptyLabel and section headings, lending
+`lunaris.settings-page` renders the title with the selected category's optional
+icon, emptyLabel and section headings, lending
 stable targets through onTargets(map or null). Both use the active theme and local
 scrolling. The page has no enclosing card; the Sidebar view inherits its surface.
 Section control roots use intrinsic block sizing inside targets owned by this set.
 No concrete settings, storage or theme controls are supplied. See
 [the settings reference](../../../../DOCS/reference/settings.md). Compositions were
 reviewed against [Mantine UI navbars](https://ui.mantine.dev/category/navbars/).
+
+The Owner's Customization and Third-party plugins screenshots define the Settings
+composition reference. The settings page centers its heading, groups and empty
+state within Workspace main, following the editor's centered column. Groups fill
+the column with local theme surfaces and compact rows. Section content inherits
+that surface. The Lime role emphasizes Add plugin and separates package entries
+within its borrowed section. The existing Mantine Combobox owns its trigger and
+options, including keyboard interaction and selection. Workspace retains the
+main and Sidebar geometry and surfaces. Verify wide and compact layouts,
+opened menus, focus and theme contrast in the application.
 
 ## Text editor role
 

@@ -48,7 +48,7 @@ function SettingRow({ item, onChange, onRetry, onReset }: { item: SettingsItem; 
   }
   return <Box className="lm-setting-row" data-settings-item={item.id} data-type={item.type} data-layout={item.layout ?? "inline"}>
     <Stack className="lm-setting-label" gap={4}>
-      <Text component={staticValue ? "div" : "label"} htmlFor={staticValue ? undefined : id} size="sm" fw={400}>{item.title}</Text>
+      <Text component={staticValue ? "div" : "label"} htmlFor={staticValue ? undefined : id} size="sm" fw={500}>{item.title}</Text>
       {item.description && <Text id={descriptionId} size="sm" c="dimmed">{item.description}</Text>}
     </Stack>
     <Stack className="lm-setting-control" gap="xs">

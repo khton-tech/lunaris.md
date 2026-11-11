@@ -73,7 +73,7 @@ export default definePlugin({ manifest, activate(ctx) {
       ensure(sidebar.update(tabId, { title: text("settings"), icon: "settings", props: {
         title: text("settings"), emptyLabel: text("empty"), categories: snapshot.categories.map(item => ({ id: item.id, title: item.title, icon: item.icon })), selectedId: categoryId,
       } }), "Cannot update settings navigation.");
-      ensure(screens.update(screenId, { ...navigationProps(), title: category?.title ?? text("settings"), emptyLabel: text(category ? "emptyCategory" : "select"),
+      ensure(screens.update(screenId, { ...navigationProps(), title: category?.title ?? text("settings"), icon: category?.icon, emptyLabel: text(category ? "emptyCategory" : "select"),
         sections: category ? [...snapshot.sections.filter(item => item.categoryId === category.id),
           ...snapshot.groups.filter(group => group.categoryId === category.id).map(group => ({ id: group.id, title: group.title, description: group.description, order: group.order,
             componentId: "lunaris.settings-group-host", props: { groupId: group.id, items: snapshot.items.filter(item => item.groupId === group.id), failureLabel: text("itemFailed") } }))]

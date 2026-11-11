@@ -50,6 +50,7 @@ test('Lime composes inside real Settings/Workspace and confirms preview before i
     assert.equal(s.surface.querySelector('.lm-settings-page h1').textContent, 'Third-party plugins');
     assert.equal(s.surface.querySelector('.lm-settings-page h2').textContent, 'Installed plugins');
     assert.deepEqual([...view.querySelectorAll('button')].map(button => button.textContent), ['Add plugin']);
+    assert.equal(s.button('Add plugin').dataset.variant, 'filled');
     await s.setVault(null);
     assert.match(view.textContent, /Open a Vault/);
     assert.equal(view.querySelector('button'), null);
@@ -77,6 +78,7 @@ test('Lime composes inside real Settings/Workspace and confirms preview before i
     s.button('Install plugin').click(); await flush(); assert.ok(s.calls.some(call => call[0] === 'install'));
     assert.equal(s.dom.window.document.querySelector('.lm-lime-overlay'), null);
     assert.equal(s.dom.window.document.activeElement.textContent, 'Add plugin');
+    assert.ok(view.querySelector('.lm-lime-package').contains(s.button('Remove')));
     const toggle = view.querySelector('input[type=checkbox]'); toggle.click(); await flush(); assert.deepEqual(s.calls.at(-1), ['disable', 'test.package']);
     s.button('Remove').click(); await flush(); assert.match(view.textContent, /retain its data and settings/);
     assert.match(view.textContent, /Affected plugins: test.package, test.consumer/);
