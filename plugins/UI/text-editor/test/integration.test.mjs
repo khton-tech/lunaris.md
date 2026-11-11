@@ -35,6 +35,10 @@ import { Localization } from '@lunaris/localization';
 import mantine from '@lunaris/mantine-components';
 import editor from '@lunaris/text-editor';
 import { createCloseGuard } from '../../../../hosts/tauri/dist/close-guard.js';
+import { readFile } from 'node:fs/promises';
+import { build } from 'esbuild';
+import execution from '@lunaris/quickjs-execution';
+import { PluginExecution } from '@lunaris/execution';
 
 const ok = value => ({ ok: true, value });
 const fail = code => ({ ok: false, error: { code, message: code } });
@@ -147,6 +151,48 @@ async function setup(options = {}) {
     async stop() { await flush(); await kernel.stopAll(); await flush(); kernel.assertNoResources(); assert.equal(target.childElementCount, 0); assert.ok(!kernel.diagnostics().some(d => d.code === 'CLEANUP_FAILED')); dom.window.close(); },
   };
 }
+
+test('third-party particle recipe runs in QuickJS and detaches from the live editor on stop', async () => {
+  const example = new URL('../../../../examples/deletion-particles/', import.meta.url);
+  const manifest = JSON.parse(await readFile(new URL('manifest.json', example), 'utf8'));
+  const recipe = await readFile(new URL('plugin.ts', example), 'utf8');
+  const contents = recipe.replace('import manifest from "../manifest.json" with { type: "json" };', 'const manifest = ' + JSON.stringify(manifest) + ';');
+  const bundle = await build({ stdin: { contents, loader: 'ts', resolveDir: process.cwd() }, bundle: true, platform: 'neutral', format: 'esm', write: false });
+  const s = await setup({ initial: 'abc' });
+  try {
+    let loader;
+    const ownerId = 'test.particle-loader';
+    const owner = new AbortController();
+    s.kernel.register(execution);
+    s.kernel.register(definePlugin({
+      manifest: metadata(ownerId, [], [{ kind: 'api', id: PluginExecution.id, range: '^1.0.0' }], ['runtime.manage']),
+      activate(ctx) { loader = ctx.use(PluginExecution); ctx.scope.own({ dispose: () => owner.abort() }); },
+    }));
+    s.kernel.grant(ownerId, 'runtime.manage');
+    await s.kernel.start(ownerId);
+    const entry = manifest.entry.slice(2);
+    s.kernel.register(loader.load(manifest, { entry, modules: { [entry]: bundle.outputFiles[0].text } }, { vaultId: 'a', generation: 1 }, owner.signal), { ownerId });
+    s.kernel.grant(manifest.id, 'ui.dom');
+    await s.kernel.start(manifest.id);
+
+    const view = s.cm();
+    const bounds = { left: 0, top: 0, right: 400, bottom: 200 };
+    view.dom.getBoundingClientRect = () => bounds;
+    view.scrollDOM.getBoundingClientRect = () => bounds;
+    view.coordsForChar = () => ({ left: 12, top: 8, right: 20, bottom: 24 });
+    view.dispatch({ changes: { from: 0, to: 1 }, userEvent: 'delete.backward' });
+    assert.equal(view.state.doc.toString(), 'bc');
+    const layer = view.dom.querySelector('.lm-editor-particles');
+    assert.equal(layer?.childElementCount, 4);
+    assert.equal(layer.getAttribute('aria-hidden'), 'true');
+    assert.equal(layer.textContent, '');
+    await s.kernel.stop(manifest.id);
+    assert.equal(view.dom.querySelector('.lm-editor-particles'), null);
+    view.dispatch({ changes: { from: 0, to: 1 }, userEvent: 'delete.forward' });
+    assert.equal(view.state.doc.toString(), 'c');
+    assert.equal(view.dom.querySelector('.lm-editor-particles'), null);
+  } finally { await s.stop(); }
+});
 
 test('composed editor keeps text before underline markers as paragraphs and retains hash headings', async () => {
   const s = await setup();

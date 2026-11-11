@@ -1,5 +1,32 @@
 # Editor extensions
 
+## Deletion effects in installed packages
+
+`EditorEffects` from `@lunaris/editor` is provided by Text Editor. Declare
+`api:lunaris.editor-effects@^1.0.0` and `ui.dom`. Register an effect with
+`ctx.use(EditorEffects).register({ id, onDelete }, ctx.signal)`. Use a
+plugin-scoped ID and check the returned result. The returned disposable can
+also release the registration before the activation ends.
+
+For a user deletion the editor samples up to 24 visible non-whitespace
+positions. The synchronous callback receives width and height in CSS pixels.
+It returns up to 96 particles. Each particle selects a sample by index,
+starts at fractional `x` and `y` in that sample, travels by `dx` and `dy`
+in CSS pixels, and specifies `size` and `durationMs`. Allowed ranges are
+0–1 for fractions, −160–160 for travel, 1–6 px for size and 50–650 ms for
+duration. The editor bounds simultaneous layers, uses the active text color
+and skips effects when reduced motion is requested.
+
+The callback receives geometry only. The editor owns the overlay and its
+lifetime. Unregistering the effect or closing the view clears live particles.
+Callback failures are logged by Text Editor and the document transaction
+continues. Programmatic updates, undo and redo do not trigger the effect.
+
+The [Deletion Particles example](../../examples/deletion-particles/README.md)
+uses this contract from an independently built LUP package.
+
+## Trusted CodeMirror contributions
+
 `@lunaris/editor` exports `EditorExtensions` 1.0, provided by Text Editor.
 A consumer declares the `lunaris.editor-extensions` API requirement (`^1.0.0`)
 and `ui.dom` permission, then calls `ctx.use(EditorExtensions)`.

@@ -21,6 +21,7 @@ import type { ThemeDefinition } from "@lunaris/themes";
 import type { DocumentSession } from "./session.js";
 import { defaults } from "./preferences.js";
 import type { Preferences } from "./preferences.js";
+import type { createDeletionEffects } from "./deletion-effects.js";
 
 /** Lists change indentation at the line start, regardless of caret position. */
 const insertIndent: StateCommand = target => {
@@ -66,7 +67,7 @@ function appearance(theme: ThemeDefinition | null, preferences: Preferences) {
 
 /** Reusable view adapter; cached states belong to the controller, not DOM roots. */
 export function mountEditor(target: HTMLElement, session: DocumentSession, cached: EditorState | undefined,
-  theme: ThemeDefinition | null, label: string, save: () => void, failed: (error: unknown) => void, preview = true, tasks?: TaskControls, menuOptions?: EditorMenuOptions, preferences: Preferences = defaults, contributions: readonly EditorExtension[] = []) {
+  theme: ThemeDefinition | null, label: string, save: () => void, failed: (error: unknown) => void, preview = true, tasks?: TaskControls, menuOptions?: EditorMenuOptions, preferences: Preferences = defaults, contributions: readonly EditorExtension[] = [], deletionEffects?: ReturnType<typeof createDeletionEffects>) {
   let menu: ReturnType<typeof bindEditorMenu> | undefined;
   const mode = new Compartment();
   const contributed = new Compartment(); const language = new Compartment();
@@ -88,7 +89,8 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
   // StateEffect.reconfigure replaces extensions while preserving compatible fields.
   if (!state) state = EditorState.create({ doc: session.text, extensions });
   else state = state.update({ effects: reconfigure(extensions) }).state;
-  const view = new EditorView({ parent: target, state });
+  const effects = deletionEffects?.mount();
+  const view = new EditorView({ parent: target, state, ...(effects ? { dispatchTransactions: effects.dispatch } : {}) });
   if (menuOptions) menu = bindEditorMenu(view, menuOptions);
   let lastContributions = contributions;
   let lastPreview = preview;
@@ -111,7 +113,7 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
       }
       if (effects.length) view.dispatch({ effects });
     },
-    dispose(): EditorState { const state = view.state; menu?.dispose(); view.destroy(); return state; },
+    dispose(): EditorState { const state = view.state; menu?.dispose(); effects?.dispose(); view.destroy(); return state; },
   };
 }
 

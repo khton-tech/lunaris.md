@@ -18,6 +18,7 @@
   "scripts": {
     "toolchain:build": "node tools/scripts/plugin-toolchain.mjs",
     "lime:dx": "node tools/scripts/lime-dx.mjs",
+    "lime:particles": "node tools/scripts/lime-particles.mjs",
     "dev:server": "node tools/scripts/server-dev.mjs",
     "server:check": "node tools/scripts/server-check.mjs",
     "web:dev": "npm run dev --workspace @lunaris/web",

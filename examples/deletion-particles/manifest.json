@@ -1,0 +1,25 @@
+{
+  "manifestVersion": 1,
+  "id": "example.deletion-particles",
+  "version": "1.0.0",
+  "engine": "^0.1.0",
+  "sdk": "^0.1.0",
+  "entry": "./dist/src/plugin.js",
+  "metadata": {
+    "name": "Deletion Particles",
+    "author": "Lunaris examples",
+    "description": "Scatters particles when visible text is deleted in the editor.",
+    "platforms": ["desktop", "web"],
+    "languages": ["en", "ru"],
+    "translations": {
+      "ru": { "name": "Частицы при удалении", "description": "При удалении видимого текста в редакторе появляются разлетающиеся частицы." }
+    }
+  },
+  "provides": [],
+  "requires": [
+    { "kind": "api", "id": "lunaris.logger", "range": "^1.0.0" },
+    { "kind": "api", "id": "lunaris.editor-effects", "range": "^1.0.0" }
+  ],
+  "permissions": ["ui.dom"],
+  "optionalPermissions": []
+}
