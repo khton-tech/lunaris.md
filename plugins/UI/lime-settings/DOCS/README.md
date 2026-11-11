@@ -56,7 +56,10 @@ rows, quiet action buttons and shared Switch controls. Mantine UI
 [buttons](https://ui.mantine.dev/category/buttons/) and
 [tables](https://ui.mantine.dev/category/tables/) and
 [inputs](https://ui.mantine.dev/category/inputs/) were consulted; no gallery runtime
-or copied shell was added. Confirmation stays inline within the section.
+or copied shell was added. The Mantine role owns the package preview modal and
+its Overview and Dependencies tabs. Each active tab has its own scroll area.
+The platform warning and confirmation actions stay in the modal footer. Removal
+confirmation remains in its installation row.
 
 Composed tests mount the actual controller, Settings, Workspace and Mantine role.
 They prove preview-before-install, metadata escaping/dependency disclosure,

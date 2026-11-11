@@ -18,6 +18,10 @@
 @import '@mantine/core/styles/Popover.css';
 @import '@mantine/core/styles/Combobox.css';
 @import '@mantine/core/styles/Menu.css';
+@import '@mantine/core/styles/ModalBase.css';
+@import '@mantine/core/styles/Modal.css';
+@import '@mantine/core/styles/Tabs.css';
+@import '@mantine/core/styles/Overlay.css';
 @import '@mantine/core/styles/Splitter.css';
 
 .lm-root .lm-declarative-drawing { display:block;max-width:100%;max-height:100%;outline:none }
@@ -280,6 +284,16 @@
 .lm-settings-group-header h2 { line-height:1.4;overflow-wrap:anywhere }
 .lm-settings-section { display:flex; min-width:0; flex-direction:column }
 .lm-lime-toolbar { padding-block-start:calc(var(--vault-space)*4); min-width:0 }
+.lm-root .lm-lime-dialog { display:flex; flex-direction:column; max-height:min(42rem,calc(100dvh - 2rem)); background:var(--vault-panel); color:var(--vault-text); border:var(--vault-border) solid var(--settings-divider); border-radius:var(--vault-radius); overflow:auto; scrollbar-width:none }
+.lm-root .lm-lime-dialog-header { flex-shrink:0; background:var(--vault-panel); overflow-wrap:anywhere }
+.lm-lime-dialog-header .mantine-Modal-title { font-weight:600 }
+.lm-lime-dialog-body, .lm-lime-tabs { display:flex; flex:1 1 auto; min-height:0; min-width:0; flex-direction:column }
+.lm-lime-tabs { --tabs-color:var(--vault-accent) }
+.lm-lime-tabs .mantine-Tabs-list::before { border-color:var(--settings-divider) }
+.lm-lime-tabs .mantine-Tabs-tab:hover { background:var(--vault-hover) }
+.lm-lime-tabs .mantine-Tabs-list, .lm-lime-dialog-footer { flex-shrink:0 }
+.lm-lime-panel { min-height:0; overflow:auto; overscroll-behavior:contain; scrollbar-width:none; padding-block:calc(var(--vault-space)*3) }
+.lm-lime-dialog-footer { border-top:var(--vault-border) solid var(--settings-divider); padding-block-start:calc(var(--vault-space)*3) }
 .lm-settings-items { flex:1; min-width:0;padding-inline-start:calc(var(--vault-space)*3) }
 .lm-setting-row { display:flex; flex-wrap:nowrap; align-items:center; gap:calc(var(--vault-space)*3) calc(var(--vault-space)*6); min-width:0;padding-block:calc(var(--vault-space)*5) }
 .lm-setting-row+.lm-setting-row { border-top:var(--vault-border) solid color-mix(in srgb,var(--vault-control-border) 7%,transparent) }
