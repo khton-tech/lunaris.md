@@ -294,6 +294,12 @@ test('server disclosure blocks competing actions and ignores late connection res
   typeInput(form.querySelector('input'), 'https://notes.example');
   form.dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true })); await flush();
   assert.equal(find(s, 'Create vault').disabled, true); assert.equal(find(s, 'Sign in to server').disabled, true);
+  assert.ok(form.querySelector('.mantine-Loader-root'));
+  assert.equal(form.querySelector('input').readOnly, true);
+  assert.equal(form.querySelector('input').disabled, false);
+  assert.equal(form.querySelector('button[type=submit]').textContent, 'Connecting…');
+  form.dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true }));
+  assert.equal(s.calls.filter(call => call.operation === 'connect').length, 1);
   const stopping = s.session.stop(); gate.resolve(); await stopping; await flush();
   assert.equal(s.surface.querySelector('.lm-account-access'), null);
   assert.equal(s.session.snapshot().kernel.diagnostics.some(d => d.code === 'CLEANUP_FAILED'), false);

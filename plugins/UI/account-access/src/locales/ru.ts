@@ -1,5 +1,6 @@
 /** Russian product copy owned by this consumer. */
 export const russian = {
+  pendingconnect: "Подключение…", pendinglogin: "Вход…", pendingregister: "Создание учётной записи…",
   loading: "Загрузка хранилищ…",
   connect: "Подключиться к серверу",
   login: "Войти",

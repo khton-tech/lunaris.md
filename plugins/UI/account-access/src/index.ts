@@ -13,6 +13,7 @@ import { Localization, LocaleChanged } from "@lunaris/localization";
 import { Startup, StartupChanged } from "@lunaris/startup";
 
 const catalog = { en: {
+  pendingconnect: "Connecting…", pendinglogin: "Signing in…", pendingregister: "Creating account…",
   loading: "Loading vaults…",
   connect: "Connect to server", login: "Sign in", register: "Create account", vaults: "Your vaults", trash: "Trash", local: "Local vaults",
   address: "Server address", username: "Login", password: "Password", showPassword: "Show or hide password", invitation: "Invitation token", name: "Vault name",

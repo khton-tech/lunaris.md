@@ -1296,3 +1296,15 @@ collapse/reopen, local-form switching, remote opening, owner shutdown, disabled
 competition, Escape focus and theme changes. Native desktop/phone geometry,
 opened menus, long translations and keyboard scrolling still require manual
 acceptance in the actual selector. No storage or server protocol changes.
+
+## Pending connection feedback
+
+Reference: existing shared product controls and Mantine Loader. Required Loader
+CSS is now included. Auth submit keeps its label and primary colors with an oval
+spinner and localized pending copy. Fields are read-only instead of disabled.
+Temporary account/selector busy locks retain resting button colors while native
+disabled semantics still prevent duplicate and competing actions. This is scoped
+to busy account/selector regions; unavailable controls elsewhere are unchanged.
+Catalog loading uses the same spinner. Reduced motion uses a static indicator.
+Both embedded desktop and standalone browser flows use this implementation.
+Native contrast, animation and layout acceptance remain manual.

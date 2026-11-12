@@ -1,5 +1,5 @@
 import { useId, useRef, useState } from "react";
-import { ActionIcon, Box, Button, Group, Menu, Stack, Text, TextInput } from "@mantine/core";
+import { ActionIcon, Box, Button, Group, Loader, Menu, Stack, Text, TextInput } from "@mantine/core";
 import type { AccountAccessProps } from "./account-access.js";
 import { AccountError } from "./account-feedback.js";
 import { CardRow } from "./card-row.js";
@@ -15,7 +15,7 @@ export function AccountCatalog({ props: p }: { props: AccountAccessProps }) {
         <Text component="h1" fw={500}>{p.text[p.mode]}</Text>
         <ActionIcon className="lm-account-icon" variant="subtle" disabled={p.busy} aria-label={p.text.refresh} title={p.text.refresh} onClick={p.onRefresh}><Icon name="refresh" /></ActionIcon>
       </Group>
-      {p.catalogState === "loading" && <Text role="status" className="lm-account-context">{p.text.loading}</Text>}
+      {p.catalogState === "loading" && <Group role="status" gap="sm"><Loader type="oval" size={16} color="var(--vault-secondary)" aria-hidden="true" /><Text className="lm-account-context">{p.text.loading}</Text></Group>}
       {p.catalogState === "error" && <Button disabled={p.busy} onClick={p.onRefresh}>{p.text.refresh}</Button>}
         {p.catalogState !== "loading" && p.catalogState !== "error" && p.entries.length > 0 && <Stack component="ul" className="lm-account-list" gap={0}>
           {p.entries.map(entry => <Box component="li" key={entry.id} className="lm-account-row">

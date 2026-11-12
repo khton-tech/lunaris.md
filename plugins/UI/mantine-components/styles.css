@@ -1,6 +1,7 @@
 /* Only required Mantine component styles; omit the global body/root baseline. */
 @import '@mantine/core/styles/UnstyledButton.css';
 @import '@mantine/core/styles/Button.css';
+@import '@mantine/core/styles/Loader.css';
 @import '@mantine/core/styles/Badge.css';
 @import '@mantine/core/styles/ActionIcon.css';
 @import '@mantine/core/styles/Input.css';
@@ -1015,3 +1016,16 @@
 .lm-account-access[data-embedded] .lm-account-create { padding:calc(var(--vault-space)*3) 0 0;background:transparent }
 .lm-account-access[data-embedded] .lm-account-empty { padding:calc(var(--vault-space)*3);background:transparent }
 .lm-account-access[data-embedded] .lm-account-server-info { padding-bottom:0;text-align:start }
+
+/* Temporary operation locks keep resting colors; unavailable controls elsewhere retain disabled styling. */
+.lm-root :is(.lm-account-access,.ln-vault)[aria-busy=true] .lm-button:disabled {
+ color:var(--button-color,var(--vault-text));background-color:var(--button-bg,transparent);border-color:var(--button-bd,transparent);cursor:progress;opacity:1
+}
+.lm-root :is(.lm-account-access,.ln-vault)[aria-busy=true] .lm-card-row:disabled {
+ color:var(--vault-text);background:transparent;border:var(--vault-border) solid color-mix(in srgb,var(--vault-control-border) 22%,transparent)
+}
+.lm-root .lm-account-access[aria-busy=true] .lm-account-icon:disabled { color:var(--vault-secondary);background:transparent;opacity:1;cursor:progress }
+.lm-account-auth .mantine-Loader-root { flex:none }
+@media(prefers-reduced-motion:reduce) {
+ .lm-account-access .mantine-Loader-root::after,.lm-account-access .mantine-Loader-root::before { animation:none }
+}
