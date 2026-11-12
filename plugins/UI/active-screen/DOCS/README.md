@@ -26,6 +26,11 @@ state. Unavailable or failed selected roles show a localized failure state; late
 registration or props updates can recover. Renderer replacement can lose local
 view state and is outside the retention guarantee.
 
+Retained views receive Workspace compact-mode updates. The host forwards a
+mounted active screen's explicit `mobileNavigationInHeader` prop through its
+main Workspace contribution, allowing an in-page sidebar trigger to occupy the
+upper navigation position without duplicating the launcher.
+
 Consumers use only `@lunaris/active-screen`; they must not import this plugin or
 manipulate its DOM. See [usage and limits](../../../../DOCS/reference/active-screen.md).
 Run `npm run active-screen:check` and the Tauri frontend build. Native geometry

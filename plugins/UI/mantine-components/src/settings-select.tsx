@@ -6,18 +6,20 @@ import { Icon } from "./icons.js";
 interface Props {
   readonly id?: string; readonly label?: string; readonly value: string;
   readonly options: readonly SettingsOption[]; readonly disabled: boolean;
+  readonly portalTarget?: string | undefined;
   readonly "aria-label"?: string; readonly "aria-describedby"?: string | undefined; readonly "aria-invalid"?: boolean;
   readonly onChange: (value: string) => void;
 }
-/** Keep both the trigger and opened options inside the themed UIKit root. */
-export function SettingsSelect({ options, onChange, ...props }: Props) {
+/** The optional viewport overlay shares the owning component's theme. */
+export function SettingsSelect({ options, onChange, portalTarget, ...props }: Props) {
   const store = useCombobox({
     onDropdownOpen: () => store.selectActiveOption(),
     onDropdownClose: () => store.resetSelectedOption(),
   });
   useEffect(() => { if (props.disabled) store.closeDropdown(); }, [props.disabled]);
   const selected = options.find(option => option.value === props.value);
-  return <Combobox store={store} size="sm" withinPortal={false} position="bottom-end" offset={4}
+  return <Combobox store={store} size="sm" withinPortal={!!portalTarget} position="bottom-end" offset={4}
+    {...(portalTarget ? { portalProps: { target: portalTarget }, floatingStrategy: "fixed", hideDetached: true } : {})}
     transitionProps={{ duration: 0 }}
     classNames={{ dropdown: "lm-setting-dropdown", option: "lm-setting-option", options: "lm-setting-options" }}
     onOptionSubmit={value => {

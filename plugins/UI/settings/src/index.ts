@@ -25,7 +25,7 @@ export default definePlugin({ manifest, activate(ctx) {
   const tabId = `${ctx.pluginId}.navigation`; const screenId = `${ctx.pluginId}.screen`;
   let categoryId: string | null = null; let vaultId = vaults.current()?.id ?? null;
   const text = (key: string) => localization.text(ctx.pluginId, key);
-  const navigationProps = () => navigation ? { navigationLabel: text("openSidebar"), onNavigation: () => { if (ctx.signal.aborted) return; const result = sidebar.select(tabId); if (!result.ok) { logger.warn(ctx.pluginId, "Cannot select Settings navigation", { error: result.error }); return; } navigation.open(); logger.debug(ctx.pluginId, "Settings navigation opened"); } } : {};
+  const navigationProps = () => navigation ? { mobileNavigationInHeader: true, navigationLabel: text("openSidebar"), onNavigation: () => { if (ctx.signal.aborted) return; const result = sidebar.select(tabId); if (!result.ok) { logger.warn(ctx.pluginId, "Cannot select Settings navigation", { error: result.error }); return; } navigation.open(); logger.debug(ctx.pluginId, "Settings navigation opened"); } } : {};
   const ensure = (result: { ok: boolean; error?: unknown }, message: string) => { if (!result.ok) throw new Error(message, { cause: result.error }); };
   function choose(id: string, viewVaultId: string): void {
     if (ctx.signal.aborted || vaults.current()?.id !== viewVaultId || !registry.snapshot().categories.some(item => item.id === id)) return;

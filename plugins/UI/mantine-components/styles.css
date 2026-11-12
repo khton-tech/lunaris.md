@@ -50,6 +50,11 @@
 .lm-task-checkbox .mantine-Checkbox-input:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset) }
 .lm-task-checkbox .mantine-Checkbox-input:disabled { background:var(--vault-selection);border-color:var(--vault-separator);cursor:default }
 .lm-task-checkbox .mantine-Checkbox-input:disabled:checked { background:var(--vault-secondary) }
+.lm-root .lm-task-checkbox-hit { display:inline-flex;align-items:center;min-inline-size:var(--editor-task-target-width,0px);min-block-size:var(--editor-task-target-height,0px) }
+.lm-task-checkbox-hit:not([data-disabled]) { cursor:pointer }
+@media(max-width:760px),(pointer:coarse) {
+  .lm-task-checkbox-hit { --editor-task-target-width:32px;--editor-task-target-height:1lh }
+}
 @media(prefers-reduced-motion:reduce) { .lm-task-checkbox .mantine-Checkbox-input { transition:none } }
 .lm-context-surface { position:fixed;inset:0;pointer-events:none;user-select:none }
 .lm-context-anchor { position:fixed;width:0;height:0;pointer-events:none }
@@ -145,7 +150,7 @@
 .lm-workspace-backdrop { position:absolute;inset:0;z-index:6;background:color-mix(in srgb,var(--vault-background) 65%,transparent) }
 .lm-workspace-swipe-edge { position:absolute;left:0;inset-block:0;width:20px;z-index:1;touch-action:pan-y }
 .lm-workspace-mobile-toolbar {
-  position:absolute;bottom:calc(8px + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);
+  position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
   z-index:4;display:flex;padding:4px 0
 }
 @media(prefers-reduced-motion:reduce) { .lm-workspace-layout[data-compact] .lm-workspace-rail,.lm-workspace-layout[data-compact] .lm-workspace-panel-pane { transition:none } }
@@ -215,8 +220,7 @@
 }
 @media(prefers-reduced-motion:reduce) { .lm-root .lm-button,.lm-root .lm-input,.lm-root .ln-vault-disclosure { transition:none } }
 .lm-explorer { --explorer-control-hover:color-mix(in srgb,var(--vault-hover) 35%,var(--vault-panel));--explorer-control-pressed:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel));position:relative;display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;overflow:auto;user-select:none }
-.lm-explorer-toolbar,.lm-tool-panel-toolbar { flex-shrink:0;padding:calc(var(--vault-space)*2);position:relative }
-.lm-explorer-toolbar { padding:8px 4px 0 }
+.lm-tool-panel-toolbar { flex-shrink:0;padding:calc(var(--vault-space)*2);position:relative }
 .lm-root :is(.lm-explorer-tabs,.lm-tool-panel-title) { width:100%;max-width:100%;min-width:0;min-height:calc(var(--vault-space)*8);padding:var(--vault-space) calc(var(--vault-space)*3);border:0;border-radius:var(--vault-radius);background:transparent;color:var(--vault-text);font-weight:500 }
 .lm-root .lm-explorer-tabs .mantine-Button-label { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;text-align:start }
 .lm-explorer-tabs .mantine-Button-section { transform:rotate(90deg);flex-shrink:0;color:var(--vault-secondary) }
@@ -228,6 +232,7 @@
   border-block-end:var(--vault-border) solid var(--vault-separator);gap:4px
 }
 .lm-root .lm-explorer-actions .mantine-ActionIcon-root { flex-shrink:0;--ai-size:calc(var(--vault-space)*7);color:var(--vault-secondary);border-radius:var(--vault-radius) }
+.lm-root .lm-explorer[data-compact] .lm-explorer-actions .mantine-ActionIcon-root { min-width:44px;min-height:44px }
 @media(hover:hover) { .lm-root .lm-explorer-actions .mantine-ActionIcon-root:enabled:hover:not(:active) { background:var(--tool-hover,var(--explorer-control-hover));color:var(--vault-text) } }
 .lm-root .lm-explorer-actions .mantine-ActionIcon-root:enabled:active { background:var(--tool-pressed,var(--explorer-control-pressed)) }
 .lm-root .lm-explorer-actions .mantine-ActionIcon-root:disabled { color:var(--vault-secondary);opacity:0.45;background:transparent }
@@ -267,6 +272,10 @@
 .lm-explorer-disclosure svg { width:0.9em;height:0.9em }
 .lm-explorer-disclosure span[data-open] { transform:rotate(90deg) }
 .lm-root .lm-explorer-filename { font:inherit;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0 }
+.lm-explorer[data-compact] .lm-explorer-node { height:100%;margin-block:0 }
+.lm-explorer[data-compact] .lm-explorer-node-content { padding-inline-end:0 }
+.lm-root .lm-explorer-row-action { margin-inline-start:auto;width:44px;height:44px;flex:none;color:var(--vault-secondary) }
+.lm-root .lm-explorer-row-action:enabled:active { color:var(--vault-text);background:var(--explorer-control-pressed) }
 .lm-explorer-rename { flex:1;min-width:0;user-select:text }
 .lm-explorer-rename input { min-height:0;height:1.8em;padding-inline:var(--vault-space);border-radius:calc(var(--vault-radius)*0.5) }
 .lm-root .lm-explorer-form { flex-shrink:0;padding:calc(var(--vault-space)*3);margin:0 calc(var(--vault-space)*2) calc(var(--vault-space)*2);background:var(--vault-content);color:var(--vault-text);border:var(--vault-border) solid color-mix(in srgb,var(--vault-control-border) 22%,transparent);border-radius:var(--vault-radius);box-shadow:none }
@@ -281,6 +290,7 @@
 .lm-root .lm-explorer-tab-menu { max-width:calc(100cqw - var(--vault-space)*4);padding:var(--vault-space);border:var(--vault-border) solid var(--vault-menu-border,color-mix(in srgb,var(--vault-control-border) 22%,transparent));border-radius:var(--vault-radius);background:var(--vault-panel);box-shadow:var(--vault-surface-shadow,0 var(--vault-space) calc(var(--vault-space)*3) color-mix(in srgb,var(--vault-background) 35%,transparent) )}
 .lm-explorer-tab-menu [role=menuitem] { min-height:calc(var(--vault-space)*8);padding:var(--vault-space) calc(var(--vault-space)*2);border-radius:calc(var(--vault-radius)*0.5);font:inherit;white-space:nowrap;background:transparent;transition:background-color var(--vault-motion-fast) var(--vault-motion-easing) }
 .lm-explorer-tab-menu .mantine-Menu-itemLabel { overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
+.lm-vault-switcher-menu .mantine-Menu-itemLabel { white-space:normal;overflow-wrap:anywhere }
 .lm-explorer-tab-menu .mantine-Menu-itemSection { flex-shrink:0;color:var(--vault-secondary) }
 .lm-explorer-tab-menu [role=menuitem][data-hovered]:not([data-disabled]) { background:var(--explorer-control-hover) }
 .lm-explorer-tab-menu [role=menuitem]:not([data-disabled]):active { background:var(--explorer-control-pressed) }
@@ -396,7 +406,7 @@
 }
 .lm-workspace-tab-location { margin-inline-start:var(--vault-space) }
 .lm-workspace-tab-error { padding-inline:calc(var(--vault-space)*3);color:var(--vault-error);overflow-wrap:anywhere }
-.lm-workspace-tab-error-compact { padding-block-end:calc(68px + env(safe-area-inset-bottom,0px));text-align:center }
+.lm-workspace-tab-error-compact { padding-block-end:var(--workspace-dock-inset,0px);text-align:center }
 
 .lm-sidebar-rail { display:flex; flex-direction:column; gap:var(--vault-space); overflow:hidden }
 .lm-sidebar-start { flex:0 1 auto; min-height:0; overflow:auto }
@@ -425,12 +435,15 @@
 .lm-setting-dropdown [role=option][data-combobox-selected] { background:color-mix(in srgb,var(--vault-hover) 35%,var(--vault-panel)) }
 .lm-setting-dropdown [role=option][data-checked] { font-weight:500;background:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel)) }
 .lm-setting-option svg { flex-shrink:0 }
+.lm-root.lm-settings-overlay { isolation:auto }
 .lm-setting-options { display:flex;flex-direction:column;gap:var(--vault-space);max-height:min(18rem,50dvh);overflow:auto }
 .lm-settings-page {
   --settings-divider:color-mix(in srgb,var(--vault-control-border) 20%,transparent);
   --settings-column-width:878px;
   --settings-group-inset:clamp(0.75rem, 2cqi, 1.25rem);
-  flex:1; min-width:0; min-height:0; overflow:auto; padding:clamp(0.75rem, 3cqi, 2rem)
+  --settings-page-padding:clamp(0.75rem, 3cqi, 2rem);
+  flex:1; min-width:0; min-height:0; overflow:auto; padding:var(--settings-page-padding);
+  margin-block-end:var(--workspace-dock-inset,0px)
 }
 .lm-settings-page>*,.lm-settings-navigation>* { flex-shrink:0 }
 .lm-settings-page > :is(.lm-settings-page-header,.lm-settings-group,.lm-settings-empty) {
@@ -535,10 +548,12 @@
     --editor-gutter:clamp(24px,5.5cqi,34px);
     --editor-padding-start:clamp(22px,5cqi,28px);
     --editor-padding-end:clamp(34px,7cqi,46px);
-    --editor-view-height:auto;--editor-view-overflow:visible;--editor-scroller-flex:1 0 auto;
-    overflow:auto;overscroll-behavior:contain
   }
-  .lm-editor-target:not([hidden]) { flex:1 0 auto;overflow:visible }
+  .lm-text-editor:not([data-compact]) {
+    --editor-view-height:auto;--editor-scroller-flex:1 0 auto;
+    overflow:hidden auto;overscroll-behavior:contain
+  }
+  .lm-text-editor:not([data-compact]) .lm-editor-target:not([hidden]) { flex:1 0 auto;overflow:visible }
   .lm-editor-heading { padding-block-start:clamp(56px,8cqh,72px) }
   .lm-root .lm-editor-title .lm-input {
     min-height:32px;font-size:clamp(1.25rem,1.45em,1.625rem);font-weight:700;line-height:1.2;
@@ -551,6 +566,19 @@
 .lm-editor-heading .lm-editor-error { padding-inline:0 }
 .lm-editor-target { display:flex;flex:1 1 0%;min-width:0;min-height:0;overflow:hidden;background:transparent }
 .lm-editor-target[hidden] { display:none }
+.lm-text-editor[data-compact=true] {
+  --editor-task-target-width:32px;--editor-task-target-height:1lh;
+  --editor-gutter:clamp(24px,5.5cqi,34px);
+  --editor-padding-start:clamp(22px,5cqi,28px);
+  --editor-padding-end:clamp(34px,7cqi,46px);
+  --editor-view-height:auto;--editor-scroller-flex:1 0 auto;
+  overflow:hidden auto;overscroll-behavior:contain
+}
+.lm-text-editor[data-compact=true] .lm-editor-target:not([hidden]) { flex:1 0 auto;overflow:visible }
+.lm-text-editor[data-compact=true] .lm-editor-heading { padding-block-start:clamp(56px,8cqh,72px) }
+.lm-root .lm-text-editor[data-compact=true] .lm-editor-title .lm-input {
+  min-height:32px;font-size:clamp(1.25rem,1.45em,1.625rem);font-weight:700;line-height:1.2;font-synthesis-weight:auto
+}
 
 /* Window chrome is an explicit theme contract. Layout owns the outer frame;
    each embedded role only adapts its own heading, controls and local content. */
@@ -561,7 +589,7 @@
 .lm-root[data-window-chrome=true]>.lm-sidebar-rail .lm-sidebar-tab[aria-pressed=true] { box-shadow:var(--vault-inset-shadow);background:var(--vault-selection) }
 .lm-root[data-window-chrome=true]>.lm-settings-navigation>.lm-tool-panel-toolbar { padding:3px;background:var(--vault-caption-background);color:var(--vault-caption-text);margin:3px 3px 6px }
 .lm-root[data-window-chrome=true]>.lm-settings-navigation .lm-tool-panel-title { min-height:22px;padding:2px 4px;font-weight:700;color:inherit }
-.lm-root[data-window-chrome=true]>.lm-settings-page { padding:8px;gap:12px }
+.lm-root[data-window-chrome=true]>.lm-settings-page { --settings-page-padding:8px;gap:12px }
 .lm-root[data-window-chrome=true]>.lm-settings-page>.lm-settings-page-header { padding:4px 8px;margin-block:0;border:0;background:var(--vault-caption-background);color:var(--vault-caption-text);border-radius:3px 3px 0 0 }
 .lm-root[data-window-chrome=true]>.lm-settings-page>.lm-settings-page-header h1 { font-size:13px;line-height:1.5;font-weight:700;color:inherit }
 .lm-root[data-window-chrome=true]>.lm-settings-page>.lm-settings-group { margin-block:0;padding:12px;background:transparent;box-shadow:var(--vault-inset-shadow) }
@@ -682,11 +710,11 @@
 .lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Slider-thumb[data-dragging] { background-image:var(--vault-button-pressed-image);box-shadow:var(--vault-inset-shadow) }
 .lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Slider-thumb[data-disabled] { background-image:none;box-shadow:none }
 .lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Slider-label { color:var(--vault-text);background:var(--vault-panel);border:var(--vault-border) solid var(--vault-menu-border);border-radius:var(--vault-radius) }
-.lm-root[data-window-chrome=true]>.lm-task-checkbox .mantine-Checkbox-input { border-radius:var(--vault-radius);background:var(--vault-content);box-shadow:var(--vault-input-shadow) }
-.lm-root[data-window-chrome=true]>.lm-task-checkbox .mantine-Checkbox-input:checked { background:var(--vault-accent);box-shadow:none }
-.lm-root[data-window-chrome=true]>.lm-task-checkbox .mantine-Checkbox-input:disabled { background:var(--vault-selection);box-shadow:none }
-.lm-root[data-window-chrome=true]>.lm-task-checkbox .mantine-Checkbox-input:disabled:checked { background:var(--vault-secondary) }
-.lm-root[data-window-chrome=true]>.lm-task-checkbox .mantine-Checkbox-input:disabled:checked+.mantine-Checkbox-icon { color:var(--vault-background) }
+.lm-root[data-window-chrome=true]>.lm-task-checkbox-hit .mantine-Checkbox-input { border-radius:var(--vault-radius);background:var(--vault-content);box-shadow:var(--vault-input-shadow) }
+.lm-root[data-window-chrome=true]>.lm-task-checkbox-hit .mantine-Checkbox-input:checked { background:var(--vault-accent);box-shadow:none }
+.lm-root[data-window-chrome=true]>.lm-task-checkbox-hit .mantine-Checkbox-input:disabled { background:var(--vault-selection);box-shadow:none }
+.lm-root[data-window-chrome=true]>.lm-task-checkbox-hit .mantine-Checkbox-input:disabled:checked { background:var(--vault-secondary) }
+.lm-root[data-window-chrome=true]>.lm-task-checkbox-hit .mantine-Checkbox-input:disabled:checked+.mantine-Checkbox-icon { color:var(--vault-background) }
 .lm-root[data-window-chrome=true]>.lm-explorer .lm-explorer-actions .mantine-ActionIcon-root { border:var(--vault-border) solid transparent;border-radius:var(--vault-radius) }
 .lm-root[data-window-chrome=true]>.lm-explorer .lm-explorer-actions .mantine-ActionIcon-root:enabled:hover { border-color:var(--vault-button-border);box-shadow:var(--vault-button-shadow);background-image:var(--vault-button-hover-image) }
 .lm-root[data-window-chrome=true]>.lm-explorer .lm-explorer-actions .mantine-ActionIcon-root:enabled:active { background-image:var(--vault-button-pressed-image);box-shadow:var(--vault-inset-shadow) }
@@ -717,7 +745,7 @@
 .lm-root .lm-callout-title:hover { color: var(--vault-text); background: transparent; }
 
 .lm-root .lm-workspace-mobile-toolbar {
-  width:70%;border-radius:999px;max-width:calc(100% - 32px);overflow:auto;
+  width:70%;border-radius:999px;max-width:min(calc(100% - 32px),28rem);overflow:auto;
   background:var(--vault-panel);
   border:var(--vault-border) solid color-mix(in srgb,var(--vault-separator) 65%,transparent)
 }
@@ -737,7 +765,7 @@
   --explorer-control-pressed:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel));
 }
 .lm-root .lm-mobile-choice-menu {
-  --mobile-choice-row-height:max(34px,calc(1lh + 2 * var(--vault-space)));
+  --mobile-choice-row-height:max(44px,calc(1lh + 2 * var(--vault-space)));
   --mobile-choice-inset:calc(var(--vault-space) * 2);
   max-width:calc(100vw - 24px);
   padding:var(--mobile-choice-inset);
@@ -746,9 +774,10 @@
   overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain
 }
 .lm-mobile-choice-menu [role=menuitem] {
-  height:var(--mobile-choice-row-height);min-height:var(--mobile-choice-row-height);
+  min-height:var(--mobile-choice-row-height);
   padding-block:0;user-select:none
 }
+.lm-mobile-choice-menu .mantine-Menu-itemLabel { white-space:normal;overflow-wrap:anywhere }
 .lm-mobile-choice-menu [role=menuitem][aria-current=true] { color:var(--vault-text);font-weight:600 }
 .lm-mobile-choice-row { position:relative;display:flex;align-items:stretch;border-radius:calc(var(--vault-radius)*.5) }
 .lm-mobile-choice-row[data-selected]::before { z-index:1 }
@@ -775,7 +804,15 @@
 .lm-settings-page-header h1 { display:flex;align-items:center;gap:calc(var(--vault-space)*2);min-width:0;overflow-wrap:anywhere }
 .lm-settings-page-header h1 > svg { flex:none }
 .lm-settings-page-header h1 > span { min-width:0 }
-@container(max-width:640px) { .lm-root .lm-settings-open-sidebar { display:inline-flex } }
+.lm-root .lm-settings-page[data-compact=true] .lm-settings-open-sidebar { display:var(--workspace-header-navigation-display,inline-flex);min-width:44px;min-height:44px }
+.lm-root .lm-settings-page[data-compact=true] .lm-settings-page-header h1,
+.lm-root[data-window-chrome=true]>.lm-settings-page[data-compact=true]>.lm-settings-page-header h1 { font-size:1.25em;line-height:1.4 }
+.lm-root .lm-settings-items[data-compact=true] :is(.lm-setting-input,.lm-setting-slider-control),
+.lm-settings-overlay[data-compact=true] .lm-setting-option { min-height:44px }
+.lm-root .lm-settings-items[data-compact=true] .lm-setting-input { font-size:max(16px,var(--mantine-font-size-md)) }
+@container(max-width:640px) {
+  .lm-root .lm-settings-page:not([data-compact]) .lm-settings-open-sidebar { display:var(--workspace-header-navigation-display,inline-flex) }
+}
 
 /* Luna floating surfaces belong to Workspace; the menu role owns only controls. */
 .lm-root .lm-workspace-layout[data-window-chrome]>.lm-workspace-mobile-toolbar,
@@ -809,12 +846,11 @@
 /* Phone density belongs to each UIKit role; desktop geometry stays unchanged. */
 @media(max-width:640px) {
  /* Adapt chrome typography locally; document and callout metrics stay editor-owned. */
- .lm-root :is(.lm-sidebar-rail,.lm-mobile-menu-items,.lm-explorer,.lm-settings-navigation,.lm-settings-page,.lm-settings-items,.lm-settings-choices,.lm-account-access,.lm-context-surface,.ln-vault) {
+ .lm-root :is(.lm-sidebar-rail,.lm-mobile-menu-items,.lm-settings-navigation,.lm-settings-page,.lm-settings-items,.lm-settings-choices,.lm-account-access,.lm-context-surface,.ln-vault) {
   --lm-ui-font-size:max(16px,var(--vault-ui-font-size));
   --mantine-font-size-sm:var(--lm-ui-font-size);--mantine-font-size-md:var(--lm-ui-font-size);
  }
  .lm-root :is(.lm-sidebar-tab,.lm-settings-open-sidebar,.lm-explorer-actions .mantine-ActionIcon-root,.lm-account-icon)>svg { width:22px;height:22px;flex-shrink:0 }
- .lm-explorer-entry-icon { width:20px;height:20px }
  .lm-root :is(.lm-tool-navigation-item,.lm-explorer-tabs,.lm-setting-option,.lm-context-menu) svg { width:20px;height:20px;flex-shrink:0 }
  .lm-root .lm-settings-page-header h1,.lm-root[data-window-chrome=true]>.lm-settings-page>.lm-settings-page-header h1 { font-size:1.25em;line-height:1.4 }
  .lm-explorer .lm-explorer-extension { font-size:12px }
@@ -828,9 +864,26 @@
  .lm-settings-page-header { padding-block:8px }
 }
 
+/* Compact Files uses smaller labels and glyphs without shrinking touch targets. */
+.lm-root .lm-explorer[data-compact] {
+ --lm-ui-font-size:max(14px,calc(var(--vault-ui-font-size) * 0.94));
+ --mantine-font-size-sm:var(--lm-ui-font-size);--mantine-font-size-md:var(--lm-ui-font-size);
+ font-size:var(--lm-ui-font-size)
+}
+.lm-explorer[data-compact] .lm-tool-panel-toolbar { padding-block:var(--vault-space) }
+.lm-root .lm-explorer[data-compact] .lm-tool-panel-title { font-size:inherit }
+.lm-explorer[data-compact] .lm-explorer-actions { gap:2px }
+.lm-root .lm-explorer[data-compact] :is(.lm-explorer-actions .mantine-ActionIcon-root,.lm-vault-switcher) svg { width:16px;height:16px;flex-shrink:0 }
+.lm-explorer[data-compact] .lm-vault-switcher { padding-block:6px }
+.lm-root .lm-explorer[data-compact] .lm-vault-switcher-toggle {
+ min-height:44px;padding-inline:calc(var(--vault-space)*2);
+ font-size:max(14px,calc(var(--vault-ui-font-size) * 0.88))
+}
+.lm-explorer[data-compact] .lm-vault-switcher-menu { font-size:max(14px,calc(var(--vault-ui-font-size) * 0.88)) }
+.lm-root .lm-explorer[data-compact] .lm-vault-switcher-menu [role=menuitem] { min-height:44px }
+
 /* Settings owns field composition at its allocated width, in every theme. */
 @media(max-width:640px),(pointer:coarse) {
- .lm-root .lm-mobile-choice-menu { --mobile-choice-row-height:max(44px,calc(1lh + 2 * var(--vault-space))) }
  .lm-root :is(.lm-explorer-menu,.lm-explorer-tab-menu) [role=menuitem] { min-height:44px }
 }
 

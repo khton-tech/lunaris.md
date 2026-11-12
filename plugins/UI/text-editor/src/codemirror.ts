@@ -1,4 +1,5 @@
 import type { EditorExtension } from "@lunaris/editor";
+import { usesTouchInput } from "@lunaris/components";
 import { markupCommand } from "./formatting.js";
 import { bindEditorMenu } from "./editor-menu.js";
 import type { EditorMenuOptions } from "./editor-menu.js";
@@ -22,6 +23,7 @@ import type { DocumentSession } from "./session.js";
 import { defaults } from "./preferences.js";
 import type { Preferences } from "./preferences.js";
 import type { createDeletionEffects } from "./deletion-effects.js";
+import { mobileCaret } from "./mobile-caret.js";
 
 /** Lists change indentation at the line start, regardless of caret position. */
 const insertIndent: StateCommand = target => {
@@ -45,19 +47,22 @@ function appearance(theme: ThemeDefinition | null, preferences: Preferences) {
   const typography = properties?.typography as Record<string, unknown> | undefined;
   const color = (key: string, fallback = "currentColor") => typeof colors?.[key] === "string" ? colors[key] as string : fallback;
   const fontSize = preferences.fontSize !== "theme" ? `${preferences.fontSize}px` : typeof typography?.fontSize === "number" ? `${typography.fontSize}${typeof typography.fontSizeUnit === "string" ? typography.fontSizeUnit : "px"}` : "14px";
+  const selectionColor = color("selection", `color-mix(in srgb, ${color("text")} 25%, transparent)`);
   return [EditorView.theme({
     "&": { height: "var(--editor-view-height, 100%)", minHeight: "0", flex: "1 1 0%", minWidth: "0", backgroundColor: "transparent", color: color("text"), fontSize },
     "&.cm-focused": { outline: "none" },
     ".cm-scroller": { height: "var(--editor-view-height, 100%)", flex: "var(--editor-scroller-flex, 0 1 auto)",
-      overflow: "var(--editor-view-overflow, auto)", fontFamily: "inherit", lineHeight: preferences.lineHeight !== "theme" ? preferences.lineHeight : String(typeof typography?.lineHeight === "number" ? typography.lineHeight : 1.6), scrollbarWidth: "none" },
+      overflow: "auto", fontFamily: "inherit", lineHeight: preferences.lineHeight !== "theme" ? preferences.lineHeight : String(typeof typography?.lineHeight === "number" ? typography.lineHeight : 1.6), scrollbarWidth: "none" },
     ".cm-scroller::-webkit-scrollbar": { display: "none" },
     ".cm-content": { width: "calc(100% - 2 * var(--editor-gutter, 12px))", maxWidth: preferences.wrapLines && preferences.textWidth !== "full" ? `${preferences.textWidth}px` : "none", minWidth: "0", flexGrow: "0", margin: "0 auto",
-      padding: "var(--editor-padding-start, clamp(18px, 2cqi, 24px)) 0 var(--editor-padding-end, clamp(12px, 3cqi, 32px))", caretColor: color("caret"), minHeight: "100%" },
+      padding: "var(--editor-padding-start, clamp(18px, 2cqi, 24px)) 0 max(var(--editor-padding-end, clamp(12px, 3cqi, 32px)), var(--editor-keyboard-padding, 0px), var(--workspace-dock-inset, 0px))",
+      caretColor: color("caret"), minHeight: "100%" },
     ".cm-line": { padding: "0" },
     ".cm-preview-code-language": { color: color("accent", color("textSecondary", color("text"))) },
     ".cm-cursor, .cm-dropCursor": { borderLeftColor: color("caret") },
     // Match the focused layer's specificity so CM's default dark teal cannot win.
-    "&.cm-editor .cm-selectionBackground, &.cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": { backgroundColor: color("selection", `color-mix(in srgb, ${color("text")} 25%, transparent)`) },
+    "&.cm-editor .cm-selectionBackground, &.cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": { backgroundColor: selectionColor },
+    "&[data-native-selection] .cm-content ::selection": { backgroundColor: selectionColor },
   }, { dark: properties?.appearance !== "light" }), syntaxHighlighting(HighlightStyle.define([
     { tag: tags.heading, color: color("text"), fontWeight: "600" },
     { tag: tags.emphasis, fontStyle: "italic" }, { tag: tags.strong, fontWeight: "700", fontSynthesis: "weight" },
@@ -69,16 +74,18 @@ function appearance(theme: ThemeDefinition | null, preferences: Preferences) {
 
 /** Reusable view adapter; cached states belong to the controller, not DOM roots. */
 export function mountEditor(target: HTMLElement, session: DocumentSession, cached: EditorState | undefined,
-  theme: ThemeDefinition | null, label: string, save: () => void, failed: (error: unknown) => void, preview = true, tasks?: TaskControls, menuOptions?: EditorMenuOptions, preferences: Preferences = defaults, contributions: readonly EditorExtension[] = [], deletionEffects?: ReturnType<typeof createDeletionEffects>) {
+  theme: ThemeDefinition | null, label: string, save: () => void, failed: (error: unknown) => void, preview = true, tasks?: TaskControls, menuOptions?: EditorMenuOptions, preferences: Preferences = defaults, contributions: readonly EditorExtension[] = [], deletionEffects?: ReturnType<typeof createDeletionEffects>, viewport?: HTMLElement) {
   let menu: ReturnType<typeof bindEditorMenu> | undefined;
   const mode = new Compartment();
   const contributed = new Compartment(); const language = new Compartment();
   const languageFor = (items: readonly EditorExtension[]) => markdown({ addKeymap: false, extensions: [Strikethrough, tabIndentedLists, ...items.flatMap(item => item.markdown ? [item.markdown] : []), noSetextHeadings] });
   const wrapping = new Compartment();
   const skin = new Compartment(); const access = new Compartment(); const attributes = new Compartment();
+  const nativeSelection = usesTouchInput(target.ownerDocument.defaultView);
   // A cached state retains history/selection; replace view-specific compartments
   // and callbacks through a full reconfiguration without replacing the document.
-  const extensions = [EditorState.lineSeparator.of(session.text.includes("\r\n") ? "\r\n" : "\n"), indentUnit.of("\t"), EditorState.tabSize.of(4), history(), language.of(languageFor(contributions)), contributed.of(contributions.map(item => item.extension ?? [])), tasks ? taskControls.of(tasks) : [], mode.of(preview ? [livePreview, livePreviewTheme] : []), wrapping.of(preferences.wrapLines ? EditorView.lineWrapping : []), drawSelection(),
+  const extensions = [EditorState.lineSeparator.of(session.text.includes("\r\n") ? "\r\n" : "\n"), indentUnit.of("\t"), EditorState.tabSize.of(4), history(), language.of(languageFor(contributions)), contributed.of(contributions.map(item => item.extension ?? [])), tasks ? taskControls.of(tasks) : [], mode.of(preview ? [livePreview, livePreviewTheme] : []), wrapping.of(preferences.wrapLines ? EditorView.lineWrapping : []),
+    nativeSelection ? [EditorView.editorAttributes.of({ "data-native-selection": "" }), mobileCaret(viewport)] : drawSelection(),
     EditorView.exceptionSink.of(failed),
     pairedInput,
     typingAnimation,

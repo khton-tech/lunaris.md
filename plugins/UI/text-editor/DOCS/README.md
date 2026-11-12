@@ -38,6 +38,29 @@ geometry and floating surfaces. Native acceptance covers long and short document
 touch and wheel scrolling, caret visibility, long names and landscape allocations.
 See the [CodeMirror styling guide](https://codemirror.net/examples/styling/#overflow-and-scrolling).
 
+Touch-first editing uses native caret and selection rendering, including the
+platform's selection handles and context actions. Desktop retains the CodeMirror
+selection layers and product menu. When the virtual keyboard changes the visible
+viewport, or the user edits or moves a collapsed caret while it is open,
+CodeMirror scrolls the caret to 55% of the visible editor height when the scroll
+range allows it. The reference is the Owner's Android screenshot with the final
+line against the keyboard. CodeMirror adds temporary trailing padding inside its
+content to give the last line room to reach that position. In compact layout it
+uses the shared title/body viewport provided by `onTarget` in the public editor
+role. Workspace retains outer geometry. Selection gestures with an extended
+range and manual scrolling remain under the user's control. Integration uses
+Components and the existing ContextMenu contract. Verify alignment while typing
+at the end of a note and after dismissing the keyboard on physical devices.
+
+Compact Workspace lends a shared vertical title/body viewport. The inner
+CodeMirror scroller owns horizontal overflow for unwrapped lines, so horizontal
+scrolling leaves the file title in place. Workspace supplies the dock clearance
+and the editor applies it inside the scrollable content. The editor width
+setting describes how its limit depends on wrapping and available space. Inline
+task controls keep their visual checkbox size while a label expands the touch
+target within the task row. Physical selection, task taps and rotation with the
+virtual keyboard still require device acceptance.
+
 ## Usage and saving
 
 Underline-style (Setext) headings are disabled at the Markdown parser level at

@@ -92,7 +92,7 @@ export const dependencies = {
   tauri: ['application-host', 'window-titlebar', 'window-provider', 'tauri-window', 'vault', 'logging', 'text-editor', 'interface-settings', 'settings-provider', 'settings-plugin', 'active-screen-provider', 'active-screen-plugin', 'active-document', 'active-document-provider', 'context-menu-provider', 'file-explorer', 'sidebar-plugin', 'sidebar-provider', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'mantine-components', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'],
 };
 
-dependencies['application-host'].push('manifest', 'lime', 'execution', 'lime-manager', 'lime-settings', 'quickjs-execution', 'lup-picker');
+dependencies['application-host'].push('manifest', 'lime', 'execution', 'lime-manager', 'lime-settings', 'quickjs-execution', 'lup-picker', 'components');
 
 export const packagePath = scope => {
   if (scope === 'lime-settings') return 'plugins/UI/lime-settings';
@@ -188,6 +188,7 @@ export function checkSource(source, filename, scope) {
   if (scope === 'tauri' && path.resolve(filename) === path.resolve('hosts/tauri/src/application.ts')) allowed.add('@lunaris/mantine-components/styles.css');
   if (scope === 'tauri') { allowed.add('@lunaris/application-host/session'); allowed.add('@lunaris/application-host/slots'); allowed.add('@lunaris/application-host/view'); }
   if (scope === 'web') for (const name of ['@lunaris/application-host/scheduler', '@lunaris/application-host/view', '@lunaris/application-host/shell.css', '@lunaris/mantine-components/styles.css']) allowed.add(name);
+  if (scope === 'tauri' || scope === 'web') allowed.add('@lunaris/application-host/browser-input');
   function specifier(node) {
     if (!ts.isStringLiteral(node)) {
       errors.push(`${filename}: nonliteral imports are forbidden in core packages`);

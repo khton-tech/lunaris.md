@@ -1,5 +1,6 @@
 import { EditorSelection } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
+import { usesTouchInput } from "@lunaris/components";
 import type { CancellationSignal } from "@lunaris/sdk";
 import type { ContextMenuApi, MenuEntry, MenuSession } from "@lunaris/context-menu";
 import type { ClipboardApi } from "@lunaris/clipboard";
@@ -45,14 +46,16 @@ export function bindEditorMenu(view: EditorView, options: EditorMenuOptions) {
   if(result.ok) opened=result.value;else options.failed(new Error(result.error.message,{cause:result.error}));
  }
  const context = (event: MouseEvent) => {
-  if(!live()) return; event.preventDefault();
+  if(!live() || usesTouchInput(view.dom.ownerDocument.defaultView, event)) return;
+  event.preventDefault();
   const position=view.posAtCoords({x:event.clientX,y:event.clientY});const range=view.state.selection.main;
   if(position !== null && (range.empty || position < range.from || position > range.to)) view.dispatch({selection:{anchor:position}});
   open(event.clientX,event.clientY);
  };
  const keyboard = (event: KeyboardEvent) => {
   if(event.key !== "ContextMenu" && !(event.key === "F10" && event.shiftKey)) return;
-  if(!live()) return;event.preventDefault();event.stopPropagation();const coords=view.coordsAtPos(view.state.selection.main.head) ?? view.dom.getBoundingClientRect();open(coords.left,coords.bottom);
+  if(!live() || usesTouchInput(view.dom.ownerDocument.defaultView)) return;
+  event.preventDefault();event.stopPropagation();const coords=view.coordsAtPos(view.state.selection.main.head) ?? view.dom.getBoundingClientRect();open(coords.left,coords.bottom);
  };
  view.dom.addEventListener("contextmenu",context);view.dom.addEventListener("keydown",keyboard,true);
  const dispose=()=>{if(disposed)return;disposed=true;close();view.dom.removeEventListener("contextmenu",context);view.dom.removeEventListener("keydown",keyboard,true);options.owner.removeEventListener("abort",dispose);};

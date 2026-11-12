@@ -1,5 +1,45 @@
 # Mantine components
 
+## Compact layout and touch controls
+
+Reference: the Owner's mobile audit and the existing desktop Files, Settings
+and Workspace compositions. The shared controls follow the
+[Mantine UI navigation examples](https://ui.mantine.dev/category/navbars/) and
+[Mantine Combobox](https://mantine.dev/core/combobox/). Workspace chooses one compact layout for short
+landscape and narrow allocations. It owns the dock inset, its mobile targets,
+and drawer focus restoration. Settings supplies its own upper trigger only
+in compact mode and uses the shared themed viewport overlay for dropdowns.
+The dock reacts to scroll events from the main region and opt-in UIKit
+scrollers. The host owns hardware safe-area padding.
+
+Files reuses the shared panel heading and existing ContextMenu role for the
+Owner's trailing ellipsis controls. The renderer preserves tree actions,
+selection and focus through the public callbacks. The editor role lends the
+vertical title/body viewport and CodeMirror owns horizontal overflow. The task
+checkbox uses a larger touch label with the same theme geometry. Integration is
+through Workspace, Active Screen, Settings, Components and ContextMenu.
+
+The Owner's compact Files screenshot is the reference for drawer density.
+Files owns its labels, glyphs and inner spacing; the vault footer and its
+upward menu use smaller typography while retaining 44px touch targets.
+Workspace continues to own the drawer and rail geometry.
+
+## Mobile keyboard and navigation
+
+The reference is the existing compact Workspace launcher and bottom action row.
+The host owns the shell viewport. WorkspaceLayout owns both floating targets and
+their visibility; the mobile-menu role owns its Mantine controls and tab list.
+The layout hides both targets during virtual keyboard input, keeping the editor
+region and its focus in place. The mobile-menu role dismisses its portaled list
+when the dock loses its allocation. File Explorer leaves touch context gestures
+to the platform. Integration uses the existing public Components roles, their
+targets, and the shared Components DOM helpers.
+
+DOM regression tests cover keyboard opening and closing, the portaled list,
+stable targets and focus, and touch versus desktop context triggers. Native
+acceptance is pending in the composed Workspace on iOS and Android, including
+landscape and keyboard dismissal with the input still focused.
+
 ## Mobile Sidebar composition parity (2026-11-11)
 
 Reference: the Owner's narrow Files screenshot showing a detached rounded rail,

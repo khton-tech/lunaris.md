@@ -1,10 +1,10 @@
 # Tauri host and independent recovery shell
 
-The host bootstrap prevents the default `contextmenu` action throughout the
-document, suppressing the built-in WebView menu. It does not stop event
-propagation: SDK component renderers retain their own contextual actions,
-including the file explorer menu. The policy also applies to the recovery shell
-and editable fields; product editing actions remain component-owned.
+The bootstrap shares its input policy with the browser host. Desktop WebViews
+suppress the default `contextmenu` action while SDK components receive the event
+and can open product menus. Mobile WebViews and touch context gestures retain
+native context actions, including selection and clipboard actions in editable
+fields. The host fits its shell to the visible viewport during keyboard entry.
 
 Normal desktop startup presents the runner (ASCII logo/loading) followed by the
 Vault selector. Before plugin services are available, a host-owned static surface

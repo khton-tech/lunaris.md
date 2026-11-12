@@ -16,6 +16,7 @@
   ],
   "references": [
     { "path": "../../packages/manifest" },
+    { "path": "../../packages/components" },
     { "path": "../../plugins/systems/lime" },
     { "path": "../../plugins/UI/lime-settings" },
     { "path": "../../plugins/systems/driver/quickjs-execution" },

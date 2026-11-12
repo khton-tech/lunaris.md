@@ -79,7 +79,7 @@ drag at its leading edge to move a tab. Both layouts use the same tab ordering
 operation. The dock uses the theme panel color and a subdued separator.
 The dock's plus creates tabs. The anchored popup matches the dock's measured
 width and center. The dock takes 70% of the Workspace width within its side
-gutters. The popup fits up to five rows and scrolls internally when more tabs
+gutters, capped at 28rem. The popup fits up to five standard rows and scrolls internally when more tabs
 are open.
 The compact presentation replaces the tab strip and location/history row.
 The Owner's phone reference defines the dock order and horizontal rounded
@@ -93,3 +93,9 @@ top-left launcher and bottom action in the real container, both themes, portrait
 and landscape, scroll gestures, keyboard focus and the opened tab list.
 
 Both floating regions share scroll-direction visibility. The Sidebar layer and backdrop stack above both floating regions, which become inert and aria-hidden while the overlay is open. There is no main-area return button. Files and Settings explicitly close WorkspaceSidebar after successful content selection; failures preserve the panel for recovery. Tool switching itself keeps navigation available. Desktop selection remains intact. Native stacking and scroll/focus acceptance remain pending.
+
+While the virtual keyboard occupies the viewport, Workspace hides and makes both
+floating targets inert. It preserves their mounted content, compact mode and
+scroll-based visibility state. The mobile menu closes its portaled tab list when
+the dock loses its allocation. Closing the keyboard restores the existing
+scroll-based behavior without moving focus out of the editor.

@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { Pencil } from 'lucide';
-import { useBrowser, typeInput } from '../../../../tools/test/browser.mjs';
+import { mobileViewport, useBrowser, typeInput } from '../../../../tools/test/browser.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
@@ -417,6 +417,28 @@ test('Settings Select opens themed options, supports keyboard selection and Esca
   assert.equal(trigger.disabled, true); assert.notEqual(trigger.getAttribute('aria-expanded'), 'true'); await s.stop();
 });
 
+test('Settings Items lends compact dropdowns a themed viewport overlay and releases it with the role', async () => {
+  const s = await setup(); await s.start();
+  try {
+    const mounted = s.components.mount('lunaris.settings-items', s.target, {
+      compact: true, portalDropdowns: true, items: [{ id: 'test.theme', title: 'Theme', type: 'select', value: 'a',
+        options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }] }], onChange() {}, onRetry() {},
+    }, s.ctx.signal);
+    assert.equal(mounted.ok, true);
+    const trigger = s.target.querySelector('[role=combobox]');
+    trigger.focus(); trigger.click(); await settle();
+    const overlay = s.dom.window.document.querySelector('.lm-settings-overlay');
+    const list = s.dom.window.document.getElementById(trigger.getAttribute('aria-controls'));
+    assert.equal(overlay.parentElement, s.dom.window.document.body);
+    assert.equal(overlay.dataset.compact, 'true');
+    assert.equal(overlay.dataset.mantineColorScheme, trigger.closest('.lm-root').dataset.mantineColorScheme);
+    assert.ok(overlay.contains(list));
+    trigger.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+    await settle(); assert.equal(s.dom.window.document.activeElement, trigger);
+    mounted.value.dispose(); assert.equal(overlay.isConnected, false);
+  } finally { await s.stop(); }
+});
+
 test('theme replacement and clearing update mounted roots without affecting the document or stored preferences', async () => {
   const s = await setup(); await s.start();
   assert.equal(s.components.mount('lunaris.startup-screen', s.target, startup, s.ctx.signal).ok, true);
@@ -543,10 +565,16 @@ test('Explorer virtual rows adapt to touch capability without losing drafts and 
   s.dom.window.matchMedia = query => query === '(pointer: coarse)' ? pointer : originalMedia(query);
   s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 480);
   try {
-    const mounted = s.components.mount('lunaris.file-explorer', s.target, explorerFixture(), s.ctx.signal);
+    const contexts = [];
+    const mounted = s.components.mount('lunaris.file-explorer', s.target, explorerFixture({ onContextMenu: request => contexts.push(request) }), s.ctx.signal);
     assert.equal(mounted.ok, true); await settle();
     const rowHeight = () => s.target.querySelector('[role=treeitem]').style.height;
     assert.equal(rowHeight(), '44px');
+    for (const selector of ['[title="a.md"]', '.lm-explorer-tree']) {
+      assert.equal(s.target.querySelector(selector).dispatchEvent(new s.dom.window.MouseEvent('contextmenu', { bubbles: true, cancelable: true })), true);
+    }
+    await settle();
+    assert.deepEqual(contexts, []);
     s.target.querySelector('[aria-label="New file"]').click(); await settle();
     const input = s.target.querySelector('.lm-explorer-create input'); assert.ok(input);
     typeInput(input, 'Mobile draft'); await settle();
@@ -574,7 +602,7 @@ test('explorer toolbar creates in the selected folder, sorts through a themed me
   const mounted = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); await settle();
   const actions = s.target.querySelector('.lm-explorer-actions');
   assert.equal(actions.querySelectorAll('button').length, 4);
-  assert.equal(actions.previousElementSibling.className.includes('lm-explorer-toolbar'), true);
+  assert.equal(actions.previousElementSibling.querySelector('h2').textContent, 'Files');
   actions.querySelector('[aria-label="Sort"]').click(); await settle();
   const descending = [...s.target.querySelectorAll('[role=menuitem]')].find(node => node.textContent === 'Name: Z–A');
   assert.ok(descending); descending.click(); await settle(); assert.deepEqual(sorts, ['desc']);
@@ -798,7 +826,7 @@ test('HTML5 drag/drop passes the hovered folder to the controller without toggli
 });
 
 
-test('explorer replaces header actions with a Files dropdown and protects the visible Vault root', async () => {
+test('explorer uses the shared panel heading and protects the visible Vault root', async () => {
   const s = await setup(); await s.start(); const calls = [];
   s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 320);
   const props = explorerFixture({ workspace: { vaultId: 'a', vaultName: 'My Vault' },
@@ -806,15 +834,9 @@ test('explorer replaces header actions with a Files dropdown and protects the vi
     onRemove: async (...args) => { calls.push(['remove', ...args]); return true; },
     onBuffer: (...args) => calls.push(['buffer', ...args]), onToggle: (...args) => calls.push(['toggle', ...args]) });
   const mounted = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true); await settle();
-  const toolbar = s.target.querySelector('.lm-explorer-toolbar');
-  assert.equal(toolbar.textContent, 'Files'); assert.equal(toolbar.querySelectorAll('button').length, 1);
-  assert.equal(toolbar.querySelector('[aria-label="New file"]'), null);
-  assert.equal(toolbar.querySelector('[aria-label="New folder"]'), null);
-  assert.equal(toolbar.querySelector('[aria-label=Actions]'), null);
-  toolbar.querySelector('[aria-label=Tabs]').click(); await settle();
-  assert.equal(toolbar.querySelector('[role=menuitem]').textContent, 'Files');
-  assert.equal(toolbar.querySelector('[role=menuitem]').getAttribute('aria-current'), 'page');
-  toolbar.querySelector('[role=menuitem]').click(); await new Promise(resolve => setTimeout(resolve, 250));
+  const header = s.target.querySelector('.lm-tool-panel-toolbar');
+  assert.equal(header.querySelector('h2').textContent, 'Files');
+  assert.equal(header.querySelector('button'), null);
   const root = s.target.querySelector('[title="My Vault"]');
   assert.equal(root.closest('[role=treeitem]').getAttribute('aria-level'), '1');
   assert.equal(s.target.querySelector('[title=folder]').closest('[role=treeitem]').getAttribute('aria-level'), '2');
@@ -829,6 +851,38 @@ test('explorer replaces header actions with a Files dropdown and protects the vi
   root.querySelector('button').click(); await settle(); assert.ok(s.target.querySelector('[title="a.md"]'));
   mounted.value.update({ ...props, data: [] }); await settle(); assert.ok(s.target.querySelector('[title="My Vault"]'));
   await s.stop();
+});
+
+test('compact Explorer row actions target the clicked file or folder without activating the row', async () => {
+  const s = await setup(); await s.start();
+  const { window } = s.dom;
+  window.HTMLElement.prototype.getBoundingClientRect = () => new window.DOMRect(0, 0, 320, 480);
+  const opened = []; const toggles = []; const contexts = [];
+  try {
+    const props = explorerFixture({ workspace: { vaultId: 'a', compact: true },
+      onOpen: async path => { opened.push(path); }, onToggle: (...args) => toggles.push(args),
+      onContextMenu(request) { contexts.push(request); },
+    });
+    const mounted = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal);
+    assert.equal(mounted.ok, true); await settle();
+    const file = s.target.querySelector('[title="a.md"]');
+    const folder = s.target.querySelector('[title="folder"]');
+    const fileAction = file.querySelector('.lm-explorer-row-action');
+    const folderAction = folder.querySelector('.lm-explorer-row-action');
+    fileAction.click(); await settle();
+    assert.equal(contexts[0].target, fileAction);
+    assert.deepEqual(contexts[0].selection, ['a.md']);
+    assert.ok(contexts[0].entries.some(item => item.id.endsWith('.rename')));
+    assert.deepEqual(opened, []);
+    folderAction.click(); await settle();
+    assert.equal(contexts[1].target, folderAction);
+    assert.equal(contexts[1].destination, 'folder');
+    assert.deepEqual(toggles, []);
+    folder.querySelector('.lm-explorer-filename').click(); await settle();
+    assert.deepEqual(toggles, [['folder', false]]);
+    mounted.value.update({ ...props, workspace: { vaultId: 'a', compact: false } }); await settle();
+    assert.equal(s.target.querySelector('.lm-explorer-row-action'), null);
+  } finally { await s.stop(); }
 });
 
 
@@ -1049,8 +1103,10 @@ test('compact Workspace lends a mobile menu target without replacing editor regi
   const initial = targets; const main = targets.main; const draft = s.dom.window.document.createElement('input'); draft.value='Draft'; main.append(draft);
   assert.ok(targets['mobile-menu']); assert.equal(targets.bottom.hidden,true); requests.length=0;
   const launcher=targets['mobile-launcher']; assert.ok(launcher); assert.equal(launcher.hidden,false);
-  const scroll=s.dom.window.document.createElement('div'); main.append(scroll);
+  const scroll=s.dom.window.document.createElement('div'); scroll.setAttribute('data-workspace-scroll', ''); main.append(scroll);
+  const menuList=s.dom.window.document.createElement('div'); menuList.setAttribute('role', 'listbox'); scroll.append(menuList);
   const {flushSync}=await import('react-dom');
+  menuList.scrollTop=60; flushSync(()=>menuList.dispatchEvent(new s.dom.window.Event('scroll'))); assert.equal(launcher.hidden,false); assert.equal(targets['mobile-menu'].hidden,false);
   scroll.scrollTop=60; flushSync(()=>scroll.dispatchEvent(new s.dom.window.Event('scroll'))); assert.equal(launcher.hidden,true); assert.equal(targets['mobile-menu'].hidden,true);
   scroll.scrollTop=30; flushSync(()=>scroll.dispatchEvent(new s.dom.window.Event('scroll'))); assert.equal(launcher.hidden,false); assert.equal(targets['mobile-menu'].hidden,false);
   const menu=s.components.mount('lunaris.mobile-menu',targets['mobile-menu'],{items:Array.from({length:5},(_,i)=>({id:'test.'+i,label:'Test '+i,icon:'files',onPress(){}}))},s.ctx.signal);
@@ -1065,6 +1121,97 @@ test('compact Workspace lends a mobile menu target without replacing editor regi
   mounted.value.update({...props,mobileOpen:false}); assert.equal(main.parentElement.hasAttribute('inert'),false); assert.equal(targets,initial); assert.equal(draft.value,'Draft');
   mounted.value.dispose();
  } finally { s.dom.window.HTMLElement.prototype.getBoundingClientRect=original; await s.stop(); }
+});
+
+test('short landscape uses compact regions and returns focus to the drawer opener', async () => {
+  const s = await setup(); await s.start();
+  const { window } = s.dom;
+  let height = 390; let measure;
+  window.HTMLElement.prototype.getBoundingClientRect = () => new window.DOMRect(0, 0, 844, height);
+  globalThis.ResizeObserver = class {
+    constructor(callback) { this.callback = callback; }
+    observe(element) { if (element.classList.contains('lm-workspace-layout')) measure = this.callback; }
+    disconnect() {}
+  };
+  try {
+    let targets; let compact;
+    const props = { railVisible: true, panelVisible: true, bottomVisible: true, mobileMenuVisible: true, mainLabel: 'Main', panelLabel: 'Sidebar',
+      onTargets(value, mode) { targets = value; compact = mode; }, onDismiss() {} };
+    const mounted = s.components.mount('lunaris.workspace-layout', s.target, props, s.ctx.signal);
+    assert.equal(mounted.ok, true); assert.equal(compact, true);
+    const main = targets.main;
+    const trigger = window.document.createElement('button');
+    targets['mobile-menu'].append(trigger);
+    trigger.click();
+    mounted.value.update({ ...props, mobileOpen: true });
+    assert.equal(main.parentElement.hasAttribute('inert'), true);
+    mounted.value.update({ ...props, mobileOpen: false });
+    assert.equal(window.document.activeElement, trigger);
+    height = 720;
+    const { flushSync } = await import('react-dom');
+    flushSync(() => measure());
+    assert.equal(compact, false);
+    assert.equal(targets.main, main);
+    assert.equal(targets.bottom.hidden, false);
+  } finally { await s.stop(); }
+});
+
+test('mobile keyboard hides Workspace navigation and its open dropdown while keeping focus in the editor region', async () => {
+ const s = await setup(); await s.start();
+ const { window } = s.dom;
+ const viewport = mobileViewport(window);
+ const original = window.HTMLElement.prototype.getBoundingClientRect;
+ const observers = new Map();
+ window.HTMLElement.prototype.getBoundingClientRect = function () {
+   return this.hidden ? new window.DOMRect() : new window.DOMRect(0, 0, 360, 720);
+ };
+ globalThis.ResizeObserver = class {
+   constructor(callback) { this.callback = callback; this.elements = new Set(); }
+   observe(element) { this.elements.add(element); observers.set(element, this.callback); }
+   disconnect() { for (const element of this.elements) observers.delete(element); }
+ };
+ try {
+  let targets;
+  const props = { railVisible: true, panelVisible: true, mobileLauncherVisible: true, mobileMenuVisible: true,
+   mainLabel: 'Main', panelLabel: 'Sidebar', onTargets: value => { targets = value; }, onDismiss() {} };
+  const layout = s.components.mount('lunaris.workspace-layout', s.target, props, s.ctx.signal);
+  assert.equal(layout.ok, true);
+  const initial = targets;
+  const editor = window.document.createElement('textarea');
+  targets.main.append(editor);
+  editor.focus();
+  const toolbar = targets['mobile-menu'];
+  const launcher = targets['mobile-launcher'];
+  const menu = s.components.mount('lunaris.mobile-menu', toolbar, { items: [
+   { id: 'tabs', label: 'Tabs', icon: 'files', choices: [{ id: 'tab', label: 'Tab' }], onPress() {} },
+  ] }, s.ctx.signal);
+  assert.equal(menu.ok, true);
+  assert.equal(toolbar.hidden, false);
+  toolbar.querySelector('button').click();
+  await settle();
+  const dropdown = () => window.document.querySelector('.lm-mobile-choice-overlay [role=menu]');
+  assert.ok(dropdown());
+  editor.focus();
+  viewport.height = 420;
+  viewport.dispatchEvent(new window.Event('resize'));
+  await new Promise(resolve => window.requestAnimationFrame(resolve)); await settle();
+  for (const region of [launcher, toolbar]) {
+   assert.equal(region.hidden, true);
+   assert.equal(region.hasAttribute('inert'), true);
+  }
+  observers.get(toolbar)([{ target: toolbar, contentRect: toolbar.getBoundingClientRect() }]);
+  await settle();
+  assert.equal(dropdown(), null);
+  assert.equal(window.document.activeElement, editor);
+  viewport.height = 720;
+  viewport.dispatchEvent(new window.Event('resize'));
+  await new Promise(resolve => window.requestAnimationFrame(resolve)); await settle();
+  assert.equal(targets, initial);
+  assert.equal(launcher.hidden, false);
+  assert.equal(toolbar.hidden, false);
+  assert.equal(dropdown(), null);
+  menu.value.dispose(); layout.value.dispose();
+ } finally { window.HTMLElement.prototype.getBoundingClientRect = original; await s.stop(); }
 });
 
 test('mobile floating controls follow content swipes without scroll or keyboard and preserve editing gestures', async () => {

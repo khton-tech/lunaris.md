@@ -36,6 +36,12 @@ The layout reports compact mode with its targets. Workspace propagates that
 mode as `workspace.compact` after layout effects complete, preserving mounted
 content while the allocation changes.
 
+Compact mode covers narrow and short landscape allocations. The main
+contribution can advertise `mobileNavigationInHeader` through its props while
+its active screen supplies the upper drawer trigger. The Workspace layout
+keeps ownership of the dock inset and restores focus to the drawer opener.
+See the [Workspace reference](../../../../DOCS/reference/workspace.md).
+
 Tauri starts this plugin and hides the selector while a Vault is open. A committed
 close through the public Vault service restores the selector. Workspace itself
 exposes no Vault controls. Logger

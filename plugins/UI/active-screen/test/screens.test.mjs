@@ -140,7 +140,7 @@ test('compact Workspace shows one live tab counter and switches through the shar
     constructor(callback) { this.callback = callback; }
     observe(element) {
       if (element.classList.contains('lm-workspace-layout')) measureLayout = this.callback;
-      if (element.classList.contains('lm-workspace-mobile-toolbar')) measureDock = this.callback;
+      if (element.classList.contains('lm-workspace-mobile-toolbar')) measureDock = () => this.callback([{ target: element, contentRect: element.getBoundingClientRect() }]);
     }
     unobserve() {}
     disconnect() {}
@@ -229,7 +229,7 @@ test('compact Workspace shows one live tab counter and switches through the shar
     const computed = s.dom.window.getComputedStyle;
     const menuStyle = computed(menu());
     assert.equal(menuStyle.overflowY, 'auto');
-    assert.match(menuStyle.getPropertyValue('--mobile-choice-row-height'), /34px/);
+    assert.match(menuStyle.getPropertyValue('--mobile-choice-row-height'), /44px/);
     assert.match(menuStyle.maxHeight, /5\s*\*\s*var\(--mobile-choice-row-height\)/);
     assert.equal(computed(menu().querySelector('[role="menuitem"]')).minHeight, 'var(--mobile-choice-row-height)');
     assert.ok([...document.styleSheets].some(sheet => [...sheet.cssRules].some(rule =>

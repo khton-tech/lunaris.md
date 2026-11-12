@@ -130,6 +130,12 @@ selection, including while focus moves to the overlay. Controller updates, Vault
 replacement and view disposal close obsolete menus. Keyboard shortcuts retain
 their existing behavior; ContextMenu/Shift+F10 open at the focused row.
 
+File Explorer and Text Editor open their product context menus from desktop
+pointer and keyboard input. On touch-first and mobile browsers/WebViews both
+triggers defer to the platform. Touch context gestures are also left to the
+platform on hybrid desktops. These checks happen before selection mutation or
+event cancellation. The provider API stays available to explicit callers.
+
 ## Verification
 
 Run `npm run context-menu:check` for contract/type fixtures, provider ownership,

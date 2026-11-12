@@ -227,7 +227,7 @@ export default definePlugin({ manifest, async activate(ctx) {
     };
     function render(): void {
       if (disposed || signal.aborted || ctx.signal.aborted) return;
-      const context = props.workspace as { vaultId?: string } | undefined;
+      const context = props.workspace as { vaultId?: string; compact?: boolean } | undefined;
       const session = current?.target.vaultId === context?.vaultId ? current : null;
       const ready = !!session?.loaded;
       const display = preferences.current();
@@ -235,7 +235,7 @@ export default definePlugin({ manifest, async activate(ctx) {
       if (commandDocument !== documentKey) { commandDocument = documentKey; commandError = ""; renameError = ""; }
       const error = session?.draftError ? text("draftFailed") : session?.error ? text(session.error.code === "CONFLICT" ? "conflict" : session.missing ? "missing" : session.draftSaved && ["OFFLINE", "SERVER_UNAVAILABLE"].includes(session.error.code) ? "offline" : session.loaded ? "saveFailed" : "readFailed") : "";
       const next = { documentKey: session ? key(session.target) : "", name: session?.target.path ?? text(unsupported ? "unsupported" : "empty"),
-        title: session ? stem(session.target.path) : "", titleLabel: text("title"), renameError,
+        title: session ? stem(session.target.path) : "", titleLabel: text("title"), renameError, compact: context?.compact,
         contentFontSize: display.fontSize === "theme" ? undefined : Number(display.fontSize),
         contentWidth: display.wrapLines && display.textWidth !== "full" ? Number(display.textWidth) : "full",
         resizeWidthLabel: text("resizeWidth"), canResizeWidth: preferences.canResize(),
@@ -286,7 +286,7 @@ export default definePlugin({ manifest, async activate(ctx) {
               active: () => !disposed && !owner.signal.aborted && !ctx.signal.aborted && current === session && session.active && screens.snapshot().activeId === screenId,
               failed(error) { if (ctx.signal.aborted || disposed) return; commandError = text("clipboardFailed"); logger.warn(ctx.pluginId, "Editor context command failed", { error }); changed(); },
               completed(operation) { if (ctx.signal.aborted || disposed) return; commandError = ""; logger.info(ctx.pluginId, "Editor context command completed", { data: { operation } }); changed(); },
-            }, preferences.current(), extensions.current(), deletionEffects);
+            }, preferences.current(), extensions.current(), deletionEffects, viewport);
         } else editor.update(themes.current(), text("editor"), true, preferences.current(), extensions.current());
       }
     }

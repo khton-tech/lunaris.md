@@ -14,6 +14,7 @@ interface EditorProps {
   readonly name: string;
   readonly title: string;
   readonly titleLabel: string;
+  readonly compact?: boolean;
   readonly contentFontSize?: number;
   readonly contentWidth?: number | "full";
   readonly resizeWidthLabel?: string;
@@ -42,6 +43,7 @@ export function textEditorProps(value: ComponentProps): EditorProps {
     if (typeof value[key] !== "string") throw new TypeError(`Text editor requires ${key}.`);
   for (const key of ["ready", "dirty", "busy", "canRename"]) if (typeof value[key] !== "boolean") throw new TypeError(`Text editor requires ${key}.`);
   for (const key of ["onSave", "onReload", "onTarget", "onRename"]) if (typeof value[key] !== "function") throw new TypeError(`Text editor requires ${key}.`);
+  if (value.compact !== undefined && typeof value.compact !== "boolean") throw new TypeError("Invalid editor presentation.");
   if (value.commandError !== undefined && typeof value.commandError !== "string") throw new TypeError("Invalid editor command error.");
   if (value.renameError !== undefined && typeof value.renameError !== "string") throw new TypeError("Invalid editor rename error.");
   if (value.contentFontSize !== undefined && (typeof value.contentFontSize !== "number" || !Number.isFinite(value.contentFontSize) || value.contentFontSize <= 0)) throw new TypeError("Invalid editor content font size.");
@@ -71,8 +73,8 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
     if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); }
     else if (event.key === "Escape") { event.preventDefault(); setTitle(props.title); event.currentTarget.blur(); }
   }
-  return <Box ref={container} className="lm-text-editor" style={theme.contentStyle}>
-    {props.ready && props.onContentWidthChange && <EditorWidthHandles key={props.documentKey} container={container}
+  return <Box ref={container} className="lm-text-editor" data-compact={props.compact} data-workspace-scroll style={theme.contentStyle}>
+    {props.ready && props.onContentWidthChange && !props.compact && <EditorWidthHandles key={props.documentKey} container={container}
       width={props.contentWidth ?? 698} label={props.resizeWidthLabel!} disabled={!props.canResizeWidth} onChange={props.onContentWidthChange} />}
     {props.ready && <Box component="header" className="lm-editor-heading"
       style={{ maxWidth: props.contentWidth === "full" ? "none" : props.contentWidth ?? 698 }}>
