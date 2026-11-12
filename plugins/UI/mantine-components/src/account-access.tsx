@@ -10,6 +10,8 @@ export interface AccountAccessProps {
   readonly text: Readonly<Record<string, string>>;
   readonly address: string; readonly login: string; readonly password: string; readonly invitation: string; readonly name: string;
   readonly account: string; readonly busy: boolean; readonly error: string; readonly allowLocal: boolean;
+  readonly presentation?: { readonly mode?: "standalone" | "embedded"; readonly sizing?: "fill" | "content" };
+  readonly allowChangeServer?: boolean;
   readonly art?: string;
   readonly serverName?: string; readonly serverDescription?: string;
   readonly catalogState?: "loading" | "ready" | "error";
@@ -30,11 +32,13 @@ export function accountAccessProps(value: ComponentProps): AccountAccessProps {
   if (value.catalogState !== undefined && !["loading", "ready", "error"].includes(value.catalogState as string)) throw TypeError("Invalid catalog state.");
   if (value.catalogState === "loading" && typeof (value.text as Record<string, unknown>).loading !== "string") throw TypeError("Missing loading label.");
   for (const key of ["art", "serverName", "serverDescription"]) if (value[key] !== undefined && typeof value[key] !== "string") throw TypeError("Invalid server information.");
+  if (value.allowChangeServer !== undefined && typeof value.allowChangeServer !== "boolean") throw TypeError("Invalid server navigation flag.");
   return value as unknown as AccountAccessProps;
 }
 export function AccountAccessView({ props: p, theme }: { props: AccountAccessProps; theme: ReturnType<typeof resolveTheme> }) {
+  const embedded = p.presentation?.mode === "embedded";
   const catalog = p.mode === "vaults" || p.mode === "trash";
-  return <Box component="section" className="lm-account-access" data-view={catalog ? "catalog" : "auth"} style={theme.contentStyle} aria-busy={p.busy}>
+  return <Box component="section" className="lm-account-access" data-view={catalog ? "catalog" : "auth"} data-embedded={embedded || undefined} style={theme.contentStyle} aria-busy={p.busy}>
     <Box className="lm-account-content">
       {catalog && <Group component="header" className="lm-account-topbar" justify="space-between" wrap="wrap">
         <Text className="lm-account-brand">Lunaris</Text>
@@ -43,6 +47,7 @@ export function AccountAccessView({ props: p, theme }: { props: AccountAccessPro
           <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu" aria-label={p.text.accountMenu}>
             <Menu.Label className="lm-account-server">{p.address}</Menu.Label>
             {p.allowLocal && <Menu.Item leftSection={<Icon name="folder" />} onClick={p.onLocal}>{p.text.local}</Menu.Item>}
+            {p.allowChangeServer && <Menu.Item leftSection={<Icon name="back" />} onClick={p.onChangeServer}>{p.text.changeServer}</Menu.Item>}
             <Menu.Item leftSection={<Icon name="logout" />} onClick={p.onLogout}>{p.text.logout}</Menu.Item>
           </Menu.Dropdown>
         </Menu> : p.allowLocal && <Button disabled={p.busy} onClick={p.onLocal} leftSection={<Icon name="back" />}>{p.text.local}</Button>}

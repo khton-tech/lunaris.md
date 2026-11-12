@@ -11,3 +11,9 @@ ctx.use(Drafts).remove({ server: "https://notes.example", accountId: "a", vaultI
 
 // @ts-expect-error Saving requires an explicit writer identity.
 ctx.use(Drafts).save({ key: { server: "s", accountId: "a", vaultId: "v", path: "note.md" }, text: "x", expectedVersion: "v", revision: "r", updatedAt: 1 });
+
+import { AccountAccess } from "@lunaris/remote";
+declare const accountTarget: HTMLElement;
+ctx.use(AccountAccess).open({ target: accountTarget, owner: ctx.signal });
+// @ts-expect-error Embedded placement requires explicit lifetime ownership.
+ctx.use(AccountAccess).open({ target: accountTarget });

@@ -1,3 +1,4 @@
+/// <reference lib="dom" preserve="true" />
 import { defineApi, defineEvent } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
 import type { FolderLocation, FsFailure, FsResult } from "@lunaris/filesystem";
@@ -36,8 +37,14 @@ export interface ServerTransportApi extends AccountSessionApi {
 }
 export const ServerTransport = defineApi<ServerTransportApi>({ id: "lunaris.server-transport", version: "1.0.0", consumePermission: "account.network",
   validate: value => value !== null && typeof value === "object" && ["current", "connect", "register", "login", "logout", "request"].every(method => typeof Object.getOwnPropertyDescriptor(value, method)?.value === "function") });
-export interface AccountAccessApi { visible(): boolean; open(): void; close(): void }
-export const AccountAccess = defineApi<AccountAccessApi>({ id: "lunaris.account-access", version: "1.0.0", consumePermission: "account.access",
+/** Borrowed content region; its owner controls geometry, surface and disclosure. */
+export interface AccountAccessPlacement {
+  readonly target: HTMLElement;
+  readonly owner: CancellationSignal;
+  readonly onBusyChange?: (busy: boolean) => void;
+}
+export interface AccountAccessApi { visible(): boolean; open(placement?: AccountAccessPlacement): void; close(): void }
+export const AccountAccess = defineApi<AccountAccessApi>({ id: "lunaris.account-access", version: "1.1.0", consumePermission: "account.access",
   validate: value => value !== null && typeof value === "object" && ["visible", "open", "close"].every(method => typeof Object.getOwnPropertyDescriptor(value, method)?.value === "function") });
 export const AccountAccessChanged = defineEvent<{ readonly visible: boolean }>({ id: "lunaris.account-access-changed", version: "1.0.0", consumePermission: "account.access",
   validate: value => typeof (value as { visible?: unknown } | null)?.visible === "boolean" });

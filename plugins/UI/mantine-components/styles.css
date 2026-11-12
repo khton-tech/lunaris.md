@@ -995,3 +995,23 @@
  .lm-account-catalog .lm-card-row,.lm-account-catalog .lm-account-row>.lm-button { min-height:44px }
  .lm-account-vaults .lm-account-empty { padding:calc(var(--vault-space)*5) }
 }
+
+/* Embedded account flows inherit the selector's disclosure surface and geometry. */
+.lm-account-access[data-embedded] { padding:0;overflow:visible;flex:0 0 auto;width:100% }
+.lm-account-access[data-embedded] .lm-account-content { width:100%;margin:0;gap:calc(var(--vault-space)*3);flex:none }
+.lm-account-access[data-embedded] .lm-account-auth { background:transparent;border:0;box-shadow:none }
+.lm-account-access[data-embedded] .lm-account-auth-heading { padding:0 0 calc(var(--vault-space)*3);background:transparent;color:var(--vault-text);border:0;border-radius:0 }
+.lm-account-access[data-embedded] .lm-account-auth-heading h1 { font:inherit;font-weight:500 }
+.lm-account-access[data-embedded] .lm-account-auth-form { padding:0 }
+.lm-account-access[data-embedded] .lm-account-auth-footer { padding:calc(var(--vault-space)*3) 0 0 }
+.lm-account-access[data-embedded] .lm-account-auth-actions { flex-direction:column }
+.lm-account-access[data-embedded] .lm-account-auth-actions>.lm-button { width:100% }
+.lm-account-access[data-embedded] .lm-account-topbar { padding:0;min-height:0 }
+.lm-account-access[data-embedded] .lm-account-topbar>.lm-account-brand { display:none }
+.lm-account-access[data-embedded] .lm-account-catalog { display:flex;flex-direction:column;flex:none;min-height:auto }
+.lm-account-access[data-embedded] :is(.lm-account-vaults,.lm-account-main) { background:transparent;padding:0;border:0;border-radius:0;overflow:visible;flex:none }
+.lm-account-access[data-embedded] .lm-account-main-content { margin:0;max-width:none }
+.lm-account-access[data-embedded] :is(.lm-account-art,.lm-account-wordmark,.lm-account-catalog-server) { display:none }
+.lm-account-access[data-embedded] .lm-account-create { padding:calc(var(--vault-space)*3) 0 0;background:transparent }
+.lm-account-access[data-embedded] .lm-account-empty { padding:calc(var(--vault-space)*3);background:transparent }
+.lm-account-access[data-embedded] .lm-account-server-info { padding-bottom:0;text-align:start }

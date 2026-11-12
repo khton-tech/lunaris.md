@@ -10,6 +10,9 @@ import { Components } from '@lunaris/components';
 import { Themes } from '@lunaris/themes';
 import { Localization } from '@lunaris/localization';
 import { Vault, VaultCreation, VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged } from '@lunaris/vault';
+import { createAccountAccess } from '@lunaris/account-access';
+import { AccountSession, AccountSessionChanged, AccountVaults } from '@lunaris/remote';
+import { FilesystemSources } from '@lunaris/filesystem';
 import { createVaultSelector } from '@lunaris/vault-selector';
 import { createRunner } from '@lunaris/runner';
 import { createStartupProvider } from '@lunaris/startup-provider';
@@ -61,12 +64,25 @@ function setup(options = {}) {
   } });
   const slow = definePlugin({ manifest: manifest('test.slow'), async activate() { entered.resolve(); await finish.promise; } });
   const startup = createStartupProvider(); const runner = createRunner({ art: 'ASCII LOGO', hideWhenLoaded: true }); const selector = createVaultSelector({ art: 'ASCII LOGO', hideWhenVaultOpen: options.hideWhenVaultOpen, restoreLastVault: options.restoreLastVault });
+  const account = createAccountAccess({ allowLocal: true });
+  let accountState = null;
+  const remote = definePlugin({ manifest: manifest('test.remote', [AccountSession, AccountSessionChanged, AccountVaults, FilesystemSources]), activate(ctx) {
+    ctx.provide(AccountSession, {
+      current: () => accountState,
+      async connect(address) { calls.push({ operation: 'connect', address }); await options.connectGate; return ok({ protocol: 1, buildId: 'test', registration: 'invitation', name: 'Test server' }); },
+      async register(login) { calls.push({ operation: 'register', login }); return ok({ id: 'a', login }); },
+      async login(login) { accountState = { server: 'https://notes.example', account: { id: 'a', login }, epoch: '1' }; await ctx.events.emit(AccountSessionChanged, { current: accountState }); return ok(accountState.account); },
+      async logout() { accountState = null; await ctx.events.emit(AccountSessionChanged, { current: null }); return ok(null); },
+    });
+    ctx.provide(AccountVaults, { async list() { return ok([{ id: 'remote', name: 'Remote notes', location, state: 'active', deletedAt: null, expiresAt: null }]); }, async create(name) { return ok({ id: 'created', name, location, state: 'active', deletedAt: null, expiresAt: null }); }, async trash() { return ok(null); }, async restore() { return fail('NOT_FOUND'); } });
+    ctx.provide(FilesystemSources, { list: () => ['remote'], location: (_source, value) => ok(value), capabilitiesFor: () => fail('UNSUPPORTED'), remoteIdentity: () => fail('UNSUPPORTED'), locationVisible: () => true });
+  } });
   const layout = composeSlotSurface(surface);
   const session = new HostSession({ scheduler: new TestScheduler(), load: async () => ({ ...layout, startup,
-    plugins: [logger, config, services, localization, componentProvider, kit, themes, baseTheme, toolPlugin, startup.plugin, runner, selector, slow, ...layout.plugins],
+    plugins: [...(options.server ? [account, remote] : []), logger, config, services, localization, componentProvider, kit, themes, baseTheme, toolPlugin, startup.plugin, runner, selector, slow, ...layout.plugins],
     entrypoints: [startup.plugin.manifest.id, baseTheme.manifest.id, ...(options.noKit ? [] : [kit.manifest.id]), 'test.tools', runner.manifest.id, selector.manifest.id, 'test.slow'],
-    grants: { ...layout.grants, [componentProvider.manifest.id]: ['ui.dom'], [kit.manifest.id]: ['ui.dom'], 'test.tools': ['ui.dom', 'vault.access'],
-      [runner.manifest.id]: ['ui.dom', 'config.access'], [selector.manifest.id]: options.denied ? ['ui.dom'] : ['ui.dom', 'vault.access'] },
+    grants: { ...layout.grants, ...(options.server ? { [account.manifest.id]: account.manifest.permissions } : {}), [componentProvider.manifest.id]: ['ui.dom'], [kit.manifest.id]: ['ui.dom'], 'test.tools': ['ui.dom', 'vault.access'],
+      [runner.manifest.id]: ['ui.dom', 'config.access'], [selector.manifest.id]: options.denied ? ['ui.dom'] : ['ui.dom', 'vault.access', ...(options.server ? ['account.access'] : [])] },
   }) });
   const starting = session.start();
   return { dom, surface, finish, entered, starting, session, logs, calls, selections, get tools() { return tools; }, get context() { return context; },
@@ -237,5 +253,74 @@ test('closing a Vault restores the start screen without reopening the latest Vau
   const before = s.calls.length; assert.equal((await s.tools.vaults.close()).ok, true); await flush();
   assert.ok(s.surface.querySelector('.ln-vault')); assert.ok(find(s, 'Create vault')); assert.ok(find(s, 'Select vault'));
   assert.equal(s.calls.length, before); assert.equal(s.tools.vaults.current(), null);
+  await s.stop();
+});
+
+
+test('server disclosure stays inside the local selector through address, registration and remote Vault opening', async () => {
+  const s = setup({ server: true, hideWhenVaultOpen: true }); await s.ready();
+  const selector = s.surface.querySelector('.ln-vault');
+  const toggle = find(s, 'Sign in to server'); assert.ok(toggle); assert.ok(toggle.classList.contains('ln-vault-toggle'));
+  toggle.click(); await flush();
+  const form = () => s.surface.querySelector('.lm-account-access');
+  assert.ok(selector.contains(form()));
+  assert.equal(form().closest('.lm-root').dataset.presentation, 'embedded');
+  assert.equal(s.surface.querySelector('[data-slot-id="lunaris.account-access.screen"]'), null);
+  typeInput(form().querySelector('input[type=url]'), 'https://notes.example');
+  form().querySelector('form').dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true })); await flush();
+  assert.equal(s.surface.querySelector('.ln-vault'), selector);
+  find(s, 'Create account').click(); await flush();
+  typeInput(form().querySelector('[autocomplete=username]'), 'alice');
+  typeInput(form().querySelector('[autocomplete=new-password]'), 'correct password');
+  typeInput(form().querySelector('[autocomplete=off]'), 'invitation');
+  form().querySelector('form').dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true })); await flush();
+  assert.ok(selector.contains(form())); assert.ok(find(s, 'Remote notes'));
+  toggle.click(); await flush(); assert.equal(toggle.getAttribute('aria-expanded'), 'false'); assert.equal(form(), null);
+  toggle.click(); await flush(); assert.ok(find(s, 'Remote notes'));
+  find(s, 'Create vault').click(); await flush();
+  assert.equal(toggle.getAttribute('aria-expanded'), 'false'); assert.equal(form(), null);
+  toggle.click(); await flush(); find(s, 'Remote notes').click(); await flush();
+  assert.equal(s.surface.querySelector('.ln-vault'), null); assert.equal(form(), null);
+  assert.ok(s.calls.some(call => call.operation === 'open'));
+  await s.tools.vaults.close(); await flush(); assert.ok(s.surface.querySelector('.ln-vault'));
+  assert.equal(s.surface.querySelector('.lm-account-access'), null);
+  await s.stop();
+});
+
+test('server disclosure blocks competing actions and ignores late connection results after its owner closes', async () => {
+  const gate = deferred(); const s = setup({ server: true, connectGate: gate.promise }); await s.ready();
+  find(s, 'Sign in to server').click(); await flush();
+  const form = s.surface.querySelector('.lm-account-access form');
+  typeInput(form.querySelector('input'), 'https://notes.example');
+  form.dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true })); await flush();
+  assert.equal(find(s, 'Create vault').disabled, true); assert.equal(find(s, 'Sign in to server').disabled, true);
+  const stopping = s.session.stop(); gate.resolve(); await stopping; await flush();
+  assert.equal(s.surface.querySelector('.lm-account-access'), null);
+  assert.equal(s.session.snapshot().kernel.diagnostics.some(d => d.code === 'CLEANUP_FAILED'), false);
+  s.dom.window.close();
+});
+
+
+test('embedded sign-in supports server navigation, Escape focus and theme replacement', async () => {
+  const s = setup({ server: true }); await s.ready();
+  find(s, 'Sign in to server').click(); await flush();
+  let input = s.surface.querySelector('.lm-account-access input'); typeInput(input, 'https://notes.example'); input.focus();
+  input.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await flush();
+  assert.equal(s.dom.window.document.activeElement, find(s, 'Sign in to server'));
+  assert.equal(s.surface.querySelector('.lm-account-access'), null);
+  find(s, 'Sign in to server').click(); await flush();
+  assert.equal(s.surface.querySelector('.lm-account-access input').value, 'https://notes.example');
+  assert.ok(s.surface.querySelector('.ln-vault .lm-account-access'));
+  const submit = () => s.surface.querySelector('.lm-account-access form').dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true }));
+  submit(); await flush(); find(s, 'Change server').click(); await flush();
+  assert.ok(s.surface.querySelector('.lm-account-access input[type=url]'));
+  submit(); await flush();
+  typeInput(s.surface.querySelector('[autocomplete=username]'), 'alice');
+  typeInput(s.surface.querySelector('[autocomplete=current-password]'), 'correct password');
+  s.tools.themes.select('lunaris.base-theme-engine.windows-xp'); await flush();
+  assert.equal(s.surface.querySelector('[autocomplete=current-password]').value, 'correct password');
+  assert.equal(s.surface.querySelector('.lm-account-access').closest('.lm-root').style.backgroundColor, 'transparent');
+  submit(); await flush(); assert.ok(find(s, 'Remote notes'));
+  assert.equal(s.calls.some(call => call.operation === 'register'), false);
   await s.stop();
 });

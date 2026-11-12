@@ -15,6 +15,8 @@ export function workspaceEmptyProps(value: ComponentProps): WorkspaceEmptyProps 
   return value as unknown as WorkspaceEmptyProps;
 }
 export interface SelectorProps {
+  readonly serverExpanded?: boolean;
+  readonly onServerTarget?: (target: HTMLElement | null) => void;
   readonly onServer?: () => void;
   readonly art: string; readonly text: Readonly<Record<string, string>>;
   readonly mode: "create" | "select" | null; readonly folder: string; readonly name: string;
@@ -32,6 +34,8 @@ export function startupProps(value: ComponentProps): StartupProps {
   return value as unknown as StartupProps;
 }
 export function selectorProps(value: ComponentProps): SelectorProps {
+  if (value.serverExpanded !== undefined && typeof value.serverExpanded !== "boolean") throw TypeError("Invalid server disclosure state.");
+  if (value.onServerTarget !== undefined && typeof value.onServerTarget !== "function") throw TypeError("Invalid server target callback.");
   for (const key of ["art", "folder", "name", "error", "historyError", "status"]) if (typeof value[key] !== "string") throw new TypeError(`Selector requires ${key}.`);
   for (const key of ["busy", "canContinue"]) if (typeof value[key] !== "boolean") throw new TypeError(`Selector requires ${key}.`);
   for (const key of ["onMode", "onName", "onBrowse", "onNext", "onRecent", "onRetry"]) if (typeof value[key] !== "function") throw new TypeError(`Selector requires ${key}.`);

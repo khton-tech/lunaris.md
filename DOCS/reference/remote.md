@@ -66,3 +66,31 @@ to center the combined identity/form block when space permits, falling back to
 scrolling when content exceeds the allocation. No storage changes. Integration
 connects server discovery, transport, account controller and UIKit. Native mobile
 centering, keyboard-open scrolling and long descriptions require manual acceptance.
+
+## Embedded desktop server access
+
+AccountAccess 1.1 adds open({ target, owner, onBusyChange? }); open() retains the
+standalone screen. The target is a borrowed HTMLElement; owner cancellation
+releases only the view. AccountSession and its connection outlive the disclosure
+so opening a remote Vault cannot revoke its own session. Busy operations reject
+competing open/close actions. Late operation results after owner cancellation
+cannot advance forms or open a newly created Vault. Passwords clear on closure.
+
+Vault Selector supplies serverExpanded/onServer/onServerTarget through its public
+Components role. The renderer owns a third ln-vault-action with the same CardRow,
+ln-vault-toggle, animated disclosure and ln-vault-form surface as Create/Select.
+Only one disclosure is open. The target is registered explicitly, never discovered
+through DOM ancestry. The selector owns geometry, surface and overflow; the account
+role receives presentation embedded/content and renders transparent inner content.
+Its sequence is server address, sign-in or invitation-aware registration, then
+server Vaults. Change server returns to the first step. Reopening preserves account
+and server context. Escape closes the disclosure and restores toggle focus; nested
+creation Escape is handled locally first. Pending work disables sibling actions.
+
+Integration is complete through AccountAccess, Components, AccountSession,
+AccountVaults, FilesystemSources and VaultLocations. The browser's standalone
+screen remains supported. Targeted composed tests cover registration and sign-in,
+collapse/reopen, local-form switching, remote opening, owner shutdown, disabled
+competition, Escape focus and theme changes. Native desktop/phone geometry,
+opened menus, long translations and keyboard scrolling still require manual
+acceptance in the actual selector. No storage or server protocol changes.

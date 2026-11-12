@@ -6,7 +6,7 @@ import { Icon } from "./icons.js";
 export function AccountAuth({ props: p }: { props: AccountAccessProps }) {
   return <Box className="lm-account-auth">
         <Box component="header" className="lm-account-auth-heading">
-          <Text className="lm-account-brand">Lunaris</Text>
+          {p.presentation?.mode !== "embedded" && <Text className="lm-account-brand">Lunaris</Text>}
           <Title order={1}>{p.text[p.mode]}</Title>
         </Box>
         <Box component="form" className="lm-account-auth-form" onSubmit={event => { event.preventDefault(); if (!p.busy) p.onSubmit(); }}>
@@ -24,9 +24,9 @@ export function AccountAuth({ props: p }: { props: AccountAccessProps }) {
           </Group>
         </Stack>
         </Box>
-        {p.mode !== "connect" && (p.allowLocal || (p.mode === "login" && p.error)) && <Box component="footer" className="lm-account-auth-footer">
+        {p.mode !== "connect" && ((p.allowChangeServer ?? p.allowLocal) || (p.mode === "login" && p.error)) && <Box component="footer" className="lm-account-auth-footer">
           {p.mode === "login" && p.error && <Text className="lm-account-context">{p.text.passwordReset}</Text>}
-          {p.allowLocal && <Button disabled={p.busy} onClick={p.onChangeServer}>{p.text.changeServer}</Button>}
+          {(p.allowChangeServer ?? p.allowLocal) && <Button disabled={p.busy} onClick={p.onChangeServer}>{p.text.changeServer}</Button>}
         </Box>}
         {p.allowLocal && <Button className="lm-account-local" disabled={p.busy} onClick={p.onLocal} leftSection={<Icon name="back" />}>{p.text.local}</Button>}
       </Box>;

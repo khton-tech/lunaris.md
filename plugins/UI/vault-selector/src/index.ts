@@ -31,6 +31,18 @@ export function createVaultSelector(options: { readonly art: string; readonly hi
       const startup = ctx.use(Startup); const vaults = ctx.use(Vault); const locations = ctx.use(VaultLocations); const history = ctx.use(VaultHistory);
       const accountAccess = ctx.permissions.has("account.access") ? ctx.optional(AccountAccess) : undefined;
       const forms: Record<Mode, { location: FolderLocation | null; name: string }> = { create: { location: null, name: "" }, select: { location: null, name: "" } };
+      let serverExpanded = false; let accountBusy = false; let serverTarget: HTMLElement | null = null;
+      let serverOwner: ReturnType<typeof ctx.scope.child> | undefined;
+      const onServerTarget = (target: HTMLElement | null) => {
+        const previousOwner = serverOwner; serverOwner = undefined; serverTarget = target;
+        if (target) serverOwner = screen.child();
+        const owner = serverOwner;
+        void Promise.resolve().then(async () => {
+          await previousOwner?.dispose();
+          if (ctx.signal.aborted || !target || serverTarget !== target || owner?.signal.aborted || !serverExpanded) return;
+          accountAccess?.open({ target, owner: owner!.signal, onBusyChange(value) { accountBusy = value; if (!ctx.signal.aborted) refresh(); } });
+        }).catch(error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot replace embedded account target", { error }); });
+      };
       let mode: Mode | null = null; let busy = false; let operation = "working"; let errorKey = ""; let historyFailed = false;
       let entries: readonly RecentVault[] = []; let historyVersion = 0; let current = vaults.current(); let activeReference: string | null = null;
       let latest = startup.snapshot(); let mounted: MountedComponent | undefined; let allocated = false;
@@ -50,7 +62,8 @@ export function createVaultSelector(options: { readonly art: string; readonly hi
       }
       function render(): void {
         if (ctx.signal.aborted || latest.state !== "loaded") return;
-        if ((options.hideWhenVaultOpen && current) || accountAccess?.visible()) {
+        if ((options.hideWhenVaultOpen && current) || (accountAccess?.visible() && !serverExpanded)) {
+          serverExpanded = false; accountBusy = false; serverTarget = null;
           mounted = undefined; allocated = false;
           void screen.dispose().catch(error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot release selector surface", { code: "SELECTOR_RELEASE_FAILED", error }); });
           return;
@@ -63,15 +76,20 @@ export function createVaultSelector(options: { readonly art: string; readonly hi
         }
         const form = mode ? forms[mode] : null;
         const props = { presentation: { mode: "standalone", sizing: "fill" }, art, text: Object.fromEntries(Object.keys(catalogs.en).filter(key => key !== "opened").map(key => [key, text(key === "folder" && mode === "create" ? "parentFolder" : key)])), mode, activeReference,
-          folder: form?.location?.label ?? "", name: form?.name ?? "", busy,
+          folder: form?.location?.label ?? "", name: form?.name ?? "", busy: busy || accountBusy,
           canContinue: !!form?.location && (mode !== "create" || validDirectoryName(form.name.trim())),
           error: errorKey ? text(errorKey) : "", historyError: historyFailed ? text("historyError") : "",
           status: busy ? text(operation) : current ? localization.text(ctx.pluginId, "opened", { name: current.name }) : "",
           entries: entries.map(entry => ({ reference: entry.location.reference, name: entry.name, label: entry.location.label })),
-          onMode(next: Mode) { if (!busy) { mode = mode === next ? null : next; errorKey = ""; refresh(); } },
+          onMode(next: Mode) { if (!busy && !accountBusy) { if (serverExpanded) { serverExpanded = false; accountAccess?.close(); } mode = mode === next ? null : next; errorKey = ""; refresh(); } },
           onName(name: string) { if (!busy && mode) { forms[mode].name = name; errorKey = ""; refresh(); } },
           onBrowse: browse, onNext: next, onRecent: recent, onRetry: () => run(loadHistory, "refreshing"),
-          ...(accountAccess ? { onServer: () => accountAccess.open() } : {}),
+          ...(accountAccess ? { serverExpanded, onServerTarget, onServer() {
+            if (busy || accountBusy || !serverTarget || !serverOwner) return;
+            serverExpanded = !serverExpanded; mode = null; errorKey = "";
+            if (serverExpanded) { refresh(); accountAccess.open({ target: serverTarget, owner: serverOwner.signal, onBusyChange(value) { accountBusy = value; if (!ctx.signal.aborted) refresh(); } }); }
+            else { accountAccess.close(); refresh(); }
+          } } : {}),
         };
         if (mounted) {
           const result = mounted.update(props);
@@ -91,7 +109,7 @@ export function createVaultSelector(options: { readonly art: string; readonly hi
         try { render(); }
         catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot render Vault selector", { code: "SELECTOR_RENDER_FAILED", error }); throw error; }
       }
-      if (accountAccess) ctx.events.on(AccountAccessChanged, refresh);
+      if (accountAccess) ctx.events.on(AccountAccessChanged, change => { if (!change.visible) serverExpanded = false; refresh(); });
       async function loadHistory(): Promise<void> {
         const version = historyVersion;
         const result = await history.list();
