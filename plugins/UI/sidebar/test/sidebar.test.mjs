@@ -20,6 +20,27 @@ test('separate sidebar is invisible without tabs and does not replace the main w
   assert.equal(s.surface.querySelector('.lm-sidebar-rail'), null); assert.ok(s.surface.querySelector('.lm-workspace-main .lm-workspace-empty'));
   assert.deepEqual(s.tools.workspace.list(), []); await s.stop();
 });
+
+test('tool props update only the selected panel and preserve navigation contributions', async () => {
+  const s = await setup({ mobileMenu: true });
+  try {
+    panel(s, 'test.content'); await s.open();
+    s.tools.sidebar.register(tab('test.files', 'test.content'), s.ctx.signal);
+    s.tools.sidebar.register(tab('test.search', 'test.content'), s.ctx.signal);
+    await flush();
+    const navigation = () => s.tools.workspace.list().filter(entry => entry.region !== 'left-panel');
+    const before = navigation();
+    for (let index = 0; index < 10; index++) s.tools.sidebar.update('test.files', { title: 'Files', icon: 'files', props: { label: `Files ${index}` } });
+    await flush();
+    assert.deepEqual(navigation(), before);
+    assert.ok(navigation().every((entry, index) => entry === before[index]), 'tool state must preserve rail and mobile menu descriptors');
+    assert.match(s.surface.querySelector('.lm-workspace-panel article').textContent, /Files 9/);
+    const selected = s.tools.workspace.list().find(entry => entry.region === 'left-panel');
+    s.tools.sidebar.update('test.search', { title: 'Search', icon: 'search', props: { label: 'Background result' } });
+    await flush();
+    assert.equal(s.tools.workspace.list().find(entry => entry.region === 'left-panel'), selected);
+  } finally { await s.stop(); }
+});
 test('icon rail opens, switches and collapses independent content without remounting the rail or main', async () => {
   const s = await setup(); const files = panel(s, 'test.file-tree'); const search = panel(s, 'test.search-view'); await s.open();
   const placeholder = s.surface.querySelector('.lm-workspace-main .lm-workspace-empty');

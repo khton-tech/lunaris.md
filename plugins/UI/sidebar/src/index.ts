@@ -18,52 +18,61 @@ export default definePlugin({ manifest, activate(ctx) {
   const menu = ctx.optional(MobileMenu); const navigation = ctx.optional(WorkspaceSidebar);
   const mobileActions = new Set<string>();
   let rail: ResourceScope | undefined; let panel: ResourceScope | undefined; let panelKey = "";
+  let railSignature = ""; let mobileSignature = ""; let panelInput: unknown;
   const text = (key: string) => localization.text(ctx.pluginId, key);
   const dismiss = () => { if (!ctx.signal.aborted) sidebar.select(null); };
+  const onSelect = (id: string) => { if (!ctx.signal.aborted) { const current = sidebar.snapshot(); sidebar.select(current.activeId === id ? null : id); } };
   function release(owner: ResourceScope | undefined): void { if (owner) void owner.dispose().catch(() => {}); }
   function refresh(): void {
     if (ctx.signal.aborted) return;
     const snapshot = sidebar.snapshot();
-    if (menu && navigation) {
+    const nextMobileSignature = JSON.stringify([text("label"), snapshot.tabs.length > 0]);
+    if (menu && navigation && mobileSignature !== nextMobileSignature) {
       const action = { label: text("label"), disabled: !snapshot.tabs.length, onPress: () => navigation.open() };
       const items: MobileMenuItem[] = [
         { ...action, id: `${ctx.pluginId}.open`, icon: "sidebar", placement: "launcher" },
         { ...action, id: `${ctx.pluginId}.dock`, icon: "menu", order: 50 },
       ];
+      let successful = true;
       for (const item of items) {
         const result = mobileActions.has(item.id) ? menu.update(item) : menu.register(item, ctx.signal);
         if (result.ok) mobileActions.add(item.id);
-        else logger.warn(ctx.pluginId, "Cannot contribute mobile sidebar action", { data: { id: item.id, error: result.error } });
+        else { successful = false; logger.warn(ctx.pluginId, "Cannot contribute mobile sidebar action", { data: { id: item.id, error: result.error } }); }
       }
+      if (successful) mobileSignature = nextMobileSignature;
     }
     if (!snapshot.tabs.length || !components.has("lunaris.sidebar-rail")) {
-      release(panel); panel = undefined; panelKey = ""; release(rail); rail = undefined; return;
+      release(panel); panel = undefined; panelKey = ""; panelInput = undefined; release(rail); rail = undefined; railSignature = ""; return;
     }
-    const props = { label: text("label"), activeId: snapshot.activeId, tabs: snapshot.tabs.map(tab => ({ id: tab.id, title: tab.title, icon: tab.icon, placement: tab.placement ?? "start" })),
-      onSelect(id: string) { if (!ctx.signal.aborted) { const current = sidebar.snapshot(); sidebar.select(current.activeId === id ? null : id); } } };
+    const props = { label: text("label"), activeId: snapshot.activeId, tabs: snapshot.tabs.map(tab => ({ id: tab.id, title: tab.title, icon: tab.icon, placement: tab.placement ?? "start" })), onSelect };
+    const nextRailSignature = JSON.stringify([props.label, props.activeId, props.tabs]);
     if (!rail) {
       rail = ctx.scope.child();
       const result = workspace.register({ id: `${ctx.pluginId}.rail`, componentId: "lunaris.sidebar-rail", region: "left-rail", props }, rail.signal);
       if (!result.ok) { release(rail); rail = undefined; throw new Error("Cannot register sidebar rail.", { cause: result.error }); }
-    } else {
+    } else if (railSignature !== nextRailSignature) {
       const result = workspace.update(`${ctx.pluginId}.rail`, props);
       if (!result.ok) throw new Error("Cannot update sidebar rail.", { cause: result.error });
     }
+    railSignature = nextRailSignature;
     const active = snapshot.tabs.find(tab => tab.id === snapshot.activeId);
     const available = active && components.has(active.componentId);
     const key = active ? `${active.id}:${available ? active.componentId : "unavailable"}` : "";
-    if (key !== panelKey) { release(panel); panel = undefined; panelKey = ""; }
+    if (key !== panelKey) { release(panel); panel = undefined; panelKey = ""; panelInput = undefined; }
     if (!active) return;
     const panelProps = available ? active.props ?? {} : { title: text("unavailable"), detail: text("unavailableDetail") };
+    const nextPanelInput = available ? active.props : JSON.stringify(panelProps);
     if (!panel) {
       panel = ctx.scope.child();
       const result = workspace.register({ id: `${ctx.pluginId}.panel`, componentId: available ? active.componentId : "lunaris.workspace-empty", region: "left-panel", onDismiss: dismiss, props: panelProps }, panel.signal);
       if (!result.ok) { release(panel); panel = undefined; throw new Error("Cannot register sidebar panel.", { cause: result.error }); }
       panelKey = key;
+      panelInput = nextPanelInput;
       if (!available) logger.warn(ctx.pluginId, "Selected sidebar component is unavailable", { code: "SIDEBAR_COMPONENT_MISSING", data: { componentId: active.componentId } });
-    } else {
+    } else if (panelInput !== nextPanelInput) {
       const result = workspace.update(`${ctx.pluginId}.panel`, panelProps);
       if (!result.ok) throw new Error("Cannot update sidebar panel.", { cause: result.error });
+      panelInput = nextPanelInput;
     }
   }
   function update(): void { try { refresh(); } catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot update sidebar", { code: "SIDEBAR_UPDATE_FAILED", error }); throw error; } }

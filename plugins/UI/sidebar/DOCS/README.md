@@ -12,6 +12,11 @@ The controller registers `lunaris.sidebar-rail` in `left-rail` and the active to
 component role in `left-panel`. Repeating an active icon selects null and collapses
 the panel. No tabs removes both contributions. Missing selected roles use a
 localized unavailable placeholder; ComponentsChanged reacquires later roles.
+Tool-prop changes update only the selected panel. Rail props change with visible
+tab metadata or selection, and mobile open actions change with localized labels
+or availability. Background tool state keeps the selected panel contribution
+and all navigation contributions stable. Explicit active-tool updates continue
+to carry their complete props through Workspace.
 Tool content receives Workspace context and fresh per-Vault/view scopes from
 Workspace. Child registration scopes are released without SDK calls in cleanup.
 Logger records readiness, missing roles and original integration failures without
