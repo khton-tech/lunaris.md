@@ -137,7 +137,38 @@ Successful content selection closes the optional WorkspaceSidebar overlay throug
 
 ## Background observation
 
-Watch-driven rescans keep loading controls stable and publish only changed names/kinds or errors. Content size and modification time are not rendered by this role. Initial and explicit directory loads retain loading feedback. Remote rescan notifications still require directory reads; this change removes redundant presentation work, not filesystem consistency checks. Existing Workspace/Sidebar/Mantine ownership and appearance are unchanged. SDK controller tests verify unchanged props and an open context menu survive repeated rescans; native autosave/focus acceptance remains manual.
+Watch-driven scans use FileChanged kind and paths through the existing public
+SDK. Structural hints reload affected cached parent directories. Content writes
+to known files and changes inside hidden directories leave the tree snapshot
+intact. Explicit rescan hints retain full cached-directory validation. Active
+document reconciliation runs for matching structural hints and full rescans.
+Notifications wait while a structural operation is in flight.
+Folder disclosure and expand-all requests resume after that operation, and an
+interrupted traversal restarts from the current root after relocation. Failed
+directory listings force complete cached-directory recovery before their error
+can clear. Completed scans release their revision bookkeeping.
+
+Directory groups stage their reads and publish one complete snapshot. Initial
+and explicit loads retain one loading interval per group. Mutations already
+expose busy feedback and reload their affected parents without additional
+loading pulses. Scan and mutation revisions reject superseded results and
+rejections. Confirmed directory moves retain cached descendant names and
+expansion before notifying ActiveDocument.
+
+The names-and-kinds snapshot is reused for selection, busy state, clipboard and
+unchanged scan updates. Sorting or structural changes rebuild it. Creation
+callbacks settle after the filesystem confirmation and destination refresh,
+allowing the renderer to remove its inline draft while the existing asynchronous
+ActiveDocument opening and persistence continue. Opening failures use the same
+localized error state and Logger integration. Draft focus and scroll occur once
+when opening the form, preserving its caret during structural updates.
+
+Workspace owns region geometry and surfaces, Sidebar contributes the existing
+tool panel, and Mantine owns its embedded controls. The existing Files role is
+the product reference. Tests cover a warm tree with 22 cached directories where
+creation performs one destination listing, atomic grouped snapshots, obsolete
+rejections, delayed document opening and draft caret retention. Native
+autosave/focus and geometry acceptance remain manual.
 
 
 ## Awaited preparation integration

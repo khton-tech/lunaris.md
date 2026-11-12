@@ -104,9 +104,19 @@ visible rows. This does not add paginated/streaming filesystem enumeration.
 
 The active Vault owns a child scope and one recursive root watch. Subscribe to
 FileChanged before watch creation, then scan after watch establishment. Match
-both Vault and watch IDs. Coalesce refresh requests while refreshing, refresh
-parents before cached descendants, invalidate removed subtrees and reject stale
-directory responses. Native notifications are hints rather than transactions.
+both Vault and watch IDs. Coalesce same-turn notifications and wait for in-flight
+structural operations. Path-aware hints refresh affected loaded parents, while
+explicit rescan hints validate all cached directories. Content modification of a
+known file preserves its names-and-kinds snapshot. Reconcile ActiveDocument for
+matching structural hints and full rescans.
+
+Directory groups stage reads parent-first, discard removed descendants, and
+publish their complete snapshot together. Initial and explicit loads expose one
+loading interval per group. Mutations refresh only affected parents and expose
+their existing busy state throughout. Per-directory and mutation revisions
+reject superseded responses and rejections. Selection, clipboard and busy-only
+changes reuse the sorted tree snapshot. Confirmed moves remap cached descendant
+paths before publishing document relocation.
 
 Closing/collapsing the panel unmounts the renderer while retaining tree expansion,
 selection, cut/copy buffer and creation/deletion draft in the controller. Reopening
@@ -143,6 +153,13 @@ controller. Props:
   `onRename(path, name)`, `onMove(paths, destination)`, `onPaste(destination)` and
   `onRemove(paths)`. False retains appropriate recovery UI; errors are localized
   by the controller, not interpreted by the renderer.
+
+`onCreate` settles after filesystem confirmation and destination refresh. A
+successful file creation starts document activation through ActiveDocument while
+the renderer closes its draft. Document loading and durable selection persistence
+continue independently, with opening failures reported through the existing
+localized error state. Draft focus and scroll run when the form opens and retain
+the caret across structural updates.
 
 Workspace injects its reserved context. SDK updates occur outside React effects.
 Theme and locale updates preserve input nodes/drafts. The tab selector stays inside the explorer root; shared context menus stay inside

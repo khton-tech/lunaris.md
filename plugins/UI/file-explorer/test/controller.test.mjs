@@ -28,7 +28,7 @@ async function setup(options = {}) {
   let overlayOpen = true;
   kernel.installMock(WorkspaceSidebar, { open() { overlayOpen=true; }, close() { overlayOpen=false; }, isOpen() { return overlayOpen; } });
   const logs = []; const watches = []; const lists = []; let current = { id: 'a', name: 'A' }; let emit;
-  let document = null; let side; let locales; let menus; let components; let inspect; let settings;
+  let document = null; let reconciliations = 0; const opens = []; let side; let locales; let menus; let components; let inspect; let settings;
   const values = options.preferences ?? new Map(); const writes = [];
   kernel.installMock(Config, { async read(id, target) { return options.preferenceRead ? options.preferenceRead(id, target) : { ok: true, value: values.get(target.vaultId) ?? {} }; },
     async set(id, key, value, target) { writes.push({ id, key, value, target }); const result = options.preferenceWrite ? await options.preferenceWrite(id, key, value, target) : { ok: true, value: null }; if (result.ok) values.set(target.vaultId, { ...values.get(target.vaultId), [key]: value }); return result; },
@@ -36,9 +36,10 @@ async function setup(options = {}) {
   kernel.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push(args); return true; }])));
   kernel.installMock(Filesystem, { ...Object.fromEntries(filesystemMethods.map(method => [method, async () => ({ ok: true, value: null })])),
     list: async target => { lists.push(target); return { ok: true, value: target.path === '' ? [{ path: 'folder', kind: 'directory', size: 0, modifiedAt: null }, { path: 'file-' + target.vaultId + '.md', kind: 'file', size: 0, modifiedAt: null }] : [{ path: target.path + '/note-' + target.vaultId + '.md', kind: 'file', size: 0, modifiedAt: null }] }; },
+    ...options.filesystem,
   });
   kernel.installMock(FilesystemObservation, { watch: async (target, owner) => { watches.push({ target, owner }); return { ok: true, value: `watch-${target.vaultId}` }; } });
-  kernel.installMock(ActiveDocument, { current: () => document, async open(target) { document = target; await emit(ActiveDocumentChanged, { current: document }); return { ok: true, value: null }; }, async close() { return { ok: true, value: null }; }, async relocate() { return { ok: true, value: null }; }, async reconcile() { return { ok: true, value: null }; } });
+  kernel.installMock(ActiveDocument, { current: () => document, async open(target) { opens.push(target); if (options.documentOpen) await options.documentOpen(target); document = target; await emit(ActiveDocumentChanged, { current: document }); return { ok: true, value: null }; }, async close() { return { ok: true, value: null }; }, async relocate() { return { ok: true, value: null }; }, async reconcile() { reconciliations++; return { ok: true, value: null }; } });
   kernel.installMock(Vault, { current: () => current, open: options.open ?? (async () => ({ ok: true, value: null })), close: options.close ?? (async () => { const previous = current; current = null; await emit(VaultChanged, { kind: 'closed', previous, current }); return { ok: true, value: null }; }) });
   kernel.installMock(VaultHistory, { list: options.list ?? (async () => ({ ok: true, value: options.entries ?? [] })), open: options.recent ?? (async () => ({ ok: true, value: current })) });
   kernel.register(definePlugin({ manifest: manifest('test.events', [ConfigChanged, FileChanged, VaultChanged, ActiveDocumentChanged, VaultHistoryChanged].map(token => ({ kind: 'event', id: token.id, version: token.version }))), activate(ctx) { emit = (token, value) => ctx.events.emit(token, value); } }));
@@ -46,7 +47,7 @@ async function setup(options = {}) {
   kernel.register(componentProvider); kernel.register(contextMenuProvider); kernel.register(sidebarProvider); kernel.register(localization); kernel.register(explorer);
   kernel.register(definePlugin({ manifest: manifest('test.inspect', [], [Settings, Sidebar, Localization, ContextMenu, Components].map(token => ({ kind: 'api', id: token.id, range: '^1.0.0' })), ['ui.dom']), activate(ctx) { settings = ctx.use(Settings); side = ctx.use(Sidebar); locales = ctx.use(Localization); menus = ctx.use(ContextMenu); components = ctx.use(Components); inspect = ctx; } }));
   await kernel.start('test.events'); await kernel.start('test.inspect'); await kernel.start(explorer.manifest.id); await flush();
-  return { overlayOpen:()=>overlayOpen, kernel, logs, watches, lists, side, locales, menus, components, inspect, settings, writes, emit, tab: () => side.snapshot().tabs[0], async switch(root) { const previous = current; current = root; await emit(VaultChanged, { kind: root ? (previous ? 'switched' : 'opened') : 'closed', previous, current }); await flush(); } };
+  return { overlayOpen:()=>overlayOpen, kernel, logs, watches, lists, opens, reconciliations: () => reconciliations, side, locales, menus, components, inspect, settings, writes, emit, tab: () => side.snapshot().tabs[0], async switch(root) { const previous = current; current = root; await emit(VaultChanged, { kind: root ? (previous ? 'switched' : 'opened') : 'closed', previous, current }); await flush(); } };
 }
 test('SDK controller registers a localized sidebar tool, preserves collapsed state and refreshes only its own watch', async () => {
   const s = await setup();
@@ -80,6 +81,56 @@ test('autosave rescans preserve the published view and its open context menu', a
   assert.equal(s.lists.length - before, 6);
   assert.equal((await menu.execute('test.action')).ok, true);
   await s.kernel.stopAll(); s.kernel.assertNoResources(); dom.window.close();
+});
+
+test('path-aware observation skips content writes and refreshes only affected loaded directories', async () => {
+  const s = await setup(); s.tab().props.onToggle('folder', true); await flush();
+  await s.tab().props.onOpen('file-a.md'); await flush(); const previous = s.tab().props;
+  s.lists.length = 0; const reconciliations = s.reconciliations();
+  for (const path of ['file-a.md', 'folder/note-a.md', '.lunaris/preferences.toml']) {
+    await s.emit(FileChanged, { vaultId: 'a', watchId: 'watch-a', kind: 'modified', paths: [path] });
+  }
+  await flush(); assert.deepEqual(s.lists, []); assert.equal(s.reconciliations(), reconciliations); assert.equal(s.tab().props, previous);
+  await s.emit(FileChanged, { vaultId: 'a', watchId: 'watch-a', kind: 'created', paths: ['folder/new.md'] }); await flush();
+  assert.deepEqual(s.lists.map(target => target.path), ['folder']); assert.equal(s.reconciliations(), reconciliations);
+  s.lists.length = 0;
+  await s.emit(FileChanged, { vaultId: 'a', watchId: 'watch-a', kind: 'removed', paths: ['file-a.md'] }); await flush();
+  assert.deepEqual(s.lists.map(target => target.path), ['']); assert.equal(s.reconciliations(), reconciliations + 1);
+  await s.kernel.stopAll(); s.kernel.assertNoResources();
+});
+
+test('creation settles its draft callback before delayed document activation and starts one open', async () => {
+  const pending = Promise.withResolvers(); const s = await setup({ documentOpen: () => pending.promise }); let settled = false;
+  try {
+    const created = s.tab().props.onCreate('', 'created.md', false).then(result => { settled = true; return result; });
+    await flush(); assert.equal(settled, true); assert.equal(await created, true);
+    assert.deepEqual(s.opens, [{ vaultId: 'a', path: 'created.md' }]);
+    assert.equal(s.tab().props.busy, false);
+  } finally { pending.resolve(); await flush(); await s.kernel.stopAll(); s.kernel.assertNoResources(); }
+});
+
+test('observation waits for an in-flight mutation and never scans its intermediate state', async () => {
+  const pending = Promise.withResolvers(); const s = await setup({ filesystem: { writeText: () => pending.promise } });
+  s.lists.length = 0; const creating = s.tab().props.onCreate('', 'created.md', false); await flush();
+  await s.emit(FileChanged, { vaultId: 'a', watchId: 'watch-a', kind: 'created', paths: ['created.md'] }); await flush();
+  assert.deepEqual(s.lists, []);
+  pending.resolve({ ok: true, value: { version: '1' } }); assert.equal(await creating, true); await flush();
+  assert.ok(s.lists.length > 0); assert.ok(s.lists.every(target => target.path === ''));
+  await s.kernel.stopAll(); s.kernel.assertNoResources();
+});
+
+test('a rescan superseded by creation is replayed after its obsolete response settles', async () => {
+  const pending = Promise.withResolvers(); const lists = []; let blocked = false;
+  const entries = [{ path: 'folder', kind: 'directory', size: 0, modifiedAt: null }, { path: 'file-a.md', kind: 'file', size: 0, modifiedAt: null }];
+  const s = await setup({ filesystem: { async list(target) { lists.push(target.path); if (blocked) return pending.promise; return { ok: true, value: target.path ? [] : entries }; } } });
+  lists.length = 0; blocked = true;
+  await s.emit(FileChanged, { vaultId: 'a', watchId: 'watch-a', kind: 'rescan', paths: [] }); await flush(); assert.deepEqual(lists, ['']);
+  blocked = false; assert.equal(await s.tab().props.onCreate('', 'created.md', false), true);
+  pending.resolve({ ok: true, value: [{ path: 'obsolete.md', kind: 'file', size: 0, modifiedAt: null }] }); await flush();
+  assert.deepEqual(lists, ['', '', '']);
+  assert.deepEqual(s.tab().props.data.map(item => item.id), ['folder', 'file-a.md']);
+  assert.equal(s.tab().props.error, '');
+  await s.kernel.stopAll(); s.kernel.assertNoResources();
 });
 
 test('file preferences restore, control reveal and persist sorting from the existing toolbar', async () => {

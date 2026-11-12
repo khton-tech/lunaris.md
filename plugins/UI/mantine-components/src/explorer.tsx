@@ -330,9 +330,18 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
       if ((success || form.kind === "delete") && alive.current) closeForm(restoreFocus);
     } finally { submitting.current = false; if (alive.current) setPending(false); }
   }
+  const focusedForm = useRef<Form | null>(null);
   useLayoutEffect(() => {
-    if (form?.kind === "delete") confirm.current?.focus();
-    else if (form) { tree.current?.openParents(DRAFT_ID); tree.current?.focus(DRAFT_ID, { scroll: false }); void tree.current?.scrollTo(DRAFT_ID); }
+    if (!form) { focusedForm.current = null; return; }
+    if (focusedForm.current === form) return;
+    if (form.kind === "delete") confirm.current?.focus();
+    else {
+      if (!tree.current) return;
+      const containsDraft = (entries: Entry[]): boolean => entries.some(entry => entry.id === DRAFT_ID || !!entry.children && containsDraft(entry.children));
+      if (!containsDraft(data)) return;
+      tree.current.openParents(DRAFT_ID); tree.current.focus(DRAFT_ID, { scroll: false }); void tree.current.scrollTo(DRAFT_ID);
+    }
+    focusedForm.current = form;
   }, [form, props.data]);
   const showLoading = props.loading && !props.data.length && (!form || form.kind === "delete");
   return <Box className="lm-explorer" style={theme.contentStyle} onKeyDownCapture={keyboard} data-compact={size.compact || undefined}

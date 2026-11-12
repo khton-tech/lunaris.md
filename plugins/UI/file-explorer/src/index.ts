@@ -12,6 +12,7 @@ import { Vault, VaultChanged } from "@lunaris/vault";
 import { Localization, LocaleChanged } from "@lunaris/localization";
 import { ExplorerModel } from "./model.js";
 import type { ExplorerDraft } from "./model.js";
+import { parentPath } from "./model.js";
 import { catalogs } from "./catalog.js";
 import { createVaultSwitcher } from "./vault-switcher.js";
 import { createPreferences } from "./preferences.js";
@@ -27,7 +28,7 @@ export default definePlugin({ manifest, async activate(ctx) {
   if (!messages.ok) throw new Error("Cannot register explorer localization.", { cause: messages.error });
   const tabId = `${ctx.pluginId}.files`; let registered = false; let scheduled = false;
   let session: ResourceScope | undefined; let model: ExplorerModel | undefined; let watchId: string | undefined;
-  let refreshing = false; let dirty = false; let ready = Promise.resolve();
+  let refreshing = false; let fullRefresh = false; let reconcile = false; const pendingDirectories = new Set<string>(); let ready = Promise.resolve();
   const text = (key: string) => localization.text(ctx.pluginId, key);
   const switcher = createVaultSwitcher(ctx, changed);
   const preferences = createPreferences(ctx, changed);
@@ -57,12 +58,19 @@ export default definePlugin({ manifest, async activate(ctx) {
       onToggle: (path: string, open: boolean) => current?.toggle(path, open),
       onSelection: (paths: string[]) => current?.select(paths),
       onBuffer: (paths: string[], cut: boolean) => current?.buffer(paths, cut),
-      onCreate: async (parent: string, name: string, directory: boolean) => { const result = await (current?.create(parent, name, directory) ?? false); if (result && !directory) await openDocument(current, parent ? parent + "/" + name : name); return result; },
+      onCreate: async (parent: string, name: string, directory: boolean) => {
+        const result = await (current?.create(parent, name, directory) ?? false);
+        // The confirmed file replaces its draft before document loading/persistence.
+        if (result && !directory) void openDocument(current, parent ? parent + "/" + name : name).catch(error => {
+          if (current?.active) { current.error = "IO_ERROR"; changed(); logger.error(ctx.pluginId, "Cannot open created document", { error }); }
+        });
+        return result;
+      },
       onRename: (path: string, name: string) => current?.rename(path, name) ?? Promise.resolve(false),
       onMove: (paths: string[], destination: string) => current?.transfer(paths, destination, false) ?? Promise.resolve(false),
       onPaste: (destination: string) => current?.paste(destination) ?? Promise.resolve(false),
       onRemove: async (paths: string[]) => { const result = await (current?.remove(paths) ?? false); if (current?.active) await documents.reconcile(); return result; },
-      onRefresh: () => { if (current?.active) { current.error = ""; requestRefresh(); } },
+      onRefresh: () => { if (current?.active) requestRefresh(); },
       onContextMenu: (request: Omit<MenuOpenRequest, "context"> & { readonly path: string | null; readonly kind: string; readonly selection: readonly string[]; readonly destination: string }) => {
         if (!current?.active || current !== model || !session) return;
         const selection = Object.freeze([...request.selection]);
@@ -85,14 +93,29 @@ export default definePlugin({ manifest, async activate(ctx) {
     void Promise.resolve().then(() => {
       scheduled = false; if (ctx.signal.aborted) return;
       try { publish(); } catch (error) { logger.error(ctx.pluginId, "Cannot update explorer view", { error }); }
+      drainRefresh();
     });
   }
-  function requestRefresh(): void {
-    dirty = true;
-    if (refreshing || ctx.signal.aborted) return;
+  function requestRefresh(paths?: readonly string[], validate = true): void {
+    if (paths === undefined) fullRefresh = true;
+    else for (const path of paths) pendingDirectories.add(path);
+    reconcile ||= validate;
+    // Coalesce same-turn native notifications before starting directory reads.
+    void Promise.resolve().then(drainRefresh);
+  }
+  function drainRefresh(): void {
+    if (refreshing || ctx.signal.aborted || !model?.active || model.busy || (!fullRefresh && !pendingDirectories.size && !reconcile)) return;
     refreshing = true;
     void (async () => {
-      try { while (dirty && model?.active) { dirty = false; const current = model; await current.refresh(true); if (current.active && current === model && !current.busy) await documents.reconcile(); } }
+      try {
+        while (model?.active && !model.busy && (fullRefresh || pendingDirectories.size || reconcile)) {
+          const current: ExplorerModel = model; const paths = fullRefresh ? undefined : [...pendingDirectories]; const validate = reconcile;
+          fullRefresh = false; pendingDirectories.clear(); reconcile = false;
+          const completed = paths !== undefined && !paths.length ? true : await current.refresh(true, paths);
+          if (!completed && current.active && current === model) { requestRefresh(paths, validate); continue; }
+          if (validate && current.active && current === model && !current.busy) await documents.reconcile();
+        }
+      }
       catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot refresh explorer", { error }); }
       finally { refreshing = false; }
     })();
@@ -101,6 +124,7 @@ export default definePlugin({ manifest, async activate(ctx) {
     const root = vaults.current();
     if (root?.id === model?.vaultId) return;
     const old = session; session = undefined; model = undefined; watchId = undefined; ready = Promise.resolve();
+    fullRefresh = false; pendingDirectories.clear(); reconcile = false;
     if (old) void old.dispose().catch(() => {});
     if (!root) { changed(); return; }
     const owner = ctx.scope.child(); session = owner;
@@ -154,7 +178,24 @@ export default definePlugin({ manifest, async activate(ctx) {
     void revealActive().catch(error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot reveal active document", { error }); });
   });
   ctx.events.on(FileChanged, change => {
-    if (change.vaultId === model?.vaultId && change.watchId === watchId) requestRefresh();
+    const current = model;
+    if (!current?.active || change.vaultId !== current.vaultId || change.watchId !== watchId) return;
+    if (change.kind === "rescan" || !change.paths.length) { requestRefresh(); return; }
+    const directories = new Set<string>();
+    const active = documents.current();
+    const validate = change.kind !== "modified" && active?.vaultId === current.vaultId && change.paths.some(path =>
+      !path || active.path === path || active.path.startsWith(path + "/"));
+    for (const path of change.paths) {
+      const parent = parentPath(path);
+      const entry = current.directories.get(parent)?.find(item => item.path === path);
+      // Hidden directory subtrees and file contents do not change this role's view.
+      if (path.split("/").slice(0, -1).some(segment => segment.startsWith(".")) ||
+        (entry?.kind === "directory" && path.split("/").at(-1)?.startsWith("."))) continue;
+      if (change.kind === "modified" && entry?.kind === "file") continue;
+      if (current.directories.has(parent)) directories.add(parent);
+      if (current.directories.has(path)) directories.add(path);
+    }
+    if (directories.size || validate) requestRefresh([...directories], validate);
   });
   ctx.events.on(VaultChanged, switchVault); ctx.events.on(LocaleChanged, changed);
   publish(); switchVault();

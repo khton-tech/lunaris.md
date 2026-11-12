@@ -745,6 +745,37 @@ test('explorer creates in a tree row, preserves drafts and confirms permanent de
   assert.deepEqual(calls[1], ['remove', ['a.md']]); await s.stop();
 });
 
+test('explorer structural updates preserve a draft caret without repeating its focus or scroll', async () => {
+  const { TreeApi } = await import('react-arborist');
+  const previousScroll = TreeApi.prototype.scrollTo; const previousFocus = TreeApi.prototype.focus;
+  let scrolls = 0; let focuses = 0;
+  TreeApi.prototype.scrollTo = function(identity, ...args) { if (identity === '//create') scrolls++; return previousScroll.call(this, identity, ...args); };
+  TreeApi.prototype.focus = function(identity, ...args) { if (identity === '//create') focuses++; return previousFocus.call(this, identity, ...args); };
+  const s = await setup();
+  try {
+    await s.start(); const props = explorerFixture();
+    const mounted = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true); await settle();
+    s.target.querySelector('[role=tree]').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'n', ctrlKey: true, bubbles: true, cancelable: true })); await settle();
+    const input = s.target.querySelector('.lm-explorer-create input'); typeInput(input, 'My draft'); await settle(); input.setSelectionRange(2, 4);
+    scrolls = 0; focuses = 0;
+    mounted.value.update({ ...props, data: [...props.data, { id: 'external.md', name: 'external.md', kind: 'file' }] }); await settle();
+    assert.equal(s.target.querySelector('.lm-explorer-create input'), input);
+    assert.equal(s.dom.window.document.activeElement, input); assert.equal(input.selectionStart, 2); assert.equal(input.selectionEnd, 4);
+    assert.equal(scrolls, 0); assert.equal(focuses, 0);
+  } finally { TreeApi.prototype.scrollTo = previousScroll; TreeApi.prototype.focus = previousFocus; await s.stop(); }
+});
+
+test('explorer restores draft focus when its initially unloaded parent arrives', async () => {
+  const s = await setup(); await s.start();
+  const props = explorerFixture({ data: [], initialDraft: { form: { kind: 'file', parent: 'folder', initialName: 'Draft.md' }, name: 'Draft.md' } });
+  const mounted = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true); await settle();
+  assert.equal(s.target.querySelector('input'), null);
+  mounted.value.update({ ...props, data: explorerFixture().data }); await settle();
+  const input = s.target.querySelector('.lm-explorer-create input'); assert.ok(input);
+  assert.equal(input.value, 'Draft'); assert.equal(s.dom.window.document.activeElement, input);
+  await s.stop();
+});
+
 
 test('explorer drafts and pending selection survive view replacement without feedback into the controller', async () => {
   const s = await setup(); await s.start(); let draft = { form: null, name: '' }; const selections = [];
