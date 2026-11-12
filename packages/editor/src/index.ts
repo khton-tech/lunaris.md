@@ -17,6 +17,8 @@ export interface EditorExtension {
   readonly id: string;
   readonly extension?: Extension;
   readonly markdown?: MarkdownConfig;
+  /** Installed only while the editor is in Live Preview. */
+  readonly preview?: Extension;
 }
 export type EditorExtensionResult = { readonly ok: true; readonly value: Disposable } | {
   readonly ok: false; readonly error: { readonly code: "INVALID_ARGUMENT" | "ALREADY_REGISTERED" | "CANCELLED"; readonly message: string };

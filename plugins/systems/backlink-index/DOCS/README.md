@@ -46,3 +46,5 @@ YAML property scalar values also contribute explicit wikilinks with original sou
 ## Navigation integration
 
 Also provides NoteLinks (1.0): parse(text) and resolve(source, link). The document-links editor contribution consumes it, so clicking a link and indexing its target use the same rules. Bare web URLs and angle autolinks are recognized; URL text is excluded from unlinked mentions. Heading/block resolution preserves raw file offsets.
+
+`NoteLinks.parse` exposes the visible wikilink label range separately from its destination. `resolve` accepts an optional `createFromSource` snapshot to create a missing wikilink target through Filesystem. Bare names use the source folder. Explicit paths use the Vault root unless they start with `./` or `../`. Missing parent folders are created as needed. The write uses exclusive creation, and the index refreshes before returning the target.

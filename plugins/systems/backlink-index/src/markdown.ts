@@ -1,9 +1,8 @@
 import { parser as baseParser, Autolink } from "@lezer/markdown";
 import { parseDocument, visit } from "yaml";
-import type { Mention } from "@lunaris/backlinks";
+import type { Mention, NoteLink } from "@lunaris/backlinks";
 
 interface Span { from: number; to: number }
-export interface NoteLink extends Span { destination: string; wiki: boolean }
 export interface ParsedNote {
   readonly text: string;
   readonly aliases: readonly string[];
@@ -14,6 +13,19 @@ const overlaps = (ranges: readonly Span[], from: number, to: number) => ranges.s
 const escaped = (text: string, pos: number) => { let n = 0; while (pos > 0 && text[--pos] === "\\") n++; return n % 2 === 1; };
 const label = (value: string) => value.replace(/\\([\[\]\\])/g, "$1").trim().replace(/\s+/g, " ").toLowerCase();
 const parser = baseParser.configure(Autolink);
+
+function wikiLink(raw: string, body: string, from: number): NoteLink | null {
+  const separator = body.indexOf("|");
+  const target = separator < 0 ? body : body.slice(0, separator);
+  const destination = target.trim();
+  if (!destination) return null;
+  const alias = separator < 0 ? "" : body.slice(separator + 1);
+  const hasAlias = alias.trim().length > 0;
+  const display = hasAlias ? alias : target;
+  const labelFrom = from + (raw.startsWith("!") ? 3 : 2)
+    + (hasAlias ? separator + 1 : 0) + display.length - display.trimStart().length;
+  return { from, to: from + raw.length, destination, wiki: true, label: { from: labelFrom, to: labelFrom + display.trim().length } };
+}
 
 /** Parse Markdown structure before finding prose; code and existing links are never unlinked mentions. */
 export function parseNote(text: string): ParsedNote {
@@ -33,7 +45,8 @@ export function parseNote(text: string): ParsedNote {
           const raw = front[1]!.slice(node.range[0], node.range[1]);
           for (const match of raw.matchAll(/!?\[\[([^\]\r\n]+)\]\]/g)) {
             const from = offset + node.range[0] + match.index;
-            links.push({ from, to: from + match[0].length, destination: match[1]!.split("|")[0]!.trim(), wiki: true });
+            const link = wikiLink(match[0], match[1]!, from);
+            if (link) links.push(link);
           }
         } });
       }
@@ -66,7 +79,9 @@ export function parseNote(text: string): ParsedNote {
   for (const m of text.matchAll(/!?\[\[([^\]\r\n]+)\]\]/g)) {
     const from = m.index; const to = from + m[0].length;
     if (escaped(text, from) || overlaps(excluded, from, to) || overlaps(inlineLinks, from, to)) continue;
-    links.push({ from, to, destination: m[1]!.split("|")[0]!.trim(), wiki: true }); excluded.push({ from, to });
+    const link = wikiLink(m[0], m[1]!, from);
+    if (link) links.push(link);
+    excluded.push({ from, to });
   }
   for (const span of linkNodes) {
     if (overlaps(excluded, span.from, span.to)) continue;
@@ -93,16 +108,31 @@ function normalize(path: string): string | null {
   }
   return parts.join("/");
 }
-/** Resolve paths against the source before basename fallback; exact spelling wins. */
-export function resolveLink(link: NoteLink, source: string, paths: readonly string[]): string | null {
+function notePath(link: NoteLink): string | null {
   let destination = link.destination;
   if (/^[a-z][a-z\d+.-]*:/i.test(destination) || destination.startsWith("//")) return null;
   destination = destination.split("#")[0]!;
   try { destination = decodeURIComponent(destination); } catch { return null; }
   destination = destination.replace(/\\([()\[\] #])/g, "$1");
+  if (!destination) return "";
+  if (destination.endsWith("/") || /(?:^|\/)\.{1,2}$/.test(destination)) return null;
+  return /\.md$/i.test(destination) ? destination : destination + ".md";
+}
+const parentPath = (source: string) => source.slice(0, Math.max(0, source.lastIndexOf("/")));
+
+export function creationPath(link: NoteLink, source: string): string | null {
+  const destination = notePath(link);
+  if (!link.wiki || !destination) return null;
+  if (destination.startsWith("/") || (destination.includes("/") && !/^\.\.?\//.test(destination))) return normalize(destination);
+  return normalize(parentPath(source) + "/" + destination);
+}
+
+/** Resolve paths against the source before basename fallback; exact spelling wins. */
+export function resolveLink(link: NoteLink, source: string, paths: readonly string[]): string | null {
+  const destination = notePath(link);
+  if (destination === null) return null;
   if (!destination) return source;
-  if (!/\.md$/i.test(destination)) destination += ".md";
-  const parent = source.slice(0, Math.max(0, source.lastIndexOf("/")));
+  const parent = parentPath(source);
   const relative = normalize(parent + "/" + destination);
   const root = normalize(destination);
   const exact = (candidate: string | null) => candidate === null ? undefined : paths.find(p => p === candidate) ?? paths.find(p => p.toLowerCase() === candidate.toLowerCase());

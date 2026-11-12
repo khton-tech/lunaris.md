@@ -1,22 +1,47 @@
-import { Prec } from "@codemirror/state";
+import { Facet, Prec } from "@codemirror/state";
+import type { Range } from "@codemirror/state";
 import { Decoration, EditorView, ViewPlugin } from "@codemirror/view";
 import type { DecorationSet, ViewUpdate } from "@codemirror/view";
 import type { NoteLink } from "@lunaris/backlinks";
+
+const preview = Facet.define<boolean, boolean>({ combine: values => values.includes(true) });
+export const wikiPreview = preview.of(true);
 
 export function linkInteraction(parse: (text: string) => readonly NoteLink[], open: (link: NoteLink, text: string) => void, alive: () => boolean) {
   const links = ViewPlugin.fromClass(class {
     decorations: DecorationSet;
     values: readonly NoteLink[] = [];
-    constructor(view: EditorView) { this.decorations = this.build(view); }
-    build(view: EditorView): DecorationSet {
+    constructor(view: EditorView) {
+      this.readLinks(view);
+      this.decorations = this.build(view);
+    }
+    readLinks(view: EditorView): void {
       // CodeMirror positions count normalized line breaks, while source snapshots
       // retain the file's CRLF convention for guarded document operations.
       this.values = alive() ? parse(view.state.doc.toString()) : [];
-      return Decoration.set(this.values.filter(link => link.from < link.to).map(link => Decoration.mark({
-        class: "cm-document-link", attributes: { "data-note-link": String(link.from), role: "link", tabindex: "0", title: link.destination },
-      }).range(link.from, link.to)), true);
     }
-    update(update: ViewUpdate) { if (update.docChanged) this.decorations = this.build(update.view); }
+    build(view: EditorView): DecorationSet {
+      const ranges: Range<Decoration>[] = [];
+      for (const link of this.values) {
+        if (link.from >= link.to) continue;
+        const editing = view.hasFocus && view.state.selection.ranges.some(range => range.from <= link.to && range.to >= link.from);
+        const label = view.state.facet(preview) && !editing ? link.label : undefined;
+        if (label) {
+          ranges.push(Decoration.replace({}).range(link.from, label.from));
+          ranges.push(Decoration.replace({}).range(label.to, link.to));
+        }
+        ranges.push(Decoration.mark({
+          class: "cm-document-link", attributes: { "data-note-link": String(link.from), role: "link", tabindex: "0", title: link.destination },
+        }).range(label?.from ?? link.from, label?.to ?? link.to));
+      }
+      return Decoration.set(ranges, true);
+    }
+    update(update: ViewUpdate) {
+      if (update.docChanged) this.readLinks(update.view);
+      if (update.docChanged || update.selectionSet || update.focusChanged || update.startState.facet(preview) !== update.state.facet(preview)) {
+        this.decorations = this.build(update.view);
+      }
+    }
   }, { decorations: value => value.decorations });
   const hit = (event: Event, view: EditorView) => {
     const target = event.target as HTMLElement | null; const marker = target?.closest?.("[data-note-link]");

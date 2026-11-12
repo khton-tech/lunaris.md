@@ -77,6 +77,7 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
   theme: ThemeDefinition | null, label: string, save: () => void, failed: (error: unknown) => void, preview = true, tasks?: TaskControls, menuOptions?: EditorMenuOptions, preferences: Preferences = defaults, contributions: readonly EditorExtension[] = [], deletionEffects?: ReturnType<typeof createDeletionEffects>, viewport?: HTMLElement) {
   let menu: ReturnType<typeof bindEditorMenu> | undefined;
   const mode = new Compartment();
+  const previewFor = (enabled: boolean, items: readonly EditorExtension[]) => enabled ? [livePreview, livePreviewTheme, ...items.map(item => item.preview ?? [])] : [];
   const contributed = new Compartment(); const language = new Compartment();
   const languageFor = (items: readonly EditorExtension[]) => markdown({ addKeymap: false, extensions: [Strikethrough, tabIndentedLists, ...items.flatMap(item => item.markdown ? [item.markdown] : []), noSetextHeadings] });
   const wrapping = new Compartment();
@@ -84,7 +85,7 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
   const nativeSelection = usesTouchInput(target.ownerDocument.defaultView);
   // A cached state retains history/selection; replace view-specific compartments
   // and callbacks through a full reconfiguration without replacing the document.
-  const extensions = [EditorState.lineSeparator.of(session.text.includes("\r\n") ? "\r\n" : "\n"), indentUnit.of("\t"), EditorState.tabSize.of(4), history(), language.of(languageFor(contributions)), contributed.of(contributions.map(item => item.extension ?? [])), tasks ? taskControls.of(tasks) : [], mode.of(preview ? [livePreview, livePreviewTheme] : []), wrapping.of(preferences.wrapLines ? EditorView.lineWrapping : []),
+  const extensions = [EditorState.lineSeparator.of(session.text.includes("\r\n") ? "\r\n" : "\n"), indentUnit.of("\t"), EditorState.tabSize.of(4), history(), language.of(languageFor(contributions)), contributed.of(contributions.map(item => item.extension ?? [])), tasks ? taskControls.of(tasks) : [], mode.of(previewFor(preview, contributions)), wrapping.of(preferences.wrapLines ? EditorView.lineWrapping : []),
     nativeSelection ? [EditorView.editorAttributes.of({ "data-native-selection": "" }), mobileCaret(viewport)] : drawSelection(),
     EditorView.exceptionSink.of(failed),
     pairedInput,
@@ -109,8 +110,11 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
     view,
     update(nextTheme: ThemeDefinition | null, nextLabel: string, nextPreview = true, nextPreferences: Preferences = defaults, nextContributions: readonly EditorExtension[] = lastContributions) {
       const effects: Effect<unknown>[] = [];
+      if (nextPreview !== lastPreview || nextContributions !== lastContributions) {
+        effects.push(mode.reconfigure(previewFor(nextPreview, nextContributions)));
+        lastPreview = nextPreview;
+      }
       if (nextContributions !== lastContributions) { effects.push(language.reconfigure(languageFor(nextContributions)), contributed.reconfigure(nextContributions.map(item => item.extension ?? []))); lastContributions = nextContributions; }
-      if (nextPreview !== lastPreview) { effects.push(mode.reconfigure(nextPreview ? [livePreview, livePreviewTheme] : [])); lastPreview = nextPreview; }
       const readOnly = session.locks > 0 || session.missing || session.loading || session.recoveryCandidates.length > 0;
       if (nextPreferences.wrapLines !== lastPreferences.wrapLines) effects.push(wrapping.reconfigure(nextPreferences.wrapLines ? EditorView.lineWrapping : []));
       if (nextTheme !== lastTheme || nextPreferences !== lastPreferences) { effects.push(skin.reconfigure(appearance(nextTheme, nextPreferences))); lastTheme = nextTheme; lastPreferences = nextPreferences; }

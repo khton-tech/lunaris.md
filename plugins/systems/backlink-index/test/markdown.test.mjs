@@ -1,6 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { parseNote, resolveLink, unlinked, mention } from '../dist/src/markdown.js';
+import { creationPath, parseNote, resolveLink, unlinked, mention } from '../dist/src/markdown.js';
+
+test('wikilink aliases preserve the destination and missing targets honor the source folder', () => {
+  const text = '[[New note| Display ]] [[folder/note|Label]] [[../Parent]] [[#Heading]] [[../../Outside]]';
+  const links = parseNote(text).links;
+  assert.deepEqual(links.map(link => text.slice(link.label.from, link.label.to)), ['Display', 'Label', '../Parent', '#Heading', '../../Outside']);
+  assert.deepEqual(links.map(link => creationPath(link, 'notes/source.md')), ['notes/New note.md', 'folder/note.md', 'Parent.md', null, null]);
+});
 
 test('wiki, embeds, anchors, Markdown and reference destinations resolve', () => {
   const note = parseNote('[[Note]] ![[Note#Heading|Alias]] [n](Note.md) [x](<A B.md>)\n[ref][n]\n\n[n]: Note.md');

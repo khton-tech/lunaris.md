@@ -63,3 +63,5 @@ YAML property scalar values also contribute explicit wikilinks with original sou
 ## Click navigation integration
 
 DocumentLinks now connects editor link clicks to the public NoteLinks and DocumentContent APIs; the Backlinks panel then follows the opened target. External links use the ExternalLinks provider and replaceable BrowserLinks/TauriLinks drivers. Markdown links, wikilinks, reference links and bare/angle web URLs are interactive outside code. Headings and block anchors are supported. Click/Enter activation, source freshness and CRLF offsets have integration coverage. Native browser launching still requires manual acceptance after a desktop restart.
+
+A click on a missing `[[note]]` or `[[note|Display name]]` creates and opens an empty Markdown note. The destination before `|` determines the file name. Live Preview shows the display name when supplied and exposes the source syntax when the focused selection touches the link.

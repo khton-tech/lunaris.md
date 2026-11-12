@@ -9,7 +9,7 @@ export function createExtensions(signal: CancellationSignal, changed: () => void
   const api: EditorExtensionsApi = { register(value, owner) {
     const fail = (code: "INVALID_ARGUMENT" | "ALREADY_REGISTERED" | "CANCELLED", message: string) => ({ ok: false as const, error: { code, message } });
     if (signal.aborted || owner.aborted) return fail("CANCELLED", "Extension owner is closed.");
-    if (!value || typeof value.id !== "string" || !value.id.trim() || (value.extension === undefined && value.markdown === undefined)) return fail("INVALID_ARGUMENT", "An ID and contribution are required.");
+    if (!value || typeof value.id !== "string" || !value.id.trim() || (value.extension === undefined && value.markdown === undefined && value.preview === undefined)) return fail("INVALID_ARGUMENT", "An ID and contribution are required.");
     if (entries.has(value.id)) return fail("ALREADY_REGISTERED", "Extension ID is already registered.");
     const entry = Object.freeze({ ...value }); let active = true;
     const dispose = () => { if (!active) return; active = false; owner.removeEventListener("abort", dispose); removers.delete(dispose); entries.delete(entry.id); publish(); };

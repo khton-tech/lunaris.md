@@ -113,7 +113,13 @@ async function setup(options = {}) {
       calls.push(['write', { ...t }, text, policy]); const previous = disk.get(`${t.vaultId}/${t.path}`);
       if (options.beforeWrite) await options.beforeWrite();
       if (options.writeFailure) return fail(options.writeFailure);
-      if (closed.has(t.vaultId)) return fail('VAULT_CLOSED'); if (!previous) return fail('NOT_FOUND');
+      if (closed.has(t.vaultId)) return fail('VAULT_CLOSED');
+      if (policy.mode === 'create') {
+        if (previous) return fail('ALREADY_EXISTS');
+        disk.set(`${t.vaultId}/${t.path}`, { text, version: 'v1' });
+        return ok({ version: 'v1' });
+      }
+      if (!previous) return fail('NOT_FOUND');
       if (previous.version !== policy.expectedVersion) return fail('CONFLICT');
       const version = `${previous.version}+`; disk.set(`${t.vaultId}/${t.path}`, { text, version }); return ok({ version });
     },
@@ -195,6 +201,33 @@ test('editor clicks open notes and expose source backlinks; web URLs use the pla
     assert.equal(new Set([...s.target.querySelectorAll('.cm-document-link')].map(node => node.dataset.noteLink)).size, 3);
     assert.equal(s.logs.some(row => row[0] === 'error' && row[1] === 'lunaris.document-links'), false);
     backlinksPanel.value.dispose(); panel.remove();
+  } finally { await s.stop(); }
+});
+
+test('wikilink preview keeps aliases editable and opens a newly created note', async () => {
+  const source = 'Intro\n[[other]] and [[new-file|Display name]]';
+  const s = await setup({ backlinks: true, initial: source });
+  try {
+    const view = s.cm();
+    const label = () => s.target.querySelector('.cm-document-link[title="new-file"]');
+    assert.equal(view.contentDOM.textContent, 'Introother and Display name');
+    assert.equal(label().textContent, 'Display name');
+    view.focus();
+    view.dispatch({ selection: { anchor: source.indexOf('Display name') + 1 } });
+    await flush();
+    assert.ok(view.contentDOM.textContent.includes('[[new-file|Display name]]'));
+    view.dispatch({ selection: { anchor: 0 } });
+    await flush();
+    assert.equal(view.state.sliceDoc(), source);
+    assert.equal(label().textContent, 'Display name');
+    label().click();
+    await flush();
+    assert.equal(s.documents.current().path, 'new-file.md');
+    assert.equal(s.disk.get('a/new-file.md').text, '');
+    assert.equal(s.disk.has('a/Display name.md'), false);
+    const incoming = s.backlinks.query({ vaultId: 'a', path: 'new-file.md' });
+    assert.equal(incoming.linked[0].source.path, 'note.md');
+    assert.equal(incoming.linked[0].mentions.length, 1);
   } finally { await s.stop(); }
 });
 

@@ -4,9 +4,9 @@ import { Backlinks, BacklinksChanged, NoteLinks } from "@lunaris/backlinks";
 import { anchorRange } from "./anchor.js";
 import type { MentionGroup, BacklinksSnapshot } from "@lunaris/backlinks";
 import { DocumentContent, DocumentContentChanged } from "@lunaris/active-document";
-import { Filesystem, FilesystemObservation, FileChanged } from "@lunaris/filesystem";
+import { Filesystem, FilesystemObservation, FileChanged, failure, validPath } from "@lunaris/filesystem";
 import { Vault, VaultChanged } from "@lunaris/vault";
-import { parseNote, resolveLink, title, mention, unlinked } from "./markdown.js";
+import { creationPath, parseNote, resolveLink, title, mention, unlinked } from "./markdown.js";
 import type { ParsedNote } from "./markdown.js";
 import type { FileTarget } from "@lunaris/filesystem";
 import manifest from "../manifest.json" with { type: "json" };
@@ -101,17 +101,42 @@ export default definePlugin({ manifest, activate(ctx) {
   }
   ctx.provide(NoteLinks, {
     parse: text => parseNote(text).links,
-    async resolve(source, link) {
+    async resolve(source, link, options) {
       const epoch = generation;
       if (source.vaultId !== vaultId) return { ok: false, error: { code: "VAULT_CLOSED", message: "The source Vault is no longer active." } };
+      const cancelled = () => failure("CANCELLED", "Link navigation cancelled.");
       let path = resolveLink(link, source.path, [...entries.keys()]);
       if (!path) { await refresh(); path = resolveLink(link, source.path, [...entries.keys()]); }
-      if (!alive(source.vaultId, epoch)) return { ok: false, error: { code: "CANCELLED", message: "Link navigation cancelled." } };
-      if (!path) return { ok: false, error: { code: "NOT_FOUND", message: "Linked note not found." } };
+      if (!alive(source.vaultId, epoch)) return cancelled();
+      let created = false;
+      if (!path && options && link.wiki) {
+        path = creationPath(link, source.path);
+        if (!validPath(path) || path.split("/").some(part => part.startsWith("."))) return failure("INVALID_PATH", "The wikilink does not name a valid note path.");
+        const current = await documents.read(source);
+        if (!alive(source.vaultId, epoch)) return cancelled();
+        if (!current.ok) return current;
+        if (current.value.text !== options.createFromSource) return failure("CONFLICT", "The source changed before the note could be created.");
+
+        const parent = path.slice(0, Math.max(0, path.lastIndexOf("/")));
+        if (parent) {
+          const folder = await fs.createDirectory({ vaultId: source.vaultId, path: parent }, true);
+          if (!alive(source.vaultId, epoch)) return cancelled();
+          if (!folder.ok && folder.error.code !== "ALREADY_EXISTS") return folder;
+        }
+        const written = await fs.writeText({ vaultId: source.vaultId, path }, "", { mode: "create" });
+        if (!alive(source.vaultId, epoch)) return cancelled();
+        if (!written.ok && written.error.code !== "ALREADY_EXISTS") return written;
+        created = written.ok;
+        if (created) logger.info(ctx.pluginId, "Note created from a wikilink");
+        dirty.add(path);
+        await refresh();
+        if (!alive(source.vaultId, epoch)) return cancelled();
+      }
+      if (!path) return failure("NOT_FOUND", "Linked note not found.");
       const target = { vaultId: source.vaultId, path }; const read = await documents.read(target);
-      if (!alive(source.vaultId, epoch)) return { ok: false, error: { code: "CANCELLED", message: "Link navigation cancelled." } };
+      if (!alive(source.vaultId, epoch)) return cancelled();
       if (!read.ok) return read;
-      const range = anchorRange(read.value.text, link.destination);
+      const range = created ? { from: 0, to: 0 } : anchorRange(read.value.text, link.destination);
       if (!range) return { ok: false, error: { code: "NOT_FOUND", message: "Linked heading or block not found." } };
       return { ok: true, value: { target, text: read.value.text, ...range } };
     },
