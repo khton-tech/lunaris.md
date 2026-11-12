@@ -24,8 +24,7 @@ export function AccountAuth({ props: p }: { props: AccountAccessProps }) {
           </Group>
         </Stack>
         </Box>
-        {p.mode !== "connect" && <Box component="footer" className="lm-account-auth-footer">
-          <Text className="lm-account-context">{p.address}</Text>
+        {p.mode !== "connect" && (p.allowLocal || (p.mode === "login" && p.error)) && <Box component="footer" className="lm-account-auth-footer">
           {p.mode === "login" && p.error && <Text className="lm-account-context">{p.text.passwordReset}</Text>}
           {p.allowLocal && <Button disabled={p.busy} onClick={p.onChangeServer}>{p.text.changeServer}</Button>}
         </Box>}

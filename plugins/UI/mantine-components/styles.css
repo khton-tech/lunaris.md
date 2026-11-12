@@ -951,7 +951,7 @@
 .lm-root[data-window-chrome=true] .lm-account-auth-heading .lm-account-brand { color:inherit }
 @container(max-width:640px) {
  .lm-account-access[data-view=auth] { padding:calc(var(--vault-space)*3) }
- .lm-account-access[data-view=auth] .lm-account-content { width:100%;margin:0 auto auto }
+ .lm-account-access[data-view=auth] .lm-account-content { width:100%;margin:auto }
  .lm-account-auth-heading { align-items:flex-start;flex-direction:column;gap:var(--vault-space) }
  .lm-account-auth-actions { flex-direction:column;gap:calc(var(--vault-space)*2) }
  .lm-account-auth-actions .lm-button { width:100%;min-height:44px }
@@ -961,3 +961,5 @@
  .lm-account-auth .mantine-PasswordInput-visibilityToggle { min-width:44px;min-height:44px }
  .lm-account-auth-footer .lm-button,.lm-root .lm-account-local { min-height:44px }
 }
+
+.lm-account-server-info { display:flex;flex-direction:column;gap:var(--vault-space);padding-bottom:calc(var(--vault-space)*4);text-align:center;overflow-wrap:anywhere }

@@ -76,7 +76,7 @@ export function createAccountAccess(options: { readonly defaultOpen?: boolean; r
         if (screen.signal.aborted) screen = ctx.scope.child();
         const created = slots.create({ id: slotId, grow: 1 }, screen.signal); if (!created.ok) throw Error("Cannot allocate account screen."); allocated = true;
       }
-      const props = { ...fields, presentation: { mode: "standalone", sizing: "fill" }, mode, catalogState, account: session.current()?.account.login ?? "", busy,
+      const props = { ...fields, presentation: { mode: "standalone", sizing: "fill" }, mode, catalogState, serverName: info?.name ?? "", serverDescription: info?.description ?? "", account: session.current()?.account.login ?? "", busy,
         error: error ? text(error) : "", allowLocal: options.allowLocal ?? false, invitationRequired: info?.registration === "invitation",
         text: Object.fromEntries(Object.keys(catalog.en).filter(key => key !== "expires").map(key => [key, text(key)])),
         entries: entries.map(entry => ({ id: entry.id, name: entry.name, detail: entry.expiresAt ? localization.text(ctx.pluginId, "expires", { date: new Date(entry.expiresAt).toLocaleDateString(localization.locale()) }) : "" })),

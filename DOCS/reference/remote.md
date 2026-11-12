@@ -55,3 +55,14 @@ Document identity remains server/account/Vault/path. Saving requires a nonempty 
 IndexedDB schema 2 adds draft-writers atomically and retains the original drafts store as legacy recovery data. No legacy record is deleted during upgrade. Version-change closes older connections; blocked upgrades require closing other tabs. Recovery enumerates both stores. The editor copies recovered content into its new writer slot; successful remote saving acknowledges that slot and the selected original revision, leaving all unselected candidates intact. Failed cleanup stays protected and retryable.
 
 Multiple candidates require an explicit choice through the public text-editor component role. The buffer is read-only before selection, and no candidate is autosaved implicitly. A chosen candidate is copied durably and requires explicit save/review. Page-close protection includes pending recovery work and storage failures. Discard waits for saves and removes only the current/selected records before acknowledging success.
+
+## Public server identity
+
+ServerInfo adds optional name (nonblank, max 80) and description (max 280).
+Transport validates supplied fields; legacy discovery may omit them. AccountAccess
+passes them as serverName/serverDescription through Components, rendered as plain
+text above authentication. No address footer is shown. Mobile uses auto margins
+to center the combined identity/form block when space permits, falling back to
+scrolling when content exceeds the allocation. No storage changes. Integration
+connects server discovery, transport, account controller and UIKit. Native mobile
+centering, keyboard-open scrolling and long descriptions require manual acceptance.

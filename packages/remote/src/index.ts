@@ -18,7 +18,7 @@ export function remoteFileContentFits(operation: string, args: { readonly text?:
   if (operation === "writeFile" && Array.isArray(args.data)) return args.data.length <= REMOTE_FILE_LIMITS.maxFileBytes;
   return true;
 }
-export interface ServerInfo { readonly limits?: Readonly<typeof REMOTE_FILE_LIMITS>; readonly protocol: number; readonly buildId: string; readonly registration: "open" | "invitation" }
+export interface ServerInfo { readonly name?: string; readonly description?: string; readonly limits?: Readonly<typeof REMOTE_FILE_LIMITS>; readonly protocol: number; readonly buildId: string; readonly registration: "open" | "invitation" }
 export interface Account { readonly id: string; readonly login: string }
 export interface AccountState { readonly server: string; readonly account: Account; readonly epoch: string }
 export type RemoteFailure = FsFailure | { readonly code: "LIMIT_REACHED" | "INVALID_CREDENTIALS" | "INVITATION_REQUIRED" | "INVITATION_INVALID" | "LOGIN_TAKEN" | "BUSY" | "PREPARATION_FAILED" | "STOPPED"; readonly message: string };

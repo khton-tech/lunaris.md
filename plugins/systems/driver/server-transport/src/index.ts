@@ -81,6 +81,7 @@ export function createServerTransport(options: { readonly mode: "browser" | "des
         if (version !== epoch || owner.aborted || ctx.signal.aborted) return failed("CANCELLED", "The connection was superseded or cancelled.");
         if (!result.ok) return result;
         const info = result.value as ServerInfo;
+        if ((info?.name !== undefined && (typeof info.name !== "string" || !info.name.trim() || info.name.length > 80)) || (info?.description !== undefined && (typeof info.description !== "string" || info.description.length > 280))) return failed("PROTOCOL_MISMATCH", "Invalid public server information.");
         if ((info?.limits !== undefined && (!Number.isSafeInteger(info.limits.maxFileBytes) || info.limits.maxFileBytes < REMOTE_FILE_LIMITS.maxFileBytes || !Number.isSafeInteger(info.limits.maxRequestBytes) || info.limits.maxRequestBytes < REMOTE_FILE_LIMITS.maxRequestBytes)) || info?.protocol !== REMOTE_PROTOCOL || !["open", "invitation"].includes(info.registration) || typeof info.buildId !== "string") { address = ""; return failed("PROTOCOL_MISMATCH", "The server protocol is incompatible."); }
         if (options.mode === "browser") {
           const restored = await request("GET", "account", undefined, owner);

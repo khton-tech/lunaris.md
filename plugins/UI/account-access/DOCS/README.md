@@ -123,3 +123,14 @@ both Luna presets, and existing catalog interactions. Native acceptance remains
 pending: desktop versus 320/390/640px allocations, short landscape, keyboard-open
 scrolling, long Russian labels, password visibility, focus and error states in
 all three themes. DOM tests do not establish visual or native geometry acceptance.
+
+## Public server identity
+
+ServerInfo adds optional name (nonblank, max 80) and description (max 280).
+Transport validates supplied fields; legacy discovery may omit them. AccountAccess
+passes them as serverName/serverDescription through Components, rendered as plain
+text above authentication. No address footer is shown. Mobile uses auto margins
+to center the combined identity/form block when space permits, falling back to
+scrolling when content exceeds the allocation. No storage changes. Integration
+connects server discovery, transport, account controller and UIKit. Native mobile
+centering, keyboard-open scrolling and long descriptions require manual acceptance.
