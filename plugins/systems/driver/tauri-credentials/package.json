@@ -1,0 +1,21 @@
+{
+  "name": "@lunaris/tauri-credentials",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "dependencies": {
+    "@lunaris/sdk": "0.1.0",
+    "@lunaris/remote": "0.1.0",
+    "@lunaris/logging": "0.1.0",
+    "@tauri-apps/api": "2.12.4"
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
+}

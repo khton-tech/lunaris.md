@@ -71,3 +71,129 @@ props; no renderer translation or SDK change is required. Interface Settings
 selects and persists Russian per Vault. Names and user content stay unchanged.
 Run `npm run ui-localization:check` for complete keys and matching placeholders.
 Native acceptance of long Russian labels, menus and narrow layouts is pending.
+
+## Server account UI refactor (2026-11-12)
+
+Reference: existing local Vault Selector/CardRow and Mantine UI authentication
+compositions (https://ui.mantine.dev/category/authentication/). Local selection
+is unchanged. The account role owns standalone geometry and surfaces; its auth,
+catalog and feedback components own internal content only. Authentication now
+keeps its heading, fields, inline error and pending submit in one surface. The
+page is top-anchored so registration and errors do not recenter the whole form.
+Password and login use the same control sizing; login does not apply registration's
+minimum password length. Username entry disables capitalization and spellcheck.
+
+The controller supplies optional catalogState (loading/ready/error; omitted means
+ready), with localized text.loading when loading. Failed reads offer retry and do
+not claim an empty catalog. Route changes clear previous entries before loading;
+responses are checked against request revision, route and session epoch. Session
+changes clear password, invitation and creation drafts. Auth/catalog renderers
+have separate lifetimes, so creation disclosure does not survive sign-out.
+
+Integration uses existing Components, AccountSession, AccountVaults and
+VaultLocations SDK contracts. No HTTP, disk layout, SQLite, note format or local
+selector changes. Targeted role and real-server composition tests cover inline
+errors, pending/error catalog states, retry and normal document operations.
+Native visual acceptance is pending: web login/registration/invitation, opened
+account/Vault menus, empty/populated/trash/error states, long Russian names,
+keyboard focus, light/dark themes and narrow/short windows. Desktop automation
+is prohibited; these states require an Owner browser check.
+
+## Authentication visual alignment and responsive composition
+
+The Owner requested the login page to match the application rather than an
+independent website. References: local Vault Selector form density, shared UIKit
+controls and Settings' Luna caption. Authentication owns one surface and heading;
+branding is secondary. The catalog and local selector are unchanged. Desktop uses
+a bounded 26rem panel and wrapping inline actions. At allocations up to 640px the
+panel fills available width, starts at the top, and stacks full-width actions.
+Mobile controls and password visibility have 44px targets. The outer role scrolls;
+the content cannot shrink and no fixed height clips keyboard/short-screen content.
+All spacing, colors, borders and caption finishes use existing theme tokens.
+Embedded presentation does not receive standalone frame/shadow styling.
+
+The title, labels and buttons use product typography. Password explicitly uses
+the same md size as TextInput. Primary submit has no decorative arrow. Permanent
+explanatory copy is removed; server address remains secondary context and password
+reset guidance appears with login errors. Existing localized labels and SDK role
+callbacks remain compatible; AccountSession/Vault integration is unchanged.
+
+Targeted tests cover form/error placement, retained inputs through Monochrome and
+both Luna presets, and existing catalog interactions. Native acceptance remains
+pending: desktop versus 320/390/640px allocations, short landscape, keyboard-open
+scrolling, long Russian labels, password visibility, focus and error states in
+all three themes. DOM tests do not establish visual or native geometry acceptance.
+
+## Public server identity
+
+ServerInfo adds optional name (nonblank, max 80) and description (max 280).
+Transport validates supplied fields; legacy discovery may omit them. AccountAccess
+passes them as serverName/serverDescription through Components, rendered as plain
+text above authentication. No address footer is shown. Mobile uses auto margins
+to center the combined identity/form block when space permits, falling back to
+scrolling when content exceeds the allocation. No storage changes. Integration
+connects server discovery, transport, account controller and UIKit. Native mobile
+centering, keyboard-open scrolling and long descriptions require manual acceptance.
+
+## Server Vault selector reference adaptation
+
+Reference: Owner's desktop local Vault Selector screenshot (two panels, 1:2
+proportions, folder CardRows and centered ASCII artwork). AccountAccess's public
+role owns both catalog regions and their surfaces. Desktop places server Vaults
+on the left, creation/trash actions on the right; the host supplies existing art
+through optional createAccountAccess.art and role art props. Consumers never read
+asset paths. No new SDK service is needed. Existing AccountVaults/VaultLocations
+integration remains responsible for all operations.
+
+At allocations up to 640px the list comes first, actions follow, large artwork
+is omitted, and the page owns scrolling rather than nested panels. Controls keep
+44px touch targets. The account menu remains above both regions. Empty/loading/
+error states, creation disclosure and recoverable trash retain their callbacks.
+The local selector and authentication composition are unchanged. Native acceptance
+is pending for desktop 1:2 geometry, mobile long lists, opened row/account menus,
+creation focus, narrow/short allocations and theme replacement.
+
+## Embedded desktop server access
+
+AccountAccess 1.1 adds open({ target, owner, onBusyChange? }); open() retains the
+standalone screen. The target is a borrowed HTMLElement; owner cancellation
+releases only the view. AccountSession and its connection outlive the disclosure
+so opening a remote Vault cannot revoke its own session. Busy operations reject
+competing open/close actions. Late operation results after owner cancellation
+cannot advance forms or open a newly created Vault. Passwords clear on closure.
+
+Vault Selector supplies serverExpanded/onServer/onServerTarget through its public
+Components role. The renderer owns a third ln-vault-action with the same CardRow,
+ln-vault-toggle, animated disclosure and ln-vault-form surface as Create/Select.
+Only one disclosure is open. The target is registered explicitly, never discovered
+through DOM ancestry. The selector owns geometry, surface and overflow; the account
+role receives presentation embedded/content and renders transparent inner content.
+Its sequence is server address, sign-in or invitation-aware registration, then
+server Vaults. Change server returns to the first step. Reopening preserves account
+and server context. Escape closes the disclosure and restores toggle focus; nested
+creation Escape is handled locally first. Pending work disables sibling actions.
+
+Integration is complete through AccountAccess, Components, AccountSession,
+AccountVaults, FilesystemSources and VaultLocations. The browser's standalone
+screen remains supported. Targeted composed tests cover registration and sign-in,
+collapse/reopen, local-form switching, remote opening, owner shutdown, disabled
+competition, Escape focus and theme changes. Native desktop/phone geometry,
+opened menus, long translations and keyboard scrolling still require manual
+acceptance in the actual selector. No storage or server protocol changes.
+
+## Pending connection feedback
+
+Reference: existing shared product controls and Mantine Loader. Required Loader
+CSS is now included. Auth submit keeps its label and primary colors with an oval
+spinner and localized pending copy. Fields are read-only instead of disabled.
+Temporary account/selector busy locks retain resting button colors while native
+disabled semantics still prevent duplicate and competing actions. This is scoped
+to busy account/selector regions; unavailable controls elsewhere are unchanged.
+Catalog loading uses the same spinner. Reduced motion uses a static indicator.
+Both embedded desktop and standalone browser flows use this implementation.
+Native contrast, animation and layout acceptance remain manual.
+
+Restored desktop accounts initialize the address from AccountSession.current().
+When opening account management after startup, discovery is refreshed if needed
+to obtain server metadata and registration policy; credentials remain owned by
+transport. Automatic last-Vault restoration remains the selector/history flow.

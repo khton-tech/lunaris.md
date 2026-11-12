@@ -1,6 +1,7 @@
 /* Only required Mantine component styles; omit the global body/root baseline. */
 @import '@mantine/core/styles/UnstyledButton.css';
 @import '@mantine/core/styles/Button.css';
+@import '@mantine/core/styles/Loader.css';
 @import '@mantine/core/styles/Badge.css';
 @import '@mantine/core/styles/ActionIcon.css';
 @import '@mantine/core/styles/Input.css';
@@ -138,22 +139,42 @@
 .lm-root .lm-sidebar-tab[aria-pressed=true] { color:var(--vault-text);background:var(--vault-selection) }
 .lm-root .lm-sidebar-tab:enabled:active { color:var(--vault-text);background:var(--vault-selection) }
 /* Workspace owns responsive geometry; tool views keep their stable targets. */
-.lm-workspace-layout[data-compact],.lm-workspace-layout[data-compact][data-window-chrome] { --workspace-rail-width:60px;--workspace-gap:4px;--mobile-drawer-width:min(24rem,calc(100% - 32px));grid-template-columns:minmax(0,1fr) }
+.lm-workspace-layout[data-compact],.lm-workspace-layout[data-compact][data-window-chrome] { --workspace-rail-width:60px;--workspace-gap:4px;--workspace-drawer-width:var(--workspace-rail-width);grid-template-columns:minmax(0,1fr) }
+.lm-workspace-layout[data-compact][data-panel] { --workspace-drawer-width:clamp(var(--workspace-rail-width),calc(var(--workspace-content-width) - 32px),24rem) }
 .lm-workspace-layout[data-compact] .lm-workspace-content { grid-column:1 }
 .lm-workspace-layout[data-compact] .mantine-Splitter-handle { display:none }
-.lm-workspace-layout[data-compact] .lm-workspace-panel-pane { position:absolute;inset-block:0;left:var(--workspace-rail-width);width:calc(var(--mobile-drawer-width) - var(--workspace-rail-width));flex-direction:column;max-width:100%!important;overflow:hidden;z-index:7;background:var(--vault-background) }
+.lm-workspace-layout[data-compact] .lm-workspace-panel-pane { position:absolute;inset-block:0;left:var(--workspace-rail-width);width:calc(var(--workspace-drawer-width) - var(--workspace-rail-width));flex-direction:column;max-width:100%!important;overflow:hidden;z-index:7;background:var(--vault-background) }
 .lm-workspace-layout[data-compact] .lm-workspace-rail { position:absolute;inset-block:0;left:0;width:var(--workspace-rail-width);margin:0;z-index:7 }
-.lm-workspace-layout[data-compact] .lm-workspace-rail,.lm-workspace-layout[data-compact] .lm-workspace-panel-pane { transform:translateX(calc(-1 * var(--mobile-drawer-width) - 60px));visibility:hidden;pointer-events:none;transition:transform var(--vault-motion-normal) var(--vault-motion-easing),visibility 0s linear var(--vault-motion-normal) }
-.lm-workspace-layout[data-mobile-open] .lm-workspace-rail,.lm-workspace-layout[data-mobile-open] .lm-workspace-panel-pane { transform:translateX(0);visibility:visible;pointer-events:auto;transition-delay:0s }
+.lm-workspace-layout[data-mobile-open] { --workspace-drawer-reveal:var(--workspace-drawer-width);--workspace-drawer-opacity:1 }
+.lm-workspace-layout[data-compact] :is(.lm-workspace-rail,.lm-workspace-panel-pane) {
+  transform:translateX(calc(var(--workspace-drawer-reveal,0px) - var(--workspace-drawer-width)));
+  visibility:hidden;pointer-events:none;
+  transition:transform var(--vault-motion-normal) var(--vault-motion-easing),visibility 0s linear var(--vault-motion-normal)
+}
+.lm-workspace-layout:is([data-mobile-open],[data-mobile-dragging]) :is(.lm-workspace-rail,.lm-workspace-panel-pane) { visibility:visible;transition-delay:0s }
+.lm-workspace-layout[data-mobile-open] :is(.lm-workspace-rail,.lm-workspace-panel-pane) { pointer-events:auto }
 .lm-workspace-layout[data-compact] .lm-workspace-main-pane { flex:1 1 0%!important;max-width:100%!important }
 .lm-workspace-layout[data-compact] .lm-workspace-panel { margin:0 }
-.lm-workspace-backdrop { position:absolute;inset:0;z-index:6;background:color-mix(in srgb,var(--vault-background) 65%,transparent) }
-.lm-workspace-swipe-edge { position:absolute;left:0;inset-block:0;width:20px;z-index:1;touch-action:pan-y }
+.lm-workspace-backdrop {
+  position:absolute;inset:0;z-index:6;background:color-mix(in srgb,var(--vault-background) 65%,transparent);
+  opacity:var(--workspace-drawer-opacity,0);pointer-events:none;transition:opacity var(--vault-motion-normal) var(--vault-motion-easing)
+}
+.lm-workspace-layout[data-mobile-open] .lm-workspace-backdrop { pointer-events:auto }
+.lm-workspace-layout[data-mobile-dragging] :is(.lm-workspace-rail,.lm-workspace-panel-pane,.lm-workspace-backdrop) { transition:none }
+.lm-workspace-mobile-launcher,.lm-workspace-mobile-toolbar {
+  transition:transform var(--vault-motion-normal) var(--vault-motion-easing),visibility 0s
+}
+.lm-workspace-mobile-launcher[inert],.lm-workspace-mobile-toolbar[inert] {
+  visibility:hidden;transition-delay:0s,var(--vault-motion-normal)
+}
 .lm-workspace-mobile-toolbar {
-  position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+  position:absolute;bottom:8px;left:50%;transform:translate(-50%,var(--workspace-dock-offset,0px));
   z-index:4;display:flex;padding:4px 0
 }
-@media(prefers-reduced-motion:reduce) { .lm-workspace-layout[data-compact] .lm-workspace-rail,.lm-workspace-layout[data-compact] .lm-workspace-panel-pane { transition:none } }
+.lm-workspace-mobile-toolbar[inert] { --workspace-dock-offset:calc(100% + 8px) }
+@media(prefers-reduced-motion:reduce) {
+  .lm-workspace-layout[data-compact] :is(.lm-workspace-rail,.lm-workspace-panel-pane,.lm-workspace-backdrop,.lm-workspace-mobile-launcher,.lm-workspace-mobile-toolbar) { transition:none }
+}
 .lm-workspace-layout[data-compact] .lm-sidebar-rail { padding:10px 8px }
 .lm-workspace-layout[data-compact] .lm-sidebar-tab { min-width:44px;min-height:44px }
 @media(pointer:coarse) {
@@ -187,7 +208,7 @@
 .ln-vault h2 { font:inherit;font-weight:500;margin:0 0 calc(var(--vault-space)*3) }
 .ln-vault ul { list-style:none;padding:0;margin:0 }
 .lm-root .lm-card-row[aria-current=true] { border-color:var(--vault-accent);background:var(--vault-selection) }
-.ln-vault-main { display:flex;flex-direction:column;align-items:center;padding:clamp(1rem,5cqw,4rem) }
+.ln-vault-main { display:flex;flex-direction:column;align-items:center;padding:clamp(1rem,3vh,2rem) clamp(1rem,5cqw,4rem) }
 .ln-vault-main::before { content:"";flex:0 0 var(--vault-center-offset,0px) }
 .ln-vault-content { flex-shrink:0;width:100%;max-width:28rem;container-type:inline-size;display:flow-root }
 .ln-vault pre { color:var(--vault-text);font: min(8px,1.7cqw)/1.2 var(--vault-mono);white-space:pre;margin:0 0 calc(var(--vault-space)*6);text-align:center;max-width:100%;overflow:auto }
@@ -211,7 +232,7 @@
 .lm-root .ln-vault-next { width:100%;min-height:var(--vault-row-height);margin-top:0 }
 .lm-root .ln-vault-next:enabled:active { background:var(--vault-selection);color:var(--vault-text) }
 .ln-vault-status { min-height:1.5em;margin-bottom:calc(var(--vault-space)*4)!important }
-.ln-vault-status:empty { visibility:hidden }
+.ln-vault-status:empty { min-height:0;margin-bottom:0!important;visibility:hidden }
 @media(hover:hover) {
  .lm-root .lm-button:enabled:hover:not(:active) { background:var(--vault-hover) }
  .lm-root .ln-vault-next:enabled:hover:not(:active) { background:var(--vault-accent-hover) }
@@ -603,12 +624,12 @@
 
 .lm-account-access { --vault-row-height:calc(var(--vault-space)*12);--explorer-control-hover:color-mix(in srgb,var(--vault-hover) 35%,var(--vault-panel));--explorer-control-pressed:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel));display:flex;flex:1 1 0%;min-width:0;min-height:0;overflow:auto;padding:clamp(16px,5cqw,64px) }
 .lm-account-content { display:flex;flex-direction:column;gap:calc(var(--vault-space)*6);width:min(100%,48rem);margin:clamp(0px,5cqh,56px) auto auto;min-width:0 }
-.lm-account-access[data-view=auth] .lm-account-content { width:min(100%,25rem);margin:auto }
+.lm-account-access[data-view=auth] .lm-account-content { width:min(100%,28rem);margin:clamp(0px,5cqh,56px) auto auto }
 .lm-account-brand { font-weight:600;letter-spacing:-0.025em }
 .lm-account-heading { display:flex;flex-direction:column;gap:calc(var(--vault-space)*2) }
 .lm-account-content h1 { font:inherit;font-size:1.8em;line-height:1.2;font-weight:600;letter-spacing:-0.035em;margin:0;overflow-wrap:anywhere }
 .lm-account-topbar { min-height:36px }
-.lm-account-auth { padding:calc(var(--vault-space)*6);border-radius:var(--vault-radius) }
+.lm-account-auth { display:flex;flex-direction:column;gap:calc(var(--vault-space)*6);padding:calc(var(--vault-space)*6);border-radius:var(--vault-radius) }
 .lm-root[data-presentation=standalone] .lm-account-auth,.lm-root[data-presentation=standalone] .lm-account-list:not(:empty),.lm-root[data-presentation=standalone] .lm-account-empty,.lm-root[data-presentation=standalone] .lm-account-create { background:var(--vault-panel) }
 .lm-root .lm-account-auth-toggle { margin-top:calc(var(--vault-space)*3) }
 .lm-account-footer { display:flex;flex-direction:column;gap:calc(var(--vault-space)*2);font-size:0.85em;text-align:center }
@@ -635,7 +656,10 @@
 .lm-account-empty { display:flex;flex-direction:column;align-items:center;text-align:center;gap:calc(var(--vault-space)*2);padding:calc(var(--vault-space)*12) calc(var(--vault-space)*5);border-radius:var(--vault-radius) }
 .lm-account-empty>svg { width:2em;height:2em;color:var(--vault-secondary);margin-bottom:calc(var(--vault-space)*2) }
 .lm-account-context { color:var(--vault-secondary);overflow-wrap:anywhere }
-.lm-account-error { color:var(--vault-error) }
+.lm-account-error { color:var(--vault-error);overflow-wrap:anywhere }
+.lm-account-error[hidden] { display:none }
+.lm-account-trash-entry>div { min-width:0 }
+.lm-account-row>.mantine-Button-root { flex-shrink:0 }
 @container(max-width:28rem) {
  .lm-account-access { padding:calc(var(--vault-space)*4) }
  .lm-account-auth { padding:calc(var(--vault-space)*4) }
@@ -794,7 +818,8 @@
 .lm-mobile-choice-menu .lm-mobile-choice-trailing:disabled { opacity:.45 }
 .lm-mobile-choice-trailing .mantine-Menu-itemLabel { flex:none;display:flex }
 .lm-mobile-menu-items .lm-sidebar-tab[aria-expanded=true] { color:var(--vault-text);background:var(--vault-selection) }
-.lm-workspace-mobile-launcher { position:absolute;top:8px;left:12px;z-index:4;display:flex;padding:2px;max-width:calc(100% - 24px);overflow:auto }
+.lm-workspace-mobile-launcher { position:absolute;top:8px;left:12px;z-index:4;display:flex;padding:2px;max-width:calc(100% - 24px);overflow:auto;transform:translateY(0) }
+.lm-workspace-mobile-launcher[inert] { transform:translateY(calc(-100% - 8px)) }
 .lm-root .lm-workspace-mobile-launcher { border-radius:999px }
 
 .lm-root .lm-mobile-menu-items[data-density=compact] .lm-sidebar-tab { width:32px;height:32px;min-width:32px;min-height:32px }
@@ -901,4 +926,106 @@
  .lm-root .lm-setting-select,.lm-root[data-window-chrome=true]>.lm-settings-items .lm-setting-select { text-align:start }
  .lm-setting-static-value { justify-content:flex-start;padding-inline:0 }
  .lm-root .lm-setting-reset { align-self:flex-start }
+}
+
+/* Account role owns the standalone form surface; controls use the shared UIKit. */
+.lm-account-access[data-view=auth] { padding:calc(var(--vault-space)*6);user-select:none }
+.lm-account-access[data-view=auth] .lm-account-content { width:min(100%,26rem);gap:0;margin:clamp(0px,10cqh,96px) auto auto;flex-shrink:0 }
+.lm-account-auth { padding:0;gap:0;overflow:visible }
+.lm-account-auth-heading { padding:calc(var(--vault-space)*4);display:flex;align-items:baseline;flex-wrap:wrap;gap:calc(var(--vault-space)*3);border-bottom:var(--vault-border) solid var(--vault-separator) }
+.lm-account-auth-heading .lm-account-brand { font-size:0.85em;color:var(--vault-secondary);font-weight:500;letter-spacing:normal }
+.lm-account-auth-heading h1 { font-size:1.125em;font-weight:600;line-height:1.4;letter-spacing:normal }
+.lm-account-auth-form { padding:calc(var(--vault-space)*4) }
+.lm-account-auth-fields .lm-label { margin-bottom:var(--vault-space) }
+.lm-account-auth-actions { margin-top:calc(var(--vault-space)*2);align-items:stretch }
+.lm-account-auth-actions .lm-button { height:auto;min-height:calc(var(--vault-space)*10) }
+.lm-account-auth-actions .mantine-Button-label { white-space:normal;overflow-wrap:anywhere }
+.lm-account-auth-footer { display:flex;flex-direction:column;align-items:flex-start;gap:calc(var(--vault-space)*2);padding:0 calc(var(--vault-space)*4) calc(var(--vault-space)*4);font-size:0.85em }
+.lm-root .lm-account-local { align-self:flex-start;margin:0 calc(var(--vault-space)*4) calc(var(--vault-space)*4) }
+.lm-account-auth .mantine-PasswordInput-input { --input-height:calc(var(--vault-space)*10) }
+.lm-account-auth input.lm-input { --input-height:calc(var(--vault-space)*10) }
+.lm-account-auth .mantine-PasswordInput-innerInput { font:inherit;color:var(--vault-text);caret-color:var(--vault-caret) }
+.lm-account-auth .mantine-PasswordInput-innerInput::selection { background:var(--vault-selection);color:var(--vault-text) }
+.lm-root[data-window-chrome=true][data-presentation=standalone] .lm-account-auth { box-shadow:var(--vault-surface-shadow);border:var(--vault-border) solid var(--vault-frame-color) }
+.lm-root[data-window-chrome=true] .lm-account-auth-heading { background:var(--vault-caption-background);color:var(--vault-caption-text);border:0;border-radius:var(--vault-radius) var(--vault-radius) 0 0;padding:var(--vault-space) calc(var(--vault-space)*2) }
+.lm-root[data-window-chrome=true] .lm-account-auth-heading h1 { font-size:1em;font-weight:700 }
+.lm-root[data-window-chrome=true] .lm-account-auth-heading .lm-account-brand { color:inherit }
+@container(max-width:640px) {
+ .lm-account-access[data-view=auth] { padding:calc(var(--vault-space)*3) }
+ .lm-account-access[data-view=auth] .lm-account-content { width:100%;margin:auto }
+ .lm-account-auth-heading { align-items:flex-start;flex-direction:column;gap:var(--vault-space) }
+ .lm-account-auth-actions { flex-direction:column;gap:calc(var(--vault-space)*2) }
+ .lm-account-auth-actions .lm-button { width:100%;min-height:44px }
+ .lm-account-auth .lm-input { --input-height:44px;min-height:44px }
+ .lm-account-auth .mantine-PasswordInput-wrapper { --input-right-section-width:44px }
+ .lm-account-auth .mantine-PasswordInput-innerInput { font-size:max(16px,var(--mantine-font-size-md)) }
+ .lm-account-auth .mantine-PasswordInput-visibilityToggle { min-width:44px;min-height:44px }
+ .lm-account-auth-footer .lm-button,.lm-root .lm-account-local { min-height:44px }
+}
+
+.lm-account-server-info { display:flex;flex-direction:column;gap:var(--vault-space);padding-bottom:calc(var(--vault-space)*4);text-align:center;overflow-wrap:anywhere }
+
+/* Server selector mirrors the local selector's two owned regions. */
+.lm-account-access[data-view=catalog] { --vault-row-height:calc(var(--vault-space)*10);padding:calc(var(--vault-space)*3);overflow:hidden }
+.lm-account-access[data-view=catalog] .lm-account-content { width:100%;margin:0;min-height:0;gap:calc(var(--vault-space)*3) }
+.lm-account-access[data-view=catalog] .lm-account-topbar { flex:none;padding-inline:calc(var(--vault-space)*3) }
+.lm-account-catalog { display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:calc(var(--vault-space)*3);flex:1;min-height:0 }
+.lm-account-vaults,.lm-account-main { min-height:0;overflow:auto;border-radius:var(--vault-radius);padding:calc(var(--vault-space)*3) }
+.lm-root[data-presentation=standalone] :is(.lm-account-vaults,.lm-account-main) { background:var(--vault-panel) }
+.lm-account-list-heading { margin-bottom:calc(var(--vault-space)*3) }
+.lm-account-list-heading h1 { font:inherit;margin:0 }
+.lm-account-vaults .lm-account-list { padding:0;background:transparent }
+.lm-account-vaults .lm-account-row { padding:0;margin-bottom:var(--vault-space);border:0;align-items:center }
+.lm-account-vaults .lm-card-row { border:var(--vault-border) solid color-mix(in srgb,var(--vault-control-border) 22%,transparent) }
+.lm-account-main { display:flex;flex-direction:column;align-items:center;padding:clamp(16px,5cqw,64px) }
+.lm-account-main-content { width:100%;max-width:28rem;margin-block:auto;flex:none;container-type:inline-size }
+.lm-account-art { font:min(8px,1.7cqw)/1.2 var(--vault-mono);white-space:pre;text-align:center;margin:0 0 calc(var(--vault-space)*6);overflow:auto }
+.lm-account-wordmark { text-align:center;font-size:2em;font-weight:600;margin-bottom:calc(var(--vault-space)*6) }
+.lm-account-catalog-server { text-align:center;color:var(--vault-secondary);overflow-wrap:anywhere;margin-bottom:calc(var(--vault-space)*4) }
+.lm-account-main .lm-account-disclosure { margin-top:calc(var(--vault-space)*2) }
+.lm-root[data-presentation=standalone] .lm-account-main .lm-account-create { background:var(--vault-content) }
+.lm-account-main .lm-account-error:not([hidden]) { margin-bottom:calc(var(--vault-space)*3) }
+@container(max-width:640px) {
+ .lm-account-access[data-view=catalog] { overflow:auto }
+ .lm-account-access[data-view=catalog] .lm-account-content { flex:none;margin:auto }
+ .lm-account-catalog { display:flex;flex-direction:column;flex:none;min-height:auto }
+ .lm-account-vaults,.lm-account-main { overflow:visible;flex:none }
+ .lm-account-main { padding:calc(var(--vault-space)*4) }
+ .lm-account-art,.lm-account-wordmark { display:none }
+ .lm-account-catalog-server { margin-bottom:calc(var(--vault-space)*3) }
+ .lm-account-catalog .lm-card-row,.lm-account-catalog .lm-account-row>.lm-button { min-height:44px }
+ .lm-account-vaults .lm-account-empty { padding:calc(var(--vault-space)*5) }
+}
+
+/* Embedded account flows inherit the selector's disclosure surface and geometry. */
+.lm-account-access[data-embedded] { padding:0;overflow:visible;flex:0 0 auto;width:100% }
+.lm-account-access[data-embedded] .lm-account-content { width:100%;margin:0;gap:calc(var(--vault-space)*3);flex:none }
+.lm-account-access[data-embedded] .lm-account-auth { background:transparent;border:0;box-shadow:none }
+.lm-account-access[data-embedded] .lm-account-auth-heading { padding:0 0 calc(var(--vault-space)*3);background:transparent;color:var(--vault-text);border:0;border-radius:0 }
+.lm-account-access[data-embedded] .lm-account-auth-heading h1 { font:inherit;font-weight:500 }
+.lm-account-access[data-embedded] .lm-account-auth-form { padding:0 }
+.lm-account-access[data-embedded] .lm-account-auth-footer { padding:calc(var(--vault-space)*3) 0 0 }
+.lm-account-access[data-embedded] .lm-account-auth-actions { flex-direction:column }
+.lm-account-access[data-embedded] .lm-account-auth-actions>.lm-button { width:100% }
+.lm-account-access[data-embedded] .lm-account-topbar { padding:0;min-height:0 }
+.lm-account-access[data-embedded] .lm-account-topbar>.lm-account-brand { display:none }
+.lm-account-access[data-embedded] .lm-account-catalog { display:flex;flex-direction:column;flex:none;min-height:auto }
+.lm-account-access[data-embedded] :is(.lm-account-vaults,.lm-account-main) { background:transparent;padding:0;border:0;border-radius:0;overflow:visible;flex:none }
+.lm-account-access[data-embedded] .lm-account-main-content { margin:0;max-width:none }
+.lm-account-access[data-embedded] :is(.lm-account-art,.lm-account-wordmark,.lm-account-catalog-server) { display:none }
+.lm-account-access[data-embedded] .lm-account-create { padding:calc(var(--vault-space)*3) 0 0;background:transparent }
+.lm-account-access[data-embedded] .lm-account-empty { padding:calc(var(--vault-space)*3);background:transparent }
+.lm-account-access[data-embedded] .lm-account-server-info { padding-bottom:0;text-align:start }
+
+/* Temporary operation locks keep resting colors; unavailable controls elsewhere retain disabled styling. */
+.lm-root :is(.lm-account-access,.ln-vault)[aria-busy=true] .lm-button:disabled {
+ color:var(--button-color,var(--vault-text));background-color:var(--button-bg,transparent);border-color:var(--button-bd,transparent);cursor:progress;opacity:1
+}
+.lm-root :is(.lm-account-access,.ln-vault)[aria-busy=true] .lm-card-row:disabled {
+ color:var(--vault-text);background:transparent;border:var(--vault-border) solid color-mix(in srgb,var(--vault-control-border) 22%,transparent)
+}
+.lm-root .lm-account-access[aria-busy=true] .lm-account-icon:disabled { color:var(--vault-secondary);background:transparent;opacity:1;cursor:progress }
+.lm-account-auth .mantine-Loader-root { flex:none }
+@media(prefers-reduced-motion:reduce) {
+ .lm-account-access .mantine-Loader-root::after,.lm-account-access .mantine-Loader-root::before { animation:none }
 }

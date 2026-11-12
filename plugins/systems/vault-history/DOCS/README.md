@@ -60,3 +60,21 @@ Recent history refreshes legacy labels on listing and recording, retaining saved
 labels on recoverable failures. Display paths must never be logged.
 
 Vault metadata ownership: this Vault persistence plugin registers PrepareVault after Config's storage initialization. It reads/validates the display name and persists explicit renames through Config using the public VAULT_METADATA_NAMESPACE constant. The stable namespace retains existing files without a destructive migration; replacement Vault providers use the same public PrepareVault/displayName contract and may reuse this metadata owner. Config no longer interprets names or embeds a concrete Vault implementation namespace. History and metadata preparation are integrated in both standard host compositions; custom compositions needing persisted names must activate this owner.
+
+## Persistent desktop sessions
+
+SessionCredentials 1.0 is a trusted, replaceable SDK contract (credentials.access /
+credentials.native). It stores only the last { server, account, token }; methods
+are load(), save(record), and conditional remove(token). The Tauri credential
+driver uses OS credential storage, not Config or note files. Passwords are not
+saved. Transport restores before exposing its API, so history and selector can
+restore the last remote Vault through existing contracts. Initial state is read
+from current(); events report subsequent changes after activation.
+
+Exact-origin validation prevents forwarding credentials to other servers. Startup
+reconnect requests have a maximum five-second deadline each. Offline startup
+retains the last-known identity for history visibility without bypassing server
+authorization; expired/revoked tokens are removed. Successful logout clears the
+matching credential, while normal shutdown preserves it. A missing/unavailable
+store logs degraded memory-only behavior. Web authentication remains cookie-based.
+See the tauri-credentials plugin guide for native build and acceptance details.

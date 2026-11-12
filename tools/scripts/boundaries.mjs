@@ -79,6 +79,7 @@ export const dependencies = {
   'dev-tools-logger': ['sdk', 'logging'],
   filesystem: ['sdk'],
   'filesystem-provider': ['sdk', 'filesystem', 'logging'],
+  'tauri-credentials': ['sdk', 'remote', 'logging'],
   'tauri-filesystem': ['sdk', 'filesystem', 'logging'],
   vault: ['sdk', 'filesystem'],
   'vault-manager': ['sdk', 'filesystem', 'vault', 'logging'],
@@ -89,12 +90,13 @@ export const dependencies = {
   test: ['sdk', 'kernel'],
   development: ['manifest', 'sdk', 'kernel', 'logging', 'logger', 'lup', 'execution', 'quickjs-execution', 'filesystem', 'vault'],
   cli: ['manifest', 'lup', 'sdk', 'kernel', 'test', 'development'],
-  tauri: ['application-host', 'window-titlebar', 'window-provider', 'tauri-window', 'vault', 'logging', 'text-editor', 'interface-settings', 'settings-provider', 'settings-plugin', 'active-screen-provider', 'active-screen-plugin', 'active-document', 'active-document-provider', 'context-menu-provider', 'file-explorer', 'sidebar-plugin', 'sidebar-provider', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'mantine-components', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'],
+  tauri: ['tauri-credentials', 'application-host', 'window-titlebar', 'window-provider', 'tauri-window', 'vault', 'logging', 'text-editor', 'interface-settings', 'settings-provider', 'settings-plugin', 'active-screen-provider', 'active-screen-plugin', 'active-document', 'active-document-provider', 'context-menu-provider', 'file-explorer', 'sidebar-plugin', 'sidebar-provider', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'mantine-components', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'],
 };
 
 dependencies['application-host'].push('manifest', 'lime', 'execution', 'lime-manager', 'lime-settings', 'quickjs-execution', 'lup-picker', 'components');
 
 export const packagePath = scope => {
+  if (scope === 'tauri-credentials') return 'plugins/systems/driver/tauri-credentials';
   if (scope === 'lime-settings') return 'plugins/UI/lime-settings';
   if (scope === 'lime-manager') return 'plugins/systems/lime';
   if (scope === 'lup-picker') return 'plugins/systems/driver/lup-picker';
@@ -163,6 +165,7 @@ export function checkSource(source, filename, scope) {
   }
 
   if (scope === 'tauri-filesystem' && path.resolve(filename) === path.resolve('plugins/systems/driver/tauri-filesystem/src/native.ts')) allowed.add('@tauri-apps/api/core');
+  if (scope === 'tauri-credentials' && path.resolve(filename) === path.resolve('plugins/systems/driver/tauri-credentials/src/index.ts')) allowed.add('@tauri-apps/api/core');
   if (scope === 'tauri' && path.resolve(filename) === path.resolve('hosts/tauri/src/desktop.ts')) {
     allowed.add('@tauri-apps/api/core');
     allowed.add('@tauri-apps/api/window');

@@ -229,20 +229,27 @@ roles own only their embedded content. Existing public `onDismiss`, `mainLabel`
 and stable `onTargets` contracts provide the integration; no consumer imports
 React/Mantine or changes another plugin's DOM. No new provider is required.
 
-At an allocated Workspace width of 640 CSS pixels or less, the status strip is
-hidden and a separately contributed mobile menu opens the sidebar. The menu plugin supplies localized item labels. The rail and selected tool panel slide over
+In compact Workspace, the status strip is hidden and a separately contributed
+mobile menu opens the sidebar. The menu plugin supplies localized item labels. The rail and selected tool panel slide over
 the editor as one modal layer, leaving a trailing backdrop to dismiss it. The
 editor stays mounted and visible underneath, but is inert while the layer is
-open. Mantine FocusTrap contains keyboard traversal. The backdrop or Escape closes the layer and restores focus to the first mobile action.
+open. Mantine FocusTrap contains keyboard traversal. The backdrop or Escape
+closes the layer and returns focus to the opener, or to the main region after
+a swipe.
 Opening/closing uses the public WorkspaceSidebar presentation contract, not Sidebar selection or
 plugin registrations; even a rail without an active tool remains reachable.
 
-A single-finger right swipe starting in the 20px left-edge strip also opens it:
-at least 56px horizontally, with horizontal movement dominant. Vertical travel
-over 24px, multitouch or cancellation rejects the gesture. The strip uses pan-y;
-editor gestures outside it remain untouched. Native browser edge navigation may
-still take priority and requires device verification. Motion uses theme timing
-and is disabled for reduced-motion users. Closed overlay regions are inert and
+A single-finger right swipe anywhere in the compact Workspace main region
+reveals the same rail and selected tool panel as the launcher. Workspace waits
+for horizontal intent, then tracks finger displacement and fades in the
+backdrop proportionally. Release at 35% of the drawer width, capped at
+96 CSS pixels, opens it. The threshold decreases near the right edge to fit
+the available travel. A short swipe, cancellation or a second touch returns it
+to closed. Vertical gestures keep native scrolling on the original target.
+The gesture is unavailable while the virtual keyboard is open and defers to
+inputs, sliders and open menus. Native edge navigation requires device
+verification. Settling uses theme timing and is immediate with reduced motion.
+Closed and partially revealed overlay regions are inert and
 hidden from assistive technology immediately. On desktop, the ordinary sidebar
 and status strip return. The host shell already owns safe-area insets; the toolbar
 is inset within that safe region. Floating surfaces overlay the editor without reserving content space.
@@ -259,7 +266,7 @@ does not certify native platform support. Other target entries remain undeclared
 There are no mobile-only plugins or mobile driver changes in this stage.
 
 DOM regression covers stable contributed targets/drafts, the visible/inert editor,
-button/backdrop/Escape, valid and rejected edge swipes, focus transfer and observer
+button/backdrop/Escape, valid and rejected editor swipes, focus transfer and observer
 cleanup. Visual acceptance is pending
 in the actual Workspace: 320/360/390/640px widths and return to desktop; short
 landscape; Files and Settings selection then return; long Russian labels;
@@ -1100,7 +1107,14 @@ The existing text-editor role accepts optional recoveryLabel, recoveryCandidates
 
 The public lunaris.mobile-menu role renders registered action descriptors; WorkspaceLayout lends its mobile-menu target and owns the floating surface. The former built-in sidebar action has been removed. See DOCS/reference/mobile-menu.md for registration and integration.
 
-Workspace owns a top-left mobile-launcher surface separate from the bottom action row. The shared menu role uses normal inline containment to preserve its intrinsic width. Nested main-region scroll capture hides/shows the launcher by direction. Sidebar scrolling is ignored.
+Workspace owns the top-left mobile launcher and bottom dock surfaces. The shared
+menu role uses normal inline containment to preserve the launcher's intrinsic
+width. Main-region scroll and vertical swipes hide or reveal both surfaces.
+The launcher exits above the Workspace and returns from the top. The dock
+exits below it and returns from the bottom. The same transitions apply when
+the sidebar or virtual keyboard hides the controls. Workspace uses the active
+theme's motion timing and skips transitions for reduced motion. Exiting regions
+become inert immediately, and the mobile menu closes any portaled dropdown.
 
 The Owner's highlighted bottom panel defines the position of the tab action.
 The mobile-menu role accepts an optional count on an action descriptor. The
@@ -1164,3 +1178,149 @@ Reference: Owner screenshot of the compact Luna Settings page and existing sideb
 ## XP mobile control adaptation
 
 Reference: existing Luna Explorer toolbar and Settings caption controls. WorkspaceLayout owns the floating menu/launcher surfaces, using XP radius, menu border and surface shadow. The mobile-menu and settings-page roles own their action controls: Luna button gradients, borders, bevels, hover/pressed/disabled states and existing semantic keyboard focus. MobileMenuView now receives theme tokens explicitly, preserving transparent embedded rendering instead of relying on an ancestor for token inheritance. Compact 32px launcher and 44px bottom actions, overlay positioning, scroll hiding and Sidebar stacking are unchanged. Luna Dark uses its own palette; switching to Monochrome removes XP finishes. Manual acceptance remains pending for both XP presets, focus/hover/press/disabled states, Settings navigation, scroll and many-item overflow in the actual Workspace.
+
+## Server account UI refactor (2026-11-12)
+
+Reference: existing local Vault Selector/CardRow and Mantine UI authentication
+compositions (https://ui.mantine.dev/category/authentication/). Local selection
+is unchanged. The account role owns standalone geometry and surfaces; its auth,
+catalog and feedback components own internal content only. Authentication now
+keeps its heading, fields, inline error and pending submit in one surface. The
+page is top-anchored so registration and errors do not recenter the whole form.
+Password and login use the same control sizing; login does not apply registration's
+minimum password length. Username entry disables capitalization and spellcheck.
+
+The controller supplies optional catalogState (loading/ready/error; omitted means
+ready), with localized text.loading when loading. Failed reads offer retry and do
+not claim an empty catalog. Route changes clear previous entries before loading;
+responses are checked against request revision, route and session epoch. Session
+changes clear password, invitation and creation drafts. Auth/catalog renderers
+have separate lifetimes, so creation disclosure does not survive sign-out.
+
+Integration uses existing Components, AccountSession, AccountVaults and
+VaultLocations SDK contracts. No HTTP, disk layout, SQLite, note format or local
+selector changes. Targeted role and real-server composition tests cover inline
+errors, pending/error catalog states, retry and normal document operations.
+Native visual acceptance is pending: web login/registration/invitation, opened
+account/Vault menus, empty/populated/trash/error states, long Russian names,
+keyboard focus, light/dark themes and narrow/short windows. Desktop automation
+is prohibited; these states require an Owner browser check.
+
+## Authentication visual alignment and responsive composition
+
+The Owner requested the login page to match the application rather than an
+independent website. References: local Vault Selector form density, shared UIKit
+controls and Settings' Luna caption. Authentication owns one surface and heading;
+branding is secondary. The catalog and local selector are unchanged. Desktop uses
+a bounded 26rem panel and wrapping inline actions. At allocations up to 640px the
+panel fills available width, starts at the top, and stacks full-width actions.
+Mobile controls and password visibility have 44px targets. The outer role scrolls;
+the content cannot shrink and no fixed height clips keyboard/short-screen content.
+All spacing, colors, borders and caption finishes use existing theme tokens.
+Embedded presentation does not receive standalone frame/shadow styling.
+
+The title, labels and buttons use product typography. Password explicitly uses
+the same md size as TextInput. Primary submit has no decorative arrow. Permanent
+explanatory copy is removed; server address remains secondary context and password
+reset guidance appears with login errors. Existing localized labels and SDK role
+callbacks remain compatible; AccountSession/Vault integration is unchanged.
+
+Targeted tests cover form/error placement, retained inputs through Monochrome and
+both Luna presets, and existing catalog interactions. Native acceptance remains
+pending: desktop versus 320/390/640px allocations, short landscape, keyboard-open
+scrolling, long Russian labels, password visibility, focus and error states in
+all three themes. DOM tests do not establish visual or native geometry acceptance.
+
+## Public server identity
+
+ServerInfo adds optional name (nonblank, max 80) and description (max 280).
+Transport validates supplied fields; legacy discovery may omit them. AccountAccess
+passes them as serverName/serverDescription through Components, rendered as plain
+text above authentication. No address footer is shown. Mobile uses auto margins
+to center the combined identity/form block when space permits, falling back to
+scrolling when content exceeds the allocation. No storage changes. Integration
+connects server discovery, transport, account controller and UIKit. Native mobile
+centering, keyboard-open scrolling and long descriptions require manual acceptance.
+
+## Server Vault selector reference adaptation
+
+Reference: Owner's desktop local Vault Selector screenshot (two panels, 1:2
+proportions, folder CardRows and centered ASCII artwork). AccountAccess's public
+role owns both catalog regions and their surfaces. Desktop places server Vaults
+on the left, creation/trash actions on the right; the host supplies existing art
+through optional createAccountAccess.art and role art props. Consumers never read
+asset paths. No new SDK service is needed. Existing AccountVaults/VaultLocations
+integration remains responsible for all operations.
+
+At allocations up to 640px the list comes first, actions follow, large artwork
+is omitted, and the page owns scrolling rather than nested panels. Controls keep
+44px touch targets. The account menu remains above both regions. Empty/loading/
+error states, creation disclosure and recoverable trash retain their callbacks.
+The local selector and authentication composition are unchanged. Native acceptance
+is pending for desktop 1:2 geometry, mobile long lists, opened row/account menus,
+creation focus, narrow/short allocations and theme replacement.
+
+## Mobile account-screen alignment
+
+The Owner requires the mobile catalog to share authentication centering. Its
+complete content block (account header, Vault list and actions) now uses auto
+margins at allocations up to 640px. Intrinsic height and disabled shrinking
+preserve scrolling when the list or creation form exceeds the available height;
+there is no fixed height, transform or clipped centering. Desktop 1:2 panels are
+unchanged. Native short/long-list and keyboard-open geometry remains manual.
+
+## Embedded desktop server access
+
+AccountAccess 1.1 adds open({ target, owner, onBusyChange? }); open() retains the
+standalone screen. The target is a borrowed HTMLElement; owner cancellation
+releases only the view. AccountSession and its connection outlive the disclosure
+so opening a remote Vault cannot revoke its own session. Busy operations reject
+competing open/close actions. Late operation results after owner cancellation
+cannot advance forms or open a newly created Vault. Passwords clear on closure.
+
+Vault Selector supplies serverExpanded/onServer/onServerTarget through its public
+Components role. The renderer owns a third ln-vault-action with the same CardRow,
+ln-vault-toggle, animated disclosure and ln-vault-form surface as Create/Select.
+Only one disclosure is open. The target is registered explicitly, never discovered
+through DOM ancestry. The selector owns geometry, surface and overflow; the account
+role receives presentation embedded/content and renders transparent inner content.
+Its sequence is server address, sign-in or invitation-aware registration, then
+server Vaults. Change server returns to the first step. Reopening preserves account
+and server context. Escape closes the disclosure and restores toggle focus; nested
+creation Escape is handled locally first. Pending work disables sibling actions.
+
+Integration is complete through AccountAccess, Components, AccountSession,
+AccountVaults, FilesystemSources and VaultLocations. The browser's standalone
+screen remains supported. Targeted composed tests cover registration and sign-in,
+collapse/reopen, local-form switching, remote opening, owner shutdown, disabled
+competition, Escape focus and theme changes. Native desktop/phone geometry,
+opened menus, long translations and keyboard scrolling still require manual
+acceptance in the actual selector. No storage or server protocol changes.
+
+## Pending connection feedback
+
+Reference: existing shared product controls and Mantine Loader. Required Loader
+CSS is now included. Auth submit keeps its label and primary colors with an oval
+spinner and localized pending copy. Fields are read-only instead of disabled.
+Temporary account/selector busy locks retain resting button colors while native
+disabled semantics still prevent duplicate and competing actions. This is scoped
+to busy account/selector regions; unavailable controls elsewhere are unchanged.
+Catalog loading uses the same spinner. Reduced motion uses a static indicator.
+Both embedded desktop and standalone browser flows use this implementation.
+Native contrast, animation and layout acceptance remain manual.
+
+## Intrinsic selector disclosure sizing
+
+Reference: Owner screenshot of the embedded server sign-in card extending below
+an 1120 by 831 desktop window. VaultSelector remains the owner of panel geometry,
+surface and overflow. AccountAccess owns only the borrowed content. The selector
+now observes its complete disclosure surfaces, including server identity, footer
+actions, padding and margins, rather than nested HTML forms. Async step changes
+update the reserved expansion height. Collapsed local forms retain their reserved
+space for stable disclosure. Vertical panel padding is reduced and the empty
+status line no longer consumes decorative space; control sizes remain unchanged.
+The panel retains accessible overflow only when intrinsic content cannot fit.
+No SDK or consumer integration changes are required. A geometry regression test
+covers growing embedded content and top alignment for oversized content. Native
+visual acceptance remains manual: login, registration, errors and long catalogs,
+short/narrow windows, both themes, keyboard focus and interrupted disclosure.

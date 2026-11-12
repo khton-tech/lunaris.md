@@ -9,6 +9,7 @@ publish = false
 tauri-build = { version = "=2.7.4", features = [] }
 
 [dependencies]
+lunaris-credentials-native = { path = "../../../plugins/systems/driver/tauri-credentials/native" }
 lunaris-filesystem-native = { path = "../../../plugins/systems/driver/tauri-filesystem/native" }
 serde_json = "=1.0.154"
 tauri = { version = "=2.12.5", features = ["devtools"] }

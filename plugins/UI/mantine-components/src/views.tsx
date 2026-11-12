@@ -74,23 +74,48 @@ function ActionForm({ mode, props }: { mode: "create" | "select"; props: Selecto
   </Box>;
 }
 
+function ServerForm({ props }: { props: SelectorProps }) {
+  const id = useId(); const toggle = useRef<HTMLButtonElement>(null); const target = useRef<HTMLDivElement>(null);
+  const expanded = props.serverExpanded === true;
+  useLayoutEffect(() => { props.onServerTarget?.(target.current); return () => props.onServerTarget?.(null); }, [props.onServerTarget]);
+  useLayoutEffect(() => {
+    if (!expanded && target.current?.contains(target.current.ownerDocument.activeElement)) toggle.current?.focus({ preventScroll: true });
+  }, [expanded]);
+  return <Box className="ln-vault-action" data-open={String(expanded)}>
+    <CardRow ref={toggle} className="ln-vault-toggle" label={props.text.server!} icon={<Icon name="browse" />} disabled={props.busy}
+      aria-expanded={expanded} aria-controls={id} onClick={props.onServer} />
+    <Box className="ln-vault-disclosure" aria-hidden={!expanded} inert={!expanded}>
+      <Box className="ln-vault-disclosure-body">
+        <Paper className="ln-vault-form" id={id} onKeyDown={event => {
+          if (event.key === "Escape" && !event.defaultPrevented && expanded && !props.busy) { event.preventDefault(); toggle.current?.focus({ preventScroll: true }); props.onServer?.(); }
+        }}><Box ref={target} /></Paper>
+      </Box>
+    </Box>
+  </Box>;
+}
+
 export function VaultSelector({ props, theme }: { props: SelectorProps; theme: ReturnType<typeof resolveTheme> }) {
   const main = useRef<HTMLDivElement>(null); const content = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => {
     const panel = main.current; const body = content.current; const view = panel?.ownerDocument.defaultView;
     if (!panel || !body || !view?.ResizeObserver) return;
+    // Measure owned disclosure surfaces, including asynchronously mounted account content.
+    const surfaces = [...body.querySelectorAll<HTMLElement>(".ln-vault-form")];
     const observer = new view.ResizeObserver(() => {
       const padding = view.getComputedStyle(panel);
       const available = panel.clientHeight - parseFloat(padding.paddingTop) - parseFloat(padding.paddingBottom);
       const disclosed = [...body.querySelectorAll<HTMLElement>(".ln-vault-disclosure")].reduce((height, node) => height + node.offsetHeight, 0);
       const resting = body.offsetHeight - disclosed;
-      const expansion = Math.max(0, ...[...body.querySelectorAll("form")].map(form => form.offsetHeight));
+      const expansion = Math.max(0, ...surfaces.map(surface => {
+        const style = view.getComputedStyle(surface);
+        return surface.offsetHeight + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+      }));
       const offset = `${Math.max(0, Math.min((available - resting) / 2, available - resting - expansion))}px`;
       if (panel.style.getPropertyValue("--vault-center-offset") !== offset) panel.style.setProperty("--vault-center-offset", offset);
     });
-    observer.observe(panel); observer.observe(body); for (const form of body.querySelectorAll("form")) observer.observe(form);
+    observer.observe(panel); observer.observe(body); for (const surface of surfaces) observer.observe(surface);
     return () => observer.disconnect();
-  }, []);
+  }, [!!props.onServer]);
   return <Box component="section" className="ln-vault" style={theme.contentStyle} aria-busy={props.busy}>
     <Paper component="aside" className="ln-vault-recents" aria-label={props.text.recent}>
       <Title order={2}>{props.text.recent}</Title>
@@ -111,7 +136,7 @@ export function VaultSelector({ props, theme }: { props: SelectorProps; theme: R
         <Text className="ln-vault-status" role="status" aria-live="polite">{props.status}</Text>
         <Stack className="ln-vault-actions" gap="xs">
           <ActionForm mode="create" props={props} /><ActionForm mode="select" props={props} />
-          {props.onServer && <CardRow label={props.text.server!} icon={<Icon name="browse" />} disabled={props.busy} onClick={props.onServer} />}
+          {props.onServer && <ServerForm props={props} />}
         </Stack>
         <Text role="alert" hidden={props.mode !== null || !props.error}>{props.mode === null ? props.error : ""}</Text>
       </Box>

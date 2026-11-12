@@ -51,11 +51,12 @@ export function mobileMenuProps(value: ComponentProps): Props {
 }
 type Overlay = { readonly id: string; readonly target: HTMLElement };
 
-function MobileAction({ item, compact, dock, overlay }: {
- item: Item; compact: boolean; dock: HTMLElement | undefined; overlay: Overlay;
+function MobileAction({ item, compact, target, overlay }: {
+ item: Item; compact: boolean; target: HTMLElement; overlay: Overlay;
 }) {
   const trigger = useRef<HTMLButtonElement>(null);
   const { dir } = useDirection();
+  const dock = compact ? undefined : target;
   const [opened, setOpened] = useState(false);
   const [geometry, setGeometry] = useState<{ width: number; crossAxis: number; mainAxis: number }>();
   const measure = useCallback(() => {
@@ -71,6 +72,15 @@ function MobileAction({ item, compact, dock, overlay }: {
   const hasChoices = item.choices !== undefined;
   const reorder = useListReorder("y", item.choices ?? [], item.disabled ? undefined : item.onReorder);
   useLayoutEffect(() => { if (!opened) reorder.cancel(); }, [opened]);
+  useLayoutEffect(() => {
+    if (!opened || !hasChoices) return;
+    // The portaled menu stays outside the target's inert subtree.
+    const closeIfInactive = () => { if (target.hidden || target.hasAttribute("inert")) setOpened(false); };
+    const observer = new target.ownerDocument.defaultView!.MutationObserver(closeIfInactive);
+    observer.observe(target, { attributes: true, attributeFilter: ["hidden", "inert"] });
+    closeIfInactive();
+    return () => observer.disconnect();
+  }, [target, opened, hasChoices]);
   useLayoutEffect(() => {
     if (!dock || !hasChoices || !trigger.current) return;
     const observer = new ResizeObserver(entries => {
@@ -140,7 +150,7 @@ export function MobileMenuView({ props, theme, overlay, target }: {
  const compact = props.density === "compact";
  return <Group style={theme.contentStyle} className="lm-mobile-menu-items" data-density={props.density ?? "comfortable"}
    gap={compact ? 4 : 0} justify={compact ? "start" : "space-evenly"} wrap="nowrap">
-  {props.items.map(item => <MobileAction key={item.id} item={item} compact={compact} overlay={overlay} dock={compact ? undefined : target} />)}
+  {props.items.map(item => <MobileAction key={item.id} item={item} compact={compact} overlay={overlay} target={target} />)}
   {props.items.some(item => item.choices) && createPortal(
     <div id={overlay.id} className="lm-root lm-mobile-choice-overlay" data-mantine-color-scheme={theme.scheme} style={theme.contentStyle} />,
     overlay.target,

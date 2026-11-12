@@ -70,7 +70,29 @@ test('mobile overlay preserves Sidebar selection and the composed editor when op
     assert.equal(root.hasAttribute('data-mobile-open'), false);
     assert.equal(s.tools.sidebar.snapshot().activeId, 'test.search');
     assert.equal(main.firstElementChild, editor); assert.equal(main.parentElement.hasAttribute('inert'), false);
+
+    const swipe = (type, clientX) => {
+      const event = new s.dom.window.Event(type, { bubbles: true, cancelable: true });
+      const points = [{ identifier: 0, clientX, clientY: 200 }];
+      Object.defineProperties(event, { touches: { value: type === 'touchend' ? [] : points }, changedTouches: { value: points } });
+      editor.dispatchEvent(event);
+    };
+    swipe('touchstart', 170);
+    swipe('touchmove', 284);
+    assert.equal(root.hasAttribute('data-mobile-dragging'), true);
+    assert.equal(s.tools.navigation.isOpen(), false);
+    swipe('touchend', 284);
+    await flush();
+    assert.equal(s.tools.navigation.isOpen(), true);
+    assert.equal(root.hasAttribute('data-mobile-open'), true);
+    assert.equal(root.hasAttribute('data-mobile-dragging'), false);
+    assert.equal(button(s, 'Search').getAttribute('aria-pressed'), 'true');
+    assert.equal(main.firstElementChild, editor);
+    root.querySelector('.lm-workspace-backdrop').click(); await flush();
+    assert.equal(s.dom.window.document.activeElement, main);
+
     toggle.click(); await flush();
+    assert.equal(s.tools.navigation.isOpen(), true);
     assert.equal(button(s, 'Search').getAttribute('aria-pressed'), 'true');
   } finally { await s.stop(); }
 });

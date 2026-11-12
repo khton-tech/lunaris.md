@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createServerTransport } from '@lunaris/server-transport';
-import { ConnectionStatus, ServerTransport } from '@lunaris/remote';
+import { SessionCredentials, ConnectionStatus, ServerTransport } from '@lunaris/remote';
 import { testHost, consumer } from '../../../../../tools/testing/remote.mjs';
 const json = value => new Response(JSON.stringify({ ok: true, value }));
 test('desktop bearer stays in transport; late responses cannot restore a cancelled account', async () => {
@@ -97,4 +97,54 @@ test('a connection superseded during status publication cannot clear its replace
  host.register(createServerTransport({mode:'desktop',fetch:async url=>json({protocol:url.startsWith('https://a.invalid')?99:1,buildId:'test',registration:'open'})}));
  host.register(consumer([ServerTransport,ConnectionStatus,ConnectionChanged],c=>{ctx=c;api=c.use(ServerTransport);status=c.use(ConnectionStatus);c.events.on(ConnectionChanged,async()=>{if(!started){started=true;replacement=await api.connect('https://b.invalid',c.signal);}});},['account.network','account.access']));
  await host.start('test.consumer');assert.equal((await api.connect('https://a.invalid',ctx.signal)).error.code,'CANCELLED');assert.equal(replacement.ok,true);assert.equal(status.current().server,'https://b.invalid');await host.stopAll();host.assertNoResources();
+});
+
+
+test('desktop session persists across transport restarts, stays origin-bound and clears on sign-out', async () => {
+  let stored = null; const calls = [];
+  const boot = async () => {
+    let api, ctx;
+    const host = testHost({ 'test.consumer': ['account.network'], 'lunaris.server-transport': ['credentials.access'] });
+    host.installMock(SessionCredentials, { async load() { return { ok: true, value: stored }; }, async save(value) { stored = structuredClone(value); return { ok: true, value: null }; }, async remove(token) { if (stored?.token === token) stored = null; return { ok: true, value: null }; } }, { grants: ["credentials.native"] });
+    host.register(createServerTransport({ mode: 'desktop', fetch: async (url, init) => {
+      calls.push({ url, auth: init.headers.Authorization });
+      if (url.endsWith('/server')) return json({ protocol: 1, buildId: 'test', registration: 'open' });
+      if (url.endsWith('/auth/login')) return json({ account: { id: 'a', login: 'alice' }, token: 'saved-test-token' });
+      if (url.endsWith('/account')) return json({ id: 'a', login: 'alice' });
+      return json(null);
+    } }));
+    host.register(consumer([ServerTransport], c => { ctx = c; api = c.use(ServerTransport); }, ['account.network']));
+    await host.start('test.consumer'); return { host, api, ctx };
+  };
+  const first = await boot(); await first.api.connect('https://notes.example', first.ctx.signal);
+  assert.equal((await first.api.login('alice', 'never persist this password')).ok, true);
+  assert.equal(stored.token, 'saved-test-token'); assert.equal(JSON.stringify(stored).includes('password'), false);
+  await first.host.stopAll(); assert.ok(stored); first.host.assertNoResources();
+  const second = await boot(); assert.equal(second.api.current().account.id, 'a');
+  assert.equal(calls.at(-1).auth, 'Bearer saved-test-token');
+  assert.equal(JSON.stringify(second.api.current()).includes('saved-test-token'), false);
+  await second.api.connect('https://different.example', second.ctx.signal);
+  assert.equal(calls.at(-1).auth, undefined); assert.equal(second.api.current(), null);
+  await second.api.connect('https://notes.example', second.ctx.signal);
+  assert.equal((await second.api.logout()).ok, true); assert.equal(stored, null);
+  await second.host.stopAll(); second.host.assertNoResources();
+  const third = await boot(); assert.equal(third.api.current(), null); await third.host.stopAll();
+});
+
+test('offline restart retains saved identity for history while an expired token is removed', async () => {
+  for (const state of ['offline', 'expired']) {
+    let stored = { server: 'https://notes.example', account: { id: 'a', login: 'alice' }, token: 'saved-token' }; let api, status;
+    const host = testHost({ 'test.consumer': ['account.network', 'account.access'], 'lunaris.server-transport': ['credentials.access'] });
+    host.installMock(SessionCredentials, { async load() { return { ok: true, value: stored }; }, async save() { throw Error('Unexpected write'); }, async remove(token) { assert.equal(token, 'saved-token'); stored = null; return { ok: true, value: null }; } }, { grants: ["credentials.native"] });
+    host.register(createServerTransport({ mode: 'desktop', fetch: async url => {
+      if (state === 'offline') throw Error('offline');
+      if (url.endsWith('/server')) return json({ protocol: 1, buildId: 'test', registration: 'open' });
+      return new Response(JSON.stringify({ ok: false, error: { code: 'UNAUTHENTICATED', message: 'Expired' } }), { status: 401 });
+    } }));
+    host.register(consumer([ServerTransport, ConnectionStatus], ctx => { api = ctx.use(ServerTransport); status = ctx.use(ConnectionStatus); }, ['account.network', 'account.access']));
+    await host.start('test.consumer');
+    if (state === 'offline') { assert.equal(api.current().account.id, 'a'); assert.ok(stored); assert.equal(status.current().state, 'offline'); }
+    else { assert.equal(api.current(), null); assert.equal(stored, null); assert.equal(status.current().state, 'expired'); }
+    await host.stopAll(); host.assertNoResources();
+  }
 });

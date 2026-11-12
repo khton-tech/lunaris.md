@@ -1,3 +1,4 @@
+/// <reference lib="dom" preserve="true" />
 import { defineApi, defineEvent } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
 import type { FolderLocation, FsFailure, FsResult } from "@lunaris/filesystem";
@@ -18,7 +19,7 @@ export function remoteFileContentFits(operation: string, args: { readonly text?:
   if (operation === "writeFile" && Array.isArray(args.data)) return args.data.length <= REMOTE_FILE_LIMITS.maxFileBytes;
   return true;
 }
-export interface ServerInfo { readonly limits?: Readonly<typeof REMOTE_FILE_LIMITS>; readonly protocol: number; readonly buildId: string; readonly registration: "open" | "invitation" }
+export interface ServerInfo { readonly name?: string; readonly description?: string; readonly limits?: Readonly<typeof REMOTE_FILE_LIMITS>; readonly protocol: number; readonly buildId: string; readonly registration: "open" | "invitation" }
 export interface Account { readonly id: string; readonly login: string }
 export interface AccountState { readonly server: string; readonly account: Account; readonly epoch: string }
 export type RemoteFailure = FsFailure | { readonly code: "LIMIT_REACHED" | "INVALID_CREDENTIALS" | "INVITATION_REQUIRED" | "INVITATION_INVALID" | "LOGIN_TAKEN" | "BUSY" | "PREPARATION_FAILED" | "STOPPED"; readonly message: string };
@@ -36,8 +37,14 @@ export interface ServerTransportApi extends AccountSessionApi {
 }
 export const ServerTransport = defineApi<ServerTransportApi>({ id: "lunaris.server-transport", version: "1.0.0", consumePermission: "account.network",
   validate: value => value !== null && typeof value === "object" && ["current", "connect", "register", "login", "logout", "request"].every(method => typeof Object.getOwnPropertyDescriptor(value, method)?.value === "function") });
-export interface AccountAccessApi { visible(): boolean; open(): void; close(): void }
-export const AccountAccess = defineApi<AccountAccessApi>({ id: "lunaris.account-access", version: "1.0.0", consumePermission: "account.access",
+/** Borrowed content region; its owner controls geometry, surface and disclosure. */
+export interface AccountAccessPlacement {
+  readonly target: HTMLElement;
+  readonly owner: CancellationSignal;
+  readonly onBusyChange?: (busy: boolean) => void;
+}
+export interface AccountAccessApi { visible(): boolean; open(placement?: AccountAccessPlacement): void; close(): void }
+export const AccountAccess = defineApi<AccountAccessApi>({ id: "lunaris.account-access", version: "1.1.0", consumePermission: "account.access",
   validate: value => value !== null && typeof value === "object" && ["visible", "open", "close"].every(method => typeof Object.getOwnPropertyDescriptor(value, method)?.value === "function") });
 export const AccountAccessChanged = defineEvent<{ readonly visible: boolean }>({ id: "lunaris.account-access-changed", version: "1.0.0", consumePermission: "account.access",
   validate: value => typeof (value as { visible?: unknown } | null)?.visible === "boolean" });
@@ -100,3 +107,20 @@ export interface ConnectionSnapshot {
 export const ConnectionStatus = defineApi<{ current(): Readonly<ConnectionSnapshot> | null }>({
   id: "lunaris.connection-status", version: "1.0.0", consumePermission: "account.access", validate: methods(["current"]),
 });
+
+/** Trusted transport-only credential store. Never store passwords or expose this to UI. */
+export interface SavedServerSession { readonly server: string; readonly account: Account; readonly token: string }
+export function validSavedServerSession(value: unknown): value is SavedServerSession {
+  const v = value as SavedServerSession | null;
+  if (!v || typeof v.server !== "string" || v.server.length > 2048 || typeof v.token !== "string" || !v.token || v.token.length > 1024 ||
+      typeof v.account?.id !== "string" || !v.account.id || v.account.id.length > 200 || typeof v.account.login !== "string" || !v.account.login || v.account.login.length > 64) return false;
+  try { const url = new URL(v.server); return ["http:", "https:"].includes(url.protocol) && url.origin === v.server && !url.username && !url.password; } catch { return false; }
+}
+export interface SessionCredentialsApi {
+  load(): Promise<RemoteResult<SavedServerSession | null>>;
+  save(session: SavedServerSession): Promise<RemoteResult<null>>;
+  /** Remove only the matching token, preserving a newer session. */
+  remove(token: string): Promise<RemoteResult<null>>;
+}
+export const SessionCredentials = defineApi<SessionCredentialsApi>({ id: "lunaris.session-credentials", version: "1.0.0",
+  providePermission: "credentials.native", consumePermission: "credentials.access", validate: methods(["load", "save", "remove"]) });

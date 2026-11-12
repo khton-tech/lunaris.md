@@ -103,8 +103,38 @@ test('account access uses controlled Mantine password fields, escaped catalog na
   const password = s.target.querySelector('input[type=password]'); assert.ok(password); assert.equal(password.value, 'typed password');
   assert.equal(password.getAttribute('autocomplete'), 'new-password');
   mounted.value.update({ ...props, error: 'Try again' }); assert.equal(s.target.querySelector('input[type=password]'), password);
+  assert.equal(s.target.querySelector('form [role=alert]').textContent, 'Try again');
+  assert.ok(s.target.querySelector('.lm-account-auth h1'));
+  mounted.value.update({ ...props, serverName: 'My server', serverDescription: '<script>plain text</script>' });
+  assert.equal(s.target.querySelector('.lm-account-server-info').textContent, 'My server<script>plain text</script>');
+  assert.equal(s.target.querySelector('script'), null);
+  assert.equal(s.target.textContent.includes(props.address), false);
+  mounted.value.update({ ...props, error: 'Try again' });
+  assert.equal(s.target.querySelector('.lm-account-topbar'), null, 'auth owns one header');
+  assert.equal(s.target.querySelector('.lm-account-auth-actions').children.length, 2);
+  s.kernel.register(baseThemeEngine); await s.kernel.start(baseThemeEngine.manifest.id);
+  for (const id of ['windows-xp', 'windows-xp-dark', 'monochrome']) {
+    s.themes.select('lunaris.base-theme-engine.' + id); await settle();
+    assert.equal(s.target.querySelector('input[type=password]'), password, 'theme keeps the password control');
+    assert.equal(password.value, 'typed password');
+    assert.equal(s.target.querySelector('.lm-root').dataset.windowChrome, String(id !== 'monochrome'));
+    assert.equal(s.target.querySelectorAll('.lm-account-auth-heading').length, 1);
+  }
+  mounted.value.update({ ...props, mode: 'login' });
+  assert.equal(password.hasAttribute('minlength'), false);
+  assert.equal(password.getAttribute('autocomplete'), 'current-password');
+  mounted.value.update({ ...props, mode: 'vaults', busy: true, catalogState: 'loading', text: { ...props.text, loading: 'Loading vaults' }, entries: [{ id: 'old', name: 'Stale vault', detail: '' }] });
+  assert.equal(s.target.querySelector('[role=status]').textContent, 'Loading vaults');
+  assert.equal(s.target.querySelector('.lm-account-empty'), null);
+  assert.equal(s.target.querySelector('.lm-account-row'), null);
+  mounted.value.update({ ...props, mode: 'trash', catalogState: 'error', error: 'Offline' });
+  assert.equal(s.target.querySelector('.lm-account-empty'), null);
+  assert.equal(s.target.querySelector('[role=alert]').textContent, 'Offline');
   mounted.value.update({ ...props, mode: 'vaults', entries: [{ id: 'v', name: '<script>bad</script>', detail: 'Notes' }] });
   assert.equal(s.target.querySelector('script'), null); assert.ok(s.target.textContent.includes('<script>bad</script>'));
+  assert.ok(s.target.querySelector('.lm-account-vaults .lm-account-list'));
+  assert.ok(s.target.querySelector('.lm-account-main .lm-account-toolbar .lm-card-row'));
+  assert.equal(s.target.querySelector('.lm-account-vaults .lm-account-toolbar'), null);
   [...s.target.querySelectorAll('button')].find(button => button.textContent.includes('<script>')).click(); assert.ok(calls.some(call => call[0] === 'onOpen' && call[1] === 'v'));
   const toggle = s.target.querySelector('[aria-controls]');
   assert.equal(toggle.getAttribute('aria-expanded'), 'false');
@@ -1096,9 +1126,12 @@ test('compact sidebar shares desktop region surfaces with embedded Files and nav
 test('compact Workspace lends a mobile menu target without replacing editor regions', async () => {
  const s = await setup(); await s.start();
  const original = s.dom.window.HTMLElement.prototype.getBoundingClientRect;
- s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0,0,360,720);
+ s.dom.window.HTMLElement.prototype.getBoundingClientRect = function () {
+  const width = this.classList.contains('lm-workspace-rail') ? 60 : this.classList.contains('lm-workspace-panel-pane') ? 268 : 360;
+  return new s.dom.window.DOMRect(4, 0, width, 720);
+ };
  try {
-  let targets; const requests=[]; const props = {onMobileOpen:open=>requests.push(open),railVisible:true,panelVisible:true,bottomVisible:true,mobileLauncherVisible:true,mobileMenuVisible:true,mainLabel:'Main',panelLabel:'Sidebar',onTargets:value=>{targets=value;},onDismiss(){}};
+  let targets; const requests=[]; const props = {mobileOpen:false,onMobileOpen:open=>requests.push(open),railVisible:true,panelVisible:true,bottomVisible:true,mobileLauncherVisible:true,mobileMenuVisible:true,mainLabel:'Main',panelLabel:'Sidebar',onTargets:value=>{targets=value;},onDismiss(){}};
   const mounted = s.components.mount('lunaris.workspace-layout',s.target,props,s.ctx.signal); assert.equal(mounted.ok,true);
   const initial = targets; const main = targets.main; const draft = s.dom.window.document.createElement('input'); draft.value='Draft'; main.append(draft);
   assert.ok(targets['mobile-menu']); assert.equal(targets.bottom.hidden,true); requests.length=0;
@@ -1106,17 +1139,83 @@ test('compact Workspace lends a mobile menu target without replacing editor regi
   const scroll=s.dom.window.document.createElement('div'); scroll.setAttribute('data-workspace-scroll', ''); main.append(scroll);
   const menuList=s.dom.window.document.createElement('div'); menuList.setAttribute('role', 'listbox'); scroll.append(menuList);
   const {flushSync}=await import('react-dom');
-  menuList.scrollTop=60; flushSync(()=>menuList.dispatchEvent(new s.dom.window.Event('scroll'))); assert.equal(launcher.hidden,false); assert.equal(targets['mobile-menu'].hidden,false);
-  scroll.scrollTop=60; flushSync(()=>scroll.dispatchEvent(new s.dom.window.Event('scroll'))); assert.equal(launcher.hidden,true); assert.equal(targets['mobile-menu'].hidden,true);
-  scroll.scrollTop=30; flushSync(()=>scroll.dispatchEvent(new s.dom.window.Event('scroll'))); assert.equal(launcher.hidden,false); assert.equal(targets['mobile-menu'].hidden,false);
+  menuList.scrollTop=60; flushSync(()=>menuList.dispatchEvent(new s.dom.window.Event('scroll'))); assert.equal(launcher.hasAttribute('inert'),false); assert.equal(targets['mobile-menu'].hasAttribute('inert'),false);
+  scroll.scrollTop=60; flushSync(()=>scroll.dispatchEvent(new s.dom.window.Event('scroll'))); assert.equal(launcher.hasAttribute('inert'),true); assert.equal(targets['mobile-menu'].hasAttribute('inert'),true);
+  scroll.scrollTop=30; flushSync(()=>scroll.dispatchEvent(new s.dom.window.Event('scroll'))); assert.equal(launcher.hasAttribute('inert'),false); assert.equal(targets['mobile-menu'].hasAttribute('inert'),false);
   const menu=s.components.mount('lunaris.mobile-menu',targets['mobile-menu'],{items:Array.from({length:5},(_,i)=>({id:'test.'+i,label:'Test '+i,icon:'files',onPress(){}}))},s.ctx.signal);
   assert.equal(menu.ok,true); assert.equal(targets['mobile-menu'].querySelectorAll('button').length,5);
   assert.equal(targets['mobile-menu'].querySelector('.lm-root').style.containerType,'normal');
   menu.value.dispose();
-  const edge=s.target.querySelector('.lm-workspace-swipe-edge');
-  const touch=(type,x,y)=>{const event=new s.dom.window.Event(type,{bubbles:true}); const points=[{identifier:0,clientX:x,clientY:y}]; Object.defineProperties(event,{touches:{value:type==='touchend'?[]:points},changedTouches:{value:points}});edge.dispatchEvent(event);};
-  touch('touchstart',5,100);touch('touchmove',10,160);touch('touchend',100,160);assert.deepEqual(requests,[]);
-  touch('touchstart',5,100);touch('touchend',100,100);assert.deepEqual(requests,[true]);
+  const layout = s.target.querySelector('.lm-workspace-layout');
+  const backdrop = layout.querySelector('.lm-workspace-backdrop');
+  const touch = (type, x, y, target = scroll, count = 1) => {
+    const event = new s.dom.window.Event(type, { bubbles: true, cancelable: true });
+    const point = { identifier: 0, clientX: x, clientY: y };
+    const points = count === 2 ? [point, { ...point, identifier: 1 }] : [point];
+    Object.defineProperties(event, { touches: { value: /end|cancel/.test(type) ? [] : points }, changedTouches: { value: points } });
+    target.dispatchEvent(event);
+    return event.defaultPrevented;
+  };
+  const reveal = () => layout.style.getPropertyValue('--workspace-drawer-reveal');
+  const assertReset = () => {
+    assert.equal(layout.hasAttribute('data-mobile-dragging'), false);
+    assert.equal(reveal(), '');
+    assert.equal(layout.style.getPropertyValue('--workspace-drawer-opacity'), '');
+  };
+  touch('touchstart', 160, 100);
+  assert.equal(touch('touchmove', 170, 160), false);
+  touch('touchend', 300, 160);
+  for (const target of [draft, menuList, launcher]) {
+    touch('touchstart', 65, 100, target);
+    assert.equal(touch('touchmove', 200, 100, target), false);
+    touch('touchend', 200, 100, target);
+  }
+  touch('touchstart', 160, 100);
+  assert.equal(touch('touchmove', 40, 100), false);
+  touch('touchend', 40, 100);
+  assertReset();
+
+  touch('touchstart', 160, 100);
+  assert.equal(touch('touchmove', 275, 100), true);
+  assert.equal(reveal(), '115px');
+  assert.equal(Number(layout.style.getPropertyValue('--workspace-drawer-opacity')), 115 / 328);
+  assert.equal(layout.hasAttribute('data-mobile-open'), false);
+  assert.equal(targets['left-rail'].hasAttribute('inert'), true);
+  assert.equal(backdrop.hasAttribute('inert'), true);
+  touch('touchmove', 200, 100);
+  assert.equal(reveal(), '40px');
+  touch('touchend', 200, 100);
+  assertReset();
+  assert.deepEqual(requests, []);
+
+  touch('touchstart', 40, 100);
+  touch('touchmove', 155, 100);
+  touch('touchcancel', 155, 100);
+  assertReset();
+  touch('touchstart', 40, 100);
+  touch('touchmove', 155, 100);
+  touch('touchstart', 155, 100, s.target, 2);
+  touch('touchend', 155, 100);
+  assertReset();
+  assert.deepEqual(requests, []);
+
+  touch('touchstart', 40, 100);
+  touch('touchmove', 400, 100);
+  assert.equal(reveal(), '328px');
+  assert.deepEqual(requests, []);
+  touch('touchend', 175, 100);
+  assert.deepEqual(requests, [true]);
+  assertReset();
+  touch('touchstart', 320, 100);
+  touch('touchmove', 340, 100);
+  touch('touchend', 340, 100);
+  assert.deepEqual(requests, [true]);
+  touch('touchstart', 320, 100);
+  touch('touchmove', 350, 100);
+  assert.equal(reveal(), '30px');
+  touch('touchend', 350, 100);
+  assert.deepEqual(requests, [true, true]);
+  assertReset();
   mounted.value.update({...props,mobileOpen:true}); assert.equal(main.parentElement.hasAttribute('inert'),true); assert.equal(main.parentElement.hidden,false); assert.equal(targets['mobile-menu'].hasAttribute('inert'),true); assert.equal(launcher.hasAttribute('inert'),true); assert.equal(s.target.querySelector('.lm-workspace-return'),null);
   mounted.value.update({...props,mobileOpen:false}); assert.equal(main.parentElement.hasAttribute('inert'),false); assert.equal(targets,initial); assert.equal(draft.value,'Draft');
   mounted.value.dispose();
@@ -1161,14 +1260,8 @@ test('mobile keyboard hides Workspace navigation and its open dropdown while kee
  const { window } = s.dom;
  const viewport = mobileViewport(window);
  const original = window.HTMLElement.prototype.getBoundingClientRect;
- const observers = new Map();
  window.HTMLElement.prototype.getBoundingClientRect = function () {
    return this.hidden ? new window.DOMRect() : new window.DOMRect(0, 0, 360, 720);
- };
- globalThis.ResizeObserver = class {
-   constructor(callback) { this.callback = callback; this.elements = new Set(); }
-   observe(element) { this.elements.add(element); observers.set(element, this.callback); }
-   disconnect() { for (const element of this.elements) observers.delete(element); }
  };
  try {
   let targets;
@@ -1196,19 +1289,18 @@ test('mobile keyboard hides Workspace navigation and its open dropdown while kee
   viewport.dispatchEvent(new window.Event('resize'));
   await new Promise(resolve => window.requestAnimationFrame(resolve)); await settle();
   for (const region of [launcher, toolbar]) {
-   assert.equal(region.hidden, true);
+   assert.equal(region.hidden, false);
    assert.equal(region.hasAttribute('inert'), true);
+   assert.equal(region.getAttribute('aria-hidden'), 'true');
   }
-  observers.get(toolbar)([{ target: toolbar, contentRect: toolbar.getBoundingClientRect() }]);
-  await settle();
   assert.equal(dropdown(), null);
   assert.equal(window.document.activeElement, editor);
   viewport.height = 720;
   viewport.dispatchEvent(new window.Event('resize'));
   await new Promise(resolve => window.requestAnimationFrame(resolve)); await settle();
   assert.equal(targets, initial);
-  assert.equal(launcher.hidden, false);
-  assert.equal(toolbar.hidden, false);
+  assert.equal(launcher.hasAttribute('inert'), false);
+  assert.equal(toolbar.hasAttribute('inert'), false);
   assert.equal(dropdown(), null);
   menu.value.dispose(); layout.value.dispose();
  } finally { window.HTMLElement.prototype.getBoundingClientRect = original; await s.stop(); }
@@ -1220,6 +1312,10 @@ test('mobile floating controls follow content swipes without scroll or keyboard 
  let width = 360;
  s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, width, 720);
  try {
+  const { document, getComputedStyle } = s.dom.window;
+  const sheet = document.createElement('style');
+  sheet.textContent = readFileSync(new URL('../styles.css', import.meta.url), 'utf8').replace(/^@import .*$/gm, '');
+  document.head.append(sheet);
   const { flushSync } = await import('react-dom');
   let targets;
   const props = { railVisible:true, panelVisible:true, mobileLauncherVisible:true, mobileMenuVisible:true, mainLabel:'Main', panelLabel:'Sidebar', onTargets:value=>{targets=value;}, onDismiss(){} };
@@ -1230,13 +1326,22 @@ test('mobile floating controls follow content swipes without scroll or keyboard 
   // Editor bubbling handlers must not prevent the owning container from seeing intent.
   editable.addEventListener('touchmove', event => event.stopPropagation());
   const point = (x, y, identifier=0) => ({clientX:x,clientY:y,identifier});
-  const touch = (type, points, target=editable) => {
+  const touch = (type, points, target=editable, prevented=false) => {
    const event = new s.dom.window.Event(type, {bubbles:true,cancelable:true});
    Object.defineProperty(event, 'touches', {value:points});
    flushSync(() => target.dispatchEvent(event));
-   assert.equal(event.defaultPrevented, false);
+   assert.equal(event.defaultPrevented, prevented);
   };
-  const visible = value => { assert.equal(launcher.hidden, !value); assert.equal(toolbar.hidden, !value); };
+  const visible = value => {
+   for (const region of [launcher, toolbar]) {
+    assert.equal(region.hidden, false);
+    assert.equal(region.hasAttribute('inert'), !value);
+    assert.equal(region.hasAttribute('aria-hidden'), !value);
+    assert.match(getComputedStyle(region).transition, /transform var\(--vault-motion-normal\)/);
+   }
+   assert.equal(getComputedStyle(launcher).transform, value ? 'translateY(0)' : 'translateY(calc(-100% - 8px))');
+   assert.equal(getComputedStyle(toolbar).getPropertyValue('--workspace-dock-offset'), value ? '' : 'calc(100% + 8px)');
+  };
   const swipe = (from, to) => { touch('touchstart',[point(100,from)]); touch('touchmove',[point(100,to)]); touch('touchend',[]); };
   launcher.querySelector('button').focus();
   swipe(200,120); visible(false); assert.equal(s.dom.window.document.activeElement, main);
@@ -1246,7 +1351,10 @@ test('mobile floating controls follow content swipes without scroll or keyboard 
   editable.focus(); swipe(200,120); visible(false); assert.equal(s.dom.window.document.activeElement, editable);
   swipe(120,200); visible(true);
   touch('touchstart',[point(100,200)]); touch('touchmove',[point(102,192)]); touch('touchend',[]); visible(true);
-  touch('touchstart',[point(100,200)]); touch('touchmove',[point(180,195)]); touch('touchmove',[point(180,100)]); touch('touchend',[]); visible(true);
+  touch('touchstart',[point(100,200)]);
+  touch('touchmove',[point(180,195)],editable,true);
+  touch('touchmove',[point(180,100)],editable,true);
+  touch('touchcancel',[]); visible(true);
   touch('touchstart',[point(100,200)]); touch('touchmove',[point(100,190),point(120,190,1)]); touch('touchmove',[point(100,100)]); touch('touchend',[]); visible(true);
   touch('touchstart',[point(100,200)]); touch('touchcancel',[]); touch('touchmove',[point(100,100)]); visible(true);
   // An active vertical gesture wins over competing native scroll notifications.
@@ -1307,4 +1415,36 @@ test('XP mobile surfaces and controls use real light/dark presets and reset with
   assert.equal(targets['mobile-launcher'].querySelector('button'),action);action.click();assert.equal(calls,1);
   launcher.value.dispose();menu.value.dispose();layout.value.dispose();
  } finally {s.dom.window.HTMLElement.prototype.getBoundingClientRect=original;await s.stop();}
+});
+
+test('vault selector reserves the full embedded surface as account content grows', async () => {
+  const s = await setup(); await s.start();
+  const observers = [];
+  s.dom.window.ResizeObserver = class {
+    constructor(callback) { this.callback = callback; this.nodes = []; observers.push(this); }
+    observe(node) { this.nodes.push(node); }
+    disconnect() {}
+  };
+  const mounted = s.components.mount('lunaris.vault-selector', s.target, { ...selector, mode: null, onServer() {}, serverExpanded: true }, s.ctx.signal);
+  assert.equal(mounted.ok, true);
+  const panel = s.target.querySelector('.ln-vault-main');
+  const body = s.target.querySelector('.ln-vault-content');
+  const surfaces = [...s.target.querySelectorAll('.ln-vault-form')];
+  const surface = surfaces.at(-1);
+  const observer = observers.find(item => item.nodes.includes(panel));
+  assert.ok(observer.nodes.includes(surface), 'observe the borrowed surface, not only nested HTML forms');
+  panel.style.padding = '0px';
+  for (const item of surfaces) item.style.margin = '0px';
+  let height = 400;
+  Object.defineProperty(panel, 'clientHeight', { get: () => 740 });
+  Object.defineProperty(body, 'offsetHeight', { get: () => 200 + height });
+  Object.defineProperty(surface, 'offsetHeight', { get: () => height });
+  Object.defineProperty(surface.closest('.ln-vault-disclosure'), 'offsetHeight', { get: () => height });
+  observer.callback();
+  assert.equal(panel.style.getPropertyValue('--vault-center-offset'), '140px');
+  height = 500; observer.callback();
+  assert.equal(panel.style.getPropertyValue('--vault-center-offset'), '40px');
+  height = 800; observer.callback();
+  assert.equal(panel.style.getPropertyValue('--vault-center-offset'), '0px', 'oversized content starts at the reachable top');
+  await s.stop();
 });
