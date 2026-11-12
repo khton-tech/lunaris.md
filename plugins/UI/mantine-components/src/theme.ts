@@ -25,6 +25,7 @@ export function resolveTheme(theme: ThemeDefinition | null) {
   variables["--vault-ui-font-size"] = fontSize;
   const palette = { background: "background", panel: "panel", content: "content", text: "text", secondary: "textSecondary", selection: "selection", separator: "separator", "control-border": "controlBorder", hover: "hover", focus: "focus", caret: "caret", error: "error", accent: "accent", "on-accent": "onAccent", "accent-hover": "accentHover" };
   for (const [variable, key] of Object.entries(palette)) variables[`--vault-${variable}`] = color(key, ["background", "panel", "content", "selection", "hover", "separator"].includes(variable) ? "transparent" : "currentColor");
+  variables["--vault-link-missing"] = color("linkMissing", variables["--vault-secondary"]);
   variables["--vault-space"] = dimension(field(field(geometry, "spacing"), "step"), 4);
   variables["--vault-radius"] = radius;
   variables["--vault-radius-small"] = dimension(field(field(geometry, "radius"), "small"), 4);

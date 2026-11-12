@@ -113,6 +113,10 @@ test('text and meaningful controls meet contrast thresholds across their intende
     }
     for (const surface of ['accent', 'accentHover']) assert.ok(contrast(colors.onAccent, colors[surface]) >= 4.5, `${theme.name}: onAccent/${surface}`);
     for (const surface of ['background', 'content']) assert.ok(contrast(colors.link ?? colors.accent, colors[surface]) >= 4.5, `${theme.name}: link/${surface}`);
+    if (colors.linkMissing) {
+      assert.ok(contrast(colors.linkMissing, colors.content) >= 4.5, `${theme.name}: missing link/content`);
+      assert.ok(luminance(colors.linkMissing) < luminance(colors.text), `${theme.name}: missing link is dimmer than text`);
+    }
   }
   await s.stop();
 });

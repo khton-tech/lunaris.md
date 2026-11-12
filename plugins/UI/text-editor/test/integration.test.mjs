@@ -30,6 +30,7 @@ import { DocumentStatistics, DocumentStatisticsChanged, ActiveDocument } from '@
 import { ActiveScreen } from '@lunaris/active-screen';
 import { Components } from '@lunaris/components';
 import { Themes } from '@lunaris/themes';
+import baseThemeEngine from '@lunaris/base-theme-engine';
 import { Workspace } from '@lunaris/workspace';
 import filesystem from '@lunaris/filesystem-provider';
 import vault from '@lunaris/vault-manager';
@@ -208,6 +209,9 @@ test('wikilink preview keeps aliases editable and opens a newly created note', a
   const source = 'Intro\n[[./other.md]] and [[new-file|Display name]]';
   const s = await setup({ backlinks: true, initial: source, read: target => target.path === 'unreadable.md' ? fail('ACCESS_DENIED') : undefined });
   try {
+    s.kernel.register(baseThemeEngine);
+    await s.kernel.start(baseThemeEngine.manifest.id);
+    assert.equal(s.themes.select('lunaris.base-theme-engine.catppuccin-mocha').ok, true);
     s.disk.set('a/unreadable.md', { text: '', version: 'v1' });
     await s.backlinks.refresh();
     await flush();
@@ -218,6 +222,13 @@ test('wikilink preview keeps aliases editable and opens a newly created note', a
     assert.equal(label().textContent, 'Display name');
     assert.ok(label().classList.contains('cm-document-link-missing'));
     assert.equal(s.dom.window.getComputedStyle(label()).textDecorationStyle, 'dashed');
+    const editorStyle = label().closest('.lm-text-editor').style;
+    assert.equal(editorStyle.getPropertyValue('--vault-link-missing').toLowerCase(), '#909090');
+    assert.notEqual(editorStyle.getPropertyValue('--vault-link-missing'), editorStyle.getPropertyValue('--vault-text'));
+    const linkColors = [...s.dom.window.document.styleSheets].flatMap(sheet => [...sheet.cssRules])
+      .filter(rule => rule.selectorText && label().matches(rule.selectorText))
+      .map(rule => rule.style.getPropertyValue('color'));
+    assert.ok(linkColors.some(color => color.startsWith('var(--vault-link-missing,')));
     assert.equal(s.target.querySelector('.cm-document-link[title="./other.md"]').classList.contains('cm-document-link-missing'), false);
     view.focus();
     view.dispatch({ selection: { anchor: source.indexOf('./other.md') + 1 } });

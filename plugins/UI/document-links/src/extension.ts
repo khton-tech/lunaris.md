@@ -88,7 +88,7 @@ export function linkInteraction(
     ".cm-document-link.cm-document-link-missing": { textDecorationStyle: "dashed" },
     // Markdown syntax highlighting can wrap the visible label in another span.
     ".cm-document-link.cm-document-link-missing, .cm-document-link.cm-document-link-missing span": {
-      color: "var(--vault-secondary, currentColor)",
+      color: "var(--vault-link-missing, var(--vault-secondary, currentColor))",
     },
     ".cm-document-link:focus-visible": { outline: "1px solid var(--vault-focus, currentColor)", outlineOffset: "2px" },
   })];

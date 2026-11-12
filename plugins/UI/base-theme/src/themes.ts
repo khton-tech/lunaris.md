@@ -31,7 +31,7 @@ const communityTheme = (slug: string, name: string, appearance: "dark" | "light"
 const darkPalette = (background: string, panel: string, text: string, accent: string, hover: string, selection: string, border: string, focus: string, onAccent = "#FFFFFF"): ThemeProperties => ({
   background, main: accent, sub: border, text, caret: text, subAlt: panel,
   error: "#FFB4AB", extraError: "#FFDAD4", colorfulError: "#F2C078", colorfulExtraError: "#FFE0A8",
-  panel, content: background, textSecondary: text, accent, onAccent, selection, separator: hover,
+  panel, content: background, textSecondary: text, linkMissing: "#A0A0A0", accent, onAccent, selection, separator: hover,
   controlBorder: border, hover, accentHover: accent, focus,
 });
 
@@ -195,7 +195,10 @@ export const baseThemes: readonly ThemeDefinition[] = [
       motion: { ...motion, fast: 80, normal: 140 },
     },
   },
-  communityTheme("catppuccin-mocha", "Catppuccin Mocha", "dark", darkPalette("#1E1E2E", "#181825", "#CDD6F4", "#CBA6F7", "#313244", "#45475A", "#A6ADC8", "#B4BEFE", "#1E1E2E")),
+  communityTheme("catppuccin-mocha", "Catppuccin Mocha", "dark", {
+    ...darkPalette("#1E1E2E", "#181825", "#CDD6F4", "#CBA6F7", "#313244", "#45475A", "#A6ADC8", "#B4BEFE", "#1E1E2E"),
+    linkMissing: "#909090",
+  }),
   communityTheme("dracula", "Dracula", "dark", darkPalette("#282A36", "#21222C", "#F8F8F2", "#BD93F9", "#343746", "#44475A", "#8995B7", "#8BE9FD", "#282A36")),
   communityTheme("nord", "Nord", "dark", darkPalette("#2E3440", "#3B4252", "#ECEFF4", "#88C0D0", "#434C5E", "#4C566A", "#9FB3C8", "#8FBCBB", "#2E3440")),
   communityTheme("tokyo-night", "Tokyo Night", "dark", darkPalette("#1A1B26", "#16161E", "#C0CAF5", "#7AA2F7", "#292E42", "#343A52", "#7F89B4", "#BB9AF7", "#1A1B26")),
