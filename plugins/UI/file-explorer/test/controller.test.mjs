@@ -133,6 +133,28 @@ test('a rescan superseded by creation is replayed after its obsolete response se
   await s.kernel.stopAll(); s.kernel.assertNoResources();
 });
 
+test('a pending old Vault scan cannot block observation in a replacement Vault', async () => {
+  const oldScan = Promise.withResolvers(); const replacementScan = Promise.withResolvers(); const lists = []; let blocked = false; let replacementBlocked = false;
+  const s = await setup({ filesystem: { async list(target) {
+    lists.push({ ...target });
+    if (blocked && target.vaultId === 'a') return oldScan.promise;
+    if (replacementBlocked && target.vaultId === 'b') return replacementScan.promise;
+    return { ok: true, value: [{ path: 'file-' + target.vaultId + '.md', kind: 'file', size: 0, modifiedAt: null }] };
+  } } });
+  try {
+    blocked = true; await s.emit(FileChanged, { vaultId: 'a', watchId: 'watch-a', kind: 'rescan', paths: [] }); await flush();
+    await s.switch({ id: 'b', name: 'B' }); const before = lists.filter(target => target.vaultId === 'b').length; replacementBlocked = true;
+    await s.emit(FileChanged, { vaultId: 'b', watchId: 'watch-b', kind: 'rescan', paths: [] }); await flush();
+    assert.equal(lists.filter(target => target.vaultId === 'b').length, before + 1);
+    oldScan.resolve({ ok: true, value: [] }); await flush();
+    await s.emit(FileChanged, { vaultId: 'b', watchId: 'watch-b', kind: 'rescan', paths: [] }); await flush();
+    assert.equal(lists.filter(target => target.vaultId === 'b').length, before + 1, 'Old completion preserves the new runner and coalesces its next notification.');
+    replacementBlocked = false; replacementScan.resolve({ ok: true, value: [{ path: 'file-b.md', kind: 'file', size: 0, modifiedAt: null }] }); await flush();
+    assert.equal(lists.filter(target => target.vaultId === 'b').length, before + 2);
+    assert.equal(s.tab().props.vaultId, 'b'); assert.equal(s.tab().props.data[0].id, 'file-b.md');
+  } finally { oldScan.resolve({ ok: true, value: [] }); replacementScan.resolve({ ok: true, value: [] }); await flush(); await s.kernel.stopAll(); s.kernel.assertNoResources(); }
+});
+
 test('file preferences restore, control reveal and persist sorting from the existing toolbar', async () => {
   const s = await setup({ preferences: new Map([['a', { sortDirection: 'desc', revealActiveFile: false }]]) });
   assert.equal(s.tab().props.sortDirection, 'desc');

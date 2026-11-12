@@ -146,7 +146,10 @@ Notifications wait while a structural operation is in flight.
 Folder disclosure and expand-all requests resume after that operation, and an
 interrupted traversal restarts from the current root after relocation. Failed
 directory listings force complete cached-directory recovery before their error
-can clear. Completed scans release their revision bookkeeping.
+can clear, including expanded folders whose initial read failed before caching.
+Each refresh runner belongs to its Vault epoch, so pending work from a retired
+Vault leaves replacement observation independent. Completed scans release their
+revision bookkeeping.
 
 Directory groups stage their reads and publish one complete snapshot. Initial
 and explicit loads retain one loading interval per group. Mutations already

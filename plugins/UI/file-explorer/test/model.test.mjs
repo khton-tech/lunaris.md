@@ -341,3 +341,19 @@ test('a concurrent directory failure retires a targeted scan until complete reco
   assert.equal(s.model.error, 'IO_ERROR'); assert.equal(s.model.scans.size, 0);
   failure = false; assert.equal(await s.model.refresh(true, ['']), true); assert.equal(s.model.error, '');
 });
+
+test('retry includes expanded directories whose first listing failed before caching', async () => {
+  const lists = []; let failure = true;
+  const s = setup({ async list(target) {
+    lists.push(target.path);
+    if (target.path === '') return ok([info('folder', 'directory')]);
+    if (target.path === 'folder') return ok([info('folder/nested', 'directory')]);
+    return failure ? fail('IO_ERROR') : ok([info('folder/nested/note.md')]);
+  } });
+  await s.model.refresh(); s.model.toggle('folder', true); await new Promise(resolve => setImmediate(resolve));
+  s.model.toggle('folder/nested', true); await new Promise(resolve => setImmediate(resolve));
+  assert.equal(s.model.directories.has('folder/nested'), false); assert.equal(s.model.error, 'IO_ERROR');
+  failure = false; lists.length = 0; await s.model.refresh(true, ['']);
+  assert.deepEqual(lists, ['', 'folder', 'folder/nested']); assert.equal(s.model.error, '');
+  assert.equal(s.model.tree()[0].children[0].children[0].id, 'folder/nested/note.md');
+});

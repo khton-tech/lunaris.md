@@ -57,9 +57,12 @@ export class ExplorerModel {
     }
   }
   private current(scan: Scan): boolean { return this.active && this.scans.get(scan.path) === scan.version && scan.mutation === this.mutation; }
-  private missingDirectory(path: string): boolean {
+  private missingDirectory(path: string, staged?: ReadonlyMap<string, Scan>): boolean {
     for (let current = path; current; current = parentPath(current)) {
-      const entries = this.directories.get(parentPath(current));
+      const parent = parentPath(current); const scan = staged?.get(parent);
+      const result = scan && this.current(scan) ? scan.result : undefined;
+      if (result && !result.ok && ["NOT_FOUND", "NOT_DIRECTORY"].includes(result.error.code)) return true;
+      const entries = result?.ok ? result.value : this.directories.get(parent);
       if (entries && !entries.some(item => item.path === current && item.kind === "directory")) return true;
     }
     return false;
@@ -117,20 +120,15 @@ export class ExplorerModel {
     if (!this.active || (this.busy && !mutation)) return false;
     const version = this.mutation; const previousError = this.error;
     const requestedPaths = this.needsRecovery ? undefined : paths;
-    const requested = [...new Set(requestedPaths ?? ["", ...this.directories.keys()])].filter(path => validPath(path, true))
+    const requested = [...new Set(requestedPaths ?? ["", ...this.directories.keys(), ...this.expanded])].filter(path => validPath(path, true))
       .sort((a, b) => a.split("/").length - b.split("/").length || a.localeCompare(b));
     if (!background) { this.loading++; this.changed(); }
     const scans = new Map<string, Scan>();
-    const absent = new Set<string>();
     try {
       for (const path of requested) {
         if (!this.active || version !== this.mutation) return false;
-        if ([...absent].some(parent => inside(path, parent))) continue;
         // Stage parents first, skipping descendants they have already removed.
-        const parent = scans.get(parentPath(path));
-        if (path && parent && ((!parent.result.ok && ["NOT_FOUND", "NOT_DIRECTORY"].includes(parent.result.error.code)) ||
-          (parent.result.ok && !parent.result.value.some(item => item.path === path && item.kind === "directory")))) { absent.add(path); continue; }
-        if (path && !this.directories.has(path) && requestedPaths === undefined) continue;
+        if (this.missingDirectory(path, scans)) continue;
         scans.set(path, await this.scan(path));
       }
       if (!this.active || version !== this.mutation) return false;

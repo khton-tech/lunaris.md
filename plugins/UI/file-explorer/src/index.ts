@@ -28,7 +28,7 @@ export default definePlugin({ manifest, async activate(ctx) {
   if (!messages.ok) throw new Error("Cannot register explorer localization.", { cause: messages.error });
   const tabId = `${ctx.pluginId}.files`; let registered = false; let scheduled = false;
   let session: ResourceScope | undefined; let model: ExplorerModel | undefined; let watchId: string | undefined;
-  let refreshing = false; let fullRefresh = false; let reconcile = false; const pendingDirectories = new Set<string>(); let ready = Promise.resolve();
+  let refreshing = false; let refreshEpoch = 0; let fullRefresh = false; let reconcile = false; const pendingDirectories = new Set<string>(); let ready = Promise.resolve();
   const text = (key: string) => localization.text(ctx.pluginId, key);
   const switcher = createVaultSwitcher(ctx, changed);
   const preferences = createPreferences(ctx, changed);
@@ -106,9 +106,10 @@ export default definePlugin({ manifest, async activate(ctx) {
   function drainRefresh(): void {
     if (refreshing || ctx.signal.aborted || !model?.active || model.busy || (!fullRefresh && !pendingDirectories.size && !reconcile)) return;
     refreshing = true;
+    const epoch = refreshEpoch;
     void (async () => {
       try {
-        while (model?.active && !model.busy && (fullRefresh || pendingDirectories.size || reconcile)) {
+        while (epoch === refreshEpoch && model?.active && !model.busy && (fullRefresh || pendingDirectories.size || reconcile)) {
           const current: ExplorerModel = model; const paths = fullRefresh ? undefined : [...pendingDirectories]; const validate = reconcile;
           fullRefresh = false; pendingDirectories.clear(); reconcile = false;
           const completed = paths !== undefined && !paths.length ? true : await current.refresh(true, paths);
@@ -117,13 +118,14 @@ export default definePlugin({ manifest, async activate(ctx) {
         }
       }
       catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot refresh explorer", { error }); }
-      finally { refreshing = false; }
+      finally { if (epoch === refreshEpoch) refreshing = false; }
     })();
   }
   function switchVault(): void {
     const root = vaults.current();
     if (root?.id === model?.vaultId) return;
     const old = session; session = undefined; model = undefined; watchId = undefined; ready = Promise.resolve();
+    refreshEpoch++; refreshing = false;
     fullRefresh = false; pendingDirectories.clear(); reconcile = false;
     if (old) void old.dispose().catch(() => {});
     if (!root) { changed(); return; }
