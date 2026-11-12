@@ -2,6 +2,16 @@ import { defineApi } from "@lunaris/sdk";
 import type { CancellationSignal, Disposable } from "@lunaris/sdk";
 import type { Extension } from "@codemirror/state";
 import type { MarkdownConfig } from "@lezer/markdown";
+/** The editor owns footer geometry; contributions supply embedded component roles. */
+export interface DocumentFooter {
+  readonly id: string;
+  readonly componentId: string;
+  readonly props?: Readonly<Record<string, unknown>>;
+}
+export const DocumentFooters = defineApi<{
+  register(footer: DocumentFooter, owner: CancellationSignal): EditorExtensionResult;
+}>({ id: "lunaris.document-footers", version: "1.0.0", consumePermission: "ui.dom", providePermission: "ui.dom",
+  validate: value => !!value && typeof value === "object" && typeof Object.getOwnPropertyDescriptor(value, "register")?.value === "function" });
 /** Public CodeMirror 6 adapter contribution. Never replace editor-owned facets. */
 export interface EditorExtension {
   readonly id: string;

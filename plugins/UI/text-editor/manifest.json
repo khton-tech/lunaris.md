@@ -30,6 +30,21 @@
       "kind": "api",
       "id": "lunaris.editor-extensions",
       "version": "1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.document-content",
+      "version": "1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.document-content-changed",
+      "version": "1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.document-footers",
+      "version": "1.0.0"
     }
   ],
   "requires": [

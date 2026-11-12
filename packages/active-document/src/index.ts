@@ -5,6 +5,22 @@ export const DocumentProtection = defineApi<{ hasUnprotectedChanges(): boolean }
   validate: value => value !== null && typeof value === "object" && typeof Object.getOwnPropertyDescriptor(value, "hasUnprotectedChanges")?.value === "function" });
 import { validPath } from "@lunaris/filesystem";
 import type { FileTarget, FsResult, FsFailure } from "@lunaris/filesystem";
+/** Current text includes unsaved editor changes. Offsets use UTF-16, as JavaScript strings do. */
+export interface DocumentText { readonly text: string; readonly version: string }
+export interface DocumentRange { readonly from: number; readonly to: number }
+export interface DocumentContentApi {
+  buffers(): readonly { readonly target: FileTarget; readonly text: string; readonly version: string }[];
+  read(target: FileTarget): Promise<FsResult<DocumentText>>;
+  /** Opens the source through the normal transition guard. Rejects stale results. */
+  reveal(target: FileTarget, range: DocumentRange, expectedText: string): Promise<FsResult<null>>;
+  /** One undoable editor transaction; autosave and conflict handling stay with the editor. */
+  replace(target: FileTarget, range: DocumentRange, insert: string, expectedText: string): Promise<FsResult<null>>;
+}
+export const DocumentContent = defineApi<DocumentContentApi>({ id: "lunaris.document-content", version: "1.0.0", consumePermission: "vault.access",
+  validate: value => !!value && typeof value === "object" && ["buffers", "read", "reveal", "replace"].every(key => typeof Object.getOwnPropertyDescriptor(value, key)?.value === "function") });
+/** Invalidation only: consumers obtain authorized text through DocumentContent. */
+export const DocumentContentChanged = defineEvent<{ readonly target: FileTarget }>({ id: "lunaris.document-content-changed", version: "1.0.0", consumePermission: "vault.access",
+  validate: value => !!value && typeof value === "object" && typeof (value as { target?: FileTarget }).target?.vaultId === "string" && validPath((value as { target: FileTarget }).target.path) });
 export type ActiveDocumentState = Readonly<FileTarget> | null;
 export interface DocumentTransition {
   readonly previous: ActiveDocumentState;

@@ -1,5 +1,9 @@
+import { createDocumentContent } from "./document-content.js";
+import { DocumentContent, DocumentContentChanged } from "@lunaris/active-document";
+import type { DocumentRange } from "@lunaris/active-document";
+import type { DocumentFooter } from "@lunaris/editor";
 import { Preparation } from "@lunaris/startup";
-import { EditorEffects, EditorExtensions } from "@lunaris/editor";
+import { DocumentFooters, EditorEffects, EditorExtensions } from "@lunaris/editor";
 import { createDeletionEffects } from "./deletion-effects.js";
 import { createExtensions } from "./extensions.js";
 import { russian } from "./locales/ru.js";
@@ -52,9 +56,39 @@ export default definePlugin({ manifest, async activate(ctx) {
   const drafts = ctx.permissions.has("drafts.access") ? ctx.optional(Drafts) : undefined; const sources = ctx.optional(FilesystemSources);
   const sessions = new Map<string, DocumentSession>(); const states = new Map<DocumentSession, EditorState>();
   ctx.provide(DocumentProtection, { hasUnprotectedChanges: () => [...sessions.values()].some(session => session.hasUnprotectedChanges) });
-  const views = new Set<{ render(): void; removed(): void; refreshControls(): void }>();
+  const views = new Set<{ render(): void; removed(): void; refreshControls(): void; transact(session: DocumentSession, range: DocumentRange, insert?: string): boolean }>();
   const screenId = `${ctx.pluginId}.screen`;
   let current: DocumentSession | null = null; let unsupported = false; let scheduled = false;
+  const footerEntries = new Map<string, DocumentFooter>();
+  ctx.provide(DocumentFooters, { register(footer, owner) {
+    if (owner.aborted || ctx.signal.aborted) return { ok: false, error: { code: "CANCELLED", message: "Owner stopped." } };
+    if (!footer.id?.trim() || !footer.componentId?.trim()) return { ok: false, error: { code: "INVALID_ARGUMENT", message: "Footer identity required." } };
+    if (footerEntries.has(footer.id)) return { ok: false, error: { code: "ALREADY_REGISTERED", message: "Footer already registered." } };
+    footerEntries.set(footer.id, { ...footer });
+    let disposed = false;
+    const dispose = () => { if (disposed) return; disposed = true; owner.removeEventListener("abort", dispose); footerEntries.delete(footer.id); changed(); };
+    owner.addEventListener("abort", dispose, { once: true }); ctx.scope.own({ dispose }); changed();
+    return { ok: true, value: { dispose } };
+  } });
+  ctx.provide(DocumentContent, createDocumentContent({
+    alive: () => !ctx.signal.aborted, buffers: () => [...sessions.values()], read: target => fs.readText(target),
+    open: target => documents.open(target), current: () => current,
+    transact(session, range, insert) {
+      for (const view of views) { view.render(); if (view.transact(session, range, insert)) return true; }
+      return false;
+    },
+  }));
+  const publishedBuffers = new Map<DocumentSession, string>();
+  function publishContent(): void {
+    for (const session of sessions.values()) {
+      if (!session.loaded || publishedBuffers.get(session) === session.text) continue;
+      publishedBuffers.set(session, session.text);
+      void ctx.events.emit(DocumentContentChanged, { target: { ...session.target } }).catch(error => {
+        if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot publish document content invalidation", { error });
+      });
+    }
+    for (const session of publishedBuffers.keys()) if (![...sessions.values()].includes(session)) publishedBuffers.delete(session);
+  }
   const messages = localization.register(ctx.pluginId, catalogs, ctx.signal);
   if (!messages.ok) throw new Error("Cannot register editor messages.", { cause: messages.error });
   const text = (id: keyof typeof catalogs.en) => localization.text(ctx.pluginId, id);
@@ -85,7 +119,7 @@ export default definePlugin({ manifest, async activate(ctx) {
     void Promise.resolve().then(() => {
       scheduled = false; if (ctx.signal.aborted) return;
       // Contribution teardown can enqueue work while dependencies are retiring.
-      try { publishStatistics(); } catch (error) { if (isSdkUnavailable(error)) return; throw error; }
+      try { publishStatistics(); publishContent(); } catch (error) { if (isSdkUnavailable(error)) return; throw error; }
       for (const view of views) {
         try { view.render(); } catch (error) { logger.error(ctx.pluginId, "Cannot render editor", { error }); }
       }
@@ -185,6 +219,10 @@ export default definePlugin({ manifest, async activate(ctx) {
   const registration = components.register({ id: "lunaris.text-editor-host", mount(target, initial, signal) {
     const owner = ctx.scope.child(); let props = initial; let mounted: MountedComponent | undefined;
     let disposed = false; let editorTarget: HTMLElement | null = null; let viewport: HTMLElement | undefined;
+    let footerTarget: HTMLElement | null = null;
+    const footers = new Map<string, { element: HTMLElement; mounted: MountedComponent }>();
+    const clearFooters = () => { for (const entry of footers.values()) { entry.mounted.dispose(); entry.element.remove(); } footers.clear(); };
+    const onFooterTarget = (value: HTMLElement | null) => { if (footerTarget !== value) clearFooters(); footerTarget = value; };
     let taskUnavailableReported = false; let commandError = ""; let commandDocument = "";
     let renameError = "";
     let editor: ReturnType<typeof mountEditor> | undefined; let rendered: DocumentSession | null = null;
@@ -248,7 +286,7 @@ export default definePlugin({ manifest, async activate(ctx) {
         recoveryLabel: text("recovery"), recoveryCandidates: session?.recoveryCandidates.map((record, index) => ({ id: String(index), label: `${new Date(record.updatedAt).toISOString()} · ${record.text.slice(0, 100)}` })) ?? [],
         onRecovery: (id: string) => { if (session?.active && !signal.aborted && !disposed) { states.delete(session); clearEditor(); session.selectRecovery(Number(id)); } },
         error, commandError: commandError || preferences.widthError(), ready, dirty: session?.dirty ?? false, busy: !!session && (session.loading || session.saving || session.locks > 0),
-        saveLabel: text("save"), retryLabel: text("retry"), reloadLabel: text("reload"), discardLabel: text("discard"), cancelLabel: text("cancel"), onSave, onReload, onTarget,
+        saveLabel: text("save"), retryLabel: text("retry"), reloadLabel: text("reload"), discardLabel: text("discard"), cancelLabel: text("cancel"), onSave, onReload, onTarget, onFooterTarget,
         presentation: { mode: "embedded", sizing: "fill" } };
       if (mounted) {
         const result = mounted.update(next);
@@ -259,6 +297,20 @@ export default definePlugin({ manifest, async activate(ctx) {
         const result = components.mount("lunaris.text-editor", target, next, owner.signal);
         if (!result.ok) throw new Error("Cannot mount editor role.", { cause: result.error });
         mounted = result.value;
+      }
+      if (footerTarget) {
+        for (const [id, entry] of footers) if (!footerEntries.has(id) || !ready) { entry.mounted.dispose(); entry.element.remove(); footers.delete(id); }
+        if (ready) for (const footer of footerEntries.values()) {
+          const footerProps = { ...footer.props, document: session!.target, presentation: { mode: "embedded", sizing: "content" } };
+          const existing = footers.get(footer.id);
+          if (existing) { const result = existing.mounted.update(footerProps); if (!result.ok) { existing.mounted.dispose(); existing.element.remove(); footers.delete(footer.id); } }
+          else if (components.has(footer.componentId)) {
+            const element = footerTarget.ownerDocument.createElement("div"); footerTarget.append(element);
+            const result = components.mount(footer.componentId, element, footerProps, owner.signal);
+            if (result.ok) footers.set(footer.id, { element, mounted: result.value });
+            else { element.remove(); logger.error(ctx.pluginId, "Cannot mount document footer", { error: result.error }); }
+          }
+        }
       }
       if (rendered !== session || !ready || (editor && editor.view.state.sliceDoc() !== session?.text)) clearEditor();
       if (session && ready && editorTarget) {
@@ -290,11 +342,16 @@ export default definePlugin({ manifest, async activate(ctx) {
         } else editor.update(themes.current(), text("editor"), true, preferences.current(), extensions.current());
       }
     }
-    const view = { render, refreshControls: clearEditor, removed() { clearEditor(); mounted = undefined; editorTarget = null; viewport = undefined; } };
+    const view = { render, transact(session: DocumentSession, range: DocumentRange, insert?: string): boolean {
+      if (!editor || rendered !== session || disposed || signal.aborted) return false;
+      editor.view.dispatch({ ...(insert === undefined ? {} : { changes: { ...range, insert }, userEvent: "input" }),
+        selection: { anchor: range.from, head: insert === undefined ? range.to : range.from + insert.length }, scrollIntoView: true });
+      editor.view.focus(); return true;
+    }, refreshControls: clearEditor, removed() { clearFooters(); clearEditor(); mounted = undefined; editorTarget = null; viewport = undefined; } };
     function dispose(): void {
       const context = props.workspace as { vaultId?: string } | undefined;
       if (context?.vaultId) preferences.resizeWidth(0, "cancel", context.vaultId);
-      if (disposed) return; disposed = true; signal.removeEventListener("abort", dispose); views.delete(view); clearEditor();
+      if (disposed) return; disposed = true; signal.removeEventListener("abort", dispose); views.delete(view); clearFooters(); clearEditor();
       void owner.dispose().catch(() => {});
     }
     signal.addEventListener("abort", dispose, { once: true }); views.add(view);

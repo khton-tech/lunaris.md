@@ -7,6 +7,7 @@ import { EditorWidthHandles } from "./editor-width-handles.js";
 import type { WidthPhase } from "./editor-width-handles.js";
 
 interface EditorProps {
+  readonly onFooterTarget?: (target: HTMLElement | null) => void;
   readonly recoveryLabel?: string;
   readonly recoveryCandidates?: readonly { readonly id: string; readonly label: string }[];
   readonly onRecovery?: (id: string) => void;
@@ -57,6 +58,8 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
   const container = useRef<HTMLDivElement>(null);
   const [title, setTitle] = useState(props.title);
   const committing = useRef(false);
+  const footer = useRef<HTMLDivElement>(null);
+  useLayoutEffect(() => { props.onFooterTarget?.(footer.current); return () => props.onFooterTarget?.(null); }, [props.onFooterTarget]);
   const publish = props.onTarget;
   useLayoutEffect(() => { publish(target.current, container.current ?? undefined); return () => publish(null); }, [publish]);
   useLayoutEffect(() => { setConfirm(false); setTitle(props.title); }, [props.documentKey]);
@@ -103,5 +106,6 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
       </Group>}
     </Group>}
     <Box ref={target} className="lm-editor-target" hidden={!props.ready} aria-busy={props.busy} />
+    <Box ref={footer} hidden={!props.ready} style={{ width: "100%", maxWidth: props.contentWidth === "full" ? "none" : props.contentWidth ?? 698, marginInline: "auto" }} />
   </Box>;
 }

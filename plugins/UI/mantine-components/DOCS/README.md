@@ -1324,3 +1324,7 @@ No SDK or consumer integration changes are required. A geometry regression test
 covers growing embedded content and top alignment for oversized content. Native
 visual acceptance remains manual: login, registration, errors and long catalogs,
 short/narrow windows, both themes, keyboard focus and interrupted disclosure.
+
+## Editor footer allocation
+
+The text-editor role accepts optional onFooterTarget(target|null), exposing an editor-owned content-width allocation below the text. TextEditor mounts SDK DocumentFooters contributions here. The allocation inherits the document surface and scroll viewport. Native visual acceptance remains manual.

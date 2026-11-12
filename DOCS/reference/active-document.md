@@ -84,3 +84,7 @@ completion listeners. Never recursively call open/close from this serialized hoo
 ## Buffer statistics
 
 DocumentStatistics.current() and DocumentStatisticsChanged ({ current }) are additive 1.0 SDK contracts with vault.access. Text Editor supplies a frozen snapshot { target: { vaultId, path }, state, words, letters }, or null without an active file. State is ready/loading/unavailable; counts are null unless ready. Subscribe before reading the snapshot and match its target to ActiveDocument. Counts use the current unsaved raw Markdown buffer. Words use Intl.Segmenter("und", word) word-like segments, including numeric words. Letters count Unicode Letter code points, excluding spaces, digits, punctuation, combining marks and emoji. Updates coalesce per microtask, cache by buffer text and publish only changed snapshots. No document text is exposed.
+
+## Document content and navigation
+
+`DocumentContent` (1.0) is provided by TextEditor. `buffers()` returns loaded live buffers; `read(target)` prefers those buffers over disk. `reveal(target, range, expectedText)` and `replace(target, range, insert, expectedText)` open through ActiveDocument guards and reject stale text or concurrent navigation. UTF-16 ranges match JavaScript string offsets. Replacement is one CodeMirror transaction, retaining undo, autosave, drafts and conflict handling. `DocumentContentChanged` invalidates a target without broadcasting its text. Consumers require `vault.access`.
