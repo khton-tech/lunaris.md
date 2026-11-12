@@ -40,6 +40,18 @@ The controller supplies `presentation: { mode: "embedded", sizing: "fill" }` to
 its layout, screens and placeholders after custom props. Screen roots inherit the
 Workspace surface, independently of their target DOM.
 
+Blank selections and unavailable roles publish the placeholder target directly.
+One render produces one layout commit for these states. Placeholder content
+updates when its target or localized copy changes. Component registry events
+refresh this container for its layout, placeholder, mobile-menu or contributed
+screen roles. A newly selected available role mounts after its visible target is
+allocated so geometry-sensitive components can measure their initial content.
+Failed mount/update still selects the failure placeholder. Tests cover commit
+counts, unrelated registrations/removals, current tab callbacks and visible-target
+allocation. Native paint and focus acceptance remains pending.
+Compact-mode tab placement refreshes when mobile dock actions become ready.
+The controller owns this presentation change directly.
+
 ## Tab interaction and ownership
 
 The Owner's screenshot defines the two-row composition. The top row holds rounded

@@ -77,6 +77,7 @@ export default definePlugin({ manifest, activate(ctx) {
     let targets: ReadonlyMap<string, HTMLElement> | null = null;
     let placeholder: MountedComponent | undefined; let placeholderOwner: ResourceScope | undefined;
     let placeholderTarget: HTMLElement | undefined;
+    let placeholderSignature = "";
     let headerNavigation = false;
     const visited = new Set<string>();
     const live = () => !disposed && !signal.aborted && !ctx.signal.aborted && (!vaults || vaults.current()?.id === vaultId);
@@ -85,7 +86,10 @@ export default definePlugin({ manifest, activate(ctx) {
     });
     // Callbacks only capture local targets. SDK mounts run after the parent render returns.
     const onTargets = (value: ReadonlyMap<string, HTMLElement> | null) => { if (!disposed) targets = value; };
-    function clearPlaceholder(): void { if (placeholderOwner) release(placeholderOwner); placeholderOwner = undefined; placeholder = undefined; placeholderTarget = undefined; }
+    function clearPlaceholder(): void {
+      if (placeholderOwner) release(placeholderOwner);
+      placeholderOwner = undefined; placeholder = undefined; placeholderTarget = undefined; placeholderSignature = "";
+    }
     function clearCache(): void { for (const item of cache.values()) release(item.owner); cache.clear(); clearPlaceholder(); }
     function clearLayout(): void {
       clearCache();
@@ -136,19 +140,25 @@ export default definePlugin({ manifest, activate(ctx) {
           if (!isSdkUnavailable(error)) throw error;
         }
       }
-      mobileDockReady = items.every(item => mobileSignatures.has(item.id));
+      const ready = items.every(item => mobileSignatures.has(item.id));
+      if (ready !== mobileDockReady) {
+        mobileDockReady = ready;
+        if ((props.workspace as WorkspaceContext).compact) pending = true;
+      }
     }
     function showPlaceholder(element: HTMLElement, kind: "empty" | "blank" | "unavailable"): void {
       const placeholderProps = { title: text(kind), detail: kind === "blank" ? "" : text(`${kind}Detail`), presentation: { mode: "embedded", sizing: "fill" } };
+      const signature = JSON.stringify(placeholderProps);
       if (placeholderTarget && placeholderTarget !== element) clearPlaceholder();
-      if (placeholder) {
+      if (placeholder && signature !== placeholderSignature) {
         const updated = placeholder.update(placeholderProps);
-        if (!updated.ok) { logger.error(ctx.pluginId, "Cannot update screen placeholder", { error: updated.error }); clearPlaceholder(); }
+        if (updated.ok) placeholderSignature = signature;
+        else { logger.error(ctx.pluginId, "Cannot update screen placeholder", { error: updated.error }); clearPlaceholder(); }
       }
       if (!placeholder && components.has("lunaris.workspace-empty")) {
         placeholderOwner = owner.child();
         const mounted = components.mount("lunaris.workspace-empty", element, placeholderProps, placeholderOwner.signal);
-        if (mounted.ok) { placeholder = mounted.value; placeholderTarget = element; }
+        if (mounted.ok) { placeholder = mounted.value; placeholderTarget = element; placeholderSignature = signature; }
         else { logger.error(ctx.pluginId, "Cannot mount screen placeholder", { error: mounted.error }); clearPlaceholder(); }
       }
     }
@@ -177,7 +187,9 @@ export default definePlugin({ manifest, activate(ctx) {
       const placeholderId = "__placeholder";
       const tabProps = tabs.presentation(snapshot);
       const compactTabs = context.compact === true && mobileDockReady && components.has("lunaris.mobile-menu");
-      const layoutProps = { ids: [...visited, placeholderId], activeId: snapshot.activeId, tabs: tabProps, compactTabs,
+      const selectedScreen = snapshot.screens.find(screen => screen.id === snapshot.activeId);
+      const activeId = selectedScreen && (cache.has(selectedScreen.id) || components.has(selectedScreen.componentId)) ? selectedScreen.id : placeholderId;
+      const layoutProps = { ids: [...visited, placeholderId], activeId, tabs: tabProps, compactTabs,
         onTargets, presentation: { mode: "embedded", sizing: "fill" } };
       if (layout) {
         const updated = layout.update(layoutProps);
@@ -221,8 +233,11 @@ export default definePlugin({ manifest, activate(ctx) {
       }).catch(error => { if (!ctx.signal.aborted) logger.warn(ctx.pluginId, "Cannot publish the active screen's navigation placement", { error }); });
       if (visible) clearPlaceholder();
       else {
-        const hidden = layout.update({ ...layoutProps, activeId: placeholderId });
-        if (!hidden.ok) { logger.error(ctx.pluginId, "Cannot show screen placeholder", { error: hidden.error }); clearLayout(); return; }
+        if (layoutProps.activeId !== placeholderId) {
+          const fallbackProps = { ...layoutProps, activeId: placeholderId };
+          const hidden = layout.update(fallbackProps);
+          if (!hidden.ok) { logger.error(ctx.pluginId, "Cannot show screen placeholder", { error: hidden.error }); clearLayout(); return; }
+        }
         const element = targets?.get(placeholderId); if (!element) return;
         const kind = snapshot.activeId ? "unavailable" : documents ? "blank" : "empty";
         if (snapshot.activeId) logger.warn(ctx.pluginId, "Active screen is unavailable", { data: { id: snapshot.activeId } });
@@ -247,7 +262,9 @@ export default definePlugin({ manifest, activate(ctx) {
   ctx.events.on(ActiveScreenChanged, () => { for (const view of views) view.refresh(); });
   ctx.events.on(LocaleChanged, () => { for (const view of views) view.refresh(); });
   ctx.events.on(ComponentsChanged, change => {
-    if (change.componentId === "lunaris.active-screen-host") return;
+    if (views.size === 0 || change.componentId === "lunaris.active-screen-host") return;
+    if (!["lunaris.active-screen", "lunaris.workspace-empty", "lunaris.mobile-menu"].includes(change.componentId) &&
+      !screens.snapshot().screens.some(screen => screen.componentId === change.componentId)) return;
     for (const view of views) {
       if (change.kind === "removed") view.removed(change.componentId);
       view.refresh();
