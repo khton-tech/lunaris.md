@@ -3,6 +3,7 @@ import type { ComponentsApi, ComponentProps, MountedComponent } from "@lunaris/c
 import type { LoggerApi } from "@lunaris/logging";
 import { SettingsChanged } from "@lunaris/settings";
 import type { SettingsApi, SettingsItem, SettingsSnapshot } from "@lunaris/settings";
+import type { WorkspaceContext } from "@lunaris/workspace";
 
 interface GroupProps extends ComponentProps { readonly groupId: string; readonly items: readonly SettingsItem[]; readonly failureLabel: string }
 interface ItemState { readonly scope: ResourceScope; pending: boolean; error: string }
@@ -20,7 +21,7 @@ export function mountSettingsGroup(ctx: PluginContext, registry: SettingsApi, co
   target: HTMLElement, initial: ComponentProps, signal: CancellationSignal) {
   const owner = ctx.scope.child(); let props = initial as GroupProps; let mounted: MountedComponent | undefined; let disposed = false; let scheduled = false;
   const states = new Map<string, ItemState>();
-  const workspace = initial.workspace as { vaultId: string };
+  const workspace = initial.workspace as WorkspaceContext;
   const live = () => !disposed && !signal.aborted && !ctx.signal.aborted;
   const release = (state: ItemState) => { void state.scope.dispose().catch(() => {}); };
   function reconcile(snapshot: SettingsSnapshot): void {
@@ -71,7 +72,7 @@ export function mountSettingsGroup(ctx: PluginContext, registry: SettingsApi, co
     for (const item of active) if (!states.has(item.id)) states.set(item.id, { scope: owner.child(), pending: false, error: "" });
     const items = active.map(item => { const state = states.get(item.id)!; return { ...item, disabled: !!item.disabled || state.pending, error: state.error || item.error || "" }; });
     const sources = new Map(active.map(item => [item.id, item]));
-    const next = { items, onChange: (id: string, value: unknown) => { const item = sources.get(id); if (item) invoke(item, value); },
+    const next = { items, compact: (props.workspace as WorkspaceContext | undefined)?.compact, portalDropdowns: true, onChange: (id: string, value: unknown) => { const item = sources.get(id); if (item) invoke(item, value); },
       onRetry: (id: string) => { const item = sources.get(id); if (item) invoke(item, undefined, "retry"); },
       onReset: (id: string) => { const item = sources.get(id); if (item) invoke(item, undefined, "reset"); }, presentation: { mode: "embedded", sizing: "content" } };
     if (mounted) { const result = mounted.update(next); if (!result.ok) throw new Error("Cannot update declarative settings.", { cause: result.error }); }

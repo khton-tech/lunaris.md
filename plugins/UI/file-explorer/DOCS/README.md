@@ -15,11 +15,13 @@ join external contributions with explicit File Explorer/Vault/path/selection
 context. The protected Vault root and panel background expose root operations
 without root mutation actions. See the [context menu API](../../../../DOCS/reference/context-menu.md).
 
-The UI uses `lunaris.file-explorer` from Mantine components through Sidebar; the
-controller never imports React/Mantine/Arborist. English/Russian catalogs cover
-all visible copy, including the Tabs dropdown with the current Files entry. The
-renderer displays the Workspace Vault name as a protected tree root; operations
-remain available for ordinary entries through context menus and keyboard shortcuts. Tree state, operation policy, drafts and an in-memory per-Vault
+The UI uses `lunaris.file-explorer` from Mantine components through Sidebar.
+English/Russian catalogs cover the shared panel heading and row actions. The
+renderer displays the Workspace Vault name as a protected tree root. Compact
+Workspace and coarse-pointer views expose a trailing 44px actions button per
+entry, using the existing ContextMenu entries and focus restoration. A plain
+tap on a folder row toggles it. Vault-switcher option labels wrap in the menu.
+Tree state, operation policy, drafts and an in-memory per-Vault
 copy/cut buffer belong to the controller, independent of a mounted view.
 
 Creation drafts carry a localized default name and optional initial sort name.

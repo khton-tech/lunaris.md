@@ -52,6 +52,15 @@ range and manual scrolling remain under the user's control. Integration uses
 Components and the existing ContextMenu contract. Verify alignment while typing
 at the end of a note and after dismissing the keyboard on physical devices.
 
+Compact Workspace lends a shared vertical title/body viewport. The inner
+CodeMirror scroller owns horizontal overflow for unwrapped lines, so horizontal
+scrolling leaves the file title in place. Workspace supplies the dock clearance
+and the editor applies it inside the scrollable content. The editor width
+setting describes how its limit depends on wrapping and available space. Inline
+task controls keep their visual checkbox size while a label expands the touch
+target within the task row. Physical selection, task taps and rotation with the
+virtual keyboard still require device acceptance.
+
 ## Usage and saving
 
 Underline-style (Setext) headings are disabled at the Markdown parser level at

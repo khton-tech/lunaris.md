@@ -79,7 +79,7 @@ drag at its leading edge to move a tab. Both layouts use the same tab ordering
 operation. The dock uses the theme panel color and a subdued separator.
 The dock's plus creates tabs. The anchored popup matches the dock's measured
 width and center. The dock takes 70% of the Workspace width within its side
-gutters. The popup fits up to five rows and scrolls internally when more tabs
+gutters, capped at 28rem. The popup fits up to five standard rows and scrolls internally when more tabs
 are open.
 The compact presentation replaces the tab strip and location/history row.
 The Owner's phone reference defines the dock order and horizontal rounded

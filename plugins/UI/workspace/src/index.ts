@@ -118,8 +118,9 @@ export default definePlugin({ manifest, async activate(ctx) {
     layout ??= createView("lunaris.workspace-layout", 0, 1);
     const entries = workspace.list();
     const available = entries.filter(entry => components.has(entry.componentId));
+    const headerNavigation = available.some(entry => (entry.region ?? "main") === "main" && entry.props?.mobileNavigationInHeader === true);
     if (!show(layout, { railVisible: available.some(entry => entry.region === "left-rail"), panelVisible: available.some(entry => entry.region === "left-panel"),
-      mobileOpen: navigation.isOpen(), onMobileOpen: (open: boolean) => { if (open) navigation.open(); else navigation.close(); }, mobileLauncherVisible: available.some(entry => entry.region === "mobile-launcher"), mobileMenuVisible: available.some(entry => entry.region === "mobile-menu"), bottomVisible: available.some(entry => entry.region === "bottom"), presentation: { mode: "standalone", sizing: "fill" }, mainLabel: text("main"), panelLabel: text("panel"), panelWidth, resizeLabel: text("resizePanel"), onPanelWidth, onTargets, onDismiss })) {
+      mobileOpen: navigation.isOpen(), onMobileOpen: (open: boolean) => { if (open) navigation.open(); else navigation.close(); }, mobileLauncherVisible: !headerNavigation && available.some(entry => entry.region === "mobile-launcher"), mobileMenuVisible: available.some(entry => entry.region === "mobile-menu"), bottomVisible: available.some(entry => entry.region === "bottom"), presentation: { mode: "standalone", sizing: "fill" }, mainLabel: text("main"), panelLabel: text("panel"), panelWidth, resizeLabel: text("resizePanel"), onPanelWidth, onTargets, onDismiss })) {
       releaseContent(); release(layout.owner); layout = undefined; regions = undefined; return;
     }
     if (!regions) return;

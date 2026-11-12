@@ -200,7 +200,7 @@ export const livePreviewTheme = EditorView.baseTheme({
   ".cm-preview-h5": { fontSize: "1.25em" }, ".cm-preview-h6": { fontSize: "1.1em" },
   ".cm-preview-link": { textDecoration: "underline" },
   ".cm-preview-bullet": { display: "inline-block", minInlineSize: "1.4em", color: "var(--vault-accent, currentColor)", whiteSpace: "pre" },
-  ".cm-preview-task": { display: "inline-flex", verticalAlign: "middle", lineHeight: "1" },
+  ".cm-preview-task": { display: "inline-flex", verticalAlign: "middle" },
   ".cm-line.cm-preview-quote": { paddingLeft: "calc(var(--editor-block-inset, 2.4em) + (var(--cm-preview-quote-depth) - 1) * 0.85em)", backgroundSize: "2px 100%", backgroundRepeat: "no-repeat" },
   ".cm-preview-rule": { display: "inline-block", width: "100%", borderTop: "1px solid currentColor", opacity: "0.25", verticalAlign: "middle" },
 });

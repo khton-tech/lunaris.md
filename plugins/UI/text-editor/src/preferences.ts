@@ -14,7 +14,7 @@ type Key = keyof Preferences;
 interface Session { vaultId: string; values: Preferences; previewWidth?: string | undefined; loading: boolean; busy: boolean; reload: boolean; revision: number; error: string; errorKey: Key; ready: Promise<void> }
 const keys = Object.keys(defaults) as Key[];
 const itemId = (key: Key) => key.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`);
-const catalogs = { en: { category: "Editor", group: "Display", fontSize: "Font size", lineHeight: "Line spacing", textWidth: "Text width", wrapLines: "Wrap long lines", full: "Full width", invalid: "Saved value is unavailable. Using the default.", readFailed: "Cannot read preferences.", saveFailed: "Cannot save the change. Try again.", retry: "Retry" }, ru: { category: "Редактор", group: "Отображение", fontSize: "Размер шрифта", lineHeight: "Межстрочный интервал", textWidth: "Ширина текста", wrapLines: "Переносить длинные строки", full: "На всю ширину", invalid: "Сохранённое значение недоступно. Используется значение по умолчанию.", readFailed: "Не удалось прочитать настройки.", saveFailed: "Не удалось сохранить изменение. Повторите попытку.", retry: "Повторить" } };
+const catalogs = { en: { category: "Editor", group: "Display", fontSize: "Font size", lineHeight: "Line spacing", textWidth: "Text width", textWidthDetail: "Limits the column when wrapping is on and the editor is wider than this value.", wrapLines: "Wrap long lines", full: "Full width", invalid: "Saved value is unavailable. Using the default.", readFailed: "Cannot read preferences.", saveFailed: "Cannot save the change. Try again.", retry: "Retry" }, ru: { category: "Редактор", group: "Отображение", fontSize: "Размер шрифта", lineHeight: "Межстрочный интервал", textWidth: "Ширина текста", textWidthDetail: "Ограничивает ширину колонки, когда включён перенос строк и редактор шире выбранного значения.", wrapLines: "Переносить длинные строки", full: "На всю ширину", invalid: "Сохранённое значение недоступно. Используется значение по умолчанию.", readFailed: "Не удалось прочитать настройки.", saveFailed: "Не удалось сохранить изменение. Повторите попытку.", retry: "Повторить" } };
 
 /** Own live preferences and explicit Vault persistence; rendering belongs to Settings. */
 export function createPreferences(ctx: PluginContext, changed: () => void) {
@@ -71,7 +71,7 @@ export function createPreferences(ctx: PluginContext, changed: () => void) {
     }
     const widths = textWidths.includes(value as string) ? textWidths : [...textWidths.slice(0, -1), value as string, "full"];
     const options = widths.map(value => ({ value, label: value === "full" ? text(value) : `${value} px` }));
-    return { ...common, type: "select", value: value as string, options, onChange };
+    return { ...common, description: text("textWidthDetail"), type: "select", value: value as string, options, onChange };
   }
   function publish(): void {
     if (ctx.signal.aborted) return;

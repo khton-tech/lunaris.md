@@ -10,6 +10,7 @@ import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
 import { VaultSwitcher, validVaultSwitcher } from "./vault-switcher.js";
 import type { VaultSwitcherProps } from "./vault-switcher.js";
+import { ToolPanelHeader } from "./tool-navigation.js";
 
 // Absolute paths never occur in the Vault-relative controller tree.
 const ROOT_ID = "/";
@@ -24,7 +25,7 @@ interface ExplorerProps {
   supportedExtensions?: readonly string[];
   activePath?: string | null; onOpen?: (path: string) => Promise<void>;
   vaultId: string; data: Entry[]; expanded: string[]; selection: string[]; busy: boolean; loading: boolean; error: string; degraded: string; canPaste: boolean;
-  workspace?: { vaultId: string; vaultName?: string }; text: Record<string, string>;
+  workspace?: { vaultId: string; vaultName?: string; compact?: boolean }; text: Record<string, string>;
   onToggle(path: string, open: boolean): void; onSelection(paths: string[]): void; onBuffer(paths: string[], cut: boolean): void;
   onCreate(parent: string, name: string, directory: boolean): Promise<boolean>; onRename(path: string, name: string): Promise<boolean>;
   onMove(paths: string[], destination: string): Promise<boolean>; onPaste(destination: string): Promise<boolean>;
@@ -71,9 +72,9 @@ function ExtensionBadge({ extension }: { extension: string }) {
   return extension ? <Badge className="lm-explorer-extension" size="xs" radius="xl" variant="light">{extension}</Badge> : null;
 }
 interface Creation { name: string; kind: "file" | "folder"; pending: boolean; onName(name: string): void; submit(restoreFocus?: boolean): Promise<void>; cancel(restoreFocus?: boolean): void }
-const ExplorerContext = createContext<{ props: ExplorerProps; creation: Creation | null; surface(): HTMLElement | null; context(path: string, x: number, y: number): void } | null>(null);
+const ExplorerContext = createContext<{ props: ExplorerProps; compact: boolean; actionsDisabled: boolean; creation: Creation | null; surface(): HTMLElement | null; context(path: string, x: number, y: number, trigger?: HTMLElement): void } | null>(null);
 function ExplorerRow({ node, attrs, innerRef, children }: RowRendererProps<Entry>) {
-  const { props } = useContext(ExplorerContext)!;
+  const { props, compact } = useContext(ExplorerContext)!;
   return <div {...attrs} ref={innerRef} style={{ ...attrs.style, minWidth: 0 }} onFocus={event => {
     event.stopPropagation();
     if (node.data.draft && event.target === event.currentTarget) event.currentTarget.querySelector<HTMLInputElement>("input")?.focus({ preventScroll: true });
@@ -82,8 +83,12 @@ function ExplorerRow({ node, attrs, innerRef, children }: RowRendererProps<Entry
       if (node.data.draft) return;
       // A plain click selects without changing the geometry under a drag source.
       if (event.ctrlKey || event.metaKey || event.shiftKey) node.handleClick(event);
-      else { node.select(); if (node.data.kind === "file" && !props.busy) void props.onOpen?.(node.id); }
-    }} onDoubleClick={event => { if (!event.ctrlKey && !event.metaKey && !event.shiftKey) node.activate(); }}>{children}</div>;
+      else {
+        node.select();
+        if (!props.busy && compact && node.isInternal && event.detail <= 1) node.toggle();
+        if (!props.busy && node.data.kind === "file") void props.onOpen?.(node.id);
+      }
+    }} onDoubleClick={event => { if (!(compact && node.isInternal) && !event.ctrlKey && !event.metaKey && !event.shiftKey) node.activate(); }}>{children}</div>;
 }
 function CreateInput() {
   const { props, creation } = useContext(ExplorerContext)!; const input = useRef<HTMLInputElement>(null); const wasPending = useRef(false);
@@ -140,7 +145,7 @@ function RenameInput({ node }: NodeRendererProps<Entry>) {
     }} /><ExtensionBadge extension={label.badge} /></>;
 }
 function ExplorerNode(payload: NodeRendererProps<Entry>) {
-  const { node, tree, style, dragHandle } = payload; const { props, context } = useContext(ExplorerContext)!;
+  const { node, tree, style, dragHandle } = payload; const { props, context, compact, actionsDisabled } = useContext(ExplorerContext)!;
   const label = fileLabel(node.data.name, node.data.kind, props.supportedExtensions);
   const guides = [];
   for (let entry = node; entry.level > 0 && entry.parent; entry = entry.parent) {
@@ -163,6 +168,14 @@ function ExplorerNode(payload: NodeRendererProps<Entry>) {
         : <span className="lm-explorer-spacer" />}
       <Box component="span" className="lm-explorer-entry-icon" aria-hidden="true"><Icon name={node.data.draft ? node.data.kind === "directory" ? "folder" : "file" : node.isInternal ? node.isOpen ? "browse" : "folder" : "file"} /></Box>
       {node.data.draft ? <CreateInput /> : node.isEditing ? <RenameInput {...payload} /> : <><Text component="span" className="lm-explorer-filename">{label.name}</Text><ExtensionBadge extension={label.badge} /></>}
+      {compact && !node.data.draft && !node.isEditing && <ActionIcon className="lm-explorer-row-action lm-focus" variant="subtle"
+        disabled={actionsDisabled} aria-haspopup="menu" aria-label={`${props.text.actions}: ${label.name}`}
+        onDoubleClick={event => event.stopPropagation()} onClick={event => {
+          event.stopPropagation();
+          const trigger = event.currentTarget;
+          const bounds = trigger.getBoundingClientRect();
+          context(node.id, bounds.left, bounds.bottom, trigger);
+        }}><Icon name="actions" /></ActionIcon>}
     </Box>
   </Box>;
 }
@@ -176,7 +189,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
   const host = useRef<HTMLDivElement>(null); const tree = useRef<TreeApi<Entry>>(null); const alive = useRef(true);
   const synchronizing = useRef(false);
   const initializing = useRef(true);
-  const [size, setSize] = useState({ height: 1, row: 34 });
+  const [size, setSize] = useState({ height: 1, row: 34, compact: props.workspace?.compact === true });
   const [keyboardNavigation, setKeyboardNavigation] = useState(false);
   const menu = useRef<MenuSession | undefined>(undefined);
   useEffect(() => () => { const previous = menu.current; void Promise.resolve().then(() => previous?.dispose()); }, []);
@@ -200,12 +213,13 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     const measure = () => {
       const css = element.ownerDocument.defaultView!.getComputedStyle(element);
       const height = Math.max(1, element.getBoundingClientRect().height);
-      const row = Math.max(pointer.matches ? 44 : 34, Math.ceil((parseFloat(css.fontSize) || 14) * 2));
-      setSize(previous => previous.height === height && previous.row === row ? previous : { height, row });
+      const compact = props.workspace?.compact === true || usesTouchInput(element.ownerDocument.defaultView);
+      const row = Math.max(compact ? 44 : 34, Math.ceil((parseFloat(css.fontSize) || 14) * 2));
+      setSize(previous => previous.height === height && previous.row === row && previous.compact === compact ? previous : { height, row, compact });
     };
     const observer = new ResizeObserver(measure); observer.observe(element); pointer.addEventListener("change", measure); measure();
     return () => { alive.current = false; observer.disconnect(); pointer.removeEventListener("change", measure); };
-  }, [theme.contentStyle.fontSize]);
+  }, [props.workspace?.compact, theme.contentStyle.fontSize]);
   useLayoutEffect(() => {
     const api = tree.current; if (!api) return;
     synchronizing.current = true;
@@ -258,7 +272,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     else if (command === "remove" && paths.length) { closing.current = false; setForm({ kind: "delete", paths }); }
     else if (command === "refresh") props.onRefresh();
   }
-  function openMenu(path: string | null, x: number, y: number): void {
+  function openMenu(path: string | null, x: number, y: number, trigger?: HTMLElement): void {
     if (form || props.busy) return;
     const node = path === null ? undefined : tree.current?.get(path);
     if (path === null || path === ROOT_ID) clearSelection();
@@ -267,11 +281,11 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     const parent = path === null || path === ROOT_ID ? "" : node?.isInternal ? node.id : node?.parent?.id === ROOT_ID ? "" : node?.parent?.id ?? "";
     const container = (path === null || path === ROOT_ID || node?.isInternal) && paths.length <= 1;
     const actions = [...(container ? ["newFile", "newFolder", "paste", "refresh"] : []), ...(paths.length ? ["rename", "copy", "cut", "remove"] : [])];
-    const target = host.current?.querySelector<HTMLElement>("[role=tree]");
+    const target = trigger ?? host.current?.querySelector<HTMLElement>("[role=tree]");
     if (!target) return;
     // Selection publishes first; the menu then receives the new controller state.
     void Promise.resolve().then(() => {
-      if (!alive.current) return;
+      if (!alive.current || !target.isConnected) return;
       menu.current = props.onContextMenu({ target, x, y, label: t.title!, path: path === ROOT_ID ? "" : path,
         kind: path === null ? "background" : path === ROOT_ID ? "root" : node?.data.kind ?? "background", selection: paths, destination: parent,
         entries: actions.map((action, order) => ({
@@ -285,7 +299,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
   }
   function keyboard(event: KeyboardEvent): void {
     const target = event.target as HTMLElement;
-    if (target.closest(".lm-vault-switcher")) return;
+    if (target.closest(".lm-vault-switcher,.lm-explorer-row-action")) return;
     if (target.closest("input,textarea,[contenteditable=true]") || form) return;
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Home", "End", "PageUp", "PageDown"].includes(event.key) && target.closest("[role=tree]")) setKeyboardNavigation(true);
     if (event.key === "Enter" && target.closest("[role=tree]")) {
@@ -321,14 +335,9 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     else if (form) { tree.current?.openParents(DRAFT_ID); tree.current?.focus(DRAFT_ID, { scroll: false }); void tree.current?.scrollTo(DRAFT_ID); }
   }, [form, props.data]);
   const showLoading = props.loading && !props.data.length && (!form || form.kind === "delete");
-  return <Box className="lm-explorer" style={theme.contentStyle} onKeyDownCapture={keyboard}
+  return <Box className="lm-explorer" style={theme.contentStyle} onKeyDownCapture={keyboard} data-compact={size.compact || undefined}
     onPointerDownCapture={() => setKeyboardNavigation(false)} data-keyboard-navigation={keyboardNavigation || undefined} aria-label={t.title} aria-busy={props.busy || props.loading}>
-    <Group className="lm-explorer-toolbar" gap={0} wrap="nowrap">
-      <Menu withinPortal={false} position="bottom-start" width="target" offset={6} returnFocus>
-        <Menu.Target><Button variant="subtle" fullWidth justify="space-between" className="lm-explorer-tabs" aria-label={t.tabs} title={t.title} rightSection={<Icon name="expand" />}>{t.title}</Button></Menu.Target>
-        <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu"><Menu.Item aria-current="page" title={t.title} rightSection={<Icon name="check" />}>{t.title}</Menu.Item></Menu.Dropdown>
-      </Menu>
-    </Group>
+    <ToolPanelHeader title={t.title!} />
     <Group className="lm-explorer-actions" gap={0} wrap="nowrap" role="group" aria-label={t.actions}>
       <ActionIcon variant="subtle" aria-label={t.newFile} title={t.newFile} disabled={props.busy || props.loading || !!form} onClick={() => command("newFile")}><Icon name="file-plus" /></ActionIcon>
       <ActionIcon variant="subtle" aria-label={t.newFolder} title={t.newFolder} disabled={props.busy || props.loading || !!form} onClick={() => command("newFolder")}><Icon name="folder-plus" /></ActionIcon>
@@ -357,7 +366,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
       event.preventDefault(); event.stopPropagation(); openMenu(null, event.clientX, event.clientY);
     }}>
       {showLoading && <Text role="status" className="lm-explorer-message">{t.loading}</Text>}
-      <ExplorerContext.Provider value={{ props, creation: form && form.kind !== "delete" ? { name, kind: form.kind, pending, onName: setName, submit, cancel: closeForm } : null, surface: () => host.current?.closest<HTMLElement>(".lm-explorer") ?? null,
+      <ExplorerContext.Provider value={{ props, compact: size.compact, actionsDisabled: props.busy || props.loading || !!form, creation: form && form.kind !== "delete" ? { name, kind: form.kind, pending, onName: setName, submit, cancel: closeForm } : null, surface: () => host.current?.closest<HTMLElement>(".lm-explorer") ?? null,
         context: openMenu }}>
         <Tree<Entry> ref={tree} data={data} width="100%" height={Math.max(1, size.height - (showLoading ? size.row : 0))} rowHeight={size.row} indent={size.row * 0.6}
           openByDefault={false} selectionFollowsFocus={!form || form.kind === "delete"} initialOpenState={Object.fromEntries([ROOT_ID, ...props.expanded].map(path => [path, true]))} aria-label={t.title!} rowClassName="lm-explorer-row"

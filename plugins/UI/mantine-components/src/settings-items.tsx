@@ -1,12 +1,14 @@
 import { useEffect, useId, useState } from "react";
+import { createPortal } from "react-dom";
 import { Box, Button, Group, NumberInput, Slider, Stack, Switch, Text, TextInput } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { SettingsItem } from "@lunaris/settings";
 import type { resolveTheme } from "./theme.js";
 import { SettingsSelect } from "./settings-select.js";
 
-interface Props { readonly items: readonly SettingsItem[]; readonly onChange: (id: string, value: unknown) => void; readonly onRetry: (id: string) => void; readonly onReset?: (id: string) => void }
+interface Props { readonly items: readonly SettingsItem[]; readonly onChange: (id: string, value: unknown) => void; readonly onRetry: (id: string) => void; readonly onReset?: (id: string) => void; readonly portalDropdowns?: boolean; readonly compact?: boolean }
 export function settingsItemsProps(value: ComponentProps): Props {
+  for (const key of ["portalDropdowns", "compact"]) if (value[key] !== undefined && typeof value[key] !== "boolean") throw new TypeError("Invalid settings items presentation.");
   if (!Array.isArray(value.items) || new Set(value.items.map(item => item?.id)).size !== value.items.length || typeof value.onChange !== "function" || typeof value.onRetry !== "function" || (value.onReset !== undefined && typeof value.onReset !== "function") ||
       !value.items.every(item => item && typeof item.id === "string" && typeof item.title === "string" &&
         (item.description === undefined || typeof item.description === "string") && (item.error === undefined || typeof item.error === "string") &&
@@ -32,7 +34,7 @@ function SettingsSlider({ item, id, describedBy, onChange }: { item: Extract<Set
     <Text className="lm-setting-slider-value" size="sm" aria-hidden="true">{format(value)}</Text>
   </Group>;
 }
-function SettingRow({ item, onChange, onRetry, onReset }: { item: SettingsItem; onChange: Props["onChange"]; onRetry: Props["onRetry"]; onReset: Props["onReset"] }) {
+function SettingRow({ item, onChange, onRetry, onReset, portalTarget }: { item: SettingsItem; onChange: Props["onChange"]; onRetry: Props["onRetry"]; onReset: Props["onReset"]; portalTarget: string | undefined }) {
   const id = useId(); const descriptionId = `${id}-description`; const errorId = `${id}-error`;
   const describedBy = [item.description ? descriptionId : "", item.error ? errorId : ""].filter(Boolean).join(" ") || undefined;
   const staticValue = item.type === "select" && item.options.length === 1 && item.options[0]!.value === item.value;
@@ -40,7 +42,7 @@ function SettingRow({ item, onChange, onRetry, onReset }: { item: SettingsItem; 
   let control;
   switch (item.type) {
     case "select": control = staticValue ? <Text className="lm-setting-static-value" size="sm" aria-describedby={describedBy}>{item.options[0]!.label}</Text> :
-      <SettingsSelect {...shared} value={item.value} options={item.options} disabled={!!item.disabled || !item.options.length} onChange={value => onChange(item.id, value)} />; break;
+      <SettingsSelect {...shared} portalTarget={portalTarget} value={item.value} options={item.options} disabled={!!item.disabled || !item.options.length} onChange={value => onChange(item.id, value)} />; break;
     case "switch": control = <Switch {...shared} checked={item.value} onChange={event => onChange(item.id, event.currentTarget.checked)} />; break;
     case "text": control = <TextInput {...shared} size="sm" classNames={{ input: "lm-input lm-setting-input" }} value={item.value} placeholder={item.placeholder} onChange={event => onChange(item.id, event.currentTarget.value)} />; break;
     case "number": control = <NumberInput {...shared} size="sm" classNames={{ input: "lm-input lm-setting-input" }} value={item.value} {...(item.min === undefined ? {} : { min: item.min })} {...(item.max === undefined ? {} : { max: item.max })} {...(item.step === undefined ? {} : { step: item.step })} onChange={value => { if (typeof value === "number" && Number.isFinite(value)) onChange(item.id, value); }} />; break;
@@ -59,8 +61,10 @@ function SettingRow({ item, onChange, onRetry, onReset }: { item: SettingsItem; 
     </Stack>
   </Box>;
 }
-export function SettingsItems({ props, theme }: { props: Props; theme: ReturnType<typeof resolveTheme> }) {
-  return <Stack className="lm-settings-items" style={theme.contentStyle} gap={0}>
-    {props.items.map(item => <SettingRow key={item.id} item={item} onChange={props.onChange} onRetry={props.onRetry} onReset={props.onReset} />)}
+export function SettingsItems({ props, theme, overlay }: { props: Props; theme: ReturnType<typeof resolveTheme>; overlay: { id: string; target: HTMLElement } }) {
+  const portalTarget = props.portalDropdowns ? `#${overlay.id}` : undefined;
+  return <Stack className="lm-settings-items" data-compact={props.compact} style={theme.contentStyle} gap={0}>
+    {props.items.map(item => <SettingRow key={item.id} item={item} onChange={props.onChange} onRetry={props.onRetry} onReset={props.onReset} portalTarget={portalTarget} />)}
+    {portalTarget && createPortal(<div id={overlay.id} className="lm-root lm-settings-overlay" data-compact={props.compact} style={theme.contentStyle} data-mantine-color-scheme={theme.scheme} />, overlay.target)}
   </Stack>;
 }

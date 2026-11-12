@@ -1,5 +1,24 @@
 # Mantine components
 
+## Compact layout and touch controls
+
+Reference: the Owner's mobile audit and the existing desktop Files, Settings
+and Workspace compositions. The shared controls follow the
+[Mantine UI navigation examples](https://ui.mantine.dev/category/navbars/) and
+[Mantine Combobox](https://mantine.dev/core/combobox/). Workspace chooses one compact layout for short
+landscape and narrow allocations. It owns the dock inset, its mobile targets,
+and drawer focus restoration. Settings supplies its own upper trigger only
+in compact mode and uses the shared themed viewport overlay for dropdowns.
+The dock reacts to scroll events from the main region and opt-in UIKit
+scrollers. The host owns hardware safe-area padding.
+
+Files reuses the shared panel heading and existing ContextMenu role for the
+Owner's trailing ellipsis controls. The renderer preserves tree actions,
+selection and focus through the public callbacks. The editor role lends the
+vertical title/body viewport and CodeMirror owns horizontal overflow. The task
+checkbox uses a larger touch label with the same theme geometry. Integration is
+through Workspace, Active Screen, Settings, Components and ContextMenu.
+
 ## Mobile keyboard and navigation
 
 The reference is the existing compact Workspace launcher and bottom action row.

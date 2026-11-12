@@ -21,8 +21,7 @@ export function mobileCaret(viewport?: HTMLElement) {
         }
         // The public editor role lends a joint title/body scroller in compact
         // layout. CodeMirror owns its internal scroller in other layouts.
-        const ownScroll = window.getComputedStyle(view.scrollDOM).overflowY;
-        const scroll = viewport && ownScroll === "visible" ? viewport : view.scrollDOM;
+        const scroll = viewport && /^(auto|scroll)$/.test(window.getComputedStyle(viewport).overflowY) ? viewport : view.scrollDOM;
         const bounds = scroll.getBoundingClientRect();
         const top = Math.max(bounds.top, keyboard.top);
         const bottom = Math.min(bounds.bottom, keyboard.top + keyboard.height);

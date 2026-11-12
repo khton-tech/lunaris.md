@@ -24,7 +24,7 @@ interface View {
   transition(change: DocumentTransition): void;
   fileMutated(change: FileMutation): void;
 }
-interface CachedScreen { readonly owner: ResourceScope; readonly mounted: MountedComponent; props: unknown }
+interface CachedScreen { readonly owner: ResourceScope; readonly mounted: MountedComponent; props: unknown; context: WorkspaceContext }
 const catalogs = { en: {
   empty: "No workspace plugins", emptyDetail: "Content will appear here when a workspace plugin is available.",
   unavailable: "Screen unavailable", unavailableDetail: "The selected screen could not be displayed.",
@@ -44,6 +44,8 @@ export default definePlugin({ manifest, activate(ctx) {
   const messages = localization.register(ctx.pluginId, catalogs, ctx.signal);
   if (!messages.ok) throw new Error("Cannot register active screen messages.", { cause: messages.error });
   const views = new Set<View>();
+  const contentId = `${ctx.pluginId}.container`;
+  let publishedHeaderNavigation = false;
   function connectOptional(connect: () => void, message: string): boolean {
     try { connect(); return true; }
     catch (error) {
@@ -75,6 +77,7 @@ export default definePlugin({ manifest, activate(ctx) {
     let targets: ReadonlyMap<string, HTMLElement> | null = null;
     let placeholder: MountedComponent | undefined; let placeholderOwner: ResourceScope | undefined;
     let placeholderTarget: HTMLElement | undefined;
+    let headerNavigation = false;
     const visited = new Set<string>();
     const live = () => !disposed && !signal.aborted && !ctx.signal.aborted && (!vaults || vaults.current()?.id === vaultId);
     const tabs = new WorkspaceTabs({ vaultId, screens, documents, live, refresh, text,
@@ -196,19 +199,26 @@ export default definePlugin({ manifest, activate(ctx) {
         if (!visited.has(screen.id)) continue;
         const screenTarget = targets?.get(screen.id); if (!screenTarget) continue;
         let cached = cache.get(screen.id);
-        if (cached && cached.props !== screen.props) {
+        if (cached && (cached.props !== screen.props || cached.context.compact !== context.compact || cached.context.vaultName !== context.vaultName)) {
           const updated = cached.mounted.update({ ...screen.props, workspace: context, presentation: { mode: "embedded", sizing: "fill" } });
-          if (updated.ok) cached.props = screen.props;
+          if (updated.ok) { cached.props = screen.props; cached.context = context; }
           else { logger.error(ctx.pluginId, "Cannot update screen", { data: { id: screen.id }, error: updated.error }); release(cached.owner); cache.delete(screen.id); cached = undefined; }
         }
         if (!cached && screen.id === snapshot.activeId && components.has(screen.componentId)) {
           const child = owner.child();
           const mounted = components.mount(screen.componentId, screenTarget, { ...screen.props, workspace: context, presentation: { mode: "embedded", sizing: "fill" } }, child.signal);
-          if (mounted.ok) { cached = { owner: child, mounted: mounted.value, props: screen.props }; cache.set(screen.id, cached); }
+          if (mounted.ok) { cached = { owner: child, mounted: mounted.value, props: screen.props, context }; cache.set(screen.id, cached); }
           else { release(child); logger.error(ctx.pluginId, "Cannot mount screen", { data: { id: screen.id, componentId: screen.componentId }, error: mounted.error }); }
         }
         if (screen.id === snapshot.activeId && cached) visible = true;
       }
+      headerNavigation = visible && snapshot.screens.find(screen => screen.id === snapshot.activeId)?.props?.mobileNavigationInHeader === true;
+      if (headerNavigation !== publishedHeaderNavigation) void Promise.resolve().then(() => {
+        if (!live() || headerNavigation === publishedHeaderNavigation) return;
+        publishedHeaderNavigation = headerNavigation;
+        const updated = workspace.update(contentId, { mobileNavigationInHeader: publishedHeaderNavigation });
+        if (!updated.ok) logger.warn(ctx.pluginId, "Cannot publish the active screen's navigation placement", { error: updated.error });
+      }).catch(error => { if (!ctx.signal.aborted) logger.warn(ctx.pluginId, "Cannot publish the active screen's navigation placement", { error }); });
       if (visible) clearPlaceholder();
       else {
         const hidden = layout.update({ ...layoutProps, activeId: placeholderId });
@@ -243,7 +253,7 @@ export default definePlugin({ manifest, activate(ctx) {
       view.refresh();
     }
   });
-  const content = workspace.register({ id: `${ctx.pluginId}.container`, componentId: "lunaris.active-screen-host" }, ctx.signal);
+  const content = workspace.register({ id: contentId, componentId: "lunaris.active-screen-host" }, ctx.signal);
   if (!content.ok) throw new Error("Cannot register active screen container.", { cause: content.error });
   logger.info(ctx.pluginId, "Active screen container ready");
 } });

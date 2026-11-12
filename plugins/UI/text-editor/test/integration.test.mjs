@@ -172,10 +172,10 @@ test('workspace tabs compose with the editor, Settings, history and Vault lifeti
     const viewport = s.target.querySelector('.lm-text-editor');
     assert.equal(viewport.querySelector('.lm-editor-heading').parentElement, viewport);
     assert.equal(s.cm().dom.parentElement.parentElement, viewport);
-    const compactStyles = [...stylesheet.sheet.cssRules].flatMap(rule => [...(rule.cssRules ?? [])]);
-    assert.ok(compactStyles.some(rule => rule.selectorText === '.lm-text-editor' &&
-      rule.style.getPropertyValue('overflow') === 'auto' &&
-      rule.style.getPropertyValue('--editor-view-overflow') === 'visible'));
+    const compactStyles = [...stylesheet.sheet.cssRules].find(rule => rule.selectorText === '.lm-text-editor[data-compact=true]');
+    assert.equal(compactStyles.style.getPropertyValue('overflow'), 'hidden auto');
+    assert.equal(compactStyles.style.getPropertyValue('--editor-view-height'), 'auto');
+    assert.equal(s.dom.window.getComputedStyle(s.cm().scrollDOM).overflow, 'auto');
     viewport.scrollTop = 96;
     assert.equal(active().textContent, 'note');
     assert.equal(button('Back').disabled, true);
@@ -959,7 +959,8 @@ test('touch editor centers the caret at the end of the note and preserves native
     const view = s.cm();
     const scroll = s.target.querySelector('.lm-text-editor');
     scroll.getBoundingClientRect = () => new window.DOMRect(0, 40, 360, 680);
-    view.scrollDOM.style.overflowY = 'visible';
+    scroll.style.overflowY = 'auto';
+    view.scrollDOM.style.overflowY = 'auto';
     let caretTop = 540;
     let documentBottom = 550;
     let scrollTop = 0;

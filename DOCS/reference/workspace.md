@@ -29,6 +29,19 @@ Workspace supplies `workspace.compact` from the layout role's public
 owning Workspace enters or leaves its compact layout. The width of a borrowed
 content target can differ from that of Workspace.
 
+The Mantine layout uses compact navigation up to 760px wide, or up to 960px
+wide when the available height is at most 500px. The virtual keyboard's
+temporary height reduction does not change the layout mode.
+An active main contribution can declare `mobileNavigationInHeader: true` in its
+props if its own header supplies the upper sidebar trigger. Workspace suppresses
+its floating launcher while that declaration is active and returns drawer focus
+to the trigger that opened it.
+
+Workspace publishes `--workspace-dock-inset` to its main region for content that
+needs space above the dock. The host applies hardware safe-area padding once.
+UIKit scrollers opt in to scroll-driven navigation with
+`data-workspace-scroll`. Nested menus retain independent scroll behavior.
+
 Require `api:lunaris.workspace@^1.1.0` and import `Workspace` from
 `@lunaris/workspace`. The provider plugin is `lunaris.workspace-provider`.
 Registration itself requires no DOM or filesystem permission.
