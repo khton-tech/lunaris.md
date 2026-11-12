@@ -36,6 +36,16 @@ The layout reports compact mode with its targets. Workspace propagates that
 mode as `workspace.compact` after layout effects complete, preserving mounted
 content while the allocation changes.
 
+Workspace retains the successful props and descriptor of each view. Updating a
+contribution updates that view, while other contributions keep their props and
+instances. Layout updates are limited to changes in geometry, visibility or
+localized labels. Context and presentation objects stay stable until their
+values change. An explicit contribution update still reaches its view, including
+updates carrying a nested object that the contributor has modified. Theme
+updates remain owned by the component set. The region regression verifies that
+ten status updates cause zero document-view updates and that opening/closing
+navigation preserves both document and status views.
+
 Compact mode covers narrow and short landscape allocations. The main
 contribution can advertise `mobileNavigationInHeader` through its props while
 its active screen supplies the upper drawer trigger. The Workspace layout

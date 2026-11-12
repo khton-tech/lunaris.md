@@ -112,7 +112,7 @@ test('replacing a layout role releases content mounted in its old borrowed targe
   const first = s.ctx.scope.child(); registerLayout(first); await flush(); const old = s.surface.querySelector('article'); assert.ok(old);
   await first.dispose(); await flush(); assert.equal(old.isConnected, false); assert.equal(s.surface.querySelector('article'), null);
   registerLayout(s.ctx.scope.child()); await flush(); assert.ok(s.surface.querySelector('article')); assert.notEqual(s.surface.querySelector('article'), old);
-  failUpdate = true; s.tools.workspace.update('test.main', { label: 'Failed' }); await flush(); assert.equal(s.surface.querySelector('article'), null);
+  failUpdate = true; s.tools.navigation.open(); await flush(); assert.equal(s.surface.querySelector('article'), null);
   failUpdate = false; s.tools.workspace.update('test.main', { label: 'Recovered' }); await flush(); assert.match(s.surface.querySelector('article').textContent, /Recovered/); await s.stop();
 });
 
@@ -183,4 +183,25 @@ test('bottom region retains its target under main without suppressing the placeh
  assert.equal(s.tools.workspace.register({ id: 'test.other', componentId: 'test.panel', region: 'bottom' }, s.ctx.signal).error.code, 'REGION_OCCUPIED');
  s.tools.workspace.update('test.status', { label: 'Updated' }); assert.equal(s.surface.querySelector('.lm-workspace-bottom'), bottom);
  assert.ok(bottom.textContent.includes('Updated')); await owner.dispose(); await flush(); assert.equal(bottom.hidden, true); await s.stop();
+});
+
+test('updating a region preserves unrelated views and opening navigation only updates the layout', async () => {
+  const s = await setup();
+  try {
+    const main = panel(s, 'test.main-view');
+    const bottom = panel(s, 'test.bottom-view');
+    s.tools.workspace.register({ id: 'test.main', componentId: 'test.main-view', props: { label: 'Document' } }, s.ctx.signal);
+    s.tools.workspace.register({ id: 'test.bottom', componentId: 'test.bottom-view', region: 'bottom', props: { label: 'Saved' } }, s.ctx.signal);
+    await s.open();
+    const mainUpdates = main.seen.length;
+    const bottomUpdates = bottom.seen.length;
+    for (let index = 0; index < 10; index++) s.tools.workspace.update('test.bottom', { label: `Status ${index}` });
+    assert.equal(main.seen.length - mainUpdates, 0, 'status changes must not update the document view');
+    assert.equal(bottom.seen.length - bottomUpdates, 10);
+    s.tools.navigation.open();
+    s.tools.navigation.close();
+    await flush();
+    assert.equal(main.seen.length - mainUpdates, 0, 'overlay changes must preserve document props');
+    assert.equal(bottom.seen.length - bottomUpdates, 10, 'overlay changes must preserve bottom props');
+  } finally { await s.stop(); }
 });
