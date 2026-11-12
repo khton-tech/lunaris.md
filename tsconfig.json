@@ -1,13 +1,27 @@
 {
   "files": [],
   "references": [
-    { "path": "plugins/UI/lime-settings" },
-    { "path": "plugins/systems/lime" },
-    { "path": "packages/lime" },
-    { "path": "plugins/systems/driver/lup-picker" },
-    { "path": "packages/lup" },
-    { "path": "packages/execution" },
-    { "path": "plugins/systems/driver/quickjs-execution" },
+    {
+      "path": "plugins/UI/lime-settings"
+    },
+    {
+      "path": "plugins/systems/lime"
+    },
+    {
+      "path": "packages/lime"
+    },
+    {
+      "path": "plugins/systems/driver/lup-picker"
+    },
+    {
+      "path": "packages/lup"
+    },
+    {
+      "path": "packages/execution"
+    },
+    {
+      "path": "plugins/systems/driver/quickjs-execution"
+    },
     {
       "path": "plugins/UI/client-update"
     },
@@ -238,6 +252,15 @@
     },
     {
       "path": "plugins/UI/mobile-menu"
+    },
+    {
+      "path": "packages/backlinks"
+    },
+    {
+      "path": "plugins/systems/backlink-index"
+    },
+    {
+      "path": "plugins/UI/backlinks"
     }
   ]
 }

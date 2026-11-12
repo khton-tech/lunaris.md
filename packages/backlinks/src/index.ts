@@ -1,0 +1,33 @@
+import { defineApi, defineEvent } from "@lunaris/sdk";
+import type { FileTarget, FsResult } from "@lunaris/filesystem";
+
+export interface Mention {
+  readonly from: number;
+  readonly to: number;
+  readonly line: number;
+  readonly contextFrom: number;
+  readonly contextTo: number;
+}
+export interface MentionGroup {
+  readonly source: FileTarget;
+  /** Snapshot used to guard navigation and replacement against concurrent edits. */
+  readonly text: string;
+  readonly modifiedAt: number | null;
+  readonly mentions: readonly Mention[];
+}
+export interface BacklinksSnapshot {
+  readonly state: "loading" | "ready" | "degraded";
+  readonly failures: number;
+  readonly linked: readonly MentionGroup[];
+  readonly unlinked: readonly MentionGroup[];
+}
+export interface BacklinksApi {
+  query(target: FileTarget, excludedPaths?: readonly string[]): BacklinksSnapshot;
+  refresh(): Promise<void>;
+  /** Revalidates an unlinked occurrence before making one undoable edit. */
+  link(target: FileTarget, source: FileTarget, mention: Mention, expectedText: string): Promise<FsResult<null>>;
+}
+export const Backlinks = defineApi<BacklinksApi>({ id: "lunaris.backlinks", version: "1.0.0", consumePermission: "vault.access",
+  validate: value => !!value && typeof value === "object" && ["query", "refresh", "link"].every(key => typeof Object.getOwnPropertyDescriptor(value, key)?.value === "function") });
+export const BacklinksChanged = defineEvent<{ readonly vaultId: string | null }>({ id: "lunaris.backlinks-changed", version: "1.0.0", consumePermission: "vault.access",
+  validate: value => !!value && typeof value === "object" && ((value as { vaultId?: unknown }).vaultId === null || typeof (value as { vaultId?: unknown }).vaultId === "string") });

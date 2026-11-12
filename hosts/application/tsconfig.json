@@ -15,14 +15,30 @@
     "src/**/*.ts"
   ],
   "references": [
-    { "path": "../../packages/manifest" },
-    { "path": "../../packages/components" },
-    { "path": "../../plugins/systems/lime" },
-    { "path": "../../plugins/UI/lime-settings" },
-    { "path": "../../plugins/systems/driver/quickjs-execution" },
-    { "path": "../../plugins/systems/driver/lup-picker" },
-    { "path": "../../packages/lime" },
-    { "path": "../../packages/execution" },
+    {
+      "path": "../../packages/manifest"
+    },
+    {
+      "path": "../../packages/components"
+    },
+    {
+      "path": "../../plugins/systems/lime"
+    },
+    {
+      "path": "../../plugins/UI/lime-settings"
+    },
+    {
+      "path": "../../plugins/systems/driver/quickjs-execution"
+    },
+    {
+      "path": "../../plugins/systems/driver/lup-picker"
+    },
+    {
+      "path": "../../packages/lime"
+    },
+    {
+      "path": "../../packages/execution"
+    },
     {
       "path": "../../plugins/UI/base-theme"
     },
@@ -178,6 +194,12 @@
     },
     {
       "path": "../../plugins/UI/mobile-menu"
+    },
+    {
+      "path": "../../plugins/systems/backlink-index"
+    },
+    {
+      "path": "../../plugins/UI/backlinks"
     }
   ]
 }

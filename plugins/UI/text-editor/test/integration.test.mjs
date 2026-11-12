@@ -1,3 +1,8 @@
+import backlinkIndex from '@lunaris/backlink-index';
+import backlinksUI from '@lunaris/backlinks-ui';
+import sidebarProvider from '@lunaris/sidebar-provider';
+import { Backlinks } from '@lunaris/backlinks';
+import { DocumentContent } from '@lunaris/active-document';
 import { Drafts } from '@lunaris/remote';
 import { FilesystemSources } from '@lunaris/filesystem';
 import test from 'node:test';
@@ -97,6 +102,7 @@ async function setup(options = {}) {
   const methods = Object.fromEntries(filesystemMethods.map(name => [name, async () => ok(null)]));
   Object.assign(methods, {
     capabilities: () => ({ watch: false, atomicReplace: true, versionCheck: 'optimistic', trash: false, maxFileBytes: 1024 }),
+    async list(t) { return ok([...disk.keys()].filter(key => key.startsWith(t.vaultId + "/") && !key.slice(t.vaultId.length + 1).includes("/")).map(key => ({path:key.slice(t.vaultId.length+1),kind:"file",size:disk.get(key).text.length,modifiedAt:1}))); },
     async stat(t) { return disk.has(`${t.vaultId}/${t.path}`) ? ok({ path: t.path, kind: 'file', size: 1, modifiedAt: 1 }) : fail('NOT_FOUND'); },
     async readText(t) { if (options.read) { const result = await options.read(t); if (result) return result; } return closed.has(t.vaultId) ? fail('VAULT_CLOSED') : disk.has(`${t.vaultId}/${t.path}`) ? ok({ ...disk.get(`${t.vaultId}/${t.path}`) }) : fail('NOT_FOUND'); },
     async writeText(t, text, policy) {
@@ -124,10 +130,10 @@ async function setup(options = {}) {
   kernel.installMock(DirectoryLocationsDriver, { async create() { return fail('UNSUPPORTED'); } }, { grants: ['filesystem.native'] });
   kernel.installMock(ApplicationDirectoryDriver, { async openConfig() { return fail('UNSUPPORTED'); } }, { grants: ['filesystem.native'] });
   kernel.register(definePlugin({ manifest: metadata('test.config-events', [{ kind: 'event', id: ConfigChanged.id, version: ConfigChanged.version }]), activate() {} }));
-  for (const plugin of [settingsProvider, menuProvider, filesystem, vault, documents, screenProvider, screenHost, components, themes, localization, mantine, editor, closeGuard.plugin]) kernel.register(plugin);
+  for (const plugin of [...(options.backlinks ? [backlinkIndex, backlinksUI, sidebarProvider] : []), settingsProvider, menuProvider, filesystem, vault, documents, screenProvider, screenHost, components, themes, localization, mantine, editor, closeGuard.plugin]) kernel.register(plugin);
 
-  kernel.register(definePlugin({ manifest: metadata('test.consumer', [], [Settings, DocumentStatistics, DocumentStatisticsChanged, Filesystem, Vault, ActiveDocument, ActiveScreen, Components, Themes, Localization].map(t => ({ kind: t.kind, id: t.id, range: '^' + t.version })), ['vault.access', 'filesystem.access', 'ui.dom']), activate(ctx) {
-    api = { ctx, settings: ctx.use(Settings), statistics: ctx.use(DocumentStatistics), fs: ctx.use(Filesystem), vault: ctx.use(Vault), documents: ctx.use(ActiveDocument), screens: ctx.use(ActiveScreen), components: ctx.use(Components), themes: ctx.use(Themes), language: ctx.use(Localization) };
+  kernel.register(definePlugin({ manifest: metadata('test.consumer', [], [...(options.backlinks ? [Backlinks, DocumentContent] : []), Settings, DocumentStatistics, DocumentStatisticsChanged, Filesystem, Vault, ActiveDocument, ActiveScreen, Components, Themes, Localization].map(t => ({ kind: t.kind, id: t.id, range: '^' + t.version })), ['vault.access', 'filesystem.access', 'ui.dom']), activate(ctx) {
+    api = { ctx, ...(options.backlinks ? { backlinks: ctx.use(Backlinks), documentContent: ctx.use(DocumentContent) } : {}), settings: ctx.use(Settings), statistics: ctx.use(DocumentStatistics), fs: ctx.use(Filesystem), vault: ctx.use(Vault), documents: ctx.use(ActiveDocument), screens: ctx.use(ActiveScreen), components: ctx.use(Components), themes: ctx.use(Themes), language: ctx.use(Localization) };
   } }));
   for (const [id, grants] of Object.entries({ 'test.driver': ['filesystem.native'], 'lunaris.filesystem-provider': ['filesystem.access', 'filesystem.app-config'], 'lunaris.vault-manager': ['filesystem.access'], 'lunaris.active-document-provider': ['vault.access', 'config.access', 'filesystem.access'], 'lunaris.active-screen-provider': ['vault.access'], [screenHost.manifest.id]: ['ui.dom'], 'lunaris.component-provider': ['ui.dom'], 'lunaris.mantine-components': ['ui.dom'], 'lunaris.context-menu-provider': ['ui.dom'], 'lunaris.text-editor': ['clipboard.access', 'ui.dom', 'vault.access', 'filesystem.access'], 'test.consumer': ['vault.access', 'filesystem.access', 'ui.dom'] })) for (const grant of grants) kernel.grant(id, grant);
   kernel.grant(closeGuard.plugin.manifest.id, 'vault.access');
@@ -135,8 +141,10 @@ async function setup(options = {}) {
   kernel.grant(screenHost.manifest.id, 'filesystem.access');
   kernel.grant(editor.manifest.id, 'config.access');
   if(options.drafts) kernel.grant(editor.manifest.id,'drafts.access');
+  if (options.backlinks) for (const plugin of [backlinkIndex, backlinksUI]) for (const grant of plugin.manifest.permissions) kernel.grant(plugin.manifest.id, grant);
   await kernel.start('test.consumer'); await kernel.start(mantine.manifest.id); await kernel.start(screenHost.manifest.id); await kernel.start(editor.manifest.id); await kernel.start(closeGuard.plugin.manifest.id);
   await api.vault.open(); await flush();
+  if (options.backlinks) { await kernel.start(backlinksUI.manifest.id); await api.backlinks.refresh(); }
   let editorTarget = target;
   if (options.withLayout) {
     let regions;
@@ -1145,3 +1153,40 @@ test('editor title rejects empty names and path separators without moving the fi
  }finally{await s.stop();}
 });
 
+
+
+test('backlinks compose with editor buffers, footer, pinned screen and undoable linking', async () => {
+  const s = await setup({ backlinks: true, withLayout: true });
+  try {
+    s.disk.set('a/note.md', { text: '---\naliases: [Idea]\n---\n# Note', version: 'v1' });
+    s.disk.set('a/other.md', { text: 'A [[note]] and Idea in context.', version: 'v1' });
+    s.edit('---\naliases: [Idea]\n---\n# Note'); await flush(); await s.backlinks.refresh();
+    const target = {vaultId:'a',path:'note.md'};
+    assert.equal(s.backlinks.query(target).linked[0].mentions.length,1);
+    assert.equal(s.backlinks.query(target).unlinked[0].mentions.length,1);
+    const panel = s.target.querySelector('.lm-workspace-panel') ?? s.target.ownerDocument.createElement('div');
+    if (!panel.isConnected) s.target.append(panel);
+    const mounted = s.components.mount('lunaris.backlinks-host', panel, {}, s.ctx.signal); assert.equal(mounted.ok,true); await flush();
+    const root = panel.querySelector('.lm-backlinks'); assert.ok(root);
+    assert.equal(root.closest('.lm-root').style.backgroundColor,'transparent');
+    root.querySelector('[aria-label="Show search filter"]').click(); await flush();
+    assert.ok(root.querySelector('input[aria-label="Search mentions"]'));
+    root.querySelector('[aria-label="Sort order"]').click(); await flush();
+    assert.ok(root.querySelector('[role="listbox"]')); assert.equal(root.querySelector('select'),null);
+    root.querySelector('[aria-label="Backlinks in document"]').click(); await flush();
+    assert.ok(s.target.querySelector('.lm-text-editor .lm-backlinks[data-inline="true"]'));
+    root.querySelector('[aria-label="Open backlinks for this note"]').click(); await flush();
+    assert.ok(s.screens.snapshot().activeId.includes('pinned'));
+    const snapshot=s.backlinks.query(target); const source=snapshot.unlinked[0]; const occurrence=source.mentions[0];
+    assert.equal((await s.backlinks.link(target, source.source, occurrence, source.text)).ok,true); await flush();
+    assert.equal(s.documents.current().path,'other.md');
+    assert.equal(s.cm().state.doc.toString(),'A [[note]] and [[note|Idea]] in context.');
+    undo(s.cm()); await flush(); assert.equal(s.cm().state.doc.toString(),source.text);
+    assert.equal((await s.documentContent.reveal(source.source,occurrence,source.text.replace('Idea','Word'))).error.code,'CONFLICT');
+    assert.equal((await s.documentContent.reveal(source.source,occurrence,source.text)).ok,true);
+    assert.equal(s.cm().state.selection.main.from,occurrence.from);
+    await s.vault.open(); await s.showVault('b'); await s.backlinks.refresh();
+    assert.equal(s.backlinks.query(target).linked.length,0);
+    mounted.value.dispose();
+  } finally { await s.stop(); }
+});

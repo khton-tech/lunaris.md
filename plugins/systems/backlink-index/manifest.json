@@ -1,0 +1,67 @@
+{
+  "manifestVersion": 1,
+  "id": "lunaris.backlink-index",
+  "version": "0.1.0",
+  "engine": "^0.1.0",
+  "sdk": "^0.1.0",
+  "entry": "./dist/src/index.js",
+  "provides": [
+    {
+      "kind": "api",
+      "id": "lunaris.backlinks",
+      "version": "1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.backlinks-changed",
+      "version": "1.0.0"
+    }
+  ],
+  "requires": [
+    {
+      "kind": "api",
+      "id": "lunaris.logger",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.filesystem",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.filesystem-observation",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.filesystem-changed",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.vault",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.vault-changed",
+      "range": "^1.1.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.document-content",
+      "range": "^1.0.0"
+    },
+    {
+      "kind": "event",
+      "id": "lunaris.document-content-changed",
+      "range": "^1.0.0"
+    }
+  ],
+  "permissions": [
+    "vault.access",
+    "filesystem.access"
+  ],
+  "optionalPermissions": []
+}

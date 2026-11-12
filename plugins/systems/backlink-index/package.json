@@ -1,0 +1,25 @@
+{
+  "name": "@lunaris/backlink-index",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "import": "./dist/src/index.js"
+    }
+  },
+  "dependencies": {
+    "@lunaris/sdk": "0.1.0",
+    "@lunaris/backlinks": "0.1.0",
+    "@lunaris/logging": "0.1.0",
+    "@lunaris/filesystem": "0.1.0",
+    "@lunaris/vault": "0.1.0",
+    "@lunaris/active-document": "0.1.0",
+    "@lezer/markdown": "1.8.1",
+    "yaml": "2.8.2"
+  },
+  "scripts": {
+    "build": "tsc -b"
+  }
+}

@@ -1328,3 +1328,7 @@ short/narrow windows, both themes, keyboard focus and interrupted disclosure.
 ## Editor footer allocation
 
 The text-editor role accepts optional onFooterTarget(target|null), exposing an editor-owned content-width allocation below the text. TextEditor mounts SDK DocumentFooters contributions here. The allocation inherits the document surface and scroll viewport. Native visual acceptance remains manual.
+
+## Backlinks role
+
+`lunaris.backlinks` renders localized linked/unlinked source groups, range-opening and linking callbacks, collapse/context/filter controls, themed SettingsSelect sort options, fixed-note and inline actions. Source groups contain id/title/count and mentions with id/before/match/after/line/onOpen/optional onLink. The controller owns data and actions; this role owns only controls and internal spacing. Explicit inline and presentation props preserve Workspace or TextEditor surface ownership. The reference is Files/Settings tool navigation; native acceptance is pending per the backlinks UI checklist.

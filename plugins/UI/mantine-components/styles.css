@@ -1029,3 +1029,18 @@
 @media(prefers-reduced-motion:reduce) {
  .lm-account-access .mantine-Loader-root::after,.lm-account-access .mantine-Loader-root::before { animation:none }
 }
+
+/* Backlinks borrow the tool panel or editor footer surface. */
+.lm-backlinks{display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;max-width:100%;background:transparent}
+.lm-backlinks[data-inline=true]{flex:0 0 auto;margin-block:var(--vault-space,12px)}
+.lm-backlink-results{overflow:hidden auto;min-height:0;scrollbar-width:none}
+.lm-backlinks[data-inline=true] .lm-backlink-results{overflow:visible}
+.lm-backlink-heading{display:flex;align-items:center;gap:6px;width:100%;padding:6px 8px;text-align:start;border-radius:var(--vault-radius-small,4px)}
+.lm-backlink-heading:hover,.lm-backlink-context:hover{background:var(--vault-hover)}
+.lm-backlink-source{padding-inline-start:8px}
+.lm-backlink-result{padding:2px 8px 6px 20px}
+.lm-backlink-context{display:block;width:100%;padding:4px;text-align:start;white-space:pre-wrap;overflow-wrap:anywhere;font-size:var(--lm-ui-font-size,13px);line-height:1.5;border-radius:var(--vault-radius-small,4px)}
+.lm-backlink-context mark{background:var(--vault-selection);color:var(--vault-accent);border-radius:2px}
+.lm-backlink-context:disabled{cursor:default}
+.lm-backlink-context:disabled:hover{background:transparent}
+.lm-backlinks button[aria-pressed=true]{color:var(--vault-accent);background:var(--vault-selection)}
