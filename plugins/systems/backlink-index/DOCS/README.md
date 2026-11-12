@@ -40,3 +40,5 @@ Run `npm run backlinks:check`. Tests cover syntax, ambiguity, aliases, Unicode,
 stale edits, live buffers, exclusions, deletion, failure recovery, Vault races and
 watch cleanup. Integration with TextEditor and the application graph is complete;
 native visual acceptance belongs to the UI plugin checklist.
+
+YAML property scalar values also contribute explicit wikilinks with original source offsets. YAML keys/comments and plain metadata values are excluded from unlinked mentions. Dotted note names retain their full stem during resolution.

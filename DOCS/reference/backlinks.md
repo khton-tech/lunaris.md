@@ -57,3 +57,5 @@ UIKit and application-startup tests. No full repository suite is required.
 Native visual acceptance is pending. Follow the UI plugin checklist before
 claiming complete visual integration. This feature branch must not be merged
 without explicit Owner approval.
+
+YAML property scalar values also contribute explicit wikilinks with original source offsets. YAML keys/comments and plain metadata values are excluded from unlinked mentions. Dotted note names retain their full stem during resolution.

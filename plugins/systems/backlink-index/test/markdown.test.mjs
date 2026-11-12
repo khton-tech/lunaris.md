@@ -41,3 +41,14 @@ test('escaped wikilinks and external links do not resolve', () => {
   assert.equal(parseNote('\\[[Note]]').links.length,0);
   assert.equal(resolveLink({destination:'//example.com/Note',wiki:false},'source.md',['Note.md']),null);
 });
+test('property links retain their source offsets and ignore YAML comments', () => {
+  const text='---\r\nrelated: "[[Note#Heading|alias]]"\r\n# [[Ignored]]\r\naliases: [Idea]\r\n---\r\nBody';
+  const note=parseNote(text); assert.equal(note.links.length,1);
+  const link=note.links[0];assert.equal(text.slice(link.from,link.to),'[[Note#Heading|alias]]');
+  assert.equal(unlinked(note,['Idea']).length,0);
+});
+test('dotted note names resolve and wiki-looking link titles keep their actual destination', () => {
+  assert.equal(resolveLink({destination:'Project.v2',wiki:true},'Source.md',['Project.v2.md']),'Project.v2.md');
+  const note=parseNote('[label](Other.md "[[Note]]")');
+  assert.deepEqual(note.links.map(link=>link.destination),['Other.md']);
+});

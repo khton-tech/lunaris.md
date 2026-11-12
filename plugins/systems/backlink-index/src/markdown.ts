@@ -1,5 +1,5 @@
 import { parser } from "@lezer/markdown";
-import { parseDocument } from "yaml";
+import { parseDocument, visit } from "yaml";
 import type { Mention } from "@lunaris/backlinks";
 
 interface Span { from: number; to: number }
@@ -26,12 +26,21 @@ export function parseNote(text: string): ParsedNote {
         const data = doc.toJS({ maxAliasCount: 20 }) as { aliases?: unknown; alias?: unknown } | null;
         const values = data?.aliases ?? data?.alias;
         aliases = (Array.isArray(values) ? values : typeof values === "string" ? [values] : []).filter((v): v is string => typeof v === "string" && !!v.trim()).map(v => v.trim());
+        const offset = text.indexOf("\n") + 1;
+        visit(doc, { Scalar(key, node) {
+          if (key === "key" || typeof node.value !== "string" || !node.range) return;
+          const raw = front[1]!.slice(node.range[0], node.range[1]);
+          for (const match of raw.matchAll(/!?\[\[([^\]\r\n]+)\]\]/g)) {
+            const from = offset + node.range[0] + match.index;
+            links.push({ from, to: from + match[0].length, destination: match[1]!.split("|")[0]!.trim(), wiki: true });
+          }
+        } });
       }
     } catch { /* Invalid metadata does not prevent indexing the Markdown body. */ }
   }
   for (const m of text.matchAll(/%%[\s\S]*?(?:%%|$)/g)) excluded.push({ from: m.index, to: m.index + m[0].length });
   for (const m of text.matchAll(/<!--[\s\S]*?(?:-->|$)/g)) excluded.push({ from: m.index, to: m.index + m[0].length });
-  const tree = parser.parse(text); const linkNodes: Span[] = []; const definitions = new Map<string, string>();
+  const tree = parser.parse(text); const linkNodes: Span[] = []; const inlineLinks: Span[] = []; const definitions = new Map<string, string>();
   tree.iterate({ enter(node) {
     if (overlaps(excluded, node.from, node.to) && excluded.some(r => r.from <= node.from && r.to >= node.to)) return false;
     if (["FencedCode", "CodeBlock", "InlineCode", "Comment", "HTMLBlock"].includes(node.name)) {
@@ -43,13 +52,14 @@ export function parseNote(text: string): ParsedNote {
       excluded.push({ from: node.from, to: node.to }); return false;
     }
     if (node.name === "Link" || node.name === "Image" || node.name === "Autolink") {
+      if (node.node.getChild("URL")) inlineLinks.push({ from: node.from, to: node.to });
       linkNodes.push({ from: node.from, to: node.to }); return false;
     }
     return;
   } });
   for (const m of text.matchAll(/!?\[\[([^\]\r\n]+)\]\]/g)) {
     const from = m.index; const to = from + m[0].length;
-    if (escaped(text, from) || overlaps(excluded, from, to)) continue;
+    if (escaped(text, from) || overlaps(excluded, from, to) || overlaps(inlineLinks, from, to)) continue;
     links.push({ from, to, destination: m[1]!.split("|")[0]!.trim(), wiki: true }); excluded.push({ from, to });
   }
   for (const span of linkNodes) {
@@ -85,7 +95,7 @@ export function resolveLink(link: NoteLink, source: string, paths: readonly stri
   try { destination = decodeURIComponent(destination); } catch { return null; }
   destination = destination.replace(/\\([()\[\] #])/g, "$1");
   if (!destination) return source;
-  if (!/\.[^/]+$/.test(destination)) destination += ".md";
+  if (!/\.md$/i.test(destination)) destination += ".md";
   const parent = source.slice(0, Math.max(0, source.lastIndexOf("/")));
   const relative = normalize(parent + "/" + destination);
   const root = normalize(destination);
