@@ -42,12 +42,15 @@ Touch-first editing uses native caret and selection rendering, including the
 platform's selection handles and context actions. Desktop retains the CodeMirror
 selection layers and product menu. When the virtual keyboard changes the visible
 viewport, or the user edits or moves a collapsed caret while it is open,
-CodeMirror keeps the active line within the visible part of its scroller. In
-compact layout it uses the shared title/body viewport provided by `onTarget`
-in the public editor role. Selection gestures with an extended range and manual
-scrolling remain under the user's control. Integration uses Components and the
-existing ContextMenu contract. Verify selection handles, copy/paste, typing at the
-end of a long document and keyboard dismissal on physical iOS and Android devices.
+CodeMirror scrolls the caret to 55% of the visible editor height when the scroll
+range allows it. The reference is the Owner's Android screenshot with the final
+line against the keyboard. CodeMirror adds temporary trailing padding inside its
+content to give the last line room to reach that position. In compact layout it
+uses the shared title/body viewport provided by `onTarget` in the public editor
+role. Workspace retains outer geometry. Selection gestures with an extended
+range and manual scrolling remain under the user's control. Integration uses
+Components and the existing ContextMenu contract. Verify alignment while typing
+at the end of a note and after dismissing the keyboard on physical devices.
 
 ## Usage and saving
 

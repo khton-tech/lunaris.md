@@ -951,7 +951,7 @@ async function editorMenu(s) {
  view.dom.dispatchEvent(new s.dom.window.MouseEvent('contextmenu',{bubbles:true,cancelable:true,clientX:20,clientY:20}));await flush();
  return label => s.dom.window.document.querySelector('[role=menuitem][aria-label="'+label+'"]');
 }
-test('touch editor preserves native selection and follows the caret above the keyboard', async () => {
+test('touch editor centers the caret at the end of the note and preserves native selection', async () => {
   const s = await setup({ initial: 'Hello world', mobile: true });
   const { window } = s.dom;
   const frame = () => new Promise(resolve => window.requestAnimationFrame(resolve));
@@ -961,7 +961,19 @@ test('touch editor preserves native selection and follows the caret above the ke
     scroll.getBoundingClientRect = () => new window.DOMRect(0, 40, 360, 680);
     view.scrollDOM.style.overflowY = 'visible';
     let caretTop = 540;
-    view.coordsAtPos = () => new window.DOMRect(100, caretTop, 1, 10);
+    let documentBottom = 550;
+    let scrollTop = 0;
+    const keyboardPadding = () => view.dom.style.getPropertyValue('--editor-keyboard-padding');
+    // Model the real scroller clamping at the end of the note.
+    Object.defineProperty(scroll, 'scrollTop', {
+      get: () => scrollTop,
+      set: value => {
+        const padding = Math.max(34, parseInt(keyboardPadding(), 10) || 0);
+        scrollTop = Math.max(0, Math.min(value, documentBottom + padding - 720));
+      },
+    });
+    view.coordsAtPos = () => new window.DOMRect(100, caretTop - scrollTop, 1, 10);
+    view.dispatch({ selection: { anchor: view.state.doc.length } });
     view.focus();
     assert.equal(view.dom.hasAttribute('data-native-selection'), true);
     assert.equal(view.dom.querySelector('.cm-selectionLayer'), null);
@@ -970,38 +982,43 @@ test('touch editor preserves native selection and follows the caret above the ke
     Object.assign(window.visualViewport, { height: 390, offsetTop: 90 });
     window.visualViewport.dispatchEvent(new window.Event('resize'));
     await frame(); await frame();
-    assert.equal(scroll.scrollTop, 82);
+    assert.equal(keyboardPadding(), '416px');
+    const caretIsCentered = () => assert.ok(Math.abs(caretTop - scrollTop + 5 - 304.5) <= 0.5);
+    caretIsCentered();
     assert.equal(view.scrollDOM.scrollTop, 0);
 
-    caretTop = 495;
-    view.dispatch({ changes: { from: 0, insert: '!' }, selection: { anchor: 1 } });
+    caretTop = 562;
+    documentBottom = 572;
+    const end = view.state.doc.length;
+    view.dispatch({ changes: { from: end, insert: '\n' }, selection: { anchor: end + 1 } });
     await frame();
-    assert.equal(scroll.scrollTop, 119);
-    caretTop = 220;
+    caretIsCentered();
+    caretTop = 430;
     view.dispatch({ selection: { anchor: 2 } });
     await frame();
-    assert.equal(scroll.scrollTop, 119);
+    caretIsCentered();
+
+    scroll.scrollTop = 100;
+    scroll.dispatchEvent(new window.Event('scroll'));
+    await frame();
+    assert.equal(scroll.scrollTop, 100);
 
     caretTop = 520;
     view.dispatch({ selection: { anchor: 1, head: 6 } });
     assert.equal(view.contentDOM.dispatchEvent(new window.MouseEvent('contextmenu', { bubbles: true, cancelable: true })), true);
     assert.equal(view.contentDOM.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'F10', shiftKey: true, bubbles: true, cancelable: true })), true);
     await frame();
-    assert.equal(scroll.scrollTop, 119);
+    assert.equal(scroll.scrollTop, 100);
     assert.equal(view.state.selection.main.head, 6);
     assert.equal(window.document.querySelector('[data-lunaris-context-menu]'), null);
 
-    caretTop = 65;
-    view.dispatch({ selection: { anchor: 4 } });
-    await frame();
-    assert.equal(scroll.scrollTop, 82);
-
     Object.assign(window.visualViewport, { height: 720, offsetTop: 0 });
     window.visualViewport.dispatchEvent(new window.Event('resize'));
-    await frame();
+    await frame(); await frame();
+    assert.equal(keyboardPadding(), '');
     view.dispatch({ selection: { anchor: 6 } });
     await frame();
-    assert.equal(scroll.scrollTop, 82);
+    assert.equal(scroll.scrollTop, 100);
   } finally { await s.stop(); }
 });
 test('editor island formats the invocation selection, opens headings and preserves undo',async()=>{
