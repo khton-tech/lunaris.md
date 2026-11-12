@@ -8,7 +8,7 @@ system provider, not a native driver: all I/O uses Filesystem and DocumentConten
 
 ## Contracts
 
-Provides Backlinks and BacklinksChanged; see `packages/backlinks/DOCS/README.md`.
+Provides Backlinks, BacklinksChanged, NoteLinks and NoteLinksChanged; see `packages/backlinks/DOCS/README.md`.
 Requires Logger, Filesystem, FilesystemObservation, Vault and DocumentContent.
 Subscribes to FileChanged, VaultChanged and DocumentContentChanged.
 
@@ -23,8 +23,11 @@ path ordering as a final tie-breaker. External URLs are never backlinks.
 
 Recursive enumeration ignores dot-prefixed entries and does not follow symlinks.
 Unchanged files reuse parsed metadata. Dirty paths force re-reading. Loaded live
-buffers override disk snapshots. Queries are cached until invalidation, with a
-32-entry bound. A provider-owned recursive watch follows scope cancellation;
+buffers override disk snapshots. Queries retain per-source results across text
+invalidations, with a 32-query bound. Editing a note body reuses unchanged source
+mentions. Alias changes recompute mentions, and path membership changes rebuild
+the shared exact/case-insensitive/suffix resolver and query results. Identical
+scans retain snapshots and publish no invalidation. A provider-owned recursive watch follows scope cancellation;
 without a watch, reconciliation runs every five seconds. Refresh forces reads.
 Vault generations discard late results. Failures retain available results and
 report degraded state, rather than falsely claiming the Vault has no backlinks.
@@ -49,4 +52,4 @@ Also provides NoteLinks (1.0): parse(text) and resolve(source, link). The docume
 
 `NoteLinks.parse` exposes the visible wikilink label range separately from its destination. `resolve` accepts an optional `createFromSource` snapshot to create a missing wikilink target through Filesystem. Bare names use the source folder. Explicit paths use the Vault root unless they start with `./` or `../`. Missing parent folders are created as needed. The write uses exclusive creation, and the index refreshes before returning the target.
 
-`NoteLinks.missingTargets` reports source offsets of creatable wikilinks absent from a complete Vault listing. Consumers recheck on `BacklinksChanged`. A note that is listed but cannot be read still counts as present. An incomplete listing returns no missing offsets.
+`NoteLinks.missingTargets` reports source offsets of creatable wikilinks absent from a complete Vault listing. Consumers recheck on `NoteLinksChanged`, which reports changes to path membership or listing completeness. Text edits publish `BacklinksChanged` independently, preserving live panels without invalidating every editor's missing-link decorations. A note that is listed but cannot be read still counts as present. An incomplete listing returns no missing offsets.

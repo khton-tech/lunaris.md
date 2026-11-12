@@ -1,0 +1,31 @@
+{
+  "node": "v26.13.0",
+  "paths": 2000,
+  "lookups": 2000,
+  "samples": [
+    {
+      "buildMs": 1.799,
+      "totalMs": 7.064
+    },
+    {
+      "buildMs": 0.945,
+      "totalMs": 4.983
+    },
+    {
+      "buildMs": 0.521,
+      "totalMs": 4.029
+    },
+    {
+      "buildMs": 0.529,
+      "totalMs": 3.979
+    },
+    {
+      "buildMs": 1.067,
+      "totalMs": 4.286
+    },
+    {
+      "buildMs": 0.785,
+      "totalMs": 4.676
+    }
+  ]
+}

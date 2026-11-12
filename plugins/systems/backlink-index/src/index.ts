@@ -1,25 +1,29 @@
 import { definePlugin } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
-import { Backlinks, BacklinksChanged, NoteLinks } from "@lunaris/backlinks";
+import { Backlinks, BacklinksChanged, NoteLinks, NoteLinksChanged } from "@lunaris/backlinks";
 import { anchorRange } from "./anchor.js";
 import type { MentionGroup, BacklinksSnapshot } from "@lunaris/backlinks";
 import { DocumentContent, DocumentContentChanged } from "@lunaris/active-document";
 import { Filesystem, FilesystemObservation, FileChanged, failure, validPath } from "@lunaris/filesystem";
 import { Vault, VaultChanged } from "@lunaris/vault";
-import { creationPath, parseNote, resolveLink, title, mention, unlinked } from "./markdown.js";
+import { creationPath, createLinkResolver, parseNote, title, mention, unlinked } from "./markdown.js";
 import type { ParsedNote } from "./markdown.js";
 import type { FileTarget } from "@lunaris/filesystem";
 import manifest from "../manifest.json" with { type: "json" };
 
 interface Entry { note: ParsedNote; modifiedAt: number | null; size: number }
+interface QuerySource { readonly entry: Entry; readonly linked: MentionGroup | undefined; readonly plain: MentionGroup | undefined }
+interface Query { readonly names: readonly string[]; sources: Map<string, QuerySource>; snapshot?: BacklinksSnapshot | undefined }
 export default definePlugin({ manifest, activate(ctx) {
   const logger = scopeLogger(ctx.use(Logger), ctx.signal); const fs = ctx.use(Filesystem);
   const observation = ctx.use(FilesystemObservation); let observer = ctx.scope.child();
   const vaults = ctx.use(Vault); const documents = ctx.use(DocumentContent);
   let vaultId = vaults.current()?.id ?? null; let entries = new Map<string, Entry>();
   let completeNotePaths: readonly string[] | undefined;
+  let resolveLink = createLinkResolver([]);
+  let resolveListedLink = createLinkResolver([]);
   let state: BacklinksSnapshot["state"] = "loading"; let failures = 0; let generation = 0;
-  const queries = new Map<string, BacklinksSnapshot>();
+  const queries = new Map<string, Query>();
   let pending: Promise<void> | undefined; let again = false; let timer: ReturnType<typeof setTimeout> | undefined;
   let observationRevision = 0;
   let watch: { vaultId: string; id: string } | undefined; const dirty = new Set<string>();
@@ -28,12 +32,20 @@ export default definePlugin({ manifest, activate(ctx) {
     if (ctx.signal.aborted) return;
     void ctx.events.emit(BacklinksChanged, { vaultId }).catch(error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot publish backlink changes", { error }); });
   }
-  function buffers(): void {
+  function emitPaths(): void {
     if (ctx.signal.aborted) return;
+    void ctx.events.emit(NoteLinksChanged, { vaultId }).catch(error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot publish note catalog changes", { error }); });
+  }
+  function invalidate(): void { for (const query of queries.values()) query.snapshot = undefined; }
+  function buffers(): boolean {
+    if (ctx.signal.aborted) return false;
+    let changed = false;
     for (const buffer of documents.buffers()) if (buffer.target.vaultId === vaultId) {
       const old = entries.get(buffer.target.path);
-      if (old && old.note.text !== buffer.text) { entries.set(buffer.target.path, { ...old, note: parseNote(buffer.text) }); queries.clear(); }
+      if (old && old.note.text !== buffer.text) { entries.set(buffer.target.path, { ...old, note: parseNote(buffer.text) }); changed = true; }
     }
+    if (changed) invalidate();
+    return changed;
   }
   async function scan(): Promise<void> {
     const id = vaultId; const epoch = generation; if (!id || ctx.signal.aborted) return;
@@ -61,7 +73,10 @@ export default definePlugin({ manifest, activate(ctx) {
           else {
             const read = await documents.read({ vaultId: id!, path: file.path });
             if (!alive(id, epoch)) return;
-            if (read.ok) next.set(file.path, { note: parseNote(read.value.text), modifiedAt: file.modifiedAt, size: file.size });
+            if (read.ok) {
+              const note = old?.note.text === read.value.text ? old.note : parseNote(read.value.text);
+              next.set(file.path, old && old.note === note && old.modifiedAt === file.modifiedAt && old.size === file.size ? old : { note, modifiedAt: file.modifiedAt, size: file.size });
+            }
             else { failed++; if (old) next.set(file.path, old); logger.warn(ctx.pluginId, "Cannot read backlink source", { error: read.error }); }
           }
         }
@@ -69,13 +84,23 @@ export default definePlugin({ manifest, activate(ctx) {
     }
     try {
       await walk(""); if (!alive(id, epoch)) return;
+      const listed = new Set(notePaths);
+      const catalogChanged = listingComplete !== (completeNotePaths !== undefined) || listingComplete &&
+        (completeNotePaths?.length !== listed.size || completeNotePaths.some(path => !listed.has(path)));
+      const pathsChanged = next.size !== entries.size || [...next.keys()].some(path => !entries.has(path));
+      let changed = pathsChanged || failed !== failures || state !== (failed ? "degraded" : "ready") || [...next].some(([path, entry]) => entries.get(path) !== entry);
       completeNotePaths = listingComplete ? notePaths : undefined;
-      entries = next; queries.clear(); buffers(); failures = failed; state = failed ? "degraded" : "ready";
-      logger.debug(ctx.pluginId, "Backlink index refreshed", { data: { files: entries.size, failures } }); emit();
+      if (catalogChanged) resolveListedLink = createLinkResolver(completeNotePaths ?? []);
+      if (pathsChanged) { resolveLink = createLinkResolver([...next.keys()]); queries.clear(); }
+      entries = next; changed = buffers() || changed; failures = failed; state = failed ? "degraded" : "ready";
+      if (changed) { invalidate(); emit(); }
+      if (catalogChanged) emitPaths();
+      logger.debug(ctx.pluginId, "Backlink index refreshed", { data: { files: entries.size, failures } });
     } catch (error) {
       if (!alive(id, epoch)) return;
-      completeNotePaths = undefined;
-      failures++; state = "degraded"; queries.clear(); logger.error(ctx.pluginId, "Backlink indexing failed", { error }); emit();
+      const hadCatalog = completeNotePaths !== undefined; completeNotePaths = undefined;
+      failures++; state = "degraded"; invalidate(); logger.error(ctx.pluginId, "Backlink indexing failed", { error }); emit();
+      if (hadCatalog) emitPaths();
     }
   }
   async function refresh(): Promise<void> {
@@ -89,22 +114,39 @@ export default definePlugin({ manifest, activate(ctx) {
   }
   function query(target: FileTarget, excludedPaths: readonly string[] = []): BacklinksSnapshot {
     if (target.vaultId !== vaultId) return { state: "ready", failures: 0, linked: [], unlinked: [] };
-    buffers(); const cacheKey = JSON.stringify([target.path, excludedPaths]); const cached = queries.get(cacheKey); if (cached) return cached;
-    const paths = [...entries.keys()]; const targetNote = entries.get(target.path);
+    buffers(); const cacheKey = JSON.stringify([target.path, excludedPaths]);
+    let cached = queries.get(cacheKey); if (cached?.snapshot) return cached.snapshot;
+    const targetNote = entries.get(target.path);
+    const names = targetNote ? [title(target.path), ...targetNote.note.aliases] : [];
+    if (!cached || names.length !== cached.names.length || names.some((name, index) => name !== cached!.names[index])) {
+      cached = { names, sources: new Map() };
+      if (queries.size >= 32) queries.clear(); queries.set(cacheKey, cached);
+    }
     const linked: MentionGroup[] = []; const plain: MentionGroup[] = [];
+    const sources = new Map<string, QuerySource>();
     for (const [path, entry] of entries) {
       if (path === target.path) continue;
-      const source = { vaultId: target.vaultId, path }; const note = entry.note;
-      const matches = note.links.filter(link => resolveLink(link, path, paths) === target.path).map(link => mention(note.text, link.from, link.to));
-      if (matches.length) linked.push({ source, text: note.text, modifiedAt: entry.modifiedAt, mentions: matches });
-      const excluded = excludedPaths.some(p => p && (path === p || path.startsWith(p.replace(/\/$/, "") + "/")));
-      if (!excluded && targetNote) {
-        const matches = unlinked(note, [title(target.path), ...targetNote.note.aliases]);
-        if (matches.length) plain.push({ source, text: note.text, modifiedAt: entry.modifiedAt, mentions: matches });
+      const previous = cached.sources.get(path);
+      if (previous?.entry === entry) {
+        sources.set(path, previous);
+        if (previous.linked) linked.push(previous.linked);
+        if (previous.plain) plain.push(previous.plain);
+        continue;
       }
+      const source = { vaultId: target.vaultId, path }; const note = entry.note;
+      const matches = note.links.filter(link => resolveLink(link, path) === target.path).map(link => mention(note.text, link.from, link.to));
+      const linkedGroup = matches.length ? { source, text: note.text, modifiedAt: entry.modifiedAt, mentions: matches } : undefined;
+      if (linkedGroup) linked.push(linkedGroup);
+      const excluded = excludedPaths.some(p => p && (path === p || path.startsWith(p.replace(/\/$/, "") + "/")));
+      let plainGroup: MentionGroup | undefined;
+      if (!excluded && targetNote) {
+        const matches = unlinked(note, names);
+        if (matches.length) { plainGroup = { source, text: note.text, modifiedAt: entry.modifiedAt, mentions: matches }; plain.push(plainGroup); }
+      }
+      sources.set(path, { entry, linked: linkedGroup, plain: plainGroup });
     }
     const snapshot = { state, failures, linked, unlinked: plain };
-    if (queries.size >= 32) queries.clear(); queries.set(cacheKey, snapshot); return snapshot;
+    cached.sources = sources; cached.snapshot = snapshot; return snapshot;
   }
   ctx.provide(NoteLinks, {
     parse: text => parseNote(text).links,
@@ -114,15 +156,15 @@ export default definePlugin({ manifest, activate(ctx) {
       return links.filter(link => {
         const candidate = creationPath(link, source.path);
         return validPath(candidate) && !candidate.split("/").some(part => part.startsWith("."))
-          && !resolveLink(link, source.path, paths);
+          && !resolveListedLink(link, source.path);
       }).map(link => link.from);
     },
     async resolve(source, link, options) {
       const epoch = generation;
       if (source.vaultId !== vaultId) return { ok: false, error: { code: "VAULT_CLOSED", message: "The source Vault is no longer active." } };
       const cancelled = () => failure("CANCELLED", "Link navigation cancelled.");
-      let path = resolveLink(link, source.path, [...entries.keys()]);
-      if (!path) { await refresh(); path = resolveLink(link, source.path, [...entries.keys()]); }
+      let path = resolveLink(link, source.path);
+      if (!path) { await refresh(); path = resolveLink(link, source.path); }
       if (!alive(source.vaultId, epoch)) return cancelled();
       let created = false;
       if (!path && options && link.wiki) {
@@ -188,8 +230,9 @@ export default definePlugin({ manifest, activate(ctx) {
   ctx.events.on(DocumentContentChanged, change => { if (change.target.vaultId === vaultId) { buffers(); emit(); } });
   ctx.events.on(VaultChanged, () => {
     completeNotePaths = undefined;
+    resolveLink = createLinkResolver([]); resolveListedLink = createLinkResolver([]);
     generation++; vaultId = vaults.current()?.id ?? null; entries.clear(); queries.clear(); dirty.clear(); failures = 0; state = vaultId ? "loading" : "ready";
-    emit(); schedule(); void observe().catch(error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot observe backlink sources", { error }); });
+    emit(); emitPaths(); schedule(); void observe().catch(error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot observe backlink sources", { error }); });
   });
   const poll = setInterval(() => { if (!watch) schedule(); }, 5000);
   ctx.scope.own({ dispose() { generation++; if (timer !== undefined) clearTimeout(timer); clearInterval(poll); entries.clear(); queries.clear(); } });

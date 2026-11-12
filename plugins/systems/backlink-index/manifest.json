@@ -17,6 +17,11 @@
       "version": "1.0.0"
     },
     {
+      "kind": "event",
+      "id": "lunaris.note-links-changed",
+      "version": "1.0.0"
+    },
+    {
       "kind": "api",
       "id": "lunaris.note-links",
       "version": "1.0.0"

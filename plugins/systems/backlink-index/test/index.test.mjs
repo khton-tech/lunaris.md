@@ -6,7 +6,7 @@ import { Logger } from '@lunaris/logging';
 import { Vault, VaultChanged } from '@lunaris/vault';
 import { Filesystem, FilesystemObservation, FileChanged, filesystemMethods } from '@lunaris/filesystem';
 import { DocumentContent, DocumentContentChanged } from '@lunaris/active-document';
-import { Backlinks, BacklinksChanged } from '@lunaris/backlinks';
+import { Backlinks, BacklinksChanged, NoteLinksChanged } from '@lunaris/backlinks';
 import plugin from '../dist/src/index.js';
 
 const ok = value => ({ok:true,value});
@@ -15,6 +15,7 @@ const flush = async () => { for(let i=0;i<5;i++) await new Promise(setImmediate)
 async function setup() {
   const kernel=createTestKernel(); const files=new Map([['note.md','---\naliases: [Idea]\n---\nNote'],['source.md','[[note]] Idea']]);
   const buffers=new Map(); let root={id:'a',name:'A'}; let events; let api; let nextRead; let deny=false; let watches=0;
+  const notifications = { backlinks: 0, paths: 0 };
   kernel.installMock(Logger,Object.fromEntries(['log','debug','info','warn','error'].map(name=>[name,()=>true])));
   kernel.installMock(Vault,{current:()=>root,open:async()=>ok(root),close:async()=>ok(null)});
   kernel.installMock(Filesystem,{...Object.fromEntries(filesystemMethods.map(name=>[name,async()=>fail('UNSUPPORTED')])),
@@ -30,10 +31,14 @@ async function setup() {
   const metadata=(id,provides,requires)=>({manifestVersion:1,id,version:'0.1.0',engine:'^0.1.0',sdk:'^0.1.0',entry:'./index.js',provides,requires,permissions:['vault.access','filesystem.access'],optionalPermissions:[]});
   kernel.register(definePlugin({manifest:metadata('test.events',[VaultChanged,DocumentContentChanged,FileChanged].map(t=>({kind:'event',id:t.id,version:t.version})),[]),activate(ctx){events=ctx;}}));
   kernel.register(plugin);
-  kernel.register(definePlugin({manifest:metadata('test.consumer',[],[Backlinks,BacklinksChanged].map(t=>({kind:t.kind,id:t.id,range:'^'+t.version}))),activate(ctx){api=ctx.use(Backlinks);}}));
+  kernel.register(definePlugin({manifest:metadata('test.consumer',[],[Backlinks,BacklinksChanged,NoteLinksChanged].map(t=>({kind:t.kind,id:t.id,range:'^'+t.version}))),activate(ctx){
+    api=ctx.use(Backlinks);
+    ctx.events.on(BacklinksChanged, () => { notifications.backlinks++; });
+    ctx.events.on(NoteLinksChanged, () => { notifications.paths++; });
+  }}));
   for(const id of ['test.events','test.consumer',plugin.manifest.id])for(const permission of ['vault.access','filesystem.access'])kernel.grant(id,permission);
   await kernel.start('test.consumer');await api.refresh();await flush();
-  return {api,files,buffers,kernel,deny:()=>{deny=true;},delay:promise=>{nextRead=promise;},
+  return {api,files,buffers,kernel,notifications,events,deny:()=>{deny=true;},delay:promise=>{nextRead=promise;},
     async edit(path,text){buffers.set(path,text);await events.events.emit(DocumentContentChanged,{target:{vaultId:root.id,path}});},
     async switchVault(){const previous=root;root={id:'b',name:'B'};files.clear();buffers.clear();await events.events.emit(VaultChanged,{kind:'switched',previous,current:root});},
     async stop(){await kernel.stopAll();kernel.assertNoResources();assert.equal(watches,0);assert.ok(!kernel.diagnostics().some(d=>d.code==='CLEANUP_FAILED'));},
@@ -59,4 +64,46 @@ test('a stale asynchronous scan cannot repopulate the next vault',async()=>{
     await s.switchVault();release();await refreshing;await s.api.refresh();
     assert.equal(s.api.query(target).linked.length,0);assert.equal(s.api.query({vaultId:'b',path:'note.md'}).linked.length,0);
   }finally{await s.stop();}
+});
+
+test('content changes reuse unchanged source results and preserve catalog subscribers', async () => {
+  const s = await setup();
+  try {
+    const before = s.api.query(target);
+    const paths = s.notifications.paths;
+    await s.edit('note.md', '---\naliases: [Idea]\n---\nNote edited');
+    const after = s.api.query(target);
+    assert.equal(after.linked[0], before.linked[0], 'typing the target does not recompute unchanged incoming links');
+    assert.equal(after.unlinked[0], before.unlinked[0], 'unchanged aliases reuse source mentions');
+    assert.equal(s.notifications.paths, paths, 'text invalidations must not refresh missing-link decorations');
+    await s.edit('note.md', '---\naliases: [Other]\n---\nNote edited');
+    assert.equal(s.api.query(target).unlinked.length, 0, 'alias changes recompute unlinked mentions');
+    const backlinks = s.notifications.backlinks;
+    s.buffers.set('source.md', '[[note]] fresh');
+    assert.equal(s.api.query(target).linked[0].text, '[[note]] fresh');
+    await s.events.events.emit(DocumentContentChanged, { target: { vaultId: 'a', path: 'source.md' } });
+    assert.equal(s.notifications.backlinks, backlinks + 1, 'an early query must not consume the content notification');
+  } finally { await s.stop(); }
+});
+
+test('identical scans keep snapshots stable while path and completeness changes notify link views', async () => {
+  const s = await setup();
+  try {
+    const snapshot = s.api.query(target);
+    const before = { ...s.notifications };
+    await s.api.refresh();
+    assert.equal(s.api.query(target), snapshot);
+    assert.deepEqual(s.notifications, before);
+    s.files.set('new.md', '[[note]]');
+    await s.api.refresh();
+    assert.equal(s.notifications.paths, before.paths + 1);
+    assert.equal(s.api.query(target).linked.length, 2);
+    s.files.delete('new.md');
+    await s.api.refresh();
+    assert.equal(s.notifications.paths, before.paths + 2);
+    assert.equal(s.api.query(target).linked.length, 1);
+    s.deny(); await s.api.refresh();
+    assert.equal(s.notifications.paths, before.paths + 3, 'an incomplete listing invalidates missing-link certainty');
+    assert.equal(s.api.query(target).state, 'degraded');
+  } finally { await s.stop(); }
 });

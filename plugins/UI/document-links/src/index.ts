@@ -1,17 +1,17 @@
 import { definePlugin } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
 import { EditorExtensions } from "@lunaris/editor";
-import { BacklinksChanged, NoteLinks } from "@lunaris/backlinks";
+import { NoteLinksChanged, NoteLinks } from "@lunaris/backlinks";
 import { ActiveDocument, DocumentContent } from "@lunaris/active-document";
 import { ExternalLinks } from "@lunaris/external-links";
 import { linkInteraction, wikiPreview } from "./extension.js";
 
 export default definePlugin({ manifest: { manifestVersion: 1, id: "lunaris.document-links", version: "0.1.0", engine: "^0.1.0", sdk: "^0.1.0", entry: "./dist/src/index.js",
-  provides: [], requires: [Logger, EditorExtensions, NoteLinks, ActiveDocument, DocumentContent, ExternalLinks, BacklinksChanged].map(token => ({ kind: token.kind, id: token.id, range: "^1.0.0" })), permissions: ["ui.dom", "vault.access", "links.open"], optionalPermissions: [] }, activate(ctx) {
+  provides: [], requires: [Logger, EditorExtensions, NoteLinks, ActiveDocument, DocumentContent, ExternalLinks, NoteLinksChanged].map(token => ({ kind: token.kind, id: token.id, range: "^1.0.0" })), permissions: ["ui.dom", "vault.access", "links.open"], optionalPermissions: [] }, activate(ctx) {
   const logger = scopeLogger(ctx.use(Logger), ctx.signal); const editor = ctx.use(EditorExtensions); const links = ctx.use(NoteLinks);
   const documents = ctx.use(ActiveDocument); const content = ctx.use(DocumentContent); const external = ctx.use(ExternalLinks);
   const linkViews = new Set<() => void>();
-  ctx.events.on(BacklinksChanged, () => {
+  ctx.events.on(NoteLinksChanged, () => {
     queueMicrotask(() => {
       if (!ctx.signal.aborted) for (const refresh of linkViews) refresh();
     });

@@ -138,25 +138,49 @@ export function creationPath(link: NoteLink, source: string): string | null {
   return normalize(parentPath(source) + "/" + destination);
 }
 
-/** Resolve paths against the source before basename fallback; exact spelling wins. */
-export function resolveLink(link: NoteLink, source: string, paths: readonly string[]): string | null {
-  const destination = notePath(link);
-  if (destination === null) return null;
-  if (!destination) return source;
-  const parent = parentPath(source);
-  const relative = normalize(parent + "/" + destination);
-  const root = normalize(destination);
-  const exact = (candidate: string | null) => candidate === null ? undefined : paths.find(p => p === candidate) ?? paths.find(p => p.toLowerCase() === candidate.toLowerCase());
-  const direct = destination.startsWith("/") ? exact(root) : link.wiki
-    ? destination.includes("/") ? exact(root) ?? exact(relative) : exact(relative)
-    : exact(relative) ?? exact(root);
-  if (direct) return direct;
-  if (destination.startsWith(".") || destination.startsWith("/")) return null;
-  const suffix = "/" + destination.toLowerCase();
-  return paths.filter(p => ("/" + p.toLowerCase()).endsWith(suffix)).sort((a, b) => {
-    const proximity = (p: string) => { const aa = parent.split("/"); const bb = p.split("/"); let n = 0; while (n < aa.length && aa[n] === bb[n]) n++; return n; };
-    return proximity(b) - proximity(a) || a.localeCompare(b);
-  })[0] ?? null;
+/** Share exact, case-insensitive and suffix lookup tables for one path catalog. */
+export function createLinkResolver(paths: readonly string[]): (link: NoteLink, source: string) => string | null {
+  const exactPaths = new Set(paths);
+  const foldedPaths = new Map<string, string>();
+  const suffixPaths = new Map<string, string[]>();
+  for (const path of paths) {
+    const folded = path.toLowerCase();
+    if (!foldedPaths.has(folded)) foldedPaths.set(folded, path);
+    let offset = 0;
+    do {
+      const suffix = folded.slice(offset);
+      const matches = suffixPaths.get(suffix) ?? [];
+      matches.push(path); suffixPaths.set(suffix, matches);
+      const separator = folded.indexOf("/", offset);
+      offset = separator < 0 ? -1 : separator + 1;
+    } while (offset >= 0);
+  }
+  const exact = (candidate: string | null) => candidate === null ? undefined :
+    exactPaths.has(candidate) ? candidate : foldedPaths.get(candidate.toLowerCase());
+  return (link, source) => {
+    const destination = notePath(link);
+    if (destination === null) return null;
+    if (!destination) return source;
+    const parent = parentPath(source);
+    const relative = normalize(parent + "/" + destination);
+    const root = normalize(destination);
+    const direct = destination.startsWith("/") ? exact(root) : link.wiki
+      ? destination.includes("/") ? exact(root) ?? exact(relative) : exact(relative)
+      : exact(relative) ?? exact(root);
+    if (direct) return direct;
+    if (destination.startsWith(".") || destination.startsWith("/")) return null;
+    const candidates = suffixPaths.get(destination.toLowerCase()) ?? [];
+    const sourceParts = parent.split("/");
+    let best: string | null = null; let nearest = -1;
+    for (const path of candidates) {
+      const parts = path.split("/"); let proximity = 0;
+      while (proximity < sourceParts.length && sourceParts[proximity] === parts[proximity]) proximity++;
+      if (proximity > nearest || proximity === nearest && best !== null && path.localeCompare(best) < 0) {
+        best = path; nearest = proximity;
+      }
+    }
+    return best;
+  };
 }
 export function mention(text: string, from: number, to: number): Mention {
   const before = text.slice(0, from); const after = text.slice(to);

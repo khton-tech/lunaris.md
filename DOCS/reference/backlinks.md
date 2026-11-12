@@ -65,3 +65,17 @@ YAML property scalar values also contribute explicit wikilinks with original sou
 DocumentLinks now connects editor link clicks to the public NoteLinks and DocumentContent APIs; the Backlinks panel then follows the opened target. External links use the ExternalLinks provider and replaceable BrowserLinks/TauriLinks drivers. Markdown links, wikilinks, reference links and bare/angle web URLs are interactive outside code. Headings and block anchors are supported. Click/Enter activation, source freshness and CRLF offsets have integration coverage. Native browser launching still requires manual acceptance after a desktop restart.
 
 A click on a missing `[[note]]` or `[[note|Display name]]` creates and opens an empty Markdown note. The destination before `|` determines the file name. Live Preview shows the display name when supplied and exposes the source syntax when the focused selection touches the link.
+
+## Incremental updates
+
+BacklinksChanged invalidates mention views after buffer or index changes.
+NoteLinksChanged invalidates missing-link decorations only when the note path
+catalog or its completeness changes. DocumentLinks consumes the latter event.
+The index shares path lookup tables across navigation and mention queries and
+reuses unchanged source groups across body edits. Alias changes and path changes
+invalidate the relevant results. Unchanged reconciliation scans preserve cached
+snapshots. All active consumers are connected through these public SDK contracts.
+
+`node tools/scripts/benchmark-note-links.mjs` measures index construction plus
+2,000 verified resolutions over 2,000 paths. This is a local resolver benchmark.
+UI frame timing and native visual acceptance require a rendered application.

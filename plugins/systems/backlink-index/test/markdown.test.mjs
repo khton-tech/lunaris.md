@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { creationPath, parseNote, resolveLink, unlinked, mention } from '../dist/src/markdown.js';
+import { creationPath, parseNote, createLinkResolver, unlinked, mention } from '../dist/src/markdown.js';
+const resolveLink = (link, source, paths) => createLinkResolver(paths)(link, source);
 
 test('wikilink aliases preserve the destination and missing targets honor the source folder', () => {
   const text = '[[New note| Display ]] [[folder/note|Label]] [[../Parent]] [[#Heading/Part]] [[../../Outside]] [[/Folder/Note.md#Heading/Part]]';
@@ -59,4 +60,16 @@ test('dotted note names resolve and wiki-looking link titles keep their actual d
   assert.equal(resolveLink({destination:'Project.v2',wiki:true},'Source.md',['Project.v2.md']),'Project.v2.md');
   const note=parseNote('[label](Other.md "[[Note]]")');
   assert.deepEqual(note.links.map(link=>link.destination),['Other.md']);
+});
+
+test('indexed lookup preserves exact case, suffix ambiguity and source proximity', () => {
+  const resolve = createLinkResolver(['a/Note.md', 'b/Note.md', 'b/note.md', 'A.md', 'a.md', 'deep/b/Note.md']);
+  const link = destination => ({ destination, wiki: true });
+  assert.equal(resolve(link('note'), 'b/source.md'), 'b/note.md');
+  assert.equal(resolve(link('NOTE'), 'b/source.md'), 'b/Note.md');
+  assert.equal(resolve(link('b/Note'), 'deep/source.md'), 'b/Note.md');
+  assert.equal(resolve(link('Note'), 'deep/b/source.md'), 'deep/b/Note.md');
+  assert.equal(resolve(link('/a'), 'source.md'), 'a.md');
+  assert.equal(resolve(link('/A'), 'source.md'), 'A.md');
+  assert.equal(resolve(link('missing'), 'source.md'), null);
 });

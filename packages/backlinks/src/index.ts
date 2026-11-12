@@ -13,7 +13,7 @@ export interface NoteDestination { readonly target: FileTarget; readonly text: s
 /** Shared parsing/resolution keeps editor navigation and incoming-link indexing consistent. */
 export const NoteLinks = defineApi<{
   parse(text: string): readonly NoteLink[];
-  /** Source offsets of wikilinks whose note is absent from a complete Vault listing. Refresh on BacklinksChanged. */
+  /** Source offsets of wikilinks whose note is absent from a complete Vault listing. Refresh on NoteLinksChanged. */
   missingTargets(source: FileTarget, links: readonly NoteLink[]): readonly number[];
   /** Passing the displayed source explicitly allows creation of a missing wikilink target. */
   resolve(source: FileTarget, link: NoteLink, options?: { readonly createFromSource: string }): Promise<FsResult<NoteDestination>>;
@@ -49,4 +49,7 @@ export interface BacklinksApi {
 export const Backlinks = defineApi<BacklinksApi>({ id: "lunaris.backlinks", version: "1.0.0", consumePermission: "vault.access",
   validate: value => !!value && typeof value === "object" && ["query", "refresh", "link"].every(key => typeof Object.getOwnPropertyDescriptor(value, key)?.value === "function") });
 export const BacklinksChanged = defineEvent<{ readonly vaultId: string | null }>({ id: "lunaris.backlinks-changed", version: "1.0.0", consumePermission: "vault.access",
+  validate: value => !!value && typeof value === "object" && ((value as { vaultId?: unknown }).vaultId === null || typeof (value as { vaultId?: unknown }).vaultId === "string") });
+/** The note path catalog or its completeness changed. Text edits use BacklinksChanged. */
+export const NoteLinksChanged = defineEvent<{ readonly vaultId: string | null }>({ id: "lunaris.note-links-changed", version: "1.0.0", consumePermission: "vault.access",
   validate: value => !!value && typeof value === "object" && ((value as { vaultId?: unknown }).vaultId === null || typeof (value as { vaultId?: unknown }).vaultId === "string") });
