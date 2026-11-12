@@ -198,6 +198,58 @@ test('typing preserves footer mounts and skips unchanged footer updates', async 
   } finally { await s.stop(); }
 });
 
+test('creating from the real Explorer composes one tree entry, active tab and editable document', async () => {
+  const s = await setup({ backlinks: true, withLayout: true });
+  try {
+    const { default: explorer } = await import('@lunaris/file-explorer');
+    const { Sidebar, SidebarChanged } = await import('@lunaris/sidebar');
+    const { VaultHistory, VaultHistoryChanged } = await import('@lunaris/vault');
+    s.kernel.installMock(VaultHistory, { list: async () => ok([]), open: async () => fail('UNSUPPORTED') });
+    s.kernel.register(definePlugin({ manifest: metadata('test.history-events', [
+      { kind: 'event', id: VaultHistoryChanged.id, version: VaultHistoryChanged.version },
+    ]), activate() {} }));
+    const panel = s.target.querySelector('.lm-workspace-panel'); assert.ok(panel);
+    s.kernel.register(definePlugin({ manifest: metadata('test.explorer-panel', [], [Sidebar, SidebarChanged].map(token => ({
+      kind: token.kind, id: token.id, range: '^' + token.version,
+    }))), activate(ctx) {
+      const sidebar = ctx.use(Sidebar); let mounted;
+      const render = () => {
+        const tab = sidebar.snapshot().tabs.find(tab => tab.componentId === 'lunaris.file-explorer');
+        if (!tab) return;
+        const props = { ...tab.props, workspace: { vaultId: 'a', vaultName: 'A' }, presentation: { mode: 'embedded', sizing: 'fill' } };
+        const result = mounted ? mounted.update(props) : s.components.mount(tab.componentId, panel, props, ctx.signal);
+        assert.equal(result.ok, true);
+        mounted ??= result.value;
+      };
+      ctx.events.on(SidebarChanged, render); render();
+    } }));
+    s.kernel.register(explorer);
+    for (const permission of explorer.manifest.permissions) s.kernel.grant(explorer.manifest.id, permission);
+    await s.kernel.start('test.explorer-panel'); await s.kernel.start(explorer.manifest.id); await flush();
+    const layout = s.target.querySelector('.lm-workspace-layout');
+    const editorHost = s.target.querySelector('.lm-text-editor');
+    panel.querySelector('[aria-label="New file"]').click(); await flush();
+    const input = panel.querySelector('.lm-explorer-create input'); assert.ok(input);
+    typeInput(input, 'Created from Files'); await flush();
+    input.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    await flush(); await flush();
+    assert.deepEqual(s.documents.current(), { vaultId: 'a', path: 'Created from Files.md' });
+    assert.equal(s.calls.filter(call => call[0] === 'write' && call[1].path === 'Created from Files.md' && call[3].mode === 'create').length, 1);
+    assert.equal(panel.querySelectorAll('[title="Created from Files.md"]').length, 1);
+    assert.equal(panel.querySelector('.lm-explorer-create'), null);
+    assert.equal(s.target.querySelector('.lm-workspace-layout'), layout);
+    assert.equal(s.target.querySelector('.lm-text-editor'), editorHost);
+    assert.equal(s.target.querySelector('[role=tab][aria-selected=true]').textContent, 'Created from Files');
+    assert.equal(s.cm().state.doc.length, 0);
+    s.edit('New note content');
+    assert.equal((await s.documents.open({ vaultId: 'a', path: 'note.md' })).ok, true);
+    await flush();
+    assert.equal(s.disk.get('a/Created from Files.md').text, 'New note content');
+    assert.equal((await s.documents.open({ vaultId: 'a', path: 'Created from Files.md' })).ok, true);
+    await flush(); assert.equal(s.cm().state.sliceDoc(), 'New note content');
+  } finally { await s.stop(); }
+});
+
 test('switching after undo settles obsolete pending recovery before committing navigation', async () => {
   const entered = Promise.withResolvers(); const release = Promise.withResolvers(); let stored; let writes = 0;
   const s = await setup({ drafts: {
