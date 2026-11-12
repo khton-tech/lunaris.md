@@ -1,5 +1,15 @@
 # Mantine components
 
+## Theme update cost
+
+The adapter translates the current immutable Themes description once per
+selected definition and shares the result across its SDK-owned React roots.
+Content updates reuse the Mantine theme, token styles and CSS variables.
+Registering, updating or removing an unselected theme leaves mounted roots
+untouched. Selection, replacement of the selected definition and clearing still
+update every owned root through ThemeChanged. Region surface ownership and
+synchronous component update/error reporting stay with the existing roles.
+
 ## Compact layout and touch controls
 
 Reference: the Owner's mobile audit and the existing desktop Files, Settings

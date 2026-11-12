@@ -38,6 +38,24 @@ async function setup() {
 }
 const startup = { art: '<img src=x> ASCII', logoLabel: 'Lunaris', status: 'Loading' };
 
+test('unrelated theme registration leaves mounted roots untouched', async () => {
+  const s = await setup();
+  try {
+    await s.start();
+    const mounted = s.components.mount('lunaris.startup-screen', s.target, startup, s.ctx.signal);
+    assert.equal(mounted.ok, true);
+    await settle();
+    const observer = new s.dom.window.MutationObserver(() => {});
+    observer.observe(s.target, { attributes: true, childList: true, characterData: true, subtree: true });
+    s.themes.register({ id: 'test.unselected', name: 'Unused', properties: { colors: { text: '#abcdef' } } }, s.ctx.signal);
+    assert.equal(observer.takeRecords().length, 0, 'unselected registry changes must not render product roots');
+    observer.disconnect();
+    s.themes.select('test.unselected');
+    assert.equal(s.target.querySelector('.lm-root').style.backgroundColor, 'transparent');
+    assert.equal(s.target.querySelector('[style*="--vault-text"]').style.getPropertyValue('--vault-text'), '#abcdef');
+  } finally { await s.stop(); }
+});
+
 test('declarative content uses shared controls, preserves input focus and rejects unsafe trees', async () => {
   const s = await setup(); await s.start(); const changes = [];
   const tree = { kind: 'grid', columns: 2, children: [

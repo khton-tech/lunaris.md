@@ -38,7 +38,18 @@ export default definePlugin({ manifest, activate(ctx) {
   const logger = scopeLogger(ctx.use(Logger), ctx.signal); const components = ctx.use(Components); const themes = ctx.use(Themes);
   logger.debug(ctx.pluginId, "Activating Mantine components");
   const instances = new Set<{ applyTheme(): void }>();
+  let selectedTheme = themes.current();
+  let resolvedTheme = resolveTheme(selectedTheme);
+  let notifiedTheme = selectedTheme;
+  function currentTheme(): ReturnType<typeof resolveTheme> {
+    const selected = themes.current();
+    if (selected !== selectedTheme) { selectedTheme = selected; resolvedTheme = resolveTheme(selected); }
+    return resolvedTheme;
+  }
   ctx.events.on(ThemeChanged, () => {
+    const selected = themes.current();
+    if (selected === notifiedTheme) return;
+    notifiedTheme = selected;
     for (const instance of instances) instance.applyTheme();
   });
   for (const id of ["lunaris.backlinks", "lunaris.declarative-view", "lunaris.lime-settings", "lunaris.mobile-menu", "lunaris.callout-header", "lunaris.status-bar", "lunaris.client-update", "lunaris.account-access", "lunaris.window-titlebar", "lunaris.task-checkbox", "lunaris.text-editor", "lunaris.settings-items", "lunaris.settings-choices", "lunaris.settings-navigation", "lunaris.settings-page", "lunaris.active-screen", "lunaris.startup-screen", "lunaris.vault-selector", "lunaris.workspace-header", "lunaris.workspace-empty", "lunaris.workspace-layout", "lunaris.sidebar-rail", "lunaris.file-explorer", "lunaris.context-menu"] as const) {
@@ -60,7 +71,7 @@ export default definePlugin({ manifest, activate(ctx) {
       function render(): void {
         if (disposed) return;
         failed = false;
-        const theme = resolveTheme(themes.current());
+        const theme = currentTheme();
         const presentation = readPresentation(id, props);
         const intrinsicHeight = presentation.sizing === "content";
         // Only this owned root is styled. Borrowed target geometry is untouched.
