@@ -62,6 +62,17 @@ skips, including types, boundaries and affected consumers. Production frontend
 build, export/docs audit and CI scope test passed. Native visual acceptance remains
 manual, including the Settings panel card, theme changes and short/narrow windows.
 
+## Browser input helpers
+
+DOM consumers can call `usesTouchInput(window, event?)` before handling a
+context gesture. It recognizes touch-first devices, mobile WebViews and touch
+pointer events, independently of the allocated layout width.
+`observeVirtualKeyboard(window, listener)` shares a viewport observation per
+window and immediately publishes either `null` or the visible `{ height, top }`
+in layout CSS pixels. It uses editable focus and viewport contraction to detect
+the keyboard. Pinch zoom does not count as keyboard input. Dispose the returned
+subscription when the consuming host or view closes.
+
 ## Registering components (component sets)
 
 Declare `api:lunaris.components@^1.0.0`, the `ui.dom` permission, and Logger.

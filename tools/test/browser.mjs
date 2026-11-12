@@ -24,4 +24,18 @@ export function typeInput(input, value) {
   Object.getOwnPropertyDescriptor(view.HTMLInputElement.prototype, 'value').set.call(input, value);
   input.dispatchEvent(new view.Event('input', { bubbles: true }));
 }
+
+/** Simulate a touch-first viewport without depending on native browser layout. */
+export function mobileViewport(window, height = 720) {
+  const matchMedia = window.matchMedia;
+  window.matchMedia = query => {
+    const media = matchMedia(query);
+    return query === '(pointer: coarse)' ? { ...media, matches: true } : media;
+  };
+  window.innerHeight = height;
+  const viewport = Object.assign(new window.EventTarget(), { height, width: window.innerWidth, offsetTop: 0, scale: 1 });
+  Object.defineProperty(window, 'visualViewport', { value: viewport, configurable: true });
+  return viewport;
+}
+
 useBrowser(new JSDOM('<!doctype html><html><body></body></html>'));

@@ -286,7 +286,7 @@ export default definePlugin({ manifest, async activate(ctx) {
               active: () => !disposed && !owner.signal.aborted && !ctx.signal.aborted && current === session && session.active && screens.snapshot().activeId === screenId,
               failed(error) { if (ctx.signal.aborted || disposed) return; commandError = text("clipboardFailed"); logger.warn(ctx.pluginId, "Editor context command failed", { error }); changed(); },
               completed(operation) { if (ctx.signal.aborted || disposed) return; commandError = ""; logger.info(ctx.pluginId, "Editor context command completed", { data: { operation } }); changed(); },
-            }, preferences.current(), extensions.current(), deletionEffects);
+            }, preferences.current(), extensions.current(), deletionEffects, viewport);
         } else editor.update(themes.current(), text("editor"), true, preferences.current(), extensions.current());
       }
     }

@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { JSDOM } from 'jsdom';
-import { useBrowser, typeInput } from '../../../../tools/test/browser.mjs';
+import { mobileViewport, useBrowser, typeInput } from '../../../../tools/test/browser.mjs';
 import { EditorView } from '@codemirror/view';
 import { undo, redo } from '@codemirror/commands';
 import { StateEffect, EditorState, Prec } from '@codemirror/state';
@@ -47,6 +47,7 @@ const flush = async () => { for (let i = 0; i < 5; i++) await new Promise(setImm
 const metadata = (id, provides, requires = [], permissions = []) => ({ manifestVersion: 1, id, version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js', provides, requires, permissions, optionalPermissions: [] });
 async function setup(options = {}) {
   const dom = useBrowser(new JSDOM('<div id="target"></div>', { pretendToBeVisual: true }));
+  if (options.mobile) mobileViewport(dom.window);
   // Simulate the owned editor allocation and input mode without desktop automation.
   const widthEnvironment = options.widthEnvironment;
   const widthObservers = new Set(); const mediaListeners = new Set();
@@ -950,6 +951,59 @@ async function editorMenu(s) {
  view.dom.dispatchEvent(new s.dom.window.MouseEvent('contextmenu',{bubbles:true,cancelable:true,clientX:20,clientY:20}));await flush();
  return label => s.dom.window.document.querySelector('[role=menuitem][aria-label="'+label+'"]');
 }
+test('touch editor preserves native selection and follows the caret above the keyboard', async () => {
+  const s = await setup({ initial: 'Hello world', mobile: true });
+  const { window } = s.dom;
+  const frame = () => new Promise(resolve => window.requestAnimationFrame(resolve));
+  try {
+    const view = s.cm();
+    const scroll = s.target.querySelector('.lm-text-editor');
+    scroll.getBoundingClientRect = () => new window.DOMRect(0, 40, 360, 680);
+    view.scrollDOM.style.overflowY = 'visible';
+    let caretTop = 540;
+    view.coordsAtPos = () => new window.DOMRect(100, caretTop, 1, 10);
+    view.focus();
+    assert.equal(view.dom.hasAttribute('data-native-selection'), true);
+    assert.equal(view.dom.querySelector('.cm-selectionLayer'), null);
+
+    // Visible area is [90, 480] in layout coordinates after the browser pans.
+    Object.assign(window.visualViewport, { height: 390, offsetTop: 90 });
+    window.visualViewport.dispatchEvent(new window.Event('resize'));
+    await frame(); await frame();
+    assert.equal(scroll.scrollTop, 82);
+    assert.equal(view.scrollDOM.scrollTop, 0);
+
+    caretTop = 495;
+    view.dispatch({ changes: { from: 0, insert: '!' }, selection: { anchor: 1 } });
+    await frame();
+    assert.equal(scroll.scrollTop, 119);
+    caretTop = 220;
+    view.dispatch({ selection: { anchor: 2 } });
+    await frame();
+    assert.equal(scroll.scrollTop, 119);
+
+    caretTop = 520;
+    view.dispatch({ selection: { anchor: 1, head: 6 } });
+    assert.equal(view.contentDOM.dispatchEvent(new window.MouseEvent('contextmenu', { bubbles: true, cancelable: true })), true);
+    assert.equal(view.contentDOM.dispatchEvent(new window.KeyboardEvent('keydown', { key: 'F10', shiftKey: true, bubbles: true, cancelable: true })), true);
+    await frame();
+    assert.equal(scroll.scrollTop, 119);
+    assert.equal(view.state.selection.main.head, 6);
+    assert.equal(window.document.querySelector('[data-lunaris-context-menu]'), null);
+
+    caretTop = 65;
+    view.dispatch({ selection: { anchor: 4 } });
+    await frame();
+    assert.equal(scroll.scrollTop, 82);
+
+    Object.assign(window.visualViewport, { height: 720, offsetTop: 0 });
+    window.visualViewport.dispatchEvent(new window.Event('resize'));
+    await frame();
+    view.dispatch({ selection: { anchor: 6 } });
+    await frame();
+    assert.equal(scroll.scrollTop, 82);
+  } finally { await s.stop(); }
+});
 test('editor island formats the invocation selection, opens headings and preserves undo',async()=>{
  const s=await setup({initial:'Hello world'});try{
   s.cm().dispatch({selection:{anchor:0,head:5}});let item=await editorMenu(s);

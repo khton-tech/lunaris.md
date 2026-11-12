@@ -1,5 +1,7 @@
 import { defineApi, defineEvent } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
+export { observeVirtualKeyboard, usesTouchInput } from "./dom-input.js";
+export type { KeyboardViewport } from "./dom-input.js";
 
 /**
  * Shallow component input. Values may include callbacks (for example `onPress`).

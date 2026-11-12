@@ -2,9 +2,9 @@ import { HostSession } from "./session.js";
 import { createWebviewScheduler } from "./scheduler.js";
 import { mountSystemView } from "./view.js";
 import { bindDesktopLifecycle } from "./desktop.js";
+import { bindBrowserInput } from "@lunaris/application-host/browser-input";
 
-// Suppress WebView chrome while preserving plugin context-menu handlers.
-document.addEventListener("contextmenu", event => event.preventDefault(), { capture: true });
+const releaseInput = bindBrowserInput(window);
 
 const root = document.getElementById("system-root")!;
 const application = document.getElementById("application-root")!;
@@ -30,7 +30,7 @@ window.addEventListener("error", event => {
 window.addEventListener("unhandledrejection", () => { void session.reportFault("runtime", "UNHANDLED_PROMISE_REJECTION"); });
 const monitor = window.setInterval(session.refresh, 250);
 let unlisten: (() => void) | undefined;
-window.addEventListener("pagehide", () => { clearInterval(monitor); unlisten?.(); void session.stop(); }, { once: true });
+window.addEventListener("pagehide", () => { clearInterval(monitor); releaseInput(); unlisten?.(); void session.stop(); }, { once: true });
 void (async () => {
   try {
     unlisten = await bindDesktopLifecycle(session);

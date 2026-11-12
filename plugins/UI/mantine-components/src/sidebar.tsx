@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { ActionIcon, Box, FocusTrap, Paper, Splitter, Stack, UnstyledButton } from "@mantine/core";
+import { observeVirtualKeyboard } from "@lunaris/components";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
@@ -26,6 +27,7 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
   const mobileMenu = useRef<HTMLDivElement>(null);
   const mobileLauncher = useRef<HTMLDivElement>(null);
   const [floatingHidden, setFloatingHidden] = useState(false);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
   const scrollPositions = useRef(new WeakMap<HTMLElement, number>());
   const swipe = useRef<{ x: number; y: number; id: number } | null>(null);
   const [localOpen, setLocalOpen] = useState(false);
@@ -35,6 +37,7 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
   const [available, setAvailable] = useState(0); const [compact, setCompact] = useState(false);
   const [width, setWidth] = useState(props.panelWidth ?? 256); const latestWidth = useRef(width);
   useLayoutEffect(() => { latestWidth.current = props.panelWidth ?? 256; setWidth(latestWidth.current); }, [props.panelWidth]);
+  useLayoutEffect(() => observeVirtualKeyboard(root.current!.ownerDocument.defaultView!, viewport => setKeyboardOpen(viewport !== null)), []);
   useLayoutEffect(() => {
     const element = root.current!;
     const measure = () => {
@@ -67,10 +70,11 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
       const target = event.target;
       if (!(target instanceof region.ownerDocument.defaultView!.HTMLElement) || floatingFocused()) return;
       const position = Math.max(0, target.scrollTop); const previous = scrollPositions.current.get(target) ?? 0;
-      if (gesture?.hidden !== undefined) { scrollPositions.current.set(target, position); return; }
+      if (keyboardOpen || gesture?.hidden !== undefined) { scrollPositions.current.set(target, position); return; }
       if (position !== previous && (Math.abs(position - previous) >= 8 || position === 0)) { setFloatingHidden(position > previous); scrollPositions.current.set(target, position); }
     };
     const onTouchStart = (event: TouchEvent) => {
+      if (keyboardOpen) return;
       const touch = event.touches[0];
       gesture = event.touches.length === 1 && touch ? { id: touch.identifier, x: touch.clientX, y: touch.clientY } : null;
     };
@@ -101,7 +105,7 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
       region.removeEventListener("touchend", endGesture, true);
       region.removeEventListener("touchcancel", endGesture, true);
     };
-  }, [compact, overlayOpen]);
+  }, [compact, overlayOpen, keyboardOpen]);
   const closeOverlay = () => { setFloatingHidden(false); setMobileOpen(false); mobileLauncher.current?.querySelector<HTMLButtonElement>("button")?.focus({ preventScroll: true }); };
   const dismiss = () => {
     if (compact) { closeOverlay(); return; }
@@ -117,6 +121,7 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
     publish(Object.freeze({ main: main.current!, "left-rail": rail.current!, "left-panel": panel.current!, bottom: bottom.current!, "mobile-menu": mobileMenu.current!, "mobile-launcher": mobileLauncher.current! }), compact);
   }, [publish, compact]);
   useLayoutEffect(() => () => publish(null), [publish]);
+  const floatingInactive = overlayOpen || keyboardOpen;
   return <FocusTrap active={overlayOpen} innerRef={root}><Box className="lm-workspace-layout" style={{ ...theme.contentStyle, "--workspace-panel-width": `${width}px` }} data-launcher={props.mobileLauncherVisible || undefined} data-compact={compact || undefined} data-mobile-open={overlayOpen || undefined} data-mobile-menu={props.mobileMenuVisible || undefined} data-window-chrome={theme.windowChrome || undefined} data-bottom={props.bottomVisible || undefined} data-rail={props.railVisible || undefined} data-panel={props.panelVisible || undefined}
     role={overlayOpen ? "dialog" : undefined} aria-modal={overlayOpen || undefined} aria-label={overlayOpen ? props.panelLabel : undefined}
     onKeyDown={event => { if (event.key === "Escape" && (compact ? overlayOpen : props.panelVisible)) {
@@ -137,17 +142,17 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
       </Splitter.Pane>
     </Splitter>
     <UnstyledButton className="lm-workspace-backdrop" hidden={!overlayOpen} tabIndex={-1} aria-label={props.mainLabel} onClick={closeOverlay} />
-    <Box className="lm-workspace-swipe-edge" hidden={!compact || overlayOpen || !props.railVisible} aria-hidden="true"
+    <Box className="lm-workspace-swipe-edge" hidden={!compact || floatingInactive || !props.railVisible} aria-hidden="true"
       onTouchStart={event => { const touch = event.touches[0]; swipe.current = event.touches.length === 1 && touch ? { x: touch.clientX, y: touch.clientY, id: touch.identifier } : null; }}
       onTouchMove={event => { const start = swipe.current; const touch = event.touches[0]; if (!touch || event.touches.length !== 1 || (start && Math.abs(touch.clientY - start.y) > 24)) swipe.current = null; }}
       onTouchCancel={() => { swipe.current = null; }}
       onTouchEnd={event => {
         const start = swipe.current; swipe.current = null;
         const touch = Array.from(event.changedTouches).find(item => item.identifier === start?.id);
-        if (start && touch && touch.clientX - start.x >= 56 && touch.clientX - start.x > Math.abs(touch.clientY - start.y) * 1.5) setMobileOpen(true);
+        if (!keyboardOpen && start && touch && touch.clientX - start.x >= 56 && touch.clientX - start.x > Math.abs(touch.clientY - start.y) * 1.5) setMobileOpen(true);
       }} />
-    <Paper ref={mobileLauncher} className="lm-workspace-mobile-launcher lm-workspace-card" style={{ display: overlayOpen ? "none" : undefined }} hidden={!compact || !props.mobileLauncherVisible || floatingHidden || overlayOpen} inert={overlayOpen} aria-hidden={overlayOpen || undefined} />
-    <Paper ref={mobileMenu} className="lm-workspace-mobile-toolbar lm-workspace-card" style={{ display: overlayOpen ? "none" : undefined }} hidden={!compact || !props.mobileMenuVisible || floatingHidden || overlayOpen} inert={overlayOpen} aria-hidden={overlayOpen || undefined} />
+    <Paper ref={mobileLauncher} className="lm-workspace-mobile-launcher lm-workspace-card" hidden={!compact || !props.mobileLauncherVisible || floatingHidden || floatingInactive} inert={floatingInactive} aria-hidden={floatingInactive || undefined} />
+    <Paper ref={mobileMenu} className="lm-workspace-mobile-toolbar lm-workspace-card" hidden={!compact || !props.mobileMenuVisible || floatingHidden || floatingInactive} inert={floatingInactive} aria-hidden={floatingInactive || undefined} />
   </Box></FocusTrap>;
 }
 

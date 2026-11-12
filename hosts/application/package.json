@@ -24,6 +24,10 @@
       "types": "./dist/scheduler.d.ts",
       "import": "./dist/scheduler.js"
     },
+    "./browser-input": {
+      "types": "./dist/browser-input.d.ts",
+      "import": "./dist/browser-input.js"
+    },
     "./shell.css": "./assets/shell.css"
   },
   "dependencies": {
@@ -46,6 +50,7 @@
     "@lunaris/web-slot-driver": "0.1.0",
     "@lunaris/theme-provider": "0.1.0",
     "@lunaris/component-provider": "0.1.0",
+    "@lunaris/components": "0.1.0",
     "@lunaris/base-theme-engine": "0.1.0",
     "@lunaris/startup": "0.1.0",
     "@lunaris/startup-provider": "0.1.0",

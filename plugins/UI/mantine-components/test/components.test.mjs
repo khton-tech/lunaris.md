@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { Pencil } from 'lucide';
-import { useBrowser, typeInput } from '../../../../tools/test/browser.mjs';
+import { mobileViewport, useBrowser, typeInput } from '../../../../tools/test/browser.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
@@ -543,10 +543,16 @@ test('Explorer virtual rows adapt to touch capability without losing drafts and 
   s.dom.window.matchMedia = query => query === '(pointer: coarse)' ? pointer : originalMedia(query);
   s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 480);
   try {
-    const mounted = s.components.mount('lunaris.file-explorer', s.target, explorerFixture(), s.ctx.signal);
+    const contexts = [];
+    const mounted = s.components.mount('lunaris.file-explorer', s.target, explorerFixture({ onContextMenu: request => contexts.push(request) }), s.ctx.signal);
     assert.equal(mounted.ok, true); await settle();
     const rowHeight = () => s.target.querySelector('[role=treeitem]').style.height;
     assert.equal(rowHeight(), '44px');
+    for (const selector of ['[title="a.md"]', '.lm-explorer-tree']) {
+      assert.equal(s.target.querySelector(selector).dispatchEvent(new s.dom.window.MouseEvent('contextmenu', { bubbles: true, cancelable: true })), true);
+    }
+    await settle();
+    assert.deepEqual(contexts, []);
     s.target.querySelector('[aria-label="New file"]').click(); await settle();
     const input = s.target.querySelector('.lm-explorer-create input'); assert.ok(input);
     typeInput(input, 'Mobile draft'); await settle();
@@ -1065,6 +1071,64 @@ test('compact Workspace lends a mobile menu target without replacing editor regi
   mounted.value.update({...props,mobileOpen:false}); assert.equal(main.parentElement.hasAttribute('inert'),false); assert.equal(targets,initial); assert.equal(draft.value,'Draft');
   mounted.value.dispose();
  } finally { s.dom.window.HTMLElement.prototype.getBoundingClientRect=original; await s.stop(); }
+});
+
+test('mobile keyboard hides Workspace navigation and its open dropdown while keeping focus in the editor region', async () => {
+ const s = await setup(); await s.start();
+ const { window } = s.dom;
+ const viewport = mobileViewport(window);
+ const original = window.HTMLElement.prototype.getBoundingClientRect;
+ const observers = new Map();
+ window.HTMLElement.prototype.getBoundingClientRect = function () {
+   return this.hidden ? new window.DOMRect() : new window.DOMRect(0, 0, 360, 720);
+ };
+ globalThis.ResizeObserver = class {
+   constructor(callback) { this.callback = callback; this.elements = new Set(); }
+   observe(element) { this.elements.add(element); observers.set(element, this.callback); }
+   disconnect() { for (const element of this.elements) observers.delete(element); }
+ };
+ try {
+  let targets;
+  const props = { railVisible: true, panelVisible: true, mobileLauncherVisible: true, mobileMenuVisible: true,
+   mainLabel: 'Main', panelLabel: 'Sidebar', onTargets: value => { targets = value; }, onDismiss() {} };
+  const layout = s.components.mount('lunaris.workspace-layout', s.target, props, s.ctx.signal);
+  assert.equal(layout.ok, true);
+  const initial = targets;
+  const editor = window.document.createElement('textarea');
+  targets.main.append(editor);
+  editor.focus();
+  const toolbar = targets['mobile-menu'];
+  const launcher = targets['mobile-launcher'];
+  const menu = s.components.mount('lunaris.mobile-menu', toolbar, { items: [
+   { id: 'tabs', label: 'Tabs', icon: 'files', choices: [{ id: 'tab', label: 'Tab' }], onPress() {} },
+  ] }, s.ctx.signal);
+  assert.equal(menu.ok, true);
+  assert.equal(toolbar.hidden, false);
+  toolbar.querySelector('button').click();
+  await settle();
+  const dropdown = () => window.document.querySelector('.lm-mobile-choice-overlay [role=menu]');
+  assert.ok(dropdown());
+  editor.focus();
+  viewport.height = 420;
+  viewport.dispatchEvent(new window.Event('resize'));
+  await new Promise(resolve => window.requestAnimationFrame(resolve)); await settle();
+  for (const region of [launcher, toolbar]) {
+   assert.equal(region.hidden, true);
+   assert.equal(region.hasAttribute('inert'), true);
+  }
+  observers.get(toolbar)([{ target: toolbar, contentRect: toolbar.getBoundingClientRect() }]);
+  await settle();
+  assert.equal(dropdown(), null);
+  assert.equal(window.document.activeElement, editor);
+  viewport.height = 720;
+  viewport.dispatchEvent(new window.Event('resize'));
+  await new Promise(resolve => window.requestAnimationFrame(resolve)); await settle();
+  assert.equal(targets, initial);
+  assert.equal(launcher.hidden, false);
+  assert.equal(toolbar.hidden, false);
+  assert.equal(dropdown(), null);
+  menu.value.dispose(); layout.value.dispose();
+ } finally { window.HTMLElement.prototype.getBoundingClientRect = original; await s.stop(); }
 });
 
 test('mobile floating controls follow content swipes without scroll or keyboard and preserve editing gestures', async () => {

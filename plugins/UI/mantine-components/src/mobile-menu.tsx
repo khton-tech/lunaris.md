@@ -56,6 +56,7 @@ function MobileAction({ item, compact, dock, overlay }: {
 }) {
   const trigger = useRef<HTMLButtonElement>(null);
   const { dir } = useDirection();
+  const [opened, setOpened] = useState(false);
   const [geometry, setGeometry] = useState<{ width: number; crossAxis: number; mainAxis: number }>();
   const measure = useCallback(() => {
     if (!dock || !trigger.current) return;
@@ -69,9 +70,14 @@ function MobileAction({ item, compact, dock, overlay }: {
   }, [dock, dir]);
   const hasChoices = item.choices !== undefined;
   const reorder = useListReorder("y", item.choices ?? [], item.disabled ? undefined : item.onReorder);
+  useLayoutEffect(() => { if (!opened) reorder.cancel(); }, [opened]);
   useLayoutEffect(() => {
     if (!dock || !hasChoices || !trigger.current) return;
-    const observer = new ResizeObserver(measure);
+    const observer = new ResizeObserver(entries => {
+      // The menu is portaled, so hiding its dock does not hide its dropdown.
+      if (entries.some(entry => entry.target === dock && entry.contentRect.width === 0)) setOpened(false);
+      else measure();
+    });
     observer.observe(dock);
     observer.observe(trigger.current);
     dock.addEventListener("scroll", measure, { passive: true });
@@ -84,7 +90,7 @@ function MobileAction({ item, compact, dock, overlay }: {
     {item.count === undefined ? <Icon name={item.icon} /> : <span className="lm-mobile-page-count" aria-hidden="true">{item.count}</span>}
   </ActionIcon>;
   if (!item.choices) return button;
-  return <Menu position="top" onOpen={measure} onClose={reorder.cancel}
+  return <Menu position="top" opened={opened} onChange={setOpened} onOpen={measure}
     offset={geometry ? { mainAxis: geometry.mainAxis, crossAxis: geometry.crossAxis } : 8} returnFocus
     portalProps={{ target: `#${overlay.id}` }} transitionProps={{ duration: 0 }}>
     <Menu.Target>{button}</Menu.Target>

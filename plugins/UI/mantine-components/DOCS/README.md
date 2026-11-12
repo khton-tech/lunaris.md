@@ -1,5 +1,21 @@
 # Mantine components
 
+## Mobile keyboard and navigation
+
+The reference is the existing compact Workspace launcher and bottom action row.
+The host owns the shell viewport. WorkspaceLayout owns both floating targets and
+their visibility; the mobile-menu role owns its Mantine controls and tab list.
+The layout hides both targets during virtual keyboard input, keeping the editor
+region and its focus in place. The mobile-menu role dismisses its portaled list
+when the dock loses its allocation. File Explorer leaves touch context gestures
+to the platform. Integration uses the existing public Components roles, their
+targets, and the shared Components DOM helpers.
+
+DOM regression tests cover keyboard opening and closing, the portaled list,
+stable targets and focus, and touch versus desktop context triggers. Native
+acceptance is pending in the composed Workspace on iOS and Android, including
+landscape and keyboard dismissal with the input still focused.
+
 ## Mobile Sidebar composition parity (2026-11-11)
 
 Reference: the Owner's narrow Files screenshot showing a detached rounded rail,

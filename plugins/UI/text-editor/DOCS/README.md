@@ -38,6 +38,17 @@ geometry and floating surfaces. Native acceptance covers long and short document
 touch and wheel scrolling, caret visibility, long names and landscape allocations.
 See the [CodeMirror styling guide](https://codemirror.net/examples/styling/#overflow-and-scrolling).
 
+Touch-first editing uses native caret and selection rendering, including the
+platform's selection handles and context actions. Desktop retains the CodeMirror
+selection layers and product menu. When the virtual keyboard changes the visible
+viewport, or the user edits or moves a collapsed caret while it is open,
+CodeMirror keeps the active line within the visible part of its scroller. In
+compact layout it uses the shared title/body viewport provided by `onTarget`
+in the public editor role. Selection gestures with an extended range and manual
+scrolling remain under the user's control. Integration uses Components and the
+existing ContextMenu contract. Verify selection handles, copy/paste, typing at the
+end of a long document and keyboard dismissal on physical iOS and Android devices.
+
 ## Usage and saving
 
 Underline-style (Setext) headings are disabled at the Markdown parser level at

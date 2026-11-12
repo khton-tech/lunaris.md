@@ -5,6 +5,13 @@ product composition for browser and Tauri. Platform plugins are supplied only by
 trusted host composition. Product plugins communicate through public SDK contracts.
 The Tauri session/slots modules re-export this runtime for compatibility.
 
+The browser and Tauri bootstraps bind the same input policy. When touch editing
+contracts the viewport, the host fits the shell to the visible height and
+vertical offset. The shared Components DOM helper combines editable focus with
+viewport changes, including WebViews that shrink the layout viewport. Native
+touch context actions remain available. Desktop still suppresses the default
+browser/WebView menu and lets product context handlers receive the event.
+
 The browser uses an IndexedDB device-config backend and the remote backend. Tauri
 supplies the native backend in backendOnly mode and IndexedDB for drafts only.
 Filesystem Router is the sole standard driver provider in both compositions.

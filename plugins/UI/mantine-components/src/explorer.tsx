@@ -4,6 +4,7 @@ import { ActionIcon, Badge, Box, Button, Group, Menu, Paper, Stack, Text, TextIn
 import { Tree } from "react-arborist";
 import type { CursorProps, DragPreviewProps, NodeRendererProps, RowRendererProps, TreeApi } from "react-arborist";
 import type { ComponentProps } from "@lunaris/components";
+import { usesTouchInput } from "@lunaris/components";
 import type { MenuOpenRequest, MenuSession } from "@lunaris/context-menu";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
@@ -151,7 +152,10 @@ function ExplorerNode(payload: NodeRendererProps<Entry>) {
     </span>);
   }
   return <Box ref={dragHandle} style={style} className="lm-explorer-node" data-directory={node.data.kind === "directory" || undefined} data-root={node.id === ROOT_ID || undefined} data-active={props.activePath === node.id || undefined} aria-current={props.activePath === node.id ? "page" : undefined} data-selected={node.isSelected || undefined} data-focused={node.isFocused || undefined} data-drop={node.willReceiveDrop || undefined}
-    title={node.id === ROOT_ID ? node.data.name : node.id} onContextMenu={event => { event.preventDefault(); event.stopPropagation(); context(node.id, event.clientX, event.clientY); }}>
+    title={node.id === ROOT_ID ? node.data.name : node.id} onContextMenu={event => {
+      if (usesTouchInput(event.currentTarget.ownerDocument.defaultView, event.nativeEvent)) return;
+      event.preventDefault(); event.stopPropagation(); context(node.id, event.clientX, event.clientY);
+    }}>
     {guides.length > 0 && <span className="lm-explorer-indent-guides" aria-hidden="true">{guides}</span>}
     <Box className="lm-explorer-node-content">
       {node.isInternal ? <ActionIcon className="lm-explorer-disclosure" variant="subtle" size="xs" tabIndex={-1} aria-label={node.data.name} aria-expanded={node.isOpen}
@@ -297,7 +301,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     else if (event.key === "F5") action = "refresh";
     else if (event.ctrlKey || event.metaKey) action = ({ c: "copy", x: "cut", v: "paste", n: event.shiftKey ? "newFolder" : "newFile" } as Record<string, string>)[event.key.toLowerCase()];
     if (action) { event.preventDefault(); event.stopPropagation(); command(action); }
-    if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
+    if ((event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) && !usesTouchInput(target.ownerDocument.defaultView)) {
       event.preventDefault(); event.stopPropagation();
       const focused = target.closest<HTMLElement>("[role=treeitem]") ?? host.current!.querySelector<HTMLElement>("[data-focused]")?.closest<HTMLElement>("[role=treeitem]");
       const bounds = focused?.getBoundingClientRect() ?? host.current!.getBoundingClientRect();
@@ -348,7 +352,10 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     </Paper>}
     <Box ref={host} className="lm-explorer-tree" onClick={event => {
       if (!(event.target as HTMLElement).closest("[role=treeitem]") && !form) clearSelection();
-    }} onContextMenu={event => { event.preventDefault(); event.stopPropagation(); openMenu(null, event.clientX, event.clientY); }}>
+    }} onContextMenu={event => {
+      if (usesTouchInput(event.currentTarget.ownerDocument.defaultView, event.nativeEvent)) return;
+      event.preventDefault(); event.stopPropagation(); openMenu(null, event.clientX, event.clientY);
+    }}>
       {showLoading && <Text role="status" className="lm-explorer-message">{t.loading}</Text>}
       <ExplorerContext.Provider value={{ props, creation: form && form.kind !== "delete" ? { name, kind: form.kind, pending, onName: setName, submit, cancel: closeForm } : null, surface: () => host.current?.closest<HTMLElement>(".lm-explorer") ?? null,
         context: openMenu }}>

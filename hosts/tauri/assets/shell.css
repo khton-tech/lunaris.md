@@ -17,6 +17,7 @@
 html { height: 100%; overflow: hidden; }
 body { margin: 0; min-width: 0; min-height: 0; height: 100dvh; overflow: hidden; display: flex; flex-direction: column; -webkit-user-select: none; user-select: none; padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px); }
 input, textarea, [contenteditable]:not([contenteditable="false"]) { -webkit-user-select: text; user-select: text; }
+body[data-keyboard-viewport] { position: fixed; inset-inline: 0; top: var(--keyboard-viewport-top); height: var(--keyboard-viewport-height); padding-bottom: 0; }
 #application-root { flex: 1; display: flex; min-width: 0; min-height: 0; overflow: hidden; }
 /* Native/HTML first paint matches the default runner before theme services exist. */
 .boot-screen { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: safe center; gap: 24px; padding: 32px; overflow: auto; color: #E7E7E7; background: #0F0F0F; }
