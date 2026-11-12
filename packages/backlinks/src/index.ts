@@ -13,7 +13,7 @@ export interface NoteDestination { readonly target: FileTarget; readonly text: s
 /** Shared parsing/resolution keeps editor navigation and incoming-link indexing consistent. */
 export const NoteLinks = defineApi<{
   parse(text: string): readonly NoteLink[];
-  /** Source offsets of wikilinks whose note is absent from the ready index. Refresh on BacklinksChanged. */
+  /** Source offsets of wikilinks whose note is absent from a complete Vault listing. Refresh on BacklinksChanged. */
   missingTargets(source: FileTarget, links: readonly NoteLink[]): readonly number[];
   /** Passing the displayed source explicitly allows creation of a missing wikilink target. */
   resolve(source: FileTarget, link: NoteLink, options?: { readonly createFromSource: string }): Promise<FsResult<NoteDestination>>;

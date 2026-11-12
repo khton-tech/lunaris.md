@@ -206,13 +206,18 @@ test('editor clicks open notes and expose source backlinks; web URLs use the pla
 
 test('wikilink preview keeps aliases editable and opens a newly created note', async () => {
   const source = 'Intro\n[[./other.md]] and [[new-file|Display name]]';
-  const s = await setup({ backlinks: true, initial: source });
+  const s = await setup({ backlinks: true, initial: source, read: target => target.path === 'unreadable.md' ? fail('ACCESS_DENIED') : undefined });
   try {
+    s.disk.set('a/unreadable.md', { text: '', version: 'v1' });
+    await s.backlinks.refresh();
+    await flush();
+    assert.equal(s.backlinks.query({ vaultId: 'a', path: 'note.md' }).state, 'degraded');
     const view = s.cm();
     const label = () => s.target.querySelector('.cm-document-link[title="new-file"]');
     assert.equal(view.contentDOM.textContent, 'Introother and Display name');
     assert.equal(label().textContent, 'Display name');
     assert.ok(label().classList.contains('cm-document-link-missing'));
+    assert.equal(s.dom.window.getComputedStyle(label()).textDecorationStyle, 'dashed');
     assert.equal(s.target.querySelector('.cm-document-link[title="./other.md"]').classList.contains('cm-document-link-missing'), false);
     view.focus();
     view.dispatch({ selection: { anchor: source.indexOf('./other.md') + 1 } });

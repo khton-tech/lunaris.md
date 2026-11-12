@@ -49,4 +49,4 @@ Also provides NoteLinks (1.0): parse(text) and resolve(source, link). The docume
 
 `NoteLinks.parse` exposes the visible wikilink label range separately from its destination. `resolve` accepts an optional `createFromSource` snapshot to create a missing wikilink target through Filesystem. Bare names use the source folder. Explicit paths use the Vault root unless they start with `./` or `../`. Missing parent folders are created as needed. The write uses exclusive creation, and the index refreshes before returning the target.
 
-`NoteLinks.missingTargets` reports source offsets of creatable wikilinks that do not resolve in the ready index. Consumers recheck on `BacklinksChanged`. A loading or degraded index returns no missing offsets.
+`NoteLinks.missingTargets` reports source offsets of creatable wikilinks absent from a complete Vault listing. Consumers recheck on `BacklinksChanged`. A note that is listed but cannot be read still counts as present. An incomplete listing returns no missing offsets.

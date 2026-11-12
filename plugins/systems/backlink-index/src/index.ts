@@ -17,6 +17,7 @@ export default definePlugin({ manifest, activate(ctx) {
   const observation = ctx.use(FilesystemObservation); let observer = ctx.scope.child();
   const vaults = ctx.use(Vault); const documents = ctx.use(DocumentContent);
   let vaultId = vaults.current()?.id ?? null; let entries = new Map<string, Entry>();
+  let completeNotePaths: readonly string[] | undefined;
   let state: BacklinksSnapshot["state"] = "loading"; let failures = 0; let generation = 0;
   const queries = new Map<string, BacklinksSnapshot>();
   let pending: Promise<void> | undefined; let again = false; let timer: ReturnType<typeof setTimeout> | undefined;
@@ -37,11 +38,14 @@ export default definePlugin({ manifest, activate(ctx) {
   async function scan(): Promise<void> {
     const id = vaultId; const epoch = generation; if (!id || ctx.signal.aborted) return;
     const next = new Map<string, Entry>(); let failed = 0; const invalidated = [...dirty]; dirty.clear();
+    const notePaths: string[] = [];
+    let listingComplete = true;
     async function walk(path: string): Promise<void> {
       if (!alive(id, epoch)) return;
       const listed = await fs.list({ vaultId: id!, path });
       if (!alive(id, epoch)) return;
       if (!listed.ok) {
+        listingComplete = false;
         failed++; logger.warn(ctx.pluginId, "Cannot list backlink sources", { error: listed.error });
         for (const [key, entry] of entries) if (!path || key.startsWith(path + "/")) next.set(key, entry);
         return;
@@ -51,6 +55,7 @@ export default definePlugin({ manifest, activate(ctx) {
         if (file.path.split("/").some(part => part.startsWith("."))) continue;
         if (file.kind === "directory") await walk(file.path);
         else if (file.kind === "file" && /\.md$/i.test(file.path)) {
+          notePaths.push(file.path);
           const old = entries.get(file.path);
           if (old && file.modifiedAt !== null && file.modifiedAt === old.modifiedAt && file.size === old.size && !invalidated.some(p => !p || file.path === p || file.path.startsWith(p + "/"))) next.set(file.path, old);
           else {
@@ -64,10 +69,12 @@ export default definePlugin({ manifest, activate(ctx) {
     }
     try {
       await walk(""); if (!alive(id, epoch)) return;
+      completeNotePaths = listingComplete ? notePaths : undefined;
       entries = next; queries.clear(); buffers(); failures = failed; state = failed ? "degraded" : "ready";
       logger.debug(ctx.pluginId, "Backlink index refreshed", { data: { files: entries.size, failures } }); emit();
     } catch (error) {
       if (!alive(id, epoch)) return;
+      completeNotePaths = undefined;
       failures++; state = "degraded"; queries.clear(); logger.error(ctx.pluginId, "Backlink indexing failed", { error }); emit();
     }
   }
@@ -102,8 +109,8 @@ export default definePlugin({ manifest, activate(ctx) {
   ctx.provide(NoteLinks, {
     parse: text => parseNote(text).links,
     missingTargets(source, links) {
-      if (source.vaultId !== vaultId || state !== "ready") return [];
-      const paths = [...entries.keys()];
+      const paths = completeNotePaths;
+      if (source.vaultId !== vaultId || !paths) return [];
       return links.filter(link => {
         const candidate = creationPath(link, source.path);
         return validPath(candidate) && !candidate.split("/").some(part => part.startsWith("."))
@@ -180,6 +187,7 @@ export default definePlugin({ manifest, activate(ctx) {
   ctx.events.on(FileChanged, change => { if (change.vaultId === vaultId) { for (const path of change.paths) dirty.add(path); if (change.kind === "rescan") dirty.add(""); schedule(); } });
   ctx.events.on(DocumentContentChanged, change => { if (change.target.vaultId === vaultId) { buffers(); emit(); } });
   ctx.events.on(VaultChanged, () => {
+    completeNotePaths = undefined;
     generation++; vaultId = vaults.current()?.id ?? null; entries.clear(); queries.clear(); dirty.clear(); failures = 0; state = vaultId ? "loading" : "ready";
     emit(); schedule(); void observe().catch(error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot observe backlink sources", { error }); });
   });

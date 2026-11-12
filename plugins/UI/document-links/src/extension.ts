@@ -85,8 +85,11 @@ export function linkInteraction(
     },
   })), EditorView.baseTheme({
     ".cm-document-link": { cursor: "pointer", color: "var(--vault-accent, currentColor)", textDecoration: "underline" },
-    ".cm-document-link-missing": { color: "var(--vault-secondary, currentColor)" },
-    ".cm-document-link-missing:hover, .cm-document-link-missing:focus-visible": { color: "var(--vault-accent, currentColor)" },
+    ".cm-document-link.cm-document-link-missing": { textDecorationStyle: "dashed" },
+    // Markdown syntax highlighting can wrap the visible label in another span.
+    ".cm-document-link.cm-document-link-missing, .cm-document-link.cm-document-link-missing span": {
+      color: "var(--vault-secondary, currentColor)",
+    },
     ".cm-document-link:focus-visible": { outline: "1px solid var(--vault-focus, currentColor)", outlineOffset: "2px" },
   })];
 }
