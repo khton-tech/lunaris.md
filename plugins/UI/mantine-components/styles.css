@@ -986,7 +986,7 @@
 .lm-account-main .lm-account-error:not([hidden]) { margin-bottom:calc(var(--vault-space)*3) }
 @container(max-width:640px) {
  .lm-account-access[data-view=catalog] { overflow:auto }
- .lm-account-access[data-view=catalog] .lm-account-content { flex:none }
+ .lm-account-access[data-view=catalog] .lm-account-content { flex:none;margin:auto }
  .lm-account-catalog { display:flex;flex-direction:column;flex:none;min-height:auto }
  .lm-account-vaults,.lm-account-main { overflow:visible;flex:none }
  .lm-account-main { padding:calc(var(--vault-space)*4) }

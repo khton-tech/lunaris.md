@@ -1259,3 +1259,12 @@ error states, creation disclosure and recoverable trash retain their callbacks.
 The local selector and authentication composition are unchanged. Native acceptance
 is pending for desktop 1:2 geometry, mobile long lists, opened row/account menus,
 creation focus, narrow/short allocations and theme replacement.
+
+## Mobile account-screen alignment
+
+The Owner requires the mobile catalog to share authentication centering. Its
+complete content block (account header, Vault list and actions) now uses auto
+margins at allocations up to 640px. Intrinsic height and disabled shrinking
+preserve scrolling when the list or creation form exceeds the available height;
+there is no fixed height, transform or clipped centering. Desktop 1:2 panels are
+unchanged. Native short/long-list and keyboard-open geometry remains manual.
