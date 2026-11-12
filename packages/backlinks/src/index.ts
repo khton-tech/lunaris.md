@@ -1,6 +1,15 @@
 import { defineApi, defineEvent } from "@lunaris/sdk";
 import type { FileTarget, FsResult } from "@lunaris/filesystem";
 
+export interface NoteLink { readonly from: number; readonly to: number; readonly destination: string; readonly wiki: boolean }
+export interface NoteDestination { readonly target: FileTarget; readonly text: string; readonly from: number; readonly to: number }
+/** Shared parsing/resolution keeps editor navigation and incoming-link indexing consistent. */
+export const NoteLinks = defineApi<{
+  parse(text: string): readonly NoteLink[];
+  resolve(source: FileTarget, link: NoteLink): Promise<FsResult<NoteDestination>>;
+}>({ id: "lunaris.note-links", version: "1.0.0", consumePermission: "vault.access",
+  validate: value => !!value && typeof value === "object" && ["parse", "resolve"].every(key => typeof Object.getOwnPropertyDescriptor(value, key)?.value === "function") });
+
 export interface Mention {
   readonly from: number;
   readonly to: number;

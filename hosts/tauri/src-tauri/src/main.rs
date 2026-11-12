@@ -38,6 +38,7 @@ async fn credentials_request(operation: String, value: serde_json::Value) -> ser
 
 fn main() {
     tauri::Builder::default()
+        .plugin(tauri_plugin_opener::init())
         .setup(|app| {
             app.manage(Arc::new(Mutex::new(Backend::with_config_directory(
                 app.path().app_config_dir()?,

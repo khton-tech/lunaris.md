@@ -1,3 +1,5 @@
+import documentLinks from "@lunaris/document-links";
+import { ExternalLinks } from "@lunaris/external-links";
 import backlinkIndex from '@lunaris/backlink-index';
 import backlinksUI from '@lunaris/backlinks-ui';
 import sidebarProvider from '@lunaris/sidebar-provider';
@@ -81,6 +83,8 @@ async function setup(options = {}) {
   const kernel = createTestKernel(); const closeGuard = createCloseGuard(); const logs = []; const calls = []; const closed = new Set(); let selected = 0; let watchContext;
   const disk = new Map([['a/note.md', { text: options.initial ?? '# Note', version: 'v1' }], ['a/other.md', { text: 'Other', version: 'v1' }], ['a/image.png', { text: 'binary', version: 'v1' }], ['b/note.md', { text: '# B', version: 'v1' }]]);
   const store = new Map(); let content; let api; let host;
+  const externalCalls = [];
+  if (options.backlinks) kernel.installMock(ExternalLinks, { async open(url) { externalCalls.push(url); return ok(null); } });
   const clipboardCalls = [];
   kernel.installMock(Clipboard, { capabilities: () => ({ read: true, write: true }), async readText() { clipboardCalls.push(["read"]); if (options.readClipboard) return options.readClipboard(); return options.clipboardFailure ? fail("DENIED") : ok(options.clipboardText ?? "Pasted"); }, async writeText(text) { clipboardCalls.push(["write", text]); return options.clipboardFailure ? fail("DENIED") : ok(null); } });
   kernel.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push([level, ...args]); return true; }])));
@@ -130,7 +134,7 @@ async function setup(options = {}) {
   kernel.installMock(DirectoryLocationsDriver, { async create() { return fail('UNSUPPORTED'); } }, { grants: ['filesystem.native'] });
   kernel.installMock(ApplicationDirectoryDriver, { async openConfig() { return fail('UNSUPPORTED'); } }, { grants: ['filesystem.native'] });
   kernel.register(definePlugin({ manifest: metadata('test.config-events', [{ kind: 'event', id: ConfigChanged.id, version: ConfigChanged.version }]), activate() {} }));
-  for (const plugin of [...(options.backlinks ? [backlinkIndex, backlinksUI, sidebarProvider] : []), settingsProvider, menuProvider, filesystem, vault, documents, screenProvider, screenHost, components, themes, localization, mantine, editor, closeGuard.plugin]) kernel.register(plugin);
+  for (const plugin of [...(options.backlinks ? [backlinkIndex, backlinksUI, sidebarProvider, documentLinks] : []), settingsProvider, menuProvider, filesystem, vault, documents, screenProvider, screenHost, components, themes, localization, mantine, editor, closeGuard.plugin]) kernel.register(plugin);
 
   kernel.register(definePlugin({ manifest: metadata('test.consumer', [], [...(options.backlinks ? [Backlinks, DocumentContent] : []), Settings, DocumentStatistics, DocumentStatisticsChanged, Filesystem, Vault, ActiveDocument, ActiveScreen, Components, Themes, Localization].map(t => ({ kind: t.kind, id: t.id, range: '^' + t.version })), ['vault.access', 'filesystem.access', 'ui.dom']), activate(ctx) {
     api = { ctx, ...(options.backlinks ? { backlinks: ctx.use(Backlinks), documentContent: ctx.use(DocumentContent) } : {}), settings: ctx.use(Settings), statistics: ctx.use(DocumentStatistics), fs: ctx.use(Filesystem), vault: ctx.use(Vault), documents: ctx.use(ActiveDocument), screens: ctx.use(ActiveScreen), components: ctx.use(Components), themes: ctx.use(Themes), language: ctx.use(Localization) };
@@ -141,10 +145,10 @@ async function setup(options = {}) {
   kernel.grant(screenHost.manifest.id, 'filesystem.access');
   kernel.grant(editor.manifest.id, 'config.access');
   if(options.drafts) kernel.grant(editor.manifest.id,'drafts.access');
-  if (options.backlinks) for (const plugin of [backlinkIndex, backlinksUI]) for (const grant of plugin.manifest.permissions) kernel.grant(plugin.manifest.id, grant);
+  if (options.backlinks) for (const plugin of [backlinkIndex, backlinksUI, documentLinks]) for (const grant of plugin.manifest.permissions) kernel.grant(plugin.manifest.id, grant);
   await kernel.start('test.consumer'); await kernel.start(mantine.manifest.id); await kernel.start(screenHost.manifest.id); await kernel.start(editor.manifest.id); await kernel.start(closeGuard.plugin.manifest.id);
   await api.vault.open(); await flush();
-  if (options.backlinks) { await kernel.start(backlinksUI.manifest.id); await api.backlinks.refresh(); }
+  if (options.backlinks) { await kernel.start(backlinksUI.manifest.id); await kernel.start(documentLinks.manifest.id); await api.backlinks.refresh(); }
   let editorTarget = target;
   if (options.withLayout) {
     let regions;
@@ -156,7 +160,7 @@ async function setup(options = {}) {
   }
   host = api.components.mount(content.componentId, editorTarget, { workspace: { vaultId: 'a', vaultName: 'A' } }, api.ctx.signal);
   assert.equal(host.ok, true); await api.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
-  return { ...api, target, dom, disk, calls, logs, kernel, clipboardCalls, preferenceWrites, beforeClose: closeGuard.beforeClose,
+  return { ...api, externalCalls, target, dom, disk, calls, logs, kernel, clipboardCalls, preferenceWrites, beforeClose: closeGuard.beforeClose,
     async resizeWidthEnvironment(values) { Object.assign(widthEnvironment, values); for (const callback of [...widthObservers, ...mediaListeners]) callback(); await flush(); },
     async showVault(vaultId) { host.value.dispose(); await flush(); host = api.components.mount(content.componentId, editorTarget, { workspace: { vaultId, vaultName: vaultId } }, api.ctx.signal); assert.equal(host.ok, true); },
     cm() { const node = target.querySelector('.cm-editor'); assert.ok(node, target.textContent); return EditorView.findFromDOM(node); },
@@ -164,6 +168,55 @@ async function setup(options = {}) {
     async stop() { await flush(); await kernel.stopAll(); await flush(); kernel.assertNoResources(); assert.equal(target.childElementCount, 0); assert.ok(!kernel.diagnostics().some(d => d.code === 'CLEANUP_FAILED')); dom.window.close(); },
   };
 }
+
+test('editor clicks open notes and expose source backlinks; web URLs use the platform API', async () => {
+  const s = await setup({ backlinks: true });
+  try {
+    s.disk.set('a/other.md', { text: '# Other\n\n## Section\nBody ^block', version: 'v1' });
+    s.edit('[[other#Section|Destination]]\n[Website](https://example.com/path)\nhttps://example.org\n`[[other]]`');
+    await flush(); await s.backlinks.refresh();
+    const panel = document.createElement('div'); s.target.append(panel);
+    const backlinksPanel = s.components.mount('lunaris.backlinks-host', panel, {}, s.ctx.signal); assert.equal(backlinksPanel.ok, true);
+    const source = s.cm().state.doc.toString();
+    const marker = () => s.target.querySelector('.cm-document-link[title="other#Section"]'); assert.ok(marker());
+    marker().dispatchEvent(new s.dom.window.MouseEvent('mousedown', { button: 0, bubbles: true, cancelable: true }));
+    marker().dispatchEvent(new s.dom.window.MouseEvent('click', { button: 0, bubbles: true, cancelable: true })); await flush();
+    assert.equal(s.documents.current().path, 'other.md');
+    assert.equal(s.cm().state.sliceDoc(s.cm().state.selection.main.from, s.cm().state.selection.main.to), '## Section');
+    const incoming = s.backlinks.query({ vaultId: 'a', path: 'other.md' });
+    assert.equal(incoming.linked.length, 1); assert.equal(incoming.linked[0].source.path, 'note.md'); assert.equal(incoming.linked[0].mentions.length, 1);
+    assert.ok(panel.querySelector('.lm-backlink-heading[title="note.md"]'));
+    await s.documents.open({ vaultId: 'a', path: 'note.md' }); await flush(); assert.equal(s.cm().state.doc.toString(), source);
+    const site = s.target.querySelector('.cm-document-link[title="https://example.com/path"]'); assert.ok(site);
+    site.dispatchEvent(new s.dom.window.MouseEvent('click', { button: 0, bubbles: true, cancelable: true })); await flush();
+    const bare = s.target.querySelector('.cm-document-link[title="https://example.org"]'); assert.ok(bare);
+    bare.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); await flush();
+    assert.deepEqual(s.externalCalls, ['https://example.com/path', 'https://example.org']); assert.equal(s.documents.current().path, 'note.md');
+    assert.equal(new Set([...s.target.querySelectorAll('.cm-document-link')].map(node => node.dataset.noteLink)).size, 3);
+    assert.equal(s.logs.some(row => row[0] === 'error' && row[1] === 'lunaris.document-links'), false);
+    backlinksPanel.value.dispose(); panel.remove();
+  } finally { await s.stop(); }
+});
+
+test('CRLF link decorations and SDK mention ranges use the correct editor offsets', async () => {
+  const source = 'Intro\r\n[[other]]\r\nother';
+  const s = await setup({ backlinks: true, initial: source });
+  try {
+    await s.backlinks.refresh();
+    const markers = [...s.target.querySelectorAll('.cm-document-link')]; const marker = markers.find(node => node.textContent.includes('other')); assert.ok(marker);
+    marker.dispatchEvent(new s.dom.window.MouseEvent('click', { button: 0, bubbles: true, cancelable: true })); await flush();
+    assert.equal(s.documents.current().path, 'other.md');
+    const target = { vaultId: 'a', path: 'other.md' };
+    const group = s.backlinks.query(target).unlinked[0]; assert.ok(group);
+    assert.equal(group.mentions[0].from, source.lastIndexOf('other'));
+    const result = await s.backlinks.link(target, group.source, group.mentions[0], group.text); assert.equal(result.ok, true); await flush();
+    assert.equal(s.cm().state.sliceDoc(), 'Intro\r\n[[other]]\r\n[[other]]');
+    undo(s.cm()); await flush(); assert.equal(s.cm().state.sliceDoc(), source);
+    await s.documentContent.reveal(group.source, group.mentions[0], group.text);
+    const selection = s.cm().state.selection.main;
+    assert.equal(s.cm().state.sliceDoc(selection.from, selection.to), 'other');
+  } finally { await s.stop(); }
+});
 
 test('workspace tabs compose with the editor, Settings, history and Vault lifetime', async () => {
   const s = await setup({ withLayout: true });

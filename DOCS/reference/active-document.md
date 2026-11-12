@@ -88,3 +88,5 @@ DocumentStatistics.current() and DocumentStatisticsChanged ({ current }) are add
 ## Document content and navigation
 
 `DocumentContent` (1.0) is provided by TextEditor. `buffers()` returns loaded live buffers; `read(target)` prefers those buffers over disk. `reveal(target, range, expectedText)` and `replace(target, range, insert, expectedText)` open through ActiveDocument guards and reject stale text or concurrent navigation. UTF-16 ranges match JavaScript string offsets. Replacement is one CodeMirror transaction, retaining undo, autosave, drafts and conflict handling. `DocumentContentChanged` invalidates a target without broadcasting its text. Consumers require `vault.access`.
+
+DocumentContent ranges refer to the raw text snapshot, including CRLF. The editor converts them to CodeMirror positions before selection or replacement, preserving one undoable transaction and the original line-ending convention.

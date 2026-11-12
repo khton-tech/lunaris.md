@@ -1,4 +1,4 @@
-import { parser } from "@lezer/markdown";
+import { parser as baseParser, Autolink } from "@lezer/markdown";
 import { parseDocument, visit } from "yaml";
 import type { Mention } from "@lunaris/backlinks";
 
@@ -13,6 +13,7 @@ export interface ParsedNote {
 const overlaps = (ranges: readonly Span[], from: number, to: number) => ranges.some(r => r.from < to && r.to > from);
 const escaped = (text: string, pos: number) => { let n = 0; while (pos > 0 && text[--pos] === "\\") n++; return n % 2 === 1; };
 const label = (value: string) => value.replace(/\\([\[\]\\])/g, "$1").trim().replace(/\s+/g, " ").toLowerCase();
+const parser = baseParser.configure(Autolink);
 
 /** Parse Markdown structure before finding prose; code and existing links are never unlinked mentions. */
 export function parseNote(text: string): ParsedNote {
@@ -49,6 +50,11 @@ export function parseNote(text: string): ParsedNote {
     if (node.name === "LinkReference") {
       const raw = text.slice(node.from, node.to); const match = /^\s*\[([^\]]+)\]:\s*(?:<([^>]+)>|(\S+))/.exec(raw);
       if (match && !definitions.has(label(match[1]!))) definitions.set(label(match[1]!), match[2] ?? match[3]!);
+      excluded.push({ from: node.from, to: node.to }); return false;
+    }
+    if (node.name === "URL") {
+      const raw = text.slice(node.from, node.to);
+      links.push({ from: node.from, to: node.to, destination: raw.startsWith("www.") ? "https://" + raw : !raw.includes(":") && raw.includes("@") ? "mailto:" + raw : raw, wiki: false });
       excluded.push({ from: node.from, to: node.to }); return false;
     }
     if (node.name === "Link" || node.name === "Image" || node.name === "Autolink") {

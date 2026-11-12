@@ -92,7 +92,10 @@
     "@lunaris/logging": "0.1.0",
     "@lunaris/mobile-menu-plugin": "0.1.0",
     "@lunaris/backlink-index": "0.1.0",
-    "@lunaris/backlinks-ui": "0.1.0"
+    "@lunaris/backlinks-ui": "0.1.0",
+    "@lunaris/external-links-provider": "0.1.0",
+    "@lunaris/browser-links": "0.1.0",
+    "@lunaris/document-links": "0.1.0"
   },
   "scripts": {
     "build": "tsc -b"

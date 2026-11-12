@@ -17,3 +17,7 @@ when navigating instead of silently interpreting stale offsets against new text.
 
 No provider implementation, editor instance, DOM or native filesystem access is
 exposed. See [the feature reference](../../../DOCS/reference/backlinks.md).
+
+## Shared note-link navigation
+
+NoteLinks.parse(text) returns explicit/internal and external link source ranges. NoteLinks.resolve(source, link) returns a target, text snapshot and heading/block range, or a structured failure. It shares the backlink provider parser and path resolver. Navigation consumers use DocumentContent.reveal to open that result. External destinations must go through ExternalLinks instead.

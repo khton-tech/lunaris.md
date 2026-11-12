@@ -57,7 +57,8 @@
     "@lunaris/window-provider": "0.1.0",
     "@lunaris/tauri-window": "0.1.0",
     "@lunaris/application-host": "0.1.0",
-    "@lunaris/tauri-credentials": "0.1.0"
+    "@lunaris/tauri-credentials": "0.1.0",
+    "@lunaris/tauri-links": "0.1.0"
   },
   "devDependencies": {
     "@tauri-apps/cli": "2.12.4",

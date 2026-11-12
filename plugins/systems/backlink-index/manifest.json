@@ -15,6 +15,11 @@
       "kind": "event",
       "id": "lunaris.backlinks-changed",
       "version": "1.0.0"
+    },
+    {
+      "kind": "api",
+      "id": "lunaris.note-links",
+      "version": "1.0.0"
     }
   ],
   "requires": [

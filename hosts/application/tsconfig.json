@@ -200,6 +200,15 @@
     },
     {
       "path": "../../plugins/UI/backlinks"
+    },
+    {
+      "path": "../../plugins/systems/external-links"
+    },
+    {
+      "path": "../../plugins/systems/driver/browser-links"
+    },
+    {
+      "path": "../../plugins/UI/document-links"
     }
   ]
 }

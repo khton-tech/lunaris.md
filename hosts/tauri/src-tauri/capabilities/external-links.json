@@ -1,0 +1,26 @@
+{
+  "identifier": "external-links",
+  "description": "Allow the local main window to open explicit web, mail and telephone links.",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    {
+      "identifier": "opener:allow-open-url",
+      "allow": [
+        {
+          "url": "https://*"
+        },
+        {
+          "url": "http://*"
+        },
+        {
+          "url": "mailto:*"
+        },
+        {
+          "url": "tel:*"
+        }
+      ]
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 import { definePlugin } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
-import { Backlinks, BacklinksChanged } from "@lunaris/backlinks";
+import { Backlinks, BacklinksChanged, NoteLinks } from "@lunaris/backlinks";
+import { anchorRange } from "./anchor.js";
 import type { MentionGroup, BacklinksSnapshot } from "@lunaris/backlinks";
 import { DocumentContent, DocumentContentChanged } from "@lunaris/active-document";
 import { Filesystem, FilesystemObservation, FileChanged } from "@lunaris/filesystem";
@@ -98,6 +99,23 @@ export default definePlugin({ manifest, activate(ctx) {
     const snapshot = { state, failures, linked, unlinked: plain };
     if (queries.size >= 32) queries.clear(); queries.set(cacheKey, snapshot); return snapshot;
   }
+  ctx.provide(NoteLinks, {
+    parse: text => parseNote(text).links,
+    async resolve(source, link) {
+      const epoch = generation;
+      if (source.vaultId !== vaultId) return { ok: false, error: { code: "VAULT_CLOSED", message: "The source Vault is no longer active." } };
+      let path = resolveLink(link, source.path, [...entries.keys()]);
+      if (!path) { await refresh(); path = resolveLink(link, source.path, [...entries.keys()]); }
+      if (!alive(source.vaultId, epoch)) return { ok: false, error: { code: "CANCELLED", message: "Link navigation cancelled." } };
+      if (!path) return { ok: false, error: { code: "NOT_FOUND", message: "Linked note not found." } };
+      const target = { vaultId: source.vaultId, path }; const read = await documents.read(target);
+      if (!alive(source.vaultId, epoch)) return { ok: false, error: { code: "CANCELLED", message: "Link navigation cancelled." } };
+      if (!read.ok) return read;
+      const range = anchorRange(read.value.text, link.destination);
+      if (!range) return { ok: false, error: { code: "NOT_FOUND", message: "Linked heading or block not found." } };
+      return { ok: true, value: { target, text: read.value.text, ...range } };
+    },
+  });
   ctx.provide(Backlinks, { query, async refresh() { dirty.add(""); await refresh(); }, async link(target, source, occurrence, expectedText) {
     const fresh = query(target).unlinked.find(group => group.source.path === source.path && group.source.vaultId === source.vaultId);
     if (!fresh || fresh.text !== expectedText || !fresh.mentions.some(item => item.from === occurrence.from && item.to === occurrence.to))

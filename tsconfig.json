@@ -261,6 +261,21 @@
     },
     {
       "path": "plugins/UI/backlinks"
+    },
+    {
+      "path": "packages/external-links"
+    },
+    {
+      "path": "plugins/systems/external-links"
+    },
+    {
+      "path": "plugins/systems/driver/browser-links"
+    },
+    {
+      "path": "plugins/systems/driver/tauri-links"
+    },
+    {
+      "path": "plugins/UI/document-links"
     }
   ]
 }

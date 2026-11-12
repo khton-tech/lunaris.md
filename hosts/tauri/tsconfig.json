@@ -138,6 +138,9 @@
     },
     {
       "path": "../../plugins/systems/driver/tauri-credentials"
+    },
+    {
+      "path": "../../plugins/systems/driver/tauri-links"
     }
   ]
 }

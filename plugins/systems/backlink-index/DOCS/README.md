@@ -42,3 +42,7 @@ watch cleanup. Integration with TextEditor and the application graph is complete
 native visual acceptance belongs to the UI plugin checklist.
 
 YAML property scalar values also contribute explicit wikilinks with original source offsets. YAML keys/comments and plain metadata values are excluded from unlinked mentions. Dotted note names retain their full stem during resolution.
+
+## Navigation integration
+
+Also provides NoteLinks (1.0): parse(text) and resolve(source, link). The document-links editor contribution consumes it, so clicking a link and indexing its target use the same rules. Bare web URLs and angle autolinks are recognized; URL text is excluded from unlinked mentions. Heading/block resolution preserves raw file offsets.

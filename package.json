@@ -67,7 +67,8 @@
     "editor-menu:check": "node tools/scripts/check.mjs context-menu context-menu-provider clipboard clipboard-provider browser-clipboard text-editor mantine-components",
     "callouts:check": "node tools/scripts/check.mjs callouts mantine-components text-editor",
     "session:check": "node tools/scripts/session-restore.mjs",
-    "backlinks:check": "node tools/scripts/backlinks.mjs"
+    "backlinks:check": "node tools/scripts/backlinks.mjs",
+    "links:check": "node tools/scripts/links.mjs"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

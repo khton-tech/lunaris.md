@@ -663,3 +663,5 @@ Initial statistics are exposed by the API snapshot. Initialization suppresses ch
 ## Public document contributions
 
 DocumentContent and DocumentContentChanged expose live text and guarded navigation/edits; see the active-document reference. DocumentFooters.register({id, componentId, props}, owner) mounts replaceable component roles after the editor, within its scrolling text column. Roles receive document: FileTarget and explicit embedded/content presentation. Registration returns a disposable and follows owner cancellation. Geometry and surface remain editor-owned.
+
+DocumentContent converts raw UTF-16 snapshot offsets (including CRLF) into CodeMirror positions at its transaction boundary. DocumentLinks uses these public operations for link navigation; platform launching remains outside TextEditor.

@@ -1,3 +1,4 @@
+import { createTauriLinks } from "@lunaris/tauri-links";
 import "@lunaris/mantine-components/styles.css";
 import { composeApplication as composeShared } from "@lunaris/application-host";
 import windowTitlebar from "@lunaris/window-titlebar";
@@ -13,7 +14,7 @@ export function composeApplication(target: HTMLElement): ApplicationDefinition {
   const native = createTauriFilesystemDriver(undefined, { backendOnly: true });
   const credentials = createTauriCredentials();
   const close = createCloseGuard();
-  return composeShared(target, { art, mode: "desktop", platformPlugins: [native, credentials], extensions: {
+  return composeShared(target, { art, mode: "desktop", externalLinksDriver: createTauriLinks(), platformPlugins: [native, credentials], extensions: {
     plugins: [windowTitlebar, windowProvider, tauriWindow, close.plugin],
     entrypoints: [windowTitlebar.manifest.id, close.plugin.manifest.id], beforeClose: close.beforeClose,
     grants: { [credentials.manifest.id]: credentials.manifest.permissions, [native.manifest.id]: ["filesystem.native"], [windowTitlebar.manifest.id]: ["window.control", "ui.dom"],

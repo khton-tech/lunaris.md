@@ -3,6 +3,11 @@ import path from 'node:path';
 import ts from 'typescript';
 
 export const dependencies = {
+  'external-links': ["sdk"],
+  'external-links-provider': ["sdk","logging","external-links"],
+  'browser-links': ["sdk","logging","external-links"],
+  'tauri-links': ["sdk","logging","external-links"],
+  'document-links': ["sdk","logging","editor","backlinks","external-links","active-document"],
   'backlinks': ["sdk","filesystem"],
   'backlink-index': ["sdk","backlinks","logging","filesystem","vault","active-document"],
   'backlinks-ui': ["sdk","backlinks","logging","active-document","editor","sidebar","active-screen","components","localization","vault","config","settings"],
@@ -25,7 +30,7 @@ export const dependencies = {
   'browser-navigation': ["sdk","remote","logging","active-document"],
   'client-updates': ["sdk","remote","logging"],
   web: ['application-host', 'mantine-components'],
-  'application-host': ['backlink-index','backlinks-ui','mobile-menu-plugin','logging','callouts','clipboard-provider','browser-clipboard','status-bar','client-updates','client-update-ui','browser-navigation',"filesystem-provider","logger","dev-tools-logger","kernel","sdk","vault-manager","config-manager","localization-manager","slot-provider","web-slot-driver","theme-provider","component-provider","base-theme-engine","startup","startup-provider","theme-settings","runner","vault-history","vault-selector","mantine-components","workspace-plugin","workspace-provider","sidebar-plugin","sidebar-provider","file-explorer","context-menu-provider","active-document","active-document-provider","active-screen-provider","active-screen-plugin","settings-provider","settings-plugin","interface-settings","text-editor","vault","browser-storage","server-transport","remote-filesystem","account-session","drafts-provider","account-access","filesystem-router","filesystem"],
+  'application-host': ['external-links-provider','browser-links','document-links','backlink-index','backlinks-ui','mobile-menu-plugin','logging','callouts','clipboard-provider','browser-clipboard','status-bar','client-updates','client-update-ui','browser-navigation',"filesystem-provider","logger","dev-tools-logger","kernel","sdk","vault-manager","config-manager","localization-manager","slot-provider","web-slot-driver","theme-provider","component-provider","base-theme-engine","startup","startup-provider","theme-settings","runner","vault-history","vault-selector","mantine-components","workspace-plugin","workspace-provider","sidebar-plugin","sidebar-provider","file-explorer","context-menu-provider","active-document","active-document-provider","active-screen-provider","active-screen-plugin","settings-provider","settings-plugin","interface-settings","text-editor","vault","browser-storage","server-transport","remote-filesystem","account-session","drafts-provider","account-access","filesystem-router","filesystem"],
   'account-access': ['sdk', 'remote', 'filesystem', 'vault', 'logging', 'localization', 'components', 'slots', 'slot-dom', 'startup'],
   'drafts-provider': ['sdk', 'remote', 'filesystem', 'logging'],
   'browser-storage': ['sdk', 'remote', 'filesystem', 'logging'],
@@ -93,12 +98,17 @@ export const dependencies = {
   test: ['sdk', 'kernel'],
   development: ['manifest', 'sdk', 'kernel', 'logging', 'logger', 'lup', 'execution', 'quickjs-execution', 'filesystem', 'vault'],
   cli: ['manifest', 'lup', 'sdk', 'kernel', 'test', 'development'],
-  tauri: ['tauri-credentials', 'application-host', 'window-titlebar', 'window-provider', 'tauri-window', 'vault', 'logging', 'text-editor', 'interface-settings', 'settings-provider', 'settings-plugin', 'active-screen-provider', 'active-screen-plugin', 'active-document', 'active-document-provider', 'context-menu-provider', 'file-explorer', 'sidebar-plugin', 'sidebar-provider', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'mantine-components', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'],
+  tauri: ['tauri-links','tauri-credentials', 'application-host', 'window-titlebar', 'window-provider', 'tauri-window', 'vault', 'logging', 'text-editor', 'interface-settings', 'settings-provider', 'settings-plugin', 'active-screen-provider', 'active-screen-plugin', 'active-document', 'active-document-provider', 'context-menu-provider', 'file-explorer', 'sidebar-plugin', 'sidebar-provider', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'mantine-components', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'],
 };
 
 dependencies['application-host'].push('manifest', 'lime', 'execution', 'lime-manager', 'lime-settings', 'quickjs-execution', 'lup-picker', 'components');
 
 export const packagePath = scope => {
+  if (scope === 'external-links') return 'packages/external-links';
+  if (scope === 'external-links-provider') return 'plugins/systems/external-links';
+  if (scope === 'browser-links') return 'plugins/systems/driver/browser-links';
+  if (scope === 'tauri-links') return 'plugins/systems/driver/tauri-links';
+  if (scope === 'document-links') return 'plugins/UI/document-links';
   if (scope === 'backlink-index') return 'plugins/systems/backlink-index';
   if (scope === 'backlinks-ui') return 'plugins/UI/backlinks';
   if (scope === 'tauri-credentials') return 'plugins/systems/driver/tauri-credentials';
@@ -187,6 +197,8 @@ export function checkSource(source, filename, scope) {
   if (scope === 'components-kit' && path.resolve(filename) === path.resolve('plugins/UI/components-kit/src/controls.ts')) allowed.add('lucide');
   if (scope === 'editor') for (const name of ['@codemirror/state', '@lezer/markdown']) allowed.add(name);
   if (scope === 'backlink-index') for (const name of ['yaml', '@lezer/markdown']) allowed.add(name);
+  if (scope === 'tauri-links') allowed.add('@tauri-apps/plugin-opener');
+  if (scope === 'document-links') for (const name of ['@codemirror/state', '@codemirror/view']) allowed.add(name);
   if (scope === 'callouts') for (const name of ['@codemirror/state', '@codemirror/view', '@codemirror/language', '@lezer/markdown']) allowed.add(name);
   if (scope === 'text-editor') {
     for (const name of ['@codemirror/state', '@codemirror/view', '@codemirror/commands', '@codemirror/lang-markdown', '@codemirror/language', '@lezer/highlight', '@lezer/markdown']) allowed.add(name);

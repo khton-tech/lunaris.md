@@ -344,8 +344,10 @@ export default definePlugin({ manifest, async activate(ctx) {
     }
     const view = { render, transact(session: DocumentSession, range: DocumentRange, insert?: string): boolean {
       if (!editor || rendered !== session || disposed || signal.aborted) return false;
-      editor.view.dispatch({ ...(insert === undefined ? {} : { changes: { ...range, insert }, userEvent: "input" }),
-        selection: { anchor: range.from, head: insert === undefined ? range.to : range.from + insert.length }, scrollIntoView: true });
+      const position = (offset: number) => offset - (session.text.slice(0, offset).match(/\r\n/g)?.length ?? 0);
+      const from = position(range.from); const to = position(range.to);
+      editor.view.dispatch({ ...(insert === undefined ? {} : { changes: { from, to, insert }, userEvent: "input" }),
+        selection: { anchor: from, head: insert === undefined ? to : from + editor.view.state.toText(insert).length }, scrollIntoView: true });
       editor.view.focus(); return true;
     }, refreshControls: clearEditor, removed() { clearFooters(); clearEditor(); mounted = undefined; editorTarget = null; viewport = undefined; } };
     function dispose(): void {
