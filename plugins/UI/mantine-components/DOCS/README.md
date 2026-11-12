@@ -1107,7 +1107,14 @@ The existing text-editor role accepts optional recoveryLabel, recoveryCandidates
 
 The public lunaris.mobile-menu role renders registered action descriptors; WorkspaceLayout lends its mobile-menu target and owns the floating surface. The former built-in sidebar action has been removed. See DOCS/reference/mobile-menu.md for registration and integration.
 
-Workspace owns a top-left mobile-launcher surface separate from the bottom action row. The shared menu role uses normal inline containment to preserve its intrinsic width. Nested main-region scroll capture hides/shows the launcher by direction. Sidebar scrolling is ignored.
+Workspace owns the top-left mobile launcher and bottom dock surfaces. The shared
+menu role uses normal inline containment to preserve the launcher's intrinsic
+width. Main-region scroll and vertical swipes hide or reveal both surfaces.
+The launcher exits above the Workspace and returns from the top. The dock
+exits below it and returns from the bottom. The same transitions apply when
+the sidebar or virtual keyboard hides the controls. Workspace uses the active
+theme's motion timing and skips transitions for reduced motion. Exiting regions
+become inert immediately, and the mobile menu closes any portaled dropdown.
 
 The Owner's highlighted bottom panel defines the position of the tab action.
 The mobile-menu role accepts an optional count on an action descriptor. The

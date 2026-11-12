@@ -1109,9 +1109,9 @@ test('compact Workspace lends a mobile menu target without replacing editor regi
   const scroll=s.dom.window.document.createElement('div'); scroll.setAttribute('data-workspace-scroll', ''); main.append(scroll);
   const menuList=s.dom.window.document.createElement('div'); menuList.setAttribute('role', 'listbox'); scroll.append(menuList);
   const {flushSync}=await import('react-dom');
-  menuList.scrollTop=60; flushSync(()=>menuList.dispatchEvent(new s.dom.window.Event('scroll'))); assert.equal(launcher.hidden,false); assert.equal(targets['mobile-menu'].hidden,false);
-  scroll.scrollTop=60; flushSync(()=>scroll.dispatchEvent(new s.dom.window.Event('scroll'))); assert.equal(launcher.hidden,true); assert.equal(targets['mobile-menu'].hidden,true);
-  scroll.scrollTop=30; flushSync(()=>scroll.dispatchEvent(new s.dom.window.Event('scroll'))); assert.equal(launcher.hidden,false); assert.equal(targets['mobile-menu'].hidden,false);
+  menuList.scrollTop=60; flushSync(()=>menuList.dispatchEvent(new s.dom.window.Event('scroll'))); assert.equal(launcher.hasAttribute('inert'),false); assert.equal(targets['mobile-menu'].hasAttribute('inert'),false);
+  scroll.scrollTop=60; flushSync(()=>scroll.dispatchEvent(new s.dom.window.Event('scroll'))); assert.equal(launcher.hasAttribute('inert'),true); assert.equal(targets['mobile-menu'].hasAttribute('inert'),true);
+  scroll.scrollTop=30; flushSync(()=>scroll.dispatchEvent(new s.dom.window.Event('scroll'))); assert.equal(launcher.hasAttribute('inert'),false); assert.equal(targets['mobile-menu'].hasAttribute('inert'),false);
   const menu=s.components.mount('lunaris.mobile-menu',targets['mobile-menu'],{items:Array.from({length:5},(_,i)=>({id:'test.'+i,label:'Test '+i,icon:'files',onPress(){}}))},s.ctx.signal);
   assert.equal(menu.ok,true); assert.equal(targets['mobile-menu'].querySelectorAll('button').length,5);
   assert.equal(targets['mobile-menu'].querySelector('.lm-root').style.containerType,'normal');
@@ -1230,14 +1230,8 @@ test('mobile keyboard hides Workspace navigation and its open dropdown while kee
  const { window } = s.dom;
  const viewport = mobileViewport(window);
  const original = window.HTMLElement.prototype.getBoundingClientRect;
- const observers = new Map();
  window.HTMLElement.prototype.getBoundingClientRect = function () {
    return this.hidden ? new window.DOMRect() : new window.DOMRect(0, 0, 360, 720);
- };
- globalThis.ResizeObserver = class {
-   constructor(callback) { this.callback = callback; this.elements = new Set(); }
-   observe(element) { this.elements.add(element); observers.set(element, this.callback); }
-   disconnect() { for (const element of this.elements) observers.delete(element); }
  };
  try {
   let targets;
@@ -1265,19 +1259,18 @@ test('mobile keyboard hides Workspace navigation and its open dropdown while kee
   viewport.dispatchEvent(new window.Event('resize'));
   await new Promise(resolve => window.requestAnimationFrame(resolve)); await settle();
   for (const region of [launcher, toolbar]) {
-   assert.equal(region.hidden, true);
+   assert.equal(region.hidden, false);
    assert.equal(region.hasAttribute('inert'), true);
+   assert.equal(region.getAttribute('aria-hidden'), 'true');
   }
-  observers.get(toolbar)([{ target: toolbar, contentRect: toolbar.getBoundingClientRect() }]);
-  await settle();
   assert.equal(dropdown(), null);
   assert.equal(window.document.activeElement, editor);
   viewport.height = 720;
   viewport.dispatchEvent(new window.Event('resize'));
   await new Promise(resolve => window.requestAnimationFrame(resolve)); await settle();
   assert.equal(targets, initial);
-  assert.equal(launcher.hidden, false);
-  assert.equal(toolbar.hidden, false);
+  assert.equal(launcher.hasAttribute('inert'), false);
+  assert.equal(toolbar.hasAttribute('inert'), false);
   assert.equal(dropdown(), null);
   menu.value.dispose(); layout.value.dispose();
  } finally { window.HTMLElement.prototype.getBoundingClientRect = original; await s.stop(); }
@@ -1289,6 +1282,10 @@ test('mobile floating controls follow content swipes without scroll or keyboard 
  let width = 360;
  s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, width, 720);
  try {
+  const { document, getComputedStyle } = s.dom.window;
+  const sheet = document.createElement('style');
+  sheet.textContent = readFileSync(new URL('../styles.css', import.meta.url), 'utf8').replace(/^@import .*$/gm, '');
+  document.head.append(sheet);
   const { flushSync } = await import('react-dom');
   let targets;
   const props = { railVisible:true, panelVisible:true, mobileLauncherVisible:true, mobileMenuVisible:true, mainLabel:'Main', panelLabel:'Sidebar', onTargets:value=>{targets=value;}, onDismiss(){} };
@@ -1305,7 +1302,16 @@ test('mobile floating controls follow content swipes without scroll or keyboard 
    flushSync(() => target.dispatchEvent(event));
    assert.equal(event.defaultPrevented, prevented);
   };
-  const visible = value => { assert.equal(launcher.hidden, !value); assert.equal(toolbar.hidden, !value); };
+  const visible = value => {
+   for (const region of [launcher, toolbar]) {
+    assert.equal(region.hidden, false);
+    assert.equal(region.hasAttribute('inert'), !value);
+    assert.equal(region.hasAttribute('aria-hidden'), !value);
+    assert.match(getComputedStyle(region).transition, /transform var\(--vault-motion-normal\)/);
+   }
+   assert.equal(getComputedStyle(launcher).transform, value ? 'translateY(0)' : 'translateY(calc(-100% - 8px))');
+   assert.equal(getComputedStyle(toolbar).getPropertyValue('--workspace-dock-offset'), value ? '' : 'calc(100% + 8px)');
+  };
   const swipe = (from, to) => { touch('touchstart',[point(100,from)]); touch('touchmove',[point(100,to)]); touch('touchend',[]); };
   launcher.querySelector('button').focus();
   swipe(200,120); visible(false); assert.equal(s.dom.window.document.activeElement, main);

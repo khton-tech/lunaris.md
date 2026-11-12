@@ -208,7 +208,7 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
     publish(Object.freeze({ main: main.current!, "left-rail": rail.current!, "left-panel": panel.current!, bottom: bottom.current!, "mobile-menu": mobileMenu.current!, "mobile-launcher": mobileLauncher.current! }), compact);
   }, [publish, compact]);
   useLayoutEffect(() => () => publish(null), [publish]);
-  const floatingInactive = overlayOpen || keyboardOpen;
+  const floatingInactive = floatingHidden || overlayOpen || keyboardOpen;
   return <FocusTrap active={overlayOpen} innerRef={root}><Box className="lm-workspace-layout" style={{ ...theme.contentStyle, "--workspace-panel-width": `${width}px`, "--workspace-content-width": `${available}px` }} data-launcher={props.mobileLauncherVisible || undefined} data-compact={compact || undefined} data-mobile-open={overlayOpen || undefined} data-mobile-menu={props.mobileMenuVisible || undefined} data-window-chrome={theme.windowChrome || undefined} data-bottom={props.bottomVisible || undefined} data-rail={props.railVisible || undefined} data-panel={props.panelVisible || undefined}
     role={overlayOpen ? "dialog" : undefined} aria-modal={overlayOpen || undefined} aria-label={overlayOpen ? props.panelLabel : undefined}
     onClickCapture={event => {
@@ -235,8 +235,8 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
       </Splitter.Pane>
     </Splitter>
     <UnstyledButton className="lm-workspace-backdrop" hidden={!compact} inert={!overlayOpen} aria-hidden={!overlayOpen || undefined} tabIndex={-1} aria-label={props.mainLabel} onClick={closeOverlay} />
-    <Paper ref={mobileLauncher} className="lm-workspace-mobile-launcher lm-workspace-card" hidden={!compact || !props.mobileLauncherVisible || floatingHidden || floatingInactive} inert={floatingInactive} aria-hidden={floatingInactive || undefined} />
-    <Paper ref={mobileMenu} className="lm-workspace-mobile-toolbar lm-workspace-card" hidden={!compact || !props.mobileMenuVisible || floatingHidden || floatingInactive} inert={floatingInactive} aria-hidden={floatingInactive || undefined} />
+    <Paper ref={mobileLauncher} className="lm-workspace-mobile-launcher lm-workspace-card" hidden={!compact || !props.mobileLauncherVisible} inert={floatingInactive} aria-hidden={floatingInactive || undefined} />
+    <Paper ref={mobileMenu} className="lm-workspace-mobile-toolbar lm-workspace-card" hidden={!compact || !props.mobileMenuVisible} inert={floatingInactive} aria-hidden={floatingInactive || undefined} />
   </Box></FocusTrap>;
 }
 

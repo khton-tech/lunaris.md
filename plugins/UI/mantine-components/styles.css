@@ -160,12 +160,19 @@
 }
 .lm-workspace-layout[data-mobile-open] .lm-workspace-backdrop { pointer-events:auto }
 .lm-workspace-layout[data-mobile-dragging] :is(.lm-workspace-rail,.lm-workspace-panel-pane,.lm-workspace-backdrop) { transition:none }
+.lm-workspace-mobile-launcher,.lm-workspace-mobile-toolbar {
+  transition:transform var(--vault-motion-normal) var(--vault-motion-easing),visibility 0s
+}
+.lm-workspace-mobile-launcher[inert],.lm-workspace-mobile-toolbar[inert] {
+  visibility:hidden;transition-delay:0s,var(--vault-motion-normal)
+}
 .lm-workspace-mobile-toolbar {
-  position:absolute;bottom:8px;left:50%;transform:translateX(-50%);
+  position:absolute;bottom:8px;left:50%;transform:translate(-50%,var(--workspace-dock-offset,0px));
   z-index:4;display:flex;padding:4px 0
 }
+.lm-workspace-mobile-toolbar[inert] { --workspace-dock-offset:calc(100% + 8px) }
 @media(prefers-reduced-motion:reduce) {
-  .lm-workspace-layout[data-compact] :is(.lm-workspace-rail,.lm-workspace-panel-pane,.lm-workspace-backdrop) { transition:none }
+  .lm-workspace-layout[data-compact] :is(.lm-workspace-rail,.lm-workspace-panel-pane,.lm-workspace-backdrop,.lm-workspace-mobile-launcher,.lm-workspace-mobile-toolbar) { transition:none }
 }
 .lm-workspace-layout[data-compact] .lm-sidebar-rail { padding:10px 8px }
 .lm-workspace-layout[data-compact] .lm-sidebar-tab { min-width:44px;min-height:44px }
@@ -807,7 +814,8 @@
 .lm-mobile-choice-menu .lm-mobile-choice-trailing:disabled { opacity:.45 }
 .lm-mobile-choice-trailing .mantine-Menu-itemLabel { flex:none;display:flex }
 .lm-mobile-menu-items .lm-sidebar-tab[aria-expanded=true] { color:var(--vault-text);background:var(--vault-selection) }
-.lm-workspace-mobile-launcher { position:absolute;top:8px;left:12px;z-index:4;display:flex;padding:2px;max-width:calc(100% - 24px);overflow:auto }
+.lm-workspace-mobile-launcher { position:absolute;top:8px;left:12px;z-index:4;display:flex;padding:2px;max-width:calc(100% - 24px);overflow:auto;transform:translateY(0) }
+.lm-workspace-mobile-launcher[inert] { transform:translateY(calc(-100% - 8px)) }
 .lm-root .lm-workspace-mobile-launcher { border-radius:999px }
 
 .lm-root .lm-mobile-menu-items[data-density=compact] .lm-sidebar-tab { width:32px;height:32px;min-width:32px;min-height:32px }
