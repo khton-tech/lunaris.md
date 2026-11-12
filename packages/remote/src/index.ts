@@ -107,3 +107,20 @@ export interface ConnectionSnapshot {
 export const ConnectionStatus = defineApi<{ current(): Readonly<ConnectionSnapshot> | null }>({
   id: "lunaris.connection-status", version: "1.0.0", consumePermission: "account.access", validate: methods(["current"]),
 });
+
+/** Trusted transport-only credential store. Never store passwords or expose this to UI. */
+export interface SavedServerSession { readonly server: string; readonly account: Account; readonly token: string }
+export function validSavedServerSession(value: unknown): value is SavedServerSession {
+  const v = value as SavedServerSession | null;
+  if (!v || typeof v.server !== "string" || v.server.length > 2048 || typeof v.token !== "string" || !v.token || v.token.length > 1024 ||
+      typeof v.account?.id !== "string" || !v.account.id || v.account.id.length > 200 || typeof v.account.login !== "string" || !v.account.login || v.account.login.length > 64) return false;
+  try { const url = new URL(v.server); return ["http:", "https:"].includes(url.protocol) && url.origin === v.server && !url.username && !url.password; } catch { return false; }
+}
+export interface SessionCredentialsApi {
+  load(): Promise<RemoteResult<SavedServerSession | null>>;
+  save(session: SavedServerSession): Promise<RemoteResult<null>>;
+  /** Remove only the matching token, preserving a newer session. */
+  remove(token: string): Promise<RemoteResult<null>>;
+}
+export const SessionCredentials = defineApi<SessionCredentialsApi>({ id: "lunaris.session-credentials", version: "1.0.0",
+  providePermission: "credentials.native", consumePermission: "credentials.access", validate: methods(["load", "save", "remove"]) });

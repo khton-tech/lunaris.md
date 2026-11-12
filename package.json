@@ -65,7 +65,8 @@
     "window:check": "node tools/scripts/check.mjs window window-provider tauri-window window-titlebar",
     "status-bar:check": "node tools/scripts/check.mjs status-bar workspace-plugin workspace-provider text-editor server-transport mantine-components",
     "editor-menu:check": "node tools/scripts/check.mjs context-menu context-menu-provider clipboard clipboard-provider browser-clipboard text-editor mantine-components",
-    "callouts:check": "node tools/scripts/check.mjs callouts mantine-components text-editor"
+    "callouts:check": "node tools/scripts/check.mjs callouts mantine-components text-editor",
+    "session:check": "node tools/scripts/session-restore.mjs"
   },
   "devDependencies": {
     "@types/node": "26.6.6",

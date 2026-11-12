@@ -42,7 +42,7 @@ export function createAccountAccess(options: { readonly art?: string; readonly d
     let visible = options.defaultOpen ?? false; let mode: Mode = "connect"; let info: ServerInfo | null = null; let busy = false; let error = ""; let entries: readonly RemoteVault[] = []; let unavailable = false;
     let catalogState: "loading" | "ready" | "error" = "ready";
     let listRevision = 0;
-    const fields = { address: options.defaultAddress ?? "", login: "", password: "", invitation: "", name: "" };
+    const fields = { address: session.current()?.server ?? options.defaultAddress ?? "", login: "", password: "", invitation: "", name: "" };
     let screen = ctx.scope.child(); let mounted: MountedComponent | undefined; let allocated = false; let autoConnected = false;
     let placement: AccountAccessPlacement | undefined;
     let unbindPlacement: (() => void) | undefined;
@@ -138,7 +138,7 @@ export function createAccountAccess(options: { readonly art?: string; readonly d
           unbindPlacement = () => owner.removeEventListener("abort", abort);
         }
         mode = session.current() ? "vaults" : info ? "login" : "connect";
-        setVisible(true); if (mode === "vaults") run(list);
+        setVisible(true); if (mode === "vaults") { fields.address = session.current()!.server; run(info ? list : connect); }
       },
       close() { if (busy) return; viewGeneration++; fields.password = ""; setVisible(false); detach(); },
     });

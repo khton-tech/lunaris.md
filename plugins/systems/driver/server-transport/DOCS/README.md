@@ -29,3 +29,21 @@ to center the combined identity/form block when space permits, falling back to
 scrolling when content exceeds the allocation. No storage changes. Integration
 connects server discovery, transport, account controller and UIKit. Native mobile
 centering, keyboard-open scrolling and long descriptions require manual acceptance.
+
+## Persistent desktop sessions
+
+SessionCredentials 1.0 is a trusted, replaceable SDK contract (credentials.access /
+credentials.native). It stores only the last { server, account, token }; methods
+are load(), save(record), and conditional remove(token). The Tauri credential
+driver uses OS credential storage, not Config or note files. Passwords are not
+saved. Transport restores before exposing its API, so history and selector can
+restore the last remote Vault through existing contracts. Initial state is read
+from current(); events report subsequent changes after activation.
+
+Exact-origin validation prevents forwarding credentials to other servers. Startup
+reconnect requests have a maximum five-second deadline each. Offline startup
+retains the last-known identity for history visibility without bypassing server
+authorization; expired/revoked tokens are removed. Successful logout clears the
+matching credential, while normal shutdown preserves it. A missing/unavailable
+store logs degraded memory-only behavior. Web authentication remains cookie-based.
+See the tauri-credentials plugin guide for native build and acceptance details.

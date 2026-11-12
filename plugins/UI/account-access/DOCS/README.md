@@ -192,3 +192,8 @@ to busy account/selector regions; unavailable controls elsewhere are unchanged.
 Catalog loading uses the same spinner. Reduced motion uses a static indicator.
 Both embedded desktop and standalone browser flows use this implementation.
 Native contrast, animation and layout acceptance remain manual.
+
+Restored desktop accounts initialize the address from AccountSession.current().
+When opening account management after startup, discovery is refreshed if needed
+to obtain server metadata and registration policy; credentials remain owned by
+transport. Automatic last-Vault restoration remains the selector/history flow.

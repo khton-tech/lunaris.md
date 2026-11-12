@@ -135,6 +135,9 @@
     },
     {
       "path": "../application"
+    },
+    {
+      "path": "../../plugins/systems/driver/tauri-credentials"
     }
   ]
 }

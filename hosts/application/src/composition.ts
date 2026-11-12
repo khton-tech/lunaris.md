@@ -109,7 +109,7 @@ export function composeApplication(target: HTMLElement, options: {
       [clipboardDriver.manifest.id]: clipboardDriver.manifest.permissions,
       [clipboardProvider.manifest.id]: clipboardProvider.manifest.permissions,
       [device.manifest.id]: device.manifest.permissions,
-      [transport.manifest.id]: [],
+      [transport.manifest.id]: options.mode === "desktop" ? ["credentials.access"] : [],
       [accountSession.manifest.id]: ["vault.access", "filesystem.access", "account.network"],
       [account.manifest.id]: ["account.access", "filesystem.access", "vault.access", "ui.dom"],
       [remoteFilesystem.manifest.id]: ["filesystem.native", "account.network", "account.access"],
