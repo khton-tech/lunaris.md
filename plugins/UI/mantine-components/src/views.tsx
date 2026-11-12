@@ -99,18 +99,23 @@ export function VaultSelector({ props, theme }: { props: SelectorProps; theme: R
   useLayoutEffect(() => {
     const panel = main.current; const body = content.current; const view = panel?.ownerDocument.defaultView;
     if (!panel || !body || !view?.ResizeObserver) return;
+    // Measure owned disclosure surfaces, including asynchronously mounted account content.
+    const surfaces = [...body.querySelectorAll<HTMLElement>(".ln-vault-form")];
     const observer = new view.ResizeObserver(() => {
       const padding = view.getComputedStyle(panel);
       const available = panel.clientHeight - parseFloat(padding.paddingTop) - parseFloat(padding.paddingBottom);
       const disclosed = [...body.querySelectorAll<HTMLElement>(".ln-vault-disclosure")].reduce((height, node) => height + node.offsetHeight, 0);
       const resting = body.offsetHeight - disclosed;
-      const expansion = Math.max(0, ...[...body.querySelectorAll("form")].map(form => form.offsetHeight));
+      const expansion = Math.max(0, ...surfaces.map(surface => {
+        const style = view.getComputedStyle(surface);
+        return surface.offsetHeight + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
+      }));
       const offset = `${Math.max(0, Math.min((available - resting) / 2, available - resting - expansion))}px`;
       if (panel.style.getPropertyValue("--vault-center-offset") !== offset) panel.style.setProperty("--vault-center-offset", offset);
     });
-    observer.observe(panel); observer.observe(body); for (const form of body.querySelectorAll("form")) observer.observe(form);
+    observer.observe(panel); observer.observe(body); for (const surface of surfaces) observer.observe(surface);
     return () => observer.disconnect();
-  }, []);
+  }, [!!props.onServer]);
   return <Box component="section" className="ln-vault" style={theme.contentStyle} aria-busy={props.busy}>
     <Paper component="aside" className="ln-vault-recents" aria-label={props.text.recent}>
       <Title order={2}>{props.text.recent}</Title>

@@ -208,7 +208,7 @@
 .ln-vault h2 { font:inherit;font-weight:500;margin:0 0 calc(var(--vault-space)*3) }
 .ln-vault ul { list-style:none;padding:0;margin:0 }
 .lm-root .lm-card-row[aria-current=true] { border-color:var(--vault-accent);background:var(--vault-selection) }
-.ln-vault-main { display:flex;flex-direction:column;align-items:center;padding:clamp(1rem,5cqw,4rem) }
+.ln-vault-main { display:flex;flex-direction:column;align-items:center;padding:clamp(1rem,3vh,2rem) clamp(1rem,5cqw,4rem) }
 .ln-vault-main::before { content:"";flex:0 0 var(--vault-center-offset,0px) }
 .ln-vault-content { flex-shrink:0;width:100%;max-width:28rem;container-type:inline-size;display:flow-root }
 .ln-vault pre { color:var(--vault-text);font: min(8px,1.7cqw)/1.2 var(--vault-mono);white-space:pre;margin:0 0 calc(var(--vault-space)*6);text-align:center;max-width:100%;overflow:auto }
@@ -232,7 +232,7 @@
 .lm-root .ln-vault-next { width:100%;min-height:var(--vault-row-height);margin-top:0 }
 .lm-root .ln-vault-next:enabled:active { background:var(--vault-selection);color:var(--vault-text) }
 .ln-vault-status { min-height:1.5em;margin-bottom:calc(var(--vault-space)*4)!important }
-.ln-vault-status:empty { visibility:hidden }
+.ln-vault-status:empty { min-height:0;margin-bottom:0!important;visibility:hidden }
 @media(hover:hover) {
  .lm-root .lm-button:enabled:hover:not(:active) { background:var(--vault-hover) }
  .lm-root .ln-vault-next:enabled:hover:not(:active) { background:var(--vault-accent-hover) }

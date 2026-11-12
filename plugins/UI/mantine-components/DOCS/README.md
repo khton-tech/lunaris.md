@@ -1308,3 +1308,19 @@ to busy account/selector regions; unavailable controls elsewhere are unchanged.
 Catalog loading uses the same spinner. Reduced motion uses a static indicator.
 Both embedded desktop and standalone browser flows use this implementation.
 Native contrast, animation and layout acceptance remain manual.
+
+## Intrinsic selector disclosure sizing
+
+Reference: Owner screenshot of the embedded server sign-in card extending below
+an 1120 by 831 desktop window. VaultSelector remains the owner of panel geometry,
+surface and overflow. AccountAccess owns only the borrowed content. The selector
+now observes its complete disclosure surfaces, including server identity, footer
+actions, padding and margins, rather than nested HTML forms. Async step changes
+update the reserved expansion height. Collapsed local forms retain their reserved
+space for stable disclosure. Vertical panel padding is reduced and the empty
+status line no longer consumes decorative space; control sizes remain unchanged.
+The panel retains accessible overflow only when intrinsic content cannot fit.
+No SDK or consumer integration changes are required. A geometry regression test
+covers growing embedded content and top alignment for oversized content. Native
+visual acceptance remains manual: login, registration, errors and long catalogs,
+short/narrow windows, both themes, keyboard focus and interrupted disclosure.

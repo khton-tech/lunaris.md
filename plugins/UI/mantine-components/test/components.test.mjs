@@ -1416,3 +1416,35 @@ test('XP mobile surfaces and controls use real light/dark presets and reset with
   launcher.value.dispose();menu.value.dispose();layout.value.dispose();
  } finally {s.dom.window.HTMLElement.prototype.getBoundingClientRect=original;await s.stop();}
 });
+
+test('vault selector reserves the full embedded surface as account content grows', async () => {
+  const s = await setup(); await s.start();
+  const observers = [];
+  s.dom.window.ResizeObserver = class {
+    constructor(callback) { this.callback = callback; this.nodes = []; observers.push(this); }
+    observe(node) { this.nodes.push(node); }
+    disconnect() {}
+  };
+  const mounted = s.components.mount('lunaris.vault-selector', s.target, { ...selector, mode: null, onServer() {}, serverExpanded: true }, s.ctx.signal);
+  assert.equal(mounted.ok, true);
+  const panel = s.target.querySelector('.ln-vault-main');
+  const body = s.target.querySelector('.ln-vault-content');
+  const surfaces = [...s.target.querySelectorAll('.ln-vault-form')];
+  const surface = surfaces.at(-1);
+  const observer = observers.find(item => item.nodes.includes(panel));
+  assert.ok(observer.nodes.includes(surface), 'observe the borrowed surface, not only nested HTML forms');
+  panel.style.padding = '0px';
+  for (const item of surfaces) item.style.margin = '0px';
+  let height = 400;
+  Object.defineProperty(panel, 'clientHeight', { get: () => 740 });
+  Object.defineProperty(body, 'offsetHeight', { get: () => 200 + height });
+  Object.defineProperty(surface, 'offsetHeight', { get: () => height });
+  Object.defineProperty(surface.closest('.ln-vault-disclosure'), 'offsetHeight', { get: () => height });
+  observer.callback();
+  assert.equal(panel.style.getPropertyValue('--vault-center-offset'), '140px');
+  height = 500; observer.callback();
+  assert.equal(panel.style.getPropertyValue('--vault-center-offset'), '40px');
+  height = 800; observer.callback();
+  assert.equal(panel.style.getPropertyValue('--vault-center-offset'), '0px', 'oversized content starts at the reachable top');
+  await s.stop();
+});
