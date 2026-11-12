@@ -846,12 +846,11 @@
 /* Phone density belongs to each UIKit role; desktop geometry stays unchanged. */
 @media(max-width:640px) {
  /* Adapt chrome typography locally; document and callout metrics stay editor-owned. */
- .lm-root :is(.lm-sidebar-rail,.lm-mobile-menu-items,.lm-explorer,.lm-settings-navigation,.lm-settings-page,.lm-settings-items,.lm-settings-choices,.lm-account-access,.lm-context-surface,.ln-vault) {
+ .lm-root :is(.lm-sidebar-rail,.lm-mobile-menu-items,.lm-settings-navigation,.lm-settings-page,.lm-settings-items,.lm-settings-choices,.lm-account-access,.lm-context-surface,.ln-vault) {
   --lm-ui-font-size:max(16px,var(--vault-ui-font-size));
   --mantine-font-size-sm:var(--lm-ui-font-size);--mantine-font-size-md:var(--lm-ui-font-size);
  }
  .lm-root :is(.lm-sidebar-tab,.lm-settings-open-sidebar,.lm-explorer-actions .mantine-ActionIcon-root,.lm-account-icon)>svg { width:22px;height:22px;flex-shrink:0 }
- .lm-explorer-entry-icon { width:20px;height:20px }
  .lm-root :is(.lm-tool-navigation-item,.lm-explorer-tabs,.lm-setting-option,.lm-context-menu) svg { width:20px;height:20px;flex-shrink:0 }
  .lm-root .lm-settings-page-header h1,.lm-root[data-window-chrome=true]>.lm-settings-page>.lm-settings-page-header h1 { font-size:1.25em;line-height:1.4 }
  .lm-explorer .lm-explorer-extension { font-size:12px }
@@ -864,6 +863,24 @@
  .lm-setting-slider-control { min-height:44px }
  .lm-settings-page-header { padding-block:8px }
 }
+
+/* Compact Files uses smaller labels and glyphs without shrinking touch targets. */
+.lm-root .lm-explorer[data-compact] {
+ --lm-ui-font-size:max(14px,calc(var(--vault-ui-font-size) * 0.94));
+ --mantine-font-size-sm:var(--lm-ui-font-size);--mantine-font-size-md:var(--lm-ui-font-size);
+ font-size:var(--lm-ui-font-size)
+}
+.lm-explorer[data-compact] .lm-tool-panel-toolbar { padding-block:var(--vault-space) }
+.lm-root .lm-explorer[data-compact] .lm-tool-panel-title { font-size:inherit }
+.lm-explorer[data-compact] .lm-explorer-actions { gap:2px }
+.lm-root .lm-explorer[data-compact] :is(.lm-explorer-actions .mantine-ActionIcon-root,.lm-vault-switcher) svg { width:16px;height:16px;flex-shrink:0 }
+.lm-explorer[data-compact] .lm-vault-switcher { padding-block:6px }
+.lm-root .lm-explorer[data-compact] .lm-vault-switcher-toggle {
+ min-height:44px;padding-inline:calc(var(--vault-space)*2);
+ font-size:max(14px,calc(var(--vault-ui-font-size) * 0.88))
+}
+.lm-explorer[data-compact] .lm-vault-switcher-menu { font-size:max(14px,calc(var(--vault-ui-font-size) * 0.88)) }
+.lm-root .lm-explorer[data-compact] .lm-vault-switcher-menu [role=menuitem] { min-height:44px }
 
 /* Settings owns field composition at its allocated width, in every theme. */
 @media(max-width:640px),(pointer:coarse) {

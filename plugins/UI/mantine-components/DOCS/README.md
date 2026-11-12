@@ -19,6 +19,11 @@ vertical title/body viewport and CodeMirror owns horizontal overflow. The task
 checkbox uses a larger touch label with the same theme geometry. Integration is
 through Workspace, Active Screen, Settings, Components and ContextMenu.
 
+The Owner's compact Files screenshot is the reference for drawer density.
+Files owns its labels, glyphs and inner spacing; the vault footer and its
+upward menu use smaller typography while retaining 44px touch targets.
+Workspace continues to own the drawer and rail geometry.
+
 ## Mobile keyboard and navigation
 
 The reference is the existing compact Workspace launcher and bottom action row.
