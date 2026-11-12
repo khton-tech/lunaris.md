@@ -212,6 +212,8 @@ test('wikilink preview keeps aliases editable and opens a newly created note', a
     const label = () => s.target.querySelector('.cm-document-link[title="new-file"]');
     assert.equal(view.contentDOM.textContent, 'Introother and Display name');
     assert.equal(label().textContent, 'Display name');
+    assert.ok(label().classList.contains('cm-document-link-missing'));
+    assert.equal(s.target.querySelector('.cm-document-link[title="./other.md"]').classList.contains('cm-document-link-missing'), false);
     view.focus();
     view.dispatch({ selection: { anchor: source.indexOf('./other.md') + 1 } });
     await flush();
@@ -231,6 +233,15 @@ test('wikilink preview keeps aliases editable and opens a newly created note', a
     const incoming = s.backlinks.query({ vaultId: 'a', path: 'new-file.md' });
     assert.equal(incoming.linked[0].source.path, 'note.md');
     assert.equal(incoming.linked[0].mentions.length, 1);
+    await s.documents.open({ vaultId: 'a', path: 'note.md' });
+    await flush();
+    assert.equal(label().classList.contains('cm-document-link-missing'), false);
+    const sourceView = s.cm();
+    s.disk.delete('a/new-file.md');
+    await s.backlinks.refresh();
+    await flush();
+    assert.equal(s.cm(), sourceView);
+    assert.ok(label().classList.contains('cm-document-link-missing'));
   } finally { await s.stop(); }
 });
 

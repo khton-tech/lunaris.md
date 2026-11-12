@@ -101,6 +101,15 @@ export default definePlugin({ manifest, activate(ctx) {
   }
   ctx.provide(NoteLinks, {
     parse: text => parseNote(text).links,
+    missingTargets(source, links) {
+      if (source.vaultId !== vaultId || state !== "ready") return [];
+      const paths = [...entries.keys()];
+      return links.filter(link => {
+        const candidate = creationPath(link, source.path);
+        return validPath(candidate) && !candidate.split("/").some(part => part.startsWith("."))
+          && !resolveLink(link, source.path, paths);
+      }).map(link => link.from);
+    },
     async resolve(source, link, options) {
       const epoch = generation;
       if (source.vaultId !== vaultId) return { ok: false, error: { code: "VAULT_CLOSED", message: "The source Vault is no longer active." } };
