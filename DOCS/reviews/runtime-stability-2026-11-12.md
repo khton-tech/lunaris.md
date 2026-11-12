@@ -58,9 +58,9 @@ editor, observation and link-index issues addressed in this branch.
 ## Remaining verification and limits
 
 Native/WebView visual acceptance, frame timing and end-to-end input latency remain
-unmeasured. DOM tests verify state, identity and scroll properties without layout
-or GPU rendering. Desktop automation was unused. A native installer was unbuilt.
+unmeasured. DOM tests verify state, identity and scroll properties. Real layout,
+GPU rendering and native installer validation remain pending.
 Vite retains its large-chunk warning. The largest Web chunk is 1,908.89 kB
 minified / 595.68 kB gzip, and the Tauri application chunk is 1,815.18 kB /
 567.71 kB gzip. Explicit or ambiguous filesystem rescans still reconcile the
-known tree. Server notification protocol and deployment are unchanged.
+known tree.
