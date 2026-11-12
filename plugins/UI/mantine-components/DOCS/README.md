@@ -229,20 +229,26 @@ roles own only their embedded content. Existing public `onDismiss`, `mainLabel`
 and stable `onTargets` contracts provide the integration; no consumer imports
 React/Mantine or changes another plugin's DOM. No new provider is required.
 
-At an allocated Workspace width of 640 CSS pixels or less, the status strip is
-hidden and a separately contributed mobile menu opens the sidebar. The menu plugin supplies localized item labels. The rail and selected tool panel slide over
+In compact Workspace, the status strip is hidden and a separately contributed
+mobile menu opens the sidebar. The menu plugin supplies localized item labels. The rail and selected tool panel slide over
 the editor as one modal layer, leaving a trailing backdrop to dismiss it. The
 editor stays mounted and visible underneath, but is inert while the layer is
-open. Mantine FocusTrap contains keyboard traversal. The backdrop or Escape closes the layer and restores focus to the first mobile action.
+open. Mantine FocusTrap contains keyboard traversal. The backdrop or Escape
+closes the layer and returns focus to the opener, or to the main region after
+a swipe.
 Opening/closing uses the public WorkspaceSidebar presentation contract, not Sidebar selection or
 plugin registrations; even a rail without an active tool remains reachable.
 
-A single-finger right swipe starting in the 20px left-edge strip also opens it:
-at least 56px horizontally, with horizontal movement dominant. Vertical travel
-over 24px, multitouch or cancellation rejects the gesture. The strip uses pan-y;
-editor gestures outside it remain untouched. Native browser edge navigation may
-still take priority and requires device verification. Motion uses theme timing
-and is disabled for reduced-motion users. Closed overlay regions are inert and
+A single-finger right swipe within 48 CSS pixels of the Workspace's left edge
+reveals the same rail and selected tool panel as the launcher. Workspace waits
+for horizontal intent, then tracks finger displacement and fades in the
+backdrop proportionally. Release beyond 35% of the drawer width, capped at
+96 CSS pixels, opens it. A short swipe, cancellation or a second touch returns
+it to closed. Vertical gestures keep native scrolling on the original target.
+The gesture is unavailable while the virtual keyboard is open and defers to
+inputs, sliders and open menus. Native edge navigation requires device
+verification. Settling uses theme timing and is immediate with reduced motion.
+Closed and partially revealed overlay regions are inert and
 hidden from assistive technology immediately. On desktop, the ordinary sidebar
 and status strip return. The host shell already owns safe-area insets; the toolbar
 is inset within that safe region. Floating surfaces overlay the editor without reserving content space.

@@ -1,4 +1,4 @@
-import { useLayoutEffect, useRef, useState } from "react";
+import { useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { ActionIcon, Box, FocusTrap, Paper, Splitter, Stack, UnstyledButton } from "@mantine/core";
 import { observeVirtualKeyboard } from "@lunaris/components";
@@ -24,13 +24,13 @@ export function layoutProps(value: ComponentProps): LayoutProps {
 export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: ReturnType<typeof resolveTheme> }) {
   const bottom = useRef<HTMLDivElement>(null); const main = useRef<HTMLDivElement>(null); const rail = useRef<HTMLDivElement>(null); const panel = useRef<HTMLDivElement>(null);
   const root = useRef<HTMLDivElement>(null); const content = useRef<HTMLDivElement>(null);
+  const panelPane = useRef<HTMLDivElement>(null);
   const mobileMenu = useRef<HTMLDivElement>(null);
   const mobileLauncher = useRef<HTMLDivElement>(null);
   const opener = useRef<HTMLButtonElement | null>(null);
   const [floatingHidden, setFloatingHidden] = useState(false);
   const [keyboardOpen, setKeyboardOpen] = useState(false);
   const scrollPositions = useRef(new WeakMap<HTMLElement, number>());
-  const swipe = useRef<{ x: number; y: number; id: number } | null>(null);
   const [localOpen, setLocalOpen] = useState(false);
   const mobileOpen = props.mobileOpen ?? localOpen;
   const setMobileOpen = (open: boolean) => { setLocalOpen(open); props.onMobileOpen?.(open); };
@@ -58,6 +58,72 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
     return () => { observer.disconnect(); unsubscribe(); };
   }, []);
   const overlayOpen = compact && mobileOpen && props.railVisible;
+  const openFromSwipe = useEffectEvent(() => {
+    opener.current = null;
+    setMobileOpen(true);
+  });
+  useLayoutEffect(() => {
+    if (!compact || overlayOpen || keyboardOpen || !props.railVisible) return;
+    const element = root.current!;
+    const document = element.ownerDocument;
+    let swipe: { id: number; x: number; y: number; width: number; dragging: boolean } | null = null;
+    const reset = () => {
+      swipe = null;
+      element.removeAttribute("data-mobile-dragging");
+      element.style.removeProperty("--workspace-drawer-reveal");
+      element.style.removeProperty("--workspace-drawer-opacity");
+    };
+    const start = (event: TouchEvent) => {
+      if (swipe) reset();
+      if (event.touches.length !== 1) return;
+      const touch = event.touches[0]!;
+      const target = event.target;
+      if (!(target instanceof document.defaultView!.Element) || !element.contains(target) ||
+          target.closest('input, textarea, [role="slider"], [role="menu"], [role="listbox"]')) return;
+      const fromEdge = touch.clientX - element.getBoundingClientRect().left;
+      if (fromEdge < 0 || fromEdge > 48) return;
+      const width = rail.current!.getBoundingClientRect().width +
+        (props.panelVisible ? panelPane.current!.getBoundingClientRect().width : 0);
+      if (width > 0) swipe = { id: touch.identifier, x: touch.clientX, y: touch.clientY, width, dragging: false };
+    };
+    const move = (event: TouchEvent) => {
+      if (!swipe) return;
+      const touch = event.touches[0];
+      if (event.touches.length !== 1 || touch?.identifier !== swipe.id) { reset(); return; }
+      const dx = touch.clientX - swipe.x;
+      const dy = Math.abs(touch.clientY - swipe.y);
+      if (!swipe.dragging) {
+        if (Math.max(Math.abs(dx), dy) < 8) return;
+        if (!event.cancelable || dx < 8 || dx < dy * 1.5) { reset(); return; }
+        swipe.dragging = true;
+        element.setAttribute("data-mobile-dragging", "");
+      }
+      event.preventDefault();
+      const reveal = Math.max(0, Math.min(swipe.width, dx));
+      element.style.setProperty("--workspace-drawer-reveal", `${reveal}px`);
+      element.style.setProperty("--workspace-drawer-opacity", String(reveal / swipe.width));
+    };
+    const end = (event: TouchEvent) => {
+      const gesture = swipe;
+      if (gesture?.dragging && event.touches.length === 0) {
+        const touch = Array.from(event.changedTouches).find(item => item.identifier === gesture.id);
+        if (touch && touch.clientX - gesture.x >= Math.min(96, gesture.width * 0.35)) openFromSwipe();
+      }
+      reset();
+    };
+    // Observe starts across the document so a second finger outside Workspace can cancel.
+    document.addEventListener("touchstart", start, { capture: true, passive: true });
+    element.addEventListener("touchmove", move, { capture: true, passive: false });
+    element.addEventListener("touchend", end, true);
+    element.addEventListener("touchcancel", reset, true);
+    return () => {
+      document.removeEventListener("touchstart", start, true);
+      element.removeEventListener("touchmove", move, true);
+      element.removeEventListener("touchend", end, true);
+      element.removeEventListener("touchcancel", reset, true);
+      reset();
+    };
+  }, [compact, overlayOpen, keyboardOpen, props.railVisible, props.panelVisible, available]);
   useLayoutEffect(() => { if (!compact || !props.railVisible) setMobileOpen(false); }, [compact, props.railVisible]);
   useLayoutEffect(() => {
     const previous = previousPresentation.current;
@@ -97,7 +163,7 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
     };
     const onTouchMove = (event: TouchEvent) => {
       const touch = event.touches[0];
-      if (!gesture || event.touches.length !== 1 || !touch || touch.identifier !== gesture.id) { gesture = null; return; }
+      if (event.defaultPrevented || !gesture || event.touches.length !== 1 || !touch || touch.identifier !== gesture.id) { gesture = null; return; }
       const dx = touch.clientX - gesture.x; const dy = touch.clientY - gesture.y;
       if (Math.abs(dx) >= 24 && Math.abs(dx) > Math.abs(dy)) { gesture = null; return; }
       if (Math.abs(dy) < 24 || Math.abs(dy) <= Math.abs(dx) * 1.5) return;
@@ -139,7 +205,7 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
   }, [publish, compact]);
   useLayoutEffect(() => () => publish(null), [publish]);
   const floatingInactive = overlayOpen || keyboardOpen;
-  return <FocusTrap active={overlayOpen} innerRef={root}><Box className="lm-workspace-layout" style={{ ...theme.contentStyle, "--workspace-panel-width": `${width}px` }} data-launcher={props.mobileLauncherVisible || undefined} data-compact={compact || undefined} data-mobile-open={overlayOpen || undefined} data-mobile-menu={props.mobileMenuVisible || undefined} data-window-chrome={theme.windowChrome || undefined} data-bottom={props.bottomVisible || undefined} data-rail={props.railVisible || undefined} data-panel={props.panelVisible || undefined}
+  return <FocusTrap active={overlayOpen} innerRef={root}><Box className="lm-workspace-layout" style={{ ...theme.contentStyle, "--workspace-panel-width": `${width}px`, "--workspace-content-width": `${available}px` }} data-launcher={props.mobileLauncherVisible || undefined} data-compact={compact || undefined} data-mobile-open={overlayOpen || undefined} data-mobile-menu={props.mobileMenuVisible || undefined} data-window-chrome={theme.windowChrome || undefined} data-bottom={props.bottomVisible || undefined} data-rail={props.railVisible || undefined} data-panel={props.panelVisible || undefined}
     role={overlayOpen ? "dialog" : undefined} aria-modal={overlayOpen || undefined} aria-label={overlayOpen ? props.panelLabel : undefined}
     onClickCapture={event => {
       if (!compact || overlayOpen) return;
@@ -154,7 +220,7 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
       onSizeChange={sizes => { const next = Number.parseFloat(String(sizes[0])); if (Number.isFinite(next) && next >= 120) { latestWidth.current = next; setWidth(next); } }}
       onResizeEnd={commitWidth} onKeyUp={event => { if (["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key) && (event.target as HTMLElement).getAttribute("role") === "separator") commitWidth(); }}
       onDoubleClick={event => { if ((event.target as HTMLElement).closest("[role=separator]")) void Promise.resolve().then(commitWidth); }}>
-      <Splitter.Pane className="lm-workspace-panel-pane" defaultSize="256px" min={compact ? 0 : "12rem"} max={compact ? "100%" : "60%"} inert={compact && !overlayOpen} aria-hidden={compact && !overlayOpen || undefined}>
+      <Splitter.Pane ref={panelPane} className="lm-workspace-panel-pane" defaultSize="256px" min={compact ? 0 : "12rem"} max={compact ? "100%" : "60%"} inert={compact && !overlayOpen} aria-hidden={compact && !overlayOpen || undefined}>
         <Paper component="aside" ref={panel} tabIndex={-1} className="lm-workspace-panel lm-workspace-card" shadow="none" aria-label={props.panelLabel} hidden={!props.panelVisible} />
       </Splitter.Pane>
       <Splitter.Pane className="lm-workspace-main-pane" defaultSize={100} min={compact ? 0 : "16rem"} inert={overlayOpen} aria-hidden={overlayOpen || undefined}>
@@ -164,19 +230,7 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
         <Paper ref={bottom} className="lm-workspace-bottom lm-workspace-card" shadow="none" hidden={compact || !props.bottomVisible} />
       </Splitter.Pane>
     </Splitter>
-    <UnstyledButton className="lm-workspace-backdrop" hidden={!overlayOpen} tabIndex={-1} aria-label={props.mainLabel} onClick={closeOverlay} />
-    <Box className="lm-workspace-swipe-edge" hidden={!compact || floatingInactive || !props.railVisible} aria-hidden="true"
-      onTouchStart={event => { const touch = event.touches[0]; swipe.current = event.touches.length === 1 && touch ? { x: touch.clientX, y: touch.clientY, id: touch.identifier } : null; }}
-      onTouchMove={event => { const start = swipe.current; const touch = event.touches[0]; if (!touch || event.touches.length !== 1 || (start && Math.abs(touch.clientY - start.y) > 24)) swipe.current = null; }}
-      onTouchCancel={() => { swipe.current = null; }}
-      onTouchEnd={event => {
-        const start = swipe.current; swipe.current = null;
-        const touch = Array.from(event.changedTouches).find(item => item.identifier === start?.id);
-        if (!keyboardOpen && start && touch && touch.clientX - start.x >= 56 && touch.clientX - start.x > Math.abs(touch.clientY - start.y) * 1.5) {
-          opener.current = null;
-          setMobileOpen(true);
-        }
-      }} />
+    <UnstyledButton className="lm-workspace-backdrop" hidden={!compact} inert={!overlayOpen} aria-hidden={!overlayOpen || undefined} tabIndex={-1} aria-label={props.mainLabel} onClick={closeOverlay} />
     <Paper ref={mobileLauncher} className="lm-workspace-mobile-launcher lm-workspace-card" hidden={!compact || !props.mobileLauncherVisible || floatingHidden || floatingInactive} inert={floatingInactive} aria-hidden={floatingInactive || undefined} />
     <Paper ref={mobileMenu} className="lm-workspace-mobile-toolbar lm-workspace-card" hidden={!compact || !props.mobileMenuVisible || floatingHidden || floatingInactive} inert={floatingInactive} aria-hidden={floatingInactive || undefined} />
   </Box></FocusTrap>;

@@ -1096,7 +1096,10 @@ test('compact sidebar shares desktop region surfaces with embedded Files and nav
 test('compact Workspace lends a mobile menu target without replacing editor regions', async () => {
  const s = await setup(); await s.start();
  const original = s.dom.window.HTMLElement.prototype.getBoundingClientRect;
- s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0,0,360,720);
+ s.dom.window.HTMLElement.prototype.getBoundingClientRect = function () {
+  const width = this.classList.contains('lm-workspace-rail') ? 60 : this.classList.contains('lm-workspace-panel-pane') ? 268 : 360;
+  return new s.dom.window.DOMRect(4, 0, width, 720);
+ };
  try {
   let targets; const requests=[]; const props = {onMobileOpen:open=>requests.push(open),railVisible:true,panelVisible:true,bottomVisible:true,mobileLauncherVisible:true,mobileMenuVisible:true,mainLabel:'Main',panelLabel:'Sidebar',onTargets:value=>{targets=value;},onDismiss(){}};
   const mounted = s.components.mount('lunaris.workspace-layout',s.target,props,s.ctx.signal); assert.equal(mounted.ok,true);
@@ -1113,10 +1116,61 @@ test('compact Workspace lends a mobile menu target without replacing editor regi
   assert.equal(menu.ok,true); assert.equal(targets['mobile-menu'].querySelectorAll('button').length,5);
   assert.equal(targets['mobile-menu'].querySelector('.lm-root').style.containerType,'normal');
   menu.value.dispose();
-  const edge=s.target.querySelector('.lm-workspace-swipe-edge');
-  const touch=(type,x,y)=>{const event=new s.dom.window.Event(type,{bubbles:true}); const points=[{identifier:0,clientX:x,clientY:y}]; Object.defineProperties(event,{touches:{value:type==='touchend'?[]:points},changedTouches:{value:points}});edge.dispatchEvent(event);};
-  touch('touchstart',5,100);touch('touchmove',10,160);touch('touchend',100,160);assert.deepEqual(requests,[]);
-  touch('touchstart',5,100);touch('touchend',100,100);assert.deepEqual(requests,[true]);
+  const layout = s.target.querySelector('.lm-workspace-layout');
+  const backdrop = layout.querySelector('.lm-workspace-backdrop');
+  const touch = (type, x, y, target = scroll, count = 1) => {
+    const event = new s.dom.window.Event(type, { bubbles: true, cancelable: true });
+    const point = { identifier: 0, clientX: x, clientY: y };
+    const points = count === 2 ? [point, { ...point, identifier: 1 }] : [point];
+    Object.defineProperties(event, { touches: { value: /end|cancel/.test(type) ? [] : points }, changedTouches: { value: points } });
+    target.dispatchEvent(event);
+    return event.defaultPrevented;
+  };
+  const reveal = () => layout.style.getPropertyValue('--workspace-drawer-reveal');
+  const assertReset = () => {
+    assert.equal(layout.hasAttribute('data-mobile-dragging'), false);
+    assert.equal(reveal(), '');
+    assert.equal(layout.style.getPropertyValue('--workspace-drawer-opacity'), '');
+  };
+  touch('touchstart', 40, 100);
+  assert.equal(touch('touchmove', 50, 160), false);
+  touch('touchend', 180, 160);
+  touch('touchstart', 65, 100);
+  assert.equal(touch('touchmove', 200, 100), false);
+  touch('touchend', 200, 100);
+  assertReset();
+
+  touch('touchstart', 40, 100);
+  assert.equal(touch('touchmove', 155, 100), true);
+  assert.equal(reveal(), '115px');
+  assert.equal(Number(layout.style.getPropertyValue('--workspace-drawer-opacity')), 115 / 328);
+  assert.equal(layout.hasAttribute('data-mobile-open'), false);
+  assert.equal(targets['left-rail'].hasAttribute('inert'), true);
+  assert.equal(backdrop.hasAttribute('inert'), true);
+  touch('touchmove', 80, 100);
+  assert.equal(reveal(), '40px');
+  touch('touchend', 80, 100);
+  assertReset();
+  assert.deepEqual(requests, []);
+
+  touch('touchstart', 40, 100);
+  touch('touchmove', 155, 100);
+  touch('touchcancel', 155, 100);
+  assertReset();
+  touch('touchstart', 40, 100);
+  touch('touchmove', 155, 100);
+  touch('touchstart', 155, 100, s.target, 2);
+  touch('touchend', 155, 100);
+  assertReset();
+  assert.deepEqual(requests, []);
+
+  touch('touchstart', 40, 100);
+  touch('touchmove', 400, 100);
+  assert.equal(reveal(), '328px');
+  assert.deepEqual(requests, []);
+  touch('touchend', 175, 100);
+  assert.deepEqual(requests, [true]);
+  assertReset();
   mounted.value.update({...props,mobileOpen:true}); assert.equal(main.parentElement.hasAttribute('inert'),true); assert.equal(main.parentElement.hidden,false); assert.equal(targets['mobile-menu'].hasAttribute('inert'),true); assert.equal(launcher.hasAttribute('inert'),true); assert.equal(s.target.querySelector('.lm-workspace-return'),null);
   mounted.value.update({...props,mobileOpen:false}); assert.equal(main.parentElement.hasAttribute('inert'),false); assert.equal(targets,initial); assert.equal(draft.value,'Draft');
   mounted.value.dispose();
