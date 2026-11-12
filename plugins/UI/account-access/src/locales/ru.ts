@@ -1,5 +1,6 @@
 /** Russian product copy owned by this consumer. */
 export const russian = {
+  loading: "Загрузка хранилищ…",
   connect: "Подключиться к серверу",
   login: "Войти",
   register: "Создать учётную запись",

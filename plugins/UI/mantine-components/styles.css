@@ -623,12 +623,12 @@
 
 .lm-account-access { --vault-row-height:calc(var(--vault-space)*12);--explorer-control-hover:color-mix(in srgb,var(--vault-hover) 35%,var(--vault-panel));--explorer-control-pressed:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel));display:flex;flex:1 1 0%;min-width:0;min-height:0;overflow:auto;padding:clamp(16px,5cqw,64px) }
 .lm-account-content { display:flex;flex-direction:column;gap:calc(var(--vault-space)*6);width:min(100%,48rem);margin:clamp(0px,5cqh,56px) auto auto;min-width:0 }
-.lm-account-access[data-view=auth] .lm-account-content { width:min(100%,25rem);margin:auto }
+.lm-account-access[data-view=auth] .lm-account-content { width:min(100%,28rem);margin:clamp(0px,5cqh,56px) auto auto }
 .lm-account-brand { font-weight:600;letter-spacing:-0.025em }
 .lm-account-heading { display:flex;flex-direction:column;gap:calc(var(--vault-space)*2) }
 .lm-account-content h1 { font:inherit;font-size:1.8em;line-height:1.2;font-weight:600;letter-spacing:-0.035em;margin:0;overflow-wrap:anywhere }
 .lm-account-topbar { min-height:36px }
-.lm-account-auth { padding:calc(var(--vault-space)*6);border-radius:var(--vault-radius) }
+.lm-account-auth { display:flex;flex-direction:column;gap:calc(var(--vault-space)*6);padding:calc(var(--vault-space)*6);border-radius:var(--vault-radius) }
 .lm-root[data-presentation=standalone] .lm-account-auth,.lm-root[data-presentation=standalone] .lm-account-list:not(:empty),.lm-root[data-presentation=standalone] .lm-account-empty,.lm-root[data-presentation=standalone] .lm-account-create { background:var(--vault-panel) }
 .lm-root .lm-account-auth-toggle { margin-top:calc(var(--vault-space)*3) }
 .lm-account-footer { display:flex;flex-direction:column;gap:calc(var(--vault-space)*2);font-size:0.85em;text-align:center }
@@ -655,7 +655,10 @@
 .lm-account-empty { display:flex;flex-direction:column;align-items:center;text-align:center;gap:calc(var(--vault-space)*2);padding:calc(var(--vault-space)*12) calc(var(--vault-space)*5);border-radius:var(--vault-radius) }
 .lm-account-empty>svg { width:2em;height:2em;color:var(--vault-secondary);margin-bottom:calc(var(--vault-space)*2) }
 .lm-account-context { color:var(--vault-secondary);overflow-wrap:anywhere }
-.lm-account-error { color:var(--vault-error) }
+.lm-account-error { color:var(--vault-error);overflow-wrap:anywhere }
+.lm-account-error[hidden] { display:none }
+.lm-account-trash-entry>div { min-width:0 }
+.lm-account-row>.mantine-Button-root { flex-shrink:0 }
 @container(max-width:28rem) {
  .lm-account-access { padding:calc(var(--vault-space)*4) }
  .lm-account-auth { padding:calc(var(--vault-space)*4) }

@@ -1178,3 +1178,30 @@ Reference: Owner screenshot of the compact Luna Settings page and existing sideb
 ## XP mobile control adaptation
 
 Reference: existing Luna Explorer toolbar and Settings caption controls. WorkspaceLayout owns the floating menu/launcher surfaces, using XP radius, menu border and surface shadow. The mobile-menu and settings-page roles own their action controls: Luna button gradients, borders, bevels, hover/pressed/disabled states and existing semantic keyboard focus. MobileMenuView now receives theme tokens explicitly, preserving transparent embedded rendering instead of relying on an ancestor for token inheritance. Compact 32px launcher and 44px bottom actions, overlay positioning, scroll hiding and Sidebar stacking are unchanged. Luna Dark uses its own palette; switching to Monochrome removes XP finishes. Manual acceptance remains pending for both XP presets, focus/hover/press/disabled states, Settings navigation, scroll and many-item overflow in the actual Workspace.
+
+## Server account UI refactor (2026-11-12)
+
+Reference: existing local Vault Selector/CardRow and Mantine UI authentication
+compositions (https://ui.mantine.dev/category/authentication/). Local selection
+is unchanged. The account role owns standalone geometry and surfaces; its auth,
+catalog and feedback components own internal content only. Authentication now
+keeps its heading, fields, inline error and pending submit in one surface. The
+page is top-anchored so registration and errors do not recenter the whole form.
+Password and login use the same control sizing; login does not apply registration's
+minimum password length. Username entry disables capitalization and spellcheck.
+
+The controller supplies optional catalogState (loading/ready/error; omitted means
+ready), with localized text.loading when loading. Failed reads offer retry and do
+not claim an empty catalog. Route changes clear previous entries before loading;
+responses are checked against request revision, route and session epoch. Session
+changes clear password, invitation and creation drafts. Auth/catalog renderers
+have separate lifetimes, so creation disclosure does not survive sign-out.
+
+Integration uses existing Components, AccountSession, AccountVaults and
+VaultLocations SDK contracts. No HTTP, disk layout, SQLite, note format or local
+selector changes. Targeted role and real-server composition tests cover inline
+errors, pending/error catalog states, retry and normal document operations.
+Native visual acceptance is pending: web login/registration/invitation, opened
+account/Vault menus, empty/populated/trash/error states, long Russian names,
+keyboard focus, light/dark themes and narrow/short windows. Desktop automation
+is prohibited; these states require an Owner browser check.

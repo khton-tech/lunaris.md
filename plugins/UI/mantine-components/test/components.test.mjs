@@ -103,6 +103,18 @@ test('account access uses controlled Mantine password fields, escaped catalog na
   const password = s.target.querySelector('input[type=password]'); assert.ok(password); assert.equal(password.value, 'typed password');
   assert.equal(password.getAttribute('autocomplete'), 'new-password');
   mounted.value.update({ ...props, error: 'Try again' }); assert.equal(s.target.querySelector('input[type=password]'), password);
+  assert.equal(s.target.querySelector('form [role=alert]').textContent, 'Try again');
+  assert.ok(s.target.querySelector('.lm-account-auth h1'));
+  mounted.value.update({ ...props, mode: 'login' });
+  assert.equal(password.hasAttribute('minlength'), false);
+  assert.equal(password.getAttribute('autocomplete'), 'current-password');
+  mounted.value.update({ ...props, mode: 'vaults', busy: true, catalogState: 'loading', text: { ...props.text, loading: 'Loading vaults' }, entries: [{ id: 'old', name: 'Stale vault', detail: '' }] });
+  assert.equal(s.target.querySelector('[role=status]').textContent, 'Loading vaults');
+  assert.equal(s.target.querySelector('.lm-account-empty'), null);
+  assert.equal(s.target.querySelector('.lm-account-row'), null);
+  mounted.value.update({ ...props, mode: 'trash', catalogState: 'error', error: 'Offline' });
+  assert.equal(s.target.querySelector('.lm-account-empty'), null);
+  assert.equal(s.target.querySelector('[role=alert]').textContent, 'Offline');
   mounted.value.update({ ...props, mode: 'vaults', entries: [{ id: 'v', name: '<script>bad</script>', detail: 'Notes' }] });
   assert.equal(s.target.querySelector('script'), null); assert.ok(s.target.textContent.includes('<script>bad</script>'));
   [...s.target.querySelectorAll('button')].find(button => button.textContent.includes('<script>')).click(); assert.ok(calls.some(call => call[0] === 'onOpen' && call[1] === 'v'));

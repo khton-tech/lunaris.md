@@ -97,6 +97,16 @@ test('real server browser composition recovers drafts, gates updates and retires
   typeInput(target.querySelector('input[autocomplete="new-password"]'), 'correct horse battery staple');
   target.querySelector('.lm-account-access form').dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }));
   await until(() => api.account.current()?.account.login === 'alice' && [...target.querySelectorAll('.lm-account-access button')].some(button => button.textContent === 'Create vault') && !target.querySelector('.lm-account-access form input')?.disabled, 'registered account catalog');
+  offline = true;
+  [...target.querySelectorAll('.lm-account-toolbar button')].find(button => button.textContent === 'Trash').click();
+  await until(() => target.querySelector('.lm-account-error')?.textContent.includes('unavailable'), 'catalog request error');
+  assert.equal(target.querySelector('.lm-account-empty'), null, 'failed catalog is not empty');
+  assert.equal(target.querySelector('.lm-account-row'), null, 'previous route entries are absent');
+  offline = false;
+  target.querySelector('[aria-label="Refresh"]').click();
+  await until(() => target.querySelector('.lm-account-empty')?.textContent.includes('Trash is empty'), 'catalog retry');
+  [...target.querySelectorAll('.lm-account-toolbar button')].find(button => button.textContent === 'Your vaults').click();
+  await until(() => target.querySelector('.lm-account-empty')?.textContent.includes('No vaults here'), 'return to active catalog');
   target.querySelector('.lm-account-toolbar button[aria-expanded]').click();
   await until(() => target.querySelector('.lm-account-disclosure').getAttribute('aria-hidden') === 'false', 'create form disclosure');
   typeInput(target.querySelector('.lm-account-access form input'), 'Web notes');
