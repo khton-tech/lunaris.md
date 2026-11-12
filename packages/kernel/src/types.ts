@@ -14,6 +14,8 @@ export interface KernelOptions {
   readonly diagnosticCapacity?: number;
   readonly initialGrants?: Readonly<Record<string, readonly string[]>>;
   readonly requestPermission?: (request: PermissionRequest) => boolean | Promise<boolean>;
+  /** Trusted host notification, coalesced after observable changes. Read inspect() on demand. */
+  readonly onChange?: () => void;
 }
 
 export interface PermissionRequest {

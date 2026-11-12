@@ -48,7 +48,7 @@ export interface HostSnapshot {
 export interface HostSessionOptions {
   readonly scheduler: Scheduler;
   readonly load: (signal: AbortSignal) => Promise<ApplicationDefinition>;
-  readonly kernelOptions?: Omit<KernelOptions, "scheduler">;
+  readonly kernelOptions?: Omit<KernelOptions, "scheduler" | "onChange">;
   readonly viewTimeoutMs?: number;
 }
 
@@ -167,7 +167,10 @@ export class HostSession {
       await this.#shutdown();
       if (generation !== this.#generation) return;
       this.#definition = undefined;
-      this.#kernel = createKernel({ ...this.options.kernelOptions, scheduler: this.options.scheduler });
+      const kernel = createKernel({ ...this.options.kernelOptions, scheduler: this.options.scheduler, onChange: () => {
+        if (this.#kernel === kernel) this.refresh();
+      } });
+      this.#kernel = kernel;
       this.#diagnosticSequence = 0;
       const abort = this.#abort = new AbortController();
       this.#progress("loading", "composition");
@@ -325,7 +328,7 @@ export class HostSession {
     });
   };
 
-  /** Called by the host monitor; normal permission denials do not crash the UI. */
+  /** Inspect after kernel changes or an explicit host request; ordinary denials preserve the UI. */
   refresh = (): void => {
     const kernel = this.#kernel?.inspect();
     if (this.#phase === "running" && kernel && !this.#preservationBlocked) {

@@ -72,7 +72,7 @@ export function mountSystemView(root: HTMLElement, application: HTMLElement, ses
     panel.hidden = !showSystem;
     application.hidden = !snapshot.applicationVisible;
     root.dataset.phase = snapshot.phase;
-    // Polling still detects faults, but hidden recovery UI needs no table or serialization work.
+    // Hidden recovery UI needs no table or serialization work.
     if (!showSystem) { previousRender = ""; return; }
     const renderKey = JSON.stringify(snapshot);
     if (renderKey === previousRender) return;

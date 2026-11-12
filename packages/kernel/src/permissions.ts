@@ -13,7 +13,8 @@ export class PermissionPolicy {
   #pending = new Map<string, Promise<boolean>>();
   readonly #request: KernelOptions["requestPermission"];
 
-  constructor(private readonly records: ReadonlyMap<string, Registration>, private readonly diagnostics: Diagnostics, options: KernelOptions) {
+  constructor(private readonly records: ReadonlyMap<string, Registration>, private readonly diagnostics: Diagnostics, options: KernelOptions,
+    private readonly changed: () => void = () => {}) {
     this.#request = options.requestPermission;
     if (this.#request !== undefined && typeof this.#request !== "function") throw new LunarisError("LIFECYCLE_INVALID", "Invalid permission request callback.");
     for (const [id, names] of Object.entries(options.initialGrants ?? {})) {
@@ -56,13 +57,15 @@ export class PermissionPolicy {
 
   grant = (id: string, permission: string): void => {
     this.#target(id, permission);
+    const granted = this.#grants.get(id)!.has(permission);
     this.#grants.get(id)!.add(permission);
+    if (!granted) this.changed();
     const key = `${id}/${permission}`; this.#epochs.set(key, (this.#epochs.get(key) ?? 0) + 1);
   };
 
   revoke = (id: string, permission: string): void => {
     this.#target(id, permission);
-    this.#grants.get(id)!.delete(permission);
+    if (this.#grants.get(id)!.delete(permission)) this.changed();
     const key = `${id}/${permission}`; this.#epochs.set(key, (this.#epochs.get(key) ?? 0) + 1);
   };
 
@@ -106,7 +109,10 @@ export class PermissionPolicy {
     const request = Object.freeze({ pluginId: id, activationId: activation.id, permission });
     void Promise.resolve().then(() => activation.scope.closed ? false : this.#request?.(request) ?? false).then(approved => {
       if (settled || activation.scope.closed || record.activation !== activation) { finish(false); return; }
-      if ((this.#epochs.get(epochKey) ?? 0) === epoch && approved === true) this.#grants.get(id)!.add(permission);
+      if ((this.#epochs.get(epochKey) ?? 0) === epoch && approved === true && !this.#grants.get(id)!.has(permission)) {
+        this.#grants.get(id)!.add(permission);
+        this.changed();
+      }
       const granted = this.#grants.get(id)!.has(permission);
       if (!granted) this.diagnostics.record("PERMISSION_DENIED", context(record, activation));
       finish(granted);

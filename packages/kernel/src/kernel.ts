@@ -3,7 +3,7 @@ import { capturePackageResources, contractKey, definePlugin, LunarisError } from
 import type { ApiToken, ContractKind, ErrorCode, PluginContext, PluginDefinition, PackageResourceFiles } from "@lunaris/sdk";
 import { Diagnostics } from "./diagnostics.js";
 import { OwnedScope } from "./scope.js";
-import type { Kernel, KernelOptions, KernelSnapshot, Scheduler } from "./types.js";
+import type { Kernel, KernelOptions, KernelSnapshot, PluginState, Scheduler } from "./types.js";
 
 import { context, requirementKey } from "./model.js";
 import type { Activation, Registration } from "./model.js";
@@ -31,6 +31,8 @@ class Runtime {
   readonly #scheduler: Scheduler;
   readonly #activationTimeout: number;
   readonly #stopTimeout: number;
+  readonly #onChange: KernelOptions["onChange"];
+  #changeQueued = false;
 
   constructor(options: KernelOptions) {
     if (!options || typeof options.scheduler?.schedule !== "function") {
@@ -39,13 +41,17 @@ class Runtime {
     this.#scheduler = options.scheduler;
     this.#activationTimeout = options.activationTimeoutMs ?? 5000;
     this.#stopTimeout = options.stopTimeoutMs ?? 5000;
+    this.#onChange = options.onChange;
+    if (this.#onChange !== undefined && typeof this.#onChange !== "function") {
+      throw new LunarisError("LIFECYCLE_INVALID", "The host change observer must be a function.");
+    }
     const capacity = options.diagnosticCapacity ?? 100;
     if (![this.#activationTimeout, this.#stopTimeout].every(value => Number.isFinite(value) && value > 0) ||
       !Number.isSafeInteger(capacity) || capacity <= 0) {
       throw new LunarisError("LIFECYCLE_INVALID", "Deadlines must be positive finite durations and diagnostic capacity a positive integer.");
     }
-    this.#diagnostics = new Diagnostics(capacity);
-    this.#permissions = new PermissionPolicy(this.#plugins, this.#diagnostics, options);
+    this.#diagnostics = new Diagnostics(capacity, this.#changed);
+    this.#permissions = new PermissionPolicy(this.#plugins, this.#diagnostics, options, this.#changed);
     this.#access = new Access(this.#permissions.authorize, this.#invoke);
     this.#dispatch = new DispatchRuntime(this.#access, this.#diagnostics);
     this.#api = new ApiRuntime(this.#access, this.#diagnostics, (provider, activation, key) => {
@@ -56,6 +62,21 @@ class Runtime {
   #context(record: Registration) {
     return { pluginId: record.definition.manifest.id, state: record.state,
       ...(record.activation ? { activationId: record.activation.id } : {}) };
+  }
+
+  #changed = (): void => {
+    if (!this.#onChange || this.#changeQueued) return;
+    this.#changeQueued = true;
+    void Promise.resolve().then(() => {
+      this.#changeQueued = false;
+      return this.#onChange!();
+    }).catch(() => { /* Host observation must not affect plugin operations. */ });
+  };
+
+  #state(record: Registration, state: PluginState): void {
+    if (record.state === state) return;
+    record.state = state;
+    this.#changed();
   }
 
   #invoke = <T>(callback: () => T): T => {
@@ -95,6 +116,7 @@ class Runtime {
     this.#plugins.set(id, record);
     this.#dependencies.register(checked.manifest);
     if (ownerId !== undefined) this.#dependencies.own(id, ownerId);
+    this.#changed();
   }
 
   #enqueue(id: string, operation: (record: Registration) => Promise<void>, internal = false, stopping = false): Promise<void> {
@@ -172,7 +194,7 @@ class Runtime {
       return scope.dispose();
     }
     const stopping = this.#reserveStops([record])[0]!;
-    record.state = "stopping";
+    this.#state(record, "stopping");
     // Revoke access immediately, but retain owned resources until dependents stop.
     scope.close();
     return stopping;
@@ -181,7 +203,7 @@ class Runtime {
   async #activate(record: Registration, selected: Map<string, string | undefined> = new Map(), planningError?: unknown): Promise<void> {
     if (record.state === "active" && record.activation && !record.activation.scope.closed) return;
     if (!["registered", "stopped", "failed"].includes(record.state)) throw new LunarisError("LIFECYCLE_INVALID", "Cannot start in this state.", this.#context(record));
-    record.state = "resolving";
+    this.#state(record, "resolving");
     const id = `${record.definition.manifest.id}:${++this.#nextActivation}`;
     const apis: Activation["apis"] = new Map();
     const tokens: Activation["tokens"] = new Map();
@@ -192,7 +214,7 @@ class Runtime {
         this.#access.release(activation);
         apis.clear(); tokens.clear();
         if (record.state !== "stopping") void this.#stopDependents(record, activation).catch(cause => this.#diagnostics.record("CLEANUP_FAILED", context(record, activation), cause));
-      }, undefined, undefined, () => this.#disposeRoot(record, activation));
+      }, undefined, undefined, () => this.#disposeRoot(record, activation), this.#changed);
     const activation: Activation = { id, scope, apis, tokens, bindings };
     record.activation = activation;
     const timeout = new LunarisError("ACTIVATION_TIMEOUT", "Activation deadline expired; JavaScript may still be running.", this.#context(record));
@@ -225,7 +247,7 @@ class Runtime {
           }
         }
       }
-      record.state = "starting";
+      this.#state(record, "starting");
       const pluginContext = this.#pluginContext(record, activation);
       const work = Promise.resolve().then(() => this.#invoke(() => record.definition.activate(pluginContext))).then(teardown => {
         if (teardown !== undefined) scope.teardown(teardown);
@@ -244,10 +266,10 @@ class Runtime {
         record.definition.manifest.provides.some(p => p.kind === token.kind && p.id === token.id && p.version === token.version) ? "provide" : "consume");
       for (const binding of bindings.values()) if (binding && !binding.requirement.optional) this.#access.available(binding, { ...binding.requirement, version: binding.version });
       this.#access.commit(activation);
-      record.state = "active";
+      this.#state(record, "active");
     } catch (cause) {
       detached = true;
-      record.state = "failed";
+      this.#state(record, "failed");
       scope.close(cause);
       const code: ErrorCode = cause === timeout ? "ACTIVATION_TIMEOUT" :
         resolutionFailure !== undefined && cause === resolutionFailure ? resolutionFailure.code : "ACTIVATION_FAILED";
@@ -263,14 +285,14 @@ class Runtime {
   async #stop(record: Registration, dependents: readonly Promise<void>[]): Promise<void> {
     const activation = record.activation;
     const cleanup = activation && record.state !== "registered" && record.state !== "stopped";
-    if (cleanup) record.state = "stopping";
+    if (cleanup) this.#state(record, "stopping");
     const results = await Promise.allSettled(dependents);
     const errors = results.flatMap(result => result.status === "rejected" ? [result.reason as unknown] : []);
     const dependencyError = errors.length ? new LunarisError("CLEANUP_FAILED", "Dependent shutdown failed.", context(record), { cause: new AggregateError(errors) }) : undefined;
     if (!cleanup) { if (dependencyError) throw dependencyError; return; }
     activation.scope.close();
-    try { await this.#cleanup(record, activation); record.state = "stopped"; if (dependencyError) throw dependencyError; }
-    catch (cause) { record.state = "failed"; throw cause; }
+    try { await this.#cleanup(record, activation); this.#state(record, "stopped"); if (dependencyError) throw dependencyError; }
+    catch (cause) { this.#state(record, "failed"); throw cause; }
   }
 
   #dependents(provider: Registration, activation = provider.activation, key?: string): Registration[] {
@@ -451,6 +473,7 @@ class Runtime {
     this.#dependencies.unregister(id);
     this.#permissions.unregister(id);
     this.#starts.delete(record);
+    this.#changed();
   }
 
   unregister = async (id: string): Promise<void> => {

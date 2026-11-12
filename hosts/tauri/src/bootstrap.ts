@@ -28,9 +28,8 @@ window.addEventListener("error", event => {
   void session.reportFault("runtime", event.target instanceof HTMLElement ? "RESOURCE_LOAD_FAILED" : "UNHANDLED_APPLICATION_ERROR");
 }, true);
 window.addEventListener("unhandledrejection", () => { void session.reportFault("runtime", "UNHANDLED_PROMISE_REJECTION"); });
-const monitor = window.setInterval(session.refresh, 250);
 let unlisten: (() => void) | undefined;
-window.addEventListener("pagehide", () => { clearInterval(monitor); releaseInput(); unlisten?.(); void session.stop(); }, { once: true });
+window.addEventListener("pagehide", () => { releaseInput(); unlisten?.(); void session.stop(); }, { once: true });
 void (async () => {
   try {
     unlisten = await bindDesktopLifecycle(session);

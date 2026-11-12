@@ -39,7 +39,7 @@ All API registrations belong to the root scope. `scope.own(resource)` owns an ex
 
 Stop closes SDK access and clears publications first, then aborts the root and children, then runs the activation-returned teardown and all owned resources in reverse ownership order. Normal cleanup awaits each asynchronous disposer before the next. Children clean their own resources at their position in the parent order. Failures are aggregated and do not prevent remaining resources from being attempted. A disposed child is removed from its parent's ownership slots.
 
-`scope.dispose()` closes/aborts immediately and shares its promise across concurrent external calls. Calling it on a parent from a directly executing child disposer is rejected as recursion. Calling it manually closes SDK access/publications but does not itself change host lifecycle state; use host stop/restart to transition state.
+`scope.dispose()` closes/aborts immediately and shares its promise across concurrent external calls. Calling it on a parent from a directly executing child disposer is rejected as recursion. Disposing an active root requests coordinated plugin shutdown, waits for required consumers before disposing provider resources, and finishes in `stopped` on success. Child disposal stays local. See [the root disposal contract](../reference/core-lifecycle-contracts.md#resource-scope-disposal).
 
 Abort listeners run in subscription order from a snapshot. Removed pending listeners are skipped; new listeners after abort are ignored; duplicate listeners are registered once. Listener throws/rejected promises are diagnosed and isolated from other listeners/cleanup. Cancellation listeners do not replace owned disposers and do not make stop fail by themselves. `signal.throwIfAborted()` throws the cancellation reason. Listeners are released after abort.
 
@@ -50,6 +50,15 @@ Late `scope.own` attempts disposal immediately and throws `SCOPE_CLOSED`. A disp
 Activation timeout closes SDK access and reports `ACTIVATION_TIMEOUT`; rollback then gets its own stop deadline. Stop timeout reports `STOP_TIMEOUT` and attempts all remaining cleanup without waiting on a noncooperative disposer. A timeout cannot interrupt synchronous JavaScript or prove an external resource has released. Late cleanup may still settle or fail. The host scheduler must continue running for deadlines to fire.
 
 `inspect()` returns frozen snapshots sorted by stable plugin ID. Each plugin snapshot contains its immutable manifest, state, last activation ID, committed contract keys, fixed provider bindings, effective grants and `ownedResources`. The counter includes queued/in-flight ownership slots and nested children, including child-scope ownership entries themselves. It returns to zero after cooperative cleanup; a hanging disposer remains counted. After an explicit retry, inspection describes the new activation, while diagnostics preserve failures from the old one.
+
+Hosts can supply `KernelOptions.onChange` to observe registry, lifecycle,
+publication, resource ownership, effective permission and diagnostic changes.
+The callback runs after the synchronous operation, coalesced into one microtask
+for changes in the same turn. It reads the current `inspect()` snapshot on demand.
+Asynchronous cleanup and late failures trigger fresh notifications. Ordinary API
+calls keep the observer idle. Observer exceptions are isolated from plugin work.
+This callback belongs to the trusted host boundary. Product subscriptions continue
+through SDK events. Hosts discard observations from replaced kernel instances.
 
 Diagnostics retain the newest configured number of entries with monotonic sequence, stable code, plugin/activation/state and contract ID when known. Inspection includes only a generic object/value cause category: no thrown-object traversal, error message, arguments, implementation or payload. Raw causes remain in the bounded internal history and returned runtime errors. `stopAll` attempts every registered plugin with required consumers before providers and reverse stable ID tie breaks, aggregating errors. A `restart` is a stop followed by a fresh graph start; independent host requests can interleave between those operations.
 
@@ -107,6 +116,9 @@ manifests and mutable tokens still receive defensive validation. Kernel snapshot
 of validated token metadata are reused only for frozen data tokens. Authorization,
 activation identity, scope, provider availability and publication identity remain
 dynamic checks on every mediated call; no permission decision is cached.
+Equal validated exact-version strings satisfy compatibility directly. Differing
+versions retain the directional SemVer caret check, including prerelease and
+build-metadata behavior.
 
 The kernel keeps one canonical immutable metadata record per committed contract,
 with activation owners, and indexes dispatch subscriptions and providers by kind/ID.

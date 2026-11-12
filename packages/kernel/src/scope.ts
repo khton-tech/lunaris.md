@@ -31,6 +31,7 @@ export class OwnedScope {
     known = new WeakMap<object, Entry>(),
     private readonly onDisposed: () => void = () => {},
     private readonly disposeRoot?: () => Promise<void>,
+    private readonly changed: () => void = () => {},
   ) {
     this.#known = known;
     this.#signal = new SignalController(invoke, onError);
@@ -83,7 +84,7 @@ export class OwnedScope {
       void this.#run(entry).catch(() => {});
       throw new LunarisError("SCOPE_CLOSED", "Cannot own resources in a closed scope.", this.context);
     }
-    if (!this.#entries.includes(entry)) this.#entries.push(entry);
+    if (!this.#entries.includes(entry)) { this.#entries.push(entry); this.changed(); }
     return resource;
   }
 
@@ -92,7 +93,7 @@ export class OwnedScope {
     const entry = this.#known.get(resource);
     if (!entry) return;
     const index = this.#entries.indexOf(entry);
-    if (index !== -1) this.#entries.splice(index, 1);
+    if (index !== -1) { this.#entries.splice(index, 1); this.changed(); }
   }
 
   /** A returned teardown must be first even if it was already owned earlier. */
@@ -102,6 +103,7 @@ export class OwnedScope {
     const index = this.#entries.indexOf(entry);
     if (index !== -1) this.#entries.splice(index, 1);
     this.#entries.push(entry);
+    if (index === -1) this.changed();
   }
 
   child(): ResourceScope {
@@ -111,10 +113,12 @@ export class OwnedScope {
       this.#children.delete(child);
       const index = this.#entries.indexOf(entry);
       if (index !== -1) this.#entries.splice(index, 1);
-    });
+      this.changed();
+    }, undefined, this.changed);
     entry = this.#entry(child.facade, child);
     this.#children.add(child);
     this.#entries.push(entry);
+    this.changed();
     return child.facade;
   }
 
@@ -122,6 +126,7 @@ export class OwnedScope {
     if (this.#closed) return;
     this.#closed = true;
     this.onClose();
+    this.changed();
     this.#signal.abort(reason);
     for (const child of this.#children) child.close(reason);
   }
@@ -129,6 +134,7 @@ export class OwnedScope {
   #run(entry: Entry): Promise<void> {
     if (entry.promise) return entry.promise;
     this.#pending.add(entry);
+    this.changed();
     // Assign before callbacks execute so duplicate ownership is disposed once.
     entry.promise = Promise.resolve().then(() => {
       this.#invoking = true;
@@ -138,7 +144,7 @@ export class OwnedScope {
       this.#errors.push(error);
       this.onError(error);
       throw error;
-    }).finally(() => { this.#pending.delete(entry); });
+    }).finally(() => { this.#pending.delete(entry); this.changed(); });
     return entry.promise;
   }
 

@@ -5,7 +5,7 @@ export class Diagnostics {
   #sequence = 0;
   #history: { readonly diagnostic: Diagnostic; readonly cause: unknown }[] = [];
 
-  constructor(private readonly capacity: number) {}
+  constructor(private readonly capacity: number, private readonly changed: () => void = () => {}) {}
 
   record(code: ErrorCode, context: ErrorContext & { readonly state?: PluginState } = {}, cause?: unknown): void {
     const diagnostic: Diagnostic = Object.freeze({
@@ -20,6 +20,7 @@ export class Diagnostics {
     });
     this.#history.push({ diagnostic, cause });
     if (this.#history.length > this.capacity) this.#history.shift();
+    this.changed();
   }
 
   snapshot(): readonly Diagnostic[] { return Object.freeze(this.#history.map(entry => entry.diagnostic)); }

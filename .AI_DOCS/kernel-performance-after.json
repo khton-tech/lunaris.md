@@ -1,0 +1,218 @@
+{
+  "node": "v26.13.0",
+  "platform": "win32/x64",
+  "gc": true,
+  "allocationSamplingIntervalBytes": 32768,
+  "results": [
+    {
+      "kind": "api",
+      "unrelated": 0,
+      "manifestSize": 0,
+      "calls": 10000,
+      "elapsedMs": 17.505,
+      "sampledAllocationBytes": 8360560,
+      "retainedHeapDeltaBytes": 29120
+    },
+    {
+      "kind": "api",
+      "unrelated": 100,
+      "manifestSize": 0,
+      "calls": 10000,
+      "elapsedMs": 17.315,
+      "sampledAllocationBytes": 8492648,
+      "retainedHeapDeltaBytes": 28936
+    },
+    {
+      "kind": "api",
+      "unrelated": 1000,
+      "manifestSize": 0,
+      "calls": 10000,
+      "elapsedMs": 19.762,
+      "sampledAllocationBytes": 7311680,
+      "retainedHeapDeltaBytes": -9416
+    },
+    {
+      "kind": "api",
+      "unrelated": 0,
+      "manifestSize": 100,
+      "calls": 10000,
+      "elapsedMs": 19.671,
+      "sampledAllocationBytes": 6983888,
+      "retainedHeapDeltaBytes": 29360
+    },
+    {
+      "kind": "event",
+      "unrelated": 0,
+      "manifestSize": 0,
+      "calls": 2000,
+      "elapsedMs": 20.628,
+      "sampledAllocationBytes": 11814360,
+      "retainedHeapDeltaBytes": 55200
+    },
+    {
+      "kind": "event",
+      "unrelated": 100,
+      "manifestSize": 0,
+      "calls": 2000,
+      "elapsedMs": 20.736,
+      "sampledAllocationBytes": 11583672,
+      "retainedHeapDeltaBytes": -1020992
+    },
+    {
+      "kind": "event",
+      "unrelated": 1000,
+      "manifestSize": 0,
+      "calls": 2000,
+      "elapsedMs": 19.695,
+      "sampledAllocationBytes": 11615688,
+      "retainedHeapDeltaBytes": -23216
+    },
+    {
+      "kind": "event",
+      "unrelated": 0,
+      "manifestSize": 100,
+      "calls": 2000,
+      "elapsedMs": 16.929,
+      "sampledAllocationBytes": 10640840,
+      "retainedHeapDeltaBytes": 25800
+    },
+    {
+      "kind": "hook",
+      "unrelated": 0,
+      "manifestSize": 0,
+      "calls": 2000,
+      "elapsedMs": 34.18,
+      "sampledAllocationBytes": 14961656,
+      "retainedHeapDeltaBytes": 33712
+    },
+    {
+      "kind": "hook",
+      "unrelated": 100,
+      "manifestSize": 0,
+      "calls": 2000,
+      "elapsedMs": 31.383,
+      "sampledAllocationBytes": 16996576,
+      "retainedHeapDeltaBytes": 33816
+    },
+    {
+      "kind": "hook",
+      "unrelated": 1000,
+      "manifestSize": 0,
+      "calls": 2000,
+      "elapsedMs": 26.096,
+      "sampledAllocationBytes": 16108720,
+      "retainedHeapDeltaBytes": 16288
+    },
+    {
+      "kind": "hook",
+      "unrelated": 0,
+      "manifestSize": 100,
+      "calls": 2000,
+      "elapsedMs": 23.177,
+      "sampledAllocationBytes": 14699416,
+      "retainedHeapDeltaBytes": 44400
+    },
+    {
+      "kind": "isolated-start",
+      "unrelatedPairs": 100,
+      "samplesMs": [
+        0.127,
+        0.071,
+        0.015,
+        0.012,
+        0.011,
+        0.012,
+        0.01
+      ]
+    },
+    {
+      "kind": "isolated-start",
+      "unrelatedPairs": 500,
+      "samplesMs": [
+        0.065,
+        0.021,
+        0.015,
+        0.013,
+        0.019,
+        0.02,
+        0.012
+      ]
+    },
+    {
+      "kind": "isolated-start",
+      "unrelatedPairs": 1000,
+      "samplesMs": [
+        0.075,
+        0.019,
+        0.013,
+        0.011,
+        0.011,
+        0.01,
+        0.01
+      ]
+    },
+    {
+      "kind": "graph-start",
+      "shape": "chain",
+      "nodes": 10,
+      "elapsedMs": 0.71,
+      "activated": 10
+    },
+    {
+      "kind": "graph-start",
+      "shape": "chain",
+      "nodes": 50,
+      "elapsedMs": 1.505,
+      "activated": 50
+    },
+    {
+      "kind": "graph-start",
+      "shape": "chain",
+      "nodes": 100,
+      "elapsedMs": 3.793,
+      "activated": 100
+    },
+    {
+      "kind": "graph-start",
+      "shape": "diamonds",
+      "nodes": 10,
+      "elapsedMs": 0.373,
+      "activated": 10
+    },
+    {
+      "kind": "graph-start",
+      "shape": "diamonds",
+      "nodes": 50,
+      "elapsedMs": 1.691,
+      "activated": 50
+    },
+    {
+      "kind": "graph-start",
+      "shape": "diamonds",
+      "nodes": 100,
+      "elapsedMs": 3.629,
+      "activated": 100
+    },
+    {
+      "kind": "graph-start",
+      "shape": "optional-cycle",
+      "nodes": 10,
+      "elapsedMs": 0.264,
+      "activated": 1
+    },
+    {
+      "kind": "graph-start",
+      "shape": "optional-cycle",
+      "nodes": 50,
+      "elapsedMs": 0.717,
+      "activated": 11
+    },
+    {
+      "kind": "graph-start",
+      "shape": "optional-cycle",
+      "nodes": 100,
+      "elapsedMs": 0.751,
+      "activated": 1
+    }
+  ]
+}

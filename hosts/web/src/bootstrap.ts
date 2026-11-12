@@ -14,8 +14,7 @@ const session = new HostSession({ scheduler: createWebviewScheduler(), async loa
   return composeApplication(target, { art, mode: "browser", defaultServer: window.location.origin, features: __LUNARIS_FEATURES__, buildId: __LUNARIS_BUILD_ID__ });
 } });
 mountSystemView(document.getElementById("system-root")!, application, session, { startup: document.getElementById("startup-root")! });
-const monitor = window.setInterval(session.refresh, 250);
-window.addEventListener("pagehide", () => { clearInterval(monitor); releaseInput(); void session.stop(); }, { once: true });
+window.addEventListener("pagehide", () => { releaseInput(); void session.stop(); }, { once: true });
 window.addEventListener("error", () => { void session.reportFault("runtime", "UNHANDLED_APPLICATION_ERROR"); });
 window.addEventListener("unhandledrejection", () => { void session.reportFault("runtime", "UNHANDLED_PROMISE_REJECTION"); });
 document.documentElement.dataset.lunarisBuild = __LUNARIS_BUILD_ID__;
