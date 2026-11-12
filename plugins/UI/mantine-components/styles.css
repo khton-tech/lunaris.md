@@ -963,3 +963,35 @@
 }
 
 .lm-account-server-info { display:flex;flex-direction:column;gap:var(--vault-space);padding-bottom:calc(var(--vault-space)*4);text-align:center;overflow-wrap:anywhere }
+
+/* Server selector mirrors the local selector's two owned regions. */
+.lm-account-access[data-view=catalog] { --vault-row-height:calc(var(--vault-space)*10);padding:calc(var(--vault-space)*3);overflow:hidden }
+.lm-account-access[data-view=catalog] .lm-account-content { width:100%;margin:0;min-height:0;gap:calc(var(--vault-space)*3) }
+.lm-account-access[data-view=catalog] .lm-account-topbar { flex:none;padding-inline:calc(var(--vault-space)*3) }
+.lm-account-catalog { display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);gap:calc(var(--vault-space)*3);flex:1;min-height:0 }
+.lm-account-vaults,.lm-account-main { min-height:0;overflow:auto;border-radius:var(--vault-radius);padding:calc(var(--vault-space)*3) }
+.lm-root[data-presentation=standalone] :is(.lm-account-vaults,.lm-account-main) { background:var(--vault-panel) }
+.lm-account-list-heading { margin-bottom:calc(var(--vault-space)*3) }
+.lm-account-list-heading h1 { font:inherit;margin:0 }
+.lm-account-vaults .lm-account-list { padding:0;background:transparent }
+.lm-account-vaults .lm-account-row { padding:0;margin-bottom:var(--vault-space);border:0;align-items:center }
+.lm-account-vaults .lm-card-row { border:var(--vault-border) solid color-mix(in srgb,var(--vault-control-border) 22%,transparent) }
+.lm-account-main { display:flex;flex-direction:column;align-items:center;padding:clamp(16px,5cqw,64px) }
+.lm-account-main-content { width:100%;max-width:28rem;margin-block:auto;flex:none;container-type:inline-size }
+.lm-account-art { font:min(8px,1.7cqw)/1.2 var(--vault-mono);white-space:pre;text-align:center;margin:0 0 calc(var(--vault-space)*6);overflow:auto }
+.lm-account-wordmark { text-align:center;font-size:2em;font-weight:600;margin-bottom:calc(var(--vault-space)*6) }
+.lm-account-catalog-server { text-align:center;color:var(--vault-secondary);overflow-wrap:anywhere;margin-bottom:calc(var(--vault-space)*4) }
+.lm-account-main .lm-account-disclosure { margin-top:calc(var(--vault-space)*2) }
+.lm-root[data-presentation=standalone] .lm-account-main .lm-account-create { background:var(--vault-content) }
+.lm-account-main .lm-account-error:not([hidden]) { margin-bottom:calc(var(--vault-space)*3) }
+@container(max-width:640px) {
+ .lm-account-access[data-view=catalog] { overflow:auto }
+ .lm-account-access[data-view=catalog] .lm-account-content { flex:none }
+ .lm-account-catalog { display:flex;flex-direction:column;flex:none;min-height:auto }
+ .lm-account-vaults,.lm-account-main { overflow:visible;flex:none }
+ .lm-account-main { padding:calc(var(--vault-space)*4) }
+ .lm-account-art,.lm-account-wordmark { display:none }
+ .lm-account-catalog-server { margin-bottom:calc(var(--vault-space)*3) }
+ .lm-account-catalog .lm-card-row,.lm-account-catalog .lm-account-row>.lm-button { min-height:44px }
+ .lm-account-vaults .lm-account-empty { padding:calc(var(--vault-space)*5) }
+}

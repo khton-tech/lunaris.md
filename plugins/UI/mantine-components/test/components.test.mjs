@@ -132,6 +132,9 @@ test('account access uses controlled Mantine password fields, escaped catalog na
   assert.equal(s.target.querySelector('[role=alert]').textContent, 'Offline');
   mounted.value.update({ ...props, mode: 'vaults', entries: [{ id: 'v', name: '<script>bad</script>', detail: 'Notes' }] });
   assert.equal(s.target.querySelector('script'), null); assert.ok(s.target.textContent.includes('<script>bad</script>'));
+  assert.ok(s.target.querySelector('.lm-account-vaults .lm-account-list'));
+  assert.ok(s.target.querySelector('.lm-account-main .lm-account-toolbar .lm-card-row'));
+  assert.equal(s.target.querySelector('.lm-account-vaults .lm-account-toolbar'), null);
   [...s.target.querySelectorAll('button')].find(button => button.textContent.includes('<script>')).click(); assert.ok(calls.some(call => call[0] === 'onOpen' && call[1] === 'v'));
   const toggle = s.target.querySelector('[aria-controls]');
   assert.equal(toggle.getAttribute('aria-expanded'), 'false');

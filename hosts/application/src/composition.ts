@@ -75,7 +75,7 @@ export function composeApplication(target: HTMLElement, options: {
   const device = createBrowserStorage({ config: options.mode === "browser" });
   const clipboardDriver = createBrowserClipboard();
   const transport = createServerTransport({ mode: options.mode });
-  const account = createAccountAccess({ defaultOpen: options.mode === "browser", allowLocal: options.mode === "desktop", ...(options.defaultServer ? { defaultAddress: options.defaultServer } : {}) });
+  const account = createAccountAccess({ art: options.art, defaultOpen: options.mode === "browser", allowLocal: options.mode === "desktop", ...(options.defaultServer ? { defaultAddress: options.defaultServer } : {}) });
   const router = createFilesystemRouter([{ id: "local", ...LocalFilesystemBackend }, { id: "remote", ...RemoteFilesystemBackend }], "local");
   const extra = options.extensions ?? { plugins: [], entrypoints: [], grants: {} };
   const themeSettings = createThemeSettings({ defaultThemeId });

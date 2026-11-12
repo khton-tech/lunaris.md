@@ -1241,3 +1241,21 @@ to center the combined identity/form block when space permits, falling back to
 scrolling when content exceeds the allocation. No storage changes. Integration
 connects server discovery, transport, account controller and UIKit. Native mobile
 centering, keyboard-open scrolling and long descriptions require manual acceptance.
+
+## Server Vault selector reference adaptation
+
+Reference: Owner's desktop local Vault Selector screenshot (two panels, 1:2
+proportions, folder CardRows and centered ASCII artwork). AccountAccess's public
+role owns both catalog regions and their surfaces. Desktop places server Vaults
+on the left, creation/trash actions on the right; the host supplies existing art
+through optional createAccountAccess.art and role art props. Consumers never read
+asset paths. No new SDK service is needed. Existing AccountVaults/VaultLocations
+integration remains responsible for all operations.
+
+At allocations up to 640px the list comes first, actions follow, large artwork
+is omitted, and the page owns scrolling rather than nested panels. Controls keep
+44px touch targets. The account menu remains above both regions. Empty/loading/
+error states, creation disclosure and recoverable trash retain their callbacks.
+The local selector and authentication composition are unchanged. Native acceptance
+is pending for desktop 1:2 geometry, mobile long lists, opened row/account menus,
+creation focus, narrow/short allocations and theme replacement.

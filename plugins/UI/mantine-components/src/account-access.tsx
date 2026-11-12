@@ -10,6 +10,7 @@ export interface AccountAccessProps {
   readonly text: Readonly<Record<string, string>>;
   readonly address: string; readonly login: string; readonly password: string; readonly invitation: string; readonly name: string;
   readonly account: string; readonly busy: boolean; readonly error: string; readonly allowLocal: boolean;
+  readonly art?: string;
   readonly serverName?: string; readonly serverDescription?: string;
   readonly catalogState?: "loading" | "ready" | "error";
   readonly invitationRequired: boolean;
@@ -28,7 +29,7 @@ export function accountAccessProps(value: ComponentProps): AccountAccessProps {
   if (!value.text || typeof value.text !== "object" || labels.some(key => typeof (value.text as Record<string, unknown>)[key] !== "string") || !Array.isArray(value.entries) || value.entries.some(entry => !entry || ["id", "name", "detail"].some(key => typeof entry[key] !== "string"))) throw TypeError("Invalid account access content.");
   if (value.catalogState !== undefined && !["loading", "ready", "error"].includes(value.catalogState as string)) throw TypeError("Invalid catalog state.");
   if (value.catalogState === "loading" && typeof (value.text as Record<string, unknown>).loading !== "string") throw TypeError("Missing loading label.");
-  for (const key of ["serverName", "serverDescription"]) if (value[key] !== undefined && typeof value[key] !== "string") throw TypeError("Invalid server information.");
+  for (const key of ["art", "serverName", "serverDescription"]) if (value[key] !== undefined && typeof value[key] !== "string") throw TypeError("Invalid server information.");
   return value as unknown as AccountAccessProps;
 }
 export function AccountAccessView({ props: p, theme }: { props: AccountAccessProps; theme: ReturnType<typeof resolveTheme> }) {

@@ -28,7 +28,7 @@ const catalog = { en: {
   limit: "The account has reached its active vault limit.", conflict: "Unsaved changes need attention before continuing.", invalid: "Check the entered values.",
 }, ru: russian };
 type Mode = "connect" | "login" | "register" | "vaults" | "trash";
-export function createAccountAccess(options: { readonly defaultOpen?: boolean; readonly defaultAddress?: string; readonly allowLocal?: boolean } = {}) {
+export function createAccountAccess(options: { readonly art?: string; readonly defaultOpen?: boolean; readonly defaultAddress?: string; readonly allowLocal?: boolean } = {}) {
   const provides = [AccountAccess, AccountAccessChanged];
   const requires = [Logger, AccountSession, AccountSessionChanged, AccountVaults, FilesystemSources, Vault, VaultChanged, VaultLocations, Components, ComponentsChanged, Slots, SlotDom, Localization, LocaleChanged, Startup, StartupChanged];
   return definePlugin({ manifest: { manifestVersion: 1, id: "lunaris.account-access", version: "0.1.0", engine: "^0.1.0", sdk: "^0.1.0", entry: "./dist/index.js",
@@ -76,7 +76,7 @@ export function createAccountAccess(options: { readonly defaultOpen?: boolean; r
         if (screen.signal.aborted) screen = ctx.scope.child();
         const created = slots.create({ id: slotId, grow: 1 }, screen.signal); if (!created.ok) throw Error("Cannot allocate account screen."); allocated = true;
       }
-      const props = { ...fields, presentation: { mode: "standalone", sizing: "fill" }, mode, catalogState, serverName: info?.name ?? "", serverDescription: info?.description ?? "", account: session.current()?.account.login ?? "", busy,
+      const props = { ...fields, art: options.art ?? "", presentation: { mode: "standalone", sizing: "fill" }, mode, catalogState, serverName: info?.name ?? "", serverDescription: info?.description ?? "", account: session.current()?.account.login ?? "", busy,
         error: error ? text(error) : "", allowLocal: options.allowLocal ?? false, invitationRequired: info?.registration === "invitation",
         text: Object.fromEntries(Object.keys(catalog.en).filter(key => key !== "expires").map(key => [key, text(key)])),
         entries: entries.map(entry => ({ id: entry.id, name: entry.name, detail: entry.expiresAt ? localization.text(ctx.pluginId, "expires", { date: new Date(entry.expiresAt).toLocaleDateString(localization.locale()) }) : "" })),
