@@ -3,7 +3,7 @@ import { usesTouchInput } from "@lunaris/components";
 import { markupCommand } from "./formatting.js";
 import { bindEditorMenu } from "./editor-menu.js";
 import type { EditorMenuOptions } from "./editor-menu.js";
-import { Compartment, EditorState, StateEffect } from "@codemirror/state";
+import { Compartment, EditorSelection, EditorState, StateEffect, Text, Transaction } from "@codemirror/state";
 import type { Extension, StateCommand, StateEffect as Effect } from "@codemirror/state";
 import { EditorView, drawSelection, keymap } from "@codemirror/view";
 import { defaultKeymap, history, historyKeymap, indentMore, indentLess, insertTab } from "@codemirror/commands";
@@ -76,6 +76,9 @@ function appearance(theme: ThemeDefinition | null, preferences: Preferences) {
 export function mountEditor(target: HTMLElement, session: DocumentSession, cached: EditorState | undefined,
   theme: ThemeDefinition | null, label: string, save: () => void, failed: (error: unknown) => void, preview = true, tasks?: TaskControls, menuOptions?: EditorMenuOptions, preferences: Preferences = defaults, contributions: readonly EditorExtension[] = [], deletionEffects?: ReturnType<typeof createDeletionEffects>, viewport?: HTMLElement) {
   let menu: ReturnType<typeof bindEditorMenu> | undefined;
+  let documentText = session.text;
+  const undoHistory = new Compartment();
+  const lineSeparator = new Compartment();
   const mode = new Compartment();
   const previewFor = (enabled: boolean, items: readonly EditorExtension[]) => enabled ? [livePreview, livePreviewTheme, ...items.map(item => item.preview ?? [])] : [];
   const contributed = new Compartment(); const language = new Compartment();
@@ -85,13 +88,13 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
   const nativeSelection = usesTouchInput(target.ownerDocument.defaultView);
   // A cached state retains history/selection; replace view-specific compartments
   // and callbacks through a full reconfiguration without replacing the document.
-  const extensions = [EditorState.lineSeparator.of(session.text.includes("\r\n") ? "\r\n" : "\n"), indentUnit.of("\t"), EditorState.tabSize.of(4), history(), language.of(languageFor(contributions)), contributed.of(contributions.map(item => item.extension ?? [])), tasks ? taskControls.of(tasks) : [], mode.of(previewFor(preview, contributions)), wrapping.of(preferences.wrapLines ? EditorView.lineWrapping : []),
+  const extensions = [lineSeparator.of(EditorState.lineSeparator.of(session.text.includes("\r\n") ? "\r\n" : "\n")), indentUnit.of("\t"), EditorState.tabSize.of(4), undoHistory.of(history()), language.of(languageFor(contributions)), contributed.of(contributions.map(item => item.extension ?? [])), tasks ? taskControls.of(tasks) : [], mode.of(previewFor(preview, contributions)), wrapping.of(preferences.wrapLines ? EditorView.lineWrapping : []),
     nativeSelection ? [EditorView.editorAttributes.of({ "data-native-selection": "" }), mobileCaret(viewport)] : drawSelection(),
     EditorView.exceptionSink.of(failed),
     pairedInput,
     typingAnimation,
     keymap.of([{ key: "Mod-b", run: markupCommand("bold"), preventDefault: true }, { key: "Mod-i", run: markupCommand("italic"), preventDefault: true }, { key: "Mod-k", run: target => markupCommand("link", menuOptions?.text("linkText"))(target), preventDefault: true }, { key: "Mod-s", run: () => { save(); return true; }, preventDefault: true }, { key: "Tab", run: insertIndent, shift: indentLess, preventDefault: true }, { key: "Enter", run: continueTabIndentedList }, ...markdownKeymap, ...defaultKeymap, ...historyKeymap]),
-    EditorView.updateListener.of(update => { if (update.docChanged || update.selectionSet || update.startState.readOnly !== update.state.readOnly) menu?.close(); if (update.docChanged) session.edit(update.state.sliceDoc()); }),
+    EditorView.updateListener.of(update => { if (update.docChanged || update.selectionSet || update.startState.readOnly !== update.state.readOnly) menu?.close(); if (update.docChanged) { documentText = update.state.sliceDoc(); session.edit(documentText); } }),
     skin.of(appearance(theme, preferences)), access.of([EditorState.readOnly.of(session.locks > 0 || session.missing || session.loading || session.recoveryCandidates.length > 0), EditorView.editable.of(!session.locks && !session.missing && !session.loading && !session.recoveryCandidates.length)]),
     attributes.of(EditorView.contentAttributes.of({ "aria-label": label, spellcheck: "false" })),
   ];
@@ -108,6 +111,22 @@ export function mountEditor(target: HTMLElement, session: DocumentSession, cache
   let lastTheme = theme; let lastLabel = label; let lastReadOnly = session.locks > 0 || session.missing || session.loading || session.recoveryCandidates.length > 0;
   return {
     view,
+    synchronize() {
+      if (documentText === session.text) return;
+      const separator = session.text.includes("\r\n") ? "\r\n" : "\n";
+      const next = Text.of(session.text.split(separator));
+      const selection = EditorSelection.create(view.state.selection.ranges.map(range =>
+        EditorSelection.range(Math.min(range.anchor, next.length), Math.min(range.head, next.length))), view.state.selection.mainIndex);
+      const scrollTop = view.scrollDOM.scrollTop; const scrollLeft = view.scrollDOM.scrollLeft;
+      const viewportTop = viewport?.scrollTop; const viewportLeft = viewport?.scrollLeft;
+      // Authoritative disk replacements start a fresh undo history while retaining the view.
+      view.dispatch({ changes: { from: 0, to: view.state.doc.length, insert: next }, selection,
+        effects: [undoHistory.reconfigure([]), lineSeparator.reconfigure(EditorState.lineSeparator.of(separator))],
+        annotations: [Transaction.remote.of(true), Transaction.addToHistory.of(false)] });
+      view.dispatch({ effects: undoHistory.reconfigure(history()), annotations: Transaction.remote.of(true) });
+      view.scrollDOM.scrollTop = scrollTop; view.scrollDOM.scrollLeft = scrollLeft;
+      if (viewport) { viewport.scrollTop = viewportTop!; viewport.scrollLeft = viewportLeft!; }
+    },
     update(nextTheme: ThemeDefinition | null, nextLabel: string, nextPreview = true, nextPreferences: Preferences = defaults, nextContributions: readonly EditorExtension[] = lastContributions) {
       const effects: Effect<unknown>[] = [];
       if (nextPreview !== lastPreview || nextContributions !== lastContributions) {

@@ -667,3 +667,43 @@ DocumentContent and DocumentContentChanged expose live text and guarded navigati
 DocumentContent converts raw UTF-16 snapshot offsets (including CRLF) into CodeMirror positions at its transaction boundary. DocumentLinks uses these public operations for link navigation; platform launching remains outside TextEditor.
 
 EditorExtensions supports an optional `preview` contribution. The editor enables it only in Live Preview and reconfigures it when the view mode or registered contributions change. DocumentLinks uses it for wikilink syntax and display aliases.
+
+## State propagation and watch reconciliation
+
+The existing Workspace editor is the presentation reference. Workspace and the
+active-screen layout own the allocated region and surfaces. Text Editor owns its
+document sessions and contributes the same embedded Mantine editor role. The
+controller compares role props before publishing an update, retains stable
+callbacks and recovery choices, and updates footer props when their contribution
+or document identity changes. Footer renderers receive their own content events.
+Component replacement still remounts the affected footer through Components.
+CodeMirror serializes its document when an edit occurs and retains that snapshot
+for subsequent controller checks.
+
+Watch reconciliation reads a clean file once and accepts that checked result
+without entering the explicit reload lifecycle or reopening local recovery.
+Concurrent notifications share the active read and request a subsequent check.
+Edits, saves, locks, relocation and closure invalidate late read results. Obsolete
+recovery after undo is durably settled before accepting a new disk snapshot.
+New edits during that cleanup cancel the external result and retain their draft.
+Failures retain the buffer, and a successful later check clears the watch failure.
+Explicit reload and recovery retain their guarded loading lifecycle.
+
+An authoritative external replacement synchronizes the existing CodeMirror view
+and DOM. Selection offsets remain within the new document, focus and the existing
+scrollers are retained, and the line-separator compartment follows LF/CRLF input.
+The external replacement starts a fresh undo history. Subsequent local edits use
+normal undo without restoring the superseded disk content. Remote transactions
+skip mobile caret centering, preserving the viewport while the keyboard is open.
+
+Queued recovery snapshots superseded before storage starts are skipped. An active
+write completes, then the latest snapshot remains durable. Document navigation
+settles pending recovery and cleanup failures even after undo returns the buffer
+to its saved text. Existing optimistic disk writes, recovery revisions and
+offline departure guards remain in force.
+
+Targeted tests cover one-read external reconciliation, overlapping notifications,
+late-result rejection, recovery write coalescing, undo followed by navigation,
+and retained editor/footer instances during typing. These establish operation
+counts and state behavior. Native animation smoothness, focus geometry and
+end-to-end frame timing remain unmeasured.

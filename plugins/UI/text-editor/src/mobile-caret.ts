@@ -1,6 +1,7 @@
 import { observeVirtualKeyboard } from "@lunaris/components";
 import type { KeyboardViewport } from "@lunaris/components";
 import { EditorView, ViewPlugin } from "@codemirror/view";
+import { Transaction } from "@codemirror/state";
 
 const caretPosition = 0.55;
 const keyboardPadding = "--editor-keyboard-padding";
@@ -43,6 +44,7 @@ export function mobileCaret(viewport?: HTMLElement) {
     const unsubscribe = observeVirtualKeyboard(window, value => { keyboard = value; follow(); });
     return {
       update(update) {
+        if (update.transactions.length && update.transactions.every(transaction => transaction.annotation(Transaction.remote))) return;
         if (keyboard && (update.docChanged || update.selectionSet || update.focusChanged || update.startState.readOnly !== update.state.readOnly)) follow();
       },
       destroy() {

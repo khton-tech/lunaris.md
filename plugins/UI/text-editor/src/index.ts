@@ -20,7 +20,7 @@ import { Drafts, ConnectionChanged } from "@lunaris/remote";
 import type { FileTarget, FsFailure } from "@lunaris/filesystem";
 import { Vault, BeforeVaultRelease, VaultChanged } from "@lunaris/vault";
 import { Components, ComponentsChanged } from "@lunaris/components";
-import type { MountedComponent } from "@lunaris/components";
+import type { ComponentProps, MountedComponent } from "@lunaris/components";
 import { Localization, LocaleChanged } from "@lunaris/localization";
 import { Themes, ThemeChanged } from "@lunaris/themes";
 import type { EditorState } from "@codemirror/state";
@@ -47,6 +47,8 @@ const markdownFile = (target: FileTarget) => /\.md$/i.test(target.path);
 const basename = (path: string) => path.slice(path.lastIndexOf("/") + 1);
 const parentPath = (path: string) => path.slice(0, Math.max(0, path.lastIndexOf("/")));
 const stem = (path: string) => basename(path).replace(/\.md$/i, "");
+const emptyRecoveryCandidates: readonly never[] = Object.freeze([]);
+const embeddedPresentation = Object.freeze({ mode: "embedded", sizing: "fill" });
 
 export default definePlugin({ manifest, async activate(ctx) {
   const menus = ctx.use(ContextMenu); const clipboard = ctx.use(Clipboard);
@@ -56,7 +58,7 @@ export default definePlugin({ manifest, async activate(ctx) {
   const drafts = ctx.permissions.has("drafts.access") ? ctx.optional(Drafts) : undefined; const sources = ctx.optional(FilesystemSources);
   const sessions = new Map<string, DocumentSession>(); const states = new Map<DocumentSession, EditorState>();
   ctx.provide(DocumentProtection, { hasUnprotectedChanges: () => [...sessions.values()].some(session => session.hasUnprotectedChanges) });
-  const views = new Set<{ render(): void; removed(): void; refreshControls(): void; transact(session: DocumentSession, range: DocumentRange, insert?: string): boolean }>();
+  const views = new Set<{ render(): void; removed(): void; refreshControls(): void; refreshFooters(componentId: string): void; transact(session: DocumentSession, range: DocumentRange, insert?: string): boolean }>();
   const screenId = `${ctx.pluginId}.screen`;
   let current: DocumentSession | null = null; let unsupported = false; let scheduled = false;
   const footerEntries = new Map<string, DocumentFooter>();
@@ -78,16 +80,18 @@ export default definePlugin({ manifest, async activate(ctx) {
       return false;
     },
   }));
-  const publishedBuffers = new Map<DocumentSession, string>();
+  const publishedBuffers = new Map<DocumentSession, { text: string; path: string; missing: boolean }>();
   function publishContent(): void {
     for (const session of sessions.values()) {
-      if (!session.loaded || publishedBuffers.get(session) === session.text) continue;
-      publishedBuffers.set(session, session.text);
+      const previous = publishedBuffers.get(session);
+      if (!session.loaded || (previous?.text === session.text && previous.path === session.target.path && previous.missing === session.missing)) continue;
+      publishedBuffers.set(session, { text: session.text, path: session.target.path, missing: session.missing });
       void ctx.events.emit(DocumentContentChanged, { target: { ...session.target } }).catch(error => {
         if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot publish document content invalidation", { error });
       });
     }
-    for (const session of publishedBuffers.keys()) if (![...sessions.values()].includes(session)) publishedBuffers.delete(session);
+    const retained = new Set(sessions.values());
+    for (const session of publishedBuffers.keys()) if (!retained.has(session)) publishedBuffers.delete(session);
   }
   const messages = localization.register(ctx.pluginId, catalogs, ctx.signal);
   if (!messages.ok) throw new Error("Cannot register editor messages.", { cause: messages.error });
@@ -178,7 +182,7 @@ export default definePlugin({ manifest, async activate(ctx) {
   }
   ctx.hooks.register(BeforeActiveDocumentChange, async guard => {
     if (guard.error) return guard;
-    const items = [...sessions.values()].filter(session => session.dirty && session.target.vaultId === guard.previous?.vaultId);
+    const items = [...sessions.values()].filter(session => (session.dirty || session.hasUnprotectedChanges) && session.target.vaultId === guard.previous?.vaultId);
     return { ...guard, error: await flushSessions(items, guard.onSettled, true) };
   });
   ctx.hooks.register(BeforeVaultRelease, async guard => {
@@ -218,13 +222,16 @@ export default definePlugin({ manifest, async activate(ctx) {
 
   const registration = components.register({ id: "lunaris.text-editor-host", mount(target, initial, signal) {
     const owner = ctx.scope.child(); let props = initial; let mounted: MountedComponent | undefined;
+    let renderedProps: ComponentProps | undefined;
     let disposed = false; let editorTarget: HTMLElement | null = null; let viewport: HTMLElement | undefined;
     let footerTarget: HTMLElement | null = null;
-    const footers = new Map<string, { element: HTMLElement; mounted: MountedComponent }>();
+    const footers = new Map<string, { element: HTMLElement; mounted: MountedComponent; footer: DocumentFooter; documentKey: string }>();
     const clearFooters = () => { for (const entry of footers.values()) { entry.mounted.dispose(); entry.element.remove(); } footers.clear(); };
     const onFooterTarget = (value: HTMLElement | null) => { if (footerTarget !== value) clearFooters(); footerTarget = value; };
     let taskUnavailableReported = false; let commandError = ""; let commandDocument = "";
     let renameError = "";
+    let recoveryRecords: DocumentSession["recoveryCandidates"] | undefined;
+    let recoveryChoices: { id: string; label: string }[] = [];
     let editor: ReturnType<typeof mountEditor> | undefined; let rendered: DocumentSession | null = null;
     const onTarget = (value: HTMLElement | null, scrollViewport?: HTMLElement) => {
       editorTarget = value;
@@ -232,6 +239,15 @@ export default definePlugin({ manifest, async activate(ctx) {
     };
     function clearEditor(): void { if (editor && rendered) states.set(rendered, editor.dispose()); editor = undefined; rendered = null; }
     const onSave = () => { if (!disposed && !signal.aborted && current?.active && !current.locks) void current.flush(); };
+    const onContentWidthChange = (width: number, phase: "preview" | "commit" | "cancel") => {
+      const context = props.workspace as { vaultId?: string } | undefined;
+      if (!disposed && !signal.aborted && !owner.signal.aborted && context?.vaultId) preferences.resizeWidth(width, phase, context.vaultId);
+    };
+    const onRecovery = (id: string) => {
+      const context = props.workspace as { vaultId?: string } | undefined;
+      const session = current?.target.vaultId === context?.vaultId ? current : null;
+      if (session?.active && !signal.aborted && !disposed) { states.delete(session); clearEditor(); session.selectRecovery(Number(id)); }
+    };
     const onReload = () => {
       if (disposed || signal.aborted || !current?.active || current.locks || current.saving) return;
       const session = current; states.delete(session); clearEditor();
@@ -270,6 +286,11 @@ export default definePlugin({ manifest, async activate(ctx) {
       const ready = !!session?.loaded;
       const display = preferences.current();
       const documentKey = session ? key(session.target) : "";
+      const candidates = session?.recoveryCandidates ?? emptyRecoveryCandidates;
+      if (recoveryRecords !== candidates) {
+        recoveryRecords = candidates;
+        recoveryChoices = candidates.map((record, index) => ({ id: String(index), label: `${new Date(record.updatedAt).toISOString()} · ${record.text.slice(0, 100)}` }));
+      }
       if (commandDocument !== documentKey) { commandDocument = documentKey; commandError = ""; renameError = ""; }
       const error = session?.draftError ? text("draftFailed") : session?.error ? text(session.error.code === "CONFLICT" ? "conflict" : session.missing ? "missing" : session.draftSaved && ["OFFLINE", "SERVER_UNAVAILABLE"].includes(session.error.code) ? "offline" : session.loaded ? "saveFailed" : "readFailed") : "";
       const next = { documentKey: session ? key(session.target) : "", name: session?.target.path ?? text(unsupported ? "unsupported" : "empty"),
@@ -277,42 +298,45 @@ export default definePlugin({ manifest, async activate(ctx) {
         contentFontSize: display.fontSize === "theme" ? undefined : Number(display.fontSize),
         contentWidth: display.wrapLines && display.textWidth !== "full" ? Number(display.textWidth) : "full",
         resizeWidthLabel: text("resizeWidth"), canResizeWidth: preferences.canResize(),
-        onContentWidthChange: (width: number, phase: "preview" | "commit" | "cancel") => {
-          if (!disposed && !signal.aborted && !owner.signal.aborted && context?.vaultId) preferences.resizeWidth(width, phase, context.vaultId);
-        },
+        onContentWidthChange,
         canRename: !!session?.active && !session.locks && !session.saving && !session.loading,
         onRename,
         status: session?.loading ? text("loading") : session?.saving ? text("saving") : session?.loaded ? text(session.dirty ? "unsaved" : "saved") : "",
-        recoveryLabel: text("recovery"), recoveryCandidates: session?.recoveryCandidates.map((record, index) => ({ id: String(index), label: `${new Date(record.updatedAt).toISOString()} · ${record.text.slice(0, 100)}` })) ?? [],
-        onRecovery: (id: string) => { if (session?.active && !signal.aborted && !disposed) { states.delete(session); clearEditor(); session.selectRecovery(Number(id)); } },
+        recoveryLabel: text("recovery"), recoveryCandidates: recoveryChoices, onRecovery,
         error, commandError: commandError || preferences.widthError(), ready, dirty: session?.dirty ?? false, busy: !!session && (session.loading || session.saving || session.locks > 0),
         saveLabel: text("save"), retryLabel: text("retry"), reloadLabel: text("reload"), discardLabel: text("discard"), cancelLabel: text("cancel"), onSave, onReload, onTarget, onFooterTarget,
-        presentation: { mode: "embedded", sizing: "fill" } };
-      if (mounted) {
+        presentation: embeddedPresentation };
+      if (mounted && (!renderedProps || Object.keys(next).some(name => next[name as keyof typeof next] !== renderedProps![name]))) {
         const result = mounted.update(next);
         if (!result.ok) { clearEditor(); mounted.dispose(); mounted = undefined; }
+        else renderedProps = next;
       }
       if (!mounted) {
         if (!components.has("lunaris.text-editor")) return;
         const result = components.mount("lunaris.text-editor", target, next, owner.signal);
         if (!result.ok) throw new Error("Cannot mount editor role.", { cause: result.error });
         mounted = result.value;
+        renderedProps = next;
       }
       if (footerTarget) {
         for (const [id, entry] of footers) if (!footerEntries.has(id) || !ready) { entry.mounted.dispose(); entry.element.remove(); footers.delete(id); }
         if (ready) for (const footer of footerEntries.values()) {
           const footerProps = { ...footer.props, document: session!.target, presentation: { mode: "embedded", sizing: "content" } };
           const existing = footers.get(footer.id);
-          if (existing) { const result = existing.mounted.update(footerProps); if (!result.ok) { existing.mounted.dispose(); existing.element.remove(); footers.delete(footer.id); } }
-          else if (components.has(footer.componentId)) {
+          if (existing && (existing.footer !== footer || existing.documentKey !== documentKey)) {
+            const result = existing.mounted.update(footerProps);
+            if (result.ok) { existing.footer = footer; existing.documentKey = documentKey; }
+            else { existing.mounted.dispose(); existing.element.remove(); footers.delete(footer.id); }
+          }
+          else if (!existing && components.has(footer.componentId)) {
             const element = footerTarget.ownerDocument.createElement("div"); footerTarget.append(element);
             const result = components.mount(footer.componentId, element, footerProps, owner.signal);
-            if (result.ok) footers.set(footer.id, { element, mounted: result.value });
+            if (result.ok) footers.set(footer.id, { element, mounted: result.value, footer, documentKey });
             else { element.remove(); logger.error(ctx.pluginId, "Cannot mount document footer", { error: result.error }); }
           }
         }
       }
-      if (rendered !== session || !ready || (editor && editor.view.state.sliceDoc() !== session?.text)) clearEditor();
+      if (rendered !== session || !ready) clearEditor();
       if (session && ready && editorTarget) {
         if (!editor) {
           if (viewport) { viewport.scrollTop = 0; viewport.scrollLeft = 0; }
@@ -339,7 +363,10 @@ export default definePlugin({ manifest, async activate(ctx) {
               failed(error) { if (ctx.signal.aborted || disposed) return; commandError = text("clipboardFailed"); logger.warn(ctx.pluginId, "Editor context command failed", { error }); changed(); },
               completed(operation) { if (ctx.signal.aborted || disposed) return; commandError = ""; logger.info(ctx.pluginId, "Editor context command completed", { data: { operation } }); changed(); },
             }, preferences.current(), extensions.current(), deletionEffects, viewport);
-        } else editor.update(themes.current(), text("editor"), true, preferences.current(), extensions.current());
+        } else {
+          editor.synchronize();
+          editor.update(themes.current(), text("editor"), true, preferences.current(), extensions.current());
+        }
       }
     }
     const view = { render, transact(session: DocumentSession, range: DocumentRange, insert?: string): boolean {
@@ -349,7 +376,9 @@ export default definePlugin({ manifest, async activate(ctx) {
       editor.view.dispatch({ ...(insert === undefined ? {} : { changes: { from, to, insert }, userEvent: "input" }),
         selection: { anchor: from, head: insert === undefined ? to : from + editor.view.state.toText(insert).length }, scrollIntoView: true });
       editor.view.focus(); return true;
-    }, refreshControls: clearEditor, removed() { clearFooters(); clearEditor(); mounted = undefined; editorTarget = null; viewport = undefined; } };
+    }, refreshControls: clearEditor, refreshFooters(componentId: string) {
+      for (const [id, entry] of footers) if (entry.footer.componentId === componentId) { entry.mounted.dispose(); entry.element.remove(); footers.delete(id); }
+    }, removed() { clearFooters(); clearEditor(); mounted = undefined; renderedProps = undefined; editorTarget = null; viewport = undefined; } };
     function dispose(): void {
       const context = props.workspace as { vaultId?: string } | undefined;
       if (context?.vaultId) preferences.resizeWidth(0, "cancel", context.vaultId);
@@ -393,6 +422,10 @@ export default definePlugin({ manifest, async activate(ctx) {
   ctx.events.on(ComponentsChanged, change => {
     if (change.componentId === "lunaris.task-checkbox") { for (const view of views) view.refreshControls(); changed(); }
     if (change.componentId === "lunaris.text-editor") { if (change.kind === "removed") for (const view of views) view.removed(); changed(); }
+    if ([...footerEntries.values()].some(footer => footer.componentId === change.componentId)) {
+      for (const view of views) view.refreshFooters(change.componentId);
+      changed();
+    }
   });
   ctx.scope.own({ dispose() { for (const session of sessions.values()) session.dispose(); sessions.clear(); states.clear(); } });
   choose(documents.current()); if (documents.current()) selectScreen();

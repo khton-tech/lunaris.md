@@ -12,7 +12,7 @@ function setup(options = {}) {
       writes.push({ target, text, policy }); if (options.write) return options.write(target, text, policy);
       disk = { text, version: `v${writes.length + 1}` }; return ok({ version: disk.version });
     },
-  }, () => options.alive !== false, () => {}, (...args) => logs.push(args), clock, options.draft);
+  }, () => options.alive !== false, () => options.changed?.(), (...args) => logs.push(args), clock, options.draft);
   return { session, writes, timers, logs, async tick(delta) { now += delta; for (const [id, timer] of timers) if (timer.at <= now) { timers.delete(id); timer.callback(); } await new Promise(setImmediate); } };
 }
 test('autosave waits one second after the last edit and uses the loaded version', async () => {
@@ -86,6 +86,96 @@ test('unchanged notifications stay quiet while genuine external changes still re
   options.read = async () => ok({ text: 'External replacement', version: 'v2' });
   await s.session.refresh(); assert.equal(s.session.text, 'External replacement'); assert.equal(s.session.version, 'v2');
   s.session.dispose();
+});
+
+test('external changes use one read without loading or reloading local recovery', async () => {
+  let reads = 0; let draftReads = 0; let current = { text: '# Note', version: 'v1' };
+  const s = setup({
+    read: async () => { reads++; return ok(current); },
+    draft: { load: async () => { draftReads++; return ok(null); }, save: async () => ok(null), remove: async () => ok(null) },
+    changed: () => { if (reads > 1) assert.equal(s.session.loading, false); },
+  });
+  await s.session.load(); current = { text: 'External', version: 'v2' };
+  await s.session.refresh();
+  assert.equal(reads, 2); assert.equal(draftReads, 1);
+  assert.equal(s.session.text, 'External'); assert.equal(s.session.savedText, 'External');
+  assert.equal(s.session.dirty, false); s.session.dispose();
+});
+
+test('overlapping watch changes share their read and reconcile a later notification', async () => {
+  const options = {}; const s = setup(options); await s.session.load();
+  const pending = Promise.withResolvers(); let reads = 0;
+  options.read = () => ++reads === 1 ? pending.promise : ok({ text: 'Newest', version: 'v3' });
+  const first = s.session.refresh();
+  const second = s.session.refresh(); const third = s.session.refresh();
+  assert.equal(first, second); assert.equal(second, third); assert.equal(reads, 1);
+  pending.resolve(ok({ text: 'Earlier', version: 'v2' })); await first;
+  assert.equal(reads, 2); assert.equal(s.session.text, 'Newest');
+  assert.equal(s.session.loading, false); s.session.dispose();
+});
+
+test('a failed external read retains the buffer and a later success clears the failure', async () => {
+  const options = {}; const s = setup(options); await s.session.load();
+  options.read = () => ({ ok: false, error: { code: 'NOT_FOUND', message: 'Removed' } });
+  await s.session.refresh(); assert.equal(s.session.text, '# Note'); assert.equal(s.session.missing, true);
+  options.read = () => ok({ text: '# Note', version: 'v1' });
+  await s.session.refresh(); assert.equal(s.session.missing, false); assert.equal(s.session.error, null);
+  s.session.dispose();
+});
+
+test('queued recovery writes persist only the latest snapshot after the active write', async () => {
+  const pending = Promise.withResolvers(); const entered = Promise.withResolvers(); const writes = [];
+  const s = setup({ draft: {
+    load: async () => ok(null),
+    async save(text) { writes.push(text); if (writes.length === 1) { entered.resolve(); await pending.promise; } return ok(null); },
+    remove: async () => ok(null),
+  } });
+  await s.session.load(); s.session.edit('First'); await entered.promise;
+  for (let i = 0; i < 100; i++) s.session.edit(`Next ${i}`);
+  const latest = s.session.persistDraft(); assert.deepEqual(writes, ['First']);
+  pending.resolve(); assert.equal((await latest).ok, true);
+  assert.deepEqual(writes, ['First', 'Next 99']);
+  assert.equal(s.session.draftSaved, true); assert.equal(s.session.hasUnprotectedChanges, false);
+  s.session.dispose();
+});
+
+test('external reconciliation settles obsolete recovery after undo before accepting new disk content', async () => {
+  const entered = Promise.withResolvers(); const release = Promise.withResolvers(); let stored; let writes = 0;
+  let disk = { text: '# Note', version: 'v1' };
+  const draft = {
+    load: async () => ok(stored ?? null),
+    async save(text, expectedVersion, revision) {
+      if (++writes === 1) { entered.resolve(); await release.promise; }
+      stored = { text, expectedVersion, revision }; return ok(null);
+    },
+    async remove(revision) { if (stored?.revision === revision) stored = undefined; return ok(null); },
+  };
+  const s = setup({ draft, read: () => ok(disk) }); await s.session.load();
+  s.session.edit('Obsolete'); await entered.promise; s.session.edit('# Note');
+  disk = { text: 'External', version: 'v2' };
+  let finished = false; const refreshing = s.session.refresh().then(() => { finished = true; });
+  await new Promise(setImmediate); assert.equal(finished, false); assert.equal(s.session.text, '# Note');
+  release.resolve(); await refreshing;
+  assert.equal(stored, undefined); assert.equal(s.session.text, 'External'); assert.equal(s.session.dirty, false);
+  s.session.dispose();
+  const reopened = setup({ draft, read: () => ok(disk) }); await reopened.session.load();
+  assert.equal(reopened.session.text, 'External'); assert.equal(reopened.session.dirty, false); reopened.session.dispose();
+});
+
+test('typing during obsolete recovery cleanup cancels the external result without saving the new edit', async () => {
+  const entered = Promise.withResolvers(); const release = Promise.withResolvers(); let stored;
+  const options = { draft: {
+    load: async () => ok(null),
+    async save(text, expectedVersion, revision) { stored = { text, expectedVersion, revision }; return ok(null); },
+    async remove(revision) { entered.resolve(); await release.promise; if (stored?.revision === revision) stored = undefined; return ok(null); },
+  } };
+  const s = setup(options); await s.session.load();
+  s.session.edit('Obsolete'); await s.session.persistDraft(); s.session.edit('# Note'); await s.session.persistDraft();
+  options.read = () => ok({ text: 'External', version: 'v2' });
+  const refreshing = s.session.refresh(); await entered.promise;
+  s.session.edit('Latest local edit'); await s.session.persistDraft(); release.resolve(); await refreshing;
+  assert.equal(s.session.text, 'Latest local edit'); assert.equal(s.session.dirty, true);
+  assert.equal(stored.text, 'Latest local edit'); assert.equal(s.writes.length, 0); s.session.dispose();
 });
 
 test('a refresh response cannot replace a buffer saved, relocated or closed during its read', async () => {

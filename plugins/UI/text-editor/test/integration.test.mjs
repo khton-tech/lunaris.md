@@ -5,6 +5,7 @@ import backlinksUI from '@lunaris/backlinks-ui';
 import sidebarProvider from '@lunaris/sidebar-provider';
 import { Backlinks } from '@lunaris/backlinks';
 import { DocumentContent } from '@lunaris/active-document';
+import { DocumentFooters } from '@lunaris/editor';
 import { Drafts } from '@lunaris/remote';
 import { FilesystemSources } from '@lunaris/filesystem';
 import test from 'node:test';
@@ -24,7 +25,7 @@ import { Logger } from '@lunaris/logging';
 import { Config, ConfigChanged } from '@lunaris/config';
 import { Settings } from '@lunaris/settings';
 import settingsProvider from '@lunaris/settings-provider';
-import { Filesystem, FilesystemDriver, FilesystemRootsDriver, FilesystemObservationDriver, FilesystemLocationsDriver, DirectoryLocationsDriver, ApplicationDirectoryDriver, DriverFileChanged, filesystemMethods } from '@lunaris/filesystem';
+import { Filesystem, FilesystemDriver, FilesystemRootsDriver, FilesystemObservation, FilesystemObservationDriver, FilesystemLocationsDriver, DirectoryLocationsDriver, ApplicationDirectoryDriver, DriverFileChanged, filesystemMethods } from '@lunaris/filesystem';
 import { Vault } from '@lunaris/vault';
 import { DocumentStatistics, DocumentStatisticsChanged, ActiveDocument } from '@lunaris/active-document';
 import { ActiveScreen } from '@lunaris/active-screen';
@@ -143,8 +144,8 @@ async function setup(options = {}) {
   kernel.register(definePlugin({ manifest: metadata('test.config-events', [{ kind: 'event', id: ConfigChanged.id, version: ConfigChanged.version }]), activate() {} }));
   for (const plugin of [...(options.backlinks ? [backlinkIndex, backlinksUI, sidebarProvider, documentLinks] : []), settingsProvider, menuProvider, filesystem, vault, documents, screenProvider, screenHost, components, themes, localization, mantine, editor, closeGuard.plugin]) kernel.register(plugin);
 
-  kernel.register(definePlugin({ manifest: metadata('test.consumer', [], [...(options.backlinks ? [Backlinks, DocumentContent] : []), Settings, DocumentStatistics, DocumentStatisticsChanged, Filesystem, Vault, ActiveDocument, ActiveScreen, Components, Themes, Localization].map(t => ({ kind: t.kind, id: t.id, range: '^' + t.version })), ['vault.access', 'filesystem.access', 'ui.dom']), activate(ctx) {
-    api = { ctx, ...(options.backlinks ? { backlinks: ctx.use(Backlinks), documentContent: ctx.use(DocumentContent) } : {}), settings: ctx.use(Settings), statistics: ctx.use(DocumentStatistics), fs: ctx.use(Filesystem), vault: ctx.use(Vault), documents: ctx.use(ActiveDocument), screens: ctx.use(ActiveScreen), components: ctx.use(Components), themes: ctx.use(Themes), language: ctx.use(Localization) };
+  kernel.register(definePlugin({ manifest: metadata('test.consumer', [], [...(options.backlinks ? [Backlinks, DocumentContent] : []), FilesystemObservation, DocumentFooters, Settings, DocumentStatistics, DocumentStatisticsChanged, Filesystem, Vault, ActiveDocument, ActiveScreen, Components, Themes, Localization].map(t => ({ kind: t.kind, id: t.id, range: '^' + t.version })), ['vault.access', 'filesystem.access', 'ui.dom']), activate(ctx) {
+    api = { ctx, ...(options.backlinks ? { backlinks: ctx.use(Backlinks), documentContent: ctx.use(DocumentContent) } : {}), observation: ctx.use(FilesystemObservation), footers: ctx.use(DocumentFooters), settings: ctx.use(Settings), statistics: ctx.use(DocumentStatistics), fs: ctx.use(Filesystem), vault: ctx.use(Vault), documents: ctx.use(ActiveDocument), screens: ctx.use(ActiveScreen), components: ctx.use(Components), themes: ctx.use(Themes), language: ctx.use(Localization) };
   } }));
   for (const [id, grants] of Object.entries({ 'test.driver': ['filesystem.native'], 'lunaris.filesystem-provider': ['filesystem.access', 'filesystem.app-config'], 'lunaris.vault-manager': ['filesystem.access'], 'lunaris.active-document-provider': ['vault.access', 'config.access', 'filesystem.access'], 'lunaris.active-screen-provider': ['vault.access'], [screenHost.manifest.id]: ['ui.dom'], 'lunaris.component-provider': ['ui.dom'], 'lunaris.mantine-components': ['ui.dom'], 'lunaris.context-menu-provider': ['ui.dom'], 'lunaris.text-editor': ['clipboard.access', 'ui.dom', 'vault.access', 'filesystem.access'], 'test.consumer': ['vault.access', 'filesystem.access', 'ui.dom'] })) for (const grant of grants) kernel.grant(id, grant);
   kernel.grant(closeGuard.plugin.manifest.id, 'vault.access');
@@ -168,6 +169,7 @@ async function setup(options = {}) {
   host = api.components.mount(content.componentId, editorTarget, { workspace: { vaultId: 'a', vaultName: 'A' } }, api.ctx.signal);
   assert.equal(host.ok, true); await api.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
   return { ...api, externalCalls, target, dom, disk, calls, logs, kernel, clipboardCalls, preferenceWrites, beforeClose: closeGuard.beforeClose,
+    async notifyFile(change = {}) { await watchContext.events.emit(DriverFileChanged, { vaultId: 'a', watchId: 'watch', paths: ['note.md'], kind: 'modified', ...change }); await flush(); },
     async resizeWidthEnvironment(values) { Object.assign(widthEnvironment, values); for (const callback of [...widthObservers, ...mediaListeners]) callback(); await flush(); },
     async showVault(vaultId) { host.value.dispose(); await flush(); host = api.components.mount(content.componentId, editorTarget, { workspace: { vaultId, vaultName: vaultId } }, api.ctx.signal); assert.equal(host.ok, true); },
     cm() { const node = target.querySelector('.cm-editor'); assert.ok(node, target.textContent); return EditorView.findFromDOM(node); },
@@ -175,6 +177,91 @@ async function setup(options = {}) {
     async stop() { await flush(); await kernel.stopAll(); await flush(); kernel.assertNoResources(); assert.equal(target.childElementCount, 0); assert.ok(!kernel.diagnostics().some(d => d.code === 'CLEANUP_FAILED')); dom.window.close(); },
   };
 }
+
+test('typing preserves footer mounts and skips unchanged footer updates', async () => {
+  const s = await setup(); const mounts = []; const updates = [];
+  try {
+    assert.equal(s.components.register({ id: 'test.footer', mount(target, props) {
+      mounts.push(props.document.path);
+      const element = target.ownerDocument.createElement('span'); target.append(element);
+      return { update(next) { updates.push(next.document.path); }, dispose() { element.remove(); } };
+    } }, s.ctx.signal).ok, true);
+    assert.equal(s.footers.register({ id: 'test.footer', componentId: 'test.footer' }, s.ctx.signal).ok, true);
+    await flush(); assert.deepEqual(mounts, ['note.md']);
+    const original = s.cm();
+    for (let i = 0; i < 10; i++) { s.edit(`Edit ${i}`); await flush(); }
+    assert.equal(s.cm(), original); assert.deepEqual(updates, []); assert.deepEqual(mounts, ['note.md']);
+    await s.documents.open({ vaultId: 'a', path: 'other.md' }); await flush();
+    assert.deepEqual(mounts, ['note.md', 'other.md']);
+    await s.documents.open({ vaultId: 'a', path: 'note.md' }); await flush();
+    assert.deepEqual(updates, ['note.md']);
+  } finally { await s.stop(); }
+});
+
+test('switching after undo settles obsolete pending recovery before committing navigation', async () => {
+  const entered = Promise.withResolvers(); const release = Promise.withResolvers(); let stored; let writes = 0;
+  const s = await setup({ drafts: {
+    list: async () => ok([]),
+    load: async () => ok(null),
+    async save(record) { if (++writes === 1) { entered.resolve(); await release.promise; } stored = record; return ok(null); },
+    async remove(key, revision) { if (stored?.revision === revision) stored = undefined; return ok(null); },
+  } });
+  try {
+    s.edit('Obsolete text'); await entered.promise;
+    s.edit('# Note'); await flush();
+    let finished = false;
+    const opening = s.documents.open({ vaultId: 'a', path: 'other.md' }).then(result => { finished = true; return result; });
+    await flush(); assert.equal(finished, false); assert.equal(s.documents.current().path, 'note.md');
+    release.resolve(); assert.equal((await opening).ok, true); await flush();
+    assert.equal(stored, undefined); assert.equal(s.documents.current().path, 'other.md');
+  } finally { release.resolve(); await s.stop(); }
+});
+
+test('external disk replacement retains the editor, focus, selection and scrollers with fresh undo history', async () => {
+  let reads = 0;
+  const s = await setup({ read() { reads++; } });
+  try {
+    assert.equal((await s.observation.watch({ vaultId: 'a', path: '' }, s.ctx.signal, true)).ok, true);
+    s.edit('Local saved text\nSecond line');
+    assert.equal((await s.documents.open({ vaultId: 'a', path: 'note.md' })).ok, true); await flush();
+    const view = s.cm(); const content = view.contentDOM; const viewport = s.target.querySelector('.lm-text-editor');
+    view.focus(); view.dispatch({ selection: { anchor: 2, head: 7 } });
+    viewport.scrollTop = 123; viewport.scrollLeft = 17; view.scrollDOM.scrollTop = 43; view.scrollDOM.scrollLeft = 9;
+    const beforeReads = reads; const beforeWrites = s.calls.filter(call => call[0] === 'write').length;
+    for (const text of ['External text\r\nSecond line', 'Another disk version\nSecond line']) {
+      s.disk.set('a/note.md', { text, version: text }); await s.notifyFile();
+      await new Promise(resolve => s.dom.window.requestAnimationFrame(resolve));
+      assert.equal(s.cm(), view); assert.equal(view.contentDOM, content); assert.equal(view.hasFocus, true);
+      assert.equal(view.state.selection.main.anchor, 2); assert.equal(view.state.selection.main.head, 7);
+      assert.equal(view.state.sliceDoc(), text);
+      assert.equal(viewport.scrollTop, 123); assert.equal(viewport.scrollLeft, 17);
+      assert.equal(view.scrollDOM.scrollTop, 43); assert.equal(view.scrollDOM.scrollLeft, 9);
+      assert.equal(undo(view), false);
+    }
+    assert.equal(reads - beforeReads, 2); assert.equal(s.calls.filter(call => call[0] === 'write').length, beforeWrites);
+    s.edit('New local edit'); assert.equal(undo(view), true); assert.equal(view.state.sliceDoc(), 'Another disk version\nSecond line');
+  } finally { await s.stop(); }
+});
+
+test('external updates leave the mobile viewport in place while the keyboard is open', async () => {
+  const s = await setup({ initial: 'Hello world', mobile: true });
+  const frame = () => new Promise(resolve => s.dom.window.requestAnimationFrame(resolve));
+  try {
+    assert.equal((await s.observation.watch({ vaultId: 'a', path: '' }, s.ctx.signal, true)).ok, true);
+    const view = s.cm(); const scroll = s.target.querySelector('.lm-text-editor');
+    scroll.style.overflowY = 'auto';
+    scroll.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 360, 680);
+    view.coordsAtPos = () => new s.dom.window.DOMRect(10, 350, 1, 10);
+    view.focus();
+    Object.assign(s.dom.window.visualViewport, { height: 390, offsetTop: 90 });
+    s.dom.window.visualViewport.dispatchEvent(new s.dom.window.Event('resize')); await frame(); await frame();
+    scroll.scrollTop = 100;
+    s.disk.set('a/note.md', { text: 'External update\nSecond line', version: 'v2' });
+    await s.notifyFile(); await frame(); await frame();
+    assert.equal(s.cm(), view); assert.equal(view.hasFocus, true); assert.equal(scroll.scrollTop, 100);
+    assert.equal(view.state.sliceDoc(), 'External update\nSecond line');
+  } finally { await s.stop(); }
+});
 
 test('editor clicks open notes and expose source backlinks; web URLs use the platform API', async () => {
   const s = await setup({ backlinks: true });
