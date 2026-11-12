@@ -16,13 +16,14 @@ export function linkInteraction(
 ) {
   const refreshStyle = StateEffect.define<null>();
   const links = ViewPlugin.fromClass(class {
-    decorations: DecorationSet;
+    decorations: DecorationSet = Decoration.none;
+    outerDecorations: DecorationSet = Decoration.none;
     values: readonly NoteLink[] = [];
     private missing = new Set<number>();
     private readonly unsubscribe: () => void;
     constructor(view: EditorView) {
       this.readLinks(view);
-      this.decorations = this.build(view);
+      this.refresh(view);
       this.unsubscribe = subscribe(() => {
         const next = new Set(missingTargets(this.values));
         if (next.size === this.missing.size && [...next].every(offset => this.missing.has(offset))) return;
@@ -48,20 +49,32 @@ export function linkInteraction(
         }
         ranges.push(Decoration.mark({
           class: this.missing.has(link.from) ? "cm-document-link cm-document-link-missing" : "cm-document-link",
-          attributes: { "data-note-link": String(link.from), role: "link", tabindex: "0", title: link.destination },
+          // The source already exposes the destination while editing. Keep its
+          // wrapper stable instead of changing a tooltip on every keystroke.
+          attributes: { "data-note-link": String(link.from), role: "link", tabindex: "0", ...(!editing ? { title: link.destination } : {}) },
         }).range(label?.from ?? link.from, label?.to ?? link.to));
       }
       return Decoration.set(ranges, true);
+    }
+    refresh(view: EditorView): void {
+      const all = this.build(view);
+      // Link semantics wrap letter feedback so changing a destination cannot
+      // split the link and restart animations on previously typed characters.
+      this.outerDecorations = all.update({ filter: (_from, _to, decoration) => decoration.spec.class !== undefined });
+      this.decorations = all.update({ filter: (_from, _to, decoration) => decoration.spec.class === undefined });
     }
     update(update: ViewUpdate) {
       if (update.docChanged) this.readLinks(update.view);
       if (update.docChanged || update.selectionSet || update.focusChanged || update.startState.facet(preview) !== update.state.facet(preview)
         || update.transactions.some(transaction => transaction.effects.some(effect => effect.is(refreshStyle)))) {
-        this.decorations = this.build(update.view);
+        this.refresh(update.view);
       }
     }
     destroy() { this.unsubscribe(); }
-  }, { decorations: value => value.decorations });
+  }, {
+    decorations: value => value.decorations,
+    provide: plugin => EditorView.outerDecorations.of(view => view.plugin(plugin)?.outerDecorations ?? Decoration.none),
+  });
   const hit = (event: Event, view: EditorView) => {
     const target = event.target as HTMLElement | null; const marker = target?.closest?.("[data-note-link]");
     if (!marker || !view.dom.contains(marker)) return undefined;

@@ -34,4 +34,17 @@ In Live Preview, `[[note]]` displays `note` and `[[note|Display name]]` displays
 
 Without a display alias, `[[folder/note.md#heading]]` displays `note`. Navigation still uses the full destination, including the heading. A same-note link such as `[[#heading]]` displays its heading reference.
 
+Link semantics use CodeMirror outer decorations, outside TextEditor's letter
+animation marks. Updating a destination keeps one link wrapper and preserves
+surviving letter nodes during typing and deletion, avoiding animation restarts.
+The destination tooltip is omitted while editing the exposed source, keeping
+wrapper attributes stable, and restored with the current destination on exit.
+Syntax replacements remain ordinary decorations. Workspace and Mantine retain
+their existing geometry/surface ownership; the public EditorExtensions contract
+already connects both contributions, with no additional integration required.
+The product reference is the existing editor letter feedback. The composed
+Workspace regression checks retained nodes, deletion afterimages and expiry;
+native acceptance remains manual: type and delete quickly inside
+`[[folder1/folder2/folder3/fileName]]` and confirm the filename does not flicker.
+
 Wikilinks to absent notes use the theme's `linkMissing` color and a dashed underline. Themes without that role use their secondary text color. They retain this appearance on hover and show the usual keyboard focus outline. The links remain actionable. `NoteLinksChanged` refreshes open editor views after the index detects creation, deletion or a change in listing completeness. Text invalidations use `BacklinksChanged` for mention consumers, leaving missing-link decorations idle. Missing styling requires a complete file listing. Native appearance and focus remain manual checks.

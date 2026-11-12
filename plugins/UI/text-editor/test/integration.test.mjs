@@ -400,6 +400,41 @@ test('wikilink preview keeps aliases editable and opens a newly created note', a
   } finally { await s.stop(); }
 });
 
+test('wikilink filename edits retain letter animations inside one link wrapper', async () => {
+  const source = 'Intro\n[[folder1/folder2/folder3/fileName]]';
+  const s = await setup({ backlinks: true, initial: source, withLayout: true });
+  try {
+    const view = s.cm();
+    view.focus();
+    view.dispatch({ selection: { anchor: source.indexOf(']]') } });
+    const wrapper = view.contentDOM.querySelector('.cm-document-link');
+    assert.equal(wrapper.hasAttribute('title'), false);
+    const type = text => view.dispatch(view.state.update(view.state.replaceSelection(text), { userEvent: 'input.type' }));
+    type('x');
+    const first = view.contentDOM.querySelector('.cm-typing-insertion');
+    assert.equal(first.textContent, 'x');
+    type('y');
+    assert.ok(view.contentDOM.querySelector('.cm-typing-insertion') === first, 'earlier letter animation must retain its DOM');
+    assert.deepEqual([...view.contentDOM.querySelectorAll('.cm-typing-insertion')].map(node => node.textContent), ['x', 'y']);
+    assert.equal(view.state.sliceDoc(), source.replace('fileName', 'fileNamexy'));
+    assert.equal(view.contentDOM.querySelectorAll('.cm-document-link').length, 1);
+    assert.ok(first.closest('.cm-document-link'));
+    const { head } = view.state.selection.main;
+    view.dispatch({ changes: { from: head - 1, to: head }, selection: { anchor: head - 1 }, userEvent: 'delete.backward' });
+    assert.ok(view.contentDOM.querySelector('.cm-typing-insertion') === first, 'deletion must not restart the surviving letter');
+    assert.ok(view.contentDOM.querySelector('.cm-document-link') === wrapper, 'editing must retain the link wrapper');
+    assert.equal(view.contentDOM.querySelector('.cm-typing-deletion').textContent, 'y');
+    assert.equal(view.contentDOM.querySelectorAll('.cm-document-link').length, 1);
+    assert.equal(view.state.sliceDoc(), source.replace('fileName', 'fileNamex'));
+    await new Promise(resolve => setTimeout(resolve, 300));
+    assert.equal(view.contentDOM.querySelector('.cm-typing-insertion, .cm-typing-deletion'), null);
+    assert.equal(view.contentDOM.querySelectorAll('.cm-document-link').length, 1);
+    view.dispatch({ selection: { anchor: 0 } });
+    assert.equal(view.contentDOM.querySelector('.cm-document-link').textContent, 'fileNamex');
+    assert.equal(view.contentDOM.querySelector('.cm-document-link').title, 'folder1/folder2/folder3/fileNamex');
+  } finally { await s.stop(); }
+});
+
 test('CRLF link decorations and SDK mention ranges use the correct editor offsets', async () => {
   const source = 'Intro\r\n[[other]]\r\nother';
   const s = await setup({ backlinks: true, initial: source });
