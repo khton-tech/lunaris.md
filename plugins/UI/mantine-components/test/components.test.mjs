@@ -105,6 +105,16 @@ test('account access uses controlled Mantine password fields, escaped catalog na
   mounted.value.update({ ...props, error: 'Try again' }); assert.equal(s.target.querySelector('input[type=password]'), password);
   assert.equal(s.target.querySelector('form [role=alert]').textContent, 'Try again');
   assert.ok(s.target.querySelector('.lm-account-auth h1'));
+  assert.equal(s.target.querySelector('.lm-account-topbar'), null, 'auth owns one header');
+  assert.equal(s.target.querySelector('.lm-account-auth-actions').children.length, 2);
+  s.kernel.register(baseThemeEngine); await s.kernel.start(baseThemeEngine.manifest.id);
+  for (const id of ['windows-xp', 'windows-xp-dark', 'monochrome']) {
+    s.themes.select('lunaris.base-theme-engine.' + id); await settle();
+    assert.equal(s.target.querySelector('input[type=password]'), password, 'theme keeps the password control');
+    assert.equal(password.value, 'typed password');
+    assert.equal(s.target.querySelector('.lm-root').dataset.windowChrome, String(id !== 'monochrome'));
+    assert.equal(s.target.querySelectorAll('.lm-account-auth-heading').length, 1);
+  }
   mounted.value.update({ ...props, mode: 'login' });
   assert.equal(password.hasAttribute('minlength'), false);
   assert.equal(password.getAttribute('autocomplete'), 'current-password');

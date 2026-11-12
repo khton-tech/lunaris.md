@@ -926,3 +926,38 @@
  .lm-setting-static-value { justify-content:flex-start;padding-inline:0 }
  .lm-root .lm-setting-reset { align-self:flex-start }
 }
+
+/* Account role owns the standalone form surface; controls use the shared UIKit. */
+.lm-account-access[data-view=auth] { padding:calc(var(--vault-space)*6);user-select:none }
+.lm-account-access[data-view=auth] .lm-account-content { width:min(100%,26rem);gap:0;margin:clamp(0px,10cqh,96px) auto auto;flex-shrink:0 }
+.lm-account-auth { padding:0;gap:0;overflow:visible }
+.lm-account-auth-heading { padding:calc(var(--vault-space)*4);display:flex;align-items:baseline;flex-wrap:wrap;gap:calc(var(--vault-space)*3);border-bottom:var(--vault-border) solid var(--vault-separator) }
+.lm-account-auth-heading .lm-account-brand { font-size:0.85em;color:var(--vault-secondary);font-weight:500;letter-spacing:normal }
+.lm-account-auth-heading h1 { font-size:1.125em;font-weight:600;line-height:1.4;letter-spacing:normal }
+.lm-account-auth-form { padding:calc(var(--vault-space)*4) }
+.lm-account-auth-fields .lm-label { margin-bottom:var(--vault-space) }
+.lm-account-auth-actions { margin-top:calc(var(--vault-space)*2);align-items:stretch }
+.lm-account-auth-actions .lm-button { height:auto;min-height:calc(var(--vault-space)*10) }
+.lm-account-auth-actions .mantine-Button-label { white-space:normal;overflow-wrap:anywhere }
+.lm-account-auth-footer { display:flex;flex-direction:column;align-items:flex-start;gap:calc(var(--vault-space)*2);padding:0 calc(var(--vault-space)*4) calc(var(--vault-space)*4);font-size:0.85em }
+.lm-root .lm-account-local { align-self:flex-start;margin:0 calc(var(--vault-space)*4) calc(var(--vault-space)*4) }
+.lm-account-auth .mantine-PasswordInput-input { --input-height:calc(var(--vault-space)*10) }
+.lm-account-auth input.lm-input { --input-height:calc(var(--vault-space)*10) }
+.lm-account-auth .mantine-PasswordInput-innerInput { font:inherit;color:var(--vault-text);caret-color:var(--vault-caret) }
+.lm-account-auth .mantine-PasswordInput-innerInput::selection { background:var(--vault-selection);color:var(--vault-text) }
+.lm-root[data-window-chrome=true][data-presentation=standalone] .lm-account-auth { box-shadow:var(--vault-surface-shadow);border:var(--vault-border) solid var(--vault-frame-color) }
+.lm-root[data-window-chrome=true] .lm-account-auth-heading { background:var(--vault-caption-background);color:var(--vault-caption-text);border:0;border-radius:var(--vault-radius) var(--vault-radius) 0 0;padding:var(--vault-space) calc(var(--vault-space)*2) }
+.lm-root[data-window-chrome=true] .lm-account-auth-heading h1 { font-size:1em;font-weight:700 }
+.lm-root[data-window-chrome=true] .lm-account-auth-heading .lm-account-brand { color:inherit }
+@container(max-width:640px) {
+ .lm-account-access[data-view=auth] { padding:calc(var(--vault-space)*3) }
+ .lm-account-access[data-view=auth] .lm-account-content { width:100%;margin:0 auto auto }
+ .lm-account-auth-heading { align-items:flex-start;flex-direction:column;gap:var(--vault-space) }
+ .lm-account-auth-actions { flex-direction:column;gap:calc(var(--vault-space)*2) }
+ .lm-account-auth-actions .lm-button { width:100%;min-height:44px }
+ .lm-account-auth .lm-input { --input-height:44px;min-height:44px }
+ .lm-account-auth .mantine-PasswordInput-wrapper { --input-right-section-width:44px }
+ .lm-account-auth .mantine-PasswordInput-innerInput { font-size:max(16px,var(--mantine-font-size-md)) }
+ .lm-account-auth .mantine-PasswordInput-visibilityToggle { min-width:44px;min-height:44px }
+ .lm-account-auth-footer .lm-button,.lm-root .lm-account-local { min-height:44px }
+}

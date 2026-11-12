@@ -98,3 +98,28 @@ Native visual acceptance is pending: web login/registration/invitation, opened
 account/Vault menus, empty/populated/trash/error states, long Russian names,
 keyboard focus, light/dark themes and narrow/short windows. Desktop automation
 is prohibited; these states require an Owner browser check.
+
+## Authentication visual alignment and responsive composition
+
+The Owner requested the login page to match the application rather than an
+independent website. References: local Vault Selector form density, shared UIKit
+controls and Settings' Luna caption. Authentication owns one surface and heading;
+branding is secondary. The catalog and local selector are unchanged. Desktop uses
+a bounded 26rem panel and wrapping inline actions. At allocations up to 640px the
+panel fills available width, starts at the top, and stacks full-width actions.
+Mobile controls and password visibility have 44px targets. The outer role scrolls;
+the content cannot shrink and no fixed height clips keyboard/short-screen content.
+All spacing, colors, borders and caption finishes use existing theme tokens.
+Embedded presentation does not receive standalone frame/shadow styling.
+
+The title, labels and buttons use product typography. Password explicitly uses
+the same md size as TextInput. Primary submit has no decorative arrow. Permanent
+explanatory copy is removed; server address remains secondary context and password
+reset guidance appears with login errors. Existing localized labels and SDK role
+callbacks remain compatible; AccountSession/Vault integration is unchanged.
+
+Targeted tests cover form/error placement, retained inputs through Monochrome and
+both Luna presets, and existing catalog interactions. Native acceptance remains
+pending: desktop versus 320/390/640px allocations, short landscape, keyboard-open
+scrolling, long Russian labels, password visibility, focus and error states in
+all three themes. DOM tests do not establish visual or native geometry acceptance.

@@ -33,7 +33,7 @@ export function AccountAccessView({ props: p, theme }: { props: AccountAccessPro
   const catalog = p.mode === "vaults" || p.mode === "trash";
   return <Box component="section" className="lm-account-access" data-view={catalog ? "catalog" : "auth"} style={theme.contentStyle} aria-busy={p.busy}>
     <Box className="lm-account-content">
-      <Group component="header" className="lm-account-topbar" justify="space-between" wrap="wrap">
+      {catalog && <Group component="header" className="lm-account-topbar" justify="space-between" wrap="wrap">
         <Text className="lm-account-brand">Lunaris</Text>
         {catalog ? <Menu withinPortal={false} position="bottom-end" offset={6} returnFocus>
           <Menu.Target><Button className="lm-account-identity" disabled={p.busy} aria-label={`${p.text.accountMenu}: ${p.account}`} leftSection={<Icon name="account" />} rightSection={<Icon name="expand" />}>{p.account}</Button></Menu.Target>
@@ -43,9 +43,8 @@ export function AccountAccessView({ props: p, theme }: { props: AccountAccessPro
             <Menu.Item leftSection={<Icon name="logout" />} onClick={p.onLogout}>{p.text.logout}</Menu.Item>
           </Menu.Dropdown>
         </Menu> : p.allowLocal && <Button disabled={p.busy} onClick={p.onLocal} leftSection={<Icon name="back" />}>{p.text.local}</Button>}
-      </Group>
+      </Group>}
       {catalog ? <AccountCatalog key={p.account} props={p} /> : <AccountAuth props={p} />}
-      {!catalog && p.mode !== "connect" && <Box component="footer" className="lm-account-footer"><Text className="lm-account-context">{p.address}</Text><Text className="lm-account-context">{p.text.passwordReset}</Text>{p.allowLocal && <Button disabled={p.busy} onClick={p.onChangeServer}>{p.text.changeServer}</Button>}</Box>}
     </Box>
   </Box>;
 }
