@@ -1101,7 +1101,7 @@ test('compact Workspace lends a mobile menu target without replacing editor regi
   return new s.dom.window.DOMRect(4, 0, width, 720);
  };
  try {
-  let targets; const requests=[]; const props = {onMobileOpen:open=>requests.push(open),railVisible:true,panelVisible:true,bottomVisible:true,mobileLauncherVisible:true,mobileMenuVisible:true,mainLabel:'Main',panelLabel:'Sidebar',onTargets:value=>{targets=value;},onDismiss(){}};
+  let targets; const requests=[]; const props = {mobileOpen:false,onMobileOpen:open=>requests.push(open),railVisible:true,panelVisible:true,bottomVisible:true,mobileLauncherVisible:true,mobileMenuVisible:true,mainLabel:'Main',panelLabel:'Sidebar',onTargets:value=>{targets=value;},onDismiss(){}};
   const mounted = s.components.mount('lunaris.workspace-layout',s.target,props,s.ctx.signal); assert.equal(mounted.ok,true);
   const initial = targets; const main = targets.main; const draft = s.dom.window.document.createElement('input'); draft.value='Draft'; main.append(draft);
   assert.ok(targets['mobile-menu']); assert.equal(targets.bottom.hidden,true); requests.length=0;
@@ -1132,24 +1132,29 @@ test('compact Workspace lends a mobile menu target without replacing editor regi
     assert.equal(reveal(), '');
     assert.equal(layout.style.getPropertyValue('--workspace-drawer-opacity'), '');
   };
-  touch('touchstart', 40, 100);
-  assert.equal(touch('touchmove', 50, 160), false);
-  touch('touchend', 180, 160);
-  touch('touchstart', 65, 100);
-  assert.equal(touch('touchmove', 200, 100), false);
-  touch('touchend', 200, 100);
+  touch('touchstart', 160, 100);
+  assert.equal(touch('touchmove', 170, 160), false);
+  touch('touchend', 300, 160);
+  for (const target of [draft, menuList, launcher]) {
+    touch('touchstart', 65, 100, target);
+    assert.equal(touch('touchmove', 200, 100, target), false);
+    touch('touchend', 200, 100, target);
+  }
+  touch('touchstart', 160, 100);
+  assert.equal(touch('touchmove', 40, 100), false);
+  touch('touchend', 40, 100);
   assertReset();
 
-  touch('touchstart', 40, 100);
-  assert.equal(touch('touchmove', 155, 100), true);
+  touch('touchstart', 160, 100);
+  assert.equal(touch('touchmove', 275, 100), true);
   assert.equal(reveal(), '115px');
   assert.equal(Number(layout.style.getPropertyValue('--workspace-drawer-opacity')), 115 / 328);
   assert.equal(layout.hasAttribute('data-mobile-open'), false);
   assert.equal(targets['left-rail'].hasAttribute('inert'), true);
   assert.equal(backdrop.hasAttribute('inert'), true);
-  touch('touchmove', 80, 100);
+  touch('touchmove', 200, 100);
   assert.equal(reveal(), '40px');
-  touch('touchend', 80, 100);
+  touch('touchend', 200, 100);
   assertReset();
   assert.deepEqual(requests, []);
 
@@ -1170,6 +1175,16 @@ test('compact Workspace lends a mobile menu target without replacing editor regi
   assert.deepEqual(requests, []);
   touch('touchend', 175, 100);
   assert.deepEqual(requests, [true]);
+  assertReset();
+  touch('touchstart', 320, 100);
+  touch('touchmove', 340, 100);
+  touch('touchend', 340, 100);
+  assert.deepEqual(requests, [true]);
+  touch('touchstart', 320, 100);
+  touch('touchmove', 350, 100);
+  assert.equal(reveal(), '30px');
+  touch('touchend', 350, 100);
+  assert.deepEqual(requests, [true, true]);
   assertReset();
   mounted.value.update({...props,mobileOpen:true}); assert.equal(main.parentElement.hasAttribute('inert'),true); assert.equal(main.parentElement.hidden,false); assert.equal(targets['mobile-menu'].hasAttribute('inert'),true); assert.equal(launcher.hasAttribute('inert'),true); assert.equal(s.target.querySelector('.lm-workspace-return'),null);
   mounted.value.update({...props,mobileOpen:false}); assert.equal(main.parentElement.hasAttribute('inert'),false); assert.equal(targets,initial); assert.equal(draft.value,'Draft');
@@ -1284,11 +1299,11 @@ test('mobile floating controls follow content swipes without scroll or keyboard 
   // Editor bubbling handlers must not prevent the owning container from seeing intent.
   editable.addEventListener('touchmove', event => event.stopPropagation());
   const point = (x, y, identifier=0) => ({clientX:x,clientY:y,identifier});
-  const touch = (type, points, target=editable) => {
+  const touch = (type, points, target=editable, prevented=false) => {
    const event = new s.dom.window.Event(type, {bubbles:true,cancelable:true});
    Object.defineProperty(event, 'touches', {value:points});
    flushSync(() => target.dispatchEvent(event));
-   assert.equal(event.defaultPrevented, false);
+   assert.equal(event.defaultPrevented, prevented);
   };
   const visible = value => { assert.equal(launcher.hidden, !value); assert.equal(toolbar.hidden, !value); };
   const swipe = (from, to) => { touch('touchstart',[point(100,from)]); touch('touchmove',[point(100,to)]); touch('touchend',[]); };
@@ -1300,7 +1315,10 @@ test('mobile floating controls follow content swipes without scroll or keyboard 
   editable.focus(); swipe(200,120); visible(false); assert.equal(s.dom.window.document.activeElement, editable);
   swipe(120,200); visible(true);
   touch('touchstart',[point(100,200)]); touch('touchmove',[point(102,192)]); touch('touchend',[]); visible(true);
-  touch('touchstart',[point(100,200)]); touch('touchmove',[point(180,195)]); touch('touchmove',[point(180,100)]); touch('touchend',[]); visible(true);
+  touch('touchstart',[point(100,200)]);
+  touch('touchmove',[point(180,195)],editable,true);
+  touch('touchmove',[point(180,100)],editable,true);
+  touch('touchcancel',[]); visible(true);
   touch('touchstart',[point(100,200)]); touch('touchmove',[point(100,190),point(120,190,1)]); touch('touchmove',[point(100,100)]); touch('touchend',[]); visible(true);
   touch('touchstart',[point(100,200)]); touch('touchcancel',[]); touch('touchmove',[point(100,100)]); visible(true);
   // An active vertical gesture wins over competing native scroll notifications.

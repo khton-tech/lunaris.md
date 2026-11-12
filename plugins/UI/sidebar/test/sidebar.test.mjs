@@ -77,11 +77,11 @@ test('mobile overlay preserves Sidebar selection and the composed editor when op
       Object.defineProperties(event, { touches: { value: type === 'touchend' ? [] : points }, changedTouches: { value: points } });
       editor.dispatchEvent(event);
     };
-    swipe('touchstart', 36);
-    swipe('touchmove', 150);
+    swipe('touchstart', 170);
+    swipe('touchmove', 284);
     assert.equal(root.hasAttribute('data-mobile-dragging'), true);
     assert.equal(s.tools.navigation.isOpen(), false);
-    swipe('touchend', 150);
+    swipe('touchend', 284);
     await flush();
     assert.equal(s.tools.navigation.isOpen(), true);
     assert.equal(root.hasAttribute('data-mobile-open'), true);

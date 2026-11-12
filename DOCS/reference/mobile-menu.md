@@ -38,7 +38,7 @@ WorkspaceSidebar (api:lunaris.workspace-sidebar@^1.0.0) exposes open(), close()
 and isOpen(). The Workspace provider stores presentation separately from selected
 tool identity; WorkspaceChanged publishes its state changes. Workspace bridges
 that state to public layout props mobileOpen/onMobileOpen. The layout role
-tracks left-edge drag progress locally and uses the same callback on release
+tracks rightward drag progress across the main region and uses the same callback on release
 when the swipe reaches the opening threshold.
 
 In compact Workspace, the mobile region replaces bottom status content. In
@@ -49,7 +49,7 @@ viewport layout. Android/iOS certification remains unadapted.
 Integration: Workspace provider/controller, Sidebar contributor, Mantine roles
 and shared web/desktop host are connected. Manual acceptance remains pending:
 phone portrait/landscape, floating panel and opened menus in both themes,
-edge swipe conflicts, keyboard/focus, many items and safe areas.
+editor swipe conflicts, keyboard/focus, many items and safe areas.
 
 ## Floating launcher and tab action
 

@@ -65,8 +65,10 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
   useLayoutEffect(() => {
     if (!compact || overlayOpen || keyboardOpen || !props.railVisible) return;
     const element = root.current!;
+    const region = main.current!;
     const document = element.ownerDocument;
-    let swipe: { id: number; x: number; y: number; width: number; dragging: boolean } | null = null;
+    const minimumDrag = 8;
+    let swipe: { id: number; x: number; y: number; width: number; threshold: number; dragging: boolean } | null = null;
     const reset = () => {
       swipe = null;
       element.removeAttribute("data-mobile-dragging");
@@ -78,13 +80,15 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
       if (event.touches.length !== 1) return;
       const touch = event.touches[0]!;
       const target = event.target;
-      if (!(target instanceof document.defaultView!.Element) || !element.contains(target) ||
+      if (!(target instanceof document.defaultView!.Element) || !region.contains(target) ||
           target.closest('input, textarea, [role="slider"], [role="menu"], [role="listbox"]')) return;
-      const fromEdge = touch.clientX - element.getBoundingClientRect().left;
-      if (fromEdge < 0 || fromEdge > 48) return;
       const width = rail.current!.getBoundingClientRect().width +
         (props.panelVisible ? panelPane.current!.getBoundingClientRect().width : 0);
-      if (width > 0) swipe = { id: touch.identifier, x: touch.clientX, y: touch.clientY, width, dragging: false };
+      if (width <= 0) return;
+      // Shorten the required travel when the swipe starts near the right edge.
+      const remaining = region.getBoundingClientRect().right - touch.clientX;
+      const threshold = Math.min(96, width * 0.35, Math.max(minimumDrag, remaining * 0.65));
+      swipe = { id: touch.identifier, x: touch.clientX, y: touch.clientY, width, threshold, dragging: false };
     };
     const move = (event: TouchEvent) => {
       if (!swipe) return;
@@ -93,8 +97,8 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
       const dx = touch.clientX - swipe.x;
       const dy = Math.abs(touch.clientY - swipe.y);
       if (!swipe.dragging) {
-        if (Math.max(Math.abs(dx), dy) < 8) return;
-        if (!event.cancelable || dx < 8 || dx < dy * 1.5) { reset(); return; }
+        if (Math.max(Math.abs(dx), dy) < minimumDrag) return;
+        if (!event.cancelable || dx < minimumDrag || dx < dy * 1.5) { reset(); return; }
         swipe.dragging = true;
         element.setAttribute("data-mobile-dragging", "");
       }
@@ -107,7 +111,7 @@ export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: R
       const gesture = swipe;
       if (gesture?.dragging && event.touches.length === 0) {
         const touch = Array.from(event.changedTouches).find(item => item.identifier === gesture.id);
-        if (touch && touch.clientX - gesture.x >= Math.min(96, gesture.width * 0.35)) openFromSwipe();
+        if (touch && touch.clientX - gesture.x >= gesture.threshold) openFromSwipe();
       }
       reset();
     };

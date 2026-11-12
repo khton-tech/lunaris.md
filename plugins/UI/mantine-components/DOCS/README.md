@@ -239,12 +239,13 @@ a swipe.
 Opening/closing uses the public WorkspaceSidebar presentation contract, not Sidebar selection or
 plugin registrations; even a rail without an active tool remains reachable.
 
-A single-finger right swipe within 48 CSS pixels of the Workspace's left edge
+A single-finger right swipe anywhere in the compact Workspace main region
 reveals the same rail and selected tool panel as the launcher. Workspace waits
 for horizontal intent, then tracks finger displacement and fades in the
-backdrop proportionally. Release beyond 35% of the drawer width, capped at
-96 CSS pixels, opens it. A short swipe, cancellation or a second touch returns
-it to closed. Vertical gestures keep native scrolling on the original target.
+backdrop proportionally. Release at 35% of the drawer width, capped at
+96 CSS pixels, opens it. The threshold decreases near the right edge to fit
+the available travel. A short swipe, cancellation or a second touch returns it
+to closed. Vertical gestures keep native scrolling on the original target.
 The gesture is unavailable while the virtual keyboard is open and defers to
 inputs, sliders and open menus. Native edge navigation requires device
 verification. Settling uses theme timing and is immediate with reduced motion.
@@ -265,7 +266,7 @@ does not certify native platform support. Other target entries remain undeclared
 There are no mobile-only plugins or mobile driver changes in this stage.
 
 DOM regression covers stable contributed targets/drafts, the visible/inert editor,
-button/backdrop/Escape, valid and rejected edge swipes, focus transfer and observer
+button/backdrop/Escape, valid and rejected editor swipes, focus transfer and observer
 cleanup. Visual acceptance is pending
 in the actual Workspace: 320/360/390/640px widths and return to desktop; short
 landscape; Files and Settings selection then return; long Russian labels;
