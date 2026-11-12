@@ -31,3 +31,5 @@ Manual acceptance remains required for pointer/focus appearance and actual
 system-browser launching after restarting Tauri.
 
 In Live Preview, `[[note]]` displays `note` and `[[note|Display name]]` displays `Display name`. Moving the focused selection into the link exposes its source. The editor installs this behavior through the `EditorExtension.preview` contribution. Activating a missing wikilink opts into creating an empty note, then opens it through DocumentContent. The display alias has no effect on the file name.
+
+Without a display alias, `[[folder/note.md#heading]]` displays `note`. Navigation still uses the full destination, including the heading. A same-note link such as `[[#heading]]` displays its heading reference.

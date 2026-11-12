@@ -20,11 +20,22 @@ function wikiLink(raw: string, body: string, from: number): NoteLink | null {
   const destination = target.trim();
   if (!destination) return null;
   const alias = separator < 0 ? "" : body.slice(separator + 1);
-  const hasAlias = alias.trim().length > 0;
-  const display = hasAlias ? alias : target;
-  const labelFrom = from + (raw.startsWith("!") ? 3 : 2)
-    + (hasAlias ? separator + 1 : 0) + display.length - display.trimStart().length;
-  return { from, to: from + raw.length, destination, wiki: true, label: { from: labelFrom, to: labelFrom + display.trim().length } };
+  const bodyFrom = from + (raw.startsWith("!") ? 3 : 2);
+  let labelFrom = bodyFrom + target.length - target.trimStart().length;
+  let display = destination;
+  if (alias.trim()) {
+    labelFrom = bodyFrom + separator + 1 + alias.length - alias.trimStart().length;
+    display = alias.trim();
+  } else if (!/^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(destination)) {
+    const path = destination.split("#", 1)[0]!;
+    const basenameFrom = path.lastIndexOf("/") + 1;
+    const basename = path.slice(basenameFrom);
+    if (basename) {
+      labelFrom += basenameFrom;
+      display = basename.replace(/\.md$/i, "") || basename;
+    }
+  }
+  return { from, to: from + raw.length, destination, wiki: true, label: { from: labelFrom, to: labelFrom + display.length } };
 }
 
 /** Parse Markdown structure before finding prose; code and existing links are never unlinked mentions. */

@@ -205,7 +205,7 @@ test('editor clicks open notes and expose source backlinks; web URLs use the pla
 });
 
 test('wikilink preview keeps aliases editable and opens a newly created note', async () => {
-  const source = 'Intro\n[[other]] and [[new-file|Display name]]';
+  const source = 'Intro\n[[./other.md]] and [[new-file|Display name]]';
   const s = await setup({ backlinks: true, initial: source });
   try {
     const view = s.cm();
@@ -213,6 +213,9 @@ test('wikilink preview keeps aliases editable and opens a newly created note', a
     assert.equal(view.contentDOM.textContent, 'Introother and Display name');
     assert.equal(label().textContent, 'Display name');
     view.focus();
+    view.dispatch({ selection: { anchor: source.indexOf('./other.md') + 1 } });
+    await flush();
+    assert.ok(view.contentDOM.textContent.includes('[[./other.md]]'));
     view.dispatch({ selection: { anchor: source.indexOf('Display name') + 1 } });
     await flush();
     assert.ok(view.contentDOM.textContent.includes('[[new-file|Display name]]'));

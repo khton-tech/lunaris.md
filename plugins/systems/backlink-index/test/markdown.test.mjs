@@ -3,10 +3,11 @@ import assert from 'node:assert/strict';
 import { creationPath, parseNote, resolveLink, unlinked, mention } from '../dist/src/markdown.js';
 
 test('wikilink aliases preserve the destination and missing targets honor the source folder', () => {
-  const text = '[[New note| Display ]] [[folder/note|Label]] [[../Parent]] [[#Heading]] [[../../Outside]]';
+  const text = '[[New note| Display ]] [[folder/note|Label]] [[../Parent]] [[#Heading/Part]] [[../../Outside]] [[/Folder/Note.md#Heading/Part]]';
   const links = parseNote(text).links;
-  assert.deepEqual(links.map(link => text.slice(link.label.from, link.label.to)), ['Display', 'Label', '../Parent', '#Heading', '../../Outside']);
-  assert.deepEqual(links.map(link => creationPath(link, 'notes/source.md')), ['notes/New note.md', 'folder/note.md', 'Parent.md', null, null]);
+  assert.deepEqual(links.map(link => text.slice(link.label.from, link.label.to)), ['Display', 'Label', 'Parent', '#Heading/Part', 'Outside', 'Note']);
+  assert.equal(links.at(-1).destination, '/Folder/Note.md#Heading/Part');
+  assert.deepEqual(links.map(link => creationPath(link, 'notes/source.md')), ['notes/New note.md', 'folder/note.md', 'Parent.md', null, null, 'Folder/Note.md']);
 });
 
 test('wiki, embeds, anchors, Markdown and reference destinations resolve', () => {
