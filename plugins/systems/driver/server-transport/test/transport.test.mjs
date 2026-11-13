@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { createServerTransport } from '@lunaris/server-transport';
 import { SessionCredentials, ConnectionStatus, ServerTransport } from '@lunaris/remote';
 import { testHost, consumer } from '../../../../../tools/testing/remote.mjs';
+const settleRestore = () => new Promise(resolve => setTimeout(resolve, 20));
 const json = value => new Response(JSON.stringify({ ok: true, value }));
 test('desktop bearer stays in transport; late responses cannot restore a cancelled account', async () => {
   let api, ctx; const calls = []; let delayed;
@@ -114,7 +115,7 @@ test('desktop session persists across transport restarts, stays origin-bound and
       return json(null);
     } }));
     host.register(consumer([ServerTransport], c => { ctx = c; api = c.use(ServerTransport); }, ['account.network']));
-    await host.start('test.consumer'); return { host, api, ctx };
+    await host.start('test.consumer'); await settleRestore(); return { host, api, ctx };
   };
   const first = await boot(); await first.api.connect('https://notes.example', first.ctx.signal);
   assert.equal((await first.api.login('alice', 'never persist this password')).ok, true);
@@ -143,6 +144,7 @@ test('offline restart retains saved identity for history while an expired token 
     } }));
     host.register(consumer([ServerTransport, ConnectionStatus], ctx => { api = ctx.use(ServerTransport); status = ctx.use(ConnectionStatus); }, ['account.network', 'account.access']));
     await host.start('test.consumer');
+    await settleRestore();
     if (state === 'offline') { assert.equal(api.current().account.id, 'a'); assert.ok(stored); assert.equal(status.current().state, 'offline'); }
     else { assert.equal(api.current(), null); assert.equal(stored, null); assert.equal(status.current().state, 'expired'); }
     await host.stopAll(); host.assertNoResources();
@@ -150,7 +152,7 @@ test('offline restart retains saved identity for history while an expired token 
 });
 
 
-for (const stalledRoute of ['server', 'account']) test(`saved-session reconnect finishes before activation deadline when ${stalledRoute} stalls`, async t => {
+for (const stalledRoute of ['server', 'account']) test(`local activation completes without waiting for saved-session ${stalledRoute}`, async t => {
   t.mock.timers.enable({ apis: ['setTimeout'] });
   const stored = { server: 'https://notes.example', account: { id: 'a', login: 'alice' }, token: 'saved-token' };
   const host = testHost({ 'test.consumer': ['account.network', 'account.access'], 'lunaris.server-transport': ['credentials.access'] });
@@ -165,11 +167,48 @@ for (const stalledRoute of ['server', 'account']) test(`saved-session reconnect 
   const starting = host.start('test.consumer').catch(error => { failure = error; });
   const flush = async () => { for (let i = 0; i < 100; i++) await Promise.resolve(); };
   try {
-    await flush();
-    for (let i = 0; i < 5; i++) { host.clock.advanceBy(1000); t.mock.timers.tick(1000); await flush(); }
     await starting;
+    assert.ok(api, 'Provider is ready without advancing network timers');
+    t.mock.timers.tick(0); await flush();
+    t.mock.timers.tick(500); await flush();
+    assert.equal(api.current(), null);
+    host.clock.advanceBy(5000); await flush();
+    host.assertState('lunaris.server-transport', 'active');
+    t.mock.timers.tick(30000); await flush();
     assert.equal(failure, undefined);
     assert.equal(api.current().account.id, 'a');
     assert.equal(status.current().state, 'offline');
   } finally { await host.stopAll(); host.assertNoResources(); }
+});
+
+
+for (const outcome of ['connect', 'login', 'logout', 'stop', 'reject']) test('delayed credential restoration respects ' + outcome, async () => {
+  const restored = Promise.withResolvers(); let api, ctx, calls = 0;
+  const host = testHost({ 'test.consumer': ['account.network'], 'lunaris.server-transport': ['credentials.access'] });
+  host.installMock(SessionCredentials, { load: () => restored.promise, async save() { assert.fail(); }, async remove() { assert.fail(); } }, { grants: ['credentials.native'] });
+  host.register(createServerTransport({ mode: 'desktop', fetch: async () => { calls++; return json({ protocol: 1, buildId: 'test', registration: 'open' }); } }));
+  host.register(consumer([ServerTransport], c => { ctx = c; api = c.use(ServerTransport); }, ['account.network']));
+  await host.start('test.consumer'); await settleRestore();
+  assert.ok(api, 'Credential storage does not block activation');
+  if (outcome === 'connect') await api.connect('https://chosen.example', ctx.signal);
+  if (outcome === 'login') await api.login('alice', 'password');
+  if (outcome === 'logout') await api.logout();
+  if (outcome === 'stop') await host.stopAll();
+  if (outcome === 'reject') restored.reject(Error('Credential store unavailable'));
+  else restored.resolve({ ok: true, value: { server: 'https://old.example', account: { id: 'old', login: 'old' }, token: 'old-token' } });
+  await settleRestore();
+  assert.equal(calls, outcome === 'connect' ? 1 : 0);
+  if (outcome !== 'stop') assert.equal(api.current(), null);
+  await host.stopAll(); host.assertNoResources();
+});
+
+test('host readiness gates optional restoration and shutdown cancels a pending gate', async () => {
+  const ready = Promise.withResolvers(); let loads = 0;
+  const host = testHost({ 'lunaris.server-transport': ['credentials.access'] });
+  host.installMock(SessionCredentials, { async load() { loads++; return { ok: true, value: null }; }, async save() { assert.fail(); }, async remove() { assert.fail(); } }, { grants: ['credentials.native'] });
+  host.register(createServerTransport({ mode: 'desktop', restoreAfter: ready.promise, fetch: async () => { assert.fail(); } }));
+  await host.start('lunaris.server-transport'); await settleRestore();
+  assert.equal(loads, 0);
+  await host.stopAll(); ready.resolve(); await settleRestore();
+  assert.equal(loads, 0); host.assertNoResources();
 });

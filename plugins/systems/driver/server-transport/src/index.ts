@@ -4,17 +4,17 @@ import { Logger, scopeLogger } from "@lunaris/logging";
 import { SessionCredentials, validSavedServerSession, REMOTE_FILE_LIMITS, remoteFileContentFits, ConnectionStatus, ServerTransport, REMOTE_PROTOCOL, AccountSessionChanged, ConnectionChanged } from "@lunaris/remote";
 import type { SavedServerSession, ServerTransportApi, AccountState, Account, RemoteResult, ServerInfo } from "@lunaris/remote";
 
-export function createServerTransport(options: { readonly mode: "browser" | "desktop"; readonly fetch?: typeof fetch; readonly timeoutMs?: number }) {
+export function createServerTransport(options: { readonly mode: "browser" | "desktop"; readonly fetch?: typeof fetch; readonly timeoutMs?: number; readonly restoreAfter?: Promise<void> }) {
   const fetcher = options.fetch ?? globalThis.fetch.bind(globalThis);
   const timeoutMs = options.timeoutMs ?? 30000;
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs < 1) throw Error("A positive request timeout is required.");
   return definePlugin({ manifest: { manifestVersion: 1, id: "lunaris.server-transport", version: "0.1.0", engine: "^0.1.0", sdk: "^0.1.0", entry: "./dist/index.js",
     provides: [ConnectionStatus, ServerTransport, AccountSessionChanged, ConnectionChanged].map(t => ({ kind: t.kind, id: t.id, version: t.version })),
     requires: [{ kind: "api", id: Logger.id, range: "^1.0.0" }, ...(options.mode === "desktop" ? [{ kind: "api" as const, id: SessionCredentials.id, range: "^1.0.0", optional: true }] : [])],
-    permissions: [], optionalPermissions: options.mode === "desktop" ? ["credentials.access"] : [] }, async activate(ctx) {
+    permissions: [], optionalPermissions: options.mode === "desktop" ? ["credentials.access"] : [] }, activate(ctx) {
     const logger = scopeLogger(ctx.use(Logger), ctx.signal); let address = ""; let bearer: string | undefined; let current: AccountState | null = null;
     const credentials = options.mode === "desktop" && ctx.permissions.has("credentials.access") ? ctx.optional(SessionCredentials) : undefined;
-    let initialized = false;
+    let initialized = false; let restoreAllowed = true;
     let saved: SavedServerSession | null = null;
     let persistence = Promise.resolve();
     function persist(work: () => Promise<void>): Promise<void> {
@@ -52,8 +52,7 @@ export function createServerTransport(options: { readonly mode: "browser" | "des
       if (fileRequest && encodedBody && new TextEncoder().encode(encodedBody).byteLength > REMOTE_FILE_LIMITS.maxRequestBytes) return failed("TOO_LARGE", "The encoded file request exceeds the remote request limit.");
       const version = epoch; const controller = new AbortController(); const abort = () => controller.abort();
       let timedOut = false;
-      // Startup may make two sequential requests; leave headroom within the 5s activation deadline.
-      const deadline = setTimeout(() => { timedOut = true; controller.abort(); }, initialized ? timeoutMs : Math.min(timeoutMs, 1000)); deadlines.set(controller, deadline);
+      const deadline = setTimeout(() => { timedOut = true; controller.abort(); }, timeoutMs); deadlines.set(controller, deadline);
       controllers.add(controller); owner.addEventListener("abort", abort, { once: true });
       try {
         const response = await fetcher(`${address}/api/v1/${route}`, { method, signal: controller.signal,
@@ -122,6 +121,7 @@ export function createServerTransport(options: { readonly mode: "browser" | "des
       },
       register: async (login, password, invitation) => await request("POST", "auth/register", { login, password, invitation }) as RemoteResult<Account>,
       async login(login, password) {
+        restoreAllowed = false;
         const version = epoch; const result = await request("POST", "auth/login", { login, password });
         if (!result.ok) return result;
         if (version !== epoch) return failed("CANCELLED", "The account session changed.");
@@ -145,23 +145,42 @@ export function createServerTransport(options: { readonly mode: "browser" | "des
         logger.info(ctx.pluginId, "Account signed in"); return { ok: true, value: current.account };
       },
       async logout() {
+        restoreAllowed = false;
         const token = bearer; const result = await request("POST", "auth/logout", {}); if (!result.ok) return result as RemoteResult<null>;
         retire(); await forget(token); await publish(); if (!ctx.signal.aborted) logger.info(ctx.pluginId, "Account signed out"); return { ok: true, value: null };
       }, request,
     };
-    if (credentials) {
+    async function restoreSavedSession(): Promise<void> {
+      if (!credentials || ctx.signal.aborted) return;
+      const generation = connectionGeneration; const version = epoch;
       const restored = await credentials.load();
-      if (ctx.signal.aborted) return;
+      // Explicit user actions and shutdown always win over delayed credential reads.
+      if (ctx.signal.aborted || !restoreAllowed || generation !== connectionGeneration || version !== epoch) return;
       if (restored.ok && restored.value && validSavedServerSession(restored.value)) {
         saved = restored.value;
         const result = await api.connect(saved.server, ctx.signal);
-        if (ctx.signal.aborted) return;
-        if (!result.ok) logger.warn(ctx.pluginId, "Saved session reconnect deferred", { code: result.error.code });
+        if (ctx.signal.aborted || version + 1 !== epoch) return;
+        if (!result.ok) logger.warn(ctx.pluginId, "Saved session reconnect deferred", { code: result.error.code, error: result.error });
         else logger.info(ctx.pluginId, "Saved session checked");
-      } else if (!restored.ok) logger.warn(ctx.pluginId, "Saved session unavailable", { code: restored.error.code });
-    } else if (options.mode === "desktop") logger.warn(ctx.pluginId, "Secure storage unavailable; session is memory-only");
+      } else if (!restored.ok) logger.warn(ctx.pluginId, "Saved session unavailable", { code: restored.error.code, error: restored.error });
+    }
     ctx.provide(ServerTransport, api);
     initialized = true;
     logger.info(ctx.pluginId, "Server transport ready");
+    if (credentials) {
+      // Publish the provider before optional I/O. Never hold local filesystem activation
+      // hostage to credential storage or server reachability.
+      const timer = setTimeout(() => {
+        if (ctx.signal.aborted || !restoreAllowed || connectionGeneration !== 0) return;
+        void (async () => {
+          await options.restoreAfter;
+          if (ctx.signal.aborted || !restoreAllowed || connectionGeneration !== 0) return;
+          await restoreSavedSession();
+        })().catch(error => {
+          if (!ctx.signal.aborted) logger.warn(ctx.pluginId, "Saved session restoration failed; local work remains available", { error });
+        });
+      }, 0);
+      ctx.scope.own({ dispose() { clearTimeout(timer); } });
+    } else if (options.mode === "desktop") logger.warn(ctx.pluginId, "Secure storage unavailable; session is memory-only");
   } });
 }

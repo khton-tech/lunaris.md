@@ -72,3 +72,14 @@ kernel isolation and idle notification counts.
 ## First-paint loading status
 
 The Owner screenshot is the visual reference: existing centered art and one status line. The host owns this early surface and its independent localized copy, while product rendering stays hidden through preparation. HostSession publishes preparation transitions immediately via trusted controller progress; mountSystemView updates only the owned status text and sets polite/atomic live-region semantics. Initial HTML labels bundle loading; composition, registration, activation, settings, document, content, presentation and mounting use actual milestones. The runner receives the same preparation phases through SDK events. DOM tests cover immediate localized progress with the real host session; native paint/long-label acceptance remains manual.
+
+
+## Local startup and background server restoration
+
+The composition passes a per-attempt readiness promise to the server transport.
+It resolves only after the accepted loaded milestone, following preparation and
+view mounting. Transport API activation never waits for credential storage or
+HTTP. Local history restoration remains on the startup path; remote history is
+updated later through AccountSessionChanged without automatically opening a Vault.
+A stopped attempt cannot start delayed restoration. Product tests verify the
+desktop graph and local filesystem read/write with credentials or network pending.

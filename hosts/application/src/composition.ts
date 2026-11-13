@@ -81,7 +81,9 @@ export function composeApplication(target: HTMLElement, options: {
   const device = createBrowserStorage({ config: options.mode === "browser" });
   const linksDriver = options.externalLinksDriver ?? createBrowserLinks(target.ownerDocument.defaultView!);
   const clipboardDriver = createBrowserClipboard();
-  const transport = createServerTransport({ mode: options.mode });
+  let markLocalReady!: () => void;
+  const localReady = new Promise<void>(resolve => { markLocalReady = resolve; });
+  const transport = createServerTransport({ mode: options.mode, restoreAfter: localReady });
   const account = createAccountAccess({ art: options.art, defaultOpen: options.mode === "browser", allowLocal: options.mode === "desktop", ...(options.defaultServer ? { defaultAddress: options.defaultServer } : {}) });
   const router = createFilesystemRouter([{ id: "local", ...LocalFilesystemBackend }, { id: "remote", ...RemoteFilesystemBackend }], "local");
   const extra = options.extensions ?? { plugins: [], entrypoints: [], grants: {} };
@@ -101,7 +103,11 @@ export function composeApplication(target: HTMLElement, options: {
     pluginRuntime: true,
     ...layout,
     view: { ...layout.view!, duringStartup: false },
-    startup,
+    startup: { ...startup, update(snapshot) {
+      const accepted = startup.update(snapshot);
+      if (accepted && snapshot.state === "loaded") markLocalReady();
+      return accepted;
+    } },
     beforeClose: async () => await preservation.beforeClose() && (extra.beforeClose ? await extra.beforeClose() : true),
     plugins: [linksDriver, externalLinks, documentLinks, backlinkIndex, backlinksUI, lime, quickjsExecution, lupPicker, ...(options.features && !options.features.includes('settings') ? [] : [limeSettings]), preservation.plugin, ...extra.plugins, ...updates, clipboardDriver, clipboardProvider, device, transport, accountSession, account, remoteFilesystem, draftsProvider, router, ...(options.platformPlugins ?? []), mobileMenu, statusBar, callouts, textEditor, interfaceSettings, settingsProvider, settings, activeScreenProvider, activeScreen, activeDocument, contextMenu, fileExplorer, sidebar, sidebarProvider, runner, ...(options.mode === "desktop" ? [selector] : []), workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
     entrypoints: [documentLinks.manifest.id, backlinksUI.manifest.id, startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeSettings.manifest.id, preservation.plugin.manifest.id, ...extra.entrypoints, ...updates.map(plugin => plugin.manifest.id), account.manifest.id, mobileMenu.manifest.id, statusBar.manifest.id, callouts.manifest.id, textEditor.manifest.id, startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, workspace.manifest.id, activeScreen.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id, settings.manifest.id, interfaceSettings.manifest.id, lime.manifest.id, ...(options.mode === "desktop" ? [selector.manifest.id] : []), ...(options.features && !options.features.includes('settings') ? [] : [limeSettings.manifest.id])],

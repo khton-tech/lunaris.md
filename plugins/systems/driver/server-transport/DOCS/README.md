@@ -36,12 +36,21 @@ SessionCredentials 1.0 is a trusted, replaceable SDK contract (credentials.acces
 credentials.native). It stores only the last { server, account, token }; methods
 are load(), save(record), and conditional remove(token). The Tauri credential
 driver uses OS credential storage, not Config or note files. Passwords are not
-saved. Transport restores before exposing its API, so history and selector can
-restore the last remote Vault through existing contracts. Initial state is read
-from current(); events report subsequent changes after activation.
+saved. Transport publishes its API immediately. Credential loading and reconnect
+run in the background after the host reports loaded, outside activation and
+application preparation. The factory's optional restoreAfter promise is a trusted
+host readiness boundary, not a service dependency. Without it, restoration is
+scheduled after activation. Current state may initially be null; AccountSessionChanged
+and ConnectionChanged deliver subsequent outcomes through existing SDK contracts.
 
-Exact-origin validation prevents forwarding credentials to other servers. Startup
-reconnect requests have a maximum one-second deadline each. Offline startup
+Local history and selector startup do not wait for a server or credential storage.
+Server history becomes visible when background restoration establishes an identity;
+it never automatically opens a remote Vault or replaces the user's local selection.
+Explicit connection/login/logout and shutdown take precedence over a delayed
+credential read. Failed restoration logs recoverable degradation with its error.
+
+Exact-origin validation prevents forwarding credentials to other servers. Background
+reconnect uses the normal configured request timeout. Offline restoration
 retains the last-known identity for history visibility without bypassing server
 authorization; expired/revoked tokens are removed. Successful logout clears the
 matching credential, while normal shutdown preserves it. A missing/unavailable
@@ -49,13 +58,12 @@ store logs degraded memory-only behavior. Web authentication remains cookie-base
 See the tauri-credentials plugin guide for native build and acceptance details.
 
 
-## Startup reconnect deadline
+## Local startup independence
 
-The kernel allows five seconds for activation. Saved-session discovery and account
-validation can run sequentially, so each startup HTTP request is capped at one
-second (two seconds total network wait). This leaves activation headroom instead
-of racing the kernel deadline. Normal requests retain the configured timeout.
-Offline fallback keeps the saved identity and credential; no storage migration or
-new SDK contracts are needed. Integration remains through ServerTransport, remote
-filesystem, Filesystem Router and their editor/Backlinks dependents. Regression
-coverage advances both request and kernel deadlines for stalled reconnects.
+Integration uses existing ServerTransport, AccountSessionChanged, ConnectionChanged,
+remote filesystem and history contracts. Host composition releases background work
+only after the local application is loaded. Regression tests cover stalled discovery
+and account verification, delayed/rejected credential reads, user replacement,
+shutdown, and local read/write through the full desktop composition while remote
+work is pending. Native acceptance: start offline with a saved server, open a local
+Vault and edit a note; reconnect must not replace the selected local Vault.
