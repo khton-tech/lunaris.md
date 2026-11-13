@@ -2,24 +2,27 @@ import { useEffect } from "react";
 import { Combobox, InputBase, useCombobox } from "@mantine/core";
 import type { SettingsOption } from "@lunaris/settings";
 import { Icon } from "./icons.js";
+import { useDropdownOverlay } from "./dropdown-overlay.js";
 
 interface Props {
   readonly id?: string; readonly label?: string; readonly value: string;
   readonly options: readonly SettingsOption[]; readonly disabled: boolean;
-  readonly portalTarget?: string | undefined;
+  readonly withinPortal?: boolean | undefined;
   readonly "aria-label"?: string; readonly "aria-describedby"?: string | undefined; readonly "aria-invalid"?: boolean;
   readonly onChange: (value: string) => void;
 }
-/** The optional viewport overlay shares the owning component's theme. */
-export function SettingsSelect({ options, onChange, portalTarget, ...props }: Props) {
+/** Menus share the owning component's themed viewport overlay by default. */
+export function SettingsSelect({ options, onChange, withinPortal = true, ...props }: Props) {
   const store = useCombobox({
     onDropdownOpen: () => store.selectActiveOption(),
     onDropdownClose: () => store.resetSelectedOption(),
   });
+  const overlayTarget = useDropdownOverlay(store.dropdownOpened, () => store.closeDropdown());
+  const portalTarget = withinPortal ? overlayTarget : undefined;
   useEffect(() => { if (props.disabled) store.closeDropdown(); }, [props.disabled]);
   const selected = options.find(option => option.value === props.value);
   return <Combobox store={store} size="sm" withinPortal={!!portalTarget} position="bottom-end" offset={4}
-    {...(portalTarget ? { portalProps: { target: portalTarget }, floatingStrategy: "fixed", hideDetached: true } : {})}
+    {...(portalTarget ? { portalProps: { target: portalTarget }, floatingStrategy: "fixed", hideDetached: true, zIndex: 400 } : {})}
     transitionProps={{ duration: 0 }}
     classNames={{ dropdown: "lm-setting-dropdown", option: "lm-setting-option", options: "lm-setting-options" }}
     onOptionSubmit={value => {

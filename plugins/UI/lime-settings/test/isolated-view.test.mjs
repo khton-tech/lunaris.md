@@ -33,8 +33,8 @@ test('a bundled third-party non-Markdown viewport mounts and interacts through p
     [...view().querySelectorAll('button')].find(button => button.textContent === 'Fail action').click(); await flush();
     assert.equal(s.session.snapshot().phase, 'running');
     assert.ok(s.logs.some(([level, , , details]) => level === 'error' && details?.error?.cause?.message === 'Guest action failed'));
-    view().querySelector('[role=combobox]').click(); await flush(); assert.equal(view().querySelectorAll('[role=option]').length, 2);
-    [...view().querySelectorAll('[role=option]')].find(option => option.textContent.includes('Second')).click(); await flush(); assert.match(view().querySelector('[role=combobox]').textContent, /Second/);
+    view().querySelector('[role=combobox]').click(); await flush(); assert.equal(s.dom.window.document.querySelectorAll('[role=option]').length, 2);
+    [...s.dom.window.document.querySelectorAll('[role=option]')].find(option => option.textContent.includes('Second')).click(); await flush(); assert.match(view().querySelector('[role=combobox]').textContent, /Second/);
     const drawing = view().querySelector('svg[aria-label="Novel graph"]');
     drawing.dispatchEvent(new s.dom.window.MouseEvent('pointerdown', { bubbles: true, clientX: 4, clientY: 5 })); await flush(); assert.match(view().textContent, /Data only: true/);
     const key = new s.dom.window.KeyboardEvent('keydown', { key: 'Tab', bubbles: true, cancelable: true }); drawing.dispatchEvent(key); assert.equal(key.defaultPrevented, false);

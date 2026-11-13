@@ -125,14 +125,14 @@ test('dependency details disclose affected plugins and use the themed provider m
     assert.match(details.textContent, /No compatible provider installed/); assert.equal(details.querySelector('select'), null);
     const menu = () => details.querySelector('[aria-label="Provider test.dependency"]');
     menu().click(); await flush(); assert.equal(menu().getAttribute('aria-expanded'), 'true');
-    assert.ok(details.querySelector('.lm-setting-dropdown'));
+    assert.ok(s.dom.window.document.getElementById(menu().getAttribute('aria-controls')).closest('.lm-dropdown-overlay'));
     const escape = target => target.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
     escape(menu()); await flush();
     assert.equal(menu().getAttribute('aria-expanded'), 'false');
     menu().click(); await flush();
-    [...details.querySelectorAll('[role=option]')].find(option => option.textContent.includes('test.second')).click(); await flush();
+    [...s.dom.window.document.querySelectorAll('[role=option]')].find(option => option.textContent.includes('test.second')).click(); await flush();
     assert.match(details.textContent, /Enable the chosen provider first/); assert.equal(s.button('Apply provider').disabled, true);
-    menu().click(); await flush(); [...details.querySelectorAll('[role=option]')].find(option => option.textContent.includes('test.third')).click(); await flush();
+    menu().click(); await flush(); [...s.dom.window.document.querySelectorAll('[role=option]')].find(option => option.textContent.includes('test.third')).click(); await flush();
     assert.equal(s.calls.some(call => call[0] === 'selectProvider'), false);
     s.button('Apply provider').click(); await flush();
     assert.deepEqual(s.calls.at(-1), ['selectProvider','test.package','api','test.dependency','test.third',7]);

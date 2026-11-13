@@ -1,5 +1,29 @@
 # Mantine components
 
+## Dropdown ownership (2026-11-13)
+
+Reference: the established themed Settings combobox and mobile tab overlay;
+[Mantine Menu](https://mantine.dev/core/menu/) supplies focus, keyboard navigation
+and dismissal. Account, Files, Vault switching, Settings, Backlinks, declarative
+views and Lime provider selection now share an internal viewport overlay owned by
+their SDK mount. It inherits semantic theme tokens and updates without replacing
+open controls. Borrowed scrolling regions keep their overflow policy and surfaces.
+Menus use fixed positioning, viewport bounds and local scrolling. Account menus
+also disclose the full account/Vault name for touch users.
+
+Hiding or making the owning region inert dismisses its dropdown. A closing menu
+is immediately inert and hidden from assistive technology while the theme's fade
+finishes. Busy menu triggers dismiss their open menus. Settings Items defaults
+`portalDropdowns` to true and retains explicit false for controlled inline hosts.
+The overlay is removed and its observers disconnected when the role is disposed.
+This is internal UIKit composition, not another SDK service or plugin dependency.
+
+Integration covers File Explorer, Settings/interface-settings, Account Access,
+Backlinks and Lime through their existing Components contracts. Targeted DOM
+checks exercise composed drawer dismissal, theme replacement, menu selection,
+nested modal Escape, explicit inline opt-out and cleanup. Native popup placement
+at viewport edges and keyboard traversal in Web/Tauri remain manual acceptance.
+
 ## Shared interaction polish (2026-11-13)
 
 Reference: the existing Files/Settings selection markers, Vault selector primary

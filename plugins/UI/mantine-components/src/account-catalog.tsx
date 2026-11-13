@@ -4,6 +4,7 @@ import type { AccountAccessProps } from "./account-access.js";
 import { AccountError } from "./account-feedback.js";
 import { CardRow } from "./card-row.js";
 import { Icon } from "./icons.js";
+import { ViewportMenu } from "./dropdown-overlay.js";
 
 export function AccountCatalog({ props: p }: { props: AccountAccessProps }) {
   const [creating, setCreating] = useState(false);
@@ -22,10 +23,13 @@ export function AccountCatalog({ props: p }: { props: AccountAccessProps }) {
             {p.mode === "trash" ? <Box className="lm-account-trash-entry"><Icon name="folder" /><Box><Text>{entry.name}</Text><Text className="lm-account-context" size="sm">{entry.detail}</Text></Box></Box> :
               <CardRow label={entry.name} detail={entry.detail} icon={<Icon name="folder" />} disabled={p.busy} onClick={() => p.onOpen(entry.id)} />}
             {p.mode === "trash" ? <Button disabled={p.busy} leftSection={<Icon name="restore" />} onClick={() => p.onRestore(entry.id)}>{p.text.restore}</Button> :
-              <Menu withinPortal={false} position="bottom-end" offset={6} returnFocus>
+              <ViewportMenu disabled={p.busy} position="bottom-end" offset={6} returnFocus>
                 <Menu.Target><ActionIcon className="lm-account-icon" variant="subtle" size="lg" disabled={p.busy} aria-label={`${p.text.vaultActions}: ${entry.name}`} title={p.text.vaultActions}><Icon name="actions" /></ActionIcon></Menu.Target>
-                <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu"><Menu.Item disabled={p.busy} leftSection={<Icon name="trash" />} onClick={() => p.onTrash(entry.id)}>{p.text.delete}</Menu.Item></Menu.Dropdown>
-              </Menu>}
+                <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu" aria-label={`${p.text.vaultActions}: ${entry.name}`}>
+                  <Menu.Label className="lm-account-server">{entry.name}</Menu.Label>
+                  <Menu.Item disabled={p.busy} leftSection={<Icon name="trash" />} onClick={() => p.onTrash(entry.id)}>{p.text.delete}</Menu.Item>
+                </Menu.Dropdown>
+              </ViewportMenu>}
           </Box>)}
         </Stack>}
         {p.catalogState !== "loading" && p.catalogState !== "error" && !p.entries.length && <Box className="lm-account-empty"><Icon name={p.mode === "trash" ? "trash" : "folder"} /><Text fw={500}>{p.text[p.mode === "trash" ? "emptyTrash" : "empty"]}</Text><Text className="lm-account-context">{p.text[p.mode === "trash" ? "emptyTrashDetail" : "emptyDetail"]}</Text></Box>}

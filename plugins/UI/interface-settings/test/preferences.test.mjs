@@ -75,8 +75,8 @@ test('composed controls apply and persist explicit Vault preferences, preserve i
     'Monochrome', 'Nord', 'Rosé Pine', 'Sakura Night', 'Tokyo Night', 'Windows XP Luna', 'Windows XP Luna Dark', 'Alternate',
   ]);
   assert.ok(options.closest('.lm-setting-dropdown'));
-  const overlay = options.closest('.lm-settings-overlay');
-  assert.equal(overlay?.id, `${theme.closest('.lm-root').id}-overlay`);
+  const overlay = options.closest('.lm-dropdown-overlay');
+  assert.equal(overlay?.id, `${theme.closest('.lm-root').id}-dropdowns`);
   assert.equal(overlay.parentElement, s.dom.window.document.body);
   theme.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await flush();
   await change(s, 0, 'fr'); assert.equal(s.tools.localization.locale(), 'fr');

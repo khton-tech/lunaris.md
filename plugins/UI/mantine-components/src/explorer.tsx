@@ -11,6 +11,7 @@ import { Icon } from "./icons.js";
 import { VaultSwitcher, validVaultSwitcher } from "./vault-switcher.js";
 import type { VaultSwitcherProps } from "./vault-switcher.js";
 import { ToolPanelHeader } from "./tool-navigation.js";
+import { ViewportMenu } from "./dropdown-overlay.js";
 
 // Absolute paths never occur in the Vault-relative controller tree.
 const ROOT_ID = "/";
@@ -350,12 +351,12 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     <Group className="lm-explorer-actions" gap={0} wrap="nowrap" role="group" aria-label={t.actions}>
       <ActionIcon variant="subtle" aria-label={t.newFile} title={t.newFile} disabled={props.busy || props.loading || !!form} onClick={() => command("newFile")}><Icon name="file-plus" /></ActionIcon>
       <ActionIcon variant="subtle" aria-label={t.newFolder} title={t.newFolder} disabled={props.busy || props.loading || !!form} onClick={() => command("newFolder")}><Icon name="folder-plus" /></ActionIcon>
-      <Menu withinPortal={false} position="bottom-start" offset={4} returnFocus>
+      <ViewportMenu disabled={props.busy || !!form || !props.onSort} compact={size.compact} position="bottom-start" offset={4} returnFocus>
         <Menu.Target><ActionIcon variant="subtle" aria-label={t.sort} title={t.sort} disabled={props.busy || !!form || !props.onSort}><Icon name="sort" /></ActionIcon></Menu.Target>
         <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu">
           {(["asc", "desc"] as const).map(direction => <Menu.Item key={direction} aria-current={(props.sortDirection ?? "asc") === direction ? "true" : undefined} rightSection={(props.sortDirection ?? "asc") === direction ? <Icon name="check" /> : undefined} onClick={() => props.onSort?.(direction)}>{direction === "asc" ? t.sortAscending : t.sortDescending}</Menu.Item>)}
         </Menu.Dropdown>
-      </Menu>
+      </ViewportMenu>
       <ActionIcon variant="subtle" aria-label={t.expandAll} title={t.expandAll} disabled={props.busy || props.loading || props.expanding || !!form || !props.onExpandAll} onClick={() => { tree.current?.open(ROOT_ID); void props.onExpandAll?.(); }}><Icon name="expand-all" /></ActionIcon>
     </Group>
     {props.error && <Group className="lm-explorer-message" gap="xs"><Text role="alert">{props.error}</Text><Button disabled={props.busy} onClick={props.onRefresh}>{t.retry}</Button></Group>}
@@ -390,6 +391,6 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
           onMove={async ({ dragIds, parentId }) => { if (!dragIds.includes(ROOT_ID)) await props.onMove(dragIds, parentId === ROOT_ID ? "" : parentId ?? ""); }}>{ExplorerNode}</Tree>
       </ExplorerContext.Provider>
     </Box>
-    {props.vaultSwitcher && <VaultSwitcher props={props.vaultSwitcher} text={t} />}
+    {props.vaultSwitcher && <VaultSwitcher props={props.vaultSwitcher} text={t} compact={size.compact} />}
   </Box>;
 }

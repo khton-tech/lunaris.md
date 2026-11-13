@@ -1,5 +1,6 @@
 import { Box, Button, Menu, Text } from "@mantine/core";
 import { Icon } from "./icons.js";
+import { ViewportMenu } from "./dropdown-overlay.js";
 
 export interface VaultSwitcherProps {
   name: string; entries: { reference: string; name: string; label: string }[];
@@ -14,10 +15,10 @@ export function validVaultSwitcher(value: unknown): value is VaultSwitcherProps 
     [props.onRecent, props.onChange, props.onRetry].every(callback => typeof callback === "function") &&
     Array.isArray(props.entries) && props.entries.every(entry => entry && [entry.reference, entry.name, entry.label].every(item => typeof item === "string"));
 }
-export function VaultSwitcher({ props, text }: { props: VaultSwitcherProps; text: Record<string, string> }) {
+export function VaultSwitcher({ props, text, compact }: { props: VaultSwitcherProps; text: Record<string, string>; compact: boolean }) {
   return <Box className="lm-vault-switcher" aria-busy={props.busy}>
     {props.error && <Text className="lm-explorer-message" role="alert">{text[props.error]}</Text>}
-    <Menu withinPortal={false} position="top-start" width="target" offset={6} returnFocus>
+    <ViewportMenu disabled={props.busy} compact={compact} position="top-start" width="target" offset={6} returnFocus>
       <Menu.Target><Button className="lm-explorer-tabs lm-vault-switcher-toggle" fullWidth variant="subtle" justify="space-between"
         disabled={props.busy} aria-label={text.switchVault} title={props.name || text.switchVault} leftSection={<Icon name="folder" />} rightSection={<Icon name="expand" />}>
         {props.name || text.switchVault}
@@ -30,6 +31,6 @@ export function VaultSwitcher({ props, text }: { props: VaultSwitcherProps; text
         {(props.entries.length > 0 || props.historyError) && <Menu.Divider />}
         <Menu.Item disabled={props.busy} onClick={props.onChange} leftSection={<Icon name="browse" />}>{text.switchVault}</Menu.Item>
       </Menu.Dropdown>
-    </Menu>
+    </ViewportMenu>
   </Box>;
 }

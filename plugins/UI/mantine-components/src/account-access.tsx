@@ -4,6 +4,7 @@ import type { resolveTheme } from "./theme.js";
 import { AccountAuth } from "./account-auth.js";
 import { AccountCatalog } from "./account-catalog.js";
 import { Icon } from "./icons.js";
+import { ViewportMenu } from "./dropdown-overlay.js";
 
 export interface AccountAccessProps {
   readonly mode: "connect" | "login" | "register" | "vaults" | "trash";
@@ -42,15 +43,16 @@ export function AccountAccessView({ props: p, theme }: { props: AccountAccessPro
     <Box className="lm-account-content">
       {catalog && <Group component="header" className="lm-account-topbar" justify="space-between" wrap="wrap">
         <Text className="lm-account-brand">Lunaris</Text>
-        {catalog ? <Menu withinPortal={false} position="bottom-end" offset={6} returnFocus>
+        <ViewportMenu disabled={p.busy} position="bottom-end" offset={6} returnFocus>
           <Menu.Target><Button className="lm-account-identity" disabled={p.busy} aria-label={`${p.text.accountMenu}: ${p.account}`} leftSection={<Icon name="account" />} rightSection={<Icon name="expand" />}>{p.account}</Button></Menu.Target>
           <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu" aria-label={p.text.accountMenu}>
+            <Menu.Label className="lm-account-server">{p.account}</Menu.Label>
             <Menu.Label className="lm-account-server">{p.address}</Menu.Label>
             {p.allowLocal && <Menu.Item leftSection={<Icon name="folder" />} onClick={p.onLocal}>{p.text.local}</Menu.Item>}
             {p.allowChangeServer && <Menu.Item leftSection={<Icon name="back" />} onClick={p.onChangeServer}>{p.text.changeServer}</Menu.Item>}
             <Menu.Item leftSection={<Icon name="logout" />} onClick={p.onLogout}>{p.text.logout}</Menu.Item>
           </Menu.Dropdown>
-        </Menu> : p.allowLocal && <Button disabled={p.busy} onClick={p.onLocal} leftSection={<Icon name="back" />}>{p.text.local}</Button>}
+        </ViewportMenu>
       </Group>}
       {!catalog && p.mode !== "connect" && (p.serverName || p.serverDescription) && <Box className="lm-account-server-info"><Text fw={600}>{p.serverName}</Text>{p.serverDescription && <Text className="lm-account-context">{p.serverDescription}</Text>}</Box>}
       {catalog ? <AccountCatalog key={p.account} props={p} /> : <AccountAuth props={p} />}

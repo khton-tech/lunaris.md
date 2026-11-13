@@ -27,6 +27,7 @@ import { contextMenuProps, ContextMenuView } from "./context-menu.js";
 import { startupProps, selectorProps, workspaceHeaderProps, workspaceEmptyProps } from "./props.js";
 import { StartupScreen, VaultSelector, WorkspaceHeader, WorkspaceEmpty } from "./views.js";
 import { resolveTheme } from "./theme.js";
+import { DropdownOverlay } from "./dropdown-overlay.js";
 import { layoutProps, railProps, WorkspaceLayout, SidebarRail } from "./sidebar.js";
 import manifest from "../manifest.json" with { type: "json" };
 
@@ -64,6 +65,8 @@ export default definePlugin({ manifest, activate(ctx) {
       container.id = `lunaris-mantine-${++nextId}`; container.className = "lm-root";
       let disposed = false; let failed = false; let renderError: unknown; let rendering = false;
       const overlay = { id: container.id + "-overlay", target: target.ownerDocument.body };
+      const dropdownOverlay = { ...overlay, id: container.id + "-dropdowns", owner: container };
+      const ownsDropdowns = ["lunaris.account-access", "lunaris.file-explorer", "lunaris.settings-items", "lunaris.settings-choices", "lunaris.backlinks", "lunaris.declarative-view", "lunaris.lime-settings"].includes(id);
       const root = createRoot(container, { onUncaughtError(error) {
         failed = true; renderError = error;
         if (!rendering && !disposed && !ctx.signal.aborted) logger.error(ctx.pluginId, "Mantine rendering failed", { code: "MANTINE_RENDER_FAILED", data: { componentId: id }, error });
@@ -86,7 +89,7 @@ export default definePlugin({ manifest, activate(ctx) {
         if (id === "lunaris.callout-header") Object.assign(container.style, { display: "inline-flex", containerType: "normal", maxWidth: "100%", verticalAlign: "middle" });
         if (id === "lunaris.task-checkbox") Object.assign(container.style, { display: "inline-flex", containerType: "normal", verticalAlign: "middle" });
         // A provider per SDK-owned React root scopes color scheme and variables to its owned DOM.
-        const view = id === "lunaris.backlinks" ? createElement(BacklinksView, { props: backlinksProps(props), theme }) : id === "lunaris.declarative-view" ? createElement(DeclarativeView, { props: declarativeViewProps(props), theme }) : id === "lunaris.lime-settings" ? createElement(LimeSettings, { props: limeSettingsProps(props), theme, overlay }) : id === "lunaris.mobile-menu" ? createElement(MobileMenuView, { props: mobileMenuProps(props), theme, overlay, target }) : id === "lunaris.callout-header" ? createElement(CalloutHeader, { props: calloutHeaderProps(props), theme }) : id === "lunaris.status-bar" ? createElement(StatusBar, { props: statusBarProps(props), theme }) : id === "lunaris.client-update" ? createElement(ClientUpdateNotice, { props: noticeProps(props), theme }) : id === "lunaris.account-access" ? createElement(AccountAccessView, { props: accountAccessProps(props), theme }) : id === "lunaris.window-titlebar" ? createElement(WindowTitlebar, { props: windowTitlebarProps(props), theme }) : id === "lunaris.text-editor" ? createElement(TextEditor, { props: textEditorProps(props), theme }) : id === "lunaris.settings-items" ? createElement(SettingsItems, { props: settingsItemsProps(props), theme, overlay }) : id === "lunaris.settings-choices" ? createElement(SettingsChoices, { props: settingsChoicesProps(props), theme }) : id === "lunaris.settings-navigation" ? createElement(SettingsNavigation, { props: settingsNavigationProps(props), theme }) : id === "lunaris.settings-page" ? createElement(SettingsPage, { props: settingsPageProps(props), theme }) : id === "lunaris.active-screen" ? createElement(ActiveScreenView, { props: activeScreenProps(props), theme }) : id === "lunaris.startup-screen"
+        const view = id === "lunaris.backlinks" ? createElement(BacklinksView, { props: backlinksProps(props), theme }) : id === "lunaris.declarative-view" ? createElement(DeclarativeView, { props: declarativeViewProps(props), theme }) : id === "lunaris.lime-settings" ? createElement(LimeSettings, { props: limeSettingsProps(props), theme, overlay }) : id === "lunaris.mobile-menu" ? createElement(MobileMenuView, { props: mobileMenuProps(props), theme, overlay, target }) : id === "lunaris.callout-header" ? createElement(CalloutHeader, { props: calloutHeaderProps(props), theme }) : id === "lunaris.status-bar" ? createElement(StatusBar, { props: statusBarProps(props), theme }) : id === "lunaris.client-update" ? createElement(ClientUpdateNotice, { props: noticeProps(props), theme }) : id === "lunaris.account-access" ? createElement(AccountAccessView, { props: accountAccessProps(props), theme }) : id === "lunaris.window-titlebar" ? createElement(WindowTitlebar, { props: windowTitlebarProps(props), theme }) : id === "lunaris.text-editor" ? createElement(TextEditor, { props: textEditorProps(props), theme }) : id === "lunaris.settings-items" ? createElement(SettingsItems, { props: settingsItemsProps(props), theme }) : id === "lunaris.settings-choices" ? createElement(SettingsChoices, { props: settingsChoicesProps(props), theme }) : id === "lunaris.settings-navigation" ? createElement(SettingsNavigation, { props: settingsNavigationProps(props), theme }) : id === "lunaris.settings-page" ? createElement(SettingsPage, { props: settingsPageProps(props), theme }) : id === "lunaris.active-screen" ? createElement(ActiveScreenView, { props: activeScreenProps(props), theme }) : id === "lunaris.startup-screen"
           ? createElement(StartupScreen, { props: startupProps(props), theme })
           : id === "lunaris.task-checkbox" ? createElement(TaskCheckbox, { props: taskCheckboxProps(props), theme })
           : id === "lunaris.vault-selector" ? createElement(VaultSelector, { props: selectorProps(props), theme })
@@ -99,11 +102,10 @@ export default definePlugin({ manifest, activate(ctx) {
         rendering = true;
         try { flushSync(() => root.render(createElement(MantineProvider, {
           theme: theme.mantine, forceColorScheme: theme.scheme, colorSchemeManager,
-          getRootElement: () => container, cssVariablesSelector: id === "lunaris.lime-settings" || id === "lunaris.mobile-menu" || (id === "lunaris.settings-items" && props.portalDropdowns === true)
-            ? `:is(#${container.id}, #${overlay.id})` : `#${container.id}`,
+          getRootElement: () => container, cssVariablesSelector: `:is(#${container.id}, #${overlay.id}, #${dropdownOverlay.id})`,
           cssVariablesResolver: () => theme.cssVariables,
           deduplicateCssVariables: false, withGlobalClasses: false,
-        }, view))); } finally { rendering = false; }
+        }, ownsDropdowns ? createElement(DropdownOverlay, { overlay: dropdownOverlay, theme, compact: props.compact === true, children: view }) : view))); } finally { rendering = false; }
         if (failed) throw renderError;
       }
       const instance = { applyTheme() {

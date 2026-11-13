@@ -101,7 +101,7 @@ test('real Luna presets adapt settings controls and opened menus without replaci
     assert.match(content.style.getPropertyValue('--vault-button-image'), /linear-gradient/);
     assert.equal(root.getAttribute('data-mantine-color-scheme'), id.endsWith('dark') ? 'dark' : 'light');
     picker.click(); await settle();
-    assert.ok(s.target.querySelector('[role=option][data-checked]').textContent.includes('Русский'));
+    assert.ok(s.dom.window.document.querySelector('[role=option][data-checked]').textContent.includes('Русский'));
     picker.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await settle();
   }
   toggle.click(); await settle(); assert.deepEqual(changes, [['test.wrap', true]]);
@@ -165,7 +165,7 @@ test('account access uses controlled Mantine password fields, escaped catalog na
   assert.equal(s.target.querySelector('.lm-account-disclosure').getAttribute('aria-hidden'), 'true');
   assert.equal(s.dom.window.document.activeElement, toggle);
   s.target.querySelector('[aria-label="vaultActions: <script>bad</script>"]').click(); await settle();
-  const trashAction = s.target.querySelector('[role=menuitem]'); assert.ok(trashAction);
+  const trashAction = s.dom.window.document.querySelector('[role=menuitem]'); assert.ok(trashAction);
   trashAction.click(); await new Promise(setImmediate);
   assert.ok(calls.some(call => call[0] === 'onTrash' && call[1] === 'v'));
   mounted.value.update({ ...props, mode: 'trash', entries: [{ id: 'v', name: 'Archived', detail: 'Until tomorrow' }] });
@@ -411,7 +411,7 @@ test('settings choices validate data, render single values as text and retain li
   const multiple = { ...props, fields: [{ ...props.fields[0], options: [...props.fields[0].options, { value: 'fr', label: '<French>' }] }] };
   assert.equal(mounted.value.update(multiple).ok, true); const input = s.target.querySelector('[role=combobox]');
   input.click(); await new Promise(resolve => setImmediate(resolve));
-  const choice = [...s.target.querySelectorAll('[role=option]')].find(option => option.textContent.trim() === '<French>');
+  const choice = [...s.dom.window.document.querySelectorAll('[role=option]')].find(option => option.textContent.trim() === '<French>');
   assert.ok(choice); choice.click(); await new Promise(resolve => setImmediate(resolve)); assert.deepEqual(changes, [['locale', 'fr']]);
   assert.equal(mounted.value.update({ ...multiple, fields: [{ ...multiple.fields[0], value: 'fr', label: 'Langue' }], error: 'Save failed' }).ok, true);
   await new Promise(resolve => setImmediate(resolve));
@@ -454,7 +454,7 @@ test('Settings Select opens themed options, supports keyboard selection and Esca
   assert.equal(s.target.querySelector('input:not([type=hidden])'), null);
   trigger.focus(); trigger.click(); await settle(); assert.equal(trigger.getAttribute('aria-expanded'), 'true');
   const list = s.dom.window.document.getElementById(trigger.getAttribute('aria-controls'));
-  assert.ok(list.closest('.lm-setting-dropdown')); assert.equal(list.closest('.lm-root'), trigger.closest('.lm-root'));
+  assert.ok(list.closest('.lm-setting-dropdown')); assert.ok(list.closest('.lm-dropdown-overlay')); assert.equal(s.target.contains(list), false);
   assert.deepEqual([...list.querySelectorAll('[role=option]')].map(option => option.textContent.trim()), ['English', 'French']);
   trigger.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'ArrowDown', code: 'ArrowDown', bubbles: true })); await settle();
   trigger.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true })); await settle();
@@ -475,7 +475,7 @@ test('Settings Items lends compact dropdowns a themed viewport overlay and relea
     assert.equal(mounted.ok, true);
     const trigger = s.target.querySelector('[role=combobox]');
     trigger.focus(); trigger.click(); await settle();
-    const overlay = s.dom.window.document.querySelector('.lm-settings-overlay');
+    const overlay = s.dom.window.document.querySelector('.lm-dropdown-overlay');
     const list = s.dom.window.document.getElementById(trigger.getAttribute('aria-controls'));
     assert.equal(overlay.parentElement, s.dom.window.document.body);
     assert.equal(overlay.dataset.compact, 'true');
@@ -510,6 +510,63 @@ test('theme replacement and clearing update mounted roots without affecting the 
   assert.equal(s.target.querySelector('.ln-vault').style.getPropertyValue('--vault-caret'), 'currentColor');
   assert.equal(s.target.querySelector('section').closest('.lm-root').style.backgroundColor, 'transparent');
   await s.stop();
+});
+
+test('viewport menus retain their theme and dismiss when the composed Sidebar becomes inactive', async () => {
+  const s = await setup(); await s.start();
+  const original = s.dom.window.HTMLElement.prototype.getBoundingClientRect;
+  s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 390, 720);
+  try {
+    let targets;
+    const layoutProps = { railVisible: true, panelVisible: true, mobileOpen: true, mainLabel: 'Main', panelLabel: 'Files', onTargets: value => { targets = value; }, onDismiss() {} };
+    const layout = s.components.mount('lunaris.workspace-layout', s.target, layoutProps, s.ctx.signal);
+    const props = explorerFixture({ onSort() {} });
+    const files = s.components.mount('lunaris.file-explorer', targets['left-panel'], props, s.ctx.signal);
+    assert.equal(files.ok, true); await settle();
+    const trigger = targets['left-panel'].querySelector('[aria-label=Sort]');
+    trigger.focus(); trigger.click(); await settle();
+    const overlay = s.dom.window.document.querySelector('.lm-dropdown-overlay');
+    const menu = overlay.querySelector('[role=menu]');
+    assert.ok(menu); assert.equal(targets['left-panel'].contains(menu), false);
+    assert.equal(menu.hasAttribute('data-fixed'), true);
+    s.themes.register({ id: 'test.overlay', name: 'Overlay', properties: { appearance: 'light', colors: { panel: '#fafafa', text: '#112233' } } }, s.ctx.signal);
+    s.themes.select('test.overlay'); await settle();
+    assert.equal(overlay.querySelector('[role=menu]'), menu);
+    assert.equal(overlay.style.getPropertyValue('--vault-panel'), '#fafafa');
+    assert.equal(overlay.dataset.mantineColorScheme, 'light');
+    menu.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await settle();
+    assert.equal(trigger.getAttribute('aria-expanded'), 'false');
+    assert.equal(s.target.querySelector('.lm-workspace-layout').hasAttribute('data-mobile-open'), true, 'Escape dismisses the menu before the drawer');
+    trigger.click(); await settle();
+    layout.value.update({ ...layoutProps, mobileOpen: false }); await settle();
+    assert.equal(trigger.getAttribute('aria-expanded'), 'false');
+    for (const closing of overlay.querySelectorAll('[role=menu]')) assert.equal(closing.hasAttribute('inert'), true);
+    layout.value.update(layoutProps); await settle();
+    trigger.click(); await settle();
+    files.value.update({ ...props, busy: true }); await settle();
+    assert.equal(trigger.getAttribute('aria-expanded'), 'false');
+    files.value.dispose(); assert.equal(overlay.isConnected, false);
+    layout.value.dispose();
+  } finally { s.dom.window.HTMLElement.prototype.getBoundingClientRect = original; await s.stop(); }
+});
+
+test('Settings dropdowns close with hidden borrowed regions and retain explicit inline opt-out', async () => {
+  const s = await setup(); await s.start();
+  try {
+    const props = { items: [{ id: 'test.select', title: 'Theme', type: 'select', value: 'a', options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }] }], onChange() {}, onRetry() {} };
+    const mounted = s.components.mount('lunaris.settings-items', s.target, props, s.ctx.signal);
+    const trigger = s.target.querySelector('[role=combobox]');
+    trigger.click(); await settle();
+    assert.ok(s.dom.window.document.querySelector('.lm-dropdown-overlay [role=option]'));
+    s.target.hidden = true; await settle();
+    assert.equal(trigger.getAttribute('aria-expanded'), 'false');
+    s.target.hidden = false;
+    mounted.value.update({ ...props, portalDropdowns: false });
+    trigger.click(); await settle();
+    assert.ok(s.target.querySelector('[role=option]'));
+    mounted.value.dispose();
+    assert.equal(s.dom.window.document.querySelector('.lm-dropdown-overlay'), null);
+  } finally { s.target.hidden = false; await s.stop(); }
 });
 
 test('prop validation preserves prior content, editable nodes, safe copy and focus during localized updates', async () => {
@@ -654,7 +711,7 @@ test('explorer toolbar creates in the selected folder, sorts through a themed me
   assert.equal(actions.querySelectorAll('button').length, 4);
   assert.equal(actions.previousElementSibling.querySelector('h2').textContent, 'Files');
   actions.querySelector('[aria-label="Sort"]').click(); await settle();
-  const descending = [...s.target.querySelectorAll('[role=menuitem]')].find(node => node.textContent === 'Name: Z–A');
+  const descending = [...s.dom.window.document.querySelectorAll('[role=menuitem]')].find(node => node.textContent === 'Name: Z–A');
   assert.ok(descending); descending.click(); await settle(); assert.deepEqual(sorts, ['desc']);
   actions.querySelector('[aria-label="Expand all"]').click(); await settle(); assert.equal(expands, 1);
   actions.querySelector('[aria-label="New folder"]').click(); await settle();
@@ -1023,11 +1080,11 @@ test('Vault footer opens an upward recent menu with safe names, selection, callb
   const footer = s.target.querySelector('.lm-vault-switcher'); assert.equal(footer.previousElementSibling.className.includes('lm-explorer-tree'), true);
   const toggle = footer.querySelector('button'); assert.equal(toggle.textContent, 'Current vault');
   toggle.click(); await settle();
-  assert.equal(toggle.getAttribute('aria-expanded'), 'true'); assert.equal(footer.querySelectorAll('[role=menuitem]').length, 5);
-  assert.equal(footer.querySelector('[aria-current=true]').textContent, '<img src=x> Vault 0'); assert.equal(footer.querySelector('img'), null);
-  assert.equal(footer.querySelector('[role=menuitem]').title, 'Folder 0');
-  footer.querySelectorAll('[role=menuitem]')[1].click(); await settle(); assert.deepEqual(chosen, ['ref-1']);
-  toggle.click(); await settle(); [...footer.querySelectorAll('[role=menuitem]')].at(-1).click(); await settle(); assert.equal(changed, 1);
+  assert.equal(toggle.getAttribute('aria-expanded'), 'true'); assert.equal(s.dom.window.document.querySelectorAll('[role=menuitem]').length, 5);
+  assert.equal(s.dom.window.document.querySelector('[role=menuitem][aria-current=true]').textContent, '<img src=x> Vault 0'); assert.equal(footer.querySelector('img'), null);
+  assert.equal(s.dom.window.document.querySelector('[role=menuitem]').title, 'Folder 0');
+  s.dom.window.document.querySelectorAll('[role=menuitem]')[1].click(); await settle(); assert.deepEqual(chosen, ['ref-1']);
+  toggle.click(); await settle(); [...s.dom.window.document.querySelectorAll('[role=menuitem]')].at(-1).click(); await settle(); assert.equal(changed, 1);
   mounted.value.update({ ...props, vaultSwitcher: { ...vaultSwitcher, busy: true } }); assert.equal(toggle.disabled, true);
   assert.equal(mounted.value.update({ ...props, vaultSwitcher: { ...vaultSwitcher, onChange: null } }).ok, false);
   await s.stop();
