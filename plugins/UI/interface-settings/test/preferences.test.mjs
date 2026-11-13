@@ -74,7 +74,10 @@ test('composed controls apply and persist explicit Vault preferences, preserve i
     'Catppuccin Mocha', 'Dracula', 'Everforest Dark', 'Gruvbox Dark', 'Lunaris', 'Maiami Night',
     'Monochrome', 'Nord', 'Rosé Pine', 'Sakura Night', 'Tokyo Night', 'Windows XP Luna', 'Windows XP Luna Dark', 'Alternate',
   ]);
-  assert.ok(theme.closest('.lm-root').querySelector('.lm-setting-dropdown'));
+  assert.ok(options.closest('.lm-setting-dropdown'));
+  const overlay = options.closest('.lm-settings-overlay');
+  assert.equal(overlay?.id, `${theme.closest('.lm-root').id}-overlay`);
+  assert.equal(overlay.parentElement, s.dom.window.document.body);
   theme.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await flush();
   await change(s, 0, 'fr'); assert.equal(s.tools.localization.locale(), 'fr');
   assert.equal(select(s, 0), language); assert.equal(select(s, 1), theme);
@@ -178,8 +181,9 @@ test('replacing a theme updates the registered item and composed choice list', a
   assert.equal(s.tools.settings.snapshot().groups.length, 1);
   assert.deepEqual(s.tools.settings.snapshot().items.map(item => item.type), ['select', 'select']);
   const original = s.tools.themes.get('test.alternate'); s.tools.themes.update({ ...original, name: 'Renamed' }); await flush();
-  select(s, 1).click(); await flush();
-  assert.ok([...s.surface.querySelectorAll('[role=option]')].some(option => option.textContent.trim() === 'Renamed')); await s.stop();
+  const theme = select(s, 1); theme.click(); await flush();
+  const options = s.dom.window.document.getElementById(theme.getAttribute('aria-controls'));
+  assert.ok([...options.querySelectorAll('[role=option]')].some(option => option.textContent.trim() === 'Renamed')); await s.stop();
 });
 
 test('saved preferences survive controller restart and unavailable themes recover without rewriting values', async () => {
