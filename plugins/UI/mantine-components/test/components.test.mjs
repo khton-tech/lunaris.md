@@ -249,6 +249,32 @@ const selector = {
   onMode() {}, onName() {}, onBrowse() {}, onNext() {}, onRecent() {}, onRetry() {},
 };
 
+test('editor title cancellation, composition and late rename results preserve the current document', async () => {
+  const s = await setup(); await s.start();
+  try {
+    const calls = []; const pending = Promise.withResolvers();
+    const props = { documentKey: 'one', name: 'First.md', title: 'First', titleLabel: 'File name', canRename: true,
+      onRename: name => { calls.push(name); return pending.promise; }, status: '', error: '', ready: true, dirty: false, busy: false,
+      saveLabel: 'Save', retryLabel: 'Retry', reloadLabel: 'Reload', discardLabel: 'Discard', cancelLabel: 'Cancel', onSave() {}, onReload() {}, onTarget() {} };
+    const mounted = s.components.mount('lunaris.text-editor', s.target, props, s.ctx.signal);
+    const input = s.target.querySelector('.lm-editor-title input');
+    input.focus(); typeInput(input, 'Cancelled'); await settle();
+    input.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); await settle();
+    assert.deepEqual(calls, []); assert.equal(input.value, 'First');
+    input.focus(); typeInput(input, 'Composing'); await settle();
+    input.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Enter', isComposing: true, bubbles: true, cancelable: true })); await settle();
+    assert.equal(s.dom.window.document.activeElement, input); assert.deepEqual(calls, []);
+    input.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); await settle();
+    assert.deepEqual(calls, ['Composing']);
+    mounted.value.update({ ...props, documentKey: 'two', name: 'Second.md', title: 'Second' });
+    pending.resolve(false); await settle();
+    assert.equal(input.value, 'Second');
+    mounted.value.update({ ...props, documentKey: 'two', title: 'Second', renameError: 'Name is already used' });
+    assert.equal(input.getAttribute('aria-invalid'), 'true');
+    assert.equal(s.dom.window.document.getElementById(input.getAttribute('aria-describedby')).textContent, 'Name is already used');
+  } finally { await s.stop(); }
+});
+
 test('presentation uses public props rather than target classes and separates embedded surfaces from page themes', async () => {
   const s = await setup(); await s.start();
   s.target.className = 'lm-settings-section'; s.target.style.backgroundColor = '#123456';

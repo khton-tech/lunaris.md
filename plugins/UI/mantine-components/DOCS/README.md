@@ -1,5 +1,14 @@
 # Mantine components
 
+## Editor title interaction (2026-11-13)
+
+The existing editable title remains stable during saving. Escape cancels the draft
+before blur can commit it, composition Enter remains owned by the input method,
+and a late rename response cannot reset a replacement document's title. Rename
+errors are associated with the field. Keyboard focus has one themed underline;
+pointer focus preserves the quiet heading appearance. Integration uses the existing
+Text Editor role callbacks without document or filesystem access in UIKit.
+
 ## Dropdown ownership (2026-11-13)
 
 Reference: the established themed Settings combobox and mobile tab overlay;

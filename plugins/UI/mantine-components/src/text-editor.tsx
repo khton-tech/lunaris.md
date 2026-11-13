@@ -57,24 +57,35 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
   const target = useRef<HTMLDivElement>(null); const [confirm, setConfirm] = useState(false);
   const container = useRef<HTMLDivElement>(null);
   const [title, setTitle] = useState(props.title);
-  const committing = useRef(false);
+  const committing = useRef<object | null>(null);
+  const cancelTitleCommit = useRef(false);
+  const currentTitle = useRef(props.title);
+  currentTitle.current = props.title;
   const footer = useRef<HTMLDivElement>(null);
   useLayoutEffect(() => { props.onFooterTarget?.(footer.current); return () => props.onFooterTarget?.(null); }, [props.onFooterTarget]);
   const publish = props.onTarget;
   useLayoutEffect(() => { publish(target.current, container.current ?? undefined); return () => publish(null); }, [publish]);
-  useLayoutEffect(() => { setConfirm(false); setTitle(props.title); }, [props.documentKey]);
+  useLayoutEffect(() => { committing.current = null; cancelTitleCommit.current = false; setConfirm(false); setTitle(props.title); }, [props.documentKey]);
   // Reflect external renames while the field is not being actively committed.
   useLayoutEffect(() => { if (!committing.current) setTitle(props.title); }, [props.title]);
   function commitTitle(): void {
+    if (cancelTitleCommit.current) { cancelTitleCommit.current = false; return; }
     if (committing.current) return;
     const next = title.trim();
     if (!props.canRename || next === props.title || !next || next.includes("/")) { setTitle(props.title); return; }
-    committing.current = true;
-    void props.onRename(next).then(ok => { if (!ok) setTitle(props.title); }).finally(() => { committing.current = false; });
+    const operation = {};
+    committing.current = operation;
+    void props.onRename(next).then(ok => {
+      if (!ok && committing.current === operation) setTitle(currentTitle.current);
+    }).finally(() => { if (committing.current === operation) committing.current = null; });
   }
   function onTitleKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
+    if (event.nativeEvent.isComposing) return;
     if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); }
-    else if (event.key === "Escape") { event.preventDefault(); setTitle(props.title); event.currentTarget.blur(); }
+    else if (event.key === "Escape") {
+      event.preventDefault(); event.stopPropagation(); cancelTitleCommit.current = true;
+      setTitle(props.title); event.currentTarget.blur();
+    }
   }
   return <Box ref={container} className="lm-text-editor" data-compact={props.compact} data-workspace-scroll style={theme.contentStyle}>
     {props.ready && props.onContentWidthChange && !props.compact && <EditorWidthHandles key={props.documentKey} container={container}
@@ -82,11 +93,11 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
     {props.ready && <Box component="header" className="lm-editor-heading"
       style={{ maxWidth: props.contentWidth === "full" ? "none" : props.contentWidth ?? 698 }}>
       <TextInput className="lm-editor-title" aria-label={props.titleLabel} value={title} title={props.title}
+        error={props.renameError || undefined} errorProps={{ role: "alert" }} classNames={{ error: "lm-editor-error" }}
         style={{ fontSize: props.contentFontSize }}
         variant="unstyled" readOnly={!props.canRename} spellCheck={false} placeholder={props.titleLabel}
         onChange={event => setTitle(event.currentTarget.value.replace(/[\r\n]+/g, ""))}
         onBlur={commitTitle} onKeyDown={onTitleKeyDown} />
-      {props.renameError && <Text size="sm" role="alert" className="lm-editor-error">{props.renameError}</Text>}
     </Box>}
     {!!props.recoveryCandidates?.length && <Box role="group" aria-label={props.recoveryLabel}>
       <Text size="sm">{props.recoveryLabel}</Text>
