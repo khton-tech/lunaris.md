@@ -12,6 +12,8 @@ like the account disclosure: close, return focus to the trigger, preserve the dr
 
 Desktop tabs expose Alt+ArrowLeft/Right reordering through the same public callback
 as pointer dragging; busy state blocks both. Touch controls retain 44px targets.
+Active Screen publishes the same busy state to the mobile dock through MobileMenu;
+disabling a menu contribution closes its popup and blocks its trailing actions.
 Backlinks follows the Files toolbar density, theme typography and semantic error
 color, with local scrolling in short panels. Its disclosures have explicit content
 relationships; collapse restores focus out of hidden results. Escape closes the

@@ -76,6 +76,7 @@ their content inside borrowed targets.
   selected tab and visit history.
 - Arrow keys and Home/End move focus across the strip. Enter or Space selects the
   focused tab. Delete closes it. Keyboard close returns focus to the selected tab.
+  Alt+ArrowLeft/Right reorders the focused tab without changing the selection.
 - File changes use ActiveDocument's existing save and draft guards. Declined
   transitions keep the document open and show a localized status. Confirmed
   in-app moves and removals update affected tabs. An inactive file removed
@@ -103,6 +104,14 @@ and five-row scrolling viewport. The mobile list uses the same reorder operation
 as the desktop strip. Dragging vertically changes order while preserving the
 current tab and its visit history. Native acceptance covers touch dragging,
 edge scrolling, selection and close feedback in both themes.
+
+The controller publishes busy state through the existing MobileMenu disabled
+contracts for Back, Forward, Add, the picker and its choices/close actions.
+Mantine dismisses an open picker when its contribution becomes disabled and
+restores the same trigger after the operation without reopening the old menu.
+Repeated stale actions remain blocked by the provider and Workspace tab guards.
+This integration is behavior-tested through the shared services and UIKit; native
+touch and focus acceptance remains manual.
 
 ## Russian UI copy
 

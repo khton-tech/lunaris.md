@@ -71,6 +71,7 @@ function MobileAction({ item, compact, target, overlay }: {
   }, [dock, dir]);
   const hasChoices = item.choices !== undefined;
   const reorder = useListReorder("y", item.choices ?? [], item.disabled ? undefined : item.onReorder);
+  useLayoutEffect(() => { if (item.disabled) setOpened(false); }, [item.disabled]);
   useLayoutEffect(() => { if (!opened) reorder.cancel(); }, [opened]);
   useLayoutEffect(() => {
     if (!opened || !hasChoices) return;
@@ -100,7 +101,7 @@ function MobileAction({ item, compact, target, overlay }: {
     {item.count === undefined ? <Icon name={item.icon} /> : <span className="lm-mobile-page-count" aria-hidden="true">{item.count}</span>}
   </ActionIcon>;
   if (!item.choices) return button;
-  return <Menu position="top" opened={opened} onChange={setOpened} onOpen={measure}
+  return <Menu position="top" opened={opened && !item.disabled} onChange={setOpened} onOpen={measure}
     offset={geometry ? { mainAxis: geometry.mainAxis, crossAxis: geometry.crossAxis } : 8} returnFocus
     portalProps={{ target: `#${overlay.id}` }} transitionProps={{ duration: 0 }}>
     <Menu.Target>{button}</Menu.Target>
@@ -113,7 +114,7 @@ function MobileAction({ item, compact, target, overlay }: {
         return <div key={choice.id} className="lm-mobile-choice-row" data-selected={selected || undefined}
           data-reorder-id={choice.id} data-sortable={sortable || undefined}
           role={trailing ? "group" : undefined} aria-label={trailing ? choice.label : undefined}>
-          <Menu.Item title={choice.title ?? choice.label} aria-current={selected ? "true" : undefined} disabled={choice.disabled ?? false}
+          <Menu.Item title={choice.title ?? choice.label} aria-current={selected ? "true" : undefined} disabled={item.disabled || choice.disabled || false}
             aria-keyshortcuts={sortable ? "Alt+ArrowUp Alt+ArrowDown" : undefined}
             onPointerDown={event => {
               const target = event.target;
@@ -137,7 +138,7 @@ function MobileAction({ item, compact, target, overlay }: {
             {sortable && <span className="lm-mobile-choice-drag-zone" aria-hidden="true" />}
           </Menu.Item>
           {trailing && <Menu.Item className="lm-mobile-choice-trailing" aria-label={trailing.label} title={trailing.title ?? trailing.label}
-            disabled={trailing.disabled ?? false} onClick={() => item.onPress(trailing.id)}><Icon name={trailing.icon ?? "actions"} /></Menu.Item>}
+            disabled={item.disabled || trailing.disabled || false} onClick={() => item.onPress(trailing.id)}><Icon name={trailing.icon ?? "actions"} /></Menu.Item>}
         </div>;
       })}
     </Menu.Dropdown>

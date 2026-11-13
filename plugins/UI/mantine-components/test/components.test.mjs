@@ -401,6 +401,29 @@ test('workspace tabs reorder from the keyboard without changing selection and ob
   } finally { await s.stop(); }
 });
 
+test('disabled mobile menu actions dismiss their open choices and recover without reopening', async () => {
+  const s = await setup(); await s.start(); const calls = [];
+  try {
+    const item = { id: 'test.tabs', label: 'Open tabs', icon: 'file', onPress: id => calls.push(id), choices: [
+      { id: 'one', label: 'First', trailingAction: { id: 'close-one', label: 'Close First' } },
+    ] };
+    const mounted = s.components.mount('lunaris.mobile-menu', s.target, { items: [item] }, s.ctx.signal); assert.equal(mounted.ok, true);
+    const trigger = s.target.querySelector('[aria-label="Open tabs"]');
+    trigger.click(); await settle();
+    assert.ok(s.dom.window.document.querySelector('.lm-mobile-choice-menu'));
+    mounted.value.update({ items: [{ ...item, disabled: true }] }); await settle();
+    assert.equal(trigger.disabled, true);
+    assert.equal(s.dom.window.document.querySelector('.lm-mobile-choice-menu'), null);
+    trigger.click(); await settle(); assert.deepEqual(calls, []);
+    mounted.value.update({ items: [item] }); await settle();
+    assert.equal(s.target.querySelector('[aria-label="Open tabs"]'), trigger);
+    assert.equal(trigger.disabled, false); assert.equal(s.dom.window.document.querySelector('.lm-mobile-choice-menu'), null);
+    trigger.click(); await settle();
+    s.dom.window.document.querySelector('.lm-mobile-choice-menu [role=menuitem]').click(); await settle();
+    assert.deepEqual(calls, ['one']);
+  } finally { await s.stop(); }
+});
+
 test('Backlinks disclosures identify their contents and retain focus when collapsing or hiding the filter', async () => {
   const s = await setup(); await s.start();
   try {

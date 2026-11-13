@@ -103,15 +103,16 @@ export default definePlugin({ manifest, activate(ctx) {
       const choices: MobileMenuChoice[] = [];
       for (const tab of tabProps.tabs) {
         const label = tab.title.trim() ? tab.title : tab.description;
-        choices.push({ id: tab.id, label, title: tab.description, trailingAction: {
-          id: `close:${tab.id}`, label: `${tabProps.labels.close} — ${label}`, icon: "window-close", disabled: !tab.closable,
+        choices.push({ id: tab.id, label, title: tab.description, disabled: tabProps.busy, trailingAction: {
+          id: `close:${tab.id}`, label: `${tabProps.labels.close} — ${label}`, icon: "window-close", disabled: tabProps.busy || !tab.closable,
         } });
       }
       const count = tabProps.tabs.length;
       const label = localization.text(ctx.pluginId, "mobileTabs", { count });
       const tabPicker: MobileMenuItem = {
         id: `${ctx.pluginId}.tabs`, label, icon: "file", count, order: 40,
-        ...(choices.length ? { choices, selectedChoiceId: tabProps.selectedId } : { disabled: true }),
+        disabled: tabProps.busy || !choices.length,
+        ...(choices.length ? { choices, selectedChoiceId: tabProps.selectedId } : {}),
         ...(!tabProps.busy && choices.length > 1 ? { onReorder: tabProps.onReorder } : {}),
         async onPress(id) {
           if (!id || !live()) return;
@@ -121,11 +122,11 @@ export default definePlugin({ manifest, activate(ctx) {
       };
       const items: MobileMenuItem[] = [
         { id: `${ctx.pluginId}.back`, label: tabProps.labels.back, icon: "chevron-left", order: 0,
-          disabled: !tabProps.canGoBack, async onPress() { await tabProps.onNavigate(-1); } },
+          disabled: tabProps.busy || !tabProps.canGoBack, async onPress() { await tabProps.onNavigate(-1); } },
         { id: `${ctx.pluginId}.forward`, label: tabProps.labels.forward, icon: "chevron-right", order: 10,
-          disabled: !tabProps.canGoForward, async onPress() { await tabProps.onNavigate(1); } },
+          disabled: tabProps.busy || !tabProps.canGoForward, async onPress() { await tabProps.onNavigate(1); } },
         { id: `${ctx.pluginId}.add-tab`, label: text("addMobileTab"), icon: "create", order: 30,
-          async onPress() { await tabProps.onAdd(); } },
+          disabled: tabProps.busy, async onPress() { await tabProps.onAdd(); } },
         tabPicker,
       ];
       for (const item of items) {

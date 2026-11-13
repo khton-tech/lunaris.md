@@ -126,6 +126,28 @@ test('Vault switch and close clear selection, release cached views and create fr
   await s.open(); assert.match(s.surface.textContent, /No workspace plugins/); await s.stop();
 });
 
+test('mobile tab actions publish busy state and reject repeated actions before restoring controls', async () => {
+  const s = await setup({ mobileMenu: true });
+  try {
+    panel(s, 'test.content'); await s.open();
+    s.tools.screens.register(definition('test.one'), s.ctx.signal); s.tools.screens.select('test.one'); await flush();
+    const actions = () => s.tools.mobileMenu.list().filter(item => item.id.startsWith('lunaris.active-screen.'));
+    const add = actions().find(item => item.id.endsWith('.add-tab'));
+    assert.equal(add.disabled, false);
+    const pending = add.onPress();
+    const busy = actions(); assert.equal(busy.length, 4); assert.ok(busy.every(item => item.disabled));
+    const picker = busy.find(item => item.choices);
+    assert.ok(picker.choices.every(choice => choice.disabled && choice.trailingAction.disabled));
+    assert.equal(picker.onReorder, undefined);
+    const repeated = add.onPress();
+    await Promise.all([pending, repeated]); await flush();
+    const ready = actions().find(item => item.choices);
+    assert.equal(ready.disabled, false); assert.equal(ready.choices.length, 2);
+    assert.ok(ready.choices.every(choice => !choice.disabled));
+    assert.equal(actions().find(item => item.id.endsWith('.add-tab')).disabled, false);
+  } finally { await s.stop(); }
+});
+
 test('compact Workspace shows one live tab counter and switches through the shared tab state', async () => {
   const s = await setup({ mobileMenu: true, sidebar: true });
   const { document, HTMLElement, DOMRect } = s.dom.window;
