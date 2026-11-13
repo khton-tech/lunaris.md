@@ -224,7 +224,8 @@
  .lm-root .lm-input:enabled:hover:not(:focus):not(:focus-visible):not([aria-invalid=true]) { border-color:var(--vault-control-border) }
 }
 @media(prefers-reduced-motion:reduce) { .lm-root .lm-button,.lm-root .lm-input,.lm-root .mantine-ActionIcon-root,.lm-root .ln-vault-disclosure { transition:none } }
-.lm-explorer { --explorer-control-hover:color-mix(in srgb,var(--vault-hover) 35%,var(--vault-panel));--explorer-control-pressed:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel));position:relative;display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;overflow:auto;user-select:none }
+.lm-explorer,.lm-backlinks { --explorer-control-hover:color-mix(in srgb,var(--vault-hover) 35%,var(--vault-panel));--explorer-control-pressed:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel)) }
+.lm-explorer { position:relative;display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;overflow:auto;user-select:none }
 .lm-tool-panel-toolbar { flex-shrink:0;padding:calc(var(--vault-space)*2);position:relative }
 .lm-root :is(.lm-explorer-tabs,.lm-tool-panel-title) { width:100%;max-width:100%;min-width:0;min-height:calc(var(--vault-space)*8);padding:var(--vault-space) calc(var(--vault-space)*3);border:0;border-radius:var(--vault-radius);background:transparent;color:var(--vault-text);font-weight:500 }
 .lm-root .lm-explorer-tabs .mantine-Button-label { overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block;text-align:start }
@@ -1030,18 +1031,20 @@
 /* Backlinks borrow the tool panel or editor footer surface. */
 .lm-backlinks{display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;max-width:100%;background:transparent;overflow:auto;overscroll-behavior:contain}
 .lm-backlinks>*{flex-shrink:0}
-.lm-backlink-toolbar{justify-content:safe center;margin:0 calc(var(--vault-space)*3) calc(var(--vault-space)*2);padding-block-end:var(--vault-space);border-block-end:var(--vault-border) solid var(--vault-separator)}
-.lm-root .lm-backlink-toolbar .mantine-ActionIcon-root{width:28px;height:28px;color:var(--vault-secondary)}
+.lm-backlink-toolbar{margin-block-end:var(--vault-space)}
+.lm-backlink-note{margin:var(--vault-space) calc(var(--vault-space)*5);user-select:none}
 .lm-backlinks[data-inline=true]{flex:0 0 auto;margin-block:var(--vault-space,12px)}
-.lm-backlink-results{flex:1 1 auto;overflow:hidden auto;min-height:3em;scrollbar-width:none;overscroll-behavior:contain}
+.lm-backlink-results{padding:4px 12px 0 8px;user-select:none;flex:1 1 auto;overflow:hidden auto;min-height:3em;scrollbar-width:none;overscroll-behavior:contain}
 .lm-backlinks[data-inline=true] .lm-backlink-results{overflow:visible}
-.lm-backlink-heading{display:flex;align-items:center;gap:6px;width:100%;padding:6px 8px;text-align:start;border-radius:var(--vault-radius-small,4px)}
+.lm-backlink-heading{display:flex;align-items:center;gap:calc(var(--vault-space)*1.5);width:100%;min-height:32px;padding:var(--vault-space) calc(var(--vault-space)*2);color:var(--vault-secondary);text-align:start;border-radius:var(--vault-radius-small,4px)}
 @media(hover:hover){.lm-backlink-heading:enabled:hover:not(:active),.lm-backlink-context:enabled:hover:not(:active){background:var(--vault-hover)}}
 .lm-backlink-heading:enabled:active,.lm-backlink-context:enabled:active{background:var(--vault-selection)}
 .lm-backlink-heading,.lm-backlink-context{transition:background-color var(--vault-motion-fast) var(--vault-motion-easing)}
 .lm-backlink-heading>svg{flex:none}
-.lm-backlink-source{padding-inline-start:8px}
-.lm-backlink-result{padding:2px 8px 6px 20px}
+.lm-backlink-branches{margin-inline-start:calc(var(--vault-space)*2);padding-inline-start:calc(var(--vault-space)*2);border-inline-start:var(--vault-border) solid var(--vault-separator)}
+.lm-backlink-source{position:relative}
+.lm-backlink-source::before{content:"";position:absolute;inset-inline-start:calc(var(--vault-space)*-2);top:16px;width:calc(var(--vault-space)*2);border-block-start:var(--vault-border) solid var(--vault-separator);pointer-events:none}
+.lm-backlink-result{padding:2px var(--vault-space) var(--vault-space)}
 .lm-backlink-context{display:block;width:100%;padding:4px;text-align:start;white-space:pre-wrap;overflow-wrap:anywhere;font-size:inherit;line-height:1.5;border-radius:var(--vault-radius-small,4px)}
 .lm-backlink-context mark{background:var(--vault-selection);color:var(--vault-accent);border-radius:2px}
 .lm-backlink-context:disabled{cursor:default}

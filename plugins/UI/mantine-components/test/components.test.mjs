@@ -432,6 +432,16 @@ test('Backlinks disclosures identify their contents and retain focus when collap
       unlinked: [], query: 'Draft filter', sort: 'name', more: false, collapse: false, filterVisible: true, inDocument: false, preferencesDisabled: false,
       onQuery() {}, onSort() {}, onContext() {}, onCollapse() {}, onFilter() { mounted.value.update({ ...props, filterVisible: false }); }, onRefresh() {}, onPin() {}, onInline() {} };
     const mounted = s.components.mount('lunaris.backlinks', s.target, props, s.ctx.signal);
+    const sort = s.target.querySelector('[aria-label="sort"]');
+    sort.click(); await settle();
+    const menu = s.target.closest('body').querySelector('.lm-dropdown-overlay [role="menu"]');
+    assert.ok(menu); assert.equal(menu.querySelectorAll('[role="menuitem"]').length, 4);
+    assert.equal(menu.querySelector('[aria-current="true"]').textContent, 'name');
+    let sorted;
+    mounted.value.update({ ...props, onSort(value) { sorted = value; } });
+    menu.querySelectorAll('[role="menuitem"]')[1].click(); await settle();
+    assert.equal(sorted, 'name-desc');
+    assert.equal(s.target.querySelector('select'), null);
     const input = s.target.querySelector('input'); input.focus();
     input.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); await settle();
     assert.equal(s.target.querySelector('input'), null);

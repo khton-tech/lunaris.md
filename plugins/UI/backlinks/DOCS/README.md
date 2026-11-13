@@ -47,3 +47,23 @@ keyboard focus; empty/loading/degraded states; inline footer scrolling and width
 Desktop automation is prohibited by repository policy.
 
 See `DOCS/reference/backlinks.md` for the behavior boundary and verification command.
+
+
+## Backlinks alignment with Files (2026-11-13)
+
+Reference: the Owner's paired Files and Backlinks screenshots. The shared header
+and Files action-row styling now also frame Backlinks. Sorting uses the same
+ViewportMenu, Lucide sort/check icons and themed menu rows as Files instead of a
+permanent form field. All four sort modes remain available. The current note is
+secondary context below the toolbar; results share Files' side gutters, compact
+rows and themed hierarchy guides. More Backlinks actions may wrap at narrow widths.
+Mention previews intentionally retain multiline text and match highlighting.
+
+Workspace owns the Sidebar surface and geometry; TextEditor owns the inline
+footer allocation. Backlinks remains transparent and only owns internal content.
+The existing public Components role, localized callbacks and controller/index
+integration suffice; no SDK or additional plugin connections are needed.
+Targeted checks cover sort selection, disclosure/filter focus and editor/footer/
+pinned-screen/link integration. Native visual acceptance remains pending: compare
+Files and Backlinks in the real Sidebar, opened sort menu, long names, narrow/short
+windows, light/dark themes and keyboard focus.

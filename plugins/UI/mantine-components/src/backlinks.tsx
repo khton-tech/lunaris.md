@@ -1,10 +1,10 @@
 import { useId, useLayoutEffect, useRef, useState } from "react";
-import { ActionIcon, Box, Button, Group, Text, TextInput, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Box, Button, Group, Menu, Text, TextInput, UnstyledButton } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
 import { ToolPanelHeader } from "./tool-navigation.js";
-import { SettingsSelect } from "./settings-select.js";
+import { ViewportMenu } from "./dropdown-overlay.js";
 
 interface Result { readonly id: string; readonly before: string; readonly match: string; readonly after: string; readonly line: number; readonly onOpen: () => void; readonly onLink?: () => void }
 interface Source { readonly id: string; readonly title: string; readonly count: number; readonly mentions: readonly Result[] }
@@ -39,7 +39,7 @@ function SourceGroup({ source, collapsed, busy, linkLabel }: { source: Source; c
       <span className="lm-disclosure-icon" data-open={open || undefined}><Icon name="expand" /></span>
       <Icon name="file" /><Text component="span" inherit style={{ flex: 1, overflowWrap: "anywhere" }}>{source.title}</Text><Text component="span" size="xs" c="dimmed">{source.count}</Text>
     </UnstyledButton>
-    <Box ref={results} id={resultsId} hidden={!open}>{open && source.mentions.map(result => <Box key={result.id} className="lm-backlink-result">
+    <Box className="lm-backlink-branches" ref={results} id={resultsId} hidden={!open}>{open && source.mentions.map(result => <Box key={result.id} className="lm-backlink-result">
       <UnstyledButton className="lm-backlink-context lm-focus" disabled={busy} onClick={result.onOpen} title={`${source.id}:${result.line}`}>
         {result.before}<mark>{result.match}</mark>{result.after}
       </UnstyledButton>
@@ -55,7 +55,7 @@ function Section({ title, groups, props, initialOpen }: { title: string; groups:
       <span className="lm-disclosure-icon" data-open={open || undefined}><Icon name="expand" /></span>
       <Text component="span" size="sm" fw={500} style={{ flex: 1 }}>{title}</Text><Text component="span" size="xs" c="dimmed">{count}</Text>
     </UnstyledButton>
-    <Box id={resultsId} hidden={!open}>{open && (groups.length ? groups.map(source => <SourceGroup key={source.id} source={source} collapsed={props.collapse} busy={props.busy} linkLabel={props.labels.link!} />) : <Text size="xs" c="dimmed" px="xs" py={4}>{props.labels.empty}</Text>)}</Box>
+    <Box className="lm-backlink-branches" id={resultsId} hidden={!open}>{open && (groups.length ? groups.map(source => <SourceGroup key={source.id} source={source} collapsed={props.collapse} busy={props.busy} linkLabel={props.labels.link!} />) : <Text size="xs" c="dimmed" px="xs" py={4}>{props.labels.empty}</Text>)}</Box>
   </Box>;
 }
 /** Embedded contents inherit their panel/document surface; no outer card is painted here. */
@@ -65,8 +65,14 @@ export function BacklinksView({ props, theme }: { props: Props; theme: ReturnTyp
   const action = (key: string, icon: string, callback: () => void, pressed?: boolean, disabled = false) => <ActionIcon key={key} ref={key === "filterToggle" ? filterToggle : undefined} size="sm" variant="subtle" className="lm-focus" title={label(key)} aria-label={label(key)} aria-pressed={pressed} disabled={disabled} onClick={callback}><Icon name={icon} /></ActionIcon>;
   return <Box className="lm-backlinks" data-inline={props.inline} style={theme.contentStyle}>
     <ToolPanelHeader title={props.title} />
-    {!props.inline && props.note && <Text size="xs" c="dimmed" px="xs" title={props.note} style={{ overflowWrap: "anywhere" }}>{props.note}</Text>}
-    <Group className="lm-backlink-toolbar" gap={4} wrap="wrap">
+    <Group className="lm-explorer-actions lm-backlink-toolbar" gap={4} wrap="wrap">
+      <ViewportMenu position="bottom-start" offset={4} returnFocus>
+        <Menu.Target><ActionIcon variant="subtle" className="lm-focus" title={label("sort")} aria-label={label("sort")}><Icon name="sort" /></ActionIcon></Menu.Target>
+        <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu">
+          {([["name", "name"], ["name-desc", "nameDesc"], ["modified-desc", "newest"], ["modified-asc", "oldest"]] as const).map(([value, key]) =>
+            <Menu.Item key={value} aria-current={props.sort === value ? "true" : undefined} rightSection={props.sort === value ? <Icon name="check" /> : undefined} onClick={() => props.onSort(value)}>{label(key)}</Menu.Item>)}
+        </Menu.Dropdown>
+      </ViewportMenu>
       {action("collapse", "expand-all", props.onCollapse, props.collapse)}
       {action("context", "editor", props.onContext, props.more)}
       {action("filterToggle", "search", props.onFilter, props.filterVisible)}
@@ -74,9 +80,7 @@ export function BacklinksView({ props, theme }: { props: Props; theme: ReturnTyp
       {action("pin", "backlinks", props.onPin, undefined, !props.note)}
       {action("inDocument", "outline", props.onInline, props.inDocument, props.preferencesDisabled)}
     </Group>
-    <Box px="xs" pb={4}><SettingsSelect aria-label={label("sort")} value={props.sort} disabled={false} onChange={props.onSort} options={[
-      { value: "name", label: label("name") }, { value: "name-desc", label: label("nameDesc") }, { value: "modified-desc", label: label("newest") }, { value: "modified-asc", label: label("oldest") },
-    ]} /></Box>
+    {!props.inline && props.note && <Text className="lm-backlink-note" size="xs" c="dimmed" title={props.note} style={{ overflowWrap: "anywhere" }}>{props.note}</Text>}
     {props.filterVisible && <Box px="xs" pb={4}><TextInput size="sm" aria-label={label("filter")} placeholder={label("filter")} title={label("hint")} value={props.query}
       onKeyDown={event => {
         if (event.key === "Escape" && !event.nativeEvent.isComposing) {
