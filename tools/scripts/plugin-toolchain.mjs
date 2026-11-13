@@ -4,7 +4,6 @@ import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
 import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
-import { packagePath } from './boundaries.mjs';
 
 const workspace = fileURLToPath(new URL('../../', import.meta.url));
 export async function npmCliPath() {
@@ -39,6 +38,7 @@ export async function packWorkspace(npm, sourceDirectory, destination) {
 
 /** Local packed distribution only. No registry publication or source-directory links. */
 export async function prepareEmbeddedToolchain({ build = true, output } = {}) {
+  const { packagePath } = await import('./boundaries.mjs');
   const npm = await npmCliPath();
   const scopes = (await readdir(path.join(workspace, 'packages'), { withFileTypes: true })).filter(entry => entry.isDirectory() && entry.name !== 'cli').map(entry => entry.name).sort();
   const roots = [...scopes.map(scope => path.join('packages', scope)), packagePath('logger'), packagePath('quickjs-execution'), packagePath('development')];
