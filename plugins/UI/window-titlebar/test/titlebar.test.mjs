@@ -54,11 +54,11 @@ test('real titlebar remains above selector and Workspace, tracks API titles, the
     assert.equal(header.querySelector('.lm-window-titlebar-title').textContent, 'A very long document title — Lunaris');
     header.querySelector('[aria-label=Maximize]').click(); await flush(); assert.ok(header.querySelector('[aria-label=Restore]'));
     await s.focus(false); assert.equal(header.dataset.focused, 'false');
-    const names = s.tools.themes.list(); const luna = names.find(item => /Luna/.test(item.name));
     const captionRoot = header.closest('.lm-root');
     assert.equal(captionRoot.dataset.presentation, 'standalone');
     assert.equal(captionRoot.style.backgroundColor, 'rgb(15, 15, 15)');
-    assert.ok(luna); s.tools.themes.select(luna.id); await flush(); assert.equal(header.dataset.chrome, 'true');
+    assert.equal(s.tools.themes.select('lunaris.base-theme-engine.windows-xp').ok, true);
+    await flush(); assert.equal(header.dataset.chrome, 'true');
     const chromeStyle = s.dom.window.getComputedStyle(header);
     for (const side of ['Top', 'Right', 'Bottom', 'Left']) assert.equal(chromeStyle['margin' + side], '0px', 'Native-style caption must reach every edge of its allocated region.');
     assert.equal(chromeStyle.borderRadius, '0px');
