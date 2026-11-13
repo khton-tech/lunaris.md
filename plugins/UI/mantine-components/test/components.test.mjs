@@ -1093,6 +1093,49 @@ test('HTML5 drag/drop passes the hovered folder to the controller without toggli
 });
 
 
+test('Explorer restores its root row when the startup viewport expands after revealing a document', async () => {
+  const s = await setup(); await s.start();
+  const { window } = s.dom;
+  let height = 0; let resize;
+  window.HTMLElement.prototype.getBoundingClientRect = () => new window.DOMRect(0, 0, 320, height);
+  globalThis.ResizeObserver = window.ResizeObserver = class {
+    constructor(callback) { this.callback = callback; }
+    observe(element) { if (element.classList.contains('lm-explorer-tree')) resize = () => this.callback([{ target: element, contentRect: element.getBoundingClientRect() }]); }
+    unobserve() {} disconnect() {}
+  };
+  try {
+    const props = explorerFixture({ workspace: { vaultId: 'a', vaultName: 'Test Vault' }, expanded: [], activePath: 'note.md', data: [
+      { id: 'folder', name: 'Folder', kind: 'directory', children: [] },
+      { id: 'note.md', name: 'Note.md', kind: 'file' },
+      { id: 'unnamed.md', name: 'Unnamed.md', kind: 'file' },
+    ] });
+    const mounted = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true); await settle();
+    const list = s.target.querySelector('[role=tree]').firstElementChild;
+    assert.ok(list.scrollTop > 0, 'The short startup viewport reveals the restored document.');
+    // Native layout clamps to zero when the complete tree fits; no scroll event
+    // is guaranteed if an early programmatic scroll was clamped before moving.
+    list.scrollTop = 0; height = 640;
+    const { flushSync } = await import('react-dom'); flushSync(resize); await settle();
+    assert.ok(s.target.querySelector('.lm-explorer-node[data-root]'), 'The root must render when the tree fits the final viewport.');
+    assert.equal(s.target.querySelectorAll('[role=treeitem]').length, 4);
+    assert.equal(list.scrollTop, 0);
+    assert.equal(s.target.querySelector('[data-active]').title, 'note.md');
+    const many = { ...props, data: [...props.data, ...Array.from({ length: 100 }, (_, index) => ({ id: `item-${index}.md`, name: `Item ${index}.md`, kind: 'file' }))] };
+    mounted.value.update(many); await settle();
+    Object.defineProperties(list, {
+      clientHeight: { configurable: true, get: () => height },
+      scrollHeight: { configurable: true, get: () => parseFloat(list.firstElementChild.style.height) },
+    });
+    list.scrollTop = 340; list.dispatchEvent(new window.Event('scroll')); await settle();
+    height = 720; flushSync(resize); await settle();
+    assert.equal(list.scrollTop, 340, 'A valid user scroll offset must survive panel resizing.');
+    assert.equal(s.target.querySelector('[role=tree]').firstElementChild, list);
+    mounted.value.update(props); await settle();
+    assert.equal(list.scrollTop, 0, 'A shorter tree clamps scrolling to its valid range.');
+    assert.ok(s.target.querySelector('.lm-explorer-node[data-root]'));
+  } finally { await s.stop(); }
+});
+
 test('explorer uses the shared panel heading and protects the visible Vault root', async () => {
   const s = await setup(); await s.start(); const calls = [];
   s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 320);

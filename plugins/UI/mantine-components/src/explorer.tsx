@@ -229,6 +229,14 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
       if ([...api.selectedIds].sort().join("\n") !== [...props.selection].sort().join("\n")) api.setSelection({ ids: props.selection, anchor: props.selection[0] ?? null, mostRecent: props.selection.at(-1) ?? null });
     } finally { synchronizing.current = false; }
   }, [props.selection, props.expanded, props.data]);
+  useLayoutEffect(() => {
+    const api = tree.current; if (!api) return;
+    // Native layout can clamp scrolling without notifying react-window when a
+    // hidden startup panel expands or its tree shrinks. Reconcile the virtual
+    // offset through Arborist's public API so rows above it are not omitted.
+    const maximum = Math.max(0, api.visibleNodes.length * size.row - api.height);
+    api.scrollToOffset(Math.min(api.scrollOffset, maximum));
+  }, [size.height, size.row, data, props.expanded, props.loading]);
   useEffect(() => {
     // Arborist's mount effect clears its uncontrolled selection. Restore the
     // controller snapshot afterwards without treating that reset as user input.

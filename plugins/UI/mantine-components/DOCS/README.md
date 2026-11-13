@@ -1,5 +1,24 @@
 # Mantine components
 
+## Explorer startup viewport (2026-11-13)
+
+Reference: the Owner's screenshot showing an empty root-row allocation above
+visible files after startup. Workspace owns panel geometry; the Files role owns
+its virtual tree viewport. Restoring an active document while the panel is hidden
+can leave react-window with an offset calculated for a one-pixel viewport. Native
+layout later clamps the scroll position, but the virtual range can remain stale
+and omit the protected Vault root.
+
+After viewport, row-size or tree changes, the renderer reconciles the current
+scroll offset to the valid range through Arborist's public API. Valid user scroll
+positions, input identity and focus are retained. The root stays an ordinary tree
+row and can scroll out of view normally. No SDK or consumer changes are required;
+integration remains through Workspace allocation and the File Explorer role.
+Regression coverage reproduces the missing root before the correction, then
+checks startup expansion, manual scroll preservation and a shortened tree. Native
+acceptance: restart with an active file and confirm the root name/disclosure is
+visible when the tree fits, including after opening Files from a hidden panel.
+
 ## Form feedback and cancellation (2026-11-13)
 
 Settings rows own their external descriptions and errors. Their Mantine inputs,
