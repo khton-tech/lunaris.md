@@ -22,6 +22,21 @@ export async function command(args, cwd = workspace, env = process.env) {
   });
 }
 
+export async function packWorkspace(npm, sourceDirectory, destination) {
+  const metadata = JSON.parse(await readFile(path.join(sourceDirectory, 'package.json'), 'utf8'));
+  const prefix = path.join(tmpdir(), 'lunaris-packed-sdk-'); const stage = await mkdtemp(prefix);
+  try {
+    await cp(path.join(sourceDirectory, 'dist'), path.join(stage, 'dist'), { recursive: true });
+    await writeFile(path.join(stage, 'package.json'), JSON.stringify({ ...metadata, files: ['dist'] }));
+    const result = JSON.parse(await command([npm, 'pack', stage, '--ignore-scripts', '--json', '--pack-destination', destination]));
+    const file = result[0].filename; const bytes = await readFile(path.join(destination, file));
+    return { name: metadata.name, version: metadata.version, file, sha256: createHash('sha256').update(bytes).digest('hex'), dependencies: metadata.dependencies ?? {} };
+  } finally {
+    if (!path.resolve(stage).startsWith(prefix)) throw Error('Unsafe toolchain staging cleanup path.');
+    await rm(stage, { recursive: true, force: true });
+  }
+}
+
 /** Local packed distribution only. No registry publication or source-directory links. */
 export async function prepareEmbeddedToolchain({ build = true, output } = {}) {
   const npm = await npmCliPath();
@@ -30,24 +45,10 @@ export async function prepareEmbeddedToolchain({ build = true, output } = {}) {
   await command(['node_modules/typescript/bin/tsc', '-b', ...(build ? ['packages/cli'] : []), ...roots]);
   const embedded = path.join(workspace, 'packages/cli/dist/toolchain'); await mkdir(embedded, { recursive: true });
   const index = { formatVersion: 1, packages: {} };
-  const pack = async (root, destination) => {
-    const metadata = JSON.parse(await readFile(path.join(workspace, root, 'package.json'), 'utf8'));
-    const prefix = path.join(tmpdir(), 'lunaris-packed-sdk-'); const stage = await mkdtemp(prefix);
-    try {
-      await cp(path.join(workspace, root, 'dist'), path.join(stage, 'dist'), { recursive: true });
-      await writeFile(path.join(stage, 'package.json'), JSON.stringify({ ...metadata, files: ['dist'] }));
-      const result = JSON.parse(await command([npm, 'pack', stage, '--ignore-scripts', '--json', '--pack-destination', destination]));
-      const file = result[0].filename; const bytes = await readFile(path.join(destination, file));
-      return { version: metadata.version, file, sha256: createHash('sha256').update(bytes).digest('hex'), dependencies: metadata.dependencies ?? {} };
-    } finally {
-      if (!path.resolve(stage).startsWith(prefix)) throw Error('Unsafe toolchain staging cleanup path.');
-      await rm(stage, { recursive: true, force: true });
-    }
-  };
   for (const root of roots) {
-    const metadata = JSON.parse(await readFile(path.join(workspace, root, 'package.json'), 'utf8'));
-    const tool = ['kernel', 'test', 'lup', 'execution', 'lime', 'logger', 'quickjs-execution', 'development'].includes(metadata.name.slice('@lunaris/'.length));
-    index.packages[metadata.name] = { ...await pack(root, embedded), kind: tool ? 'tool' : 'sdk' };
+    const { name, ...archive } = await packWorkspace(npm, path.join(workspace, root), embedded);
+    const tool = ['kernel', 'test', 'lup', 'execution', 'lime', 'logger', 'quickjs-execution', 'development'].includes(name.slice('@lunaris/'.length));
+    index.packages[name] = { ...archive, kind: tool ? 'tool' : 'sdk' };
   }
   await writeFile(path.join(embedded, 'index.json'), JSON.stringify(index, null, 2) + '\n');
   await copyFile(path.join(workspace, 'DOCS/guides/plugin-authoring.md'), path.join(embedded, 'authoring.md'));
@@ -55,7 +56,8 @@ export async function prepareEmbeddedToolchain({ build = true, output } = {}) {
   if (output) {
     const destination = path.resolve(output); const artifacts = path.join(destination, 'packages'); await mkdir(artifacts, { recursive: true });
     for (const entry of Object.values(index.packages)) await copyFile(path.join(embedded, entry.file), path.join(artifacts, entry.file));
-    const cli = await pack('packages/cli', artifacts); const all = { ...index.packages, '@lunaris/cli': cli };
+    const { name, ...cli } = await packWorkspace(npm, path.join(workspace, 'packages/cli'), artifacts);
+    const all = { ...index.packages, [name]: cli };
     const dependencies = Object.fromEntries(Object.entries(all).map(([name, entry]) => [name, `file:./packages/${entry.file}`]));
     const overrides = Object.fromEntries(Object.keys(all).map(name => [name, `$${name}`]));
     await writeFile(path.join(destination, 'package.json'), JSON.stringify({ name: 'lunaris-plugin-toolchain', version: '0.1.0', private: true, dependencies, overrides, engines: { node: '>=26.13.0 <27', npm: '>=11 <12' } }, null, 2) + '\n');
