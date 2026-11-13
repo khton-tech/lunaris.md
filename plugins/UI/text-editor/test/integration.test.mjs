@@ -1462,7 +1462,7 @@ test('backlinks compose with editor buffers, footer, pinned screen and undoable 
     root.querySelector('[aria-label="Show search filter"]').click(); await flush();
     assert.ok(root.querySelector('input[aria-label="Search mentions"]'));
     root.querySelector('[aria-label="Sort order"]').click(); await flush();
-    assert.ok(root.querySelector('[role="listbox"]')); assert.equal(root.querySelector('select'),null);
+    assert.ok(s.dom.window.document.getElementById(root.querySelector('[role="combobox"]').getAttribute('aria-controls')).closest('.lm-dropdown-overlay')); assert.equal(root.querySelector('select'),null);
     root.querySelector('[aria-label="Backlinks in document"]').click(); await flush();
     assert.ok(s.target.querySelector('.lm-text-editor .lm-backlinks[data-inline="true"]'));
     root.querySelector('[aria-label="Open backlinks for this note"]').click(); await flush();

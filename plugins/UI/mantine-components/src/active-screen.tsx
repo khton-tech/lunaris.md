@@ -1,5 +1,5 @@
 import { useId, useLayoutEffect, useRef } from "react";
-import { ActionIcon, Badge, Box, Tabs } from "@mantine/core";
+import { ActionIcon, Badge, Box, Tabs, useDirection } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import { Icon } from "./icons.js";
 import { useListReorder } from "./list-reorder.js";
@@ -54,6 +54,7 @@ export function activeScreenProps(value: ComponentProps): ScreenProps {
 }
 
 function WorkspaceTabs({ props, panelId }: { props: TabProps; panelId: string }) {
+  const { dir } = useDirection();
   const { list, drop, enabled: canReorder, start, handlers } = useListReorder("x", props.tabs, props.busy ? undefined : props.onReorder);
   const selected = props.tabs.find(tab => tab.id === props.selectedId);
   const selectedButton = () => list.current?.querySelector<HTMLButtonElement>('[role="tab"][aria-selected="true"]');
@@ -72,7 +73,7 @@ function WorkspaceTabs({ props, panelId }: { props: TabProps; panelId: string })
         }
       }}>
       <Tabs.List className="lm-workspace-tab-list" ref={list} aria-label={labels.tabs}>
-        {props.tabs.map(tab => <Box key={tab.id} role="presentation" className="lm-workspace-tab" mod={{ selected: tab.id === props.selectedId }}
+        {props.tabs.map((tab, index) => <Box key={tab.id} role="presentation" className="lm-workspace-tab" mod={{ selected: tab.id === props.selectedId }}
           data-workspace-tab-id={tab.id} data-reorder-id={tab.id} data-drop={drop?.id === tab.id ? drop.edge : undefined} data-sortable={canReorder || undefined}
           onAuxClick={event => {
             if (event.button !== 1) return;
@@ -82,7 +83,15 @@ function WorkspaceTabs({ props, panelId }: { props: TabProps; panelId: string })
           }}>
           <Tabs.Tab className="lm-workspace-tab-label lm-focus" classNames={{ tabSection: "lm-workspace-tab-section" }}
             value={tab.id} id={`${panelId}-${tab.id}`} aria-controls={panelId} disabled={props.busy}
-            title={tab.description} onPointerDown={event => start(event, event.currentTarget.parentElement!)} onKeyDown={event => {
+            aria-keyshortcuts={canReorder ? "Alt+ArrowLeft Alt+ArrowRight" : undefined}
+            title={tab.description} onPointerDown={event => start(event, event.currentTarget.parentElement!)} onKeyDownCapture={event => {
+              if (canReorder && event.altKey && (event.key === "ArrowLeft" || event.key === "ArrowRight")) {
+                event.preventDefault(); event.stopPropagation();
+                const step = (event.key === "ArrowRight" ? 1 : -1) * (dir === "rtl" ? -1 : 1);
+                const next = props.tabs[index + step];
+                if (next) props.onReorder?.(tab.id, next.id, step > 0 ? "after" : "before");
+              }
+            }} onKeyDown={event => {
               if (event.key === "Delete" && tab.closable && !props.busy) { event.preventDefault(); focusSelected(props.onClose(tab.id)); }
             }} rightSection={tab.extension && <Badge className="lm-workspace-tab-extension" size="xs" radius="xl" variant="light">{tab.extension}</Badge>}>
             {tab.title}

@@ -1,5 +1,17 @@
 # Mantine components
 
+## Navigation and supporting tools (2026-11-13)
+
+Desktop tabs expose Alt+ArrowLeft/Right reordering through the same public callback
+as pointer dragging; busy state blocks both. Touch controls retain 44px targets.
+Backlinks follows the Files toolbar density, theme typography and semantic error
+color, with local scrolling in short panels. Its disclosures have explicit content
+relationships; collapse restores focus out of hidden results. Escape closes the
+filter, retains its query and returns focus to the filter control. Backlinks and
+callout chevrons use the same short theme transition and reduced-motion behavior.
+Controllers, document actions, ordering persistence and plugin dependencies are
+unchanged. Integration uses existing Active Screen, Backlinks and Callouts roles.
+
 ## Region and disclosure polish (2026-11-13)
 
 Reference: the current Workspace/Files composition and the normative region rules

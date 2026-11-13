@@ -23,7 +23,7 @@ export function CalloutHeader({ props, theme }: { props: Props; theme: ReturnTyp
     <Group component="span" gap={4} wrap="nowrap" align="flex-start">
       {props.foldable && <ActionIcon variant="subtle" size="xs" aria-label={props.toggleLabel} title={props.toggleLabel}
         aria-expanded={!props.collapsed} onClick={props.onToggle}>
-        <span style={{ display: "inline-flex", transform: props.collapsed ? undefined : "rotate(90deg)" }}><Icon name="expand" /></span>
+        <span className="lm-disclosure-icon" data-open={!props.collapsed || undefined}><Icon name="expand" /></span>
       </ActionIcon>}
       <UnstyledButton className="lm-callout-title" aria-label={props.editLabel + ": " + props.title} onClick={props.onEdit}>
         <Icon name={"callout-" + props.kind} /><span>{props.title}</span>

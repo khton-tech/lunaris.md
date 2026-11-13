@@ -381,6 +381,49 @@ test('busy workspace tabs block pointer, keyboard and middle-click actions and r
   await s.stop();
 });
 
+test('workspace tabs reorder from the keyboard without changing selection and obey busy state', async () => {
+  const s = await setup(); await s.start();
+  try {
+    const calls = []; const action = async () => true;
+    const props = { ids: ['one', 'two'], activeId: 'one', onTargets() {}, tabs: {
+      tabs: ['one', 'two'].map(id => ({ id, title: id, description: `${id}.md`, location: id, closable: true })),
+      selectedId: 'one', busy: false, error: '', canGoBack: false, canGoForward: false,
+      labels: { tabs: 'Tabs', add: 'Add', close: 'Close', back: 'Back', forward: 'Forward' },
+      onAdd: action, onSelect: action, onClose: action, onNavigate: action, onReorder: (...args) => calls.push(args),
+    } };
+    const mounted = s.components.mount('lunaris.active-screen', s.target, props, s.ctx.signal);
+    const tab = s.target.querySelector('[role=tab]'); tab.focus();
+    const reorder = () => tab.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'ArrowRight', altKey: true, bubbles: true, cancelable: true }));
+    reorder(); await settle(); assert.deepEqual(calls, [['one', 'two', 'after']]);
+    assert.equal(tab.getAttribute('aria-selected'), 'true'); assert.ok(s.dom.window.document.activeElement === tab, 'reordering retains focus on the moved tab');
+    mounted.value.update({ ...props, tabs: { ...props.tabs, busy: true } }); reorder(); await settle();
+    assert.equal(calls.length, 1); assert.equal(tab.hasAttribute('aria-keyshortcuts'), false);
+  } finally { await s.stop(); }
+});
+
+test('Backlinks disclosures identify their contents and retain focus when collapsing or hiding the filter', async () => {
+  const s = await setup(); await s.start();
+  try {
+    const props = { title: 'Backlinks', note: 'Note', inline: false, labels: {}, status: '', error: '', busy: false,
+      linked: [{ id: 'source.md', title: 'Source', count: 1, mentions: [{ id: 'mention', before: 'Before ', match: 'Note', after: ' after', line: 1, onOpen() {} }] }],
+      unlinked: [], query: 'Draft filter', sort: 'name', more: false, collapse: false, filterVisible: true, inDocument: false, preferencesDisabled: false,
+      onQuery() {}, onSort() {}, onContext() {}, onCollapse() {}, onFilter() { mounted.value.update({ ...props, filterVisible: false }); }, onRefresh() {}, onPin() {}, onInline() {} };
+    const mounted = s.components.mount('lunaris.backlinks', s.target, props, s.ctx.signal);
+    const input = s.target.querySelector('input'); input.focus();
+    input.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); await settle();
+    assert.equal(s.target.querySelector('input'), null);
+    assert.equal(s.dom.window.document.activeElement.getAttribute('aria-label'), 'filterToggle');
+    mounted.value.update(props); assert.equal(s.target.querySelector('input').value, 'Draft filter');
+    const result = s.target.querySelector('.lm-backlink-context'); result.focus();
+    const heading = s.target.querySelector('.lm-backlink-source .lm-backlink-heading');
+    mounted.value.update({ ...props, collapse: true }); await settle();
+    assert.equal(s.dom.window.document.activeElement, heading);
+    assert.equal(heading.getAttribute('aria-expanded'), 'false');
+    assert.equal(s.dom.window.document.getElementById(heading.getAttribute('aria-controls')).hidden, true);
+    assert.equal(s.target.querySelector('.lm-backlink-context'), null);
+  } finally { await s.stop(); }
+});
+
 test('settings roles escape labels, preserve borrowed targets and validate navigation and section identity', async () => {
   const s = await setup(); await s.start(); let targets;
   const props = { title: 'Example', emptyLabel: 'Empty', sections: [{ id: 'test.section', title: 'Controls' }], onTargets: value => { targets = value; } };
