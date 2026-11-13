@@ -1,8 +1,8 @@
 # Local server development
 
-Keep `lunaris.md` and `lunaris-server` as sibling directories. No server Git
-remote, source copying, container rebuild or web-bundle activation is needed for
-normal local development.
+Keep `lunaris.md` and `lunaris-server` as sibling directories to develop them
+together. The source workflow runs Vite and restarts the API when shared code
+changes. Deployment can consume [standalone artifacts](#standalone-delivery).
 
 ## Initial setup
 
@@ -75,6 +75,33 @@ The current GitHub workflow has no server source checkout because the server is
 local-only. It explicitly reports the absent server integration; full paired
 remote CI remains pending until a source distribution method is chosen. No
 remote repository, publication or production updater is configured here.
+
+## Standalone delivery
+
+From a clean `lunaris.md` checkout at the revision you want to deliver, run:
+
+```sh
+npm run server:artifacts -- ../lunaris-artifacts
+```
+
+Choose a new output directory for each release. The command builds the recorded
+Git revision in a temporary directory using the committed lockfile. Pass
+`--features files,editor` to select a smaller profile. The default includes
+`files`, `editor` and `settings`. Every profile requires `files` for Vault navigation.
+The `Server delivery artifacts` GitHub workflow also builds the default profile
+on demand and on `v*` tags. Download the workflow artifact as a directory with
+both `runtime/` and `web/`.
+
+- `runtime/` contains the locked npm packages needed by the server, including
+  their transitive dependencies. The server can install them offline.
+- `web/` contains the browser build and its release manifest with the protocol,
+  profile, source revision, lockfile hash and SHA-256 of each asset.
+
+Copy the output directory to the server or use it as the release input to the
+server's Docker build. From `lunaris-server`, use
+`npm run runtime:install -- PATH_TO_ARTIFACTS` for a native install, or
+`npm run docker:install -- --artifacts PATH_TO_ARTIFACTS` for Docker. The
+server's operations guide covers configuration, activation and rollback.
 
 ## Acceptance
 

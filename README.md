@@ -1,27 +1,26 @@
-# Lunaris core
+# Lunaris
 
-A TypeScript plugin runtime and public SDK for trusted local plugins. The local 0.1 candidate includes manifest validation, owned lifecycle, capability resolution, scoped API calls, events/hooks, revocable permissions, a deterministic test kit and local host/CLI.
-
-Start with [the first-plugin quickstart](DOCS/quickstart/first-plugin.md), [SDK reference](DOCS/reference/sdk.md) and [CLI reference](DOCS/reference/cli.md). [Contribution commands](DOCS/guides/contributing.md), [support/compatibility](DOCS/guides/compatibility.md), [execution plan](DOCS/CoreImplementationPlan.md) and [release evidence](DOCS/releases/0.1.0.md) describe actual scope and limits.
+Lunaris is a Markdown workspace with a plugin runtime and public TypeScript SDK.
+The browser and Tauri desktop app use the same product plugins and application host.
+The separate `lunaris-server` repository runs the HTTP API, manages accounts and
+Vaults, and serves versioned browser builds.
 
 ```sh
 npm ci
 npm run build
-npm run core -- --help
-npm run release:check
 ```
 
-Verified locally on Windows x64, Node 26.13.0/npm 11.20.0. Product UI/editor features, native drivers, remote distribution, untrusted-code isolation and standalone reference plugins are outside this candidate. Packages remain private and feature branches require Owner approval to merge.
+Use Node 26.13 or later within major 26 and npm 11. See the
+[development commands](DOCS/guides/contributing.md) for targeted checks.
 
-The first desktop host is now [Tauri with an independent recovery shell](DOCS/guides/tauri-host.md).
-Run `npm run tauri:check` for frontend/native checks, `npm run tauri:build` for a
-debug executable, and manually run `npm run tauri:dev` to open the application.
-The host installs the [Logger and DevTools sink](DOCS/reference/logging.md) and the
-[filesystem provider/Tauri driver](DOCS/reference/filesystem.md), prints the project
-artwork once per page load, and retains its system diagnostics and
-retry/plugin-exclusion controls. Vault Manager and Config Manager are implemented;
-the [localization service](DOCS/reference/localization.md) now supplies English-first
-catalogs for future product plugins. Recovery text keeps its independent English
-catalog. Run `npm run localization:check` for targeted service/host verification.
-No product editor view is installed yet. Run `npm run filesystem:check` for targeted
-file-service and native verification without opening windows.
+| Task | Command or guide |
+| --- | --- |
+| Run the browser and server together with live reload | `npm run dev:server` · [local server development](DOCS/guides/server-development.md) |
+| Run the desktop app | `npm run tauri:dev` · [Tauri setup](DOCS/guides/tauri-host.md) |
+| Build a standalone server delivery | `npm run server:artifacts -- ../lunaris-artifacts` · [server artifacts](DOCS/guides/server-development.md#standalone-delivery) |
+| Develop an installable plugin | `npm run toolchain:build` · [independent plugin authoring](DOCS/guides/plugin-authoring.md) |
+| Learn the runtime and public SDK | [first-plugin quickstart](DOCS/quickstart/first-plugin.md) · [SDK reference](DOCS/reference/sdk.md) |
+
+`packages/` contains the kernel, SDK, contracts and CLI. `hosts/application/`
+composes the product, with browser and Tauri entry points under `hosts/`.
+Built-in UI, services and drivers live under `plugins/`.

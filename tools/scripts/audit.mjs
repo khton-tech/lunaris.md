@@ -21,7 +21,7 @@ try {
       const pkg = JSON.parse(await readFile(path.join(root, 'package.json'), 'utf8'));
       assert.equal(pkg.private, true, `${scope} must remain private until separate publishing authorization`);
       const expectedExports = scope === 'web' ? [] : scope === 'application-host'
-        ? ['.', './session', './slots', './view', './scheduler', './shell.css']
+        ? ['.', './session', './slots', './view', './scheduler', './browser-input', './shell.css']
         : scope === 'mantine-components' ? ['.', './styles.css'] : ['.'];
       assert.deepEqual(Object.keys(pkg.exports ?? {}), expectedExports, `${scope} public exports changed`);
       for (const [subpath, target] of Object.entries(pkg.exports ?? {})) {
