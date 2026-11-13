@@ -2,6 +2,9 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import ts from 'typescript';
 
+const tauriDependencies = ['application-host', 'logging', 'mantine-components', 'sdk', 'tauri-credentials', 'tauri-filesystem', 'tauri-links', 'tauri-window', 'vault', 'window-provider', 'window-titlebar'];
+const tauriTestDependencies = ['base-theme-engine', 'component-provider', 'components', 'config-manager', 'filesystem', 'filesystem-provider', 'localization', 'localization-manager', 'runner', 'slot-dom', 'slot-provider', 'slots', 'startup', 'startup-provider', 'test', 'theme-provider', 'theme-settings', 'themes', 'vault-manager'];
+
 export const dependencies = {
   'external-links': ["sdk"],
   'external-links-provider': ["sdk","logging","external-links"],
@@ -98,7 +101,7 @@ export const dependencies = {
   test: ['sdk', 'kernel'],
   development: ['manifest', 'sdk', 'kernel', 'logging', 'logger', 'lup', 'execution', 'quickjs-execution', 'filesystem', 'vault'],
   cli: ['manifest', 'lup', 'sdk', 'kernel', 'test', 'development'],
-  tauri: ['tauri-links','tauri-credentials', 'application-host', 'window-titlebar', 'window-provider', 'tauri-window', 'vault', 'logging', 'text-editor', 'interface-settings', 'settings-provider', 'settings-plugin', 'active-screen-provider', 'active-screen-plugin', 'active-document', 'active-document-provider', 'context-menu-provider', 'file-explorer', 'sidebar-plugin', 'sidebar-provider', 'workspace-provider', 'workspace-plugin', 'runner', 'vault-selector', 'theme-settings', 'mantine-components', 'startup', 'startup-provider', 'base-theme-engine', 'theme-provider', 'component-provider', 'slot-provider', 'web-slot-driver', 'sdk', 'kernel', 'logger', 'dev-tools-logger', 'filesystem-provider', 'tauri-filesystem', 'vault-manager', 'vault-history', 'config-manager', 'localization-manager'],
+  tauri: [...tauriDependencies, ...tauriTestDependencies],
 };
 
 dependencies['application-host'].push('manifest', 'lime', 'execution', 'lime-manager', 'lime-settings', 'quickjs-execution', 'lup-picker', 'components');
@@ -174,7 +177,7 @@ export const packagePath = scope => {
 export function checkSource(source, filename, scope) {
   const errors = [];
   const tree = ts.createSourceFile(filename, source, ts.ScriptTarget.Latest, true);
-  const allowed = new Set(dependencies[scope].map(name => `@lunaris/${name}`));
+  const allowed = new Set((scope === 'tauri' ? tauriDependencies : dependencies[scope]).map(name => `@lunaris/${name}`));
   if (scope === 'tauri-window' && path.resolve(filename) === path.resolve('plugins/systems/driver/tauri-window/src/native.ts')) {
     allowed.add('@tauri-apps/api/core'); allowed.add('@tauri-apps/api/window');
   }
@@ -207,7 +210,7 @@ export function checkSource(source, filename, scope) {
     for (const name of ['react', 'react/jsx-runtime', 'react-dom', 'react-dom/client', '@mantine/core', 'lucide', 'react-arborist']) allowed.add(name);
   }
   if (scope === 'tauri' && path.resolve(filename) === path.resolve('hosts/tauri/src/application.ts')) allowed.add('@lunaris/mantine-components/styles.css');
-  if (scope === 'tauri') { allowed.add('@lunaris/application-host/session'); allowed.add('@lunaris/application-host/slots'); allowed.add('@lunaris/application-host/view'); }
+  if (scope === 'tauri') for (const subpath of ['session', 'slots', 'view', 'scheduler']) allowed.add(`@lunaris/application-host/${subpath}`);
   if (scope === 'web') for (const name of ['@lunaris/application-host/scheduler', '@lunaris/application-host/view', '@lunaris/application-host/shell.css', '@lunaris/mantine-components/styles.css']) allowed.add(name);
   if (scope === 'tauri' || scope === 'web') allowed.add('@lunaris/application-host/browser-input');
   function specifier(node) {

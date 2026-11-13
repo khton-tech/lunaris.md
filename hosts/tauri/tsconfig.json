@@ -17,130 +17,37 @@
   ],
   "references": [
     {
-      "path": "../../plugins/UI/base-theme"
+      "path": "../application"
     },
     {
-      "path": "../../plugins/UI/themes"
-    },
-    {
-      "path": "../../plugins/UI/components"
-    },
-    {
-      "path": "../../plugins/UI/layout"
-    },
-    {
-      "path": "../../plugins/systems/driver/web-slots"
-    },
-    {
-      "path": "../../plugins/systems/localization"
-    },
-    {
-      "path": "../../plugins/systems/config"
-    },
-    {
-      "path": "../../plugins/systems/vault"
-    },
-    {
-      "path": "../../plugins/systems/filesystem"
-    },
-    {
-      "path": "../../plugins/systems/driver/tauri-filesystem"
+      "path": "../../packages/logging"
     },
     {
       "path": "../../packages/sdk"
     },
     {
-      "path": "../../packages/kernel"
-    },
-    {
-      "path": "../../plugins/systems/logger"
-    },
-    {
-      "path": "../../plugins/systems/driver/dev-tools-logger"
-    },
-    {
-      "path": "../../packages/startup"
-    },
-    {
-      "path": "../../plugins/systems/startup"
-    },
-    {
-      "path": "../../plugins/UI/mantine-components"
-    },
-    {
-      "path": "../../plugins/UI/theme-settings"
-    },
-    {
-      "path": "../../plugins/UI/lunaris-runner"
-    },
-    {
-      "path": "../../plugins/systems/vault-history"
-    },
-    {
-      "path": "../../plugins/UI/vault-selector"
-    },
-    {
-      "path": "../../plugins/UI/workspace"
-    },
-    {
-      "path": "../../plugins/UI/workspace-content"
-    },
-    {
-      "path": "../../plugins/UI/sidebar"
-    },
-    {
-      "path": "../../plugins/UI/sidebar-tabs"
-    },
-    {
-      "path": "../../plugins/UI/file-explorer"
-    },
-    {
-      "path": "../../plugins/UI/context-menu"
-    },
-    {
-      "path": "../../packages/active-document"
-    },
-    {
-      "path": "../../plugins/systems/active-document"
-    },
-    {
-      "path": "../../plugins/UI/active-screen-provider"
-    },
-    {
-      "path": "../../plugins/UI/active-screen"
-    },
-    {
-      "path": "../../plugins/UI/settings-provider"
-    },
-    {
-      "path": "../../plugins/UI/settings"
-    },
-    {
-      "path": "../../plugins/UI/interface-settings"
-    },
-    {
-      "path": "../../plugins/UI/text-editor"
-    },
-    {
       "path": "../../packages/vault"
-    },
-    {
-      "path": "../../plugins/UI/window-titlebar"
-    },
-    {
-      "path": "../../plugins/systems/window"
-    },
-    {
-      "path": "../../plugins/systems/driver/tauri-window"
-    },
-    {
-      "path": "../application"
     },
     {
       "path": "../../plugins/systems/driver/tauri-credentials"
     },
     {
+      "path": "../../plugins/systems/driver/tauri-filesystem"
+    },
+    {
       "path": "../../plugins/systems/driver/tauri-links"
+    },
+    {
+      "path": "../../plugins/systems/driver/tauri-window"
+    },
+    {
+      "path": "../../plugins/systems/window"
+    },
+    {
+      "path": "../../plugins/UI/mantine-components"
+    },
+    {
+      "path": "../../plugins/UI/window-titlebar"
     }
   ]
 }

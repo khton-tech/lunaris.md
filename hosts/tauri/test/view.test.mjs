@@ -7,10 +7,12 @@ import { mountSystemView } from '../dist/view.js';
 import { readFileSync } from 'node:fs';
 import viteConfig from '../vite.config.ts';
 
+const shellCss = readFileSync(new URL(import.meta.resolve('@lunaris/application-host/shell.css')), 'utf8');
+
 test('the shell contains viewport overflow and hides scrollbar chrome without disabling content scrolling', () => {
   const dom = new JSDOM('<div id="system-root"><div class="diagnostics"></div></div><div id="application-root"><div class="application-surface"><div data-lunaris-slot="root" style="overflow:auto"></div></div></div>');
   const document = dom.window.document; const style = document.createElement('style');
-  style.textContent = readFileSync(new URL('../assets/shell.css', import.meta.url), 'utf8'); document.head.append(style);
+  style.textContent = shellCss; document.head.append(style);
   for (const node of [document.documentElement, document.body, document.getElementById('application-root'), document.querySelector('.application-surface')]) {
     assert.equal(dom.window.getComputedStyle(node).overflow, 'hidden');
   }
@@ -25,7 +27,7 @@ test('the shell contains viewport overflow and hides scrollbar chrome without di
 test('recovery button and focus styling cannot leak into product controls', () => {
   const dom = new JSDOM('<div id="system-root"><button>Recovery</button></div><div id="application-root"><button>Product</button></div>');
   const document = dom.window.document; const style = document.createElement('style');
-  style.textContent = readFileSync(new URL('../assets/shell.css', import.meta.url), 'utf8'); document.head.append(style);
+  style.textContent = shellCss; document.head.append(style);
   const recovery = document.querySelector('#system-root button'); const product = document.querySelector('#application-root button');
   assert.equal(dom.window.getComputedStyle(recovery).borderTopColor, 'rgb(188, 188, 188)');
   assert.notEqual(dom.window.getComputedStyle(product).borderTopColor, 'rgb(188, 188, 188)');
@@ -46,7 +48,11 @@ test('first HTML paint contains the runner artwork and hides recovery before Jav
   assert.equal(document.querySelector('#startup-root [role=status]').textContent, 'Loading application');
   const native = JSON.parse(readFileSync(new URL('../src-tauri/tauri.conf.json', import.meta.url), 'utf8'));
   assert.equal(native.app.windows[0].backgroundColor, '#0F0F0F');
-  const style = document.createElement('style'); style.textContent = readFileSync(new URL('../assets/shell.css', import.meta.url), 'utf8'); document.head.append(style);
+  const stylesheet = document.querySelector('link[rel=stylesheet]');
+  assert.ok(stylesheet, 'Recovery styles must load before the application script.');
+  const css = readFileSync(new URL(`..${stylesheet.getAttribute('href')}`, import.meta.url), 'utf8');
+  assert.match(css, /@import "@lunaris\/application-host\/shell\.css";/);
+  const style = document.createElement('style'); style.textContent = shellCss; document.head.append(style);
   assert.equal(dom.window.getComputedStyle(document.documentElement).backgroundColor, 'rgb(15, 15, 15)');
   assert.equal(dom.window.getComputedStyle(document.getElementById('startup-root')).backgroundColor, 'rgb(15, 15, 15)');
   dom.window.close();

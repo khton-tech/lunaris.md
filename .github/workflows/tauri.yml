@@ -3,15 +3,8 @@ on:
   pull_request:
     paths:
       - 'hosts/tauri/**'
-      - 'packages/kernel/**'
-      - 'packages/sdk/**'
-      - 'packages/manifest/**'
-      - 'packages/test/**'
-      - 'packages/logging/**'
-      - 'packages/themes/**'
-      - 'packages/slots/**'
-      - 'packages/slot-dom/**'
-      - 'packages/filesystem/**'
+      - 'hosts/application/**'
+      - 'packages/**'
       - 'plugins/**'
       - 'resources/ascii_art.txt'
       - 'tools/scripts/**'
@@ -22,6 +15,7 @@ on:
     branches: [main]
     paths:
       - 'hosts/tauri/**'
+      - 'hosts/application/**'
       - 'packages/**'
       - 'plugins/**'
       - 'resources/ascii_art.txt'
