@@ -1,5 +1,23 @@
 # Mantine components
 
+## Region and disclosure polish (2026-11-13)
+
+Reference: the current Workspace/Files composition and the normative region rules
+in `DOCS/UI_GUIDELINES.md`. This revision supersedes earlier borderless rail and
+enclosed main-area exceptions. Workspace owns floating supporting cards on desktop;
+the active main region has no decorative border, corners or shadow. The compact
+drawer remains flush to its allocated edge with a shared panel surface and one
+divider. Embedded Files does not repaint the panel even under Luna. Settings groups
+remain intentional local control surfaces, not duplicate application panels.
+
+The navigation rail uses one scroll region so both starting and trailing tools
+remain reachable in short windows. Stable borrowed targets, native splitter
+behavior and drawer motion are retained. Recent Vault rows wrap names and details
+at their own column width, and disclosure chevrons reflect expanded state with the
+theme's reduced-motion-aware transition. Integration uses existing Workspace,
+Sidebar, Files and selector roles. DOM ownership checks are automated; native
+desktop/compact spacing, long paths and short-height scrolling remain pending.
+
 ## Editor title interaction (2026-11-13)
 
 The existing editable title remains stable during saving. Escape cancels the draft

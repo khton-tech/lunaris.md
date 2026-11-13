@@ -84,7 +84,7 @@
 .lm-workspace-empty-icon svg { width:1em;height:1em }
 .lm-workspace-empty h2 { font:inherit;font-size:1.125em;font-weight:500;margin:0 }
 .lm-workspace-empty p { color:var(--vault-secondary);max-width:40ch }
-.lm-workspace-layout { --workspace-gap:calc(var(--vault-space)*2);--workspace-rail-width:56px;display:grid;grid-template-columns:0 minmax(0,1fr);position:relative;flex:1;min-height:0;overflow:hidden }
+.lm-workspace-layout { --workspace-gap:calc(var(--vault-space)*2);--workspace-rail-width:calc(44px + var(--workspace-gap)*2 + var(--vault-space));display:grid;grid-template-columns:0 minmax(0,1fr);position:relative;flex:1;min-height:0;overflow:hidden }
 .lm-workspace-layout[data-rail] { grid-template-columns:var(--workspace-rail-width) minmax(0,1fr) }
 .lm-workspace-content { grid-column:2;min-width:0;min-height:0;overflow:visible }
 .lm-workspace-panel-pane,.lm-workspace-main-pane { display:flex;min-width:0;min-height:0 }
@@ -92,45 +92,11 @@
 .lm-workspace-rail,.lm-workspace-panel,.lm-workspace-main { display:flex;flex-direction:column;min-height:0;overflow:auto }
 .lm-root .lm-workspace-card { background:var(--vault-panel);border-radius:var(--vault-radius);border:0;box-shadow:none }
 .lm-workspace-rail { grid-column:1;grid-row:1;margin:var(--workspace-gap) }
-.lm-workspace-layout:not([data-window-chrome]) .lm-workspace-rail {
-  margin:0;background:var(--vault-background);border-radius:0
-}
-.lm-workspace-layout:not([data-window-chrome]) .lm-workspace-panel {
-  margin:0;border:var(--vault-border) solid var(--vault-separator);border-block-end:0;
-  border-start-start-radius:var(--vault-radius);border-start-end-radius:var(--vault-radius);
-  border-end-start-radius:0;border-end-end-radius:0
-}
-.lm-workspace-layout:not([data-window-chrome],[data-compact]) .lm-workspace-main {
-  border-block-start:var(--vault-border) solid var(--vault-separator)
-}
-.lm-workspace-layout:is([data-panel],[data-rail]):not([data-window-chrome],[data-compact]) .lm-workspace-main {
-  border-start-start-radius:var(--vault-radius)
-}
-.lm-workspace-layout[data-bottom]:not([data-window-chrome],[data-compact]) .lm-workspace-main-pane {
-  background:color-mix(in srgb,var(--vault-panel) 40%,var(--vault-background))
-}
-.lm-workspace-layout[data-bottom]:not([data-window-chrome],[data-compact]) .lm-workspace-main {
-  border-block-end:var(--vault-border) solid color-mix(in srgb,var(--vault-separator) 65%,transparent);
-  border-end-start-radius:var(--vault-radius);border-end-end-radius:var(--vault-radius)
-}
-.lm-workspace-layout[data-panel][data-bottom]:not([data-window-chrome],[data-compact]) .lm-workspace-panel {
-  border-inline-end:0
-}
-.lm-workspace-layout[data-panel][data-bottom]:not([data-window-chrome],[data-compact]) .lm-workspace-main {
-  border-inline-start:var(--vault-border) solid var(--vault-separator);
-  border-block-end-color:var(--vault-separator)
-}
-.lm-workspace-layout[data-panel][data-bottom]:not([data-window-chrome],[data-compact]) .lm-workspace-content>.mantine-Splitter-handle {
-  margin-inline:calc(-0.5 * var(--splitter-line-size));z-index:2
-}
-.lm-workspace-layout:not([data-window-chrome],[data-compact]) .lm-workspace-bottom {
-  min-height:32px;margin:0;background:transparent;border-radius:0
-}
-.lm-workspace-layout:not([data-window-chrome],[data-compact]) .lm-sidebar-rail { padding:10px 0 }
-.lm-workspace-layout:not([data-window-chrome],[data-compact]) .lm-sidebar-tab { width:36px;height:36px;border-radius:6px }
+.lm-workspace-layout:not([data-window-chrome],[data-compact]) .lm-sidebar-rail { padding:calc(var(--vault-space)*2) calc(var(--vault-space)*0.5) }
+.lm-workspace-layout:not([data-window-chrome],[data-compact]) .lm-sidebar-tab { width:36px;height:36px;border-radius:var(--vault-radius-small) }
 .lm-workspace-panel { flex:1;margin-block:var(--workspace-gap) }
 .lm-workspace-layout:not([data-rail]) .lm-workspace-panel { margin-inline-start:var(--workspace-gap) }
-.lm-workspace-main { flex:1;background:var(--vault-content) }
+.lm-workspace-main { flex:1;background:var(--vault-content);border:0;border-radius:0;box-shadow:none }
 .lm-workspace-content>.mantine-Splitter-handle { background:transparent;flex-shrink:0 }
 .lm-workspace-content>.mantine-Splitter-handle::after { content:"";width:var(--vault-border);height:calc(100% - var(--workspace-gap)*2);background:transparent;transition:background-color var(--vault-motion-fast) var(--vault-motion-easing) }
 .lm-workspace-content>.mantine-Splitter-handle:hover::after,.lm-workspace-content>.mantine-Splitter-handle[data-active]::after { background:var(--vault-control-border) }
@@ -146,7 +112,7 @@
 .lm-workspace-layout[data-compact] .lm-workspace-content { grid-column:1 }
 .lm-workspace-layout[data-compact] .mantine-Splitter-handle { display:none }
 .lm-workspace-layout[data-compact] .lm-workspace-panel-pane { position:absolute;inset-block:0;left:var(--workspace-rail-width);width:calc(var(--workspace-drawer-width) - var(--workspace-rail-width));flex-direction:column;max-width:100%!important;overflow:hidden;z-index:7;background:var(--vault-background) }
-.lm-workspace-layout[data-compact] .lm-workspace-rail { position:absolute;inset-block:0;left:0;width:var(--workspace-rail-width);margin:0;z-index:7 }
+.lm-workspace-layout[data-compact] .lm-workspace-rail { position:absolute;inset-block:0;left:0;width:var(--workspace-rail-width);margin:0;border-radius:0;z-index:7 }
 .lm-workspace-layout[data-mobile-open] { --workspace-drawer-reveal:var(--workspace-drawer-width);--workspace-drawer-opacity:1 }
 .lm-workspace-layout[data-compact] :is(.lm-workspace-rail,.lm-workspace-panel-pane) {
   transform:translateX(calc(var(--workspace-drawer-reveal,0px) - var(--workspace-drawer-width)));
@@ -156,7 +122,7 @@
 .lm-workspace-layout:is([data-mobile-open],[data-mobile-dragging]) :is(.lm-workspace-rail,.lm-workspace-panel-pane) { visibility:visible;transition-delay:0s }
 .lm-workspace-layout[data-mobile-open] :is(.lm-workspace-rail,.lm-workspace-panel-pane) { pointer-events:auto }
 .lm-workspace-layout[data-compact] .lm-workspace-main-pane { flex:1 1 0%!important;max-width:100%!important }
-.lm-workspace-layout[data-compact] .lm-workspace-panel { margin:0 }
+.lm-workspace-layout[data-compact] .lm-workspace-panel { margin:0;border-radius:0;border-inline-start:var(--vault-border) solid var(--vault-separator) }
 .lm-workspace-backdrop {
   position:absolute;inset:0;z-index:6;background:color-mix(in srgb,var(--vault-background) 65%,transparent);
   opacity:var(--workspace-drawer-opacity,0);pointer-events:none;transition:opacity var(--vault-motion-normal) var(--vault-motion-easing)
@@ -223,10 +189,20 @@
 .lm-card-row .mantine-Button-inner { width:100%;justify-content:space-between;gap:calc(var(--vault-space)*3) }
 .lm-root .lm-card-row .mantine-Button-label { flex:1;text-align:start;white-space:nowrap;overflow:hidden;display:block }
 .lm-card-row .mantine-Button-section { flex-shrink:0;margin-inline:0 }
+.lm-card-row[aria-expanded] .mantine-Button-section[data-position=right] { transition:transform var(--vault-motion-fast) var(--vault-motion-easing) }
+.lm-card-row[aria-expanded=true] .mantine-Button-section[data-position=right] { transform:rotate(90deg) }
+.lm-root .lm-card-row[aria-current=true]:enabled:hover:not(:active) { background:var(--vault-selection) }
 .lm-card-content { display:flex;align-items:baseline;gap:calc(var(--vault-space)*2) }
 .lm-card-name,.lm-card-detail { overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
 .lm-card-content[data-with-detail] .lm-card-name { flex:0 1 auto;max-width:60% }
 .lm-card-detail { flex:1;color:var(--vault-secondary);font-size:var(--mantine-font-size-xs);font-weight:400 }
+.ln-vault-recents,.lm-account-vaults { container-type:inline-size }
+@container(max-width:28rem) {
+  .lm-card-content[data-with-detail] { flex-direction:column;align-items:stretch;gap:var(--vault-space) }
+  .lm-card-content[data-with-detail] .lm-card-name { max-width:100%;white-space:normal;overflow-wrap:anywhere }
+  .lm-card-content[data-with-detail] .lm-card-detail { white-space:normal;overflow-wrap:anywhere }
+}
+@media(prefers-reduced-motion:reduce) { .lm-card-row[aria-expanded] .mantine-Button-section[data-position=right] { transition:none } }
 .ln-vault-disclosure { display:grid;grid-template-rows:0fr;opacity:0;visibility:hidden;transition:grid-template-rows var(--vault-motion-normal) var(--vault-motion-easing),opacity var(--vault-motion-normal) var(--vault-motion-easing),visibility var(--vault-motion-normal) }
 .ln-vault-action[data-open=true] .ln-vault-disclosure { grid-template-rows:1fr;opacity:1;visibility:visible }
 .ln-vault-disclosure-body { overflow:hidden;min-height:0 }
@@ -437,8 +413,8 @@
 .lm-workspace-tab-error { padding-inline:calc(var(--vault-space)*3);color:var(--vault-error);overflow-wrap:anywhere }
 .lm-workspace-tab-error-compact { padding-block-end:var(--workspace-dock-inset,0px);text-align:center }
 
-.lm-sidebar-rail { display:flex; flex-direction:column; gap:var(--vault-space); overflow:hidden }
-.lm-sidebar-start { flex:0 1 auto; min-height:0; overflow:auto }
+.lm-sidebar-rail { display:flex; flex-direction:column; gap:var(--vault-space); overflow:auto;overscroll-behavior:contain }
+.lm-sidebar-start { flex:0 0 auto; min-height:0 }
 .lm-sidebar-end { margin-block-start:auto; padding-block-start:var(--vault-space); flex-shrink:0 }
 .lm-sidebar-end:empty { display:none }
 
@@ -625,7 +601,7 @@
    each embedded role only adapts its own heading, controls and local content. */
 .lm-workspace-layout[data-window-chrome] { padding:3px;background:var(--vault-panel);border:1px solid var(--vault-frame-color);border-radius:7px 7px 0 0;--workspace-gap:4px;--workspace-rail-width:52px }
 .lm-root .lm-workspace-card { box-shadow:var(--vault-surface-shadow,none) }
-.lm-root[data-window-chrome=true]>.lm-sidebar-rail { padding:6px }
+.lm-root[data-window-chrome=true]>.lm-sidebar-rail { padding:4px }
 .lm-root[data-window-chrome=true]>.lm-sidebar-rail .lm-sidebar-tab { border:1px solid transparent;border-radius:1px }
 .lm-root[data-window-chrome=true]>.lm-sidebar-rail .lm-sidebar-tab[aria-pressed=true] { box-shadow:var(--vault-inset-shadow);background:var(--vault-selection) }
 .lm-root[data-window-chrome=true]>.lm-settings-navigation>.lm-tool-panel-toolbar { padding:3px;background:var(--vault-caption-background);color:var(--vault-caption-text);margin:3px 3px 6px }
@@ -640,7 +616,7 @@
 .lm-root[data-window-chrome=true]>.lm-settings-items .lm-setting-select { text-align:start;padding-inline:6px 28px }
 .lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Input-section[data-position=left] { inset-inline-start:auto;inset-inline-end:2px;width:20px;inset-block:2px;box-shadow:var(--vault-surface-shadow);background:var(--vault-panel) }
 .lm-root[data-window-chrome=true]>.lm-explorer .lm-explorer-tabs { min-height:26px;border-radius:0;box-shadow:var(--vault-surface-shadow);background:var(--vault-panel) }
-.lm-root[data-window-chrome=true]>.lm-explorer .lm-explorer-tree { margin-inline:4px;box-shadow:var(--vault-inset-shadow);background:var(--vault-content) }
+.lm-root[data-window-chrome=true]>.lm-explorer .lm-explorer-tree { margin-inline:4px }
 
 .lm-account-access { --vault-row-height:calc(var(--vault-space)*12);--explorer-control-hover:color-mix(in srgb,var(--vault-hover) 35%,var(--vault-panel));--explorer-control-pressed:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel));display:flex;flex:1 1 0%;min-width:0;min-height:0;overflow:auto;padding:clamp(16px,5cqw,64px) }
 .lm-account-content { display:flex;flex-direction:column;gap:calc(var(--vault-space)*6);width:min(100%,48rem);margin:clamp(0px,5cqh,56px) auto auto;min-width:0 }
@@ -693,7 +669,7 @@
 
 /* Workspace owns the status region beneath main, alongside the full-height Files panel. */
 .lm-workspace-main-pane { flex-direction:column }
-.lm-workspace-bottom { display:flex;flex:0 0 auto;min-width:0;overflow:auto;margin:0 var(--workspace-gap) var(--workspace-gap) 0 }
+.lm-workspace-bottom { display:flex;flex:0 0 auto;min-width:0;overflow:auto;margin:var(--workspace-gap) var(--workspace-gap) var(--workspace-gap) 0 }
 
 .lm-status-bar {display:flex;flex:1 1 auto;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--vault-space) calc(var(--vault-space)*3);padding:var(--vault-space) calc(var(--vault-space)*2);min-width:0;user-select:none }
 .lm-status-bar span { font-size:inherit;line-height:1.4 }

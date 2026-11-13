@@ -1220,7 +1220,7 @@ test('Workspace leaves Tab and Shift+Tab to embedded controls and sibling views'
  sibling.remove(); await s.stop();
 });
 
-test('compact sidebar shares desktop region surfaces with embedded Files and navigation', async () => {
+test('Workspace owns supporting cards and an open main region across desktop and compact compositions', async () => {
  const s = await setup(); await s.start();
  const original = s.dom.window.HTMLElement.prototype.getBoundingClientRect;
  let width = 900;
@@ -1244,9 +1244,16 @@ test('compact sidebar shares desktop region surfaces with embedded Files and nav
    assert.equal(rail.ok, true); assert.equal(files.ok, true); await settle();
    const panelStyle = s.dom.window.getComputedStyle(targets['left-panel']);
    const railStyle = s.dom.window.getComputedStyle(targets['left-rail']);
-   assert.equal(railStyle.margin, '0px');
-   assert.equal(panelStyle.margin, '0px');
-   surfaces.push([railStyle.borderRadius, panelStyle.borderEndStartRadius, panelStyle.borderEndEndRadius]);
+   if (width < 640) {
+    assert.equal(railStyle.margin, '0px'); assert.equal(panelStyle.margin, '0px');
+    assert.equal(railStyle.borderRadius, '0px'); assert.equal(panelStyle.borderRadius, '0px');
+   } else {
+    assert.notEqual(railStyle.margin, '0px'); assert.notEqual(railStyle.borderRadius, '0px');
+   }
+   surfaces.push([railStyle.backgroundColor, panelStyle.backgroundColor]);
+   const mainStyle = s.dom.window.getComputedStyle(targets.main);
+   assert.equal(mainStyle.borderTopWidth, '0px'); assert.equal(mainStyle.borderRadius, '0px'); assert.equal(mainStyle.boxShadow, 'none');
+   assert.equal(s.dom.window.getComputedStyle(targets['left-rail'].querySelector('.lm-sidebar-rail')).overflow, 'auto');
    assert.equal(targets['left-panel'].querySelector('.lm-root').style.backgroundColor, 'transparent');
    assert.equal(targets['left-rail'].querySelector('.lm-root').style.backgroundColor, 'transparent');
    assert.ok(targets['left-panel'].querySelector('[role=treeitem]'));
