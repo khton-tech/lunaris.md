@@ -157,7 +157,7 @@
 .lm-root .mantine-Button-inner { min-width:0;height:auto }
 .lm-root .mantine-Button-label { height:auto;overflow:visible;white-space:normal;overflow-wrap:anywhere }
 .lm-root .lm-button:enabled:active { background:var(--vault-selection) }
-.lm-root .lm-button[data-variant=filled]:enabled:active { background:var(--vault-accent-hover);color:var(--vault-on-accent) }
+.lm-root .lm-button[data-variant=filled]:enabled:active { background:var(--vault-accent);color:var(--vault-on-accent) }
 .lm-root .lm-focus:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset) }
 .lm-root .lm-sidebar-rail .lm-sidebar-tab:focus-visible { outline-offset:calc(-1 * var(--vault-focus-width)) }
 .lm-root .lm-button:disabled { cursor:default }
@@ -719,6 +719,7 @@
 .lm-settings-items .mantine-Switch-input:disabled+.mantine-Switch-track { --switch-bg:var(--vault-selection);border-color:var(--vault-secondary);cursor:default }
 .lm-settings-items .mantine-Switch-input:disabled+.mantine-Switch-track .mantine-Switch-thumb { background:var(--vault-secondary) }
 .lm-settings-items .mantine-Switch-input:focus-visible+.mantine-Switch-track { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset) }
+.lm-settings-items .mantine-Switch-input[aria-invalid=true]+.mantine-Switch-track { border-color:var(--vault-error) }
 
 /* Each role adapts only its owned controls, never a borrowed region surface. */
 .lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Switch-track { border-radius:var(--vault-radius);box-shadow:var(--vault-inset-shadow) }

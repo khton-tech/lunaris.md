@@ -38,13 +38,15 @@ function SettingRow({ item, onChange, onRetry, onReset, withinPortal }: { item: 
   const describedBy = [item.description ? descriptionId : "", item.error ? errorId : ""].filter(Boolean).join(" ") || undefined;
   const staticValue = item.type === "select" && item.options.length === 1 && item.options[0]!.value === item.value;
   const shared = { id, "aria-label": item.title, "aria-describedby": describedBy, "aria-invalid": !!item.error, disabled: !!item.disabled };
+  // Labels and feedback belong to this row, outside Mantine's local Input.Wrapper.
+  const fieldAttributes = { input: { "aria-describedby": describedBy, "aria-invalid": !!item.error } };
   let control;
   switch (item.type) {
     case "select": control = staticValue ? <Text className="lm-setting-static-value" size="sm" aria-describedby={describedBy}>{item.options[0]!.label}</Text> :
       <SettingsSelect {...shared} withinPortal={withinPortal} value={item.value} options={item.options} disabled={!!item.disabled || !item.options.length} onChange={value => onChange(item.id, value)} />; break;
-    case "switch": control = <Switch {...shared} checked={item.value} onChange={event => onChange(item.id, event.currentTarget.checked)} />; break;
-    case "text": control = <TextInput {...shared} size="sm" classNames={{ input: "lm-input lm-setting-input" }} value={item.value} placeholder={item.placeholder} onChange={event => onChange(item.id, event.currentTarget.value)} />; break;
-    case "number": control = <NumberInput {...shared} size="sm" classNames={{ input: "lm-input lm-setting-input" }} value={item.value} {...(item.min === undefined ? {} : { min: item.min })} {...(item.max === undefined ? {} : { max: item.max })} {...(item.step === undefined ? {} : { step: item.step })} onChange={value => { if (typeof value === "number" && Number.isFinite(value)) onChange(item.id, value); }} />; break;
+    case "switch": control = <Switch {...shared} attributes={fieldAttributes} checked={item.value} onChange={event => onChange(item.id, event.currentTarget.checked)} />; break;
+    case "text": control = <TextInput {...shared} attributes={fieldAttributes} size="sm" classNames={{ input: "lm-input lm-setting-input" }} value={item.value} placeholder={item.placeholder} onChange={event => onChange(item.id, event.currentTarget.value)} />; break;
+    case "number": control = <NumberInput {...shared} attributes={fieldAttributes} size="sm" classNames={{ input: "lm-input lm-setting-input" }} value={item.value} {...(item.min === undefined ? {} : { min: item.min })} {...(item.max === undefined ? {} : { max: item.max })} {...(item.step === undefined ? {} : { step: item.step })} onChange={value => { if (typeof value === "number" && Number.isFinite(value)) onChange(item.id, value); }} />; break;
     case "slider": control = <SettingsSlider item={item} id={id} describedBy={describedBy} onChange={onChange} />; break;
   }
   return <Box className="lm-setting-row" data-settings-item={item.id} data-type={item.type} data-layout={item.layout ?? "inline"}>

@@ -51,7 +51,12 @@ function ActionForm({ mode, props }: { mode: "create" | "select"; props: Selecto
       onClick={event => { props.onMode(mode); if (!expanded && event.detail === 0) browse.current?.focus({ preventScroll: true }); }} />
     <Box className="ln-vault-disclosure" aria-hidden={!expanded}>
       <Box className="ln-vault-disclosure-body">
-        <Paper component="form" className="ln-vault-form" ref={form} id={id} inert={!expanded} onSubmit={event => { event.preventDefault(); if (expanded && !props.busy && props.canContinue) props.onNext(); }}>
+        <Paper component="form" className="ln-vault-form" ref={form} id={id} inert={!expanded}
+          onKeyDown={event => {
+            if (event.key === "Escape" && !event.nativeEvent.isComposing && !event.defaultPrevented && expanded && !props.busy) {
+              event.preventDefault(); event.stopPropagation(); toggle.current?.focus({ preventScroll: true }); props.onMode(mode);
+            }
+          }} onSubmit={event => { event.preventDefault(); if (expanded && !props.busy && props.canContinue) props.onNext(); }}>
           <Stack gap="sm">
             <Input.Wrapper label={props.text.folder} id={`${id}-folder`}>
               <Input component="button" type="button" pointer ref={browse} id={`${id}-folder`}

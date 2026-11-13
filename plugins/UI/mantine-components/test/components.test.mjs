@@ -638,6 +638,43 @@ test('Settings dropdowns close with hidden borrowed regions and retain explicit 
   } finally { s.target.hidden = false; await s.stop(); }
 });
 
+test('Settings feedback stays associated with each control outside its Mantine input wrapper', async () => {
+  const s = await setup(); await s.start();
+  try {
+    const items = [
+      { id: 'select', title: 'Theme', type: 'select', value: 'a', options: [{ value: 'a', label: 'A' }, { value: 'b', label: 'B' }] },
+      { id: 'text', title: 'Name', type: 'text', value: '' },
+      { id: 'number', title: 'Size', type: 'number', value: 1 },
+      { id: 'switch', title: 'Enabled', type: 'switch', value: false },
+      { id: 'slider', title: 'Scale', type: 'slider', value: 1, min: 0, max: 2, step: 1 },
+    ].map(item => ({ ...item, description: `About ${item.title}`, error: `Cannot save ${item.title}` }));
+    const mounted = s.components.mount('lunaris.settings-items', s.target, { items, onChange() {}, onRetry() {} }, s.ctx.signal);
+    assert.equal(mounted.ok, true);
+    for (const item of items) {
+      const row = s.target.querySelector(`[data-settings-item="${item.id}"]`);
+      const control = row.querySelector('input, [role=combobox], [role=slider]');
+      assert.equal(control.getAttribute('aria-invalid'), 'true', item.type);
+      const describedBy = control.getAttribute('aria-describedby').split(' ').map(id => s.dom.window.document.getElementById(id)?.textContent);
+      assert.deepEqual(describedBy, [item.description, item.error], item.type);
+    }
+    mounted.value.update({ items: items.map(({ error, ...item }) => item), onChange() {}, onRetry() {} });
+    assert.equal(s.target.querySelector('[aria-invalid=true]'), null);
+  } finally { await s.stop(); }
+});
+
+test('Vault disclosure Escape restores its trigger and keeps the draft for reopening', async () => {
+  const s = await setup(); await s.start();
+  try {
+    const props = { ...selector, onMode() { mounted.value.update({ ...props, mode: null }); } };
+    const mounted = s.components.mount('lunaris.vault-selector', s.target, props, s.ctx.signal);
+    const form = s.target.querySelector('form:not([inert])'); const input = form.querySelector('input');
+    const trigger = s.target.querySelector(`[aria-controls="${form.id}"]`);
+    input.focus(); input.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); await settle();
+    assert.equal(form.hasAttribute('inert'), true); assert.ok(s.dom.window.document.activeElement === trigger);
+    mounted.value.update(props); assert.equal(input.value, 'Draft');
+  } finally { await s.stop(); }
+});
+
 test('prop validation preserves prior content, editable nodes, safe copy and focus during localized updates', async () => {
   const s = await setup(); await s.start(); let draft;
   const props = { ...selector, onName: value => { draft = value; } };
