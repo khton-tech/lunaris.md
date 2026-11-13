@@ -45,7 +45,10 @@ fn main() {
             ))));
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![filesystem_request, credentials_request])
+        .invoke_handler(tauri::generate_handler![
+            filesystem_request,
+            credentials_request
+        ])
         .run(tauri::generate_context!())
         .expect("Failed to run the Lunaris desktop host");
 }
