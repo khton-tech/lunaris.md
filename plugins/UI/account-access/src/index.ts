@@ -4,7 +4,7 @@ import { Logger, scopeLogger } from "@lunaris/logging";
 import { AccountAccess, AccountAccessChanged, AccountSession, AccountSessionChanged, AccountVaults } from "@lunaris/remote";
 import type { AccountAccessPlacement, RemoteVault, ServerInfo } from "@lunaris/remote";
 import { FilesystemSources } from "@lunaris/filesystem";
-import { Vault, VaultChanged, VaultLocations } from "@lunaris/vault";
+import { Vault, VaultChanged, VaultHistory, VaultLocations } from "@lunaris/vault";
 import { Components, ComponentsChanged } from "@lunaris/components";
 import type { MountedComponent } from "@lunaris/components";
 import { Slots } from "@lunaris/slots";
@@ -32,11 +32,13 @@ type Mode = "connect" | "login" | "register" | "vaults" | "trash";
 export function createAccountAccess(options: { readonly art?: string; readonly defaultOpen?: boolean; readonly defaultAddress?: string; readonly allowLocal?: boolean } = {}) {
   const provides = [AccountAccess, AccountAccessChanged];
   const requires = [Logger, AccountSession, AccountSessionChanged, AccountVaults, FilesystemSources, Vault, VaultChanged, VaultLocations, Components, ComponentsChanged, Slots, SlotDom, Localization, LocaleChanged, Startup, StartupChanged];
+  const restoreOnStartup = options.defaultOpen && options.defaultAddress && !options.allowLocal;
   return definePlugin({ manifest: { manifestVersion: 1, id: "lunaris.account-access", version: "0.1.0", engine: "^0.1.0", sdk: "^0.1.0", entry: "./dist/index.js",
-    provides: provides.map(t => ({ kind: t.kind, id: t.id, version: t.version })), requires: requires.map(t => ({ kind: t.kind, id: t.id, range: `^${t.version}` })),
+    provides: provides.map(t => ({ kind: t.kind, id: t.id, version: t.version })), requires: [...requires, ...(restoreOnStartup ? [VaultHistory] : [])].map(t => ({ kind: t.kind, id: t.id, range: `^${t.version}` })),
     permissions: ["account.access", "filesystem.access", "vault.access", "ui.dom"], optionalPermissions: [] }, activate(ctx) {
     const logger = scopeLogger(ctx.use(Logger), ctx.signal); const session = ctx.use(AccountSession); const vaults = ctx.use(AccountVaults); const sources = ctx.use(FilesystemSources);
     const active = ctx.use(Vault); const locations = ctx.use(VaultLocations); const components = ctx.use(Components); const slots = ctx.use(Slots); const targets = ctx.use(SlotDom);
+    const history = restoreOnStartup ? ctx.use(VaultHistory) : undefined;
     const localization = ctx.use(Localization); const startup = ctx.use(Startup);
     const registered = localization.register(ctx.pluginId, catalog, ctx.signal); if (!registered.ok) throw Error("Cannot register account messages.");
     let visible = options.defaultOpen ?? false; let mode: Mode = "connect"; let info: ServerInfo | null = null; let busy = false; let error = ""; let entries: readonly RemoteVault[] = []; let unavailable = false;
@@ -107,10 +109,26 @@ export function createAccountAccess(options: { readonly art?: string; readonly d
       if (busy || unavailable || ctx.signal.aborted) return; operationGeneration = viewGeneration; busy = true; placement?.onBusyChange?.(true); error = ""; render();
       void work().catch(failure => { if (isSdkUnavailable(failure)) { unavailable = true; return; } if (!stopped()) { if (catalogState === "loading") catalogState = "error"; error = "error"; logger.error(ctx.pluginId, "Account operation failed", { error: failure }); } }).finally(() => { busy = false; if (!ctx.signal.aborted) { placement?.onBusyChange?.(false); render(); } });
     }
-    async function connect() {
+    async function restoreLastVault() {
+      if (!history || active.current()) return;
+      const epoch = session.current()?.epoch;
+      const recent = await history.list({ refreshLocations: false });
+      if (stopped() || session.current()?.epoch !== epoch || active.current()) return;
+      const last = recent.ok ? recent.value[0] : undefined;
+      if (!last) return;
+      const opened = await history.open(last.location.reference);
+      if (stopped()) return;
+      if (opened.ok) logger.info(ctx.pluginId, "Last server Vault restored");
+      else logger.warn(ctx.pluginId, "Cannot restore last server Vault", { code: opened.error.code, error: opened.error });
+    }
+    async function connect(restore = false) {
       const result = await session.connect(fields.address, ctx.signal); if (stopped()) return;
       if (!result.ok) { error = errorKey(result.error.code); return; }
-      info = result.value; mode = session.current() ? "vaults" : "login"; if (mode === "vaults") await list();
+      info = result.value; mode = session.current() ? "vaults" : "login";
+      if (mode === "vaults") {
+        if (restore) await restoreLastVault();
+        if (!stopped() && session.current() && !active.current()) await list();
+      }
     }
     function submit() { run(async () => {
       if (mode === "connect") return connect();
@@ -147,7 +165,7 @@ export function createAccountAccess(options: { readonly art?: string; readonly d
     ctx.events.on(AccountSessionChanged, change => { listRevision++; entries = []; catalogState = "ready"; fields.password = ""; fields.invitation = ""; fields.name = ""; if (!change.current && mode !== "connect") mode = info ? "login" : "connect"; render(); });
     ctx.events.on(ComponentsChanged, change => { if (change.componentId === "lunaris.account-access") { if (change.kind === "removed") mounted = undefined; render(); } });
     ctx.events.on(LocaleChanged, render);
-    function loaded() { render(); if (visible && options.defaultAddress && !autoConnected && startup.snapshot().state === "loaded") { autoConnected = true; run(connect); } }
+    function loaded() { render(); if (visible && options.defaultAddress && !autoConnected && startup.snapshot().state === "loaded") { autoConnected = true; run(() => connect(true)); } }
     ctx.events.on(StartupChanged, loaded); loaded(); logger.info(ctx.pluginId, "Account access ready");
   } });
 }

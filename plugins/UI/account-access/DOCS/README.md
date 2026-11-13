@@ -17,6 +17,9 @@ server's registration policy controls the invitation field. Passwords remain
 ephemeral form state and are cleared after submission. Session changes clear old
 catalog entries before a new account can render. Browser defaults to the current
 server; desktop can return to the local selector without restarting.
+When browser startup restores an existing account session, the controller tries
+the most recent Vault from that account's history. The active catalog appears
+if the saved Vault is unavailable or there is no matching history.
 
 Catalog locations are wrapped through FilesystemSources.location('remote', ...)
 before VaultLocations.open, preserving existing preparation and release guards.

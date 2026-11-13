@@ -27,7 +27,8 @@ export type VaultHistoryResult<T> = { readonly ok: true; readonly value: T } | {
   readonly ok: false; readonly error: VaultFailure | { readonly code: "HISTORY_UNAVAILABLE"; readonly message: string };
 };
 export interface VaultHistoryApi {
-  list(): Promise<VaultHistoryResult<readonly RecentVault[]>>;
+  /** Return saved locations directly when only their references are needed. */
+  list(options?: { readonly refreshLocations?: boolean }): Promise<VaultHistoryResult<readonly RecentVault[]>>;
   open(reference: string): Promise<VaultHistoryResult<VaultRoot>>;
 }
 export function validRecentVault(value: unknown): value is RecentVault {

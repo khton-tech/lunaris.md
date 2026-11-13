@@ -79,7 +79,7 @@ test('real server browser composition recovers drafts, gates updates and retires
     } });
   const logs = [];
   const session = new HostSession({ scheduler: createWebviewScheduler(), async load() {
-    const definition = composeApplication(target, { art: 'Lunaris', mode: 'browser', buildId: initialBuild, extensions: { plugins: [bridge, slowConsumer], entrypoints: [bridge.manifest.id, slowConsumer.manifest.id], grants: { [bridge.manifest.id]: bridge.manifest.permissions, [slowConsumer.manifest.id]: slowConsumer.manifest.permissions } } });
+    const definition = composeApplication(target, { art: 'Lunaris', mode: 'browser', defaultServer: address, buildId: initialBuild, extensions: { plugins: [bridge, slowConsumer], entrypoints: [bridge.manifest.id, slowConsumer.manifest.id], grants: { [bridge.manifest.id]: bridge.manifest.permissions, [slowConsumer.manifest.id]: slowConsumer.manifest.permissions } } });
     return { ...definition, plugins: definition.plugins.map(plugin => plugin.manifest.id === 'lunaris.dev-tools-logger' ? createDevToolsLogger({ output: Object.fromEntries(['debug', 'info', 'warn', 'error'].map(level => [level, (...args) => logs.push(args)])) }) : plugin.manifest.id === 'lunaris.browser-navigation' ?
       createBrowserNavigation({ addEventListener: dom.window.addEventListener.bind(dom.window), removeEventListener: dom.window.removeEventListener.bind(dom.window), location: { reload() { reloaded++; } } }) : plugin) };
   } });
@@ -87,9 +87,6 @@ test('real server browser composition recovers drafts, gates updates and retires
   await session.start(); assert.equal(session.snapshot().phase, 'running', JSON.stringify(session.snapshot().incidents));
   assert.equal(api.themes.current()?.id, 'lunaris.base-theme-engine.monochrome');
   assert.equal(session.snapshot().kernel.plugins.some(p => p.manifest.id.includes('tauri')), false);
-  assert.ok(target.querySelector('.lm-account-access'));
-  typeInput(target.querySelector('.lm-account-access input[type=url]'), address);
-  target.querySelector('.lm-account-access form').dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true }));
   await until(() => target.querySelector('input[autocomplete="username"]'), `login form: ${networkError ?? ''}`);
   [...target.querySelectorAll('.lm-account-access button')].find(button => button.textContent === 'Create account').click();
   await until(() => target.querySelector('input[autocomplete="new-password"]'), 'registration form');
@@ -174,6 +171,23 @@ test('real server browser composition recovers drafts, gates updates and retires
   assert.equal((await api.history.list()).value.length, 0); assert.equal((await api.history.open(wrapped.value.reference)).error.code, 'NOT_FOUND');
   await api.account.logout(); await api.account.login('alice', 'correct horse battery staple');
   assert.ok((await api.history.list()).value.some(entry => entry.location.reference === wrapped.value.reference));
+  const other = await api.catalog.create('Second Vault');
+  assert.equal(other.ok, true);
+  const secondLocation = api.sources.location('remote', other.value.location);
+  assert.equal((await api.locations.open(secondLocation.value)).ok, true);
+  await until(async () => (await api.history.list({ refreshLocations: false })).value[0]?.location.reference === secondLocation.value.reference, 'last Vault persisted');
+  await session.stop();
+  await session.start();
+  await until(() => api.vault.current()?.name === 'Second Vault', 'last Vault restored on browser startup');
+  assert.equal(api.sources.remoteIdentity(api.vault.current().id).value.vaultId, other.value.id);
+  await session.stop();
+  const trashed = await globalThis.fetch(`${address}/api/v1/vaults/${other.value.id}/trash`, {
+    method: 'POST', headers: { 'content-type': 'application/json', 'x-lunaris-request': '1' }, body: '{}',
+  });
+  assert.equal(trashed.status, 200);
+  await session.start();
+  await until(() => target.querySelector('.lm-account-row')?.textContent.includes('Web notes'), 'catalog fallback for last Vault in trash');
+  assert.equal(api.vault.current(), null);
   holdReads = true; holdShutdown = true;
   assert.equal((await api.locations.open(wrapped.value)).ok, true);
   await until(() => readEntered, 'pending note read');

@@ -89,12 +89,14 @@ export default definePlugin({ manifest, activate(ctx) {
     // Do not await observers from the serialized queue: they may call list/open.
   });
   ctx.provide(VaultHistory, {
-    async list() {
+    async list(options) {
       await queue;
       const result = await read();
       if (!result.ok) return result;
       const entries: RecentVault[] = [];
-      for (const entry of visible(result.value)) {
+      const saved = visible(result.value);
+      if (options?.refreshLocations === false) return { ok: true, value: saved };
+      for (const entry of saved) {
         if (ctx.signal.aborted) return { ok: false, error: { code: "STOPPED", message: "The history provider is stopped." } };
         const described = await locations.describe(entry.location.reference);
         if (ctx.signal.aborted) return { ok: false, error: { code: "STOPPED", message: "The history provider is stopped." } };
