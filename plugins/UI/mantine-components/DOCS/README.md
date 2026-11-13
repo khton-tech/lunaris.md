@@ -5,7 +5,7 @@
 Settings rows own their external descriptions and errors. Their Mantine inputs,
 comboboxes and switches explicitly retain these ARIA relationships through the
 public Styles API, rather than letting a local Input.Wrapper replace them. Error
-boundaries use the semantic error color. Vault create/open disclosures handle Escape
+boundaries use the semantic error color and retain it on hover. Vault create/open disclosures handle Escape
 like the account disclosure: close, return focus to the trigger, preserve the draft.
 
 ## Navigation and supporting tools (2026-11-13)
