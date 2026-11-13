@@ -1,5 +1,9 @@
 # Application UI integrity audit — 2026-11-11
 
+For current implementation status and follow-up corrections, see the
+[2026-11-13 UI polish review](ui-polish-2026-11-13.md). The findings below describe
+the state at this audit's date.
+
 ## Result and evidence boundary
 
 Source and targeted behavior audit completed; native visual acceptance is pending.
