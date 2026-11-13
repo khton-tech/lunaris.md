@@ -5,8 +5,9 @@ Default export: `@lunaris/sidebar-plugin`, ID `lunaris.sidebar`. This is a separ
 plugin; Workspace owns only geometry/mounting and contains no tab logic.
 
 Provides no API/events. Requires Logger, Sidebar/SidebarChanged,
-Workspace@1.1, Components/ComponentsChanged and Localization/LocaleChanged.
-The host grants `ui.dom`. All service access uses declared public SDK contracts.
+Workspace@1.1, Components/ComponentsChanged, Localization/LocaleChanged and
+Vault/VaultChanged. The host grants `ui.dom` and `vault.access`.
+Opening or switching Vaults selects the first tab in visual order.
 
 The controller registers `lunaris.sidebar-rail` in `left-rail` and the active tool's
 component role in `left-panel`. Repeating an active icon selects null and collapses

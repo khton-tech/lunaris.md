@@ -179,6 +179,7 @@ test('real server browser composition recovers drafts, gates updates and retires
   await session.stop();
   await session.start();
   await until(() => api.vault.current()?.name === 'Second Vault', 'last Vault restored on browser startup');
+  await until(() => target.querySelector('.lm-sidebar-tab[aria-label="Files"][aria-pressed="true"]'), 'Files selected after browser restart');
   assert.equal(api.sources.remoteIdentity(api.vault.current().id).value.vaultId, other.value.id);
   await session.stop();
   const trashed = await globalThis.fetch(`${address}/api/v1/vaults/${other.value.id}/trash`, {

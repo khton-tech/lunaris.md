@@ -7,12 +7,14 @@ import { Sidebar, SidebarChanged } from "@lunaris/sidebar";
 import { Workspace, WorkspaceSidebar } from "@lunaris/workspace";
 import { Components, ComponentsChanged } from "@lunaris/components";
 import { Localization, LocaleChanged } from "@lunaris/localization";
+import { Vault, VaultChanged } from "@lunaris/vault";
 import { catalogs } from "./catalog.js";
 import manifest from "../manifest.json" with { type: "json" };
 
 export default definePlugin({ manifest, activate(ctx) {
   const logger = scopeLogger(ctx.use(Logger), ctx.signal); const sidebar = ctx.use(Sidebar); const workspace = ctx.use(Workspace);
   const components = ctx.use(Components); const localization = ctx.use(Localization);
+  const vaults = ctx.use(Vault);
   const registered = localization.register(ctx.pluginId, catalogs, ctx.signal);
   if (!registered.ok) throw new Error("Cannot register sidebar messages.", { cause: registered.error });
   const menu = ctx.optional(MobileMenu); const navigation = ctx.optional(WorkspaceSidebar);
@@ -76,12 +78,21 @@ export default definePlugin({ manifest, activate(ctx) {
     }
   }
   function update(): void { try { refresh(); } catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot update sidebar", { code: "SIDEBAR_UPDATE_FAILED", error }); throw error; } }
+  let vaultId: string | undefined;
+  function selectDefaultTab(): void {
+    const current = vaults.current()?.id;
+    if (current === vaultId) return;
+    vaultId = current;
+    const first = current ? sidebar.snapshot().tabs[0] : undefined;
+    if (first) sidebar.select(first.id);
+  }
   ctx.events.on(SidebarChanged, update); ctx.events.on(LocaleChanged, update);
+  ctx.events.on(VaultChanged, selectDefaultTab);
   ctx.events.on(ComponentsChanged, change => {
     if (change.componentId === "lunaris.sidebar-rail" || change.componentId === "lunaris.workspace-empty" || sidebar.snapshot().tabs.some(tab => tab.componentId === change.componentId)) {
       if (change.kind === "removed") logger.warn(ctx.pluginId, "Sidebar component removed", { code: "SIDEBAR_COMPONENT_MISSING", data: { componentId: change.componentId } });
       update();
     }
   });
-  update(); logger.info(ctx.pluginId, "Sidebar ready", { code: "SIDEBAR_READY" });
+  selectDefaultTab(); update(); logger.info(ctx.pluginId, "Sidebar ready", { code: "SIDEBAR_READY" });
 } });

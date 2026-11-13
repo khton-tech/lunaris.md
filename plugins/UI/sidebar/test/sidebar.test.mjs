@@ -5,6 +5,22 @@ const setup = options => setupWorkspace({ sidebar: true, ...options });
 const tab = (id, componentId, extra = {}) => ({ id, componentId, title: id === 'test.files' ? 'Files' : 'Search', icon: id === 'test.files' ? 'files' : 'search', ...extra });
 const button = (s, title) => s.surface.querySelector(`.lm-sidebar-tab[aria-label="${title}"]`);
 
+test('opening and switching Vaults selects the first visible tab by order', async () => {
+  const s = await setup();
+  try {
+    panel(s, 'test.file-tree'); panel(s, 'test.search-view');
+    s.tools.sidebar.register(tab('test.search', 'test.search-view', { order: 30 }), s.ctx.signal);
+    s.tools.sidebar.register(tab('test.files', 'test.file-tree', { order: 10 }), s.ctx.signal);
+    await s.open();
+    assert.equal(button(s, 'Files').getAttribute('aria-pressed'), 'true');
+    assert.equal(s.surface.querySelector('.lm-workspace-panel article').dataset.panel, 'test.file-tree');
+    button(s, 'Search').click(); await flush();
+    assert.equal(button(s, 'Search').getAttribute('aria-pressed'), 'true');
+    await s.open();
+    assert.equal(button(s, 'Files').getAttribute('aria-pressed'), 'true');
+  } finally { await s.stop(); }
+});
+
 test('bottom tabs occupy a separate end group and keyboard order follows visual order', async () => {
   const s = await setup(); panel(s, 'test.content'); await s.open();
   s.tools.sidebar.register({ id: 'test.settings', componentId: 'test.content', title: 'Settings', icon: 'settings', placement: 'end', order: -100 }, s.ctx.signal);

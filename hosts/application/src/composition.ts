@@ -139,7 +139,7 @@ export function composeApplication(target: HTMLElement, options: {
       ...(options.mode === "desktop" ? { [selector.manifest.id]: ["vault.access", "ui.dom", "account.access"] } : {}),
       [workspace.manifest.id]: ["vault.access", "ui.dom", "config.access"],
       [fileExplorer.manifest.id]: ["config.access", "filesystem.access", "vault.access"],
-      [sidebar.manifest.id]: ["ui.dom"],
+      [sidebar.manifest.id]: sidebar.manifest.permissions,
       [contextMenu.manifest.id]: ["ui.dom"],
       [themeSettings.manifest.id]: ["config.access"],
       [componentProvider.manifest.id]: ["ui.dom"],

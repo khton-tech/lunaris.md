@@ -36,6 +36,9 @@
     },
     {
       "path": "../../../packages/mobile-menu"
+    },
+    {
+      "path": "../../../packages/vault"
     }
   ]
 }

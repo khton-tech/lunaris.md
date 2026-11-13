@@ -58,7 +58,7 @@ export const dependencies = {
   'file-explorer': ['startup', 'workspace', 'config', 'settings', 'active-document', 'sdk', 'logging', 'sidebar', 'filesystem', 'vault', 'localization', 'context-menu'],
   sidebar: ['sdk'],
   'sidebar-provider': ['sdk', 'logging', 'sidebar'],
-  'sidebar-plugin': ['mobile-menu', 'sdk', 'logging', 'sidebar', 'workspace', 'components', 'localization'],
+  'sidebar-plugin': ['mobile-menu', 'sdk', 'logging', 'sidebar', 'workspace', 'components', 'localization', 'vault'],
   workspace: ['sdk'],
   'workspace-provider': ['sdk', 'logging', 'workspace'],
   'workspace-plugin': ['sdk', 'logging', 'localization', 'slots', 'slot-dom', 'components', 'startup', 'vault', 'workspace', 'config'],
