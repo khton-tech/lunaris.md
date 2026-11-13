@@ -1,5 +1,20 @@
 # Mantine components
 
+## Shared interaction polish (2026-11-13)
+
+Reference: the existing Files/Settings selection markers, Vault selector primary
+action and compact status footer. UIKit owns control feedback and text hierarchy;
+the same public roles continue to serve all consumers. Filled actions retain
+accent contrast on hover/press; current navigation remains selected on hover.
+Action icons share the theme's fast feedback and reduced-motion behavior.
+Textareas and password fields expose a single themed focus boundary. Select
+labels wrap within the allocated field instead of clipping long translations.
+Secondary text, badges and the status footer scale with theme typography; footer
+metrics can wrap in a narrow main region. Document typography remains editor-owned.
+
+Integration requires no consumer or SDK changes. Native visual acceptance remains
+pending for opened controls, keyboard focus, large text and short/narrow layouts.
+
 ## Theme update cost
 
 The adapter translates the current immutable Themes description once per

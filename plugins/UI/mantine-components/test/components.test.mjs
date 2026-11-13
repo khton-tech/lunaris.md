@@ -496,11 +496,13 @@ test('theme replacement and clearing update mounted roots without affecting the 
   s.themes.register(theme, s.ctx.signal); s.themes.select(theme.id);
   assert.equal(s.target.querySelector('section').closest('.lm-root').style.backgroundColor, 'rgb(255, 255, 255)');
   assert.equal(s.target.querySelector('.ln-vault').style.getPropertyValue('--vault-caret'), '#234567');
+  assert.equal(s.target.querySelector('.ln-vault').style.getPropertyValue('--vault-secondary-font-size'), 'calc(16px * 6 / 7)');
   assert.equal(s.target.querySelector('input'), input); assert.equal(input.value, 'Draft');
   for (const root of roots) {
     assert.equal(root.dataset.mantineColorScheme, 'light');
     assert.ok([...root.querySelectorAll('style')].some(style => style.textContent.includes(`#${root.id}`)));
     assert.ok([...root.querySelectorAll('style')].some(style => /--mantine-color-text:\s*#202020/.test(style.textContent)));
+    assert.ok([...root.querySelectorAll('style')].some(style => /--mantine-font-size-xs:\s*calc\(16px \* 6 \/ 7\)/.test(style.textContent)));
   }
   assert.equal(s.dom.window.document.documentElement.hasAttribute('data-mantine-color-scheme'), false);
   assert.equal(s.dom.window.localStorage.length, 0);

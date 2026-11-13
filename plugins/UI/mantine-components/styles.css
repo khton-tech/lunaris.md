@@ -74,6 +74,7 @@
 .lm-root [hidden] { display:none!important }
 .lm-root section { user-select:none }
 .lm-root input { user-select:text }
+.lm-root textarea { user-select:text;font:inherit }
 .lm-workspace-header { flex:1;overflow:auto;padding:calc(var(--vault-space)*3);user-select:none }
 .lm-workspace-toolbar { display:flex;align-items:center;flex-wrap:wrap;gap:calc(var(--vault-space)*3) }
 .lm-root .lm-workspace-name { flex:1;font:inherit;font-weight:500;margin:0;overflow-wrap:anywhere }
@@ -137,6 +138,7 @@
 .lm-sidebar-rail { flex:1;min-height:0;overflow:auto;padding:calc(var(--vault-space)*2);user-select:none }
 .lm-root .lm-sidebar-tab { flex-shrink:0;color:var(--vault-secondary);background:transparent;--ai-hover:var(--vault-hover);--ai-hover-color:var(--vault-text);border-radius:var(--vault-radius) }
 .lm-root .lm-sidebar-tab[aria-pressed=true] { color:var(--vault-text);background:var(--vault-selection) }
+.lm-root .lm-sidebar-tab[aria-pressed=true]:enabled:hover { color:var(--vault-text);background:var(--vault-selection) }
 .lm-root .lm-sidebar-tab:enabled:active { color:var(--vault-text);background:var(--vault-selection) }
 /* Workspace owns responsive geometry; tool views keep their stable targets. */
 .lm-workspace-layout[data-compact],.lm-workspace-layout[data-compact][data-window-chrome] { --workspace-rail-width:60px;--workspace-gap:4px;--workspace-drawer-width:var(--workspace-rail-width);grid-template-columns:minmax(0,1fr) }
@@ -189,13 +191,18 @@
 .lm-root .mantine-Button-inner { min-width:0;height:auto }
 .lm-root .mantine-Button-label { height:auto;overflow:visible;white-space:normal;overflow-wrap:anywhere }
 .lm-root .lm-button:enabled:active { background:var(--vault-selection) }
+.lm-root .lm-button[data-variant=filled]:enabled:active { background:var(--vault-accent-hover);color:var(--vault-on-accent) }
 .lm-root .lm-focus:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset) }
 .lm-root .lm-sidebar-rail .lm-sidebar-tab:focus-visible { outline-offset:calc(-1 * var(--vault-focus-width)) }
 .lm-root .lm-button:disabled { cursor:default }
+.lm-root .mantine-ActionIcon-root { transition:background-color var(--vault-motion-fast) var(--vault-motion-easing),color var(--vault-motion-fast) var(--vault-motion-easing) }
+.lm-root .mantine-ActionIcon-root:enabled:active { background-color:var(--vault-selection) }
 /* Optional theme finishes apply only to controls, never borrowed region surfaces. */
 .lm-root .lm-input:not(:disabled) { box-shadow:var(--vault-input-shadow,none) }
 .lm-root .lm-input { --input-bd:color-mix(in srgb,var(--vault-control-border) 35%,var(--vault-content));--input-bg:var(--vault-content);--input-bd-focus:var(--vault-focus);--input-disabled-bg:var(--vault-selection);--input-disabled-color:var(--vault-secondary);caret-color:var(--vault-caret);border-width:var(--vault-border);transition:border-color var(--vault-motion-fast) var(--vault-motion-easing),background-color var(--vault-motion-fast) var(--vault-motion-easing) }
-.lm-root input.lm-input:focus,.lm-root button.lm-input:focus-visible { outline:none;border-color:var(--vault-focus) }
+.lm-root input.lm-input:focus,.lm-root textarea.lm-input:focus,.lm-root button.lm-input:focus-visible { outline:none;border-color:var(--vault-focus) }
+.lm-root .mantine-PasswordInput-input:focus-within { border-color:var(--vault-focus) }
+.lm-root .lm-input[aria-invalid=true] { border-color:var(--vault-error) }
 .lm-root .lm-input::selection { background:var(--vault-selection);color:var(--vault-text) }
 .lm-root .lm-label { color:var(--vault-text);font-size:inherit;font-weight:500;display:block;margin-bottom:calc(var(--vault-space)*2) }
 .lm-root [role=alert] { color:var(--vault-error) }
@@ -235,11 +242,12 @@
 .ln-vault-status:empty { min-height:0;margin-bottom:0!important;visibility:hidden }
 @media(hover:hover) {
  .lm-root .lm-button:enabled:hover:not(:active) { background:var(--vault-hover) }
+ .lm-root .lm-button[data-variant=filled]:enabled:hover:not(:active) { background:var(--vault-accent-hover);color:var(--vault-on-accent) }
  .lm-root .ln-vault-next:enabled:hover:not(:active) { background:var(--vault-accent-hover) }
  .lm-root .lm-card-row:enabled:hover:not([aria-current=true]) { border-color:color-mix(in srgb,var(--vault-control-border) 45%,transparent) }
  .lm-root .lm-input:enabled:hover:not(:focus):not(:focus-visible) { border-color:var(--vault-control-border) }
 }
-@media(prefers-reduced-motion:reduce) { .lm-root .lm-button,.lm-root .lm-input,.lm-root .ln-vault-disclosure { transition:none } }
+@media(prefers-reduced-motion:reduce) { .lm-root .lm-button,.lm-root .lm-input,.lm-root .mantine-ActionIcon-root,.lm-root .ln-vault-disclosure { transition:none } }
 .lm-explorer { --explorer-control-hover:color-mix(in srgb,var(--vault-hover) 35%,var(--vault-panel));--explorer-control-pressed:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel));position:relative;display:flex;flex-direction:column;flex:1;min-width:0;min-height:0;overflow:auto;user-select:none }
 .lm-tool-panel-toolbar { flex-shrink:0;padding:calc(var(--vault-space)*2);position:relative }
 .lm-root :is(.lm-explorer-tabs,.lm-tool-panel-title) { width:100%;max-width:100%;min-width:0;min-height:calc(var(--vault-space)*8);padding:var(--vault-space) calc(var(--vault-space)*3);border:0;border-radius:var(--vault-radius);background:transparent;color:var(--vault-text);font-weight:500 }
@@ -333,7 +341,7 @@
 
 @media(prefers-reduced-motion:reduce) { .lm-workspace-content>.mantine-Splitter-handle::after { transition:none } }
 
-.lm-explorer .lm-explorer-extension { flex-shrink:0;margin-inline-start:auto;max-width:40%;height:1.5em;min-width:0;padding-inline:0.45em;border-radius:999px;font-size:calc(var(--vault-font-size)*0.72 - 1.5pt);line-height:1;font-weight:400;letter-spacing:0;text-transform:none;color:var(--vault-secondary);background:color-mix(in srgb,var(--vault-hover) 25%,transparent);border:0;pointer-events:none }
+.lm-explorer .lm-explorer-extension { flex-shrink:0;margin-inline-start:auto;max-width:40%;height:1.5em;min-width:0;padding-inline:0.45em;border-radius:999px;font-size:var(--vault-secondary-font-size);line-height:1;font-weight:400;letter-spacing:0;text-transform:none;color:var(--vault-secondary);background:color-mix(in srgb,var(--vault-hover) 25%,transparent);border:0;pointer-events:none }
 
 .lm-explorer-node[data-active]:not([data-directory]) > .lm-explorer-node-content,
 .lm-mobile-choice-row[data-selected] {
@@ -450,7 +458,8 @@
   inline-size:2px;block-size:20px;border-radius:1px;background:var(--vault-accent)
 }
 .lm-root .lm-tool-navigation-item:enabled:active { background:var(--tool-pressed) }
-@media(hover:hover) { .lm-root .lm-tool-navigation-item:enabled:hover { background:var(--tool-hover) } }
+@media(hover:hover) { .lm-root .lm-tool-navigation-item:enabled:hover:not([aria-current=page]):not(:active) { background:var(--tool-hover) } }
+.lm-root .lm-tool-navigation-item[aria-current=page]:enabled:hover:not(:active) { background:var(--vault-selection) }
 .lm-root .lm-setting-dropdown { background:var(--vault-panel);color:var(--vault-text);border:var(--vault-border) solid var(--vault-menu-border,color-mix(in srgb,var(--vault-control-border) 22%,transparent));border-radius:var(--vault-radius);padding:var(--vault-space);box-shadow:var(--vault-surface-shadow,none);max-width:calc(100vw - 16px);overflow:auto }
 .lm-setting-dropdown [role=option] { display:flex;align-items:center;justify-content:space-between;gap:calc(var(--vault-space)*3);min-height:calc(var(--vault-space)*9);padding:calc(var(--vault-space)*2) calc(var(--vault-space)*3);font:inherit;color:var(--vault-text);border-radius:calc(var(--vault-radius)*0.5);white-space:normal;overflow-wrap:anywhere }
 .lm-setting-dropdown [role=option][data-combobox-selected] { background:color-mix(in srgb,var(--vault-hover) 35%,var(--vault-panel)) }
@@ -471,7 +480,7 @@
   box-sizing:border-box; width:100%;max-width:var(--settings-column-width);margin-inline:auto
 }
 .lm-settings-page-header { margin-block-end:12px }
-.lm-settings-page-header h1 { font-size:32px;line-height:1.25;font-weight:600 }
+.lm-settings-page-header h1 { font-size:2em;line-height:1.25;font-weight:600 }
 .lm-settings-group {
   padding:var(--settings-group-inset);margin-block-end:calc(var(--vault-space)*4);
   background:color-mix(in srgb,var(--vault-panel) 55%,var(--vault-content));border-radius:var(--vault-radius)
@@ -529,7 +538,7 @@
 .lm-setting-control { flex:0 1 18rem; min-width:0; max-width:100%; overflow-wrap:anywhere }
 .lm-setting-row[data-layout=inline]>.lm-setting-control { margin-inline-start:auto }
 .lm-root .lm-setting-input { --input-height:calc(var(--vault-space)*8);--input-bd:color-mix(in srgb,var(--vault-control-border) 22%,transparent);--input-bg:var(--vault-content);border-radius:6px;font-weight:500 }
-.lm-root .lm-setting-select { user-select:none;text-align:end;padding-inline-end:calc(var(--vault-space)*3);cursor:pointer }
+.lm-root .lm-setting-select { user-select:none;text-align:end;padding-inline-end:calc(var(--vault-space)*3);cursor:pointer;height:auto;min-height:var(--input-height);padding-block:var(--vault-space);white-space:normal;overflow-wrap:anywhere }
 .lm-setting-control .mantine-Input-section { color:var(--vault-secondary) }
 .lm-setting-static-value { min-height:calc(var(--vault-space)*8);display:flex;align-items:center;justify-content:flex-end;padding-inline:calc(var(--vault-space)*3);font-weight:500 }
 .lm-setting-control .mantine-Switch-root { align-self:flex-end }
@@ -612,7 +621,7 @@
 .lm-root[data-window-chrome=true]>.lm-settings-navigation .lm-tool-panel-title { min-height:22px;padding:2px 4px;font-weight:700;color:inherit }
 .lm-root[data-window-chrome=true]>.lm-settings-page { --settings-page-padding:8px;gap:12px }
 .lm-root[data-window-chrome=true]>.lm-settings-page>.lm-settings-page-header { padding:4px 8px;margin-block:0;border:0;background:var(--vault-caption-background);color:var(--vault-caption-text);border-radius:3px 3px 0 0 }
-.lm-root[data-window-chrome=true]>.lm-settings-page>.lm-settings-page-header h1 { font-size:13px;line-height:1.5;font-weight:700;color:inherit }
+.lm-root[data-window-chrome=true]>.lm-settings-page>.lm-settings-page-header h1 { font-size:1em;line-height:1.5;font-weight:700;color:inherit }
 .lm-root[data-window-chrome=true]>.lm-settings-page>.lm-settings-group { margin-block:0;padding:12px;background:transparent;box-shadow:var(--vault-inset-shadow) }
 .lm-root[data-window-chrome=true]>.lm-settings-page .lm-settings-group-header { padding-bottom:8px;border-color:var(--vault-separator) }
 .lm-root[data-window-chrome=true]>.lm-settings-items .lm-setting-row { padding-block:calc(var(--vault-space)*4) }
@@ -675,13 +684,13 @@
 .lm-workspace-main-pane { flex-direction:column }
 .lm-workspace-bottom { display:flex;flex:0 0 auto;min-width:0;overflow:auto;margin:0 var(--workspace-gap) var(--workspace-gap) 0 }
 
-.lm-status-bar {display:flex;flex:1 1 auto;align-items:center;justify-content:space-between;flex-wrap:nowrap;gap:calc(var(--vault-space)*3);padding:var(--vault-space) calc(var(--vault-space)*2);min-width:0;white-space:nowrap;user-select:none }
+.lm-status-bar {display:flex;flex:1 1 auto;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--vault-space) calc(var(--vault-space)*3);padding:var(--vault-space) calc(var(--vault-space)*2);min-width:0;user-select:none }
 .lm-status-bar span { font-size:inherit;line-height:1.4 }
-.lm-status-bar .lm-status-context,.lm-status-bar .lm-status-counts { display:flex;flex-wrap:nowrap;align-items:center }
+.lm-status-bar .lm-status-context,.lm-status-bar .lm-status-counts { display:flex;flex-wrap:wrap;align-items:center }
 .lm-status-context { flex:1 1 auto;min-width:0 }
 .lm-status-file { flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
 .lm-status-server,.lm-status-metric { display:inline-flex;align-items:center;gap:var(--vault-space);flex:0 0 auto;color:var(--vault-secondary) }
-.lm-status-counts { flex:0 0 auto;margin-inline-start:auto;font-variant-numeric:tabular-nums }
+.lm-status-counts { flex:0 1 auto;margin-inline-start:auto;max-width:100%;font-variant-numeric:tabular-nums }
 .lm-status-metric + .lm-status-metric { border-inline-start:var(--vault-border) solid var(--vault-separator);padding-inline-start:12px }
 .lm-root[data-window-chrome=false]>.lm-status-bar { padding-inline:calc(var(--vault-space)*3) }
 .lm-root[data-window-chrome=false]>.lm-status-bar .lm-status-file { color:var(--vault-secondary) }
@@ -806,7 +815,7 @@
 .lm-mobile-choice-row { position:relative;display:flex;align-items:stretch;border-radius:calc(var(--vault-radius)*.5) }
 .lm-mobile-choice-row[data-selected]::before { z-index:1 }
 .lm-mobile-choice-row > [role=menuitem] { flex:1;min-width:0 }
-.lm-mobile-choice-row:has(> [role=menuitem]:enabled[data-hovered]) { background:var(--explorer-control-hover) }
+.lm-mobile-choice-row:not([data-selected]):has(> [role=menuitem]:enabled[data-hovered]) { background:var(--explorer-control-hover) }
 .lm-mobile-choice-row:has(> [role=menuitem]:enabled:active),
 .lm-mobile-choice-row[data-dragging] { background:var(--explorer-control-pressed) }
 .lm-mobile-choice-menu .lm-mobile-choice-row > [role=menuitem]:is([data-hovered],:active) { background:transparent }
@@ -878,7 +887,7 @@
  .lm-root :is(.lm-sidebar-tab,.lm-settings-open-sidebar,.lm-explorer-actions .mantine-ActionIcon-root,.lm-account-icon)>svg { width:22px;height:22px;flex-shrink:0 }
  .lm-root :is(.lm-tool-navigation-item,.lm-explorer-tabs,.lm-setting-option,.lm-context-menu) svg { width:20px;height:20px;flex-shrink:0 }
  .lm-root .lm-settings-page-header h1,.lm-root[data-window-chrome=true]>.lm-settings-page>.lm-settings-page-header h1 { font-size:1.25em;line-height:1.4 }
- .lm-explorer .lm-explorer-extension { font-size:12px }
+ .lm-explorer .lm-explorer-extension { font-size:max(12px,var(--vault-secondary-font-size)) }
  .lm-root .lm-mobile-menu-items[data-density=compact] .lm-sidebar-tab { width:44px;height:44px;min-width:44px;min-height:44px }
  .lm-root .lm-settings-open-sidebar,.lm-root .lm-explorer-actions .mantine-ActionIcon-root,.lm-root .lm-account-icon { min-width:44px;min-height:44px }
  .lm-root .lm-button,.lm-root .lm-tool-navigation-item,.lm-root .lm-explorer-tabs,.lm-root .lm-setting-reset,.lm-root .lm-setting-option,.lm-root .lm-context-menu [role=menuitem] { min-height:44px }

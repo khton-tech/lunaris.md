@@ -20,9 +20,11 @@ export function resolveTheme(theme: ThemeDefinition | null) {
   const color = (key: string, fallback = "currentColor") => text(field(colors, key), fallback);
   const font = family(field(typography, "fontFamily"), "system-ui, sans-serif");
   const fontSize = `${number(field(typography, "fontSize"), 14)}${text(field(typography, "fontSizeUnit"), "px")}`;
+  const fontSizes = { xs: `calc(${fontSize} * 6 / 7)`, sm: fontSize, md: fontSize, lg: `calc(${fontSize} * 8 / 7)`, xl: `calc(${fontSize} * 10 / 7)` };
   const radius = dimension(field(field(geometry, "radius"), "medium"), 8);
   const variables: Record<string, string> = {};
   variables["--vault-ui-font-size"] = fontSize;
+  variables["--vault-secondary-font-size"] = fontSizes.xs;
   const palette = { background: "background", panel: "panel", content: "content", text: "text", secondary: "textSecondary", selection: "selection", separator: "separator", "control-border": "controlBorder", hover: "hover", focus: "focus", caret: "caret", error: "error", accent: "accent", "on-accent": "onAccent", "accent-hover": "accentHover" };
   for (const [variable, key] of Object.entries(palette)) variables[`--vault-${variable}`] = color(key, ["background", "panel", "content", "selection", "hover", "separator"].includes(variable) ? "transparent" : "currentColor");
   variables["--vault-link-missing"] = color("linkMissing", variables["--vault-secondary"]);
@@ -62,7 +64,7 @@ export function resolveTheme(theme: ThemeDefinition | null) {
   }
   const semantic = {
     "--mantine-font-family": font, "--mantine-font-family-headings": font,
-    "--mantine-font-size-sm": fontSize, "--mantine-font-size-md": fontSize,
+    ...Object.fromEntries(Object.entries(fontSizes).map(([size, value]) => [`--mantine-font-size-${size}`, value])),
     "--mantine-line-height": String(number(field(typography, "lineHeight"), 1.5)),
     "--mantine-color-body": color("background", "transparent"),
     "--mantine-color-text": color("text"), "--mantine-color-dimmed": color("textSecondary"),
@@ -94,7 +96,7 @@ export function resolveTheme(theme: ThemeDefinition | null) {
     },
     mantine: createTheme({
       fontFamily: font, fontFamilyMonospace: variables["--vault-mono"]!, defaultRadius: radius,
-      fontSizes: { sm: fontSize, md: fontSize }, lineHeights: { sm: String(number(field(typography, "lineHeight"), 1.5)), md: String(number(field(typography, "lineHeight"), 1.5)) },
+      fontSizes, lineHeights: { sm: String(number(field(typography, "lineHeight"), 1.5)), md: String(number(field(typography, "lineHeight"), 1.5)) },
       respectReducedMotion: true, activeClassName: "lm-pressed",
       variantColorResolver: ({ variant }) => variant === "filled"
         ? { background: color("accent"), hover: color("accentHover"), color: color("onAccent"), border: "transparent" }

@@ -20,7 +20,7 @@ export function statusBarProps(value: ComponentProps): StatusBarProps {
   return value as unknown as StatusBarProps;
 }
 export function StatusBar({ props, theme }: { props: StatusBarProps; theme: ReturnType<typeof resolveTheme> }) {
-  return <Box component="footer" className="lm-status-bar" aria-label={props.label} style={{ ...theme.contentStyle, fontSize: "12px" }}>
+  return <Box component="footer" className="lm-status-bar" aria-label={props.label} style={{ ...theme.contentStyle, fontSize: "var(--vault-secondary-font-size)" }}>
     <Group className="lm-status-context" gap="xs" wrap="nowrap">
       <Text component="span" className="lm-status-file" title={props.fileTitle || props.filename} inherit>{props.filename}</Text>
       {props.serverState && <Box component="span" className="lm-status-server" role="img" aria-label={props.serverLabel}
