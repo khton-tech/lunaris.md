@@ -148,3 +148,28 @@ test('offline restart retains saved identity for history while an expired token 
     await host.stopAll(); host.assertNoResources();
   }
 });
+
+
+for (const stalledRoute of ['server', 'account']) test(`saved-session reconnect finishes before activation deadline when ${stalledRoute} stalls`, async t => {
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  const stored = { server: 'https://notes.example', account: { id: 'a', login: 'alice' }, token: 'saved-token' };
+  const host = testHost({ 'test.consumer': ['account.network', 'account.access'], 'lunaris.server-transport': ['credentials.access'] });
+  let api, status;
+  host.installMock(SessionCredentials, { async load() { return { ok: true, value: stored }; }, async save() { assert.fail('No credential writes'); }, async remove() { assert.fail('Offline credentials must survive'); } }, { grants: ['credentials.native'] });
+  host.register(createServerTransport({ mode: 'desktop', fetch: (url, init) => new Promise((resolve, reject) => {
+    if (!url.endsWith('/' + stalledRoute)) { setTimeout(() => resolve(json({ protocol: 1, buildId: 'test', registration: 'open' })), 500); return; }
+    init.signal.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true });
+  }) }));
+  host.register(consumer([ServerTransport, ConnectionStatus], ctx => { api = ctx.use(ServerTransport); status = ctx.use(ConnectionStatus); }, ['account.network', 'account.access']));
+  let failure;
+  const starting = host.start('test.consumer').catch(error => { failure = error; });
+  const flush = async () => { for (let i = 0; i < 100; i++) await Promise.resolve(); };
+  try {
+    await flush();
+    for (let i = 0; i < 5; i++) { host.clock.advanceBy(1000); t.mock.timers.tick(1000); await flush(); }
+    await starting;
+    assert.equal(failure, undefined);
+    assert.equal(api.current().account.id, 'a');
+    assert.equal(status.current().state, 'offline');
+  } finally { await host.stopAll(); host.assertNoResources(); }
+});

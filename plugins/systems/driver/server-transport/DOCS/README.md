@@ -41,9 +41,21 @@ restore the last remote Vault through existing contracts. Initial state is read
 from current(); events report subsequent changes after activation.
 
 Exact-origin validation prevents forwarding credentials to other servers. Startup
-reconnect requests have a maximum five-second deadline each. Offline startup
+reconnect requests have a maximum one-second deadline each. Offline startup
 retains the last-known identity for history visibility without bypassing server
 authorization; expired/revoked tokens are removed. Successful logout clears the
 matching credential, while normal shutdown preserves it. A missing/unavailable
 store logs degraded memory-only behavior. Web authentication remains cookie-based.
 See the tauri-credentials plugin guide for native build and acceptance details.
+
+
+## Startup reconnect deadline
+
+The kernel allows five seconds for activation. Saved-session discovery and account
+validation can run sequentially, so each startup HTTP request is capped at one
+second (two seconds total network wait). This leaves activation headroom instead
+of racing the kernel deadline. Normal requests retain the configured timeout.
+Offline fallback keeps the saved identity and credential; no storage migration or
+new SDK contracts are needed. Integration remains through ServerTransport, remote
+filesystem, Filesystem Router and their editor/Backlinks dependents. Regression
+coverage advances both request and kernel deadlines for stalled reconnects.

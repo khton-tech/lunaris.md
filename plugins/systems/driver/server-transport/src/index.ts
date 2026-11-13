@@ -52,7 +52,8 @@ export function createServerTransport(options: { readonly mode: "browser" | "des
       if (fileRequest && encodedBody && new TextEncoder().encode(encodedBody).byteLength > REMOTE_FILE_LIMITS.maxRequestBytes) return failed("TOO_LARGE", "The encoded file request exceeds the remote request limit.");
       const version = epoch; const controller = new AbortController(); const abort = () => controller.abort();
       let timedOut = false;
-      const deadline = setTimeout(() => { timedOut = true; controller.abort(); }, initialized ? timeoutMs : Math.min(timeoutMs, 5000)); deadlines.set(controller, deadline);
+      // Startup may make two sequential requests; leave headroom within the 5s activation deadline.
+      const deadline = setTimeout(() => { timedOut = true; controller.abort(); }, initialized ? timeoutMs : Math.min(timeoutMs, 1000)); deadlines.set(controller, deadline);
       controllers.add(controller); owner.addEventListener("abort", abort, { once: true });
       try {
         const response = await fetcher(`${address}/api/v1/${route}`, { method, signal: controller.signal,
