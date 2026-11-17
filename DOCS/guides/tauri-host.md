@@ -317,3 +317,10 @@ then while an autosave, Explorer refresh or file copy is in progress. Repeat the
 same operation and compare interaction durations and long tasks. The startup
 marks use the WebView clock and do not capture process startup, OS scheduling or
 time waiting for the native filesystem lock.
+
+For filesystem measurements, set `VITE_LUNARIS_DESKTOP_IO_PROFILE=1` when building
+or serving the desktop frontend. In the Performance recording, compare the
+`lunaris:filesystem:*` measures for read, write and list under idle and concurrent
+load. The measures cover the IPC round trip, including native queueing and disk
+work. Outside a recording, User Timing retains only the latest measure per
+operation. Timing names and entries contain no paths or file data.

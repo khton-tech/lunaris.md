@@ -1,5 +1,10 @@
 # Tauri filesystem driver
 
+The desktop host can enable `profileIpc` when composing the driver. The optional
+WebView User Timing measures record native round-trip durations by operation
+without request arguments or results. Normal product composition does not enable
+these measurements by default.
+
 Also provides `api:lunaris.filesystem-locations-driver@1.1.0` with `select(owner)`
 and `attach(location, owner)`. Native `selectLocation` persists an opaque reference
 without attaching/preparing a Vault; `attachLocation` restores a registered folder

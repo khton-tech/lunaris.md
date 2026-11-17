@@ -11,7 +11,9 @@ import art from "../../../resources/ascii_art.txt?raw";
 import type { ApplicationDefinition } from "./session.js";
 
 export function composeApplication(target: HTMLElement): ApplicationDefinition {
-  const native = createTauriFilesystemDriver(undefined, { backendOnly: true });
+  const native = createTauriFilesystemDriver(undefined, {
+    backendOnly: true, profileIpc: import.meta.env.VITE_LUNARIS_DESKTOP_IO_PROFILE === "1",
+  });
   const credentials = createTauriCredentials();
   const close = createCloseGuard();
   return composeShared(target, { art, mode: "desktop", externalLinksDriver: createTauriLinks(), platformPlugins: [native, credentials], extensions: {

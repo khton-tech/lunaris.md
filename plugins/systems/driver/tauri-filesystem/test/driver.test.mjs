@@ -6,11 +6,11 @@ import { Logger } from '@lunaris/logging';
 import { FilesystemDriver, FilesystemObservationDriver, FilesystemRootsDriver, FilesystemLocationsDriver, ApplicationDirectoryDriver, DriverFileChanged } from '@lunaris/filesystem';
 import { createTauriFilesystemDriver } from '@lunaris/tauri-filesystem';
 
-async function setup(native) {
+async function setup(native, options) {
   const host = createTestKernel({ initialGrants: { 'lunaris.tauri-filesystem': ['filesystem.native'], 'test.consumer': ['filesystem.access', 'filesystem.app-config'] } });
   const logs = []; const changes = []; let api; let observation; let roots; let locations; let directories; let context;
   host.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push([level, ...args]); return true; }])));
-  host.register(createTauriFilesystemDriver(native));
+  host.register(createTauriFilesystemDriver(native, options));
   host.register(definePlugin({ manifest: { manifestVersion: 1, id: 'test.consumer', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js',
     provides: [], requires: [FilesystemDriver, FilesystemObservationDriver, FilesystemRootsDriver, FilesystemLocationsDriver, ApplicationDirectoryDriver, DriverFileChanged].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' })), permissions: ['filesystem.access', 'filesystem.app-config'], optionalPermissions: [] },
   activate(ctx) { context = ctx; api = ctx.use(FilesystemDriver); observation = ctx.use(FilesystemObservationDriver); roots = ctx.use(FilesystemRootsDriver); locations = ctx.use(FilesystemLocationsDriver); directories = ctx.use(ApplicationDirectoryDriver); ctx.events.on(DriverFileChanged, change => { changes.push(change); }); } }));
@@ -31,6 +31,27 @@ test('driver contains transport errors, uses native session ownership and releas
   await host.stopAll(); host.assertNoResources();
   assert.equal(calls[0].operation, 'begin'); assert.equal(calls.at(-1).operation, 'end');
   assert.equal(calls[0].session, calls.at(-1).session);
+});
+
+test('opt-in IPC timings retain the latest duration per operation without paths', async () => {
+  const name = 'lunaris:filesystem:readText';
+  const target = { vaultId: 'vault', path: 'private.md' };
+  const { host, api } = await setup({ async request(_session, operation) {
+    if (operation === 'readText') return { ok: true, value: { text: 'note', version: 'v1' } };
+    return { ok: true, value: null };
+  } }, { profileIpc: true });
+  try {
+    const first = await api.readText(target);
+    assert.deepEqual(await api.readText(target), first);
+    assert.ok(first.ok);
+    const entries = performance.getEntriesByName(name, 'measure');
+    assert.equal(entries.length, 1);
+    assert.ok(entries[0].duration >= 0);
+    assert.equal(entries[0].detail, null);
+  } finally {
+    await host.stopAll();
+    for (const operation of ['begin', 'end', 'readText']) performance.clearMeasures(`lunaris:filesystem:${operation}`);
+  }
 });
 
 test('watch callbacks are scoped to registered watches and ignored after unwatch/close/stop', async () => {

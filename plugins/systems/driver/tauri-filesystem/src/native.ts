@@ -5,6 +5,22 @@ export interface NativeFilesystem {
   request<T>(sessionId: string, operation: string, args: Readonly<Record<string, unknown>>, onChange?: (change: FileChange) => void): Promise<FsResult<T>>;
 }
 
+export function profileFilesystemIpc(native: NativeFilesystem): NativeFilesystem {
+  return {
+    async request<T>(sessionId: string, operation: string, args: Readonly<Record<string, unknown>>, onChange?: (change: FileChange) => void) {
+      const start = performance.now();
+      try {
+        return await native.request<T>(sessionId, operation, args, onChange);
+      } finally {
+        const name = `lunaris:filesystem:${operation}`;
+        // Retain a bounded timeline outside an active DevTools recording.
+        performance.clearMeasures(name);
+        performance.measure(name, { start });
+      }
+    },
+  };
+}
+
 /** Native resources outlive an individual kernel; activation IDs are kernel-local. */
 export function createSessionId(): string { return globalThis.crypto.randomUUID(); }
 
