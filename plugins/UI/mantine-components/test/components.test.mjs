@@ -553,6 +553,8 @@ test('compact desktop notifications top-align the icon and keep overflow in the 
     assert.equal(card.firstElementChild, icon);
     assert.equal(icon.nextElementSibling, body);
     assert.equal(getComputedStyle(card).alignItems, 'flex-start');
+    assert.equal(getComputedStyle(card).borderRadius, '0px');
+    assert.equal(getComputedStyle(card).borderLeftWidth, '3px');
     assert.equal(getComputedStyle(body).overflowY, 'auto');
     assert.equal(getComputedStyle(message).overflowWrap, 'anywhere');
     assert.equal(icon.querySelector('svg')?.getAttribute('aria-hidden'), 'true');

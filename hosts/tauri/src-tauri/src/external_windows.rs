@@ -429,6 +429,7 @@ fn open_popup(app: &AppHandle, url: Url, features: NewWindowFeatures) -> NewWind
         // Wry focuses its controller on WM_ENTERSIZEMOVE. Keep native chrome
         // gestures off passive windows. SDK size and position remain available.
         builder = builder
+            .shadow(false)
             .resizable(false)
             .minimizable(false)
             .maximizable(false);

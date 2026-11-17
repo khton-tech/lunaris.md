@@ -1135,10 +1135,14 @@
 
 .lm-root .lm-notification {
   --notification-text-size: calc(var(--vault-ui-font-size) * 0.93);
-  --notification-radius: var(--vault-radius);
+  --notification-radius: 0px;
   align-items: flex-start;
   background: var(--vault-panel);
-  border: var(--vault-border) solid var(--vault-separator);
+  border: 0;
+  border-left-width: 3px;
+  border-left-style: solid;
+  border-left-color: var(--vault-accent);
+  border-radius: 0;
   box-shadow: none;
   flex: 1 1 auto;
   gap: calc(var(--vault-space) * 2);
