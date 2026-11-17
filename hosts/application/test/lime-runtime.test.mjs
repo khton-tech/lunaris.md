@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
 import { createTestKernel } from '@lunaris/test';
-import { definePlugin } from '@lunaris/sdk';
+import { defineApi, definePlugin } from '@lunaris/sdk';
 import { Logger } from '@lunaris/logging';
 import { Vault } from '@lunaris/vault';
 import execution from '@lunaris/quickjs-execution';
@@ -111,6 +111,102 @@ test('actual bundled SDK and Logger execute a metadata-bearing author plugin wit
   const result = await runtime.register(env, data, { entry: 'plugin.js', modules: { 'plugin.js': output.outputFiles[0].text } }, true);
   assert.equal(result.ok, true, JSON.stringify(kernel.inspect().diagnostics));
   assert.equal(runtime.snapshot(env).value[0].state, 'active'); await kernel.stopAll(); kernel.assertNoResources();
+});
+
+test('independent packages publish and consume their own versioned APIs, events and hooks', async () => {
+  const { kernel, runtime } = await fixture();
+  const env = { vaultId: 'a', generation: 1 };
+  const service = { kind: 'api', id: 'author.pipeline', version: '1.0.0' };
+  const event = { kind: 'event', id: 'author.pipeline-completed', version: '1.0.0' };
+  const hook = { kind: 'hook', id: 'author.pipeline-transform', version: '1.0.0' };
+  const Observer = defineApi({ id: 'author.observer', version: '1.0.0' });
+  const requireToken = ({ kind, id, version }) => ({ kind, id, range: `^${version}` });
+  const sharedContract = `
+    import { defineApi, defineEvent, defineHook } from '@lunaris/sdk';
+    const permission = { providePermission: 'author.publish', consumePermission: 'author.consume' };
+    const number = value => typeof value === 'number' && Number.isFinite(value);
+    export const Pipeline = defineApi({id:'${service.id}', version:'${service.version}', ...permission,
+      validate: value => ['origin', 'process'].every(method => typeof value?.[method] === 'function') });
+    export const Completed = defineEvent({id:'${event.id}', version:'${event.version}', ...permission, validate:number});
+    export const Transform = defineHook({id:'${hook.id}', version:'${hook.version}', ...permission, validate:number});`;
+  const bundle = async (data, activate) => {
+    const output = await build({
+      stdin: { contents: `
+        import { defineApi, definePlugin } from '@lunaris/sdk';
+        import { Logger } from '@lunaris/logging';
+        import { Pipeline, Completed, Transform } from 'author-pipeline-contract';
+        export default definePlugin({ manifest: ${JSON.stringify(data)}, activate: ${activate} });`,
+        resolveDir: process.cwd(), sourcefile: 'author-plugin.js' },
+      plugins: [{ name: 'author-contract', setup(build) {
+        build.onResolve({ filter: /^author-pipeline-contract$/ }, ({ path }) => ({ path, namespace: 'author' }));
+        build.onLoad({ filter: /.*/, namespace: 'author' }, () => ({ contents: sharedContract, resolveDir: process.cwd() }));
+      } }],
+      bundle: true, platform: 'neutral', format: 'esm', write: false, logLevel: 'silent',
+    });
+    return { entry: 'plugin.js', modules: { 'plugin.js': output.outputFiles[0].text } };
+  };
+  const provider = { ...manifest('1.0.0', 'author.provider'), provides: [service, event, hook],
+    requires: [requireToken(Logger)], permissions: ['author.publish'] };
+  const consumer = { ...manifest('1.0.0', 'author.consumer'),
+    provides: [{ kind: Observer.kind, id: Observer.id, version: Observer.version }],
+    requires: [Logger, service, event, hook].map(requireToken), permissions: ['author.consume'] };
+  const [providerSource, consumerSource] = await Promise.all([
+    bundle(provider, `ctx => {
+      ctx.provide(Pipeline, {
+        origin() { return ctx.pluginId; },
+        async process(input) {
+          const output = await ctx.hooks.run(Transform, input);
+          await ctx.events.emit(Completed, output);
+          return output;
+        }
+      });
+      ctx.use(Logger).info(ctx.pluginId, 'Pipeline ready');
+    }`),
+    bundle(consumer, `ctx => {
+      const api = ctx.use(Pipeline);
+      let last;
+      ctx.hooks.register(Transform, async value => value + 1);
+      ctx.events.on(Completed, async value => { last = value; });
+      ctx.provide(defineApi({ id:'${Observer.id}', version:'${Observer.version}' }), {
+        origin() { return api.origin(); },
+        async process(input) {
+          try { return { value: await api.process(input), last }; }
+          catch (error) { return { code: error.code, last }; }
+        }
+      });
+      ctx.use(Logger).info(ctx.pluginId, 'Pipeline observer ready');
+    }`),
+  ]);
+  let observer;
+  kernel.register(definePlugin({ manifest: { ...manifest('1.0.0', 'test.observer'), requires: [requireToken(Observer)] },
+    activate(ctx) { observer = ctx.use(Observer); } }));
+
+  try {
+    assert.equal((await runtime.open(env)).ok, true);
+    assert.equal((await runtime.register(env, provider, providerSource, true)).ok, true);
+    assert.equal((await runtime.register(env, consumer, consumerSource, true)).ok, true, JSON.stringify(kernel.diagnostics()));
+    await kernel.start('test.observer');
+    assert.equal(observer.origin(), provider.id);
+    assert.deepEqual(await observer.process(2), { value: 3, last: 3 });
+    assert.deepEqual(await observer.process('invalid'), { code: 'SDK_FAILED', last: 3 });
+
+    kernel.revoke(consumer.id, 'author.consume');
+    assert.throws(() => observer.origin());
+    kernel.grant(consumer.id, 'author.consume');
+    assert.deepEqual(await observer.process(4), { value: 5, last: 5 });
+
+    const previousObserver = observer;
+    assert.equal((await runtime.disable(env, consumer.id)).ok, true);
+    assert.throws(() => previousObserver.origin(), { code: 'SCOPE_CLOSED' });
+    assert.equal((await runtime.enable(env, consumer.id)).ok, true);
+    await kernel.start('test.observer');
+    assert.deepEqual(await observer.process(7), { value: 8, last: 8 });
+    assert.equal((await runtime.close(env)).ok, true);
+    assert.throws(() => observer.origin(), { code: 'SCOPE_CLOSED' });
+  } finally {
+    await kernel.stopAll();
+    kernel.assertNoResources();
+  }
 });
 
 test('isolated packages read only captured assets, including after update and rollback', async () => {

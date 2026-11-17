@@ -151,6 +151,38 @@ the same compatible contract. Enable it, open the consumer's Details and select
 it for `example.greeting`. Apply the choice. Lime shows affected active consumers
 and restarts their activations. Keep API handles inside their activation scope.
 
+### Add an extension point to your own plugin
+
+Export event and hook tokens from the same shared module as the API. Bundle the
+module into each plugin as an ordinary dependency. The built-in contract catalog
+is only needed to find Lunaris packages.
+
+```ts
+import { defineEvent, defineHook } from "@lunaris/sdk";
+
+const isText = (value: unknown) => typeof value === "string";
+export const GreetingTransform = defineHook<string>({
+  id: "example.greeting-transform", version: "1.0.0", validate: isText,
+});
+export const GreetingShown = defineEvent<string>({
+  id: "example.greeting-shown", version: "1.0.0", validate: isText,
+});
+```
+
+Declare both tokens in the publisher's `provides` and in the subscriber's
+`requires` using their `event` or `hook` kind. During activation the subscriber
+uses `ctx.hooks.register(GreetingTransform, greeting => greeting.trim())` and
+`ctx.events.on(GreetingShown, () => { logger.debug(ctx.pluginId, "Greeting shown"); })`.
+Once active, the publisher can await `ctx.hooks.run(GreetingTransform, message)`
+to get the transformed message. After displaying it, the publisher awaits
+`ctx.events.emit(GreetingShown, transformed)`. Keep callback values portable
+across execution realms.
+
+For a contract with explicit permissions, set `providePermission` and
+`consumePermission` on the shared token. Each package declares the permission for
+its role and must have the corresponding effective grant. Both sides use the
+same token metadata. Stopping a subscriber removes its registrations.
+
 ## Files and editor surfaces
 
 Use public Filesystem targets with the ID from
