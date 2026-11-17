@@ -6,10 +6,13 @@ Workspace owns the main region's geometry and surface. Active Screen allocates
 the empty tab target, File Explorer supplies file actions, and the embedded
 `lunaris.workspace-empty` role owns only the action layout and controls.
 The role accepts optional `actions` with localized `createLabel`, `openLabel`,
-`busy`, `onCreate()`, and `onOpen()`. This presentation wraps two Mantine
-buttons, uses the Files toolbar's file-plus icon and the Vault selector's
-folder picker icon, and shows `detail` only as an operation error. Visual
-acceptance remains manual for theme, keyboard focus and narrow allocations.
+`busy`, `onCreate()`, and `onOpen()`. The Owner's second screenshot is the
+reference for the compact vertical stack of equal-width, start-aligned actions.
+Lunaris uses the active theme's control radius, borders and interaction states,
+with the Files toolbar's file-plus icon and the Vault selector's folder picker
+icon. The two actions fit the available width and labels can wrap. The role
+shows `detail` only as an operation error. Visual acceptance remains manual
+for theme, keyboard focus and narrow allocations.
 
 ## Explorer startup viewport (2026-11-13)
 

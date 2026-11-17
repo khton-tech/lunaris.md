@@ -1,5 +1,5 @@
 import { useId, useLayoutEffect, useRef } from "react";
-import { Box, Button, Group, Input, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Box, Button, Input, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
 import type { SelectorProps, StartupProps, WorkspaceHeaderProps, WorkspaceEmptyProps } from "./props.js";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
@@ -17,11 +17,9 @@ export function WorkspaceHeader({ props, theme }: { props: WorkspaceHeaderProps;
 export function WorkspaceEmpty({ props, theme }: { props: WorkspaceEmptyProps; theme: ReturnType<typeof resolveTheme> }) {
   const actions = props.actions;
   if (actions) return <Box className="lm-workspace-empty" style={theme.contentStyle} aria-busy={actions.busy}>
-    <Stack align="center" gap="sm" maw="100%">
-      <Group className="lm-workspace-empty-actions" justify="center" gap="sm">
-        <Button variant="filled" leftSection={<Icon name="file-plus" />} disabled={actions.busy} onClick={actions.onCreate}>{actions.createLabel}</Button>
-        <Button variant="subtle" leftSection={<Icon name="browse" />} disabled={actions.busy} onClick={actions.onOpen}>{actions.openLabel}</Button>
-      </Group>
+    <Stack className="lm-workspace-empty-actions" align="stretch" gap="calc(var(--vault-space) * 2)">
+      <Button variant="outline" justify="start" leftSection={<Icon name="file-plus" />} disabled={actions.busy} onClick={actions.onCreate}>{actions.createLabel}</Button>
+      <Button variant="outline" justify="start" leftSection={<Icon name="browse" />} disabled={actions.busy} onClick={actions.onOpen}>{actions.openLabel}</Button>
       {props.detail && <Text role="alert">{props.detail}</Text>}
     </Stack>
   </Box>;

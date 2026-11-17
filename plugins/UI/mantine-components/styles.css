@@ -84,7 +84,8 @@
 .lm-workspace-empty-icon svg { width:1em;height:1em }
 .lm-workspace-empty h2 { font:inherit;font-size:1.125em;font-weight:500;margin:0 }
 .lm-workspace-empty p { color:var(--vault-secondary);max-width:40ch }
-.lm-workspace-empty-actions,.lm-workspace-empty-actions .lm-button { max-width:100% }
+.lm-workspace-empty-actions { inline-size:min(100%,13rem);min-inline-size:0 }
+.lm-workspace-empty-actions .lm-button { text-align:start }
 .lm-workspace-layout { --workspace-gap:calc(var(--vault-space)*2);--workspace-rail-width:calc(44px + var(--workspace-gap)*2 + var(--vault-space));display:grid;grid-template-columns:0 minmax(0,1fr);position:relative;flex:1;min-height:0;overflow:hidden }
 .lm-workspace-layout[data-rail] { grid-template-columns:var(--workspace-rail-width) minmax(0,1fr) }
 .lm-workspace-content { grid-column:2;min-width:0;min-height:0;overflow:visible }
@@ -716,6 +717,7 @@
 .lm-root .lm-button:not(.lm-card-row)[data-variant=filled]:enabled:hover { background-image:var(--vault-primary-hover-image,none) }
 .lm-root .lm-button:not(.lm-card-row)[data-variant=filled]:enabled:active { background-image:var(--vault-primary-pressed-image,none) }
 .lm-root .lm-button:not(.lm-card-row):disabled { background-image:none;box-shadow:none }
+.lm-root .lm-workspace-empty-actions .lm-button[data-variant=outline]:enabled { border:var(--vault-border) solid var(--vault-button-border,var(--vault-separator)) }
 
 /* Boolean controls use semantic surfaces even outside Windows presets. */
 .lm-settings-items .mantine-Switch-track { --switch-bg:var(--vault-content);border:var(--vault-border) solid var(--vault-control-border);transition:background-color var(--vault-motion-fast) var(--vault-motion-easing),border-color var(--vault-motion-fast) var(--vault-motion-easing) }
