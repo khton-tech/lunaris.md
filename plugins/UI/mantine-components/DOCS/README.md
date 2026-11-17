@@ -16,7 +16,8 @@ allocated width. The role shows `detail` only as an operation error.
 The editor heading remains beneath the tab controls in the editor's content
 column. The text-editor role accepts optional `onTitleFocused()`, selecting
 the whole file stem after the title becomes editable and acknowledging the
-focus request. Keyboard focus uses a theme-derived highlight on the field.
+focus request. The title field stays transparent during editing and uses the
+caret and text selection to indicate its editing state.
 Visual acceptance remains manual for both views, including narrow allocations.
 
 ## Explorer startup viewport (2026-11-13)

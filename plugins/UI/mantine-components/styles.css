@@ -585,7 +585,6 @@
   }
 }
 .lm-editor-title input::placeholder { color:var(--vault-secondary);opacity:1 }
-.lm-root .lm-editor-title input.lm-input:focus-visible { background:color-mix(in srgb,var(--vault-focus) 13%,transparent) }
 .lm-editor-placeholder { padding:calc(var(--vault-space)*2) clamp(12px,3cqi,40px);user-select:none;overflow-wrap:anywhere }
 .lm-editor-error { flex:0 0 auto;padding:calc(var(--vault-space)*2) clamp(12px,3cqi,40px);color:var(--vault-error);user-select:none }
 .lm-editor-heading .lm-editor-error { padding-inline:0 }
