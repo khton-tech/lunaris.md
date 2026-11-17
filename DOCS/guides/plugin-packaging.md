@@ -19,11 +19,12 @@ includes regular files from the project's optional `assets/` tree. No user bundl
 configuration/plugin is loaded. No package code is evaluated during build/inspection.
 Source project node_modules need not be installed by the package recipient.
 
-The neutral-platform bundle rejects unresolved native/Node/external static imports.
-Private public-package subpaths remain constrained by package exports. Dynamic
-imports/computed globals can still exist in guest code; execution must enforce
-its own module/authority boundary. Packaging is not a sandbox or a code trust test.
-SDK dependencies are bundled; token metadata works across package copies.
+Use package exports and bundle your static JavaScript dependencies. The
+neutral-platform build rejects unresolved Node, native and external static
+imports. The application loads the single bundled entry as an ESM module.
+Relative dynamic imports from that entry are unsuitable for loading files
+included as assets. Read those files via `ctx.resources`. SDK token metadata
+works across separately bundled package copies.
 
 The output uses the shared [LUP v1 codec](../reference/lup.md), validates the
 result again and writes exclusively to a new filename. Existing output is never
@@ -33,17 +34,26 @@ command. Move resources under `assets/` and refer to portable relative paths.
 Installed code reads its own assets through [ctx.resources](../reference/package-resources.md).
 An asset existing in a container does not itself provide a runtime resource URL.
 
+On Windows, place a compatible helper executable under `assets/` and declare
+`api:lunaris.native-processes@^1.0.0` to use
+[NativeProcesses](../reference/native-processes.md). The SDK starts the helper
+only when the plugin calls it during execution. The helper's binary bytes are
+part of the LUP's inspected identity. A portable plugin can declare this
+dependency optional and check availability on hosts without a provider. Use
+manifest `targets` to state actual platform support.
+
 Both commands print a concise JSON result containing code, plugin ID, version,
 digest, byte length and entry count. Inspection additionally prints manifest and
 paths. Expected failures have stable codes and exit status 1, without raw causes.
 Notable codes: `PACKAGE_METADATA_REQUIRED`, `PACKAGE_BUILD_FAILED`,
 `PACKAGE_EXTERNAL_IMPORT`, `PACKAGE_SYMLINK`, `PACKAGE_PATH`,
 `PACKAGE_ASSET_KIND`, `PACKAGE_WRITE_FAILED` and shared `LUP_*` codes.
-The existing `inspect` command still activates trusted development directories;
-use `inspect-package` for an inert package preview.
+Use `inspect-package` for an inert package preview. The `inspect` command
+activates development directories in Node.
 
-Integration status: CLI/codec package build, portable scaffolding and inert
-inspection are tested together. The Lime engine/settings UI consume this format
-and load installed packages into the application realm. The desktop process
-API can launch packaged native helpers from `assets/` as part of plugin
-activation. Native and visual acceptance must be verified in the application.
+Install through Settings → Third-party plugins in an open Vault. Preview and
+installation in the disabled state leave the entry unevaluated. After activation,
+Lime loads the entry in the same JavaScript environment as the application.
+The user selects the package to run. SDK checks apply to both built-in and
+installed packages, and packaging validates format and identity without making
+claims about the safety of executable code.

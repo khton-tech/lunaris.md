@@ -192,9 +192,10 @@ remove-with-data should cover them.
 
 For a custom editor or drawing surface, use the Views drawing node from
 `@lunaris/components`.
-CodeMirror-native extensions use `EditorExtensions` from `@lunaris/editor` in
-trusted host composition. Installed QuickJS packages currently use the
-declarative view contract for new editor-like surfaces.
+Use `EditorEffects` from `@lunaris/editor` for owned deletion effects. The
+lower-level `EditorExtensions` contract accepts CodeMirror or Lezer runtime
+values. Review compatible package instances and adapter requirements in
+[Editor extensions](../reference/editor-extensions.md) when using it.
 
 ## Replace the editor's clipboard provider
 
@@ -368,3 +369,51 @@ owner can disable `lunaris.workspace` in Built-in plugins and apply the
 composition to use the separate interface. Restore defaults brings back
 Workspace. Safe mode provides access to the default application even when
 the custom interface omits Settings.
+
+## Add a decoration to existing UI
+
+[Drema](../../examples/drema/DOCS/README.md) adds a package-owned animated image
+to the existing status bar beside the filename. It requires Logger and
+`api:lunaris.application-dom@^1.0.0`, declares `ui.dom`, and uses
+[ApplicationDom](../reference/application-dom.md) from `@lunaris/components`.
+No slot or host patch is necessary. The example's source, manifest and
+`assets/drema.svg` are in `examples/drema/`.
+
+For your own decoration, obtain the current product root with
+`ctx.use(ApplicationDom).root()`, create a node using its owner document, and
+locate a suitable existing element. An observer can follow replacements of the
+target as the application renders. Put observer disconnection and node removal
+in `ctx.scope.own({ dispose() { … } })`. Keep layout and styles owned by the
+existing component intact. Use localized labels for interactive or informative
+content. A selector specific to one renderer can change across releases.
+
+In the actual application, open a note in a Vault and enable the example.
+Check that the image appears next to the filename, the status bar remains
+usable in a narrow window, and the image stays still with reduced motion
+enabled. Disable the plugin and check that the image disappears.
+
+## Implement a Windows operation in a plugin
+
+[Global Hotkey](../../examples/global-hotkey/DOCS/README.md) registers
+Ctrl+Alt+Shift+H in its own Windows helper and emits
+`example.global-hotkey-pressed@1.0.0`. It uses
+[NativeProcesses](../reference/native-processes.md) from `@lunaris/execution`
+with the `api:lunaris.native-processes@^1.0.0` requirement. Lunaris provides
+the process lifecycle and line transport. The plugin defines what messages
+mean and what Windows calls the helper performs.
+
+In a generated project, add the execution contract with
+`npm run core -- add-contract @lunaris/execution` and install dependencies.
+Copy the example manifest to the project root and the TypeScript files to
+`src/`. Copy the `native/` directory, build its Rust helper for
+`x86_64-pc-windows-msvc`, and copy the executable to
+`assets/bin/hotkey.exe`. Run `npm run check` and `npm run pack`.
+The helper handles registration and Windows messages. The activation starts it
+using `ctx.use(NativeProcesses).start(ctx, options)` and translates its output
+into a plugin-defined event. Another plugin can declare the event in
+`requires` and subscribe through the ordinary SDK.
+
+For native acceptance, install the package in a Vault on Windows and focus
+a different application. Press the combination and check for
+`Global hotkey pressed` in the Lunaris developer log. Disable the package
+and verify that pressing the combination no longer adds a record.

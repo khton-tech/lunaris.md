@@ -1,22 +1,27 @@
 # Independent plugin authoring
 
 [Plugin recipes](plugin-recipes.md) cover persisted settings, custom screens,
-shared contracts, provider replacement, Workspace layouts and standalone surfaces.
+shared contracts, provider replacement, Workspace layouts, changes to existing
+UI, and plugin-owned system operations.
 
 Supported toolchain: Node >=26.13.0 <27, npm >=11 <12, SDK/kernel/CLI 0.1.0,
 LUP format 1. Tool packages are currently private; use the prepared local packed
 distribution. Preparing it is not package registry publication.
 
-Maintainers run `npm run toolchain:archive` to create
-`dist/lunaris-plugin-sdk-<version>.7z`. Use
-`npm run toolchain:archive -- composition` for the
-`lunaris-plugin-sdk-0.1.0-composition.7z` distribution. Its bundled npm packages
-retain their 0.1.0 versions. Building requires the `7z` command on PATH. The
-archive contains packed Lunaris dependencies, a lockfile and documentation.
+Use `lunaris-plugin-sdk-0.1.0-equal-plugins.7z` with the Web or Windows
+application built from the shared plugin runtime. The npm packages keep their
+0.1.0 versions. The archive contains the local SDK and CLI packages, an npm
+lockfile, the full developer reference, and example sources. The application
+is distributed separately. Start from the archive root to browse `DOCS/` and
+`examples/`.
+
+Maintainers build the distribution with
+`npm run toolchain:archive -- equal-plugins` and the `7z` command on PATH.
 `npm run toolchain:build` prepares the unpackaged distribution at
-`dist/lime-toolchain`. Run `npm run lime:dx -- <archive>` to verify an archive with
-the local npm cache. The rehearsal checks generation, build, tests, packaging,
-inspection and dev shutdown in a temporary directory outside the checkout.
+`dist/lime-toolchain`. Run `npm run lime:dx -- <archive>` to verify a packed
+installation, project generation, build, tests, LUP inspection and development
+shutdown in a temporary directory outside the checkout. This check uses the local
+npm cache.
 
 ## Bootstrap and the first package
 
@@ -59,10 +64,30 @@ npm run core -- pack . ./another-output.lup
 npm run core -- inspect-package ./another-output.lup
 ```
 
-Inspection never evaluates package code. Install through Settings / Third-party
-plugins / Add plugin, inspect metadata and confirm. Updates select a new package
-with the same ID; removal offers managed-data/settings retention. No registry
-download or permission-selection dialog is introduced by the installer.
+Inspection never evaluates package code. Open a Vault and use Settings →
+Third-party plugins → Add plugin. Review the metadata and runtime notice, then
+install and start the package or choose Install disabled. The latter keeps the
+package inert until enabled, so you can configure its upstream provider first.
+For an update, select a package with the same ID and a newer plugin version.
+Removal can retain package settings and managed data.
+
+## Application execution model
+
+Built-in and installed plugins on a given application platform share one
+execution realm, SDK and permission policy. The standard Web and Tauri
+compositions grant a plugin's declared permissions before activating it. The user
+decides which packages to run. SDK declarations and activation scopes mediate
+SDK use, and the shared JavaScript environment also exposes the capabilities of
+the application's page. Disposing a scope cleans up resources the plugin owns.
+It cannot undo arbitrary changes or external effects the plugin made.
+
+Web and Tauri both support SDK access to the rendered application DOM.
+Windows Tauri also provides `NativeProcesses`. A plugin can package its own
+Windows executable to implement a system operation and publish a new SDK
+contract. The helper runs with the user's OS rights. There is no additional
+plugin class or trust tier. On a host without the process provider, a required
+dependency on it prevents activation. Use an optional requirement and
+`ctx.optional(NativeProcesses)` if the plugin can operate without it.
 
 ## Public imports and declarations
 
@@ -82,7 +107,7 @@ npm install --ignore-scripts
 
 The command copies the matching versioned archive into tools/vendor and updates
 package.json/overrides. Only SDK packages are available through add-contract;
-host/kernel/tool packages are not plugin authoring APIs. Declare every consumed or
+host/kernel/tool packages are outside the authoring API. Declare every consumed or
 provided token's kind, ID and compatible version/range in manifest.json. Imports
 and a token object do not grant a declaration. Keep exported and file manifests
 identical. Tooling validates before entry evaluation and the installed loader
@@ -97,8 +122,8 @@ Useful contract packages and exported tokens:
 | @lunaris/filesystem | Filesystem, FilesystemObservation; explicit Vault-relative targets |
 | @lunaris/vault | Vault, VaultChanged; active root identity |
 | @lunaris/settings | Settings; owned categories/groups/items/sections |
-| @lunaris/components | Views, ViewSurfaces and ApplicationDom; custom UI, standalone surfaces and changes to existing DOM |
-| @lunaris/execution | NativeProcesses; run a packaged Windows helper and exchange lines |
+| @lunaris/components | Views and ViewSurfaces for new UI, [ApplicationDom](../reference/application-dom.md) for extending the existing rendered UI |
+| @lunaris/execution | [NativeProcesses](../reference/native-processes.md) for packaged Windows helpers |
 | @lunaris/active-screen | ActiveScreen; register/select a novel application screen |
 | @lunaris/workspace | Workspace, WorkspaceLayout; contribute to regions or provide a replacement layout |
 | @lunaris/localization | Localization, LocaleChanged; English-first localized UI |
@@ -138,13 +163,14 @@ To provide a separate working interface, register a declarative view and mount i
 through `ViewSurfaces` in a new slot under the product root. Mount ownership and
 view ownership each end the surface when their signal aborts.
 
-Store settings with Config using the plugin ID and explicit Vault scope. File
-operations use `{ vaultId, path }`, with paths relative to that captured Vault.
+Use Config with the plugin ID and an explicit Vault scope for settings that
+belong to the current Vault. File operations use `{ vaultId, path }` with paths
+relative to that captured Vault.
 Managed plugin data belongs under `.lunaris/plugins/data/<plugin-id>/`; deleting
 managed data does not remove arbitrary documents the plugin created elsewhere.
 Capture the Vault before an async operation and honor cancellation; never redirect
-old work into a newly selected Vault. Global application storage and raw native
-management are unavailable in installed code.
+old work into a newly selected Vault. Use declared SDK providers for any
+application-wide or native operations your plugin needs.
 
 ## Select a composition in the application
 
@@ -164,29 +190,28 @@ activation. Set that dependency in its installed package Details and then enable
 it. This lets a decorator require and provide the same compatible contract while
 delegating to a separate provider.
 
-Owner actions control the profile. Installed packages contribute implementations
-through the SDK, and host startup, runtime management, native authority and
-recovery remain trusted host responsibilities. If the working interface hides
-Settings, use Ctrl+Shift+F8 (Cmd+Shift+F8 on macOS) to restart in safe mode. In
-the browser, the `safe-mode=1` URL query parameter also starts with host defaults.
+The user controls the profile. If the working interface hides Settings, use
+Ctrl+Shift+F8 (Cmd+Shift+F8 on macOS) to restart in safe mode. In the browser,
+the `safe-mode=1` URL query parameter also starts with host defaults. Safe mode
+skips installed packages for recovery. Restart the application process if a
+shared-realm side effect survives scope cleanup.
 
 ## Diagnostics and current limits
 
-CLI failures have stable codes and nonzero exit status. Headless `inspect`/`dev`
-activate trusted Node code; do not use them as a sandbox for unknown packages.
-The development host supplies replaceable logging and retains bounded original
-records without corrupting JSON output. Web and Tauri run installed and built-in
-plugins in the same application realm. The user chooses which packages to run.
-SDK declarations and activation ownership apply equally to every plugin. Plugins
-can consume platform APIs available in the application and must own their
-changes. Package assets need supported
-resource contracts: `ctx.resources.text('assets/file.json')` reads bounded UTF-8
-text, and `ctx.resources.read(path, offset, length)` reads up to 16 KiB of binary
-data per call. Only this package's captured assets are available. These are not
-host resource URLs; renderer media roles need explicit adapters.
+CLI failures have stable codes and nonzero exit status. Headless `inspect` and
+`dev` without `--live` activate code in Node. Use `inspect-package` for metadata
+inspection without activation. The development host retains bounded original
+log records while keeping JSON output machine-readable.
 
-Run `npm run core -- dev . --live` for a headless QuickJS session. Run DOM and
-native process examples in the actual application. After editing
+Use `ctx.resources.text('assets/file.json')` for bounded UTF-8 assets and
+`ctx.resources.read(path, offset, length)` for binary chunks up to 16 KiB.
+`ctx.resources` exposes only the activation's captured package assets.
+An asset path is a package key. DOM images and other renderers need bytes or
+a URL in a form supported by the renderer.
+
+Run `npm run core -- dev . --live` for a headless QuickJS session. It is a
+development tool outside the application's plugin model. Test DOM and native
+process behavior in the application. After editing
 TypeScript, run the project build again and enter `reload` in the session.
 Reload bundles all project roots before applying changes. Each changed package
 replaces its code and restarts its affected consumers. If activation fails, the
@@ -198,9 +223,10 @@ when the session stops. The development driver caps files at 128 KiB and storage
 at 16 MiB. Directory operations, native pickers, watches and application Vault
 attachment are unavailable in this host.
 Updates back up the package's managed directory and Vault Config namespace.
-Keep migrations within those locations to benefit from rollback. Native dialogs,
-WebView execution, viewport geometry and visual
-acceptance have not been established by Node tests alone.
+Keep migrations within those locations to benefit from rollback. Use focused
+`@lunaris/test` fixtures for SDK dependencies after adding contracts to the
+starter. Check native dialogs, WebView rendering and OS events manually in the
+target application.
 
 If a needed SDK operation or adapter is unavailable, describe the required public
 contract rather than importing private implementations or inventing an API. Read
