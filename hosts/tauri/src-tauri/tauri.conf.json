@@ -28,6 +28,7 @@
       "capabilities": [
         "host-lifecycle",
         "credentials",
+        "external-links",
         "filesystem",
         "window-controls"
       ],

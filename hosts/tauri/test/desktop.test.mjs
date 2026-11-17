@@ -20,6 +20,15 @@ test('Windows WebView leaves HTML5 drag/drop to the SDK component renderer', () 
   assert.equal(config.app.windows.find(window => window.label === 'main').dragDropEnabled, false);
 });
 
+test('the desktop registers the main window capability for the scoped URL opener', () => {
+  const config = JSON.parse(readFileSync(new URL('../src-tauri/tauri.conf.json', import.meta.url), 'utf8'));
+  const capability = JSON.parse(readFileSync(new URL('../src-tauri/capabilities/external-links.json', import.meta.url), 'utf8'));
+  assert.ok(config.app.security.capabilities.includes(capability.identifier));
+  assert.deepEqual(capability.windows, ['main']);
+  assert.deepEqual(capability.permissions.map(permission => permission.identifier), ['opener:allow-open-url']);
+  assert.deepEqual(capability.permissions[0].allow.map(({ url }) => url), ['https://*', 'http://*', 'mailto:*', 'tel:*']);
+});
+
 test('release CSP permits runtime product styles while keeping scripts and embedded content restricted', () => {
   const { app: { security } } = JSON.parse(readFileSync(new URL('../src-tauri/tauri.conf.json', import.meta.url), 'utf8'));
   const directives = policy => new Map(policy.split(';').map(part => {
