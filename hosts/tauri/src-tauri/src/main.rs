@@ -3,6 +3,7 @@
 use lunaris_filesystem_native::{Backend, Change, ChangeCallback, Request, SharedBackend};
 use std::sync::{Arc, Mutex};
 use tauri::Manager;
+mod processes;
 
 #[tauri::command]
 async fn filesystem_request(
@@ -36,10 +37,26 @@ async fn credentials_request(operation: String, value: serde_json::Value) -> ser
         .unwrap_or_else(|_| serde_json::json!({"ok":false,"error":{"code":"IO_ERROR","message":"Secure session worker failed."}}))
 }
 
+#[tauri::command]
+async fn native_process_request(
+    request: processes::Request,
+    channel: tauri::ipc::Channel<processes::Event>,
+    app: tauri::AppHandle,
+) -> Result<Option<u32>, String> {
+    let notify: processes::Notify = Box::new(move |event| channel.send(event).is_ok());
+    tauri::async_runtime::spawn_blocking(move || {
+        app.state::<processes::Registry>()
+            .dispatch(request, Some(notify))
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
 fn main() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .setup(|app| {
+            app.manage(processes::Registry::default());
             app.manage(Arc::new(Mutex::new(Backend::with_config_directory(
                 app.path().app_config_dir()?,
             ))));
@@ -47,7 +64,8 @@ fn main() {
         })
         .invoke_handler(tauri::generate_handler![
             filesystem_request,
-            credentials_request
+            credentials_request,
+            native_process_request
         ])
         .run(tauri::generate_context!())
         .expect("Failed to run the Lunaris desktop host");

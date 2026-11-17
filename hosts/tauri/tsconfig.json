@@ -38,6 +38,9 @@
       "path": "../../plugins/systems/driver/tauri-links"
     },
     {
+      "path": "../../plugins/systems/driver/tauri-processes"
+    },
+    {
       "path": "../../plugins/systems/driver/tauri-window"
     },
     {

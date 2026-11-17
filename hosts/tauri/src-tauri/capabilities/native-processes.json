@@ -1,0 +1,6 @@
+{
+  "identifier": "native-processes",
+  "description": "Allow the main window to manage plugin-owned helper processes.",
+  "windows": ["main"],
+  "permissions": ["allow-native-process-request"]
+}

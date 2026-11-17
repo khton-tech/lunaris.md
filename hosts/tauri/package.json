@@ -23,6 +23,7 @@
     "@lunaris/tauri-credentials": "0.1.0",
     "@lunaris/tauri-filesystem": "0.1.0",
     "@lunaris/tauri-links": "0.1.0",
+    "@lunaris/tauri-processes": "0.1.0",
     "@lunaris/tauri-window": "0.1.0",
     "@lunaris/vault": "0.1.0",
     "@lunaris/window-provider": "0.1.0",

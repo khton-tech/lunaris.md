@@ -47,7 +47,7 @@ export async function prepareEmbeddedToolchain({ build = true, output } = {}) {
   const index = { formatVersion: 1, packages: {} };
   for (const root of roots) {
     const { name, ...archive } = await packWorkspace(npm, path.join(workspace, root), embedded);
-    const tool = ['kernel', 'test', 'lup', 'execution', 'lime', 'logger', 'quickjs-execution', 'development'].includes(name.slice('@lunaris/'.length));
+    const tool = ['kernel', 'test', 'lup', 'lime', 'logger', 'quickjs-execution', 'development'].includes(name.slice('@lunaris/'.length));
     index.packages[name] = { ...archive, kind: tool ? 'tool' : 'sdk' };
   }
   await writeFile(path.join(embedded, 'index.json'), JSON.stringify(index, null, 2) + '\n');
