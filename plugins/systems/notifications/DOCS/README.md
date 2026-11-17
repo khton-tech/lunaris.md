@@ -13,7 +13,7 @@ standalone `lunaris.notification` role. It owns the themed card, content layout
 and rendering of the icon, title and text. The provider subscribes to no SDK
 events.
 
-The provider displays up to four 192 × 64 logical-pixel windows with 8 logical
+The provider displays up to four 384 × 64 logical-pixel windows with 8 logical
 pixels between them. It opens one native window at a time and appends each new
 card above the visible ones. Closing a card frees its position. The provider
 compacts only the displaced windows through anchored moves. It retains a slot

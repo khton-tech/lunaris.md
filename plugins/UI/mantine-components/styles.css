@@ -1134,6 +1134,7 @@
 @media(prefers-reduced-motion:reduce){.lm-disclosure-icon,.lm-backlink-heading,.lm-backlink-context{transition:none}}
 
 .lm-root .lm-notification {
+  --notification-text-size: calc(var(--vault-ui-font-size) * 0.93);
   --notification-radius: var(--vault-radius);
   align-items: flex-start;
   background: var(--vault-panel);
@@ -1166,15 +1167,15 @@
 }
 .lm-root .lm-notification-title {
   color: var(--vault-text);
-  font-size: var(--vault-ui-font-size);
-  font-weight: 650;
+  font-size: calc(var(--notification-text-size) + 2px);
+  font-weight: 750;
   line-height: 1.2;
   margin-block-end: calc(var(--vault-space) * 0.5);
   overflow-wrap: anywhere;
 }
 .lm-root .lm-notification-text {
   color: var(--vault-secondary);
-  font-size: calc(var(--vault-ui-font-size) * 0.93);
+  font-size: var(--notification-text-size);
   line-height: 1.25;
   overflow-wrap: anywhere;
   white-space: pre-wrap;

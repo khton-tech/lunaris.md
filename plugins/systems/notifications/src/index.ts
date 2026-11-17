@@ -24,7 +24,7 @@ interface VisibleNotification {
 
 const maxWaiting = 32;
 const maxVisible = 4;
-const size = { width: 192, height: 64 } as const;
+const size = { width: 384, height: 64 } as const;
 const gap = 8;
 const shown = { ok: true, value: null } as const;
 const failure = (code: NotificationErrorCode, message: string): NotificationResult => ({ ok: false, error: { code, message } });

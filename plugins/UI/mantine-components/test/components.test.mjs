@@ -538,7 +538,7 @@ test('compact desktop notifications top-align the icon and keep overflow in the 
     const styles = document.createElement('style');
     styles.textContent = readFileSync(new URL('../styles.css', import.meta.url), 'utf8').replace(/^@import .*$/gm, '');
     document.head.append(styles);
-    Object.assign(s.target.style, { width: '192px', height: '64px' });
+    Object.assign(s.target.style, { width: '384px', height: '64px' });
     const input = document.body.appendChild(document.createElement('input'));
     input.focus();
 
@@ -556,10 +556,12 @@ test('compact desktop notifications top-align the icon and keep overflow in the 
     assert.equal(getComputedStyle(body).overflowY, 'auto');
     assert.equal(getComputedStyle(message).overflowWrap, 'anywhere');
     assert.equal(icon.querySelector('svg')?.getAttribute('aria-hidden'), 'true');
-    assert.equal(body.querySelector('.lm-notification-title').textContent, title);
+    const heading = body.querySelector('.lm-notification-title');
+    assert.equal(heading.textContent, title);
+    assert.equal(getComputedStyle(heading).fontWeight, '750');
     assert.equal(message.textContent, text);
     assert.equal(document.activeElement, input);
-    assert.equal(s.target.style.width, '192px');
+    assert.equal(s.target.style.width, '384px');
     assert.equal(s.target.style.height, '64px');
   } finally { await s.stop(); }
 });

@@ -84,7 +84,7 @@ test("the packed plugin stacks live notifications, compacts gaps and cleans up o
     const [{ options, surface }] = windows;
     const at = y => ({ anchor: "bottom-right", offset: { x: 0, y } });
     assert.deepEqual(options.position, at(0));
-    assert.deepEqual(options.size, { width: 192, height: 64 });
+    assert.deepEqual(options.size, { width: 384, height: 64 });
     assert.equal(options.layer, "top");
     assert.equal(options.focusable, false);
     assert.equal(options.skipTaskbar, true);
