@@ -35,6 +35,14 @@ npm run pack
 For an unpackaged toolchain directory without a lockfile, use
 `npm install --ignore-scripts` for the first command.
 
+When upgrading an existing project from an earlier 0.1.0 archive, generate a new
+project with the same plugin ID inside the new toolchain. Move your source,
+manifest changes and assets into the new project and add your contract
+dependencies again. Older vendored tarballs can have the same file names as the
+new ones. The CLI reports `TOOLCHAIN_CONFLICT` if those files have different
+contents. Increment the plugin's manifest version when packaging an update for
+an existing installation.
+
 The generated project includes versioned SDK tarballs, a manifest, TypeScript
 entry, focused test, English developer/agent guidance and npm scripts. Tarball
 dependencies are inside the project; no source-checkout file links or absolute
