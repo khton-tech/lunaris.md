@@ -12,8 +12,16 @@ caller cancellation releases the window and its surface lifetime. See
 [External native windows](../../../../../DOCS/reference/external-windows.md).
 
 The native host resolves anchors from the primary monitor's physical work area
-and the window's measured outer dimensions. It applies the requested layer
-through Tauri's native window stacking options at creation.
+and the window's measured outer dimensions. An anchored position can also carry
+a signed offset in logical pixels. The host applies it at the primary monitor's
+scale and keeps the position within its work area. It applies the requested
+layer through Tauri's native window stacking options at creation.
+
+On Windows, `focusable: false` creates a passive window. Show, hide and move
+use Win32 positioning with `SWP_NOACTIVATE` and preserve the existing z-order.
+The passive window rejects mouse and pointer activation while still receiving
+those inputs. The driver uses SDK resize for passive windows. Close cancels a
+pending open and hides an existing window before acknowledging destruction.
 
 Methods, event payloads and lifecycle: [window reference](../../../../../DOCS/reference/window.md).
 Native listeners are scope-owned. Decoration changes are serialized; exclusive

@@ -41,6 +41,24 @@ test('owner cancellation during creation also releases the pending native ticket
   assert.deepEqual(fixture.operations, ['close']);
 });
 
+test('cancellation waits for native close when a pending open succeeds', async () => {
+  const creation = Promise.withResolvers();
+  const closeStarted = Promise.withResolvers();
+  const closing = Promise.withResolvers();
+  const fixture = await setup({ open: () => creation.promise, operate: () => { closeStarted.resolve(); return closing.promise; } });
+  const owner = new AbortController();
+  let finished = false;
+  const opening = fixture.api.open(options, owner.signal).finally(() => { finished = true; });
+  owner.abort();
+  creation.resolve({});
+  await closeStarted.promise;
+  assert.deepEqual(fixture.operations, ['close']);
+  assert.equal(finished, false);
+  closing.resolve();
+  assert.equal((await opening).error.code, 'CANCELLED');
+  await fixture.cleanup();
+});
+
 test('the external window driver forwards named placement and layer choices', async () => {
   const openings = []; const moves = [];
   const fixture = await setup({
@@ -53,5 +71,18 @@ test('the external window driver forwards named placement and layer choices', as
   assert.equal((await value.move('center')).error.code, 'INVALID_ARGUMENT');
   assert.equal((await value.move({ x: -100, y: 40 })).ok, true);
   assert.deepEqual(moves, ['center-left', { x: -100, y: 40 }]);
+  await fixture.cleanup();
+});
+
+test('queued anchor moves snapshot their offsets', async () => {
+  const moves = [];
+  const position = { anchor: 'bottom-right', offset: { x: 0, y: -72 } };
+  const fixture = await setup({ operate(operation) { if (operation.kind === 'move') moves.push(operation.position); } });
+  const { value } = await fixture.api.open(options, new AbortController().signal);
+  const move = value.move(position);
+  position.offset.y = -144;
+  assert.equal((await move).ok, true);
+  assert.deepEqual(moves, [{ anchor: 'bottom-right', offset: { x: 0, y: -72 } }]);
+  assert.equal((await value.move({ anchor: 'bottom-right', offset: { x: 0, y: Infinity } })).error.code, 'INVALID_ARGUMENT');
   await fixture.cleanup();
 });

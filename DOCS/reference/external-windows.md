@@ -11,6 +11,10 @@ level through `layer`. The primary monitor's work area supplies the bounds for
 named positions. Windows maps the bottom level to its native window stacking
 policy, with ordering subject to the OS. See the [Tao window API](https://docs.rs/tao/0.37.2/tao/window/struct.Window.html#method.set_always_on_bottom).
 
+Use `{ anchor: "bottom-right", offset: { x: 0, y: -72 } }` to move a
+window relative to an anchor in logical pixels. The notification provider uses
+these offsets to stack native windows and move them without remounting content.
+
 Tauri opens a separate WebView in the main WebView's environment through a
 single-use local launch request. The application session mounts the view against
 the new document through Components. The child shell has its own document and

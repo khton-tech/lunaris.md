@@ -530,6 +530,40 @@ test('registers the replaceable roles, renders real Mantine controls, preserves 
   await owner.dispose(); assert.equal(s.target.querySelector('.lm-root'), null); await s.stop();
 });
 
+test('compact desktop notifications top-align the icon and keep overflow in the text column', async () => {
+  const s = await setup();
+  try {
+    await s.start();
+    const { document, getComputedStyle } = s.dom.window;
+    const styles = document.createElement('style');
+    styles.textContent = readFileSync(new URL('../styles.css', import.meta.url), 'utf8').replace(/^@import .*$/gm, '');
+    document.head.append(styles);
+    Object.assign(s.target.style, { width: '192px', height: '64px' });
+    const input = document.body.appendChild(document.createElement('input'));
+    input.focus();
+
+    const title = 'Проверка длинного заголовка уведомления';
+    const text = 'длинная-строка-без-пробелов'.repeat(10);
+    const mounted = s.components.mount('lunaris.notification', s.target, { icon: 'bell', title, text }, s.ctx.signal);
+    assert.equal(mounted.ok, true);
+    const card = s.target.querySelector('.lm-notification[role=status]');
+    const icon = card.querySelector('.lm-notification-icon');
+    const body = card.querySelector('.lm-notification-body');
+    const message = body.querySelector('.lm-notification-text');
+    assert.equal(card.firstElementChild, icon);
+    assert.equal(icon.nextElementSibling, body);
+    assert.equal(getComputedStyle(card).alignItems, 'flex-start');
+    assert.equal(getComputedStyle(body).overflowY, 'auto');
+    assert.equal(getComputedStyle(message).overflowWrap, 'anywhere');
+    assert.equal(icon.querySelector('svg')?.getAttribute('aria-hidden'), 'true');
+    assert.equal(body.querySelector('.lm-notification-title').textContent, title);
+    assert.equal(message.textContent, text);
+    assert.equal(document.activeElement, input);
+    assert.equal(s.target.style.width, '192px');
+    assert.equal(s.target.style.height, '64px');
+  } finally { await s.stop(); }
+});
+
 test('settings choices validate data, render single values as text and retain live controls on updates', async () => {
   const s = await setup(); await s.start(); const changes = [];
   const props = { fields: [{ id: 'locale', label: 'Language', value: 'en', options: [{ value: 'en', label: 'English' }] }],

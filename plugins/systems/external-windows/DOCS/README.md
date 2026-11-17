@@ -30,9 +30,16 @@ The handle offers `update`, `show`, `hide`, `move`, `resize` and `close`.
 `move` accepts another anchor or explicit `{ x, y }` coordinates in logical
 pixels. Explicit coordinates release the anchor. Tauri repositions anchored
 windows when shown and on native size and scale changes.
+An `{ anchor, offset: { x, y } }` position moves the window relative to its
+anchor in signed logical pixels. Positive offsets move right and down. Offset
+positions stay within the work area when the window fits.
 `closed` resolves once on closure, whether initiated by the OS, caller or
 activation cleanup. Closing releases the component and native surface. A live
 activation can use a child scope for a shorter window lifetime.
+
+The manager tracks both in-flight openings and attached surfaces. Shutdown
+cancels the openings, waits for them to settle and closes surviving surfaces
+before releasing the manager. A failed mount or show also closes the surface.
 
 The platform owns the window geometry and native lifecycle. The external shell
 owns the mount area and includes the shared Mantine stylesheet. The component

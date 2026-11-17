@@ -3,9 +3,12 @@ use std::{collections::HashMap, sync::Mutex};
 use tauri::{
     webview::{NewWindowFeatures, NewWindowResponse},
     App, AppHandle, Emitter, LogicalPosition, LogicalSize, Manager, PhysicalPosition, PhysicalRect,
-    PhysicalSize, State, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder, Window, WindowEvent,
-    Wry,
+    PhysicalSize, Position as NativePosition, Url, WebviewUrl, WebviewWindow, WebviewWindowBuilder,
+    Window, WindowEvent, Wry,
 };
+
+#[cfg(windows)]
+mod windows;
 
 #[derive(Deserialize)]
 pub struct Size {
@@ -19,7 +22,7 @@ impl Size {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Clone, Copy, Deserialize)]
 pub struct Position {
     x: f64,
     y: f64,
@@ -44,10 +47,26 @@ pub enum Anchor {
     BottomRight,
 }
 
+#[derive(Clone, Copy, Deserialize)]
+pub struct AnchoredPosition {
+    anchor: Anchor,
+    offset: Position,
+}
+
+impl From<Anchor> for AnchoredPosition {
+    fn from(anchor: Anchor) -> Self {
+        Self {
+            anchor,
+            offset: Position { x: 0.0, y: 0.0 },
+        }
+    }
+}
+
 #[derive(Deserialize)]
 #[serde(untagged)]
 pub enum Placement {
     Anchor(Anchor),
+    Anchored(AnchoredPosition),
     Coordinates(Position),
 }
 
@@ -55,7 +74,16 @@ impl Placement {
     fn valid(&self) -> bool {
         match self {
             Self::Anchor(_) => true,
+            Self::Anchored(position) => position.offset.valid(),
             Self::Coordinates(position) => position.valid(),
+        }
+    }
+
+    fn anchor(&self) -> Option<AnchoredPosition> {
+        match self {
+            Self::Anchor(anchor) => Some((*anchor).into()),
+            Self::Anchored(position) => Some(*position),
+            Self::Coordinates(_) => None,
         }
     }
 }
@@ -93,46 +121,126 @@ pub enum Request {
 
 #[derive(Default)]
 pub struct ExternalWindows {
-    pending: Mutex<HashMap<String, (Url, Options)>>,
-    anchors: Mutex<HashMap<String, Option<Anchor>>>,
+    entries: Mutex<HashMap<String, Entry>>,
+}
+
+enum Entry {
+    Prepared { url: Url, options: Options },
+    Opening { cancelled: bool },
+    Open(WindowPolicy),
+}
+
+#[derive(Clone, Copy)]
+struct WindowPolicy {
+    anchor: Option<AnchoredPosition>,
+    focusable: bool,
+}
+
+fn take_prepared(entries: &mut HashMap<String, Entry>, id: &str, url: &Url) -> Option<Options> {
+    let entry = entries.get_mut(id)?;
+    if !matches!(entry, Entry::Prepared { url: expected, .. } if expected == url) {
+        return None;
+    }
+    match std::mem::replace(entry, Entry::Opening { cancelled: false }) {
+        Entry::Prepared { options, .. } => Some(options),
+        _ => unreachable!("entry was prepared"),
+    }
+}
+
+fn complete_open(
+    entries: &mut HashMap<String, Entry>,
+    id: &str,
+    policy: Option<WindowPolicy>,
+) -> bool {
+    if let (Some(entry @ Entry::Opening { cancelled: false }), Some(policy)) =
+        (entries.get_mut(id), policy)
+    {
+        *entry = Entry::Open(policy);
+        return true;
+    }
+    entries.remove(id);
+    false
+}
+
+/// Return the policy of a live window that still needs a native close.
+fn cancel_or_close(entries: &mut HashMap<String, Entry>, id: &str) -> Option<WindowPolicy> {
+    match entries.get_mut(id) {
+        Some(Entry::Prepared { .. }) => {
+            entries.remove(id);
+            None
+        }
+        Some(Entry::Opening { cancelled }) => {
+            *cancelled = true;
+            None
+        }
+        Some(Entry::Open(policy)) => Some(*policy),
+        None => None,
+    }
 }
 
 fn anchored_position(
-    anchor: Anchor,
+    placement: AnchoredPosition,
     area: &PhysicalRect<i32, u32>,
     size: PhysicalSize<u32>,
+    scale: f64,
 ) -> PhysicalPosition<i32> {
     let horizontal = i64::from(area.size.width.saturating_sub(size.width));
     let vertical = i64::from(area.size.height.saturating_sub(size.height));
-    let x = match anchor {
+    let x = match placement.anchor {
         Anchor::TopLeft | Anchor::CenterLeft | Anchor::BottomLeft => 0,
         Anchor::TopCenter | Anchor::BottomCenter => horizontal / 2,
         Anchor::TopRight | Anchor::CenterRight | Anchor::BottomRight => horizontal,
     };
-    let y = match anchor {
+    let y = match placement.anchor {
         Anchor::TopLeft | Anchor::TopCenter | Anchor::TopRight => 0,
         Anchor::CenterLeft | Anchor::CenterRight => vertical / 2,
         Anchor::BottomLeft | Anchor::BottomCenter | Anchor::BottomRight => vertical,
     };
+    let clamp = |origin: i32, position: i64, offset: f64, limit: i64| {
+        (i64::from(origin) + (position + (offset * scale).round() as i64).clamp(0, limit))
+            .min(i64::from(i32::MAX)) as i32
+    };
     PhysicalPosition::new(
-        (i64::from(area.position.x) + x).min(i64::from(i32::MAX)) as i32,
-        (i64::from(area.position.y) + y).min(i64::from(i32::MAX)) as i32,
+        clamp(area.position.x, x, placement.offset.x, horizontal),
+        clamp(area.position.y, y, placement.offset.y, vertical),
     )
 }
 
-fn place_at_anchor(window: &Window, anchor: Anchor) -> Result<(), String> {
+fn anchor_position(
+    window: &Window,
+    anchor: AnchoredPosition,
+) -> Result<Option<NativePosition>, String> {
     let monitor = window
         .primary_monitor()
         .map_err(|error| error.to_string())?
         .ok_or("The primary monitor is unavailable.")?;
     let size = window.outer_size().map_err(|error| error.to_string())?;
-    let position = anchored_position(anchor, monitor.work_area(), size);
-    if window.outer_position().ok() != Some(position) {
+    let position = anchored_position(anchor, monitor.work_area(), size, monitor.scale_factor());
+    Ok((window.outer_position().ok() != Some(position)).then_some(position.into()))
+}
+
+fn update_window(
+    window: &Window,
+    focusable: bool,
+    position: Option<NativePosition>,
+    visible: Option<bool>,
+) -> Result<(), String> {
+    #[cfg(windows)]
+    if !focusable {
+        return windows::update(window, position, visible);
+    }
+    let _ = focusable;
+    if let Some(position) = position {
         window
             .set_position(position)
             .map_err(|error| error.to_string())?;
     }
-    Ok(())
+    match visible {
+        Some(true) => window.show(),
+        Some(false) => window.hide(),
+        None => Ok(()),
+    }
+    .map_err(|error| error.to_string())
 }
 
 fn valid_id(id: &str) -> bool {
@@ -148,7 +256,6 @@ fn valid_id(id: &str) -> bool {
 pub async fn external_window_request(
     window: WebviewWindow,
     app: AppHandle,
-    registry: State<'_, ExternalWindows>,
     id: String,
     request: Request,
 ) -> Result<(), String> {
@@ -173,76 +280,114 @@ pub async fn external_window_request(
         url.set_query(None);
         url.set_fragment(None);
         url.query_pairs_mut().append_pair("id", &id);
-        let mut tickets = registry.pending.lock().map_err(|error| error.to_string())?;
-        if tickets.contains_key(&id) || app.get_webview_window(&id).is_some() {
+        if app.get_webview_window(&id).is_some() {
             return Err("The external window already exists.".into());
         }
-        tickets.insert(id, (url, options));
+        let registry = app.state::<ExternalWindows>();
+        let mut entries = registry.entries.lock().map_err(|error| error.to_string())?;
+        match entries.entry(id) {
+            std::collections::hash_map::Entry::Vacant(entry) => {
+                entry.insert(Entry::Prepared { url, options });
+            }
+            std::collections::hash_map::Entry::Occupied(_) => {
+                return Err("The external window already exists.".into())
+            }
+        }
         return Ok(());
     }
 
-    let child = app.get_webview_window(&id);
+    // Serialize each geometry update on the window thread. Monitor, size and
+    // position lookups then happen within one dispatch before changing HWND.
+    let (send, mut receive) = tauri::async_runtime::channel(1);
+    window
+        .run_on_main_thread(move || {
+            let _ = send.try_send(operate(&app, &id, request));
+        })
+        .map_err(|error| error.to_string())?;
+    receive
+        .recv()
+        .await
+        .ok_or_else(|| "External window operation was interrupted.".to_string())?
+}
+
+fn operate(app: &AppHandle, id: &str, request: Request) -> Result<(), String> {
+    let registry = app.state::<ExternalWindows>();
     if matches!(request, Request::Close) {
-        registry
-            .pending
-            .lock()
-            .map_err(|error| error.to_string())?
-            .remove(&id);
-        return child.map_or(Ok(()), |child| {
-            child.destroy().map_err(|error| error.to_string())
-        });
+        let policy = {
+            let mut entries = registry.entries.lock().map_err(|error| error.to_string())?;
+            cancel_or_close(&mut entries, id)
+        };
+        if let (Some(policy), Some(child)) = (policy, app.get_webview_window(id)) {
+            // Tauri queues destruction. Hide the window before agreeing
+            // to close so the next notification can reuse its screen position.
+            let hidden = update_window(
+                &child.as_ref().window(),
+                policy.focusable,
+                None,
+                Some(false),
+            );
+            let destroyed = child.destroy().map_err(|error| error.to_string());
+            return hidden.and(destroyed);
+        }
+        return Ok(());
     }
-    let child = child.ok_or("The external window is closed.")?;
+    let policy = registry
+        .entries
+        .lock()
+        .map_err(|error| error.to_string())?
+        .get(id)
+        .and_then(|entry| match entry {
+            Entry::Open(policy) => Some(*policy),
+            _ => None,
+        })
+        .ok_or("The external window is closed.")?;
+    let child = app
+        .get_webview_window(id)
+        .ok_or("The external window is closed.")?;
+    let window = child.as_ref().window();
     match request {
         Request::Show => {
-            let anchor = registry
-                .anchors
-                .lock()
-                .map_err(|error| error.to_string())?
-                .get(&id)
-                .copied()
+            let position = policy
+                .anchor
+                .map(|anchor| anchor_position(&window, anchor))
+                .transpose()?
                 .flatten();
-            if let Some(anchor) = anchor {
-                place_at_anchor(&child.as_ref().window(), anchor)?;
-            }
-            child.show()
+            update_window(&window, policy.focusable, position, Some(true))
         }
-        Request::Hide => child.hide(),
+        Request::Hide => update_window(&window, policy.focusable, None, Some(false)),
         Request::Move { position } if position.valid() => {
-            let anchor = match &position {
-                Placement::Anchor(anchor) => Some(*anchor),
-                Placement::Coordinates(_) => None,
+            let anchor = position.anchor();
+            let target = match position {
+                Placement::Coordinates(position) => {
+                    Some(LogicalPosition::new(position.x, position.y).into())
+                }
+                _ => anchor_position(&window, anchor.expect("placement has an anchor"))?,
             };
             // Set the policy before dispatching the move. A DPI change may
             // immediately produce a resize event on the window thread.
-            let previous = {
-                let mut anchors = registry.anchors.lock().map_err(|error| error.to_string())?;
-                let entry = anchors
-                    .get_mut(&id)
-                    .ok_or("The external window is closed.")?;
-                std::mem::replace(entry, anchor)
-            };
-            let moved = match position {
-                Placement::Anchor(anchor) => place_at_anchor(&child.as_ref().window(), anchor),
-                Placement::Coordinates(position) => child
-                    .set_position(LogicalPosition::new(position.x, position.y))
-                    .map_err(|error| error.to_string()),
-            };
+            if let Some(Entry::Open(policy)) = registry
+                .entries
+                .lock()
+                .map_err(|error| error.to_string())?
+                .get_mut(id)
+            {
+                policy.anchor = anchor;
+            }
+            let moved = update_window(&window, policy.focusable, target, None);
             if moved.is_err() {
-                if let Ok(mut anchors) = registry.anchors.lock() {
-                    if let Some(entry) = anchors.get_mut(&id) {
-                        *entry = previous;
+                if let Ok(mut entries) = registry.entries.lock() {
+                    if let Some(Entry::Open(entry)) = entries.get_mut(id) {
+                        entry.anchor = policy.anchor;
                     }
                 }
             }
-            return moved;
+            moved
         }
-        Request::Resize { size } if size.valid() => {
-            child.set_size(LogicalSize::new(size.width, size.height))
-        }
-        _ => return Err("Invalid external window operation.".into()),
+        Request::Resize { size } if size.valid() => window
+            .set_size(LogicalSize::new(size.width, size.height))
+            .map_err(|error| error.to_string()),
+        _ => Err("Invalid external window operation.".into()),
     }
-    .map_err(|error| error.to_string())
 }
 
 fn open_popup(app: &AppHandle, url: Url, features: NewWindowFeatures) -> NewWindowResponse<Wry> {
@@ -257,21 +402,17 @@ fn open_popup(app: &AppHandle, url: Url, features: NewWindowFeatures) -> NewWind
         return NewWindowResponse::Deny;
     }
     let registry = app.state::<ExternalWindows>();
-    let options = registry.pending.lock().ok().and_then(|mut tickets| {
-        if tickets
-            .get(&id)
-            .is_some_and(|(expected, _)| expected == &url)
-        {
-            tickets.remove(&id).map(|(_, options)| options)
-        } else {
-            None
-        }
-    });
+    let options = registry
+        .entries
+        .lock()
+        .ok()
+        .and_then(|mut entries| take_prepared(&mut entries, &id, &url));
     let Some(options) = options else {
         return NewWindowResponse::Deny;
     };
 
     let blank = Url::parse("about:blank").expect("the built-in blank URL is valid");
+    let focusable = options.focusable.unwrap_or(true);
     let mut builder = WebviewWindowBuilder::new(app, &id, WebviewUrl::External(blank.clone()))
         .window_features(features)
         .on_navigation(move |next| next == &url || next == &blank)
@@ -281,29 +422,51 @@ fn open_popup(app: &AppHandle, url: Url, features: NewWindowFeatures) -> NewWind
         .decorations(false)
         .visible(false)
         .focused(false)
-        .focusable(options.focusable.unwrap_or(true))
+        .focusable(focusable)
         .skip_taskbar(options.skip_taskbar.unwrap_or(false));
+    #[cfg(windows)]
+    if !focusable {
+        // Wry focuses its controller on WM_ENTERSIZEMOVE. Keep native chrome
+        // gestures off passive windows. SDK size and position remain available.
+        builder = builder
+            .resizable(false)
+            .minimizable(false)
+            .maximizable(false);
+    }
     builder = match options.layer {
         Some(Layer::Bottom) => builder.always_on_bottom(true),
         Some(Layer::Top) => builder.always_on_top(true),
         None if options.always_on_top == Some(true) => builder.always_on_top(true),
         _ => builder,
     };
-    let anchor = match options.position {
-        Some(Placement::Coordinates(position)) => {
-            builder = builder.position(position.x, position.y);
-            None
-        }
-        Some(Placement::Anchor(anchor)) => Some(anchor),
-        None => None,
-    };
-    let Ok(window) = builder.build() else {
-        return NewWindowResponse::Deny;
-    };
-    if let Ok(mut anchors) = registry.anchors.lock() {
-        anchors.insert(id, anchor);
+    if let Some(Placement::Coordinates(position)) = &options.position {
+        builder = builder.position(position.x, position.y);
     }
-    NewWindowResponse::Create { window }
+    let policy = WindowPolicy {
+        anchor: options.position.as_ref().and_then(Placement::anchor),
+        focusable,
+    };
+    let window = builder.build().ok();
+    let accepted = window.as_ref().is_some_and(|window| {
+        #[cfg(windows)]
+        if !focusable {
+            return windows::register(&window.as_ref().window()).is_ok();
+        }
+        let _ = window;
+        true
+    });
+    let completed =
+        registry.entries.lock().ok().is_some_and(|mut entries| {
+            complete_open(&mut entries, &id, accepted.then_some(policy))
+        });
+    match window {
+        Some(window) if completed => NewWindowResponse::Create { window },
+        Some(window) => {
+            let _ = window.destroy();
+            NewWindowResponse::Deny
+        }
+        None => NewWindowResponse::Deny,
+    }
 }
 
 pub fn setup(app: &mut App) -> tauri::Result<()> {
@@ -330,19 +493,26 @@ pub fn on_window_event(window: &Window, event: &WindowEvent) {
     let registry = app.state::<ExternalWindows>();
     match event {
         WindowEvent::Destroyed => {
-            if let Ok(mut anchors) = registry.anchors.lock() {
-                anchors.remove(window.label());
+            if let Ok(mut entries) = registry.entries.lock() {
+                entries.remove(window.label());
             }
             let _ = app.emit_to("main", "lunaris://external-window-closed", window.label());
         }
         WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } => {
-            let anchor = registry
-                .anchors
-                .lock()
-                .ok()
-                .and_then(|anchors| anchors.get(window.label()).copied().flatten());
-            if let Some(anchor) = anchor.filter(|_| !window.is_minimized().unwrap_or(false)) {
-                let _ = place_at_anchor(window, anchor);
+            let anchored = registry.entries.lock().ok().and_then(|entries| {
+                match entries.get(window.label()) {
+                    Some(Entry::Open(policy)) => {
+                        policy.anchor.map(|anchor| (anchor, policy.focusable))
+                    }
+                    _ => None,
+                }
+            });
+            if let Some((anchor, focusable)) =
+                anchored.filter(|_| !window.is_minimized().unwrap_or(false))
+            {
+                if let Ok(Some(position)) = anchor_position(window, anchor) {
+                    let _ = update_window(window, focusable, Some(position), None);
+                }
             }
         }
         _ => {}
@@ -372,17 +542,76 @@ mod tests {
         ];
         for (anchor, (x, y)) in expected {
             assert_eq!(
-                anchored_position(anchor, &work_area, window),
+                anchored_position(anchor.into(), &work_area, window, 1.0),
                 PhysicalPosition::new(x, y)
             );
         }
         assert_eq!(
             anchored_position(
-                Anchor::BottomRight,
+                Anchor::BottomRight.into(),
                 &work_area,
-                PhysicalSize::new(2000, 250)
+                PhysicalSize::new(2000, 250),
+                1.0,
             ),
             PhysicalPosition::new(-1920, 790)
         );
+    }
+
+    #[test]
+    fn offsets_use_the_monitor_scale_and_stay_within_its_work_area() {
+        let work_area = PhysicalRect {
+            position: PhysicalPosition::new(-1920, 40),
+            size: PhysicalSize::new(1920, 1000),
+        };
+        let window = PhysicalSize::new(240, 80);
+        let request: Request = serde_json::from_value(serde_json::json!({
+            "kind": "move",
+            "position": { "anchor": "bottom-right", "offset": { "x": -8, "y": -72 } }
+        }))
+        .unwrap();
+        let Request::Move { position } = request else {
+            panic!("move expected")
+        };
+        assert!(position.valid());
+        assert_eq!(
+            anchored_position(position.anchor().unwrap(), &work_area, window, 1.25),
+            PhysicalPosition::new(-250, 870)
+        );
+        let far = AnchoredPosition {
+            anchor: Anchor::BottomRight,
+            offset: Position { x: 12.0, y: -900.0 },
+        };
+        assert_eq!(
+            anchored_position(far, &work_area, window, 1.25),
+            PhysicalPosition::new(-240, 40)
+        );
+    }
+
+    #[test]
+    fn closing_during_open_rejects_the_eventual_window() {
+        let id = "external-window";
+        let url = Url::parse("https://lunaris.example/external-window.html").unwrap();
+        let options: Options = serde_json::from_value(
+            serde_json::json!({ "title": "Test", "size": { "width": 192, "height": 64 } }),
+        )
+        .unwrap();
+        let mut entries = HashMap::from([(
+            id.to_owned(),
+            Entry::Prepared {
+                url: url.clone(),
+                options,
+            },
+        )]);
+        assert!(take_prepared(&mut entries, id, &url).is_some());
+        assert!(cancel_or_close(&mut entries, id).is_none());
+        assert!(!complete_open(
+            &mut entries,
+            id,
+            Some(WindowPolicy {
+                anchor: None,
+                focusable: false
+            })
+        ));
+        assert!(entries.is_empty());
     }
 }

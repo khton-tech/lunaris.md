@@ -7,7 +7,12 @@ export interface WindowSize { readonly width: number; readonly height: number }
 export interface WindowPosition { readonly x: number; readonly y: number }
 export type WindowAnchor = "top-left" | "top-center" | "top-right" | "center-left" | "center-right" |
   "bottom-left" | "bottom-center" | "bottom-right";
-export type ExternalWindowPosition = WindowPosition | WindowAnchor;
+export interface AnchoredWindowPosition {
+  readonly anchor: WindowAnchor;
+  /** Signed logical pixels relative to the anchor. Positive is right and down. */
+  readonly offset: WindowPosition;
+}
+export type ExternalWindowPosition = WindowPosition | WindowAnchor | AnchoredWindowPosition;
 export type WindowLayer = "bottom" | "normal" | "top";
 
 const anchors: readonly WindowAnchor[] = ["top-left", "top-center", "top-right", "center-left", "center-right",
@@ -18,13 +23,14 @@ export interface NativeExternalWindowOptions {
   readonly title: string;
   /** Size in logical pixels. */
   readonly size: WindowSize;
-  /** Anchor in the primary monitor's work area, or logical desktop coordinates. */
+  /** Anchor with an optional offset in the primary work area, or logical desktop coordinates. */
   readonly position?: ExternalWindowPosition;
   /** Native stacking level. Defaults to normal. */
   readonly layer?: WindowLayer;
   /** @deprecated Use layer: "top". An explicit layer takes precedence. */
   readonly alwaysOnTop?: boolean;
   readonly skipTaskbar?: boolean;
+  /** Windows displays and positions passive (`false`) windows without activation. */
   readonly focusable?: boolean;
 }
 
@@ -88,7 +94,12 @@ export function validWindowPosition(position: unknown): position is WindowPositi
 }
 
 export function validExternalWindowPosition(position: unknown): position is ExternalWindowPosition {
-  return typeof position === "string" ? anchors.includes(position as WindowAnchor) : validWindowPosition(position);
+  if (typeof position === "string") return anchors.includes(position as WindowAnchor);
+  if (position && typeof position === "object" && "anchor" in position) {
+    const { anchor, offset } = position as AnchoredWindowPosition;
+    return anchors.includes(anchor) && validWindowPosition(offset);
+  }
+  return validWindowPosition(position);
 }
 
 export function validWindowLayer(layer: unknown): layer is WindowLayer {

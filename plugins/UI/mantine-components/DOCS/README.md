@@ -1531,6 +1531,10 @@ content targets for regions moved within a custom tree. See the
 `@lunaris/notifications` and defaults to standalone/fill presentation. It uses
 [Mantine Notification](https://mantine.dev/core/notification/) as a themed card
 with a Lucide icon, title and wrapping text. The owning external window supplies
-its geometry. The renderer manages internal spacing, status semantics and
-overflow. The [notification provider](../../../systems/notifications/DOCS/README.md)
+its geometry. The desktop screenshot supplied by the Owner is the reference
+for colors and information hierarchy. The compact layout fits a 192 × 64
+logical-pixel window and top-aligns the icon with the title and message column.
+Long copy stays in the scrollable text column and the icon keeps its size.
+The renderer owns internal spacing and status semantics. The
+[notification provider](../../../systems/notifications/DOCS/README.md)
 owns placement, timing and queue state.

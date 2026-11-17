@@ -10,9 +10,9 @@ ui.pong({ icon: "circle-check", title: "Export complete", text: "The file is rea
 ```
 
 The text appears in a frameless window at the bottom-right of the primary
-monitor's work area, on the `top` layer. The notification provider displays one
-message at a time and dismisses each automatically. The popup uses no taskbar
-entry and requests no focus.
+monitor's work area, on the `top` layer. The notification provider stacks up to
+four messages and dismisses each independently. The popup uses no taskbar entry
+and requests no focus.
 
 The public Notifications API shows the message in the shared Mantine role. The
 plugin owns the scoped DevTools command. ApplicationDom supplies the console's
@@ -26,4 +26,4 @@ to no SDK events. Version 1.1.0 requires Lunaris with the notification provider.
 
 Build the installable package with `node tools/scripts/lime-pong.mjs`. In the
 desktop app, verify positioning against the taskbar, focus retention, automatic
-dismissal, ordering after a second command and cleanup on disable.
+dismissal, stacking during several commands and cleanup on disable.

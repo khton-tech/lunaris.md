@@ -1135,24 +1135,26 @@
 
 .lm-root .lm-notification {
   --notification-radius: var(--vault-radius);
-  align-items: center;
+  align-items: flex-start;
   background: var(--vault-panel);
   border: var(--vault-border) solid var(--vault-separator);
   box-shadow: none;
   flex: 1 1 auto;
-  gap: calc(var(--vault-space) * 3);
+  gap: calc(var(--vault-space) * 2);
   min-block-size: 0;
   min-inline-size: 0;
-  padding: calc(var(--vault-space) * 4);
+  padding: calc(var(--vault-space) * 1.5) calc(var(--vault-space) * 2);
+  user-select: none;
 }
 .lm-root .lm-notification-icon {
   background: color-mix(in srgb, var(--vault-accent) 14%, var(--vault-panel));
+  block-size: 1.5rem;
   border-radius: var(--vault-radius-small);
   color: var(--vault-accent-foreground);
-  font-size: 1.125em;
-  height: 2.25rem;
+  flex: none;
+  font-size: var(--vault-ui-font-size);
+  inline-size: 1.5rem;
   margin: 0;
-  width: 2.25rem;
 }
 .lm-root .lm-notification-body {
   margin: 0;
@@ -1164,16 +1166,16 @@
 }
 .lm-root .lm-notification-title {
   color: var(--vault-text);
-  font-size: calc(var(--vault-ui-font-size) * 1.07);
+  font-size: var(--vault-ui-font-size);
   font-weight: 650;
-  line-height: 1.35;
-  margin-block-end: var(--vault-space);
+  line-height: 1.2;
+  margin-block-end: calc(var(--vault-space) * 0.5);
   overflow-wrap: anywhere;
 }
 .lm-root .lm-notification-text {
   color: var(--vault-secondary);
-  font-size: var(--vault-ui-font-size);
-  line-height: 1.45;
+  font-size: calc(var(--vault-ui-font-size) * 0.93);
+  line-height: 1.25;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }

@@ -3,8 +3,14 @@ import type { PluginContext } from "@lunaris/sdk";
 import { validWindowOwner, windowFailure } from "@lunaris/window";
 import type { WindowResult } from "@lunaris/window";
 import { validExternalWindowPosition, validWindowSize } from "@lunaris/window/external";
-import type { ExternalWindowDriverApi, ExternalWindowSurface } from "@lunaris/window/external";
+import type { ExternalWindowDriverApi, ExternalWindowPosition, ExternalWindowSurface } from "@lunaris/window/external";
 import type { ExternalWindowPort, WindowOperation } from "./native-external.js";
+
+function copyPosition(position: ExternalWindowPosition): ExternalWindowPosition {
+  if (typeof position === "string") return position;
+  if ("anchor" in position) return { anchor: position.anchor, offset: { x: position.offset.x, y: position.offset.y } };
+  return { x: position.x, y: position.y };
+}
 
 export async function createExternalWindowPort(ctx: PluginContext, logger: LoggerApi, native: ExternalWindowPort | null): Promise<ExternalWindowDriverApi> {
   if (!native) return {
@@ -77,12 +83,15 @@ export async function createExternalWindowPort(ctx: PluginContext, logger: Logge
       if (owner.aborted) abort();
       try {
         const target = await opening;
-        if (lifetime.signal.aborted) return windowFailure("CANCELLED", "The window owner stopped.");
+        if (lifetime.signal.aborted) {
+          await close();
+          return windowFailure("CANCELLED", "The window owner stopped.");
+        }
         return { ok: true, value: Object.freeze<ExternalWindowSurface>({
           target, signal: lifetime.signal, closed, close,
           show: () => enqueue({ kind: "show" }), hide: () => enqueue({ kind: "hide" }),
-          move: position => validExternalWindowPosition(position) ? enqueue({ kind: "move", position }) : Promise.resolve(windowFailure("INVALID_ARGUMENT", "Invalid window position.")),
-          resize: size => validWindowSize(size) ? enqueue({ kind: "resize", size }) : Promise.resolve(windowFailure("INVALID_ARGUMENT", "Invalid window size.")),
+          move: position => validExternalWindowPosition(position) ? enqueue({ kind: "move", position: copyPosition(position) }) : Promise.resolve(windowFailure("INVALID_ARGUMENT", "Invalid window position.")),
+          resize: size => validWindowSize(size) ? enqueue({ kind: "resize", size: { width: size.width, height: size.height } }) : Promise.resolve(windowFailure("INVALID_ARGUMENT", "Invalid window size.")),
         }) };
       } catch (error) {
         const cancelled = lifetime.signal.aborted;
