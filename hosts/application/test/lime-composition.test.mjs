@@ -118,11 +118,16 @@ test('invalid and failing compositions keep the host running and protect the run
   await f.session.stop();
 });
 
-test('safe mode permits only the default composition', async () => {
+test('safe mode permits only the default composition until the owner resumes packages', async () => {
   const f = await fixture({ safeMode: true });
   assert.equal((await f.composition.apply(env, profile, f.composition.snapshot(env).value.revision)).error.code, 'CONFLICT');
   assert.equal((await f.composition.apply(env, defaults, f.composition.snapshot(env).value.revision)).ok, true);
   assert.equal(f.view(standardId).state, 'active');
+  const resumed = { ...env, generation: 2 };
+  assert.equal((await f.runtime.open(resumed, { safeMode: false })).ok, true);
+  const resumedProfile = { ...defaults, disabledBuiltins: [consumers[0]] };
+  assert.equal((await f.composition.apply(resumed, resumedProfile, f.composition.snapshot(resumed).value.revision)).ok, true);
+  assert.equal(f.view(consumers[0]).suspended, true);
   await f.session.stop();
 });
 
@@ -136,6 +141,7 @@ test('an installed plugin can wrap the existing provider using the same public c
     } };` } };
   assert.equal((await f.runtime.register(env, manifest, source, false)).ok, true);
   const plan = f.runtime.plan(env, manifest.id).value;
+  assert.equal(plan.dependencies[0].candidates.some(candidate => candidate.id === manifest.id), false);
   assert.equal((await f.runtime.selectProvider(env, manifest.id, 'api', Feature.id, standardId, plan.revision)).ok, true);
   assert.equal((await f.runtime.enable(env, manifest.id)).ok, true);
   const wrapping = { ...defaults, bindings: [{ ...profile.bindings[0], providerId: manifest.id }] };

@@ -167,6 +167,7 @@ export function createLimeRuntime(kernel: Kernel, builtinIds: readonly string[],
         const bindings = new Map(snapshot.plugins.map(item => [item.manifest.id, item.bindings]));
         const describe = (consumer: PluginManifest): readonly LimeDependency[] => Object.freeze(consumer.requires.map(requirement => {
           const candidates = [...available].flatMap(([pluginId, item]) => {
+            if (pluginId === consumer.id) return [];
             const provided = item.manifest.provides.find(provided => provided.kind === requirement.kind && provided.id === requirement.id && versionSatisfies(provided.version, requirement.range));
             return provided ? [Object.freeze({ id: pluginId, version: provided.version, state: item.state })] : [];
           }).sort((a, b) => a.id < b.id ? -1 : 1);
@@ -191,7 +192,7 @@ export function createLimeRuntime(kernel: Kernel, builtinIds: readonly string[],
           if (!Number.isSafeInteger(expectedRevision) || refresh() !== expectedRevision) return failure('STALE', 'Dependency plan revision is stale.');
           const requirement = managed.get(id)!.manifest.requires.find(item => item.kind === kind && item.id === contractId);
           const provider = managed.get(providerId)?.manifest ?? registered(providerId)?.manifest;
-          if (!requirement || !provider?.provides.some(item => item.kind === kind && item.id === contractId && versionSatisfies(item.version, requirement.range))) return failure('CONFLICT', 'Provider does not satisfy the declared dependency.');
+          if (providerId === id || !requirement || !provider?.provides.some(item => item.kind === kind && item.id === contractId && versionSatisfies(item.version, requirement.range))) return failure('CONFLICT', 'Provider does not satisfy the declared dependency.');
           if (registered(id) && !registered(providerId)) return failure('CONFLICT', 'Enable the chosen provider before rebinding a registered consumer.');
           if (registered(id)) await kernel.rebindProvider(id, kind, contractId, providerId);
           let selections = choices.get(id); if (!selections) choices.set(id, selections = new Map());
