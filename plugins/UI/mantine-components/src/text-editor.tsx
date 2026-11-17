@@ -33,6 +33,7 @@ interface EditorProps {
   readonly renameError?: string;
   readonly canRename: boolean;
   readonly onRename: (name: string) => Promise<boolean>;
+  readonly onTitleFocused?: () => void;
   readonly status: string;
   readonly error: string;
   readonly commandError?: string;
@@ -56,6 +57,7 @@ export function textEditorProps(value: ComponentProps): EditorProps {
   if (value.compact !== undefined && typeof value.compact !== "boolean") throw new TypeError("Invalid editor presentation.");
   if (value.commandError !== undefined && typeof value.commandError !== "string") throw new TypeError("Invalid editor command error.");
   if (value.renameError !== undefined && typeof value.renameError !== "string") throw new TypeError("Invalid editor rename error.");
+  if (value.onTitleFocused !== undefined && typeof value.onTitleFocused !== "function") throw new TypeError("Invalid editor title focus request.");
   if (value.contentFontSize !== undefined && (typeof value.contentFontSize !== "number" || !Number.isFinite(value.contentFontSize) || value.contentFontSize <= 0)) throw new TypeError("Invalid editor content font size.");
   if (value.contentWidth !== undefined && value.contentWidth !== "full" && (typeof value.contentWidth !== "number" || !Number.isFinite(value.contentWidth) || value.contentWidth <= 0)) throw new TypeError("Invalid editor content width.");
   if (value.onContentWidthChange !== undefined && (typeof value.onContentWidthChange !== "function" || typeof value.resizeWidthLabel !== "string" || !value.resizeWidthLabel.trim() || typeof value.canResizeWidth !== "boolean")) throw new TypeError("Invalid editor width controls.");
@@ -73,6 +75,7 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
   const [copyName, setCopyName] = useState("");
   const saveCopyButton = useRef<HTMLButtonElement>(null);
   const container = useRef<HTMLDivElement>(null);
+  const titleInput = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState(props.title);
   const committing = useRef<object | null>(null);
   const cancelTitleCommit = useRef(false);
@@ -88,6 +91,14 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
   function cancelCopyName(): void { props.onSaveCopy?.(); saveCopyButton.current?.focus(); }
   // Reflect external renames while the field is not being actively committed.
   useLayoutEffect(() => { if (!committing.current) setTitle(props.title); }, [props.title]);
+  useLayoutEffect(() => {
+    const input = titleInput.current;
+    if (!props.onTitleFocused || !props.canRename || !input || title !== props.title) return;
+    input.focus({ preventScroll: true });
+    if (input.ownerDocument.activeElement !== input) return;
+    input.select();
+    props.onTitleFocused();
+  }, [props.onTitleFocused, props.canRename, props.ready, props.title, title]);
   function commitTitle(): void {
     if (cancelTitleCommit.current) { cancelTitleCommit.current = false; return; }
     if (committing.current) return;
@@ -112,7 +123,7 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
       width={props.contentWidth ?? 698} label={props.resizeWidthLabel!} disabled={!props.canResizeWidth} onChange={props.onContentWidthChange} />}
     {props.ready && <Box component="header" className="lm-editor-heading"
       style={{ maxWidth: props.contentWidth === "full" ? "none" : props.contentWidth ?? 698 }}>
-      <TextInput className="lm-editor-title" aria-label={props.titleLabel} value={title} title={props.title}
+      <TextInput ref={titleInput} className="lm-editor-title" aria-label={props.titleLabel} value={title} title={props.title}
         error={props.renameError || undefined} errorProps={{ role: "alert" }} classNames={{ error: "lm-editor-error" }}
         style={{ fontSize: props.contentFontSize }}
         variant="unstyled" readOnly={!props.canRename} spellCheck={false} placeholder={props.titleLabel}

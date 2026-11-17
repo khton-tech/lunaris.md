@@ -15,7 +15,7 @@ export default definePlugin({ manifest, async activate(ctx) {
   const logger = scopeLogger(ctx.use(Logger), ctx.signal); const config = ctx.use(Config); const vaults = ctx.use(Vault); const fs = ctx.use(Filesystem);
   let current: ActiveDocumentState = null; let restoredVault: string | null | undefined; let epoch = 0; let queue: Promise<unknown> = Promise.resolve();
   const live = (version: number, vaultId?: string) => !ctx.signal.aborted && epoch === version && (!vaultId || vaults.current()?.id === vaultId);
-  function publish(next: ActiveDocumentState, reason: DocumentTransition["reason"]) {
+  function publish(next: ActiveDocumentState, reason: DocumentTransition["reason"], editTitle = false) {
     const previous = current;
     const unchanged = current?.vaultId === next?.vaultId && current?.path === next?.path;
     if (unchanged && reason !== "open") return;
@@ -24,7 +24,7 @@ export default definePlugin({ manifest, async activate(ctx) {
     if (!unchanged) void ctx.events.emit(ActiveDocumentChanged, Object.freeze({ current })).catch(error => {
       if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot publish active document", { error });
     });
-    void ctx.events.emit(ActiveDocumentTransitioned, Object.freeze({ previous, current, reason })).catch(error => {
+    void ctx.events.emit(ActiveDocumentTransitioned, Object.freeze({ previous, current, reason, ...(editTitle ? { editTitle: true as const } : {}) })).catch(error => {
       if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot publish document transition", { error });
     });
   }
@@ -54,13 +54,13 @@ export default definePlugin({ manifest, async activate(ctx) {
       }
     }
   }
-  async function select(target: FileTarget, version: number, reason: "open" | "restore" | "relocate" = "open"): Promise<FsResult<null>> {
+  async function select(target: FileTarget, version: number, reason: "open" | "restore" | "relocate" = "open", editTitle = false): Promise<FsResult<null>> {
     if (!live(version, target.vaultId)) return fail("CANCELLED", "Vault session changed.");
     const result = await fs.stat(target);
     if (!live(version, target.vaultId)) return fail("CANCELLED", "Vault session changed.");
     if (!result.ok) { logger.warn(ctx.pluginId, "Cannot activate document", { error: result.error }); return result; }
     if (result.value.kind !== "file") return fail("INVALID_ARGUMENT", "A regular file is required.");
-    const commit = async () => { publish(target, reason); if (reason !== "restore") await persist(target.vaultId, target.path, version); return ok(); };
+    const commit = async () => { publish(target, reason, editTitle); if (reason !== "restore") await persist(target.vaultId, target.path, version); return ok(); };
     return reason === "open" ? guarded(target, reason, version, commit) : commit();
   }
   function switchVault() {
@@ -82,9 +82,10 @@ export default definePlugin({ manifest, async activate(ctx) {
   }
   ctx.provide(ActiveDocument, {
     current: () => current,
-    open(target) {
+    open(target, options) {
       if (!validTarget(target)) return Promise.resolve(fail("INVALID_ARGUMENT", "A Vault-relative file target is required."));
-      const version = epoch; const copy = { ...target }; return enqueue(() => select(copy, version));
+      const version = epoch; const copy = { ...target }; const editTitle = options?.editTitle === true;
+      return enqueue(() => select(copy, version, "open", editTitle));
     },
     close() {
       const version = epoch; const root = vaults.current();

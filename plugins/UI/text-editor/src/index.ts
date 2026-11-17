@@ -72,6 +72,8 @@ export default definePlugin({ manifest, async activate(ctx) {
   const views = new Set<{ render(): void; removed(): void; refreshControls(): void; refreshFooters(componentId: string): void; transact(session: DocumentSession, range: DocumentRange, insert?: string): boolean }>();
   const screenId = `${ctx.pluginId}.screen`;
   let current: DocumentSession | null = null; let unsupported = false; let scheduled = false;
+  let editTitleFor: DocumentSession | null = null;
+  const titleFocused = () => { editTitleFor = null; changed(); };
   const footerEntries = new Map<string, DocumentFooter>();
   ctx.provide(DocumentFooters, { register(footer, owner) {
     if (owner.aborted || ctx.signal.aborted) return { ok: false, error: { code: "CANCELLED", message: "Owner stopped." } };
@@ -404,7 +406,7 @@ export default definePlugin({ manifest, async activate(ctx) {
         resizeWidthLabel: text("resizeWidth"), canResizeWidth: preferences.canResize(),
         onContentWidthChange,
         canRename: !!session?.active && !needsRecovery(session) && !session.locks && !session.saving && !session.loading,
-        onRename,
+        onRename, onTitleFocused: session && editTitleFor === session ? titleFocused : undefined,
         status: session?.loading ? text("loading") : session?.saving ? text("saving") : session?.loaded ? text(session.dirty ? "unsaved" : "saved") : "",
         recoveryLabel: text("recovery"), recoveryCandidates: recoveryChoices, onRecovery,
         error, commandError: commandError || preferences.widthError(), ready, dirty: session?.dirty ?? false,
@@ -506,6 +508,7 @@ export default definePlugin({ manifest, async activate(ctx) {
   const screen = screens.register({ id: screenId, componentId: "lunaris.text-editor-host", document: true }, ctx.signal);
   if (!screen.ok) throw new Error("Cannot register editor screen.", { cause: screen.error });
   ctx.events.on(ActiveDocumentTransitioned, transition => {
+    editTitleFor = null;
     if (transition.reason === "relocate" && current && transition.current && transition.previous &&
         (key(current.target) === key(transition.previous) || key(current.target) === key(transition.current))) {
       sessions.delete(key(current.target)); current.target = { ...transition.current }; sessions.set(key(current.target), current); changed(); return;
@@ -514,10 +517,12 @@ export default definePlugin({ manifest, async activate(ctx) {
       current.missing = true; current.error = { code: "NOT_FOUND", message: "Document removed." }; current.cancelTimer(); changed(); return;
     }
     choose(transition.current);
+    if (transition.editTitle) editTitleFor = current;
     if (transition.current && (transition.reason === "open" || transition.reason === "restore")) selectScreen();
     else if (!transition.current && screens.snapshot().activeId === screenId) selectScreen(null);
   });
   ctx.events.on(VaultChanged, () => {
+    editTitleFor = null;
     for (const [id, session] of sessions) if (session.target.vaultId !== vaults.current()?.id) { session.dispose(); sessions.delete(id); states.delete(session); }
     choose(documents.current());
   });

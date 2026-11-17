@@ -5,6 +5,10 @@ reconciliation, it releases screen selection so Active Screen can show the
 blank tab actions. A removed document with unsaved changes retains the existing
 editor recovery view.
 
+A successful ActiveDocument 1.1 open can request title editing. Text Editor
+forwards the request to the Mantine heading after the file is available for
+rename. The input selects the file stem so typing replaces the generated name.
+
 The file-name title follows the same centered column width and responsive line
 insets as document text, including live text-width and wrapping changes. The
 controller supplies effective `contentWidth` through the public UIKit role:

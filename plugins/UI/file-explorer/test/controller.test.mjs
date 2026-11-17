@@ -1,5 +1,5 @@
 import { WorkspaceSidebar } from "@lunaris/workspace";
-import { ActiveDocument, ActiveDocumentChanged } from "@lunaris/active-document";
+import { ActiveDocument, ActiveDocumentChanged, ActiveDocumentTransitioned } from "@lunaris/active-document";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { JSDOM } from 'jsdom';
@@ -8,7 +8,7 @@ import { Components } from '@lunaris/components';
 import { createTestKernel } from '@lunaris/test';
 import { definePlugin } from '@lunaris/sdk';
 import { Logger } from '@lunaris/logging';
-import { Filesystem, FilesystemObservation, FileChanged, filesystemMethods } from '@lunaris/filesystem';
+import { BeforeFileMutation, Filesystem, FilesystemObservation, FileChanged, filesystemMethods } from '@lunaris/filesystem';
 import { Vault, VaultChanged, VaultHistory, VaultHistoryChanged } from '@lunaris/vault';
 import { Sidebar } from '@lunaris/sidebar';
 import { Localization } from '@lunaris/localization';
@@ -42,7 +42,7 @@ async function setup(options = {}) {
   kernel.installMock(ActiveDocument, { current: () => document, async open(target) { opens.push(target); if (options.documentOpen) await options.documentOpen(target); document = target; await emit(ActiveDocumentChanged, { current: document }); return { ok: true, value: null }; }, async close() { return { ok: true, value: null }; }, async relocate() { return { ok: true, value: null }; }, async reconcile() { reconciliations++; return { ok: true, value: null }; } });
   kernel.installMock(Vault, { current: () => current, open: options.open ?? (async () => ({ ok: true, value: null })), close: options.close ?? (async () => { const previous = current; current = null; await emit(VaultChanged, { kind: 'closed', previous, current }); return { ok: true, value: null }; }) });
   kernel.installMock(VaultHistory, { list: options.list ?? (async () => ({ ok: true, value: options.entries ?? [] })), open: options.recent ?? (async () => ({ ok: true, value: current })) });
-  kernel.register(definePlugin({ manifest: manifest('test.events', [ConfigChanged, FileChanged, VaultChanged, ActiveDocumentChanged, VaultHistoryChanged].map(token => ({ kind: 'event', id: token.id, version: token.version }))), activate(ctx) { emit = (token, value) => ctx.events.emit(token, value); } }));
+  kernel.register(definePlugin({ manifest: manifest('test.events', [ConfigChanged, FileChanged, VaultChanged, ActiveDocumentChanged, ActiveDocumentTransitioned, VaultHistoryChanged, BeforeFileMutation].map(token => ({ kind: token.kind, id: token.id, version: token.version }))), activate(ctx) { emit = (token, value) => ctx.events.emit(token, value); } }));
   kernel.register(settingsProvider);
   kernel.register(componentProvider); kernel.register(contextMenuProvider); kernel.register(sidebarProvider); kernel.register(localization); kernel.register(explorer);
   kernel.register(definePlugin({ manifest: manifest('test.inspect', [], [Settings, Sidebar, Localization, ContextMenu, Components].map(token => ({ kind: 'api', id: token.id, range: '^1.0.0' })), ['ui.dom']), activate(ctx) { settings = ctx.use(Settings); side = ctx.use(Sidebar); locales = ctx.use(Localization); menus = ctx.use(ContextMenu); components = ctx.use(Components); inspect = ctx; } }));

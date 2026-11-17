@@ -6,21 +6,23 @@ default. Requires `filesystem.access`, `vault.access` and `config.access`.
 `ui.dom` is optional and enables the empty workspace component role.
 
 An unmodified primary-button double-click on the tree background creates an
-empty Markdown file at the Vault root and opens it through ActiveDocument.
+empty Markdown file at the Vault root and opens it through ActiveDocument
+with `editTitle: true`. The editor selects the initial name in its heading.
 The unnamed document uses the active locale and receives a numbered suffix
 if its name is taken. Exclusive creation protects existing files. Row
 interactions retain their existing file and folder behavior.
 
 With `ui.dom` and the optional Components API, File Explorer registers
 `lunaris.file-explorer-empty`. Active Screen supplies the localized
-`createLabel`, `openLabel`, current `vaultId`, and embedded `presentation`.
-The role delegates the buttons to `lunaris.workspace-empty`. Creating uses
-the same operation as the tree background. Opening calls Filesystem.pickFile
-for the current Vault and activates the selected file through ActiveDocument.
-Drivers without a picker select the Files tab through Sidebar and open it
-through WorkspaceSidebar where available. The `lunaris.file-explorer` role
-accepts optional `onCreateUntitled()` and `onFocusTree()` callbacks for
-background creation and acknowledgment of a focus request.
+`createLabel`, `recentLabel`, current `vaultId`, and embedded `presentation`.
+The role delegates rendering to `lunaris.workspace-empty`. It creates an
+untitled file or opens a recent entry through ActiveDocument. The five most
+recent distinct file paths are persisted per Vault in Config under `recentFiles`.
+ActiveDocumentTransitioned records successful opens and restores, while
+BeforeFileMutation updates the paths after confirmed moves and removals.
+File observation and mounting the card verify entries against the Vault.
+The `lunaris.file-explorer` role accepts optional `onCreateUntitled()` for
+background creation.
 
 Provides no API/event contracts. Consumes Logger, Sidebar, Filesystem,
 FilesystemObservation, Vault, VaultHistory and Localization APIs; subscribes to FileChanged,

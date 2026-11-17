@@ -68,12 +68,16 @@ asynchronous operations, active marking after focus/selection changes, revealing
 ancestors and stale controller callbacks.
 # Editor transitions
 
-The existing 1.0 snapshot API/event remains unchanged. The additional
-ActiveDocumentTransitioned 1.0 event carries previous/current and reason:
+The ActiveDocumentChanged 1.0 snapshot event remains unchanged.
+ActiveDocumentTransitioned carries previous/current and reason:
 open, close, restore, relocate, reconcile or vault. Repeated successful open emits
 the transition even when identity is unchanged, allowing a return from Settings.
 Relocate identifies the same buffer at its committed new target; open loads a
 different buffer. Reconciliation and Vault changes are notifications, not vetoes.
+
+ActiveDocument 1.1 accepts `open(target, { editTitle: true })`. The successful
+1.1 transition includes `editTitle: true` so a document renderer can focus its
+title editor when ready. Callers can omit the option for ordinary opens.
 
 BeforeActiveDocumentChange 1.0 guards voluntary open/close before identity or
 persisted selection changes. Handlers register onSettled(listener) before awaiting

@@ -7,8 +7,11 @@ export interface WorkspaceHeaderProps {
 export interface WorkspaceEmptyProps {
   readonly title: string; readonly detail: string;
   readonly actions?: {
-    readonly createLabel: string; readonly openLabel: string; readonly busy: boolean;
-    readonly onCreate: () => void; readonly onOpen: () => void;
+    readonly createLabel: string; readonly busy: boolean; readonly onCreate: () => void;
+  };
+  readonly recent?: {
+    readonly label: string; readonly paths: readonly string[]; readonly busy: boolean;
+    readonly onOpen: (path: string) => void;
   };
 }
 export function workspaceHeaderProps(value: ComponentProps): WorkspaceHeaderProps {
@@ -19,9 +22,14 @@ export function workspaceHeaderProps(value: ComponentProps): WorkspaceHeaderProp
 export function workspaceEmptyProps(value: ComponentProps): WorkspaceEmptyProps {
   if (typeof value.title !== "string" || typeof value.detail !== "string") throw new TypeError("Workspace placeholder requires localized title and detail.");
   const actions = value.actions as WorkspaceEmptyProps["actions"];
-  if (actions !== undefined && (!actions || typeof actions.createLabel !== "string" || typeof actions.openLabel !== "string" ||
-      typeof actions.busy !== "boolean" || typeof actions.onCreate !== "function" || typeof actions.onOpen !== "function"))
+  if (actions !== undefined && (!actions || typeof actions.createLabel !== "string" ||
+      typeof actions.busy !== "boolean" || typeof actions.onCreate !== "function"))
     throw new TypeError("Invalid workspace placeholder actions.");
+  const recent = value.recent as WorkspaceEmptyProps["recent"];
+  if (recent !== undefined && (!recent || typeof recent.label !== "string" || !Array.isArray(recent.paths) ||
+      recent.paths.some(path => typeof path !== "string" || !path) || new Set(recent.paths).size !== recent.paths.length ||
+      typeof recent.busy !== "boolean" || typeof recent.onOpen !== "function"))
+    throw new TypeError("Invalid recent files.");
   return value as unknown as WorkspaceEmptyProps;
 }
 export interface SelectorProps {

@@ -14,5 +14,5 @@ export const russian = {
   forward: "Вперёд",
   tabFailed: "Не удалось выполнить действие с вкладкой.",
   createFile: "Создать файл",
-  openFile: "Открыть файл",
+  recentFiles: "Последние",
 };

@@ -22,16 +22,22 @@ export const DocumentContent = defineApi<DocumentContentApi>({ id: "lunaris.docu
 export const DocumentContentChanged = defineEvent<{ readonly target: FileTarget }>({ id: "lunaris.document-content-changed", version: "1.0.0", consumePermission: "vault.access",
   validate: value => !!value && typeof value === "object" && typeof (value as { target?: FileTarget }).target?.vaultId === "string" && validPath((value as { target: FileTarget }).target.path) });
 export type ActiveDocumentState = Readonly<FileTarget> | null;
+export interface DocumentOpenOptions {
+  /** Request title editing after the destination is ready to accept input. */
+  readonly editTitle?: boolean;
+}
 export interface DocumentTransition {
   readonly previous: ActiveDocumentState;
   readonly current: ActiveDocumentState;
   readonly reason: "open" | "close" | "restore" | "relocate" | "reconcile" | "vault";
+  readonly editTitle?: true;
 }
 /** Separate event preserves the existing 1.0 snapshot contract. Open is emitted
  * even for the same target so consumers can explicitly return to its screen. */
 export const ActiveDocumentTransitioned = defineEvent<DocumentTransition>({
-  id: "lunaris.active-document-transitioned", version: "1.0.0", consumePermission: "vault.access",
+  id: "lunaris.active-document-transitioned", version: "1.1.0", consumePermission: "vault.access",
   validate: input => { const value = input as DocumentTransition | null; return !!value && ["open", "close", "restore", "relocate", "reconcile", "vault"].includes(value.reason) &&
+    (value.editTitle === undefined || (value.editTitle === true && value.reason === "open" && value.current !== null)) &&
     [value.previous, value.current].every(target => target === null || (!!target && typeof target.vaultId === "string" && target.vaultId.length > 0 && validPath(target.path))); },
 });
 export interface DocumentChangeGuard extends DocumentTransition {
@@ -45,14 +51,14 @@ export const BeforeActiveDocumentChange = defineHook<DocumentChangeGuard>({
 export interface ActiveDocumentApi {
   current(): ActiveDocumentState;
   /** Validate and activate a file in the current Vault; persist its relative path. */
-  open(target: FileTarget): Promise<FsResult<null>>;
+  open(target: FileTarget, options?: DocumentOpenOptions): Promise<FsResult<null>>;
   close(): Promise<FsResult<null>>;
   /** Called only after a confirmed file/directory move. Remaps descendant paths. */
   relocate(source: FileTarget, destination: FileTarget): Promise<FsResult<null>>;
   /** Check external changes; missing/replaced files close, temporary failures retain state. */
   reconcile(): Promise<FsResult<null>>;
 }
-export const ActiveDocument = defineApi<ActiveDocumentApi>({ id: "lunaris.active-document", version: "1.0.0", consumePermission: "vault.access",
+export const ActiveDocument = defineApi<ActiveDocumentApi>({ id: "lunaris.active-document", version: "1.1.0", consumePermission: "vault.access",
   validate: value => !!value && typeof value === "object" && ["current", "open", "close", "relocate", "reconcile"].every(key => typeof Object.getOwnPropertyDescriptor(value, key)?.value === "function") });
 export const ActiveDocumentChanged = defineEvent<{ readonly current: ActiveDocumentState }>({ id: "lunaris.active-document-changed", version: "1.0.0", consumePermission: "vault.access",
   validate(value) {

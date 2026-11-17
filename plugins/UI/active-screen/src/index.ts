@@ -31,7 +31,7 @@ const catalogs = { en: {
   newTab: "New tab", workspaceView: "Workspace view", tabs: "Workspace tabs",
   mobileTabs: "Open tabs: {count}", addMobileTab: "Add tab",
   closeTab: "Close tab", back: "Back", forward: "Forward", tabFailed: "Could not complete the tab action.",
-  createFile: "Create file", openFile: "Open file",
+  createFile: "Create file", recentFiles: "Recent",
 }, ru: russian };
 
 export default definePlugin({ manifest, activate(ctx) {
@@ -150,7 +150,7 @@ export default definePlugin({ manifest, activate(ctx) {
     function showPlaceholder(element: HTMLElement, kind: "empty" | "blank" | "unavailable"): void {
       const role = kind === "blank" ? "lunaris.file-explorer-empty" : "lunaris.workspace-empty";
       const presentation = { mode: "embedded", sizing: "fill" };
-      const placeholderProps = kind === "blank" ? { vaultId, createLabel: text("createFile"), openLabel: text("openFile"), presentation }
+      const placeholderProps = kind === "blank" ? { vaultId, createLabel: text("createFile"), recentLabel: text("recentFiles"), presentation }
         : { title: text(kind), detail: text(`${kind}Detail`), presentation };
       const signature = JSON.stringify(placeholderProps);
       if (placeholder && (placeholderTarget !== element || placeholder.componentId !== role)) clearPlaceholder();

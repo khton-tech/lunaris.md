@@ -91,15 +91,16 @@ async function setup(options = {}) {
   kernel.installMock(Clipboard, { capabilities: () => ({ read: true, write: true }), async readText() { clipboardCalls.push(["read"]); if (options.readClipboard) return options.readClipboard(); return options.clipboardFailure ? fail("DENIED") : ok(options.clipboardText ?? "Pasted"); }, async writeText(text) { clipboardCalls.push(["write", text]); return options.clipboardFailure ? fail("DENIED") : ok(null); } });
   kernel.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push([level, ...args]); return true; }])));
   const preferenceWrites = []; const preferenceStore = options.preferences ?? new Map();
-  kernel.installMock(Config, { async get(id, name, scope) { return ok(store.get(scope.vaultId)); }, async set(id, name, value, scope) {
+  const configKey = (id, name, scope) => JSON.stringify([scope.vaultId, id, name]);
+  kernel.installMock(Config, { async get(id, name, scope) { return ok(store.get(configKey(id, name, scope))); }, async set(id, name, value, scope) {
     if (id === editor.manifest.id) {
       preferenceWrites.push({ id, name, value, scope });
       const result = options.preferenceWrite ? await options.preferenceWrite(id, name, value, scope) : ok(null);
       if (result.ok) preferenceStore.set(scope.vaultId, { ...preferenceStore.get(scope.vaultId), [name]: value });
       return result;
     }
-    store.set(scope.vaultId, value); return ok(null);
-  }, async remove(id, name, scope) { store.delete(scope.vaultId); return ok(true); }, async read(id, scope) { return options.preferenceRead ? options.preferenceRead(id, scope) : ok(preferenceStore.get(scope.vaultId) ?? {}); } });
+    store.set(configKey(id, name, scope), value); return ok(null);
+  }, async remove(id, name, scope) { store.delete(configKey(id, name, scope)); return ok(true); }, async read(id, scope) { return options.preferenceRead ? options.preferenceRead(id, scope) : ok(preferenceStore.get(scope.vaultId) ?? {}); } });
   if (options.drafts) {
     kernel.installMock(Drafts,options.drafts);
     kernel.installMock(FilesystemSources,{locationVisible:()=>true,list:()=>['remote'],location:()=>fail('UNSUPPORTED'),remoteIdentity:()=>ok({server:'https://server',accountId:'alice',vaultId:'stable-vault'}),capabilitiesFor:()=>fail('UNSUPPORTED')});
@@ -108,7 +109,6 @@ async function setup(options = {}) {
   const methods = Object.fromEntries(filesystemMethods.map(name => [name, async () => ok(null)]));
   Object.assign(methods, {
     capabilities: () => ({ watch: false, atomicReplace: true, versionCheck: 'optimistic', trash: false, maxFileBytes: 1024 }),
-    async pickFile(id) { return options.pickFile?.(id) ?? ok(null); },
     async pickSaveLocation(id) { return options.pickSaveLocation?.(id) ?? ok(null); },
     async list(t) { return ok([...disk.keys()].filter(key => key.startsWith(t.vaultId + "/") && !key.slice(t.vaultId.length + 1).includes("/")).map(key => ({path:key.slice(t.vaultId.length+1),kind:"file",size:disk.get(key).text.length,modifiedAt:1}))); },
     async stat(t) { return disk.has(`${t.vaultId}/${t.path}`) ? ok({ path: t.path, kind: 'file', size: 1, modifiedAt: 1 }) : fail('NOT_FOUND'); },
@@ -200,9 +200,8 @@ test('typing preserves footer mounts and skips unchanged footer updates', async 
   } finally { await s.stop(); }
 });
 
-test('Explorer and the empty workspace create and open files in the composed editor', async () => {
-  let picked = ok(null);
-  const s = await setup({ backlinks: true, withLayout: true, pickFile(id) { assert.equal(id, 'a'); return picked; } });
+test('Explorer focuses a new title and the empty workspace shows five recent files in the composed editor', async () => {
+  const s = await setup({ backlinks: true, withLayout: true });
   try {
     const { default: explorer } = await import('@lunaris/file-explorer');
     const { Sidebar, SidebarChanged } = await import('@lunaris/sidebar');
@@ -226,12 +225,18 @@ test('Explorer and the empty workspace create and open files in the composed edi
       };
       ctx.events.on(SidebarChanged, render); render();
     } }));
+    await s.documents.close(); await flush();
     s.kernel.register(explorer);
     for (const permission of explorer.manifest.permissions) s.kernel.grant(explorer.manifest.id, permission);
     s.kernel.grant(explorer.manifest.id, 'ui.dom');
     await s.kernel.start('test.explorer-panel'); await s.kernel.start(explorer.manifest.id); await flush();
     const layout = s.target.querySelector('.lm-workspace-layout');
     const editorHost = s.target.querySelector('.lm-text-editor');
+    const recent = () => s.target.querySelector('.lm-workspace-main .lm-workspace-recent');
+    const blankButton = label => [...s.target.querySelectorAll('.lm-workspace-main .lm-workspace-empty button')].find(button => button.textContent === label);
+    assert.equal(recent(), null);
+    assert.ok(blankButton('Create file'));
+    assert.equal(blankButton('Open file'), undefined);
     panel.querySelector('[aria-label="New file"]').click(); await flush();
     const input = panel.querySelector('.lm-explorer-create input'); assert.ok(input);
     typeInput(input, 'Created from Files'); await flush();
@@ -261,26 +266,43 @@ test('Explorer and the empty workspace create and open files in the composed edi
     assert.deepEqual(s.documents.current(), { vaultId: 'a', path: 'Unnamed 2.md' });
     assert.equal(s.disk.get('a/Unnamed.md').text, 'Existing note');
     assert.ok(panel.querySelector('[title="Unnamed 2.md"]'));
-
-    const blankButton = label => [...s.target.querySelectorAll('.lm-workspace-main .lm-workspace-empty button')].find(button => button.textContent === label);
+    const title = s.target.querySelector('.lm-editor-heading input');
+    assert.equal(s.dom.window.document.activeElement, title);
+    assert.equal(title.value.slice(title.selectionStart, title.selectionEnd), 'Unnamed 2');
+    typeInput(title, 'Named from tree');
+    title.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
+    await flush();
+    assert.deepEqual(s.documents.current(), { vaultId: 'a', path: 'Named from tree.md' });
+    for (const path of ['one.md', 'two.md', 'three.md']) {
+      s.disk.set(`a/${path}`, { text: '', version: 'v1' });
+      assert.equal((await s.documents.open({ vaultId: 'a', path })).ok, true);
+    }
+    assert.equal((await s.documents.open({ vaultId: 'a', path: 'other.md' })).ok, true);
+    assert.equal((await s.documents.open({ vaultId: 'a', path: 'two.md' })).ok, true);
     await s.documents.close(); await flush();
-    assert.equal(s.target.querySelector('.lm-workspace-main .lm-workspace-empty h2'), null);
-    assert.ok(blankButton('Create file'));
-    blankButton('Open file').click(); await flush();
-    assert.equal(s.documents.current(), null);
-    picked = fail('UNSUPPORTED');
-    blankButton('Open file').click(); await flush();
-    assert.equal(s.dom.window.document.activeElement, panel.querySelector('[role=tree]'));
-    picked = ok('other.md');
-    blankButton('Open file').click(); await flush();
-    assert.deepEqual(s.documents.current(), { vaultId: 'a', path: 'other.md' });
+    assert.equal(recent().querySelector('h2').textContent, 'Recent');
+    const recentPaths = () => [...recent().querySelectorAll('button')].map(button => button.title);
+    assert.deepEqual(recentPaths(), ['two.md', 'other.md', 'three.md', 'one.md', 'Named from tree.md']);
+    await s.kernel.stop(explorer.manifest.id); await flush();
+    assert.equal(recent(), null);
+    s.disk.delete('a/three.md');
+    await s.kernel.start(explorer.manifest.id); await flush();
+    assert.deepEqual(recentPaths(), ['two.md', 'other.md', 'one.md', 'Named from tree.md']);
+    blankButton('Named from tree').click(); await flush();
+    assert.deepEqual(s.documents.current(), { vaultId: 'a', path: 'Named from tree.md' });
     await s.documents.close(); await flush();
     assert.equal(s.language.setLocale('ru').ok, true); await flush();
-    assert.ok(blankButton('Открыть файл'));
+    assert.equal(recent().querySelector('h2').textContent, 'Последние');
+    assert.equal(recentPaths()[0], 'Named from tree.md');
     blankButton('Создать файл').click(); await flush();
     assert.deepEqual(s.documents.current(), { vaultId: 'a', path: 'Без имени.md' });
     assert.ok(panel.querySelector('[title="Без имени.md"]'));
     assert.equal(s.cm().state.doc.length, 0);
+    assert.equal((await s.vault.open()).ok, true); await s.showVault('b'); await flush();
+    assert.equal(recent(), null);
+    assert.equal((await s.documents.open({ vaultId: 'b', path: 'note.md' })).ok, true);
+    await s.documents.close(); await flush();
+    assert.deepEqual(recentPaths(), ['note.md']);
   } finally { await s.stop(); }
 });
 

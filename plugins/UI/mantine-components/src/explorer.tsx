@@ -26,7 +26,6 @@ interface ExplorerProps {
   supportedExtensions?: readonly string[];
   activePath?: string | null; onOpen?: (path: string) => Promise<void>;
   onCreateUntitled?: () => Promise<void>;
-  onFocusTree?: () => void;
   vaultId: string; data: Entry[]; expanded: string[]; selection: string[]; busy: boolean; loading: boolean; error: string; degraded: string; canPaste: boolean;
   workspace?: { vaultId: string; vaultName?: string; compact?: boolean }; text: Record<string, string>;
   onToggle(path: string, open: boolean): void; onSelection(paths: string[]): void; onBuffer(paths: string[], cut: boolean): void;
@@ -53,7 +52,7 @@ export function explorerProps(value: ComponentProps): ExplorerProps {
     !["onToggle", "onSelection", "onBuffer", "onCreate", "onRename", "onMove", "onPaste", "onRemove", "onRefresh", "onDraft", "onContextMenu"].every(key => typeof value[key] === "function")) throw new TypeError("Invalid file explorer props.");
   if (value.supportedExtensions !== undefined && (!Array.isArray(value.supportedExtensions) || value.supportedExtensions.some(item => typeof item !== "string" || !/^[a-z0-9]+$/i.test(item)))) throw new TypeError("Invalid supported extensions.");
   if (value.activePath !== undefined && value.activePath !== null && typeof value.activePath !== "string") throw new TypeError("Invalid active document path.");
-  if (["onOpen", "onCreateUntitled", "onFocusTree"].some(key => value[key] !== undefined && typeof value[key] !== "function"))
+  if (["onOpen", "onCreateUntitled"].some(key => value[key] !== undefined && typeof value[key] !== "function"))
     throw new TypeError("Invalid document action callback.");
   const draft = value.initialDraft as Draft | undefined;
   if (!draft || typeof draft.name !== "string" || (draft.form !== null && (!draft.form ||
@@ -266,11 +265,6 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     return path === ROOT_ID ? "" : path;
   }
   function focusTree(): void { host.current?.querySelector<HTMLElement>("[role=tree]")?.focus({ preventScroll: true }); }
-  useEffect(() => {
-    if (!props.onFocusTree || props.loading || deleteForm) return;
-    focusTree();
-    props.onFocusTree();
-  }, [props.onFocusTree, props.loading, deleteForm]);
   function clearSelection(): void {
     tree.current?.focus(ROOT_ID, { scroll: false }); tree.current?.deselectAll(); props.onSelection([]);
   }
