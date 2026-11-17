@@ -295,3 +295,76 @@ installed package Details, select `lunaris.clipboard-provider` for
 decorator. Then select the decorator as the editor's provider in Built-in plugins
 and apply the composition profile. Keep the upstream provider enabled. The two
 explicit choices form the chain from editor to decorator to upstream provider.
+
+## Supply a Workspace layout
+
+Add `@lunaris/workspace` and declare
+`{ "kind": "api", "id": "lunaris.workspace-layout", "version": "1.0.0" }`
+in `provides`. Keep the generated Logger requirement. Import `WorkspaceLayout`
+and the type `WorkspaceLayoutNode` from `@lunaris/workspace` and add this code
+inside `activate(ctx)`.
+
+```ts
+const tree = {
+  kind: "row",
+  children: [
+    { kind: "region", region: "main", grow: 3 },
+    { kind: "column", children: [
+      { kind: "region", region: "left-rail" },
+      { kind: "region", region: "left-panel" },
+      { kind: "region", region: "example.tools" },
+    ] },
+  ],
+} satisfies WorkspaceLayoutNode;
+
+ctx.provide(WorkspaceLayout, {
+  describe: () => tree,
+  watch() {},
+});
+ctx.use(Logger).info(ctx.pluginId, "Workspace layout ready");
+```
+
+The tree puts the navigation and panel after main. To populate `example.tools`,
+register a declarative view as in the counter recipe and pass its ID to
+`Workspace.register({ id, componentId, region: "example.tools" }, ctx.signal)`.
+Declare `api:lunaris.workspace@^1.5.0` and the view's dependencies for the
+package that registers the content.
+
+Install and enable the layout. In Built-in plugins, open Details for
+`lunaris.workspace` and select the package for
+`api:lunaris.workspace-layout`. Apply the composition. Each region appears at
+most once. For dynamic layouts, `describe` can read the Vault context and
+`watch(listener, owner)` can invoke the listener when the layout changes.
+Release the listener when the supplied owner aborts.
+
+## Mount a separate working interface
+
+Add `@lunaris/components`. Declare `api:lunaris.views@^1.0.0`,
+`api:lunaris.view-surfaces@^1.0.0`, and the `ui.dom` permission.
+Import `Views` and `ViewSurfaces` from `@lunaris/components`. In activation,
+use a localized `title` from the package's catalog and the generated Logger.
+
+```ts
+const viewId = `${ctx.pluginId}.working-view`;
+const view = ctx.use(Views).register({
+  id: viewId,
+  render: () => ({ kind: "text", text: title }),
+}, ctx.signal);
+if (!view.ok) throw new Error(view.error.message);
+
+const surface = ctx.use(ViewSurfaces).mount(viewId, `${ctx.pluginId}.work`, {}, ctx.signal);
+if (!surface.ok) {
+  logger.error(ctx.pluginId, "Cannot mount working interface", { error: surface.error });
+  throw new Error(surface.error.message);
+}
+logger.info(ctx.pluginId, "Working interface mounted");
+```
+
+Use the returned handle's `update(props)` to refresh the view and
+`dispose()` to remove the surface early. Both registrations are owned by
+the activation. The surface requires a fresh dotted slot ID. It uses the
+shared theme and declarative controls. After installing this package, the
+owner can disable `lunaris.workspace` in Built-in plugins and apply the
+composition to use the separate interface. Restore defaults brings back
+Workspace. Safe mode provides access to the default application even when
+the custom interface omits Settings.

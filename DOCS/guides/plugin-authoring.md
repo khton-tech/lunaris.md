@@ -1,16 +1,18 @@
 # Independent plugin authoring
 
 [Plugin recipes](plugin-recipes.md) cover persisted settings, custom screens,
-provider selection and managed files.
+shared contracts, provider replacement, Workspace layouts and standalone surfaces.
 
 Supported toolchain: Node >=26.13.0 <27, npm >=11 <12, SDK/kernel/CLI 0.1.0,
 LUP format 1. Tool packages are currently private; use the prepared local packed
 distribution. Preparing it is not package registry publication.
 
 Maintainers run `npm run toolchain:archive` to create
-`dist/lunaris-plugin-sdk-<version>.7z`. Building the archive requires the `7z`
-command on PATH. It contains packed Lunaris dependencies, a lockfile, and this
-documentation.
+`dist/lunaris-plugin-sdk-<version>.7z`. Use
+`npm run toolchain:archive -- composition` for the
+`lunaris-plugin-sdk-0.1.0-composition.7z` distribution. Its bundled npm packages
+retain their 0.1.0 versions. Building requires the `7z` command on PATH. The
+archive contains packed Lunaris dependencies, a lockfile and documentation.
 `npm run toolchain:build` prepares the unpackaged distribution at
 `dist/lime-toolchain`. Run `npm run lime:dx -- <archive>` to verify an archive with
 the local npm cache. The rehearsal checks generation, build, tests, packaging,
@@ -87,8 +89,9 @@ Useful contract packages and exported tokens:
 | @lunaris/filesystem | Filesystem, FilesystemObservation; explicit Vault-relative targets |
 | @lunaris/vault | Vault, VaultChanged; active root identity |
 | @lunaris/settings | Settings; owned categories/groups/items/sections |
-| @lunaris/components | Views; custom data/callback UI with shared controls and vector viewport |
+| @lunaris/components | Views, ViewSurfaces; custom data/callback UI and standalone application surfaces |
 | @lunaris/active-screen | ActiveScreen; register/select a novel application screen |
+| @lunaris/workspace | Workspace, WorkspaceLayout; contribute to regions or provide a replacement layout |
 | @lunaris/localization | Localization, LocaleChanged; English-first localized UI |
 | @lunaris/themes | Themes, ThemeChanged; semantic theme data |
 | @lunaris/editor | EditorExtensions; cooperative editor contributions; host-object adapters must be verified before isolated use |
@@ -101,6 +104,10 @@ child scope; release them on stop. Do not use SDK handles after scope closure.
 Required dependencies start before consumers. Optional availability is fixed for
 an activation; lost handles do not silently revive. Register shared contracts in
 one public package; bundled copies share token metadata rather than object identity.
+Independent packages can export their own typed APIs, events and hooks with the
+SDK. Each participating manifest declares the shared tokens. Package authors
+control protocol versions and validators. The host resolves providers and checks
+permissions across package boundaries.
 
 Novel screens use Views.register({ id, render(props) }, ctx.signal), returning
 ViewNode data. Register that componentId with ActiveScreen and select explicitly.
@@ -110,6 +117,13 @@ sanitized pointer/key data, never host DOM/framework events. Use localization fo
 visible labels. Containers own geometry/surfaces; embedded views remain transparent.
 Raw React/Mantine/DOM rendering in consuming plugins is unsupported.
 
+To rearrange Workspace while retaining its existing features, provide
+`WorkspaceLayout` and return a portable tree of rows, columns and named regions.
+Other packages can register a view for one of those regions through `Workspace`.
+To provide a separate working interface, register a declarative view and mount it
+through `ViewSurfaces` in a new slot under the product root. Mount ownership and
+view ownership each end the surface when their signal aborts.
+
 Store settings with Config using the plugin ID and explicit Vault scope. File
 operations use `{ vaultId, path }`, with paths relative to that captured Vault.
 Managed plugin data belongs under `.lunaris/plugins/data/<plugin-id>/`; deleting
@@ -117,6 +131,30 @@ managed data does not remove arbitrary documents the plugin created elsewhere.
 Capture the Vault before an async operation and honor cancellation; never redirect
 old work into a newly selected Vault. Global application storage and raw native
 management are unavailable in installed code.
+
+## Select a composition in the application
+
+Use a Lunaris build that supports Vault composition and the contracts your
+manifest declares. Earlier builds may share the same base SDK version while
+lacking individual contracts or their providers. Review the dependency plan in
+the package preview before installing.
+
+In Settings → Third-party plugins → Built-in plugins, open Details for the
+consumer and choose the replacement provider under Dependencies. Stage any
+related built-in switches and choose Apply composition once. The profile belongs
+to the current Vault. An invalid or unsuccessful activation leaves the previous
+composition in place when rollback succeeds. Restore defaults clears the profile.
+
+Use Install disabled when the package needs an explicit upstream provider before
+activation. Set that dependency in its installed package Details and then enable
+it. This lets a decorator require and provide the same compatible contract while
+delegating to a separate provider.
+
+Owner actions control the profile. Installed packages contribute implementations
+through the SDK, and host startup, runtime management, native authority and
+recovery remain trusted host responsibilities. If the working interface hides
+Settings, use Ctrl+Shift+F8 (Cmd+Shift+F8 on macOS) to restart in safe mode. In
+the browser, the `safe-mode=1` URL query parameter also starts with host defaults.
 
 ## Diagnostics and current limits
 
