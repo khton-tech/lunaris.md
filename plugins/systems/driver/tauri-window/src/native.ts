@@ -1,6 +1,10 @@
-import { isTauri } from "@tauri-apps/api/core";
+import { invoke, isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import type { WindowSnapshot } from "@lunaris/window";
+import type { DesktopTrayLabels, WindowSnapshot } from "@lunaris/window";
+
+export function configureDesktopBackground(enabled: boolean, labels: DesktopTrayLabels): Promise<void> {
+  return invoke("desktop_background_request", { request: { kind: "configure", enabled, labels } });
+}
 
 /** Only the native driver imports Tauri. Tests inject this narrow platform port. */
 export interface NativeWindowPort {

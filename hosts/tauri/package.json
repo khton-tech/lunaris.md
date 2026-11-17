@@ -17,6 +17,7 @@
   },
   "dependencies": {
     "@lunaris/application-host": "0.1.0",
+    "@lunaris/desktop-background-settings": "0.1.0",
     "@lunaris/external-windows": "0.1.0",
     "@lunaris/logging": "0.1.0",
     "@lunaris/mantine-components": "0.1.0",

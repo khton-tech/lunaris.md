@@ -54,3 +54,25 @@ test('failed save keeps the window open and allows a later close request', async
   await handler(event); assert.equal(prevented, 1);
   allowed = true; await handler(event); assert.equal(calls, 2); assert.equal(prevented, 1);
 });
+
+test('background close keeps the session live and tray quit waits for the save gate', async () => {
+  let close; let quit; let allow = false; let prevented = 0;
+  const calls = [];
+  const remove = await bindWindowClose({ async requestClose() { calls.push('save'); return allow; } }, {
+    async onCloseRequested(handler) { close = handler; return () => calls.push('remove close'); },
+  }, {
+    async hide() { calls.push('hide'); return true; },
+    async restore() { calls.push('restore'); },
+    async exit() { calls.push('exit'); },
+    async onQuit(handler) { quit = handler; return () => calls.push('remove quit'); },
+  });
+  await close({ preventDefault() { prevented++; } });
+  assert.equal(prevented, 1);
+  assert.deepEqual(calls, ['hide']);
+  await quit();
+  assert.deepEqual(calls, ['hide', 'save', 'restore']);
+  allow = true;
+  await quit();
+  remove();
+  assert.deepEqual(calls, ['hide', 'save', 'restore', 'save', 'exit', 'remove quit', 'remove close']);
+});

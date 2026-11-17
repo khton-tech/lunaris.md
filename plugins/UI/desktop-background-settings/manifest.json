@@ -1,0 +1,20 @@
+{
+  "manifestVersion": 1,
+  "id": "lunaris.desktop-background-settings",
+  "version": "0.1.0",
+  "engine": "^0.1.0",
+  "sdk": "^0.1.0",
+  "entry": "./dist/src/index.js",
+  "provides": [],
+  "requires": [
+    { "kind": "api", "id": "lunaris.config", "range": "^1.0.0" },
+    { "kind": "event", "id": "lunaris.config-changed", "range": "^1.0.0" },
+    { "kind": "api", "id": "lunaris.localization", "range": "^1.0.0" },
+    { "kind": "event", "id": "lunaris.locale-changed", "range": "^1.0.0" },
+    { "kind": "api", "id": "lunaris.logger", "range": "^1.0.0" },
+    { "kind": "api", "id": "lunaris.settings", "range": "^1.2.0" },
+    { "kind": "api", "id": "lunaris.desktop-background", "range": "^1.0.0" }
+  ],
+  "permissions": ["config.access", "desktop.background"],
+  "optionalPermissions": []
+}

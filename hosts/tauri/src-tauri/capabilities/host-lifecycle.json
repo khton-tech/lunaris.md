@@ -1,7 +1,7 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "host-lifecycle",
-  "description": "Allow only the main host window to observe close requests and finish closing after cleanup.",
+  "description": "Allow the main host to observe close and tray requests, apply background policy and exit after cleanup.",
   "windows": ["main"],
-  "permissions": ["core:event:allow-listen", "core:event:allow-unlisten", "core:window:allow-destroy"]
+  "permissions": ["core:event:allow-listen", "core:event:allow-unlisten", "core:window:allow-destroy", "allow-desktop-background-request"]
 }

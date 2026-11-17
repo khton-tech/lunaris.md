@@ -36,6 +36,18 @@ const validateApi = (value: unknown): boolean => !!value && typeof value === "ob
   windowMethods.every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function");
 export const Window = defineApi<WindowApi>({ id: "lunaris.window", version: "1.0.0", consumePermission: "window.control", validate: validateApi });
 export const WindowDriver = defineApi<WindowApi>({ id: "lunaris.window-driver", version: "1.0.0", providePermission: "window.native", consumePermission: "window.control", validate: validateApi });
+
+export interface DesktopTrayLabels { readonly open: string; readonly quit: string }
+export interface DesktopBackgroundApi {
+  supported(): boolean;
+  /** Apply the global close-to-tray preference and current localized menu labels. */
+  configure(enabled: boolean, labels: DesktopTrayLabels): Promise<void>;
+}
+export const DesktopBackground = defineApi<DesktopBackgroundApi>({
+  id: "lunaris.desktop-background", version: "1.0.0", providePermission: "window.native", consumePermission: "desktop.background",
+  validate: value => !!value && typeof value === "object" && ["supported", "configure"].every(name =>
+    typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function"),
+});
 export function validWindowSnapshot(value: unknown): value is WindowSnapshot {
   if (!value || typeof value !== "object") return false;
   const get = (name: string): unknown => Object.getOwnPropertyDescriptor(value, name)?.value;

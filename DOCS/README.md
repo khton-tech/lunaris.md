@@ -34,6 +34,7 @@ installed packages. See [permission policy](concepts/permissions.md) and
 - [UI slots](reference/slots.md): portable regions, scoped ownership, DOM targets and host composition.
 - [Window API and custom titlebar](reference/window.md): replaceable native-window provider/driver, title and controls, owned chrome and save-gated closure.
 - [External native windows](reference/external-windows.md) describes the public manager and its desktop integration.
+- [Desktop background settings](../plugins/UI/desktop-background-settings/DOCS/README.md) describes the global preference and tray lifecycle.
 - [Startup progress](reference/startup.md): read-only SDK milestones, host bridge and early loading surfaces.
 - [Lunaris Runner](../plugins/UI/lunaris-runner/DOCS/README.md): configured ASCII startup screen, milestones and retained loaded status.
 - [Theme settings](../plugins/UI/theme-settings/DOCS/README.md): startup theme preference, default selection and failure behavior.

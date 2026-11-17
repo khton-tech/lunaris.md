@@ -1,0 +1,16 @@
+{
+  "name": "@lunaris/desktop-background-settings",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": { "types": "./dist/src/index.d.ts", "import": "./dist/src/index.js" } },
+  "dependencies": {
+    "@lunaris/config": "0.1.0",
+    "@lunaris/localization": "0.1.0",
+    "@lunaris/logging": "0.1.0",
+    "@lunaris/sdk": "0.1.0",
+    "@lunaris/settings": "0.1.0",
+    "@lunaris/window": "0.1.0"
+  },
+  "scripts": { "build": "tsc -b" }
+}

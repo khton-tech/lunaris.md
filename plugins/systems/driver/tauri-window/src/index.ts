@@ -1,10 +1,10 @@
 import { definePlugin, LunarisError } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
-import { WindowDriver, DriverWindowChanged, windowFailure, validWindowOwner } from "@lunaris/window";
+import { DesktopBackground, WindowDriver, DriverWindowChanged, windowFailure, validWindowOwner } from "@lunaris/window";
 import { ExternalWindowDriver } from "@lunaris/window/external";
 import type { WindowSnapshot, WindowCapabilities, WindowResult } from "@lunaris/window";
-import { nativeWindow } from "./native.js";
+import { configureDesktopBackground, nativeWindow } from "./native.js";
 import type { NativeWindowPort } from "./native.js";
 import { createExternalWindowPort } from "./external.js";
 import { nativeExternalWindows } from "./native-external.js";
@@ -112,7 +112,21 @@ export function createTauriWindowDriver(port?: NativeWindowPort | null) {
         }
       },
     });
-    ctx.provide(ExternalWindowDriver, await createExternalWindowPort(ctx, logger, native ? nativeExternalWindows() : null));
+    const external = await createExternalWindowPort(ctx, logger, native ? nativeExternalWindows() : null);
+    ctx.provide(ExternalWindowDriver, external);
+    ctx.provide(DesktopBackground, {
+      supported: () => external.supported(),
+      async configure(enabled, labels) {
+        if (!external.supported()) throw new Error("Desktop background mode is unavailable.");
+        try {
+          await configureDesktopBackground(enabled, labels);
+          logger.debug(ctx.pluginId, "Desktop background policy applied", { data: { enabled } });
+        } catch (error) {
+          logger.error(ctx.pluginId, "Cannot configure the desktop tray", { error });
+          throw error;
+        }
+      },
+    });
     publishing = true;
     logger.info(ctx.pluginId, "Native window driver ready");
   } });

@@ -274,6 +274,13 @@ remain possible. bindWindowClose waits for this gate before kernel cleanup.
 HostSession.stop and fault recovery remain forced cleanup operations and do not
 promise draft persistence. The bridge exposes no product API or event contract.
 
+With [Run in background](../../plugins/UI/desktop-background-settings/DOCS/README.md)
+enabled, a close request on the running main view hides it and leaves the session
+active. The tray's Quit action runs the same save gate and waits for cleanup
+before terminating the application. Open Lunaris restores and focuses the main
+window. The [external window manager](../reference/external-windows.md) continues
+to serve live plugin activations while the main view is hidden.
+
 ## Custom window titlebar
 
 The composition now registers the replaceable Window provider, Tauri window

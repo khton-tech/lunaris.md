@@ -5,6 +5,7 @@ fn main() {
             "credentials_request",
             "native_process_request",
             "external_window_request",
+            "desktop_background_request",
         ]),
     ))
     .expect("Failed to build the host permission manifest");
