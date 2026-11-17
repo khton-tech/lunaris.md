@@ -4,7 +4,7 @@ import { definePlugin } from '@lunaris/sdk';
 import { createTestKernel } from '@lunaris/test';
 import { Logger } from '@lunaris/logging';
 import { Filesystem, filesystemMethods } from '@lunaris/filesystem';
-import { BeforeVaultRelease, Vault, VaultCreation, VaultLocations, VaultChanged, PrepareVault, VaultLifecycle } from '@lunaris/vault';
+import { BeforeVaultRelease, Vault, VaultCreation, VaultLocations, VaultChanged, PrepareVault, VaultLifecycle, VaultPreservation } from '@lunaris/vault';
 import filesystem from '@lunaris/filesystem-provider';
 import vaultManager from '@lunaris/vault-manager';
 import { createTauriFilesystemDriver } from '@lunaris/tauri-filesystem';
@@ -34,13 +34,38 @@ test('release guards run before closing roots and reject close/switch without lo
   await s.host.stopAll(); s.host.assertNoResources();
 });
 
+test('preservation keeps documents locked until composition settles and never releases the Vault', async () => {
+  const s = await setup(); s.select('a'); await s.manager.open();
+  const preserve = s.context.use(VaultPreservation);
+  let releaseCount = 0; let reject = true;
+  s.context.hooks.register(BeforeVaultRelease, guard => {
+    guard.onSettled(() => { releaseCount++; });
+    if (guard.next?.id === guard.previous.id && reject) return { ...guard, error: { code: 'CONFLICT', message: 'Unsaved change' } };
+    return guard;
+  });
+  assert.equal((await preserve.lock('b')).error.code, 'STOPPED');
+  assert.equal((await preserve.lock('a')).error.code, 'CONFLICT');
+  assert.equal(releaseCount, 1);
+  reject = false;
+  const lease = await preserve.lock('a');
+  assert.equal(lease.ok, true);
+  assert.equal((await s.manager.close()).error.code, 'BUSY');
+  assert.equal(releaseCount, 1);
+  assert.equal(s.calls.some(([name]) => name === 'closeVault'), false);
+  lease.value.dispose(); lease.value.dispose();
+  assert.equal(releaseCount, 2);
+  assert.equal(s.manager.current().id, 'a');
+  assert.equal((await s.manager.close()).ok, true);
+  await s.host.stopAll(); s.host.assertNoResources();
+});
+
 async function setup(options = {}) {
   const calls = []; const logs = []; const changes = []; const selections = [];
   let manager; let creation; let locations; let fs; let context;
   const host = createTestKernel({ initialGrants: {
     'lunaris.filesystem-provider': ['filesystem.access', 'filesystem.app-config'],
     'lunaris.vault-manager': ['filesystem.access'], 'lunaris.tauri-filesystem': ['filesystem.native'],
-    'test.consumer': options.denied ? ['filesystem.access'] : ['vault.access', 'filesystem.access'],
+    'test.consumer': options.denied ? ['filesystem.access'] : ['vault.access', 'filesystem.access', 'runtime.manage'],
   } });
   host.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push([level, ...args]); return true; }])));
   const methods = Object.fromEntries(filesystemMethods.map(name => [name, async (...args) => { calls.push([name, ...args]); return ok(null); }]));
@@ -62,7 +87,7 @@ async function setup(options = {}) {
     return methods[operation](args.target);
   } }));
   host.register(filesystem); host.register(vaultManager);
-  host.register(definePlugin({ manifest: manifest('test.consumer', [], [BeforeVaultRelease, Vault, VaultCreation, VaultLocations, VaultChanged, PrepareVault, VaultLifecycle, Filesystem].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' })), ['vault.access', 'filesystem.access']), activate(ctx) {
+  host.register(definePlugin({ manifest: manifest('test.consumer', [], [BeforeVaultRelease, Vault, VaultCreation, VaultLocations, VaultChanged, PrepareVault, VaultLifecycle, VaultPreservation, Filesystem].map(token => ({ kind: token.kind, id: token.id, range: '^1.0.0' })), ['vault.access', 'filesystem.access', 'runtime.manage']), activate(ctx) {
     context = ctx; manager = ctx.use(Vault); creation = ctx.use(VaultCreation); locations = ctx.use(VaultLocations); fs = ctx.use(Filesystem);
     ctx.events.on(VaultChanged, async change => { changes.push(change); await options.onChange?.(change, manager); });
     if (options.prepare) ctx.hooks.register(PrepareVault, value => options.prepare(value, manager, fs));

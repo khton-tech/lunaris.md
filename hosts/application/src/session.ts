@@ -71,6 +71,7 @@ export class HostSession {
   #generation = 0;
   #sequence = 0;
   #diagnosticSequence = 0;
+  #checkpointEntrypoints: ReadonlySet<string> = new Set();
   #cleanupUnsafe = false;
   #preservationBlocked = false;
   readonly #timeout: number;
@@ -167,7 +168,12 @@ export class HostSession {
       await this.#shutdown();
       if (generation !== this.#generation) return;
       this.#definition = undefined;
-      const kernel = createKernel({ ...this.options.kernelOptions, scheduler: this.options.scheduler, onChange: () => {
+      const hostIds = new Set<string>();
+      this.#checkpointEntrypoints = new Set();
+      const kernel = createKernel({ ...this.options.kernelOptions, scheduler: this.options.scheduler,
+        implicitProvider: (consumerId, providerId) => (!hostIds.has(consumerId) || hostIds.has(providerId)) &&
+          (this.options.kernelOptions?.implicitProvider?.(consumerId, providerId) ?? true),
+        onChange: () => {
         if (this.#kernel === kernel) this.refresh();
       } });
       this.#kernel = kernel;
@@ -180,8 +186,17 @@ export class HostSession {
       if (definition.pluginRuntime) {
         const safeMode = this.#thirdPartySafeMode;
         const policy = definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-boot-policy', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './host-policy.js', provides: [{ kind: 'api', id: LimeBootPolicy.id, version: LimeBootPolicy.version }], requires: [], permissions: [], optionalPermissions: [] }, activate(ctx) { ctx.provide(LimeBootPolicy, { safeMode: () => safeMode }); } });
-        const runtime = createLimeRuntime(this.#kernel, [...definition.plugins.map(plugin => plugin.manifest.id), policy.manifest.id]);
+        const runtime = createLimeRuntime(this.#kernel, [...definition.plugins.map(plugin => plugin.manifest.id), policy.manifest.id], {
+          safeMode,
+          protect: [policy.manifest.id, 'lunaris.application-close', 'lunaris.startup-provider'],
+          observeCheckpoints: ids => {
+            if (this.#kernel !== kernel) return;
+            this.#checkpointEntrypoints = ids;
+            this.refresh();
+          },
+        });
         definition = { ...definition, plugins: [...definition.plugins, policy, runtime], entrypoints: [policy.manifest.id, ...definition.entrypoints], grants: { ...definition.grants, [runtime.manifest.id]: runtime.manifest.permissions } };
+        for (const plugin of definition.plugins) hostIds.add(plugin.manifest.id);
       }
       this.#definition = definition;
       this.#progress("loading", "registration");
@@ -331,10 +346,10 @@ export class HostSession {
   /** Inspect after kernel changes or an explicit host request; ordinary denials preserve the UI. */
   refresh = (): void => {
     const kernel = this.#kernel?.inspect();
-    if (this.#phase === "running" && kernel && !this.#preservationBlocked) {
+    if (this.#phase === "running" && kernel && !this.#preservationBlocked && !this.#kernel?.isMutating()) {
       const failed = kernel.plugins.find(plugin => plugin.state === "failed");
-      const lost = this.#definition?.entrypoints.find(id => !this.#disabled.has(id) &&
-        !kernel.plugins.some(plugin => plugin.manifest.id === id && plugin.state === "active"));
+      const lost = this.#definition?.entrypoints.find(id => !this.#disabled.has(id) && !this.#checkpointEntrypoints.has(id) &&
+        !kernel.plugins.some(plugin => plugin.manifest.id === id && (plugin.state === "active" || plugin.suspended)));
       const diagnostic = kernel.diagnostics.find(item => item.sequence > this.#diagnosticSequence && fatalDiagnostics.has(item.code));
       this.#diagnosticSequence = kernel.diagnostics.at(-1)?.sequence ?? this.#diagnosticSequence;
       if (lost || diagnostic) {

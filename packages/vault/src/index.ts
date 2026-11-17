@@ -72,6 +72,13 @@ export const BeforeVaultRelease = defineHook<VaultRelease>({
   validate: input => { const value = input as VaultRelease | null; return !!value && validRoot(value.previous) && (value.next === null || validRoot(value.next)) &&
     (value.error === null || typeof value.error?.code === "string") && typeof value.onSettled === "function"; },
 });
+/** Preserve active document state during a host composition change. */
+export const VaultPreservation = defineApi<{
+  lock(vaultId: string): Promise<VaultResult<{ dispose(): void }>>;
+}>({
+  id: "lunaris.vault-preservation", version: "1.0.0", consumePermission: "runtime.manage",
+  validate: value => !!value && typeof value === "object" && typeof Object.getOwnPropertyDescriptor(value, "lock")?.value === "function",
+});
 export interface VaultChange {
   readonly kind: "opened" | "switched" | "closed";
   readonly previous: VaultRoot | null;

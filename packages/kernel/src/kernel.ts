@@ -3,7 +3,7 @@ import { capturePackageResources, contractKey, definePlugin, LunarisError } from
 import type { ApiToken, ContractKind, ErrorCode, PluginContext, PluginDefinition, PackageResourceFiles } from "@lunaris/sdk";
 import { Diagnostics } from "./diagnostics.js";
 import { OwnedScope } from "./scope.js";
-import type { Kernel, KernelOptions, KernelSnapshot, PluginState, Scheduler } from "./types.js";
+import type { Kernel, KernelComposition, KernelOptions, KernelSnapshot, PluginState, Scheduler } from "./types.js";
 
 import { context, requirementKey } from "./model.js";
 import type { Activation, Registration } from "./model.js";
@@ -19,6 +19,9 @@ class Runtime {
   #plugins = new Map<string, Registration>();
   #nextActivation = 0;
   #selections = new Map<string, string>();
+  #compositionBindings = new Map<string, string>();
+  #suspended = new Set<string>();
+  #resume = new Set<string>();
   #dependencies = new DependencyIndex();
   #starts = new Map<Registration, Set<ReadonlyMap<string, string | undefined>>>();
   readonly #access: Access;
@@ -32,6 +35,7 @@ class Runtime {
   readonly #activationTimeout: number;
   readonly #stopTimeout: number;
   readonly #onChange: KernelOptions["onChange"];
+  readonly #implicitProvider: KernelOptions["implicitProvider"];
   #changeQueued = false;
 
   constructor(options: KernelOptions) {
@@ -42,6 +46,7 @@ class Runtime {
     this.#activationTimeout = options.activationTimeoutMs ?? 5000;
     this.#stopTimeout = options.stopTimeoutMs ?? 5000;
     this.#onChange = options.onChange;
+    this.#implicitProvider = options.implicitProvider;
     if (this.#onChange !== undefined && typeof this.#onChange !== "function") {
       throw new LunarisError("LIFECYCLE_INVALID", "The host change observer must be a function.");
     }
@@ -342,8 +347,9 @@ class Runtime {
   };
 
   async #start(id: string): Promise<void> {
+    if (this.#suspended.has(id)) throw new LunarisError("LIFECYCLE_INVALID", "Plugin is suspended by the application composition.", { pluginId: id });
     let plan: Plan;
-    try { plan = resolve(id, this.#plugins, this.#selections, this.#dependencies); }
+    try { plan = resolve(id, this.#eligible(this.#suspended), this.#effectiveSelections(this.#compositionBindings, this.#suspended), this.#dependencies, this.#implicitProvider); }
     catch (error) { await this.#enqueue(id, record => this.#activate(record, new Map(), error)); return; }
     for (const omitted of plan.omitted) this.#diagnostics.record("DEPENDENCY_CYCLE", omitted);
     // Reserve the root queue before yielding to dependency activation.
@@ -389,6 +395,85 @@ class Runtime {
     this.#selections.set(consumerId + "/" + requirementKey(requirement), providerId);
   };
 
+  #eligible(suspended: ReadonlySet<string>): ReadonlyMap<string, Registration> {
+    return suspended.size ? new Map([...this.#plugins].filter(([id]) => !suspended.has(id))) : this.#plugins;
+  }
+
+  #effectiveSelections(bindings: ReadonlyMap<string, string>, suspended: ReadonlySet<string>): ReadonlyMap<string, string> {
+    if (!bindings.size && !suspended.size) return this.#selections;
+    return new Map([...this.#selections, ...bindings].filter(([, provider]) => !suspended.has(provider)));
+  }
+
+  isMutating = (): boolean => this.#mutating;
+
+  applyComposition = async (profile: KernelComposition, protectedIds: ReadonlySet<string> = new Set()): Promise<void> => {
+    this.#externalGuard();
+    const previous = { bindings: this.#compositionBindings, suspended: this.#suspended, resume: this.#resume };
+    const suspended = new Set(profile.disabledBuiltins);
+    const eligible = this.#eligible(suspended);
+    const bindings = new Map<string, string>();
+    const changed = new Set<string>();
+    for (const id of new Set([...previous.suspended, ...suspended])) {
+      if (!this.#plugins.has(id)) throw new LunarisError("PLUGIN_NOT_FOUND", "Composition plugin is not registered.", { pluginId: id });
+      if (previous.suspended.has(id) !== suspended.has(id)) changed.add(id);
+    }
+    for (const binding of profile.bindings) {
+      const { consumerId, kind, contractId, providerId } = binding;
+      const requirement = this.#plugins.get(consumerId)?.definition.manifest.requires.find(item => item.kind === kind && item.id === contractId);
+      if (!requirement || !candidates(eligible, requirement, this.#dependencies.providers).includes(providerId)) {
+        throw new LunarisError("PROVIDER_MISSING", "Composition provider does not match the requirement.", { pluginId: consumerId, contractId });
+      }
+      const key = `${consumerId}/${requirementKey(requirement)}`;
+      if (bindings.has(key)) throw new LunarisError("LIFECYCLE_INVALID", "Composition selects more than one provider for a requirement.", { pluginId: consumerId, contractId });
+      bindings.set(key, providerId);
+    }
+    for (const key of new Set([...previous.bindings.keys(), ...bindings.keys()])) {
+      if (previous.bindings.get(key) !== bindings.get(key)) changed.add(key.slice(0, key.indexOf("/")));
+    }
+    if (!changed.size) return;
+
+    const affected = new Set([...changed].flatMap(id => this.#affected(this.#plugins.get(id)!)));
+    for (const record of affected) {
+      const id = record.definition.manifest.id;
+      if (protectedIds.has(id)) throw new LunarisError("LIFECYCLE_INVALID", "Composition would interrupt a protected application service.", { pluginId: id });
+    }
+    const active = new Set([...this.#plugins].filter(([, record]) => record.state === "active").map(([id]) => id));
+    const restarting = [...affected].map(record => record.definition.manifest.id).filter(id => active.has(id) || previous.resume.has(id));
+    const resume = new Set([...previous.resume, ...restarting].filter(id => suspended.has(id)));
+    const simulation = new Map([...eligible].map(([id, record]) => [id, affected.has(record) ? { ...record, state: "stopped" as const } : record]));
+    const selections = this.#effectiveSelections(bindings, suspended);
+    for (const id of restarting) if (!suspended.has(id)) resolve(id, simulation, selections, this.#dependencies, this.#implicitProvider);
+
+    const stop = async (records: Iterable<Registration>): Promise<void> => {
+      const outcomes = await Promise.allSettled(this.#reserveStops([...records]));
+      const failures = outcomes.flatMap(outcome => outcome.status === "rejected" ? [outcome.reason as unknown] : []);
+      if (failures.length) throw new LunarisError("CLEANUP_FAILED", "Composition cleanup failed.", {}, { cause: new AggregateError(failures) });
+    };
+    this.#beginMutation(changed.values().next().value!);
+    try {
+      await stop(affected);
+      this.#compositionBindings = bindings;
+      this.#suspended = suspended;
+      this.#resume = resume;
+      try {
+        for (const id of restarting) if (!suspended.has(id)) await this.#start(id);
+      } catch (cause) {
+        this.#compositionBindings = previous.bindings;
+        this.#suspended = previous.suspended;
+        this.#resume = previous.resume;
+        try {
+          const introduced = [...this.#plugins].filter(([id, record]) => !active.has(id) && record.state === "active").map(([, record]) => record);
+          await stop(new Set([...affected, ...introduced]));
+          for (const id of restarting) if (active.has(id)) await this.#start(id);
+        } catch (rollback) {
+          this.#diagnostics.record("CLEANUP_FAILED", {}, new AggregateError([cause, rollback]));
+          throw new LunarisError("CLEANUP_FAILED", "Composition rollback failed; recovery is required.", {}, { cause: new AggregateError([cause, rollback]) });
+        }
+        throw new LunarisError("ACTIVATION_FAILED", "Composition failed; the previous active graph was restored.", {}, { cause });
+      }
+    } finally { this.#mutating = false; this.#changed(); }
+  };
+
   stopAll = async (): Promise<void> => {
     this.#externalGuard();
     const records = [...this.#plugins.keys()].sort().reverse().map(id => this.#plugins.get(id)!);
@@ -429,7 +514,7 @@ class Runtime {
         }
         throw new LunarisError('ACTIVATION_FAILED', 'Provider transition failed; previous selection and active consumers restored.', { pluginId: consumerId }, { cause });
       }
-    } finally { this.#mutating = false; }
+    } finally { this.#mutating = false; this.#changed(); }
   };
 
   grant = (id: string, permission: string): void => {
@@ -486,7 +571,7 @@ class Runtime {
       if (errors.length) throw new LunarisError("CLEANUP_FAILED", "Unregistration cleanup failed; registration retained for recovery.", { pluginId: id }, { cause: new AggregateError(errors) });
       this.#remove(record);
       for (const [key, provider] of this.#selections) if (key.startsWith(`${id}/`) || provider === id) this.#selections.delete(key);
-    } finally { this.#mutating = false; }
+    } finally { this.#mutating = false; this.#changed(); }
   };
 
   replace = async (definition: PluginDefinition, options: { readonly grants?: readonly string[]; readonly resources?: PackageResourceFiles } = {}): Promise<void> => {
@@ -540,6 +625,7 @@ class Runtime {
       // A stop failure never removes the old registration.
       if (!installed) this.#selections = selections;
       this.#mutating = false;
+      this.#changed();
     }
   };
 
@@ -549,6 +635,7 @@ class Runtime {
     plugins: Object.freeze([...this.#plugins.values()].sort((a, b) => a.definition.manifest.id < b.definition.manifest.id ? -1 : 1).map(record => Object.freeze({
       manifest: record.definition.manifest, state: record.state,
       ...(record.ownerId === undefined ? {} : { ownerId: record.ownerId }),
+      ...(this.#suspended.has(record.definition.manifest.id) ? { suspended: true as const } : {}),
       ...(record.activation ? { activationId: record.activation.id } : {}),
       contracts: Object.freeze(record.state === "active" && !record.activation?.scope.closed ? [
         ...record.activation!.apis.keys(), ...record.definition.manifest.provides.filter(p => p.kind !== "api").map(p => contractKey(p)),
@@ -565,6 +652,7 @@ class Runtime {
 export function createKernel(options: KernelOptions): Kernel {
   const runtime = new Runtime(options);
   return Object.freeze({ register: runtime.register, unregister: runtime.unregister, replace: runtime.replace, start: runtime.start, stop: runtime.stop,
-    restart: runtime.restart, selectProvider: runtime.selectProvider, rebindProvider: runtime.rebindProvider, grant: runtime.grant, revoke: runtime.revoke, stopAll: runtime.stopAll, inspect: runtime.inspect,
+    restart: runtime.restart, selectProvider: runtime.selectProvider, rebindProvider: runtime.rebindProvider,
+    applyComposition: runtime.applyComposition, isMutating: runtime.isMutating, grant: runtime.grant, revoke: runtime.revoke, stopAll: runtime.stopAll, inspect: runtime.inspect,
     diagnosticCause: runtime.diagnosticCause });
 }

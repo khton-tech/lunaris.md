@@ -6,7 +6,7 @@ broker denies it. Lime receives this API rather than a Kernel instance.
 
 All operations capture `{ vaultId, generation }`. Opening a new environment first
 unregisters the previous managed graph; generation must strictly increase. Stale
-environment calls fail with STALE. Built-in/host IDs cannot be replaced. Mutations
+environment calls fail with STALE. Built-in/host package IDs are reserved. Mutations
 are serialized after the requesting SDK callback unwinds.
 
 `register`, `replace`, `enable`, `disable`, `remove`, `close` and `snapshot` manage
@@ -50,6 +50,32 @@ each candidate. An empty candidate list indicates a missing compatible provider.
 Lime previews substitute the candidate manifest without registering or evaluating
 it. Install and update confirmations reject a changed graph revision. The graph
 describes alternatives, while the kernel resolves actual bindings on activation.
+
+## Vault composition
+
+`LimeCompositionRuntime` provides a revisioned snapshot to trusted management
+code. Its profile contains explicit bindings for built-in consumers and IDs
+of disabled built-ins. An installed provider must already be active. Built-in
+consumers resolve host defaults unless the owner chooses an explicit override.
+
+Lime persists the profile per Vault and applies it after installed packages
+start. Settings submits a complete profile, so the owner can redirect multiple
+consumers and disable their original provider in the same operation. The kernel
+preflights the dependencies, then restarts only the affected graph. A failed
+activation restores the prior profile and active consumers. Vault save guards
+can veto a live switch. Vault release restores defaults before unloading guest
+packages. A selected package must be released from the profile before disabling
+or removing it. Safe mode starts with host defaults.
+
+The runtime protects its own dependencies, the attached Vault, the execution
+engine and the host startup and save services while a Vault is open. The
+application health observer waits for a composition transaction to settle and
+accepts intentionally disabled entrypoints. An update checkpoint records which
+entrypoints may be unavailable until the checkpoint is finished.
+
+QuickJS integration tests cover multi-consumer replacement and decoration,
+stale revisions, save vetoes, rollback, update suspension and default restoration
+on Vault release. Lime engine tests cover persistence and recovery.
 
 ## Update checkpoints
 

@@ -14,6 +14,8 @@ export interface KernelOptions {
   readonly diagnosticCapacity?: number;
   readonly initialGrants?: Readonly<Record<string, readonly string[]>>;
   readonly requestPermission?: (request: PermissionRequest) => boolean | Promise<boolean>;
+  /** Limit implicit discovery. Explicit, compatible host selections take precedence. */
+  readonly implicitProvider?: (consumerId: string, providerId: string) => boolean;
   /** Trusted host notification, coalesced after observable changes. Read inspect() on demand. */
   readonly onChange?: () => void;
 }
@@ -39,6 +41,7 @@ export interface PluginSnapshot {
   readonly state: PluginState;
   readonly activationId?: string;
   readonly ownerId?: string;
+  readonly suspended?: true;
   readonly contracts: readonly string[];
   readonly ownedResources: number;
   readonly bindings: readonly { readonly contract: string; readonly providerId?: string; readonly activationId?: string; readonly version?: string }[];
@@ -48,6 +51,18 @@ export interface PluginSnapshot {
 export interface KernelSnapshot {
   readonly plugins: readonly PluginSnapshot[];
   readonly diagnostics: readonly Diagnostic[];
+}
+
+export interface CompositionBinding {
+  readonly consumerId: string;
+  readonly kind: ContractKind;
+  readonly contractId: string;
+  readonly providerId: string;
+}
+
+export interface KernelComposition {
+  readonly bindings: readonly CompositionBinding[];
+  readonly disabledBuiltins: readonly string[];
 }
 
 /** Privileged host composition surface; never included in plugin context. */
@@ -63,6 +78,10 @@ export interface Kernel {
   selectProvider(consumerId: string, kind: ContractKind, contractId: string, providerId: string): void;
   /** Rebind an active graph, restoring its previous selection on activation failure. */
   rebindProvider(consumerId: string, kind: ContractKind, contractId: string, providerId: string): Promise<void>;
+  /** Replace the temporary composition and restart only its affected graph. */
+  applyComposition(profile: KernelComposition, protectedIds?: ReadonlySet<string>): Promise<void>;
+  /** Host entrypoint health checks should wait for a registry transaction to settle. */
+  isMutating(): boolean;
   grant(pluginId: string, permission: string): void;
   revoke(pluginId: string, permission: string): void;
   stopAll(): Promise<void>;

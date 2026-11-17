@@ -89,3 +89,18 @@ definitions with their execution driver as owner, so guest cleanup runs while it
 interpreter is still available. A loaded definition that captures a specific driver
 activation must be regenerated when switching execution-driver implementations;
 ownership alone does not rebind private factory closures.
+
+## Temporary application composition
+
+`applyComposition(profile, protectedIds?)` changes explicit bindings and
+suspends registrations in one kernel transaction. A suspended registration
+retains its identity and grants and is ineligible for activation or resolution.
+The kernel preflights the projected graph and rejects changes that would stop a
+protected service. Removing a suspension restarts a plugin if it was active when
+suspended. Removing an override restores the underlying selection or implicit
+default. Hosts can limit implicit candidates through `implicitProvider`.
+
+A failed activation closes candidate scopes and restores the prior profile and
+active consumers. External data effects are outside this transaction.
+`isMutating()` and `PluginSnapshot.suspended` let observers distinguish a planned
+transition from an unavailable entrypoint.

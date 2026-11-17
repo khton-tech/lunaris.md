@@ -35,4 +35,15 @@ participants are not invoked after their SDK scopes close.
 
 Targeted tests prove awaited initial readiness, runtime stop before root closure,
 save-veto preservation, failed native release recovery and participant removal.
-Lime registration into this contract remains separate engine integration work.
+Lime registers through this contract and releases its profile before unloading
+the previous Vault's packages.
+
+## Preserving the Vault during composition changes
+
+`VaultPreservation.lock(vaultId)` runs BeforeVaultRelease with the active root in
+both `previous` and `next`. A veto settles the collected listeners immediately.
+On success, the lease prevents another Vault transition until the caller invokes
+`dispose()`, which settles the same listeners and releases editor locks. The
+lease keeps the current root attached. It does not invoke release participants.
+Lime can acquire a lease during settlement for the committed root while replaying
+a saved composition. This API requires `runtime.manage`.

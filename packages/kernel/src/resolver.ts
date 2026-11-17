@@ -16,13 +16,14 @@ export type ProviderIndex = Map<string, Set<string>>;
 
 export function candidates(records: ReadonlyMap<string, Registration>, requirement: RequiredContract, index?: ProviderIndex): string[] {
   const ids = index ? [...index.get(requirementKey(requirement)) ?? []] : [...records.keys()];
-  return ids.filter(id => records.get(id)!.definition.manifest.provides.some(provided =>
+  return ids.filter(id => records.get(id)?.definition.manifest.provides.some(provided =>
     provided.kind === requirement.kind && provided.id === requirement.id && versionSatisfies(provided.version, requirement.range)))
     .sort();
 }
 
 /** Resolve metadata before execution; optional cycle edges are omitted in stable global order. */
-export function resolve(root: string, records: ReadonlyMap<string, Registration>, selections: ReadonlyMap<string, string>, dependencies: DependencyIndex): Plan {
+export function resolve(root: string, records: ReadonlyMap<string, Registration>, selections: ReadonlyMap<string, string>, dependencies: DependencyIndex,
+  implicitProvider?: (consumerId: string, providerId: string) => boolean): Plan {
   if (!records.has(root)) throw new LunarisError("PLUGIN_NOT_FOUND", "Plugin is not registered.", { pluginId: root });
   const target = records.get(root)!;
   if ((!target.definition.manifest.requires.length && !target.ownerId) || (target.state === "active" && !target.pendingStops && target.activation && !target.activation.scope.closed)) {
@@ -36,7 +37,8 @@ export function resolve(root: string, records: ReadonlyMap<string, Registration>
   // This closure contains every possible outgoing edge, including optional and
   // ambiguous candidates. Edges outside it cannot affect its cycle decisions.
   for (const id of [...dependencies.related(root)].sort()) {
-    const record = records.get(id)!;
+    const record = records.get(id);
+    if (!record) continue;
     const dependencies = new Map<string, string | undefined>();
     edges.set(id, dependencies);
     if (record.ownerId) {
@@ -49,16 +51,16 @@ export function resolve(root: string, records: ReadonlyMap<string, Registration>
         dependencies.set(key, record.activation.bindings.get(key)?.provider.definition.manifest.id);
         continue;
       }
-      const available = candidates(records, requirement, index);
       const selected = selections.get(`${id}/${key}`);
+      const available = candidates(records, requirement, index).filter(provider => selected || !implicitProvider || implicitProvider(id, provider));
       if ((selected && !available.includes(selected)) || (!selected && available.length > 1)) {
         errors.set(id, new LunarisError("PROVIDER_AMBIGUOUS", `Select a matching provider for ${key}; candidates: ${available.join(", ")}.`, { ...context(record), contractId: requirement.id }));
         continue;
       }
       const provider = selected ?? available[0];
       if (!provider && !requirement.optional) {
-        const matching = index ? [...index.get(key) ?? []].map(id => records.get(id)!) : [...records.values()];
-        const versions = matching.flatMap(item => item.definition.manifest.provides.filter(p => p.kind === requirement.kind && p.id === requirement.id).map(p => p.version));
+        const matching = [...index.get(key) ?? []].map(id => records.get(id));
+        const versions = matching.flatMap(item => item?.definition.manifest.provides.filter(p => p.kind === requirement.kind && p.id === requirement.id).map(p => p.version) ?? []);
         errors.set(id, new LunarisError("PROVIDER_MISSING", `No provider matches ${key} ${requirement.range}; available: ${versions.sort().join(", ") || "none"}.`, { ...context(record), contractId: requirement.id }));
       }
       dependencies.set(key, requirement.optional ? undefined : provider);

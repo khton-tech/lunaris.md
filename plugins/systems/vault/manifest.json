@@ -8,6 +8,11 @@
   "provides": [
     {
       "kind": "api",
+      "id": "lunaris.vault-preservation",
+      "version": "1.0.0"
+    },
+    {
+      "kind": "api",
       "id": "lunaris.vault-lifecycle",
       "version": "1.1.0"
     },
