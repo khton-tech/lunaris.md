@@ -291,3 +291,29 @@ visual behavior is claimed. `npm run window:check` runs targeted contracts,
 driver/provider, composed caption and host tests. Desktop appearance, drag,
 double-click, edge resize/snap, minimize/restore, theme/focus behavior, startup and
 recovery transitions remain manual acceptance; do not automate the desktop.
+
+## Desktop performance baseline
+
+Use the same Windows machine, release build, and Vault fixture when comparing
+revisions. Repeat first launch, launch with a restored Vault, and offline launch
+with a saved server session. Record time from process launch to the first usable
+local view separately from the WebView navigation timeline.
+
+The first startup attempt records `lunaris:startup:*` User Timing marks in the
+WebView. They cover bootstrap, composition, registration, mounting, activation,
+preparation when present, and the running state. After a cold launch, this
+DevTools console command prints the elapsed times.
+
+```js
+console.table(performance.getEntriesByType('mark')
+  .filter(entry => entry.name.startsWith('lunaris:startup:'))
+  .map(({ name, startTime }) => ({ stage: name.split(':').at(-1), ms: Math.round(startTime) })));
+```
+
+`running` means the host finished startup. To measure actual input latency, use
+the DevTools Performance panel and type in a representative large Markdown file.
+Record the time from the key event to the next paint first with the app idle and
+then while an autosave, Explorer refresh or file copy is in progress. Repeat the
+same operation and compare interaction durations and long tasks. The startup
+marks use the WebView clock and do not capture process startup, OS scheduling or
+time waiting for the native filesystem lock.

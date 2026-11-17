@@ -4,6 +4,7 @@ import { mountSystemView } from "./view.js";
 import { bindDesktopLifecycle } from "./desktop.js";
 import { bindBrowserInput } from "@lunaris/application-host/browser-input";
 
+performance.mark("lunaris:startup:bootstrap");
 const releaseInput = bindBrowserInput(window);
 
 const root = document.getElementById("system-root")!;
@@ -21,6 +22,17 @@ const session = new HostSession({
     return module.composeApplication(target);
   },
 });
+const startupMilestones = new Set<string>();
+function markStartup(stage: string): void {
+  if (startupMilestones.has(stage)) return;
+  startupMilestones.add(stage);
+  performance.mark(`lunaris:startup:${stage}`);
+}
+const startupProfile = session.subscribe(({ phase, startup, preparation }) => {
+  if (startup.state === "loading") markStartup(startup.stage);
+  if (preparation?.state === "preparing") markStartup("preparation");
+  if (phase === "running") markStartup("running");
+});
 document.documentElement.lang = "en";
 mountSystemView(root, application, session, { startup: document.getElementById("startup-root")! });
 
@@ -35,4 +47,5 @@ void (async () => {
     unlisten = await bindDesktopLifecycle(session);
     await session.start();
   } catch { await session.reportFault("startup", "NATIVE_LIFECYCLE_UNAVAILABLE"); }
+  finally { startupProfile.dispose(); }
 })();
