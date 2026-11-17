@@ -575,6 +575,10 @@ test('compact desktop notifications top-align the icon and keep overflow in the 
       assert.equal(card.style.getPropertyValue('--vault-panel'), colors.panel);
       assert.equal(card.style.getPropertyValue('--vault-accent-foreground'), colors.accentForeground);
       assert.equal(card.style.getPropertyValue('--vault-selection'), colors.selection);
+      assert.equal(card.style.getPropertyValue('--vault-caption-background'), s.themes.current().properties.components.windowChrome.captionBackground);
+      assert.equal(getComputedStyle(heading).color, 'var(--vault-caption-text)');
+      assert.equal(getComputedStyle(heading).fontFamily, getComputedStyle(card).fontFamily);
+      assert.match(getComputedStyle(heading).fontFamily, /^Tahoma/);
       assert.equal(getComputedStyle(icon).borderRadius, '0px');
       assert.equal(getComputedStyle(card).borderLeftWidth, '3px');
     }

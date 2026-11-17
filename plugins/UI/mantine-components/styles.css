@@ -1171,6 +1171,7 @@
 }
 .lm-root .lm-notification-title {
   color: var(--vault-text);
+  font-family: inherit;
   font-size: calc(var(--notification-text-size) + 2px);
   font-weight: 750;
   line-height: 1.2;
@@ -1179,6 +1180,7 @@
 }
 .lm-root .lm-notification-text {
   color: var(--vault-secondary);
+  font-family: inherit;
   font-size: var(--notification-text-size);
   line-height: 1.25;
   overflow-wrap: anywhere;
@@ -1186,7 +1188,16 @@
 }
 
 .lm-root[data-window-chrome=true] .lm-notification {
+  background-color: var(--vault-content);
   border-left-color: var(--vault-accent-foreground);
+}
+.lm-root[data-window-chrome=true] .lm-notification-title {
+  background-image: var(--vault-caption-background);
+  color: var(--vault-caption-text);
+  padding: calc(var(--vault-space) * 0.5) var(--vault-space);
+}
+.lm-root[data-window-chrome=true] .lm-notification-text {
+  padding-inline: var(--vault-space);
 }
 .lm-root[data-window-chrome=true] .lm-notification-icon {
   background-color: var(--vault-selection);
