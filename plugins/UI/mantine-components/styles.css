@@ -1184,3 +1184,11 @@
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
+
+.lm-root[data-window-chrome=true] .lm-notification {
+  border-left-color: var(--vault-accent-foreground);
+}
+.lm-root[data-window-chrome=true] .lm-notification-icon {
+  background-color: var(--vault-selection);
+  border-radius: 0;
+}

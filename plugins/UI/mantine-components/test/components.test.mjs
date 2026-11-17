@@ -565,6 +565,19 @@ test('compact desktop notifications top-align the icon and keep overflow in the 
     assert.equal(document.activeElement, input);
     assert.equal(s.target.style.width, '384px');
     assert.equal(s.target.style.height, '64px');
+    s.kernel.register(baseThemeEngine);
+    await s.kernel.start(baseThemeEngine.manifest.id);
+    for (const id of ['windows-xp', 'windows-xp-dark']) {
+      s.themes.select(`lunaris.base-theme-engine.${id}`);
+      await settle();
+      const { colors } = s.themes.current().properties;
+      assert.equal(s.target.querySelector('.lm-notification'), card);
+      assert.equal(card.style.getPropertyValue('--vault-panel'), colors.panel);
+      assert.equal(card.style.getPropertyValue('--vault-accent-foreground'), colors.accentForeground);
+      assert.equal(card.style.getPropertyValue('--vault-selection'), colors.selection);
+      assert.equal(getComputedStyle(icon).borderRadius, '0px');
+      assert.equal(getComputedStyle(card).borderLeftWidth, '3px');
+    }
   } finally { await s.stop(); }
 });
 
