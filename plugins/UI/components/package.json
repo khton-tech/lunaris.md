@@ -12,7 +12,9 @@
   "dependencies": {
     "@lunaris/sdk": "0.1.0",
     "@lunaris/logging": "0.1.0",
-    "@lunaris/components": "0.1.0"
+    "@lunaris/components": "0.1.0",
+    "@lunaris/slots": "0.1.0",
+    "@lunaris/slot-dom": "0.1.0"
   },
   "scripts": {
     "build": "tsc -b"

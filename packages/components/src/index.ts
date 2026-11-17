@@ -43,6 +43,10 @@ export interface ViewDefinition {
 export interface ViewsApi {
   register(definition: ViewDefinition, owner: CancellationSignal): ComponentResult<null>;
 }
+export interface ViewSurfacesApi {
+  /** Mount a declarative view in a new owned slot beneath the product root. */
+  mount(viewId: string, slotId: string, props: ComponentProps, owner: CancellationSignal): ComponentResult<MountedComponent>;
+}
 
 /** A live rendering created by a component implementation. */
 export interface ComponentInstance {
@@ -109,4 +113,8 @@ export const ComponentsChanged = defineEvent<ComponentChange>({
 export const Views = defineApi<ViewsApi>({
   id: 'lunaris.views', version: '1.0.0', providePermission: 'ui.dom', consumePermission: 'ui.dom',
   validate: value => !!value && typeof value === 'object' && fn(value, 'register'),
+});
+export const ViewSurfaces = defineApi<ViewSurfacesApi>({
+  id: "lunaris.view-surfaces", version: "1.0.0", providePermission: "ui.dom", consumePermission: "ui.dom",
+  validate: value => !!value && typeof value === "object" && fn(value, "mount"),
 });

@@ -1,16 +1,25 @@
 import { definePlugin, LunarisError } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
-import { Components, ComponentsChanged, Views } from "@lunaris/components";
+import { Components, ComponentsChanged, Views, ViewSurfaces } from "@lunaris/components";
 import type { ComponentsApi, ComponentChange, ComponentDefinition, ComponentErrorCode, ComponentInstance, ComponentProps, ComponentResult, MountedComponent, ViewNode } from "@lunaris/components";
+import { Slots } from "@lunaris/slots";
+import { SlotDom } from "@lunaris/slot-dom";
 import { isComponentId, isElement, isLiveOwner, readDefinition, readInstance, readProps } from "./input.js";
 import manifest from "../manifest.json" with { type: "json" };
 
 interface Instance { readonly componentId: string; readonly release: () => void }
-interface Registration { readonly definition: ComponentDefinition; readonly instances: Set<Instance>; readonly detach: () => void }
+interface Registration {
+  readonly definition: ComponentDefinition;
+  readonly instances: Set<Instance>;
+  readonly owner: CancellationSignal;
+  readonly declarative: boolean;
+  readonly detach: () => void;
+}
 type Failure = Extract<ComponentResult<never>, { readonly ok: false }>;
 
 const done: ComponentResult<null> = Object.freeze({ ok: true, value: null });
+const standalone = Object.freeze({ mode: "standalone", sizing: "fill" });
 
 /** Dispose every instance; rethrow the first failure so kernel diagnostics see it. */
 function releaseAll(instances: Iterable<Instance>): void {
@@ -107,29 +116,31 @@ export default definePlugin({ manifest, activate(ctx) {
     return { ok: true, value: handle };
   }
 
+  function register(input: ComponentDefinition, owner: CancellationSignal, declarative: boolean): ComponentResult<null> {
+    const definition = readDefinition(input);
+    if (!definition || !isLiveOwner(owner)) {
+      return reject("INVALID_ARGUMENT", "A valid component definition and live owner signal are required.");
+    }
+    if (registrations.has(definition.id)) {
+      return reject("ALREADY_REGISTERED", "The component ID is already registered.", { componentId: definition.id });
+    }
+    const remove = () => {
+      const entry = registrations.get(definition.id);
+      if (entry?.definition !== definition) return;
+      registrations.delete(definition.id);
+      owner.removeEventListener("abort", remove);
+      try { releaseAll(entry.instances); } finally { notify("removed", definition.id, true); }
+    };
+    registrations.set(definition.id, { definition, instances: new Set(), owner, declarative, detach: () => owner.removeEventListener("abort", remove) });
+    owner.addEventListener("abort", remove, { once: true });
+    notify("registered", definition.id);
+    return done;
+  }
+
   const api: ComponentsApi = {
     has: id => registrations.has(id),
     list: () => Object.freeze([...registrations.keys()].sort()),
-    register(input, owner) {
-      const definition = readDefinition(input);
-      if (!definition || !isLiveOwner(owner)) {
-        return reject("INVALID_ARGUMENT", "A valid component definition and live owner signal are required.");
-      }
-      if (registrations.has(definition.id)) {
-        return reject("ALREADY_REGISTERED", "The component ID is already registered.", { componentId: definition.id });
-      }
-      const remove = () => {
-        const entry = registrations.get(definition.id);
-        if (entry?.definition !== definition) return;
-        registrations.delete(definition.id);
-        owner.removeEventListener("abort", remove);
-        try { releaseAll(entry.instances); } finally { notify("removed", definition.id, true); }
-      };
-      registrations.set(definition.id, { definition, instances: new Set(), detach: () => owner.removeEventListener("abort", remove) });
-      owner.addEventListener("abort", remove, { once: true });
-      notify("registered", definition.id);
-      return done;
-    },
+    register(input, owner) { return register(input, owner, false); },
     mount(id, target, props, owner) {
       if (!isComponentId(id)) return reject("INVALID_ARGUMENT", "A component ID is required.");
       const copied = readProps(props);
@@ -147,7 +158,7 @@ export default definePlugin({ manifest, activate(ctx) {
     const render = input && Object.getOwnPropertyDescriptor(input, 'render')?.value;
     if (!isComponentId(id) || id === 'lunaris.declarative-view' || typeof render !== 'function') return reject('INVALID_ARGUMENT', 'A view ID and render callback are required.');
     const renderer = render as (props: ComponentProps) => ViewNode;
-    return api.register({ id, mount(target, initial, signal) {
+    return register({ id, mount(target, initial, signal) {
       let props = initial; let inner: MountedComponent | undefined; let closed = false;
       const actions = (tree: ViewNode, depth = 0): ViewNode => {
         if (depth > 32) throw new Error('Declarative view nesting limit.');
@@ -177,7 +188,42 @@ export default definePlugin({ manifest, activate(ctx) {
       views.add(refresh);
       try { refresh(); } catch (error) { views.delete(refresh); inner?.dispose(); throw error; }
       return { update(next) { props = next; refresh(); }, dispose() { if (closed) return; closed = true; views.delete(refresh); inner?.dispose(); inner = undefined; } };
-    } }, owner);
+    } }, owner, true);
+  } });
+  const slots = ctx.optional(Slots);
+  const targets = ctx.optional(SlotDom);
+  ctx.provide(ViewSurfaces, { mount(viewId, slotId, props, owner) {
+    const copied = readProps(props);
+    if (!isComponentId(viewId) || !isComponentId(slotId) || !copied || !isLiveOwner(owner)) {
+      return reject("INVALID_ARGUMENT", "View and slot IDs, plain props and a live owner are required.");
+    }
+    const view = registrations.get(viewId);
+    if (!view?.declarative || !isLiveOwner(view.owner)) return reject("NOT_FOUND", "The declarative view is not registered.", { componentId: viewId });
+    if (!slots || !targets || !api.has("lunaris.declarative-view")) return reject("NOT_FOUND", "The declarative surface renderer is unavailable.");
+    const surface = ctx.scope.child();
+    const owners = new Set([owner, view.owner]);
+    const dispose = () => { void surface.dispose().catch(() => {}); };
+    surface.own({ dispose() { for (const signal of owners) signal.removeEventListener("abort", dispose); } });
+    for (const signal of owners) signal.addEventListener("abort", dispose, { once: true });
+    let opened = false;
+    try {
+      const allocated = slots.create({ id: slotId, parent: "root", grow: 1 }, surface.signal);
+      if (!allocated.ok) {
+        if (allocated.error.code === "ALREADY_EXISTS") return reject("ALREADY_REGISTERED", allocated.error.message, { slotId });
+        return reject("RENDER_FAILED", allocated.error.message, { slotId });
+      }
+      const target = targets.get(slotId);
+      if (!target) return reject("RENDER_FAILED", "The new surface has no rendering target.", { slotId });
+      const mounted = api.mount(viewId, target, { ...copied, presentation: standalone }, surface.signal);
+      if (!mounted.ok) return mounted;
+      opened = true;
+      logger.info(ctx.pluginId, "Declarative surface mounted", { data: { slotId, componentId: viewId } });
+      return { ok: true, value: Object.freeze({ componentId: viewId, dispose, update(next: ComponentProps) {
+        const copied = readProps(next);
+        if (!copied) return reject("INVALID_ARGUMENT", "Component props must be a plain object.", { componentId: viewId });
+        return mounted.value.update({ ...copied, presentation: standalone });
+      } }) };
+    } finally { if (!opened) dispose(); }
   } });
   logger.info(ctx.pluginId, "Component provider ready", { code: "COMPONENTS_READY" });
 } });

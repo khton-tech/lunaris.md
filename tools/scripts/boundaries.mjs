@@ -76,7 +76,7 @@ export const dependencies = {
   'mantine-components': ['settings', 'sdk', 'logging', 'components', 'themes', 'context-menu', 'workspace'],
   'components-kit': ['sdk', 'logging', 'components', 'themes'],
   components: ['sdk'],
-  'component-provider': ['sdk', 'logging', 'components'],
+  'component-provider': ['sdk', 'logging', 'components', 'slots', 'slot-dom'],
   slots: ['sdk'],
   'slot-dom': ['sdk'],
   'slot-provider': ['sdk', 'logging', 'slots'],

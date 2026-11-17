@@ -97,3 +97,39 @@ pointer/key callbacks, themed opened menus, action failure containment, light/da
 surface inheritance and disable cleanup. Separate tests cover input identity,
 invalid trees and renderer replacement. Native graphics geometry and narrow/short
 visual acceptance remain pending; this is not support for arbitrary host DOM access.
+
+## Standalone application surfaces
+
+Require `api:lunaris.view-surfaces@^1.0.0` and `ui.dom` for
+`ViewSurfaces` from `@lunaris/components`. After registering a declaration with
+`Views.register`, mount it in a new application slot.
+
+```ts
+const surface = ctx.use(ViewSurfaces).mount(viewId, `${ctx.pluginId}.screen`,
+  { title: localization.text(ctx.pluginId, "title") }, ctx.signal);
+if (!surface.ok) {
+  logger.error(ctx.pluginId, "Cannot open the application surface", { error: surface.error });
+}
+```
+
+Each successful mount creates a growing child of the product root and returns
+the standard `MountedComponent` handle. Use `update(props)` to replace the
+view's props and `dispose()` to remove the view and its slot. The mount also
+ends when either the mount owner or the registered view's owner aborts.
+`update` replaces only custom props and the container always supplies
+standalone/fill presentation. Renderers receive no slot or DOM references.
+
+The existing slot driver owns geometry and slot order. Mantine owns the
+new surface background and controls and applies the current theme. The view
+owns its content and localization. The mount accepts declarative view IDs and
+unused dotted slot IDs. Native roles or unavailable slot adapters return
+`NOT_FOUND`. Existing IDs return `ALREADY_REGISTERED`. A failed initial
+render releases the new allocation and reports `RENDER_FAILED`. Native host
+and recovery surfaces remain outside the product slot tree.
+
+An independent package can supply the working interface for a Vault using
+this API. The owner can disable the standard Workspace feature in its
+composition profile and restore it by clearing that choice. The composed
+QuickJS regression covers product root ownership, failed-mount cleanup,
+existing-slot and native-role rejection, action-driven updates, profile
+switching and removal on package disable.

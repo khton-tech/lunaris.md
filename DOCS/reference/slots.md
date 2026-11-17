@@ -72,6 +72,10 @@ product UI copy; future presenters own their localization catalogs.
 
 ## Browser rendering
 
+Portable packages can use [ViewSurfaces](views.md#standalone-application-surfaces)
+to mount a declarative view in a newly allocated product slot. The API binds
+the slot and view lifetimes and returns a portable component handle.
+
 UI renderers additionally require `api:lunaris.slot-dom@^1.0.0`, declare and obtain
 `ui.dom`, and import the shared token from `@lunaris/slot-dom`:
 

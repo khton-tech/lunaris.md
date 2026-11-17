@@ -23,6 +23,12 @@
     },
     {
       "path": "../../../packages/components"
+    },
+    {
+      "path": "../../../packages/slots"
+    },
+    {
+      "path": "../../../packages/slot-dom"
     }
   ]
 }

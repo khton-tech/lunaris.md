@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { build } from 'esbuild';
-import { Views } from '@lunaris/components';
+import { Views, ViewSurfaces } from '@lunaris/components';
 import { Logger } from '@lunaris/logging';
 import { Workspace, WorkspaceLayout } from '@lunaris/workspace';
 import execution from '@lunaris/quickjs-execution';
@@ -115,6 +115,77 @@ test('an owner-selected QuickJS package creates and rearranges Workspace regions
     assert.ok(surface.querySelector('main article'));
     assert.deepEqual(regions(), []);
     assert.equal(toolsButton.isConnected, false);
+  } finally {
+    await workspace.stop();
+  }
+});
+
+test('a QuickJS view owns a fresh application surface after the owner disables Workspace', async () => {
+  const manifest = {
+    manifestVersion: 1, id: 'test.independent-workspace', version: '1.0.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './plugin.js',
+    provides: [],
+    requires: [Views, ViewSurfaces, Logger].map(token => ({ id: token.id, kind: 'api', range: '^' + token.version })),
+    permissions: ['ui.dom'], optionalPermissions: [],
+  };
+  const contents = `
+    import { definePlugin } from '@lunaris/sdk';
+    import { Views, ViewSurfaces } from '@lunaris/components';
+    import { Logger } from '@lunaris/logging';
+    export default definePlugin({ manifest: ${JSON.stringify(manifest)}, activate(ctx) {
+      const logger = ctx.use(Logger);
+      const views = ctx.use(Views);
+      const surfaces = ctx.use(ViewSurfaces);
+      const id = ctx.pluginId + '.view';
+      let mount;
+      const registered = views.register({ id, render(props) {
+        return { kind: 'button', label: 'Count: ' + props.count, onPress() {
+          const next = mount.update({ count: props.count + 1 });
+          if (!next.ok) throw new Error(next.error.message);
+        } };
+      } }, ctx.signal);
+      if (!registered.ok) throw new Error(registered.error.message);
+      const invalid = views.register({ id: ctx.pluginId + '.broken', render() { throw new Error('View error'); } }, ctx.signal);
+      if (!invalid.ok) throw new Error(invalid.error.message);
+      const failure = surfaces.mount(ctx.pluginId + '.broken', ctx.pluginId + '.failed', {}, ctx.signal);
+      if (failure.ok || failure.error.code !== 'RENDER_FAILED') throw new Error('Failed surface accepted');
+      const duplicate = surfaces.mount(id, 'lunaris.workspace.screen', { count: 0 }, ctx.signal);
+      if (duplicate.ok || duplicate.error.code !== 'ALREADY_REGISTERED') throw new Error('Existing slot takeover accepted');
+      const native = surfaces.mount('lunaris.workspace-empty', ctx.pluginId + '.native', {}, ctx.signal);
+      if (native.ok || native.error.code !== 'NOT_FOUND') throw new Error('Native role accepted');
+      const opened = surfaces.mount(id, ctx.pluginId + '.screen', { count: 0 }, ctx.signal);
+      if (!opened.ok) throw new Error(opened.error.message);
+      mount = opened.value;
+      logger.info(ctx.pluginId, 'Independent workspace ready');
+    } });
+  `;
+  const result = await build({ stdin: { contents, loader: 'js', resolveDir: process.cwd() }, bundle: true, platform: 'neutral', format: 'esm', write: false });
+  const workspace = await setupWorkspace({ pluginRuntime: true, plugins: [execution] });
+  const { surface, tools } = workspace;
+  try {
+    await workspace.open();
+    const env = { vaultId: workspace.service.current().id, generation: 1 };
+    assert.equal((await tools.runtime.open(env)).ok, true);
+    assert.ok(surface.querySelector('.lm-workspace-layout'));
+    const installed = await tools.runtime.register(env, manifest, { entry: 'plugin.js', modules: { 'plugin.js': result.outputFiles[0].text } }, true);
+    assert.equal(installed.ok, true, JSON.stringify(workspace.logs));
+    const guest = () => surface.querySelector('[data-lunaris-slot="test.independent-workspace.screen"]');
+    assert.equal(surface.querySelector('[data-lunaris-slot="test.independent-workspace.failed"]'), null);
+    assert.equal(guest().querySelector('.lm-root').dataset.presentation, 'standalone');
+    const revision = tools.composition.snapshot(env).value.revision;
+    const applied = await tools.composition.apply(env, { bindings: [], disabledBuiltins: ['lunaris.workspace'] }, revision);
+    assert.equal(applied.ok, true, JSON.stringify(applied));
+    await flush();
+    assert.equal(surface.querySelector('.lm-workspace-layout'), null);
+    assert.equal(guest().querySelector('button').textContent, 'Count: 0');
+    guest().querySelector('button').click();
+    await flush();
+    assert.equal(guest().querySelector('button').textContent, 'Count: 1');
+    const restored = await tools.composition.apply(env, { bindings: [], disabledBuiltins: [] }, tools.composition.snapshot(env).value.revision);
+    assert.equal(restored.ok, true, JSON.stringify(restored));
+    assert.equal((await tools.runtime.disable(env, manifest.id)).ok, true);
+    await flush();
+    assert.equal(guest(), null);
+    assert.ok(surface.querySelector('.lm-workspace-layout'));
   } finally {
     await workspace.stop();
   }

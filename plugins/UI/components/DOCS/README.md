@@ -25,3 +25,7 @@ No components, styles or theme logic are included; those belong to component set
 such as the initial [LunarisComponentsKit](../../components-kit/DOCS/README.md).
 See [the full contract and lifecycle rules](../../../../DOCS/reference/components.md).
 Run `npm run components:check` from the repository root.
+`ViewSurfaces` mounts registered declarative views in new product-root slots
+through optional Slots and SlotDom bindings. The provider owns allocation and
+teardown, while Mantine owns standalone rendering. See
+[standalone application surfaces](../../../../DOCS/reference/views.md#standalone-application-surfaces).
