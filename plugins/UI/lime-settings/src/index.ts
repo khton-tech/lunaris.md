@@ -114,7 +114,7 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-
       onSelectProvider: (id: string, kind: 'api' | 'event' | 'hook', contractId: string, providerId: string, revision: number) => {
         const builtin = builtinRows.find(item => item.id === id);
         if (builtin) {
-          if (!profile || !builtin.mutable || state.safeMode) return;
+          if (!profile || !builtin.mutable || !builtin.enabled || state.safeMode) return;
           const bindings = profile.bindings.filter(binding => binding.consumerId !== id || binding.kind !== kind || binding.contractId !== contractId);
           if (providerId) bindings.push({ consumerId: id, kind, contractId, providerId });
           stage({ ...profile, bindings });
@@ -132,7 +132,8 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-
           if (state.safeMode || !builtinRows.some(item => item.id === id && item.mutable)) return;
           const disabledBuiltins = profile.disabledBuiltins.filter(item => item !== id);
           if (!enabled) disabledBuiltins.push(id);
-          stage({ ...profile, disabledBuiltins });
+          const bindings = enabled ? profile.bindings : profile.bindings.filter(binding => binding.consumerId !== id);
+          stage({ bindings, disabledBuiltins });
         },
         onApply: () => {
           const selected = draft; if (!selected) return;

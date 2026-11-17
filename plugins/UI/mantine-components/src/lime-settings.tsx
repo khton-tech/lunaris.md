@@ -117,8 +117,9 @@ function ProviderSelection({ dependency, plan, props, row }: { dependency: Depen
   }));
   if (builtin?.mutable && (options.length > 1 || current !== hostDefault)) options.unshift({ value: hostDefault, label: props.labels.useDefaultProvider! });
   const [onlyOption] = options;
-  const needsEnable = (builtin || row.enabled) && candidate?.state === 'disabled';
-  const locked = props.busy || props.safeMode || builtin?.mutable === false;
+  const providerBuiltin = builtin && props.composition?.rows.find(item => item.id === selected);
+  const needsEnable = providerBuiltin ? !providerBuiltin.enabled : (!!builtin || row.enabled) && candidate?.state === 'disabled';
+  const locked = props.busy || props.safeMode || (!!builtin && (!builtin.mutable || !builtin.enabled));
   const selectable = selected === hostDefault || !!candidate;
   return <Box component="li" className="lm-lime-dependency">
     <Text size="sm" fw={600}>

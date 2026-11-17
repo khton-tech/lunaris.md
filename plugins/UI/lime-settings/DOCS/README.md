@@ -50,7 +50,8 @@ inside the same Settings section. Each eligible row has a switch and uses the
 same Details dialog and themed dependency picker as an installed package. The
 picker can stage an explicit provider or clear that override with Host default.
 Protected rows display read-only dependency details. Changes to built-in switches
-and providers are staged together. Apply composition submits the whole profile
+and providers are staged together. Disabling a built-in clears its own provider
+overrides from the draft. Apply composition submits the whole profile
 with its original revision. Discard changes clears the draft. Restore defaults
 stages an empty profile, including in safe mode. Vault changes discard the draft.
 
