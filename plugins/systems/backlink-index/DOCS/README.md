@@ -22,13 +22,20 @@ path ordering as a final tie-breaker. External URLs are never backlinks.
 ## Lifecycle and recovery
 
 Recursive enumeration ignores dot-prefixed entries and does not follow symlinks.
-Unchanged files reuse parsed metadata. Dirty paths force re-reading. Loaded live
-buffers override disk snapshots. Queries retain per-source results across text
+After a complete scan, a modification to a known note checks its metadata and
+re-reads the note without listing directories. Structural notifications reconcile
+the named entries through their parents and scan affected directory trees.
+Parents shared by changes are listed once per batch. Incomplete listings,
+ambiguous notifications, and explicit rescans fall back to full enumeration.
+Unchanged files reuse parsed metadata. Explicit refresh and rescan notifications
+force reads even when size and modification time match. Loaded live buffers
+override disk snapshots. Queries retain per-source results across text
 invalidations, with a 32-query bound. Editing a note body reuses unchanged source
 mentions. Alias changes recompute mentions, and path membership changes rebuild
 the shared exact/case-insensitive/suffix resolver and query results. Identical
-scans retain snapshots and publish no invalidation. A provider-owned recursive watch follows scope cancellation;
-without a watch, reconciliation runs every five seconds. Refresh forces reads.
+scans retain snapshots and publish no invalidation. A provider-owned recursive
+watch follows scope cancellation. Without a watch, reconciliation runs every
+five seconds.
 Vault generations discard late results. Failures retain available results and
 report degraded state, rather than falsely claiming the Vault has no backlinks.
 
@@ -40,8 +47,9 @@ syntax use an encoded vault-root Markdown URL instead.
 ## Verification
 
 Run `npm run backlinks:check`. Tests cover syntax, ambiguity, aliases, Unicode,
-stale edits, live buffers, exclusions, deletion, failure recovery, Vault races and
-watch cleanup. Integration with TextEditor and the application graph is complete;
+stale edits, live buffers, exclusions, targeted listing and read counts,
+structural changes, fallback rescans, failure recovery, Vault races and watch
+cleanup. Integration with TextEditor and the application graph is complete;
 native visual acceptance belongs to the UI plugin checklist.
 
 YAML property scalar values also contribute explicit wikilinks with original source offsets. YAML keys/comments and plain metadata values are excluded from unlinked mentions. Dotted note names retain their full stem during resolution.

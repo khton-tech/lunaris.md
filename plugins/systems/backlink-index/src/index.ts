@@ -8,25 +8,39 @@ import { Filesystem, FilesystemObservation, FileChanged, failure, validPath } fr
 import { Vault, VaultChanged } from "@lunaris/vault";
 import { creationPath, createLinkResolver, parseNote, title, mention, unlinked } from "./markdown.js";
 import type { ParsedNote } from "./markdown.js";
-import type { FileTarget } from "@lunaris/filesystem";
+import type { FileInfo, FileTarget } from "@lunaris/filesystem";
 import manifest from "../manifest.json" with { type: "json" };
 
 interface Entry { note: ParsedNote; modifiedAt: number | null; size: number }
 interface QuerySource { readonly entry: Entry; readonly linked: MentionGroup | undefined; readonly plain: MentionGroup | undefined }
 interface Query { readonly names: readonly string[]; sources: Map<string, QuerySource>; snapshot?: BacklinksSnapshot | undefined }
+const parentPath = (path: string) => path.slice(0, Math.max(0, path.lastIndexOf("/")));
+const within = (path: string, root: string) => !root || path === root || path.startsWith(root + "/");
+function hasAncestor(path: string, paths: { has(path: string): boolean }): boolean {
+  let parent = parentPath(path);
+  while (parent) {
+    if (paths.has(parent)) return true;
+    parent = parentPath(parent);
+  }
+  return false;
+}
+const hidden = (path: string) => path.split("/").some(part => part.startsWith("."));
+const markdown = (file: FileInfo) => file.kind === "file" && /\.md$/i.test(file.path);
 export default definePlugin({ manifest, activate(ctx) {
   const logger = scopeLogger(ctx.use(Logger), ctx.signal); const fs = ctx.use(Filesystem);
   const observation = ctx.use(FilesystemObservation); let observer = ctx.scope.child();
   const vaults = ctx.use(Vault); const documents = ctx.use(DocumentContent);
   let vaultId = vaults.current()?.id ?? null; let entries = new Map<string, Entry>();
-  let completeNotePaths: readonly string[] | undefined;
+  let completeNotePaths: Set<string> | undefined; let directories = new Set<string>();
   let resolveLink = createLinkResolver([]);
   let resolveListedLink = createLinkResolver([]);
   let state: BacklinksSnapshot["state"] = "loading"; let failures = 0; let generation = 0;
   const queries = new Map<string, Query>();
   let pending: Promise<void> | undefined; let again = false; let timer: ReturnType<typeof setTimeout> | undefined;
   let observationRevision = 0;
-  let watch: { vaultId: string; id: string } | undefined; const dirty = new Set<string>();
+  let watch: { vaultId: string; id: string } | undefined;
+  const dirty = new Map<string, "modified" | "structural">();
+  let fullScan: "metadata" | "force" | undefined = "metadata";
   const alive = (id: string | null, epoch: number) => !ctx.signal.aborted && vaultId === id && generation === epoch;
   function emit(): void {
     if (ctx.signal.aborted) return;
@@ -47,52 +61,127 @@ export default definePlugin({ manifest, activate(ctx) {
     if (changed) invalidate();
     return changed;
   }
+  function requestFullScan(force = false): void {
+    if (force || !fullScan) fullScan = force ? "force" : "metadata";
+  }
   async function scan(): Promise<void> {
-    const id = vaultId; const epoch = generation; if (!id || ctx.signal.aborted) return;
-    const next = new Map<string, Entry>(); let failed = 0; const invalidated = [...dirty]; dirty.clear();
-    const notePaths: string[] = [];
+    if (!vaultId || ctx.signal.aborted) return;
+    const id = vaultId; const epoch = generation;
+    const changes = new Map(dirty); dirty.clear();
+    const requested = fullScan; fullScan = undefined;
+    if (!requested && !changes.size) return;
+    const forceRead = requested === "force" || state === "degraded";
+    let next = new Map<string, Entry>(); const notePaths = new Set<string>(); const nextDirectories = new Set<string>();
+    let failed = 0;
     let listingComplete = true;
+    async function updateNote(file: FileInfo, force: boolean): Promise<void> {
+      notePaths.add(file.path);
+      const old = entries.get(file.path);
+      if (old && !force && file.modifiedAt !== null && file.modifiedAt === old.modifiedAt && file.size === old.size) {
+        next.set(file.path, old); return;
+      }
+      const read = await documents.read({ vaultId: id, path: file.path });
+      if (!alive(id, epoch)) return;
+      if (read.ok) {
+        const note = old?.note.text === read.value.text ? old.note : parseNote(read.value.text);
+        next.set(file.path, old && old.note === note && old.modifiedAt === file.modifiedAt && old.size === file.size ? old : { note, modifiedAt: file.modifiedAt, size: file.size });
+      } else {
+        failed++; if (old) next.set(file.path, old);
+        logger.warn(ctx.pluginId, "Cannot read backlink source", { error: read.error });
+      }
+    }
     async function walk(path: string): Promise<void> {
       if (!alive(id, epoch)) return;
-      const listed = await fs.list({ vaultId: id!, path });
+      const listed = await fs.list({ vaultId: id, path });
       if (!alive(id, epoch)) return;
       if (!listed.ok) {
         listingComplete = false;
         failed++; logger.warn(ctx.pluginId, "Cannot list backlink sources", { error: listed.error });
-        for (const [key, entry] of entries) if (!path || key.startsWith(path + "/")) next.set(key, entry);
+        for (const [key, entry] of entries) if (within(key, path)) next.set(key, entry);
         return;
       }
+      nextDirectories.add(path);
       for (const file of listed.value) {
         if (!alive(id, epoch)) return;
-        if (file.path.split("/").some(part => part.startsWith("."))) continue;
+        if (hidden(file.path)) continue;
         if (file.kind === "directory") await walk(file.path);
-        else if (file.kind === "file" && /\.md$/i.test(file.path)) {
-          notePaths.push(file.path);
-          const old = entries.get(file.path);
-          if (old && file.modifiedAt !== null && file.modifiedAt === old.modifiedAt && file.size === old.size && !invalidated.some(p => !p || file.path === p || file.path.startsWith(p + "/"))) next.set(file.path, old);
-          else {
-            const read = await documents.read({ vaultId: id!, path: file.path });
-            if (!alive(id, epoch)) return;
-            if (read.ok) {
-              const note = old?.note.text === read.value.text ? old.note : parseNote(read.value.text);
-              next.set(file.path, old && old.note === note && old.modifiedAt === file.modifiedAt && old.size === file.size ? old : { note, modifiedAt: file.modifiedAt, size: file.size });
-            }
-            else { failed++; if (old) next.set(file.path, old); logger.warn(ctx.pluginId, "Cannot read backlink source", { error: read.error }); }
-          }
-        }
+        else if (markdown(file)) await updateNote(file, forceRead || changes.has(file.path) || hasAncestor(file.path, changes));
       }
     }
+    function removePath(path: string): void {
+      next.delete(path); notePaths.delete(path);
+      if (!nextDirectories.has(path)) return;
+      for (const directory of nextDirectories) if (within(directory, path)) nextDirectories.delete(directory);
+      for (const note of notePaths) if (within(note, path)) { next.delete(note); notePaths.delete(note); }
+    }
+    async function reconcile(knownNotes: ReadonlySet<string>): Promise<"content" | "structure" | undefined> {
+      const structural = new Set<string>();
+      const modified: string[] = [];
+      for (const [path, kind] of changes) {
+        if (kind === "modified" && knownNotes.has(path)) { modified.push(path); continue; }
+        let child = path;
+        // If a parent was created in the same burst, start at the first unknown child.
+        while (!directories.has(parentPath(child))) child = parentPath(child);
+        structural.add(child);
+      }
+      for (const path of modified) {
+        if (structural.has(path) || hasAncestor(path, structural)) continue;
+        const stat = await fs.stat({ vaultId: id, path });
+        if (!alive(id, epoch)) return;
+        if (stat.ok && markdown(stat.value) && stat.value.path === path) await updateNote(stat.value, true);
+        else structural.add(path);
+        if (!alive(id, epoch)) return;
+      }
+      if (!structural.size) return "content";
+
+      // Clone membership only for structural changes. Content-only batches stage
+      // just their changed notes and leave the catalog and resolvers in place.
+      const updated = next;
+      next = new Map(entries);
+      for (const [path, entry] of updated) next.set(path, entry);
+      for (const path of knownNotes) notePaths.add(path);
+      for (const path of directories) nextDirectories.add(path);
+      const listings = new Map<string, readonly FileInfo[]>();
+      for (const path of structural) {
+        if (hasAncestor(path, structural)) continue;
+        const parent = parentPath(path);
+        let children = listings.get(parent);
+        if (!children) {
+          const listed = await fs.list({ vaultId: id, path: parent });
+          if (!alive(id, epoch) || !listed.ok) return;
+          children = listed.value; listings.set(parent, children);
+        }
+        const file = children.find(child => child.path === path);
+        removePath(path);
+        if (file?.kind === "directory") await walk(path);
+        else if (file && markdown(file)) await updateNote(file, true);
+        if (!alive(id, epoch) || !listingComplete) return;
+      }
+      return "structure";
+    }
     try {
-      await walk(""); if (!alive(id, epoch)) return;
-      const listed = new Set(notePaths);
-      const catalogChanged = listingComplete !== (completeNotePaths !== undefined) || listingComplete &&
-        (completeNotePaths?.length !== listed.size || completeNotePaths.some(path => !listed.has(path)));
-      const pathsChanged = next.size !== entries.size || [...next.keys()].some(path => !entries.has(path));
-      let changed = pathsChanged || failed !== failures || state !== (failed ? "degraded" : "ready") || [...next].some(([path, entry]) => entries.get(path) !== entry);
-      completeNotePaths = listingComplete ? notePaths : undefined;
-      if (catalogChanged) resolveListedLink = createLinkResolver(completeNotePaths ?? []);
-      if (pathsChanged) { resolveLink = createLinkResolver([...next.keys()]); queries.clear(); }
-      entries = next; changed = buffers() || changed; failures = failed; state = failed ? "degraded" : "ready";
+      const partial = !requested && state === "ready" && completeNotePaths && directories.has("") && await reconcile(completeNotePaths);
+      if (!alive(id, epoch)) return;
+      if (!partial) {
+        next.clear(); notePaths.clear(); nextDirectories.clear(); failed = 0; listingComplete = true;
+        await walk(""); if (!alive(id, epoch)) return;
+      }
+      let changed = failed !== failures || state !== (failed ? "degraded" : "ready");
+      let catalogChanged = false;
+      if (partial === "content") {
+        for (const [path, entry] of next) if (entry !== entries.get(path)) { entries.set(path, entry); changed = true; }
+      } else {
+        catalogChanged = listingComplete !== (completeNotePaths !== undefined) || listingComplete &&
+          (completeNotePaths?.size !== notePaths.size || [...completeNotePaths].some(path => !notePaths.has(path)));
+        const pathsChanged = next.size !== entries.size || [...next.keys()].some(path => !entries.has(path));
+        changed ||= pathsChanged || [...next].some(([path, entry]) => entries.get(path) !== entry);
+        completeNotePaths = listingComplete ? notePaths : undefined;
+        directories = nextDirectories;
+        if (catalogChanged) resolveListedLink = createLinkResolver([...(completeNotePaths ?? [])]);
+        if (pathsChanged) { resolveLink = createLinkResolver([...next.keys()]); queries.clear(); }
+        entries = next;
+      }
+      changed = buffers() || changed; failures = failed; state = failed ? "degraded" : "ready";
       if (changed) { invalidate(); emit(); }
       if (catalogChanged) emitPaths();
       logger.debug(ctx.pluginId, "Backlink index refreshed", { data: { files: entries.size, failures } });
@@ -164,7 +253,7 @@ export default definePlugin({ manifest, activate(ctx) {
       if (source.vaultId !== vaultId) return { ok: false, error: { code: "VAULT_CLOSED", message: "The source Vault is no longer active." } };
       const cancelled = () => failure("CANCELLED", "Link navigation cancelled.");
       let path = resolveLink(link, source.path);
-      if (!path) { await refresh(); path = resolveLink(link, source.path); }
+      if (!path) { requestFullScan(); await refresh(); path = resolveLink(link, source.path); }
       if (!alive(source.vaultId, epoch)) return cancelled();
       let created = false;
       if (!path && options && link.wiki) {
@@ -175,7 +264,7 @@ export default definePlugin({ manifest, activate(ctx) {
         if (!current.ok) return current;
         if (current.value.text !== options.createFromSource) return failure("CONFLICT", "The source changed before the note could be created.");
 
-        const parent = path.slice(0, Math.max(0, path.lastIndexOf("/")));
+        const parent = parentPath(path);
         if (parent) {
           const folder = await fs.createDirectory({ vaultId: source.vaultId, path: parent }, true);
           if (!alive(source.vaultId, epoch)) return cancelled();
@@ -186,7 +275,7 @@ export default definePlugin({ manifest, activate(ctx) {
         if (!written.ok && written.error.code !== "ALREADY_EXISTS") return written;
         created = written.ok;
         if (created) logger.info(ctx.pluginId, "Note created from a wikilink");
-        dirty.add(path);
+        dirty.set(path, "structural");
         await refresh();
         if (!alive(source.vaultId, epoch)) return cancelled();
       }
@@ -199,7 +288,7 @@ export default definePlugin({ manifest, activate(ctx) {
       return { ok: true, value: { target, text: read.value.text, ...range } };
     },
   });
-  ctx.provide(Backlinks, { query, async refresh() { dirty.add(""); await refresh(); }, async link(target, source, occurrence, expectedText) {
+  ctx.provide(Backlinks, { query, async refresh() { requestFullScan(true); await refresh(); }, async link(target, source, occurrence, expectedText) {
     const fresh = query(target).unlinked.find(group => group.source.path === source.path && group.source.vaultId === source.vaultId);
     if (!fresh || fresh.text !== expectedText || !fresh.mentions.some(item => item.from === occurrence.from && item.to === occurrence.to))
       return { ok: false, error: { code: "CONFLICT", message: "The mention changed. Refresh the results." } };
@@ -226,15 +315,26 @@ export default definePlugin({ manifest, activate(ctx) {
     if (result.ok) watch = { vaultId: id, id: result.value };
     else logger.warn(ctx.pluginId, "Filesystem watch unavailable; backlink refresh uses periodic reconciliation", { error: result.error });
   }
-  ctx.events.on(FileChanged, change => { if (change.vaultId === vaultId) { for (const path of change.paths) dirty.add(path); if (change.kind === "rescan") dirty.add(""); schedule(); } });
+  ctx.events.on(FileChanged, change => {
+    if (change.vaultId !== vaultId) return;
+    if (change.kind === "rescan" || !change.paths.length || change.paths.includes("") || (change.kind === "renamed" && change.paths.length !== 2)) {
+      requestFullScan(true); schedule(); return;
+    }
+    for (const path of change.paths) {
+      if (hidden(path) || dirty.get(path) === "structural") continue;
+      dirty.set(path, change.kind === "modified" ? "modified" : "structural");
+    }
+    if (dirty.size) schedule();
+  });
   ctx.events.on(DocumentContentChanged, change => { if (change.target.vaultId === vaultId) { buffers(); emit(); } });
   ctx.events.on(VaultChanged, () => {
     completeNotePaths = undefined;
     resolveLink = createLinkResolver([]); resolveListedLink = createLinkResolver([]);
-    generation++; vaultId = vaults.current()?.id ?? null; entries.clear(); queries.clear(); dirty.clear(); failures = 0; state = vaultId ? "loading" : "ready";
+    generation++; vaultId = vaults.current()?.id ?? null; entries.clear(); directories.clear(); queries.clear(); dirty.clear(); fullScan = "metadata";
+    failures = 0; state = vaultId ? "loading" : "ready";
     emit(); emitPaths(); schedule(); void observe().catch(error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot observe backlink sources", { error }); });
   });
-  const poll = setInterval(() => { if (!watch) schedule(); }, 5000);
+  const poll = setInterval(() => { if (!watch) { requestFullScan(); schedule(); } }, 5000);
   ctx.scope.own({ dispose() { generation++; if (timer !== undefined) clearTimeout(timer); clearInterval(poll); entries.clear(); queries.clear(); } });
   void observe().catch(error => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot observe backlink sources", { error }); });
   void refresh(); logger.info(ctx.pluginId, "Backlink index ready");
