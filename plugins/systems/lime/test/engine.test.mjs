@@ -6,12 +6,13 @@ import { Logger } from '@lunaris/logging';
 import { Filesystem, filesystemMethods } from '@lunaris/filesystem';
 import { Config, ConfigSnapshots } from '@lunaris/config';
 import { Vault, VaultLifecycle } from '@lunaris/vault';
-import { Lime, LimeRuntime, LimePackagePicker, LimeBootPolicy } from '@lunaris/lime';
+import { Lime, LimeRuntime, LimePackagePicker, LimeBootPolicy, LimeCompositionRuntime } from '@lunaris/lime';
 import { packLup } from '@lunaris/lup';
 import { createLime } from '@lunaris/lime-manager';
 
 const ok = value => ({ ok: true, value });
 const failure = code => ({ ok: false, error: { code, message: code } });
+const defaultProfile = { bindings: [], disabledBuiltins: [] };
 function packageBytes(version = '1.0.0', id = 'test.package') {
   const manifest = { manifestVersion: 1, id, version, engine: '^0.1.0', sdk: '^0.1.0', entry: './plugin.js', metadata: { name: 'Plugin', author: 'Author', description: 'A package', platforms: ['desktop'], languages: ['en'] }, provides: [], requires: [], permissions: [], optionalPermissions: [] };
   const encode = text => new TextEncoder().encode(text);
@@ -20,6 +21,8 @@ function packageBytes(version = '1.0.0', id = 'test.package') {
 async function fixture(options = {}) {
   const kernel = createTestKernel(); const files = new Map(); const directories = new Set(); const selected = []; const executions = []; const runtimes = new Map(); const settings = new Map(); const configCalls = []; const sources = []; const plans = new Map(); const providerSelections = []; const checkpoints = new Map(); const updateLifecycle = []; let nextCheckpoint = 0;
   let root = { id: 'vault-a', name: 'A' }; let participant; let api; let revision = 0; let failWrites = false; let failActivation = false; let failConfig = false;
+  const compositionCalls = [];
+  let compositionRevision = 0; let profile = defaultProfile;
   kernel.installMock(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(name => [name, () => true])));
   if (options.bootSafeMode) kernel.installMock(LimeBootPolicy, { safeMode: () => true });
   const methods = Object.fromEntries(filesystemMethods.map(name => [name, async () => failure('NOT_FOUND')]));
@@ -52,6 +55,15 @@ async function fixture(options = {}) {
   kernel.installMock(Vault, { current: () => root, async open() { return ok(root); }, async close() { root = null; return ok(null); } });
   kernel.installMock(VaultLifecycle, { register(value) { participant = value; return ok(null); } });
   kernel.installMock(LimePackagePicker, { async pick(owner) { const value = selected.shift() ?? null; return ok(typeof value === 'function' ? await value(owner) : value); } });
+  if (options.composition) kernel.installMock(LimeCompositionRuntime, {
+    snapshot: () => ok({ revision: compositionRevision, profile, builtins: [{ id: 'test.builtin', version: '1.0.0', state: 'active', mutable: true }] }),
+    async apply(env, candidate, expectedRevision) {
+      compositionCalls.push({ env, candidate, active: [...runtimes.values()].filter(item => item.state === 'active').map(item => item.id) });
+      if (compositionRevision !== expectedRevision) return failure('STALE');
+      if (candidate.bindings.some(binding => runtimes.get(binding.providerId)?.state !== 'active')) return failure('CONFLICT');
+      profile = candidate; compositionRevision++; return ok(null);
+    },
+  });
   kernel.installMock(LimeRuntime, {
     async suspend(env, id) { const entry = { ...runtimes.get(id) }; checkpoints.set(++nextCheckpoint, entry); if (entry.state === 'active') runtimes.get(id).state = 'stopped'; updateLifecycle.push('suspend'); return ok(nextCheckpoint); },
     async resume(env, checkpoint, startTarget) { const saved = checkpoints.get(checkpoint); const current = runtimes.get(saved.id); updateLifecycle.push(`resume:${current.version}`); const result = await options.onResume?.({ current, settings, files, directories, failWrites: value => { failWrites = value; }, failConfig: value => { failConfig = value; } }); if (result) return result; if (saved.state === 'active' || startTarget) current.state = 'active'; return ok(null); },
@@ -59,7 +71,7 @@ async function fixture(options = {}) {
     async finish(env, checkpoint) { checkpoints.delete(checkpoint); updateLifecycle.push('finish'); return ok(null); },
     plan(env, id) { return plans.has(id) ? ok(plans.get(id)) : failure('NOT_FOUND'); },
     async selectProvider(env, ...args) { providerSelections.push(args); return failActivation ? failure('RUNTIME_FAILED') : ok(null); },
-    async open() { runtimes.clear(); checkpoints.clear(); return ok(null); }, async close() { runtimes.clear(); checkpoints.clear(); return ok(null); }, snapshot() { return ok([...runtimes.values()]); },
+    async open() { runtimes.clear(); checkpoints.clear(); profile = defaultProfile; compositionRevision++; return ok(null); }, async close() { runtimes.clear(); checkpoints.clear(); profile = defaultProfile; compositionRevision++; return ok(null); }, snapshot() { return ok([...runtimes.values()]); },
     async register(env, manifest, source, enabled) { if (manifest.id === 'test.builtin') return failure('CONFLICT'); sources.push(source); runtimes.set(manifest.id, { id: manifest.id, version: manifest.version, state: enabled ? 'active' : 'disabled' }); return ok(null); },
     async enable(env, id) { if (failActivation) { runtimes.get(id).state = 'failed'; return failure('RUNTIME_FAILED'); } executions.push(id); runtimes.get(id).state = 'active'; return ok(null); },
     async disable(env, id) { runtimes.get(id).state = 'disabled'; return ok(null); },
@@ -73,7 +85,7 @@ async function fixture(options = {}) {
   await kernel.start('test.consumer');
   if (options.initialSettlement) await participant.settled(null, root);
   else await api.restore();
-  return { kernel, files, directories, selected, executions, runtimes, settings, configCalls, sources, plans, providerSelections, updateLifecycle, api, get participant() { return participant; }, setRoot: value => { root = value; }, setFailWrites: value => { failWrites = value; }, setFailActivation: value => { failActivation = value; }, setFailConfig: value => { failConfig = value; } };
+  return { kernel, files, directories, selected, executions, runtimes, settings, configCalls, sources, plans, providerSelections, updateLifecycle, compositionCalls, api, get participant() { return participant; }, setRoot: value => { root = value; }, setFailWrites: value => { failWrites = value; }, setFailActivation: value => { failActivation = value; }, setFailConfig: value => { failConfig = value; } };
 }
 
 test('preview is inert and exact-byte confirmation persists only in the captured Vault', async () => {
@@ -119,6 +131,50 @@ test('provider choices persist only through revision-checked plans and restore b
   assert.equal((await f.api.selectProvider('test.package', 'api', 'test.value', 'test.second', 7)).error.code, 'RUNTIME_FAILED');
   assert.equal(registry().plugins[0].selections[0].providerId, 'test.first'); assert.equal(registry().plugins[0].recoveryRequired, true);
   await f.kernel.stopAll();
+});
+
+test('owner composition persists per Vault, restores after provider activation and can be cleared from safe mode', async () => {
+  const f = await fixture({ composition: true });
+  try {
+    f.selected.push(packageBytes());
+    assert.equal((await f.api.install((await f.api.preview()).value.ticket)).ok, true);
+    const initial = f.api.composition().value;
+    const profile = { bindings: [{ consumerId: 'test.builtin', kind: 'api', contractId: 'test.service', providerId: 'test.package' }], disabledBuiltins: ['test.old-service'] };
+    assert.equal((await f.api.applyComposition(profile, initial.revision - 1)).error.code, 'STALE');
+    assert.equal((await f.api.applyComposition({ ...profile, bindings: [...profile.bindings, ...profile.bindings] }, initial.revision)).error.code, 'CONFLICT');
+    assert.equal(f.compositionCalls.length, 0);
+    assert.equal((await f.api.applyComposition(profile, initial.revision)).ok, true);
+    assert.deepEqual(f.api.composition().value.savedProfile, profile);
+    assert.equal((await f.api.disable('test.package')).error.code, 'CONFLICT');
+    assert.equal((await f.api.remove('test.package', true)).error.code, 'CONFLICT');
+
+    f.setFailWrites(true);
+    assert.equal((await f.api.applyComposition(defaultProfile, f.api.composition().value.revision)).error.code, 'STORAGE_FAILED');
+    assert.deepEqual(f.compositionCalls.slice(-2).map(call => call.candidate), [defaultProfile, profile]);
+    assert.deepEqual(f.api.composition().value.profile, profile);
+    f.setFailWrites(false);
+
+    const next = { id: 'vault-b' };
+    await f.participant.beforeRelease({ id: 'vault-a' }, next);
+    f.setRoot(next);
+    await f.participant.settled({ id: 'vault-a' }, next);
+    assert.deepEqual(f.api.composition().value.savedProfile, defaultProfile);
+    const previous = { id: 'vault-a' };
+    await f.participant.beforeRelease(next, previous);
+    f.setRoot(previous);
+    await f.participant.settled(next, previous);
+    assert.deepEqual(f.compositionCalls.at(-1).active, ['test.package']);
+    assert.deepEqual(f.api.composition().value.profile, profile);
+
+    const calls = f.compositionCalls.length;
+    assert.equal((await f.api.restore(true)).ok, true);
+    assert.equal(f.compositionCalls.length, calls);
+    assert.deepEqual(f.api.composition().value.profile, defaultProfile);
+    assert.deepEqual(f.api.composition().value.savedProfile, profile);
+    assert.equal((await f.api.applyComposition(defaultProfile, f.api.composition().value.revision)).ok, true);
+    assert.equal((await f.api.restore()).ok, true);
+    assert.deepEqual(f.api.composition().value.savedProfile, defaultProfile);
+  } finally { await f.kernel.stopAll(); }
 });
 
 test('cancel, builtin collision and failed package storage cannot install/activate code', async () => {

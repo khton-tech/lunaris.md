@@ -7,6 +7,18 @@ from `@lunaris/lime`. No kernel, platform IPC, DOM or private driver is imported
 
 ## Implemented service operations
 
+- Hosts that provide `LimeCompositionRuntime` expose `Lime.composition()` and
+  `Lime.applyComposition(profile, expectedRevision)`. An owner-controlled client
+  with `runtime.manage` can select compatible providers for built-in consumers
+  and disable eligible built-ins in one profile. The host authorizes and validates
+  the whole graph. Apply an empty profile to restore host defaults.
+  The Vault registry commits successful profiles alongside installed packages.
+  A failed registry write restores the previous live profile. Vault restore
+  activates enabled packages before applying the committed profile. Safe mode
+  skips the profile and permits resetting it. `composition()` reports the
+  current and saved profiles. Clear a package's provider bindings before disabling
+  or removing it. Hosts without the adapter return `UNSUPPORTED`.
+
 - `plan(id)` returns the runtime dependency plan and revision. `selectProvider(id,
   kind, contractId, providerId, expectedRevision)` validates the exact plan, commits
   selection/recovery intent, applies graph rebinding and settles the record.

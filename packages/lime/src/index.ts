@@ -34,6 +34,30 @@ export interface LimeDependencyPlan {
   readonly graph: readonly { readonly pluginId: string; readonly dependencies: readonly LimeDependency[] }[];
 }
 export interface LimeProviderChoice { readonly kind: ContractKind; readonly contractId: string; readonly providerId: string }
+export interface LimeCompositionBinding extends LimeProviderChoice { readonly consumerId: string }
+export interface LimeCompositionProfile {
+  readonly bindings: readonly LimeCompositionBinding[];
+  readonly disabledBuiltins: readonly string[];
+}
+export interface LimeCompositionBuiltin extends LimeRuntimeEntry { readonly mutable: boolean }
+export interface LimeCompositionSnapshot {
+  readonly revision: number;
+  readonly profile: LimeCompositionProfile;
+  readonly builtins: readonly LimeCompositionBuiltin[];
+}
+export interface LimeVaultComposition extends LimeCompositionSnapshot {
+  /** The committed Vault profile, which can differ from the runtime profile in safe mode or recovery. */
+  readonly savedProfile: LimeCompositionProfile;
+}
+export interface LimeCompositionRuntimeApi {
+  snapshot(environment: LimeEnvironment): LimeResult<LimeCompositionSnapshot>;
+  /** Atomically apply a complete profile. An empty profile restores the host defaults. */
+  apply(environment: LimeEnvironment, profile: LimeCompositionProfile, expectedRevision: number): Promise<LimeResult<null>>;
+}
+export const LimeCompositionRuntime = defineApi<LimeCompositionRuntimeApi>({
+  id: 'lunaris.lime-composition-runtime', version: '1.0.0', consumePermission: 'runtime.manage',
+  validate: value => !!value && typeof value === 'object' && ['snapshot', 'apply'].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === 'function'),
+});
 export interface LimeRuntimeApi {
   /** Stop/unregister previous environment before binding another one. */
   open(environment: LimeEnvironment): Promise<LimeResult<null>>;
@@ -87,6 +111,9 @@ export interface LimeApi {
   snapshot(): LimeSnapshot;
   plan(id: string): LimeResult<LimeDependencyPlan>;
   selectProvider(id: string, kind: ContractKind, contractId: string, providerId: string, expectedRevision: number): Promise<LimeResult<null>>;
+  composition(): LimeResult<LimeVaultComposition>;
+  /** Commit an owner-selected profile to the current Vault. */
+  applyComposition(profile: LimeCompositionProfile, expectedRevision: number): Promise<LimeResult<null>>;
   preview(): Promise<LimeResult<LimePreview | null>>;
   cancelPreview(ticket: number): void;
   install(ticket: number, enabled?: boolean): Promise<LimeResult<null>>;
@@ -100,7 +127,7 @@ export interface LimeApi {
 }
 export const Lime = defineApi<LimeApi>({
   id: 'lunaris.lime', version: '1.0.0', consumePermission: 'runtime.manage',
-  validate: value => !!value && typeof value === 'object' && ['snapshot', 'plan', 'selectProvider', 'preview', 'cancelPreview', 'install', 'update', 'enable', 'disable', 'retry', 'remove', 'restore'].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === 'function'),
+  validate: value => !!value && typeof value === 'object' && ['snapshot', 'plan', 'selectProvider', 'composition', 'applyComposition', 'preview', 'cancelPreview', 'install', 'update', 'enable', 'disable', 'retry', 'remove', 'restore'].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === 'function'),
 });
 export const LimeChanged = defineEvent<LimeSnapshot>({
   id: 'lunaris.lime-changed', version: '1.0.0',

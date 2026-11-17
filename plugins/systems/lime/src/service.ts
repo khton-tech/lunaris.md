@@ -3,18 +3,19 @@ import { Logger } from "@lunaris/logging";
 import { Filesystem } from "@lunaris/filesystem";
 import { Config, ConfigSnapshots } from "@lunaris/config";
 import { Vault, VaultLifecycle } from "@lunaris/vault";
-import { Lime, LimeChanged, LimePackagePicker, LimeRuntime } from "@lunaris/lime";
-import type { LimeEnvironment, LimeInstallation, LimePreview, LimeResult, LimeSnapshot } from "@lunaris/lime";
+import { Lime, LimeChanged, LimeCompositionRuntime, LimePackagePicker, LimeRuntime } from "@lunaris/lime";
+import type { LimeCompositionProfile, LimeEnvironment, LimeFailure, LimeInstallation, LimePreview, LimeResult, LimeSnapshot } from "@lunaris/lime";
 import type { ExecutionSource } from "@lunaris/execution";
 import { versionSatisfies } from "@lunaris/manifest";
 import { inspectLup } from "@lunaris/lup";
 import type { InspectedLup } from "@lunaris/lup";
-import { createStorage } from "./storage.js";
+import { createStorage, defaultComposition, parseComposition } from "./storage.js";
 import type { InstallationRecord } from "./storage.js";
 import { createBackups } from './backups.js';
 
 const ok = (): LimeResult<null> => ({ ok: true, value: null });
-const fail = (code: 'BUSY' | 'NO_VAULT' | 'STALE' | 'INVALID_PACKAGE' | 'STORAGE_FAILED' | 'RUNTIME_FAILED' | 'NOT_FOUND' | 'CONFLICT', message: string): LimeResult<never> => ({ ok: false, error: { code, message } });
+const fail = (code: LimeFailure['code'], message: string): LimeResult<never> => ({ ok: false, error: { code, message } });
+const isDefaultComposition = (profile: LimeCompositionProfile) => !profile.bindings.length && !profile.disabledBuiltins.length;
 function source(preview: InspectedLup): ExecutionSource {
   const decoder = new TextDecoder('utf-8', { fatal: true }); const modules: Record<string, string> = {};
   for (const path of preview.paths) if (/\.(?:mjs|js)$/.test(path)) modules[path] = decoder.decode(preview.read(path)!);
@@ -27,6 +28,7 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
   const config = ctx.use(Config);
   const configSnapshots = ctx.use(ConfigSnapshots);
   const runtime = ctx.use(LimeRuntime); const picker = ctx.use(LimePackagePicker);
+  const compositionRuntime = ctx.optional(LimeCompositionRuntime);
   const lifecycle = ctx.use(VaultLifecycle);
   let environment: LimeEnvironment | null = null; let generation = 0; let owner: ResourceScope | null = null;
   let storage: ReturnType<typeof createStorage> | null = null; let records: readonly InstallationRecord[] = [];
@@ -44,6 +46,19 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
   const publish = (): void => { if (!ctx.signal.aborted) void ctx.events.emit(LimeChanged, snapshot()).catch(cause => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, 'Cannot publish Lime state', { error: cause }); }); };
   const valid = (captured: LimeEnvironment) => !ctx.signal.aborted && !!environment && environment.vaultId === captured.vaultId && environment.generation === captured.generation;
   const save = async (next: readonly InstallationRecord[]) => { await storage!.save(next); records = Object.freeze([...next]); publish(); };
+  const savedComposition = () => storage?.composition() ?? defaultComposition;
+  const profileUsesProvider = (id: string, captured: LimeEnvironment): boolean => {
+    const applied = compositionRuntime?.snapshot(captured);
+    return savedComposition().bindings.some(binding => binding.providerId === id) ||
+      (applied?.ok === true && applied.value.profile.bindings.some(binding => binding.providerId === id));
+  };
+  const applySavedComposition = async (captured: LimeEnvironment): Promise<LimeResult<null>> => {
+    const profile = savedComposition();
+    if (isDefaultComposition(profile)) return ok();
+    if (!compositionRuntime) return fail('UNSUPPORTED', 'This host does not support the saved application composition.');
+    const current = compositionRuntime.snapshot(captured);
+    return current.ok ? compositionRuntime.apply(captured, profile, current.value.revision) : current;
+  };
   const cleanup = async (): Promise<void> => {
     try { const removed = await storage!.cleanup(records); if (removed) logger.info(ctx.pluginId, 'Unused package archives removed', { data: { count: removed } }); }
     catch (cause) { if (!ctx.signal.aborted) logger.warn(ctx.pluginId, 'Unused archive cleanup deferred', { error: cause }); }
@@ -165,7 +180,15 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
         if (!ready) { order.push(...[...pending].sort()); break; }
         order.push(ready); pending.delete(ready);
       }
-      if (!safeMode) for (const id of order) await activate(id, environment);
+      if (!safeMode) {
+        for (const id of order) await activate(id, environment);
+        const applied = await applySavedComposition(environment);
+        if (!applied.ok) {
+          error = 'Saved application composition requires recovery.';
+          logger.warn(ctx.pluginId, error, { data: { code: applied.error.code } });
+          return applied;
+        }
+      }
       logger.info(ctx.pluginId, 'Vault plugin environment restored', { data: { count: records.length, safeMode } }); return ok();
     } catch (cause) {
       safeMode = true; error = 'Plugin environment could not be restored; packages remain inactive.';
@@ -264,6 +287,39 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
   });
   ctx.provide(Lime, {
     snapshot, restore,
+    composition() {
+      if (!environment) return fail('NO_VAULT', 'Open a Vault before inspecting application composition.');
+      if (!compositionRuntime) return fail('UNSUPPORTED', 'This host does not support application composition.');
+      const observed = compositionRuntime.snapshot(environment);
+      return observed.ok ? { ok: true, value: Object.freeze({ ...observed.value, savedProfile: savedComposition() }) } : observed;
+    },
+    applyComposition(profile, expectedRevision) {
+      let next: LimeCompositionProfile;
+      try { next = parseComposition(profile); }
+      catch { return Promise.resolve(fail('CONFLICT', 'Malformed application composition profile.')); }
+      return mutate(async captured => {
+        if (!compositionRuntime) return fail('UNSUPPORTED', 'This host does not support application composition.');
+        if (safeMode && !isDefaultComposition(next)) return fail('CONFLICT', 'Exit safe mode before applying a custom composition.');
+        const previous = compositionRuntime.snapshot(captured);
+        if (!previous.ok) return previous;
+        if (previous.value.revision !== expectedRevision) return fail('STALE', 'Application composition changed. Refresh it and try again.');
+        const applied = await compositionRuntime.apply(captured, next, expectedRevision);
+        if (!applied.ok) return applied;
+        try { await storage!.save(records, next); }
+        catch (cause) {
+          const current = compositionRuntime.snapshot(captured);
+          const restored = current.ok ? await compositionRuntime.apply(captured, previous.value.profile, current.value.revision) : current;
+          if (!restored.ok) {
+            error = 'Application composition could not be saved or restored. Reopen the Vault in safe mode.';
+            if (!ctx.signal.aborted) logger.error(ctx.pluginId, error, { error: new AggregateError([cause, restored.error]) });
+            return fail('RUNTIME_FAILED', error);
+          }
+          throw cause;
+        }
+        logger.info(ctx.pluginId, 'Application composition committed', { data: { bindings: next.bindings.length, disabledBuiltins: next.disabledBuiltins.length } });
+        return ok();
+      });
+    },
     plan(id) { return environment ? runtime.plan(environment, id) : fail('NO_VAULT', 'Open a Vault first.'); },
     selectProvider: (id, kind, contractId, providerId, expectedRevision) => mutate(async captured => {
       const previous = records.find(item => item.id === id);
@@ -319,6 +375,7 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
     }),
     remove: (id, deleteData) => mutate(async captured => {
       const record = records.find(item => item.id === id); if (!record) return fail('NOT_FOUND', 'Plugin is not installed.');
+      if (profileUsesProvider(id, captured)) return fail('CONFLICT', 'Remove the plugin from the application composition before removing it.');
       if (record.updating) return fail('CONFLICT', 'Recover the interrupted update before removal.');
       if (typeof deleteData !== 'boolean') return fail('CONFLICT', 'Choose whether plugin data and settings should be deleted.');
       const pending: InstallationRecord = record.removing ? record : { ...record, enabled: false, recoveryRequired: true, removing: { deleteData } };
@@ -327,6 +384,7 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
     }),
     disable: id => mutate(async captured => {
       if (!records.some(item => item.id === id)) return fail('NOT_FOUND', 'Plugin is not installed.');
+      if (profileUsesProvider(id, captured)) return fail('CONFLICT', 'Remove the plugin from the application composition before disabling it.');
       if (records.some(item => item.id === id && (item.removing || item.updating))) return fail('CONFLICT', 'Plugin recovery must finish first.');
       const result = await runtime.disable(captured, id); if (!result.ok) return result;
       await save(records.map(item => item.id === id ? { ...item, enabled: false, recoveryRequired: false } : item));

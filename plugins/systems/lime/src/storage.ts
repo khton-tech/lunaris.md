@@ -2,7 +2,7 @@ import type { FilesystemApi } from "@lunaris/filesystem";
 import { isExactVersion, isValidId } from "@lunaris/manifest";
 import { inspectLup } from "@lunaris/lup";
 import type { InspectedLup } from "@lunaris/lup";
-import type { LimeProviderChoice } from '@lunaris/lime';
+import type { LimeCompositionProfile, LimeProviderChoice } from '@lunaris/lime';
 
 export interface InstallationRecord {
   readonly id: string; readonly version: string; readonly digest: string;
@@ -11,21 +11,52 @@ export interface InstallationRecord {
   readonly selections?: readonly LimeProviderChoice[];
   readonly updating?: { readonly backupId: string; readonly backupDigest: string };
 }
-interface Registry { readonly formatVersion: 1; readonly revision: number; readonly plugins: readonly InstallationRecord[] }
+interface Registry {
+  readonly formatVersion: 1;
+  readonly revision: number;
+  readonly plugins: readonly InstallationRecord[];
+  readonly composition?: LimeCompositionProfile;
+}
 const ROOT = '.lunaris/plugins';
 const versions = { engineVersion: '0.1.0', sdkVersion: '0.1.0' };
+export const defaultComposition: LimeCompositionProfile = Object.freeze({ bindings: Object.freeze([]), disabledBuiltins: Object.freeze([]) });
+
+export function parseComposition(value: unknown): LimeCompositionProfile {
+  const input = value as Partial<LimeCompositionProfile> | null;
+  if (!input || typeof input !== 'object' || Object.keys(input).length !== 2 ||
+      !Array.isArray(input.bindings) || input.bindings.length > 1024 ||
+      !Array.isArray(input.disabledBuiltins) || input.disabledBuiltins.length > 256) throw new Error('Malformed application composition.');
+  const bindings = [];
+  const keys = new Set<string>();
+  for (const binding of input.bindings) {
+    if (!binding || typeof binding !== 'object' || Object.keys(binding).length !== 4 ||
+        !isValidId(binding.consumerId) || !isValidId(binding.contractId) || !isValidId(binding.providerId) ||
+        !['api', 'event', 'hook'].includes(binding.kind)) throw new Error('Malformed application composition binding.');
+    const { consumerId, contractId, providerId, kind } = binding;
+    const key = `${consumerId}:${kind}:${contractId}`;
+    if (keys.has(key)) throw new Error('Duplicate application composition binding.');
+    keys.add(key); bindings.push(Object.freeze({ consumerId, kind, contractId, providerId }));
+  }
+  const disabledBuiltins = new Set<string>();
+  for (const id of input.disabledBuiltins) {
+    if (!isValidId(id) || disabledBuiltins.has(id)) throw new Error('Malformed disabled built-in plugin ID.');
+    disabledBuiltins.add(id);
+  }
+  return Object.freeze({ bindings: Object.freeze(bindings), disabledBuiltins: Object.freeze([...disabledBuiltins].sort()) });
+}
 
 /** One captured root, immutable archives and one optimistic committed registry. */
 export function createStorage(fs: FilesystemApi, vaultId: string) {
   let version: string | null = null; let revision = 0;
+  let composition = defaultComposition;
   const target = (path: string) => ({ vaultId, path });
   return {
     async read(): Promise<readonly InstallationRecord[]> {
       const result = await fs.readText(target(`${ROOT}/registry.json`));
-      if (!result.ok) { if (result.error.code === 'NOT_FOUND') { version = null; revision = 0; return []; } throw new Error('Cannot read plugin installation registry.', { cause: result.error }); }
+      if (!result.ok) { if (result.error.code === 'NOT_FOUND') { version = null; revision = 0; composition = defaultComposition; return []; } throw new Error('Cannot read plugin installation registry.', { cause: result.error }); }
       if (result.value.text.length > 256 * 1024) throw new Error('Plugin registry exceeds its size limit.');
       const input = JSON.parse(result.value.text) as Partial<Registry>;
-      if (!input || typeof input !== 'object' || Object.keys(input).some(key => !['formatVersion', 'revision', 'plugins'].includes(key)) || input.formatVersion !== 1 || !Number.isSafeInteger(input.revision) || input.revision! < 0 || !Array.isArray(input.plugins) || input.plugins.length > 256) throw new Error('Malformed plugin registry.');
+      if (!input || typeof input !== 'object' || Object.keys(input).some(key => !['formatVersion', 'revision', 'plugins', 'composition'].includes(key)) || input.formatVersion !== 1 || !Number.isSafeInteger(input.revision) || input.revision! < 0 || !Array.isArray(input.plugins) || input.plugins.length > 256) throw new Error('Malformed plugin registry.');
       const seen = new Set<string>(); const records: InstallationRecord[] = [];
       for (const item of input.plugins) {
         if (!item || typeof item !== 'object' || Object.keys(item).some(key => !['id', 'version', 'digest', 'enabled', 'recoveryRequired', 'removing', 'selections', 'updating'].includes(key)) || !isValidId(item.id) || seen.has(item.id) || !isExactVersion(item.version) || typeof item.digest !== 'string' || !/^[a-f0-9]{64}$/.test(item.digest) || typeof item.enabled !== 'boolean' || typeof item.recoveryRequired !== 'boolean') throw new Error('Malformed plugin installation record.');
@@ -34,18 +65,21 @@ export function createStorage(fs: FilesystemApi, vaultId: string) {
         if (item.selections !== undefined && (!Array.isArray(item.selections) || item.selections.length > 256 || item.selections.some((choice: LimeProviderChoice) => !choice || typeof choice !== 'object' || Object.keys(choice).some(key => !['kind', 'contractId', 'providerId'].includes(key)) || !['api', 'event', 'hook'].includes(choice.kind) || !isValidId(choice.contractId) || !isValidId(choice.providerId)) || new Set(item.selections.map((choice: LimeProviderChoice) => `${choice.kind}:${choice.contractId}`)).size !== item.selections.length)) throw new Error('Malformed plugin provider selections.');
         seen.add(item.id); records.push(Object.freeze({ ...item, ...(item.selections ? { selections: Object.freeze(item.selections.map((choice: LimeProviderChoice) => Object.freeze({ ...choice }))) } : {}) }));
       }
+      composition = input.composition === undefined ? defaultComposition : parseComposition(input.composition);
       version = result.value.version; revision = input.revision!;
       return Object.freeze(records);
     },
-    async save(records: readonly InstallationRecord[]): Promise<void> {
+    composition: (): LimeCompositionProfile => composition,
+    async save(records: readonly InstallationRecord[], profile = composition): Promise<void> {
       if (records.length > 256 || revision >= Number.MAX_SAFE_INTEGER) throw new Error('Plugin registry limit reached.');
       const directory = await fs.createDirectory(target(ROOT), true);
       if (!directory.ok && directory.error.code !== 'ALREADY_EXISTS') throw new Error('Cannot create plugin storage.', { cause: directory.error });
-      const next: Registry = { formatVersion: 1, revision: revision + 1, plugins: [...records].sort((a, b) => a.id < b.id ? -1 : 1) };
+      const next: Registry = { formatVersion: 1, revision: revision + 1, plugins: [...records].sort((a, b) => a.id < b.id ? -1 : 1),
+        ...(profile.bindings.length || profile.disabledBuiltins.length ? { composition: profile } : {}) };
       const text = JSON.stringify(next); if (text.length > 256 * 1024) throw new Error('Plugin registry exceeds its size limit.');
       const result = await fs.writeText(target(`${ROOT}/registry.json`), text, version === null ? { mode: 'create' } : { mode: 'replace', expectedVersion: version });
       if (!result.ok) throw new Error('Cannot commit plugin registry; storage may have changed externally.', { cause: result.error });
-      version = result.value.version; revision = next.revision;
+      version = result.value.version; revision = next.revision; composition = profile;
     },
     async archive(preview: InspectedLup): Promise<void> {
       const directory = `${ROOT}/packages/${preview.manifest.id}`;
