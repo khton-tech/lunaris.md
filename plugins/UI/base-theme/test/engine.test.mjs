@@ -91,6 +91,33 @@ test('community presets use the shared schema and include a dark Sakura palette'
   await s.stop();
 });
 const contrast = (a, b) => (Math.max(luminance(a), luminance(b)) + 0.05) / (Math.min(luminance(a), luminance(b)) + 0.05);
+const blend = (foreground, background, weight) => '#' + foreground.slice(1).match(/../g).map((channel, index) => {
+  const base = Number.parseInt(background.slice(1 + index * 2, 3 + index * 2), 16);
+  return Math.round(base * (1 - weight) + Number.parseInt(channel, 16) * weight).toString(16).padStart(2, '0');
+}).join('').toUpperCase();
+
+test('both Luna palettes keep selection markers, backlink matches and deletion feedback readable', async () => {
+  const s = await setup(); await s.host.start(engine.manifest.id);
+  for (const id of ['windows-xp', 'windows-xp-dark']) {
+    const { colors, components } = s.themes.get(`lunaris.base-theme-engine.${id}`).properties;
+    for (const surface of ['panel', 'content', 'selection', 'hover']) {
+      assert.ok(contrast(colors.accentForeground, colors[surface]) >= 4.5, `${id}: accentForeground/${surface}`);
+      assert.ok(contrast(colors.error, colors[surface]) >= 4.5, `${id}: error/${surface}`);
+    }
+    for (const weight of [0.09, 0.16, 0.22]) {
+      assert.ok(contrast(colors.error, blend(colors.error, colors.content, weight)) >= 4.5, `${id}: delete action at ${weight}`);
+    }
+    const { captionBackground, captionText } = components.windowChrome;
+    const { primaryBackground, primaryHoverBackground, primaryPressedBackground } = components.controls;
+    for (const [label, gradient] of [[captionText, captionBackground], ...[primaryBackground, primaryHoverBackground, primaryPressedBackground].map(fill => [colors.onAccent, fill])]) {
+      for (const stop of gradient.match(/#[0-9A-F]{6}/g)) {
+        assert.ok(contrast(label, stop) >= 4.5, `${id}: gradient label at ${stop}`);
+      }
+    }
+  }
+  await s.stop();
+});
+
 test('Lunaris and community separators are subdued against workspace surfaces', async () => {
   const s = await setup(); await s.host.start(engine.manifest.id);
   for (const theme of s.themes.list()) {

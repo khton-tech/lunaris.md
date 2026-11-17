@@ -1213,6 +1213,32 @@ both Luna presets and return to Monochrome; open theme/language/context menus;
 slider, switch, checkbox and caption hover/press/focus/disabled states; editor
 links; long Russian labels; narrow and short windows.
 
+## Luna adaptation for the current workspace
+
+References are the XP Paint-inspired Settings caption, the shared Files and
+Backlinks toolbar, and the Vault selector's recent rows. The embedded roles keep
+the same Lucide icons, control density and navigation behavior in both Luna
+presets. WorkspaceLayout owns the exposed shell gutters and supporting card
+surfaces. Files, Backlinks and Settings own their caption strips and controls.
+Backlinks inside the document footer keeps a plain heading and inherits the
+editor surface. Active Screen owns the tab strip and uses the preset radius
+and a visible selected edge. The empty-tab role uses a beveled create action
+and recent card with flat, wrapping file rows.
+
+The Explorer deletion and Lime package dialogs reuse the caption and frame
+finishes inside their owned overlays. The destructive action uses the semantic
+error color through its resting, hover and pressed states. Settings picker
+arrows inherit the same bevel in Settings and Lime; opened Combobox options
+retain their checkmark and visible active boundary. Existing Components and
+Themes/ThemeChanged contracts carry the styles through the Workspace, editor
+footer and overlays.
+
+Targeted checks cover both Luna presets and return to Monochrome with composed
+Workspace surfaces, recent actions, opened pickers and deletion confirmation.
+Native visual acceptance remains pending for active tabs, recent rows, opened
+menus and dialogs, focus and disabled states, and narrow or short layouts.
+See the [Mantine Modal reference](https://mantine.dev/core/modal/).
+
 ## Callout header role
 
 `lunaris.callout-header` provides embedded/content Mantine controls for document

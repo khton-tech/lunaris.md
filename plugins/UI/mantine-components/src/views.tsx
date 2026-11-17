@@ -27,7 +27,7 @@ export function WorkspaceEmpty({ props, theme }: { props: WorkspaceEmptyProps; t
             const folders = path.split("/");
             const name = folders.pop()!.replace(/(.+)\.md$/i, "$1");
             const location = [recent.vaultName, ...folders].filter(Boolean).join(" / ") || "/";
-            return <Button key={path} type="button" variant="subtle" justify="start" title={path}
+            return <Button key={path} type="button" variant="subtle" className="lm-workspace-recent-row" justify="start" title={path}
               leftSection={<Icon name="file" />} disabled={recent.busy} onClick={() => recent.onOpen(path)}>
               <span className="lm-workspace-recent-file">
                 <span>{name}</span>

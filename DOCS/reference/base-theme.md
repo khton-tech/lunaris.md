@@ -96,12 +96,12 @@ have no gradients or shadows. No new SDK contract or provider is required.
 Optional components.windowChrome contains enabled (boolean), captionBackground
 (CSS background), captionText/frameColor/menuBorder (CSS colors) and
 surfaceShadow/insetShadow (CSS box shadows). Only enabled: true opts in.
-WorkspaceLayout owns the blue outer frame, compact grid and caption using the
-existing localized mainLabel. It adds no inactive window-operation buttons.
-Supporting regions retain stable borrowed targets; main remains an open white
-workspace. Each embedded role styles only its own headings, controls and local
-content. Settings supplies a blue section title, compact white fields and a
-right-hand picker button; menus retain Mantine interaction with beveled edges.
+WorkspaceLayout owns the blue outer frame, exposed gutters and supporting
+surfaces. Window Titlebar owns the desktop caption. Supporting regions retain
+stable borrowed targets and the main region remains open on the content color.
+Files, Backlinks and Settings use the caption finish on their tool headings.
+The inline Backlinks heading in the editor inherits the document surface.
+Settings pickers use a beveled disclosure icon and themed Mantine menus.
 No OS desktop, wallpaper, taskbar or window-management API is introduced.
 These remain intentional differences from the reference. Root-scoped explicit
 Mantine font variables keep headings and controls on Tahoma/system fallbacks.
@@ -154,6 +154,10 @@ Dark shadows and highlights replace every light control and chrome finish.
 Optional `colors.link` supplies readable links independently of primary-button
 accent; Mantine anchors and CodeMirror use it with an accent fallback. Luna Dark
 sets #91BCFF, while both primary blue fills retain white text.
+Optional `colors.accentForeground` supplies readable active markers, tab edges,
+pressed tool icons and Backlinks match text. Mantine falls back to `colors.accent`
+for themes without it. Luna uses #1749A3 and Luna Dark uses #91BCFF. The caption and
+primary gradients keep white labels readable across their stops.
 Select it through the existing Interface Settings theme picker; Config persists
 its independent ID. No new provider, API or plugin dependency is introduced.
 Themes/ThemeChanged already connect the engine, Mantine and CodeMirror.
@@ -178,8 +182,8 @@ contrast, lifecycle and component checks. Settings, runner and selector tests
 cover startup fallback and live replacement with an independent theme fixture.
 Native WebView visual acceptance is manual; desktop automation is prohibited.
 Run `npm run tauri:dev` and compare both themes inside Workspace: startup/Vault
-selection, Explorer/Settings, opened theme and context menus, button hover/press/
-disabled states, keyboard focus, editor/task checkboxes, long labels and narrow/
-short windows. Check inherited panel backgrounds and removal of finishes when
-switching back. These visual checks remain pending; passing automated tests
-does not establish visual acceptance.
+selection, Files/Backlinks/Settings, opened pickers and context menus, the active
+tab and file marker, the empty-tab recent list, Backlinks inside a note, and the
+permanent-delete dialog. Check button hover, press and disabled states, keyboard
+focus, long Russian labels, narrow and short windows, and return to Monochrome.
+Native visual acceptance remains pending.

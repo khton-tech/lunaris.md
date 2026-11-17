@@ -49,6 +49,11 @@ Interface Settings exposes it automatically; Mantine and CodeMirror consume its
 tokens through Themes/ThemeChanged. Integration through these contracts is
 complete; native visual acceptance is pending. See the reference for the palette.
 
+Both Luna presets supply `colors.accentForeground` for selected icons, tab and
+file markers, and Backlinks matches. The presets keep distinct blue primary
+fills with white labels. Their existing IDs continue to resolve saved
+preferences. See the reference for contrast and manual acceptance coverage.
+
 The engine also registers Catppuccin Mocha, Dracula, Nord, Tokyo Night, Rosé Pine,
 Gruvbox Dark and Everforest Dark palette adaptations, plus the original Lunaris
 Sakura Night palette. They use the same `lunaris.base-theme` v1 contract and are

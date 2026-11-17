@@ -153,7 +153,8 @@ export function MobileMenuView({ props, theme, overlay, target }: {
    gap={compact ? 4 : 0} justify={compact ? "start" : "space-evenly"} wrap="nowrap">
   {props.items.map(item => <MobileAction key={item.id} item={item} compact={compact} overlay={overlay} target={target} />)}
   {props.items.some(item => item.choices) && createPortal(
-    <div id={overlay.id} className="lm-root lm-mobile-choice-overlay" data-mantine-color-scheme={theme.scheme} style={theme.contentStyle} />,
+    <div id={overlay.id} className="lm-root lm-mobile-choice-overlay" data-mantine-color-scheme={theme.scheme}
+      data-window-chrome={theme.windowChrome} style={theme.contentStyle} />,
     overlay.target,
   )}
  </Group>;

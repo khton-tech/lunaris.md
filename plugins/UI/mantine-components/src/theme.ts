@@ -27,6 +27,7 @@ export function resolveTheme(theme: ThemeDefinition | null) {
   variables["--vault-secondary-font-size"] = fontSizes.xs;
   const palette = { background: "background", panel: "panel", content: "content", text: "text", secondary: "textSecondary", selection: "selection", separator: "separator", "control-border": "controlBorder", hover: "hover", focus: "focus", caret: "caret", error: "error", accent: "accent", "on-accent": "onAccent", "accent-hover": "accentHover" };
   for (const [variable, key] of Object.entries(palette)) variables[`--vault-${variable}`] = color(key, ["background", "panel", "content", "selection", "hover", "separator"].includes(variable) ? "transparent" : "currentColor");
+  variables["--vault-accent-foreground"] = color("accentForeground", variables["--vault-accent"]);
   variables["--vault-link-missing"] = color("linkMissing", variables["--vault-secondary"]);
   variables["--vault-space"] = dimension(field(field(geometry, "spacing"), "step"), 4);
   variables["--vault-radius"] = radius;

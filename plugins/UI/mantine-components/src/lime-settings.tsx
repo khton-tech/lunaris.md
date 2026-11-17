@@ -55,7 +55,7 @@ function PackageDialog({ item, labels, overview, dependencies, footer, onClose, 
     closeOnEscape={closeOnEscape} closeOnClickOutside={false} withCloseButton={false}
     transitionProps={{ duration: 0 }} size="lg" xOffset="1rem" yOffset="1rem"
     classNames={{ content: 'lm-lime-dialog', header: 'lm-lime-dialog-header', body: 'lm-lime-dialog-body' }}>
-    <Tabs className="lm-lime-tabs" color="var(--vault-accent)" defaultValue="overview" keepMounted={false}>
+    <Tabs className="lm-lime-tabs" color="var(--vault-accent-foreground)" defaultValue="overview" keepMounted={false}>
       <Tabs.List aria-label={labels.previewTabs}>
         <Tabs.Tab value="overview" data-autofocus>{labels.overview}</Tabs.Tab>
         <Tabs.Tab value="dependencies">{labels.requires}</Tabs.Tab>
@@ -174,7 +174,8 @@ export function LimeSettings({ props, theme, overlay }: {
     </Group>
     {props.error && !details && <Text size="sm" c="var(--vault-error)" role="alert" style={{ overflowWrap: 'anywhere' }}>{props.error}</Text>}
     {dialogOpen && createPortal(
-      <div id={overlay.id} className="lm-root lm-lime-overlay" data-mantine-color-scheme={theme.scheme} style={theme.contentStyle}>
+      <div id={overlay.id} className="lm-root lm-lime-overlay" data-mantine-color-scheme={theme.scheme}
+        data-window-chrome={theme.windowChrome} style={theme.contentStyle}>
         {props.preview ? <PackagePreview key={props.preview.id} preview={props.preview} props={props} /> :
           details && <PackageDetails key={details.id} row={details} props={props} onClose={() => setDetailsId(null)} />}
       </div>,

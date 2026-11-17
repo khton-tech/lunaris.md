@@ -34,7 +34,7 @@ export function SettingsSelect({ options, onChange, withinPortal = true, ...prop
       <InputBase {...props} component="button" type="button" size="sm" pointer
         attributes={{ input: { "aria-describedby": props["aria-describedby"], "aria-invalid": props["aria-invalid"] } }}
         data-mantine-stop-propagation={store.dropdownOpened || undefined}
-        classNames={{ input: "lm-input lm-setting-input lm-setting-select" }}
+        classNames={{ wrapper: "lm-setting-picker", input: "lm-input lm-setting-input lm-setting-select" }}
         leftSection={<Icon name="vault-switch" />} leftSectionWidth={32} leftSectionPointerEvents="none" rightSection={<span />} rightSectionWidth={0}
         onClick={() => { if (!props.disabled) store.toggleDropdown(); }}>
         {selected?.label ?? props.value}

@@ -100,8 +100,12 @@ test('real Luna presets adapt settings controls and opened menus without replaci
     assert.equal(s.dom.window.getComputedStyle(thumb).borderRadius, 'var(--vault-radius)');
     assert.match(content.style.getPropertyValue('--vault-button-image'), /linear-gradient/);
     assert.equal(root.getAttribute('data-mantine-color-scheme'), id.endsWith('dark') ? 'dark' : 'light');
+    const pickerIcon = picker.closest('.lm-setting-picker').querySelector('[data-position=left]');
+    assert.equal(s.dom.window.getComputedStyle(pickerIcon).boxShadow, 'var(--vault-surface-shadow)');
     picker.click(); await settle();
-    assert.ok(s.dom.window.document.querySelector('[role=option][data-checked]').textContent.includes('Русский'));
+    const option = s.dom.window.document.querySelector('[role=option][data-checked]');
+    assert.ok(option.textContent.includes('Русский'));
+    assert.equal(option.closest('.lm-dropdown-overlay').dataset.windowChrome, 'true');
     picker.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await settle();
   }
   toggle.click(); await settle(); assert.deepEqual(changes, [['test.wrap', true]]);
@@ -346,6 +350,14 @@ test('workspace tab controls share the selected surface and reset native button 
     assert.equal(computed(close).backgroundColor, 'rgba(0, 0, 0, 0)');
     assert.equal(computed(tab.parentElement).getPropertyValue('--tab-surface'), 'var(--vault-content)');
     assert.equal(tab.classList.contains('lm-focus'), true);
+    const defaultEdge = computed(tab.parentElement).getPropertyValue('border-block-start-color');
+    s.kernel.register(baseThemeEngine); await s.kernel.start(baseThemeEngine.manifest.id);
+    for (const id of ['windows-xp', 'windows-xp-dark', 'monochrome']) {
+      s.themes.select(`lunaris.base-theme-engine.${id}`); await settle();
+      assert.equal(regions.main.querySelector('[role=tab][aria-selected=true]'), tab);
+      assert.equal(computed(tab.parentElement).getPropertyValue('border-block-start-color'),
+        id.startsWith('windows-xp') ? 'var(--vault-accent-foreground)' : defaultEdge);
+    }
     screen.value.dispose();
     layout.value.dispose();
   } finally { await s.stop(); }
@@ -427,6 +439,11 @@ test('disabled mobile menu actions dismiss their open choices and recover withou
 test('Backlinks disclosures identify their contents and retain focus when collapsing or hiding the filter', async () => {
   const s = await setup(); await s.start();
   try {
+    s.kernel.register(baseThemeEngine); await s.kernel.start(baseThemeEngine.manifest.id);
+    const { document, getComputedStyle } = s.dom.window;
+    const sheet = document.createElement('style');
+    sheet.textContent = readFileSync(new URL('../styles.css', import.meta.url), 'utf8').replace(/^@import .*$/gm, '');
+    document.head.append(sheet);
     const props = { title: 'Backlinks', note: 'Note', inline: false, labels: {}, status: '', error: '', busy: false,
       linked: [{ id: 'source.md', title: 'Source', count: 1, mentions: [{ id: 'mention', before: 'Before ', match: 'Note', after: ' after', line: 1, onOpen() {} }] }],
       unlinked: [], query: 'Draft filter', sort: 'name', more: false, collapse: false, filterVisible: true, inDocument: false, preferencesDisabled: false,
@@ -437,6 +454,13 @@ test('Backlinks disclosures identify their contents and retain focus when collap
     const menu = s.target.closest('body').querySelector('.lm-dropdown-overlay [role="menu"]');
     assert.ok(menu); assert.equal(menu.querySelectorAll('[role="menuitem"]').length, 4);
     assert.equal(menu.querySelector('[aria-current="true"]').textContent, 'name');
+    const title = s.target.querySelector('.lm-tool-panel-toolbar');
+    for (const id of ['windows-xp', 'windows-xp-dark']) {
+      s.themes.select(`lunaris.base-theme-engine.${id}`); await settle();
+      assert.equal(getComputedStyle(title).color, 'var(--vault-caption-text)');
+      assert.equal(menu.closest('.lm-dropdown-overlay').dataset.windowChrome, 'true');
+      assert.equal(menu.querySelector('[aria-current="true"]').textContent, 'name');
+    }
     let sorted;
     mounted.value.update({ ...props, onSort(value) { sorted = value; } });
     menu.querySelectorAll('[role="menuitem"]')[1].click(); await settle();
@@ -454,6 +478,8 @@ test('Backlinks disclosures identify their contents and retain focus when collap
     assert.equal(heading.getAttribute('aria-expanded'), 'false');
     assert.equal(s.dom.window.document.getElementById(heading.getAttribute('aria-controls')).hidden, true);
     assert.equal(s.target.querySelector('.lm-backlink-context'), null);
+    mounted.value.update({ ...props, inline: true });
+    assert.notEqual(getComputedStyle(title).color, 'var(--vault-caption-text)');
   } finally { await s.stop(); }
 });
 
@@ -943,6 +969,10 @@ test('Explorer delete dialog starts on Cancel, restores focus and submits a pend
   const s = await setup(); await s.start();
   try {
     const { document } = s.dom.window;
+    s.kernel.register(baseThemeEngine); await s.kernel.start(baseThemeEngine.manifest.id);
+    const sheet = document.createElement('style');
+    sheet.textContent = readFileSync(new URL('../styles.css', import.meta.url), 'utf8').replace(/^@import .*$/gm, '');
+    document.head.append(sheet);
     s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 320);
     const calls = [];
     const deletion = Promise.withResolvers();
@@ -959,6 +989,19 @@ test('Explorer delete dialog starts on Cancel, restores focus and submits a pend
     press(tree, 'Delete'); await settle();
     assert.ok(dialog()); assert.ok(!s.target.querySelector('[role=dialog]'));
     assert.equal(document.activeElement.textContent, 'Cancel');
+    const openDialog = dialog();
+    for (const id of ['windows-xp', 'windows-xp-dark', 'monochrome']) {
+      s.themes.select(`lunaris.base-theme-engine.${id}`); await settle();
+      const { windowChrome } = s.themes.current().properties.components;
+      const header = openDialog.querySelector('.lm-explorer-delete-header');
+      const overlay = openDialog.closest('.lm-dropdown-overlay');
+      assert.equal(dialog(), openDialog);
+      assert.equal(document.activeElement, button('Cancel'));
+      assert.equal(overlay.style.getPropertyValue('--vault-caption-background'), windowChrome?.captionBackground ?? '');
+      assert.equal(s.dom.window.getComputedStyle(header).color === 'var(--vault-caption-text)', !!windowChrome);
+      const actionImage = s.dom.window.getComputedStyle(button('Delete permanently')).backgroundImage;
+      assert.ok(!actionImage.includes('--vault-button-image'));
+    }
     assert.deepEqual([...dialog().querySelectorAll('li')].map(item => item.textContent), ['folder/note.md', 'a.md']);
     assert.equal(dialog().querySelector('ul').tabIndex, 0, 'the bounded paths list is keyboard reachable');
     document.activeElement.click(); await settle();
@@ -1428,6 +1471,8 @@ test('Workspace leaves Tab and Shift+Tab to embedded controls and sibling views'
 
 test('Workspace owns supporting cards and an open main region across desktop and compact compositions', async () => {
  const s = await setup(); await s.start();
+ s.kernel.register(baseThemeEngine); await s.kernel.start(baseThemeEngine.manifest.id);
+ s.themes.select('lunaris.base-theme-engine.monochrome');
  const original = s.dom.window.HTMLElement.prototype.getBoundingClientRect;
  let width = 900;
  s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, width, 720);
@@ -1464,7 +1509,30 @@ test('Workspace owns supporting cards and an open main region across desktop and
    assert.equal(targets['left-rail'].querySelector('.lm-root').style.backgroundColor, 'transparent');
    assert.ok(targets['left-panel'].querySelector('[role=treeitem]'));
    assert.equal(targets.main.parentElement.hasAttribute('inert'), width <= 640);
-   files.value.dispose(); rail.value.dispose(); layout.value.dispose();
+   const empty = s.components.mount('lunaris.workspace-empty', targets.main, {
+    title: 'Empty tab', detail: '', actions: { createLabel: 'Create file', busy: false, onCreate() {} },
+    recent: { label: 'Recent files', vaultName: 'Vault', paths: ['folder/note.md'], busy: false, onOpen() {} },
+   }, s.ctx.signal);
+   assert.equal(empty.ok, true);
+   const workspace = targets.main.closest('.lm-workspace-layout');
+   const create = targets.main.querySelector('button[data-variant=outline]');
+   const recent = targets.main.querySelector('.lm-workspace-recent');
+   const row = recent.querySelector('button');
+   for (const id of ['windows-xp', 'windows-xp-dark', 'monochrome']) {
+    s.themes.select(`lunaris.base-theme-engine.${id}`); await settle();
+    const xp = id.startsWith('windows-xp');
+    const style = element => s.dom.window.getComputedStyle(element);
+    assert.equal(workspace.hasAttribute('data-window-chrome'), xp);
+    assert.equal(style(targets.main).boxShadow, 'none');
+    assert.equal(targets.main.querySelector('.lm-root').style.backgroundColor, 'transparent');
+    assert.equal(targets['left-panel'].querySelector('.lm-root').style.backgroundColor, 'transparent');
+    assert.equal(style(recent).boxShadow, xp ? 'var(--vault-surface-shadow)' : 'none');
+    assert.equal(recent.querySelector('button'), row);
+    assert.equal(targets.main.querySelector('button[data-variant=outline]'), create);
+    assert.equal(style(create).backgroundImage, 'var(--vault-button-image,none)');
+    assert.ok(!style(row).backgroundImage.includes('--vault-button-image'));
+   }
+   empty.value.dispose(); files.value.dispose(); rail.value.dispose(); layout.value.dispose();
   }
   assert.deepEqual(surfaces[1], surfaces[0]);
  } finally { s.dom.window.HTMLElement.prototype.getBoundingClientRect = original; await s.stop(); }
@@ -1741,15 +1809,18 @@ test('XP mobile surfaces and controls use real light/dark presets and reset with
   const layout=s.components.mount('lunaris.workspace-layout',s.target,{railVisible:true,panelVisible:true,mobileMenuVisible:true,mobileLauncherVisible:true,mainLabel:'Main',panelLabel:'Sidebar',onTargets:value=>{targets=value;},onDismiss(){}},s.ctx.signal);assert.equal(layout.ok,true);
   const item={id:'test.action',label:'Открыть панель',icon:'sidebar',onPress(){calls++;}};
   const launcher=s.components.mount('lunaris.mobile-menu',targets['mobile-launcher'],{density:'compact',items:[item]},s.ctx.signal);
-  const menu=s.components.mount('lunaris.mobile-menu',targets['mobile-menu'],{items:[item,{...item,id:'test.disabled',disabled:true}]},s.ctx.signal);
+  const choices={...item,id:'test.tabs',choices:[{id:'current',label:'Текущая вкладка'}],selectedChoiceId:'current'};
+  const menu=s.components.mount('lunaris.mobile-menu',targets['mobile-menu'],{items:[item,{...item,id:'test.disabled',disabled:true},choices]},s.ctx.signal);
   assert.equal(launcher.ok,true);assert.equal(menu.ok,true);
   const action=targets['mobile-launcher'].querySelector('button');const group=action.closest('.lm-mobile-menu-items');
+  const overlay=s.dom.window.document.querySelector('.lm-mobile-choice-overlay');
   for(const preset of ['windows-xp','windows-xp-dark']) {
    s.themes.select('lunaris.base-theme-engine.'+preset);
    assert.equal(targets['mobile-launcher'].querySelector('button'),action);
    assert.equal(group.closest('.lm-root').style.backgroundColor,'transparent');
    assert.match(group.style.getPropertyValue('--vault-button-image'),/linear-gradient/);
    assert.equal(group.closest('.lm-root').dataset.mantineColorScheme,preset.endsWith('dark')?'dark':'light');
+   assert.equal(s.dom.window.getComputedStyle(overlay).getPropertyValue('--active-row-background'),'var(--vault-selection)');
    assert.equal(s.dom.window.getComputedStyle(targets['mobile-launcher']).borderRadius,'var(--vault-radius)');
    assert.equal(s.dom.window.getComputedStyle(action).borderRadius,'var(--vault-radius)');
    assert.equal(s.dom.window.getComputedStyle(action).width,'32px');
@@ -1757,6 +1828,7 @@ test('XP mobile surfaces and controls use real light/dark presets and reset with
    assert.equal(s.dom.window.getComputedStyle(disabled).backgroundImage,'none');
   }
   s.themes.select('lunaris.base-theme-engine.monochrome');
+  assert.equal(s.dom.window.getComputedStyle(overlay).getPropertyValue('--active-row-background'),'');
   assert.equal(group.style.getPropertyValue('--vault-button-image'),'');
   assert.equal(s.dom.window.getComputedStyle(targets['mobile-launcher']).borderRadius,'999px');
   assert.equal(targets['mobile-launcher'].querySelector('button'),action);action.click();assert.equal(calls,1);
