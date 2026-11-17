@@ -23,6 +23,8 @@ shown when packages exist or safe mode is active.
 Add plugin opens selection, then an inert metadata preview. Confirmation chooses
 Install or Update explicitly according to the installed ID. Per-row Update checks
 the selected ID before presenting confirmation. Cancellation discards the ticket.
+Install disabled confirms a new package without evaluating it, so its dependencies
+can be configured before activation.
 Unsupported platform metadata appears as a warning before confirmation. Details
 include ID, author, platforms, languages, repository, provided/required contracts
 and custom fields. Metadata remains escaped plain text.

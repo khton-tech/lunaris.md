@@ -23,9 +23,9 @@ interface Composition {
 interface Props {
   readonly labels: Readonly<Record<string, string>>;
   readonly rows: readonly Row[];
-  readonly preview: (Metadata & { readonly requirements: Metadata['fields']; readonly warning: boolean; readonly action: string }) | null;
+  readonly preview: (Metadata & { readonly requirements: Metadata['fields']; readonly warning: boolean; readonly action: string; readonly installDisabled?: boolean }) | null;
   readonly busy: boolean; readonly available: boolean; readonly safeMode: boolean; readonly error: string;
-  readonly onAdd: () => void; readonly onConfirm: () => void; readonly onCancel: () => void;
+  readonly onAdd: () => void; readonly onConfirm: (enabled?: boolean) => void; readonly onCancel: () => void;
   readonly onToggle: (id: string, enabled: boolean) => void; readonly onRetry: (id: string) => void;
   readonly onUpdate: (id: string) => void; readonly onRemove: (id: string, deleteData: boolean) => void;
   readonly onSafeMode: (safeMode: boolean) => void;
@@ -52,6 +52,9 @@ export function limeSettingsProps(value: ComponentProps): Props {
   const plan = value.dependencyPlan as DependencyPlan | null;
   if (plan !== null && (!plan || typeof plan.pluginId !== 'string' || !Number.isSafeInteger(plan.revision) || !Array.isArray(plan.affected) || !plan.affected.every(id => typeof id === 'string') || !Array.isArray(plan.dependencies) || !plan.dependencies.every(item => item && ['api','event','hook'].includes(item.kind) && typeof item.id === 'string' && typeof item.range === 'string' && typeof item.optional === 'boolean' && (item.selected === undefined || typeof item.selected === 'string') && Array.isArray(item.candidates) && item.candidates.every((candidate: Dependency['candidates'][number]) => candidate && ['id','version','state'].every(key => typeof (candidate as unknown as Record<string, unknown>)[key] === 'string'))))) throw new TypeError('Invalid Lime dependency plan.');
   const composition = value.composition as Composition | null | undefined;
+  const installDisabled = (value.preview as Props['preview'])?.installDisabled;
+  if (installDisabled !== undefined && (typeof installDisabled !== 'boolean' ||
+      (installDisabled && typeof (value.labels as Record<string, unknown>).installDisabled !== 'string'))) throw new TypeError('Invalid Lime install action.');
   if (composition != null && (
     !compositionLabels.every(key => typeof (value.labels as Record<string, unknown>)[key] === 'string') ||
     typeof composition.draft !== 'boolean' || typeof composition.customized !== 'boolean' ||
@@ -102,7 +105,9 @@ function PackagePreview({ preview, props }: { preview: NonNullable<Props['previe
       {preview.warning && <Text role="alert" size="sm" c="var(--vault-error)">{props.labels.warning}</Text>}
       <Group gap="xs" wrap="wrap" justify="flex-end">
         <Button size="compact-sm" variant="subtle" disabled={props.busy} onClick={props.onCancel}>{props.labels.cancel}</Button>
-        <Button size="compact-sm" disabled={props.busy || !props.available} onClick={props.onConfirm}>{preview.action}</Button>
+        {preview.installDisabled && <Button size="compact-sm" variant="subtle" disabled={props.busy || !props.available}
+          onClick={() => props.onConfirm(false)}>{props.labels.installDisabled}</Button>}
+        <Button size="compact-sm" disabled={props.busy || !props.available} onClick={() => props.onConfirm()}>{preview.action}</Button>
       </Group>
     </>} />;
 }

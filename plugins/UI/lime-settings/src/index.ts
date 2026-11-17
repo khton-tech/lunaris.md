@@ -93,6 +93,7 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-
       state: text(Object.hasOwn(catalogs.en, item.state) ? item.state : 'unavailable'),
     }));
     const previewDetails = preview && metadata(preview.manifest, preview.manifest.id, preview.manifest.version);
+    const updating = previewDetails && state.installations.some(item => item.id === previewDetails.id);
     const requirements: { label: string; value: string }[] = [];
     if (preview?.dependencyPlan) {
       const plan = preview.dependencyPlan;
@@ -108,7 +109,7 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-
     }
     if (!requirements.length) requirements.push(...declaredRequirements(preview?.manifest));
     return { labels: Object.fromEntries(Object.keys(catalogs.en).map(key => [key, text(key)])), rows,
-      preview: preview && previewDetails ? { ...previewDetails, requirements, warning: preview.platformWarning, action: text(state.installations.some(item => item.id === preview!.manifest.id) ? 'update' : 'install') } : null,
+      preview: preview && previewDetails ? { ...previewDetails, requirements, warning: preview.platformWarning, action: text(updating ? 'update' : 'install'), installDisabled: !updating } : null,
       dependencyPlan,
       onPlan: (id: string) => { if (!busy) { refreshPlan(id); changed(); } },
       onSelectProvider: (id: string, kind: 'api' | 'event' | 'hook', contractId: string, providerId: string, revision: number) => {
@@ -148,8 +149,8 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-
       } : null,
       busy, available: !!state.vaultId, safeMode: state.safeMode, error: error || (state.error ? text('environmentError') : ''),
       onAdd: () => { void choose(); }, onUpdate: (id: string) => { void choose(id); },
-      onConfirm: () => { const selected = preview; if (!selected) return; void operate(async () => {
-        try { return await (engine.snapshot().installations.some(item => item.id === selected.manifest.id) ? engine.update(selected.ticket) : engine.install(selected.ticket)); }
+      onConfirm: (enabled = true) => { const selected = preview; if (!selected) return; void operate(async () => {
+        try { return await (engine.snapshot().installations.some(item => item.id === selected.manifest.id) ? engine.update(selected.ticket) : engine.install(selected.ticket, enabled)); }
         finally { preview = null; }
       }); },
       onCancel: () => { if (preview) engine.cancelPreview(preview.ticket); preview = null; changed(); },

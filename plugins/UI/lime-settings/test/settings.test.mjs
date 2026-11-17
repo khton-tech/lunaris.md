@@ -38,7 +38,7 @@ async function fixture({ composition = false } = {}) {
         });
       },
       cancelPreview(ticket) { calls.push(['cancel', ticket]); },
-      async install(ticket) { calls.push(['install', ticket]); state = { ...state, installations: [{ id: manifest.id, version: manifest.version, digest: 'a'.repeat(64), manifest, enabled: true, recoveryRequired: false, removalPending: false, state: 'active' }] }; await publish(); return ok(null); },
+      async install(ticket, enabled = true) { calls.push(['install', ticket, enabled]); state = { ...state, installations: [{ id: manifest.id, version: manifest.version, digest: 'a'.repeat(64), manifest, enabled, recoveryRequired: false, removalPending: false, state: enabled ? 'active' : 'disabled' }] }; await publish(); return ok(null); },
       async update(ticket) { calls.push(['update', ticket]); return ok(null); },
       async enable(id) { calls.push(['enable', id]); return ok(null); },
       async disable(id) { calls.push(['disable', id]); state = { ...state, installations: state.installations.map(item => ({ ...item, enabled: false, state: 'disabled' })) }; await publish(); return ok(null); },
@@ -125,6 +125,16 @@ test('built-in composition stages providers and suppression together through the
     s.button('Restore defaults').click(); await flush();
     s.button('Apply composition').click(); await flush();
     assert.deepEqual(s.calls.at(-1), ['applyComposition', { bindings: [], disabledBuiltins: [] }, 8]);
+  } finally { await s.stop(); }
+});
+
+test('an owner can install a package without starting it before selecting a provider', async () => {
+  const s = await fixture();
+  try {
+    s.button('Add plugin').click(); await flush();
+    s.button('Install disabled').click(); await flush();
+    assert.deepEqual(s.calls.at(-1), ['install', 1, false]);
+    assert.equal(s.surface.querySelector('.lm-lime-package input[type=checkbox]').checked, false);
   } finally { await s.stop(); }
 });
 
