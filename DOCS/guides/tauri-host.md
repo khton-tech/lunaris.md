@@ -75,6 +75,7 @@ Install root dependencies with `npm ci`, then use:
 ```sh
 npm run tauri:check
 npm run tauri:build
+npm run tauri:release
 npm run tauri:dev
 ```
 
@@ -83,6 +84,12 @@ npm run tauri:dev
 - `tauri:build` runs targeted checks and builds a Windows debug executable with
   embedded frontend assets. It creates no installer and launches no window. The
   Windows output is `hosts/tauri/src-tauri/target/debug/lunaris-desktop.exe`.
+- `tauri:release` builds the Windows x64 application and puts two executables in
+  `dist/windows/`. Launch `Lunaris-<version>-x64-portable.exe` directly on a
+  machine with WebView2. Run `Lunaris-<version>-x64-setup.exe` to install Lunaris
+  for the current user. The NSIS installer supports English and Russian and
+  downloads WebView2 if it is missing. Both editions use the Windows user profile
+  for application settings and WebView2 data.
 - `tauri:dev` opens the actual desktop window with the local frontend development
   server. Run this manually for visual and native event verification.
 - `npm run web:dev --workspace @lunaris/tauri` serves only the frontend for manual
