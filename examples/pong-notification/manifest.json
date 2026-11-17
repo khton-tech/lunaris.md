@@ -1,7 +1,7 @@
 {
   "manifestVersion": 1,
   "id": "example.pong-notification",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "engine": "^0.1.0",
   "sdk": "^0.1.0",
   "entry": "./dist/src/plugin.js",
@@ -18,11 +18,10 @@
   "provides": [],
   "requires": [
     { "kind": "api", "id": "lunaris.application-dom", "range": "^1.0.0" },
-    { "kind": "api", "id": "lunaris.external-windows", "range": "^1.0.0" },
     { "kind": "api", "id": "lunaris.localization", "range": "^1.0.0" },
     { "kind": "api", "id": "lunaris.logger", "range": "^1.0.0" },
-    { "kind": "api", "id": "lunaris.views", "range": "^1.0.0" }
+    { "kind": "api", "id": "lunaris.notifications", "range": "^1.0.0" }
   ],
-  "permissions": ["ui.dom", "window.external"],
+  "permissions": ["ui.dom", "notifications.show"],
   "optionalPermissions": []
 }

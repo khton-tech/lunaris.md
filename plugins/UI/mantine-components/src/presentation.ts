@@ -7,6 +7,7 @@ export const presentationDefaults: Readonly<Record<string, Required<ComponentPre
   "lunaris.mobile-menu": { mode: "embedded", sizing: "content" },
   "lunaris.status-bar": { mode: "embedded", sizing: "content" },
   "lunaris.client-update": { mode: "standalone", sizing: "content" },
+  "lunaris.notification": { mode: "standalone", sizing: "fill" },
   "lunaris.account-access": { mode: "standalone", sizing: "fill" },
   "lunaris.window-titlebar": { mode: "standalone", sizing: "content" },
   "lunaris.task-checkbox": { mode: "embedded", sizing: "content" },

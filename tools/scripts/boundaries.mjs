@@ -2,7 +2,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import ts from 'typescript';
 
-const tauriDependencies = ['application-host', 'desktop-background-settings', 'external-windows', 'logging', 'mantine-components', 'sdk', 'tauri-credentials', 'tauri-filesystem', 'tauri-links', 'tauri-processes', 'tauri-window', 'vault', 'window-provider', 'window-titlebar'];
+const tauriDependencies = ['application-host', 'desktop-background-settings', 'external-windows', 'logging', 'mantine-components', 'notification-provider', 'sdk', 'tauri-credentials', 'tauri-filesystem', 'tauri-links', 'tauri-processes', 'tauri-window', 'vault', 'window-provider', 'window-titlebar'];
 const tauriTestDependencies = ['base-theme-engine', 'component-provider', 'components', 'config-manager', 'filesystem', 'filesystem-provider', 'localization', 'localization-manager', 'runner', 'slot-dom', 'slot-provider', 'slots', 'startup', 'startup-provider', 'test', 'theme-provider', 'theme-settings', 'themes', 'vault-manager'];
 
 export const dependencies = {
@@ -45,6 +45,8 @@ export const dependencies = {
   'window-titlebar': ['sdk', 'logging', 'window', 'slots', 'slot-dom', 'components', 'localization'],
   window: ['sdk', 'components'],
   'external-windows': ['sdk', 'logging', 'window', 'components'],
+  notifications: ['sdk'],
+  'notification-provider': ['sdk', 'logging', 'notifications', 'window'],
   'desktop-background-settings': ['sdk', 'logging', 'window', 'config', 'settings', 'localization'],
   'window-provider': ['sdk', 'logging', 'window'],
   'tauri-window': ['sdk', 'logging', 'window'],
@@ -75,7 +77,7 @@ export const dependencies = {
   'theme-provider': ['sdk', 'logging', 'themes'],
   startup: ['sdk'],
   'startup-provider': ['sdk', 'logging', 'startup', 'vault'],
-  'mantine-components': ['settings', 'sdk', 'logging', 'components', 'themes', 'context-menu', 'workspace'],
+  'mantine-components': ['settings', 'sdk', 'logging', 'components', 'notifications', 'themes', 'context-menu', 'workspace'],
   'components-kit': ['sdk', 'logging', 'components', 'themes'],
   components: ['sdk'],
   'component-provider': ['sdk', 'logging', 'components', 'slots', 'slot-dom'],
@@ -142,6 +144,7 @@ export const packagePath = scope => {
   if (scope === 'window-titlebar') return 'plugins/UI/window-titlebar';
   if (scope === 'window-provider') return 'plugins/systems/window';
   if (scope === 'external-windows') return 'plugins/systems/external-windows';
+  if (scope === 'notification-provider') return 'plugins/systems/notifications';
   if (scope === 'desktop-background-settings') return 'plugins/UI/desktop-background-settings';
   if (scope === 'tauri-window') return 'plugins/systems/driver/tauri-window';
   if (scope === 'callouts') return 'plugins/UI/callouts';
@@ -232,7 +235,7 @@ export function checkSource(source, filename, scope) {
         value === '../manifest.json') return;
     if (scope === 'web' && path.resolve(filename) === path.resolve('hosts/web/src/bootstrap.ts') && value === '../../../resources/ascii_art.txt?raw') return;
     // The host owns startup artwork; plugins cannot reach outside their source roots.
-    if (['external-windows', 'desktop-background-settings'].includes(scope) && path.resolve(filename) === path.resolve(packagePath(scope), 'src/index.ts') && value === '../manifest.json') return;
+    if (['external-windows', 'desktop-background-settings', 'notification-provider'].includes(scope) && path.resolve(filename) === path.resolve(packagePath(scope), 'src/index.ts') && value === '../manifest.json') return;
     if (scope === 'tauri' && path.resolve(filename) === path.resolve('hosts/tauri/src/application.ts') &&
         value === '../../../resources/ascii_art.txt?raw') return;
     if (value.startsWith('./') || value.startsWith('../')) {
@@ -261,7 +264,10 @@ export function checkSource(source, filename, scope) {
       else errors.push(`${filename}: nonliteral import type`);
     }
     if (ts.isImportEqualsDeclaration(node)) errors.push(`${filename}: import assignments are forbidden`);
-    if (!applicationLoader && !packageLoader && ts.isCallExpression(node) && (scope !== 'development' || node.expression.kind !== ts.SyntaxKind.ImportKeyword) && (
+    const notificationIcons = scope === 'mantine-components' && path.resolve(filename) === path.resolve(packagePath(scope), 'src/notification.tsx') &&
+      ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword && node.arguments.length === 1 &&
+      ts.isStringLiteral(node.arguments[0]) && node.arguments[0].text === 'lucide/dist/esm/iconsAndAliases.mjs';
+    if (!applicationLoader && !packageLoader && !notificationIcons && ts.isCallExpression(node) && (scope !== 'development' || node.expression.kind !== ts.SyntaxKind.ImportKeyword) && (
       node.expression.kind === ts.SyntaxKind.ImportKeyword ||
       (ts.isIdentifier(node.expression) && node.expression.text === 'require')
     )) errors.push(`${filename}: dynamic module loading is forbidden`);

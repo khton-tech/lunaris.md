@@ -1525,3 +1525,12 @@ thresholds. Custom trees place supporting regions inline and stack rows at
 compact widths. Mantine owns their placement and surfaces and retains borrowed
 content targets for regions moved within a custom tree. See the
 [Workspace layout contract](../../../../DOCS/reference/workspace.md#replaceable-workspace-layout).
+## Desktop notification role
+
+`lunaris.notification` accepts the public `NotificationOptions` props from
+`@lunaris/notifications` and defaults to standalone/fill presentation. It uses
+[Mantine Notification](https://mantine.dev/core/notification/) as a themed card
+with a Lucide icon, title and wrapping text. The owning external window supplies
+its geometry. The renderer manages internal spacing, status semantics and
+overflow. The [notification provider](../../../systems/notifications/DOCS/README.md)
+owns placement, timing and queue state.

@@ -5,6 +5,7 @@ import windowTitlebar from "@lunaris/window-titlebar";
 import windowProvider from "@lunaris/window-provider";
 import tauriWindow from "@lunaris/tauri-window";
 import externalWindows from "@lunaris/external-windows";
+import notifications from "@lunaris/notification-provider";
 import desktopBackgroundSettings from "@lunaris/desktop-background-settings";
 import { createTauriCredentials } from "@lunaris/tauri-credentials";
 import { createTauriFilesystemDriver } from "@lunaris/tauri-filesystem";
@@ -21,11 +22,12 @@ export function composeApplication(target: HTMLElement): ApplicationDefinition {
   const processes = createTauriProcesses();
   const close = createCloseGuard();
   return composeShared(target, { art, mode: "desktop", externalLinksDriver: createTauriLinks(), platformPlugins: [native, credentials, processes], extensions: {
-    plugins: [windowTitlebar, windowProvider, tauriWindow, externalWindows, desktopBackgroundSettings, close.plugin],
-    entrypoints: [windowTitlebar.manifest.id, externalWindows.manifest.id, desktopBackgroundSettings.manifest.id, close.plugin.manifest.id], beforeClose: close.beforeClose,
+    plugins: [windowTitlebar, windowProvider, tauriWindow, externalWindows, notifications, desktopBackgroundSettings, close.plugin],
+    entrypoints: [windowTitlebar.manifest.id, externalWindows.manifest.id, notifications.manifest.id, desktopBackgroundSettings.manifest.id, close.plugin.manifest.id], beforeClose: close.beforeClose,
     grants: { [credentials.manifest.id]: credentials.manifest.permissions, [native.manifest.id]: ["filesystem.native"], [windowTitlebar.manifest.id]: ["window.control", "ui.dom"],
       [windowProvider.manifest.id]: ["window.control"], [tauriWindow.manifest.id]: ["window.native"],
-      [externalWindows.manifest.id]: externalWindows.manifest.permissions, [desktopBackgroundSettings.manifest.id]: desktopBackgroundSettings.manifest.permissions,
+      [externalWindows.manifest.id]: externalWindows.manifest.permissions, [notifications.manifest.id]: notifications.manifest.permissions,
+      [desktopBackgroundSettings.manifest.id]: desktopBackgroundSettings.manifest.permissions,
       [close.plugin.manifest.id]: ["vault.access"] },
   } });
 }

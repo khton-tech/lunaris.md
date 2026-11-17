@@ -3,6 +3,7 @@
 @import '@mantine/core/styles/Button.css';
 @import '@mantine/core/styles/Loader.css';
 @import '@mantine/core/styles/Badge.css';
+@import '@mantine/core/styles/Notification.css';
 @import '@mantine/core/styles/ActionIcon.css';
 @import '@mantine/core/styles/Input.css';
 @import '@mantine/core/styles/PasswordInput.css';
@@ -1131,3 +1132,48 @@
   .lm-root .lm-workspace-tab-label{min-height:44px}
 }
 @media(prefers-reduced-motion:reduce){.lm-disclosure-icon,.lm-backlink-heading,.lm-backlink-context{transition:none}}
+
+.lm-root .lm-notification {
+  --notification-radius: var(--vault-radius);
+  align-items: center;
+  background: var(--vault-panel);
+  border: var(--vault-border) solid var(--vault-separator);
+  box-shadow: none;
+  flex: 1 1 auto;
+  gap: calc(var(--vault-space) * 3);
+  min-block-size: 0;
+  min-inline-size: 0;
+  padding: calc(var(--vault-space) * 4);
+}
+.lm-root .lm-notification-icon {
+  background: color-mix(in srgb, var(--vault-accent) 14%, var(--vault-panel));
+  border-radius: var(--vault-radius-small);
+  color: var(--vault-accent-foreground);
+  font-size: 1.125em;
+  height: 2.25rem;
+  margin: 0;
+  width: 2.25rem;
+}
+.lm-root .lm-notification-body {
+  margin: 0;
+  max-block-size: 100%;
+  min-inline-size: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+}
+.lm-root .lm-notification-title {
+  color: var(--vault-text);
+  font-size: calc(var(--vault-ui-font-size) * 1.07);
+  font-weight: 650;
+  line-height: 1.35;
+  margin-block-end: var(--vault-space);
+  overflow-wrap: anywhere;
+}
+.lm-root .lm-notification-text {
+  color: var(--vault-secondary);
+  font-size: var(--vault-ui-font-size);
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}

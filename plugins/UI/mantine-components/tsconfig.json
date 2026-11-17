@@ -24,6 +24,9 @@
   ],
   "references": [
     {
+      "path": "../../../packages/notifications"
+    },
+    {
       "path": "../../../packages/sdk"
     },
     {

@@ -18,7 +18,9 @@ shared styles. Native IPC for window management is scoped to the main WebView.
 An external window can be owned by a Vault plugin activation, so closing the
 Vault also closes that activation's windows.
 
-Native acceptance requires an actual Windows WebView. Once a consumer is
-connected, verify framing, all eight work-area anchors, resize while anchored,
+Native acceptance requires an actual Windows WebView. Use the
+[Pong package](../../examples/pong-notification/DOCS/README.md) for the
+bottom-right case via the notification provider. Independently verify framing,
+all eight work-area anchors, resize while anchored,
 and all three stacking levels against another application. Verify focus,
 keyboard interaction, theme rendering, closure and release on consumer disable.

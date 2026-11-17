@@ -21,6 +21,7 @@
     "@lunaris/external-windows": "0.1.0",
     "@lunaris/logging": "0.1.0",
     "@lunaris/mantine-components": "0.1.0",
+    "@lunaris/notification-provider": "0.1.0",
     "@lunaris/sdk": "0.1.0",
     "@lunaris/tauri-credentials": "0.1.0",
     "@lunaris/tauri-filesystem": "0.1.0",

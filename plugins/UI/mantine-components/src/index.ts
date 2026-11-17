@@ -5,6 +5,8 @@ import { DeclarativeView, declarativeViewProps } from "./declarative-view.js";
 import { calloutHeaderProps, CalloutHeader } from "./callout-header.js";
 import { statusBarProps, StatusBar } from "./status-bar.js";
 import { noticeProps, ClientUpdateNotice } from "./client-update.js";
+import { notificationProps, DesktopNotification } from "./notification.js";
+import { NotificationRole } from "@lunaris/notifications";
 import { windowTitlebarProps, WindowTitlebar } from "./window-titlebar.js";
 import { accountAccessProps, AccountAccessView } from "./account-access.js";
 import { textEditorProps, TextEditor } from "./text-editor.js";
@@ -37,6 +39,7 @@ const colorSchemeManager = { get: () => "dark" as const, set() {}, subscribe() {
 
 export default definePlugin({ manifest, activate(ctx) {
   const logger = scopeLogger(ctx.use(Logger), ctx.signal); const components = ctx.use(Components); const themes = ctx.use(Themes);
+  const reportNotificationIconFailure = (error: unknown) => { logger.warn(ctx.pluginId, "Cannot load Lucide notification icons", { error }); };
   logger.debug(ctx.pluginId, "Activating Mantine components");
   const instances = new Set<{ applyTheme(): void }>();
   let selectedTheme = themes.current();
@@ -53,10 +56,10 @@ export default definePlugin({ manifest, activate(ctx) {
     notifiedTheme = selected;
     for (const instance of instances) instance.applyTheme();
   });
-  for (const id of ["lunaris.backlinks", "lunaris.declarative-view", "lunaris.lime-settings", "lunaris.mobile-menu", "lunaris.callout-header", "lunaris.status-bar", "lunaris.client-update", "lunaris.account-access", "lunaris.window-titlebar", "lunaris.task-checkbox", "lunaris.text-editor", "lunaris.settings-items", "lunaris.settings-choices", "lunaris.settings-navigation", "lunaris.settings-page", "lunaris.active-screen", "lunaris.startup-screen", "lunaris.vault-selector", "lunaris.workspace-header", "lunaris.workspace-empty", "lunaris.workspace-layout", "lunaris.sidebar-rail", "lunaris.file-explorer", "lunaris.context-menu"] as const) {
+  for (const id of ["lunaris.backlinks", "lunaris.declarative-view", "lunaris.lime-settings", "lunaris.mobile-menu", "lunaris.callout-header", "lunaris.status-bar", "lunaris.client-update", "lunaris.account-access", "lunaris.window-titlebar", "lunaris.task-checkbox", "lunaris.text-editor", "lunaris.settings-items", "lunaris.settings-choices", "lunaris.settings-navigation", "lunaris.settings-page", "lunaris.active-screen", "lunaris.startup-screen", "lunaris.vault-selector", "lunaris.workspace-header", "lunaris.workspace-empty", "lunaris.workspace-layout", "lunaris.sidebar-rail", "lunaris.file-explorer", "lunaris.context-menu", NotificationRole] as const) {
     const validate = { "lunaris.backlinks": backlinksProps, "lunaris.mobile-menu": mobileMenuProps, "lunaris.callout-header": calloutHeaderProps, "lunaris.status-bar": statusBarProps, "lunaris.client-update": noticeProps, "lunaris.account-access": accountAccessProps, "lunaris.window-titlebar": windowTitlebarProps, "lunaris.task-checkbox": taskCheckboxProps, "lunaris.text-editor": textEditorProps, "lunaris.settings-items": settingsItemsProps, "lunaris.settings-choices": settingsChoicesProps, "lunaris.settings-navigation": settingsNavigationProps, "lunaris.settings-page": settingsPageProps, "lunaris.active-screen": activeScreenProps, "lunaris.startup-screen": startupProps, "lunaris.vault-selector": selectorProps,
       "lunaris.declarative-view": declarativeViewProps, "lunaris.lime-settings": limeSettingsProps, "lunaris.workspace-header": workspaceHeaderProps, "lunaris.workspace-empty": workspaceEmptyProps,
-      "lunaris.workspace-layout": layoutProps, "lunaris.sidebar-rail": railProps, "lunaris.file-explorer": explorerProps, "lunaris.context-menu": contextMenuProps }[id];
+      "lunaris.workspace-layout": layoutProps, "lunaris.sidebar-rail": railProps, "lunaris.file-explorer": explorerProps, "lunaris.context-menu": contextMenuProps, [NotificationRole]: notificationProps }[id];
     const registration = components.register({ id, mount(target, initial, signal): ComponentInstance {
       let props = initial;
       try { validate(props); readPresentation(id, props); }
@@ -98,6 +101,7 @@ export default definePlugin({ manifest, activate(ctx) {
           : id === "lunaris.workspace-layout" ? createElement(WorkspaceLayout, { props: layoutProps(props), theme })
           : id === "lunaris.sidebar-rail" ? createElement(SidebarRail, { props: railProps(props), theme })
           : id === "lunaris.context-menu" ? createElement(ContextMenuView, { props: contextMenuProps(props), theme })
+          : id === NotificationRole ? createElement(DesktopNotification, { props: notificationProps(props), theme, onIconError: reportNotificationIconFailure })
           : createElement(FileExplorer, { key: explorerProps(props).vaultId, props: explorerProps(props), theme });
         rendering = true;
         try { flushSync(() => root.render(createElement(MantineProvider, {

@@ -11,6 +11,7 @@
     "./styles.css": "./styles.css"
   },
   "dependencies": {
+    "@lunaris/notifications": "0.1.0",
     "@lunaris/components": "0.1.0",
     "@lunaris/logging": "0.1.0",
     "@lunaris/sdk": "0.1.0",

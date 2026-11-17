@@ -50,6 +50,9 @@
       "path": "../../plugins/systems/external-windows"
     },
     {
+      "path": "../../plugins/systems/notifications"
+    },
+    {
       "path": "../../plugins/UI/desktop-background-settings"
     },
     {
