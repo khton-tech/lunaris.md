@@ -1,0 +1,28 @@
+{
+  "manifestVersion": 1,
+  "id": "example.pong-notification",
+  "version": "1.0.0",
+  "engine": "^0.1.0",
+  "sdk": "^0.1.0",
+  "entry": "./dist/src/plugin.js",
+  "metadata": {
+    "name": "Pong Notification",
+    "author": "Lunaris examples",
+    "description": "Shows a desktop notification when ui.pong(text) is called in the Lunaris developer console.",
+    "platforms": ["desktop"],
+    "languages": ["en", "ru"],
+    "translations": {
+      "ru": { "name": "Уведомление Pong", "description": "Показывает уведомление на рабочем столе по команде ui.pong(text) из консоли Lunaris." }
+    }
+  },
+  "provides": [],
+  "requires": [
+    { "kind": "api", "id": "lunaris.application-dom", "range": "^1.0.0" },
+    { "kind": "api", "id": "lunaris.external-windows", "range": "^1.0.0" },
+    { "kind": "api", "id": "lunaris.localization", "range": "^1.0.0" },
+    { "kind": "api", "id": "lunaris.logger", "range": "^1.0.0" },
+    { "kind": "api", "id": "lunaris.views", "range": "^1.0.0" }
+  ],
+  "permissions": ["ui.dom", "window.external"],
+  "optionalPermissions": []
+}
