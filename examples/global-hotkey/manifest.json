@@ -1,0 +1,26 @@
+{
+  "manifestVersion": 1,
+  "id": "example.global-hotkey",
+  "version": "1.0.0",
+  "engine": "^0.1.0",
+  "sdk": "^0.1.0",
+  "entry": "./dist/src/plugin.js",
+  "targets": { "windows": "supported", "web": "unsupported", "linux": "unsupported", "macos": "unsupported", "android": "unsupported", "ios": "unsupported" },
+  "metadata": {
+    "name": "Global Hotkey",
+    "description": "Sends a plugin event when Ctrl+Alt+Shift+H is pressed on Windows.",
+    "author": "Lunaris examples",
+    "platforms": ["desktop"],
+    "languages": ["en", "ru"],
+    "translations": {
+      "ru": { "name": "Глобальная горячая клавиша", "description": "Отправляет событие плагина при нажатии Ctrl+Alt+Shift+H в Windows." }
+    }
+  },
+  "provides": [{ "kind": "event", "id": "example.global-hotkey-pressed", "version": "1.0.0" }],
+  "requires": [
+    { "kind": "api", "id": "lunaris.logger", "range": "^1.0.0" },
+    { "kind": "api", "id": "lunaris.native-processes", "range": "^1.0.0" }
+  ],
+  "permissions": [],
+  "optionalPermissions": []
+}

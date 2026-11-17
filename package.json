@@ -20,6 +20,7 @@
     "toolchain:archive": "node tools/scripts/plugin-toolchain-archive.mjs",
     "lime:dx": "node tools/scripts/lime-dx.mjs",
     "lime:particles": "node tools/scripts/lime-particles.mjs",
+    "lime:hotkey": "node tools/scripts/lime-hotkey.mjs",
     "dev:server": "node tools/scripts/server-dev.mjs",
     "server:check": "node tools/scripts/server-check.mjs",
     "server:artifacts": "node tools/scripts/server-artifacts.mjs",
