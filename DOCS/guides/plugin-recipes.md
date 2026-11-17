@@ -247,3 +247,51 @@ Use Copy and Paste from the editor context menu to exercise the replacement.
 The copied text lives in the plugin's activation and disappears when it stops.
 Select Host default and re-enable the built-in Clipboard provider to restore
 this dependency, or use Restore defaults to clear the entire Vault profile.
+
+### Wrap the existing provider
+
+Generate a second project with the ID `example.clipboard-line-endings`. Use the
+same Clipboard provision and add the corresponding requirement alongside Logger.
+Declare `clipboard.access` in `permissions`.
+
+```json
+{ "kind": "api", "id": "lunaris.clipboard", "range": "^1.0.0" }
+```
+
+Use the same imports as above and forward methods to the explicitly selected
+upstream provider. This decorator normalizes line endings on reads.
+
+```ts
+export default definePlugin({
+  manifest,
+  activate(ctx) {
+    const logger = ctx.use(Logger);
+    const upstream = ctx.use(Clipboard);
+    ctx.provide(Clipboard, {
+      capabilities: () => upstream.capabilities(),
+      async readText() {
+        const result = await upstream.readText();
+        if (!result.ok) {
+          logger.warn(ctx.pluginId, "Upstream clipboard read failed", { error: result.error });
+          return result;
+        }
+        logger.debug(ctx.pluginId, "Normalized clipboard line endings");
+        return { ok: true, value: result.value.replace(/\r\n?/g, "\n") };
+      },
+      async writeText(value) {
+        const result = await upstream.writeText(value);
+        if (!result.ok) logger.warn(ctx.pluginId, "Upstream clipboard write failed", { error: result.error });
+        return result;
+      },
+    });
+    logger.info(ctx.pluginId, "Clipboard decorator ready");
+  },
+});
+```
+
+Pack the decorator and choose Install disabled in the package preview. In its
+installed package Details, select `lunaris.clipboard-provider` for
+`api:lunaris.clipboard` and apply that provider choice before enabling the
+decorator. Then select the decorator as the editor's provider in Built-in plugins
+and apply the composition profile. Keep the upstream provider enabled. The two
+explicit choices form the chain from editor to decorator to upstream provider.
