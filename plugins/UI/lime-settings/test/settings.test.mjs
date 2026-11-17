@@ -7,18 +7,28 @@ import { setupWorkspace, flush } from '../../../../tools/test/workspace.mjs';
 
 const ok = value => ({ ok: true, value });
 const manifest = { manifestVersion: 1, id: 'test.package', version: '1.0.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './plugin.js', metadata: { name: '<img src=x> Novel view', author: 'Author', description: 'Long metadata '.repeat(30), languages: ['en', 'ru'], translations: { ru: { name: 'Новый инструмент' } }, platforms: ['desktop'], repository: 'https://example.com/plugin', fields: [{ label: 'License', value: 'MIT' }] }, provides: [], requires: [{ kind: 'api', id: 'test.dependency', range: '^1.0.0' }], permissions: [], optionalPermissions: [] };
-async function fixture() {
+async function fixture({ composition = false } = {}) {
   let state = { vaultId: 'vault-1', busy: false, safeMode: false, error: null, installations: [] }; let provider; const calls = []; let selectedProvider = 'test.first'; let revision = 7;
+  let profile = { bindings: [], disabledBuiltins: [] };
+  const builtins = [
+    { id: 'test.consumer', state: 'active', version: '1.0.0', mutable: true },
+    { id: 'test.first', state: 'active', version: '1.0.0', mutable: true },
+    { id: 'test.core', state: 'active', version: '1.0.0', mutable: false },
+  ];
   const publish = async () => { await provider.events.emit(LimeChanged, state); };
   const plugin = definePlugin({ manifest: { ...manifest, id: 'test.engine', provides: [Lime, LimeChanged].map(token => ({ kind: token.kind, id: token.id, version: token.version })), requires: [] }, activate(ctx) {
     provider = ctx; ctx.provide(Lime, {
       snapshot: () => state,
-      plan() { return ok({ pluginId: manifest.id, revision, affected: [manifest.id, 'test.consumer'], dependencies: [
+      plan(id) { return ok({ pluginId: id, revision, affected: [id, 'test.consumer'], dependencies: [
         { kind: 'api', id: 'test.dependency', range: '^1.0.0', optional: false, selected: selectedProvider, candidates: [{ id: 'test.first', version: '1.0.0', state: 'active' }, { id: 'test.second', version: '1.0.0', state: 'disabled' }, { id: 'test.third', version: '1.1.0', state: 'active' }] },
         { kind: 'event', id: 'test.missing', range: '^1.0.0', optional: true, candidates: [] },
         { kind: 'api', id: 'test.fixed', range: '^1.0.0', optional: false, selected: 'test.only', candidates: [{ id: 'test.only', version: '1.0.0', state: 'active' }] },
       ] }); },
       async selectProvider(...args) { calls.push(['selectProvider', ...args]); selectedProvider = args[3]; revision++; return ok(null); },
+      composition() { return composition ? ok({ revision, profile, savedProfile: profile, builtins }) : { ok: false, error: { code: 'UNSUPPORTED' } }; },
+      async applyComposition(profileChange, expectedRevision) {
+        calls.push(['applyComposition', profileChange, expectedRevision]); profile = profileChange; revision++; await publish(); return ok(null);
+      },
       async preview() {
         calls.push(['preview']);
         return ok({ ticket: 1, manifest, digest: 'a'.repeat(64), platformWarning: true,
@@ -84,6 +94,37 @@ test('Lime composes inside real Settings/Workspace and confirms preview before i
     s.button('Remove').click(); await flush(); assert.match(view.textContent, /retain its data and settings/);
     assert.match(view.textContent, /Affected plugins: test.package, test.consumer/);
     s.button('Remove and keep data').click(); await flush(); assert.deepEqual(s.calls.at(-1), ['remove', 'test.package', false]);
+  } finally { await s.stop(); }
+});
+
+test('built-in composition stages providers and suppression together through the shared Settings role', async () => {
+  const s = await fixture({ composition: true });
+  try {
+    s.button('Built-in plugins').click(); await flush();
+    const panel = s.surface.querySelector('[aria-label="Built-in plugins"]');
+    const row = id => panel.querySelector(`[data-lime-id="${id}"]`);
+    assert.equal(row('test.core').querySelector('input'), null);
+    row('test.consumer').querySelector('button').click(); await flush();
+    const dialog = s.dom.window.document.querySelector('.lm-lime-overlay [role=dialog]');
+    [...dialog.querySelectorAll('[role=tab]')].find(tab => tab.textContent === 'Dependencies').click(); await flush();
+    const menu = dialog.querySelector('[aria-label="Provider test.dependency"]');
+    menu.click(); await flush();
+    assert.ok(s.dom.window.document.getElementById(menu.getAttribute('aria-controls')).closest('.lm-dropdown-overlay'));
+    [...s.dom.window.document.querySelectorAll('[role=option]')].find(option => option.textContent.includes('test.third')).click(); await flush();
+    s.button('Set provider').click(); await flush();
+    assert.equal(s.calls.length, 0);
+    s.button('Close').click(); await flush();
+    row('test.first').querySelector('input').click(); await flush();
+    assert.equal(row('test.first').querySelector('input').checked, false);
+    assert.equal(s.calls.length, 0);
+    s.button('Apply composition').click(); await flush();
+    assert.deepEqual(s.calls.at(-1), ['applyComposition', {
+      bindings: [{ consumerId: 'test.consumer', kind: 'api', contractId: 'test.dependency', providerId: 'test.third' }],
+      disabledBuiltins: ['test.first'],
+    }, 7]);
+    s.button('Restore defaults').click(); await flush();
+    s.button('Apply composition').click(); await flush();
+    assert.deepEqual(s.calls.at(-1), ['applyComposition', { bindings: [], disabledBuiltins: [] }, 8]);
   } finally { await s.stop(); }
 });
 

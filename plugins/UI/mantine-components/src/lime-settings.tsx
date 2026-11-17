@@ -11,6 +11,15 @@ interface Metadata { readonly id: string; readonly name: string; readonly versio
 interface Row extends Metadata { readonly requirements?: Metadata['fields']; readonly enabled: boolean; readonly recovery: boolean; readonly state: string; readonly removing: boolean }
 interface Dependency { readonly kind: 'api' | 'event' | 'hook'; readonly id: string; readonly range: string; readonly optional: boolean; readonly selected?: string; readonly candidates: readonly { readonly id: string; readonly version: string; readonly state: string }[] }
 interface DependencyPlan { readonly pluginId: string; readonly revision: number; readonly affected: readonly string[]; readonly dependencies: readonly Dependency[] }
+interface BuiltinRow extends Metadata {
+  readonly enabled: boolean; readonly mutable: boolean; readonly state: string;
+  readonly bindings: readonly { readonly kind: Dependency['kind']; readonly contractId: string; readonly providerId: string }[];
+}
+interface Composition {
+  readonly rows: readonly BuiltinRow[]; readonly draft: boolean; readonly customized: boolean;
+  readonly onToggle: (id: string, enabled: boolean) => void;
+  readonly onApply: () => void; readonly onDiscard: () => void; readonly onReset: () => void;
+}
 interface Props {
   readonly labels: Readonly<Record<string, string>>;
   readonly rows: readonly Row[];
@@ -21,10 +30,13 @@ interface Props {
   readonly onUpdate: (id: string) => void; readonly onRemove: (id: string, deleteData: boolean) => void;
   readonly onSafeMode: (safeMode: boolean) => void;
   readonly dependencyPlan: DependencyPlan | null;
+  readonly composition?: Composition | null;
   readonly onPlan: (id: string) => void;
   readonly onSelectProvider: (id: string, kind: Dependency['kind'], contractId: string, providerId: string, revision: number) => void;
 }
 const labels = ['add', 'empty', 'noVault', 'enabled', 'details', 'remove', 'cancel', 'keepData', 'deleteData', 'removePrompt', 'warning', 'retry', 'update', 'safeMode', 'resume', 'provider', 'applyProvider', 'refreshDependencies', 'affected', 'missingDependency', 'noDependencies', 'selectProvider', 'enableProvider', 'optional', 'overview', 'requires', 'previewTabs'];
+const compositionLabels = ['builtins', 'useDefaultProvider', 'setProvider', 'applyComposition', 'discardComposition', 'resetComposition'];
+const hostDefault = 'host-default';
 const validFields = (fields: unknown): fields is Metadata['fields'] =>
   Array.isArray(fields) && fields.every(field => typeof field?.label === 'string' && typeof field.value === 'string');
 export function limeSettingsProps(value: ComponentProps): Props {
@@ -39,6 +51,16 @@ export function limeSettingsProps(value: ComponentProps): Props {
     !['onAdd', 'onConfirm', 'onCancel', 'onToggle', 'onRetry', 'onUpdate', 'onRemove', 'onSafeMode', 'onPlan', 'onSelectProvider'].every(key => typeof value[key] === 'function')) throw new TypeError('Invalid Lime Settings props.');
   const plan = value.dependencyPlan as DependencyPlan | null;
   if (plan !== null && (!plan || typeof plan.pluginId !== 'string' || !Number.isSafeInteger(plan.revision) || !Array.isArray(plan.affected) || !plan.affected.every(id => typeof id === 'string') || !Array.isArray(plan.dependencies) || !plan.dependencies.every(item => item && ['api','event','hook'].includes(item.kind) && typeof item.id === 'string' && typeof item.range === 'string' && typeof item.optional === 'boolean' && (item.selected === undefined || typeof item.selected === 'string') && Array.isArray(item.candidates) && item.candidates.every((candidate: Dependency['candidates'][number]) => candidate && ['id','version','state'].every(key => typeof (candidate as unknown as Record<string, unknown>)[key] === 'string'))))) throw new TypeError('Invalid Lime dependency plan.');
+  const composition = value.composition as Composition | null | undefined;
+  if (composition != null && (
+    !compositionLabels.every(key => typeof (value.labels as Record<string, unknown>)[key] === 'string') ||
+    typeof composition.draft !== 'boolean' || typeof composition.customized !== 'boolean' ||
+    ![composition.onApply, composition.onDiscard, composition.onReset, composition.onToggle].every(action => typeof action === 'function') ||
+    !Array.isArray(composition.rows) || !composition.rows.every((row: BuiltinRow) => metadata(row) && typeof row.enabled === 'boolean' && typeof row.mutable === 'boolean' &&
+      typeof row.state === 'string' && Array.isArray(row.bindings) && row.bindings.every(binding => binding &&
+        ['api', 'event', 'hook'].includes(binding.kind) && typeof binding.contractId === 'string' && typeof binding.providerId === 'string')) ||
+    new Set(composition.rows.map(row => row.id)).size !== composition.rows.length
+  )) throw new TypeError('Invalid Lime application composition.');
   return value as unknown as Props;
 }
 function Details({ item }: { item: Pick<Metadata, 'description' | 'fields'> }) {
@@ -84,33 +106,39 @@ function PackagePreview({ preview, props }: { preview: NonNullable<Props['previe
       </Group>
     </>} />;
 }
-function ProviderSelection({ dependency, plan, props, enabled }: { dependency: Dependency; plan: DependencyPlan; props: Props; enabled: boolean }) {
-  const [selected, setSelected] = useState(dependency.selected ?? '');
-  useEffect(() => { setSelected(dependency.selected ?? ''); }, [plan.revision, dependency.selected]);
+function ProviderSelection({ dependency, plan, props, row }: { dependency: Dependency; plan: DependencyPlan; props: Props; row: Row | BuiltinRow }) {
+  const builtin = 'bindings' in row ? row : undefined;
+  const current = builtin ? builtin.bindings.find(binding => binding.kind === dependency.kind && binding.contractId === dependency.id)?.providerId ?? hostDefault : dependency.selected ?? '';
+  const [selected, setSelected] = useState(current);
+  useEffect(() => { setSelected(current); }, [plan.revision, current]);
   const candidate = dependency.candidates.find(item => item.id === selected);
   const options = dependency.candidates.map(item => ({
     value: item.id, label: `${item.id} ${item.version} · ${props.labels[item.state] ?? item.state}`,
   }));
+  if (builtin?.mutable && (options.length > 1 || current !== hostDefault)) options.unshift({ value: hostDefault, label: props.labels.useDefaultProvider! });
   const [onlyOption] = options;
-  const needsEnable = enabled && candidate?.state === 'disabled';
+  const needsEnable = (builtin || row.enabled) && candidate?.state === 'disabled';
+  const locked = props.busy || props.safeMode || builtin?.mutable === false;
+  const selectable = selected === hostDefault || !!candidate;
   return <Box component="li" className="lm-lime-dependency">
     <Text size="sm" fw={600}>
       {dependency.kind}:{dependency.id}{' '}
       <Text span fw={400} c="dimmed">{dependency.range}{dependency.optional ? ` (${props.labels.optional})` : ''}</Text>
     </Text>
     {!onlyOption ? <Text size="sm" c="dimmed">{props.labels.missingDependency}</Text> :
-      options.length === 1 && onlyOption.value === dependency.selected ? <Text size="sm">{onlyOption.label}</Text> :
+      builtin?.mutable === false || (options.length === 1 && onlyOption.value === dependency.selected) ?
+        <Text size="sm">{options.find(option => option.value === dependency.selected)?.label ?? options.map(option => option.label).join(', ')}</Text> :
         <Group className="lm-lime-provider-actions" gap="xs">
           <Box className="lm-lime-provider-select">
-            <SettingsSelect aria-label={`${props.labels.provider} ${dependency.id}`} value={selected || props.labels.selectProvider!} options={options} disabled={props.busy || props.safeMode} onChange={setSelected} />
+            <SettingsSelect aria-label={`${props.labels.provider} ${dependency.id}`} value={selected || props.labels.selectProvider!} options={options} disabled={locked} onChange={setSelected} />
           </Box>
-          <Button size="compact-sm" variant="subtle" disabled={props.busy || props.safeMode || !candidate || needsEnable || selected === dependency.selected}
-            onClick={() => props.onSelectProvider(plan.pluginId, dependency.kind, dependency.id, selected, plan.revision)}>{props.labels.applyProvider}</Button>
+          <Button size="compact-sm" variant="subtle" disabled={locked || !selectable || needsEnable || selected === current}
+            onClick={() => props.onSelectProvider(plan.pluginId, dependency.kind, dependency.id, selected === hostDefault ? '' : selected, plan.revision)}>{props.labels[builtin ? 'setProvider' : 'applyProvider']}</Button>
         </Group>}
     {needsEnable && <Text size="sm" c="dimmed">{props.labels.enableProvider}</Text>}
   </Box>;
 }
-function PackageDetails({ row, props, onClose }: { row: Row; props: Props; onClose: () => void }) {
+function PackageDetails({ row, props, onClose }: { row: Row | BuiltinRow; props: Props; onClose: () => void }) {
   const plan = props.dependencyPlan?.pluginId === row.id ? props.dependencyPlan : null;
   return <PackageDialog item={row} labels={props.labels} onClose={onClose}
     overview={<Stack gap="xs">
@@ -132,9 +160,9 @@ function PackageDetails({ row, props, onClose }: { row: Row; props: Props; onClo
           <Text size="sm" c="dimmed">{props.labels.affected}: {plan.affected.join(', ')}</Text>}
         {plan.dependencies.length ? <Box component="ul" className="lm-lime-dependency-list">
           {plan.dependencies.map(dependency => <ProviderSelection key={`${dependency.kind}:${dependency.id}`}
-            dependency={dependency} plan={plan} props={props} enabled={row.enabled} />)}
+            dependency={dependency} plan={plan} props={props} row={row} />)}
         </Box> : <Text size="sm" c="dimmed">{props.labels.noDependencies}</Text>}
-      </> : row.requirements?.length ? <Details item={{ description: '', fields: row.requirements }} /> :
+      </> : 'requirements' in row && row.requirements?.length ? <Details item={{ description: '', fields: row.requirements }} /> :
         <Text size="sm" c="dimmed">{props.labels.noDependencies}</Text>}
     </Stack>}
     footer={<>
@@ -150,7 +178,9 @@ export function LimeSettings({ props, theme, overlay }: {
   overlay: { id: string; target: HTMLElement };
 }) {
   const [detailsId, setDetailsId] = useState<string | null>(null); const [removing, setRemoving] = useState<string | null>(null);
-  const details = props.available ? props.rows.find(row => row.id === detailsId) : undefined;
+  const [showBuiltins, setShowBuiltins] = useState(false);
+  const composition = props.composition;
+  const details = props.available ? props.rows.find(row => row.id === detailsId) ?? composition?.rows.find(row => row.id === detailsId) : undefined;
   const dialogOpen = !!(props.preview || details);
   const dialogTrigger = useRef<HTMLButtonElement>(null);
   const hadDialog = useRef(false);
@@ -168,7 +198,9 @@ export function LimeSettings({ props, theme, overlay }: {
         {!props.rows.length && !props.preview && <Text size="sm" c="dimmed">{props.labels.empty}</Text>}
         <Group gap="xs" wrap="wrap">
           <Button size="sm" variant="filled" leftSection={<Icon name="create" />} disabled={disabled || dialogOpen} onClick={event => { dialogTrigger.current = event.currentTarget; props.onAdd(); }}>{props.labels.add}</Button>
-          {(props.safeMode || props.rows.length > 0) && <Button size="compact-sm" variant="subtle" disabled={disabled || !!props.preview} onClick={() => props.onSafeMode(!props.safeMode)}>{props.safeMode ? props.labels.resume : props.labels.safeMode}</Button>}
+          {composition && <Button size="compact-sm" variant="subtle" aria-expanded={showBuiltins}
+            disabled={disabled || dialogOpen} onClick={() => setShowBuiltins(value => !value)}>{props.labels.builtins}</Button>}
+          {(props.safeMode || props.rows.length > 0 || composition?.customized) && <Button size="compact-sm" variant="subtle" disabled={disabled || !!props.preview} onClick={() => props.onSafeMode(!props.safeMode)}>{props.safeMode ? props.labels.resume : props.labels.safeMode}</Button>}
         </Group>
       </>}
     </Group>
@@ -213,5 +245,28 @@ export function LimeSettings({ props, theme, overlay }: {
         </Group>
       </Stack>}
     </Box>)}
+    {props.available && composition && showBuiltins && <Stack gap="xs" role="group" aria-label={props.labels.builtins}>
+      {(composition.draft || composition.customized) && <Group gap="xs" wrap="wrap">
+        {composition.draft && <>
+          <Button size="compact-sm" disabled={disabled || dialogOpen || (props.safeMode && composition.customized)} onClick={composition.onApply}>{props.labels.applyComposition}</Button>
+          <Button size="compact-sm" variant="subtle" disabled={disabled || dialogOpen} onClick={composition.onDiscard}>{props.labels.discardComposition}</Button>
+        </>}
+        {composition.customized && <Button size="compact-sm" variant="subtle" disabled={disabled || dialogOpen} onClick={composition.onReset}>{props.labels.resetComposition}</Button>}
+      </Group>}
+      {composition.rows.map(row => <Box key={row.id} className="lm-lime-package" data-lime-id={row.id}>
+        <Box className="lm-lime-package-header">
+          <Stack className="lm-lime-package-name" gap={4}>
+            <Text size="sm" fw={600}>{row.name} <Text span fw={400} c="dimmed">{row.version}</Text></Text>
+            <Text size="sm" c="dimmed">{row.state}</Text>
+          </Stack>
+          <Group gap="xs" wrap="wrap">
+            {row.mutable && <Switch aria-label={`${props.labels.enabled} ${row.name}`} checked={row.enabled}
+              disabled={disabled || props.safeMode || dialogOpen} onChange={event => composition.onToggle(row.id, event.currentTarget.checked)} />}
+            <Button size="compact-xs" variant="subtle" aria-haspopup="dialog" disabled={disabled || dialogOpen}
+              onClick={event => { dialogTrigger.current = event.currentTarget; props.onPlan(row.id); setDetailsId(row.id); }}>{props.labels.details}</Button>
+          </Group>
+        </Box>
+      </Box>)}
+    </Stack>}
   </Stack>;
 }

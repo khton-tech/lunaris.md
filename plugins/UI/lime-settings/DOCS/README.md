@@ -45,6 +45,22 @@ package. Disabled providers are not enabled implicitly; running consumers requir
 an enabled choice. Refresh dependencies obtains a new revision. Engine failures
 are localized and successful changes refresh the plan. Vault changes clear it.
 
+On a host with the composition adapter, Built-in plugins opens built-in rows
+inside the same Settings section. Each eligible row has a switch and uses the
+same Details dialog and themed dependency picker as an installed package. The
+picker can stage an explicit provider or clear that override with Host default.
+Protected rows display read-only dependency details. Changes to built-in switches
+and providers are staged together. Apply composition submits the whole profile
+with its original revision. Discard changes clears the draft. Restore defaults
+stages an empty profile, including in safe mode. Vault changes discard the draft.
+
+The `lunaris.lime-settings` role accepts an optional `composition` object with
+metadata rows, draft and customized flags, and callbacks for toggling a built-in,
+applying, discarding and restoring defaults. Built-in rows supply `mutable` and
+their staged `bindings` for the Details picker. The controller owns the draft,
+Vault, revision and SDK calls. The role owns the collapsible list, presentation
+and keyboard interactions within the same Settings section.
+
 Enable/disable, retry, update and safe-mode restore call engine APIs only. Remove
 offers explicit retain/delete-data actions. A pending removal exposes Retry using
 the already committed data choice, never a misleading new choice. No Vault/busy,
@@ -81,3 +97,10 @@ Engine/Settings/UIKit integration is tested and included in normal shared host
 composition. Provider-choice integration is implemented and tested with an opened
 Mantine menu, disabled candidates, explicit application and revision forwarding.
 Native acceptance and application-host development attachment remain pending.
+
+The composed Settings test verifies built-in row restrictions, the opened
+provider menu, staging a provider and disabling a built-in without a runtime
+call, one revision-checked commit, and restoring defaults. Manually check the
+built-in list at narrow and short viewport sizes in English and Russian. Open
+Details with the keyboard, choose a provider, close the dialog, toggle a built-in
+and inspect keyboard focus and restored defaults after applying.
