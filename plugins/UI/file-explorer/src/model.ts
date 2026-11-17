@@ -219,6 +219,24 @@ export class ExplorerModel {
       }
     });
   }
+  async createUntitled(base: string): Promise<string | null> {
+    let created: string | null = null;
+    const success = await this.mutate([""], async () => {
+      const used = new Set(this.directories.get("")?.map(entry => entry.path.toLowerCase()));
+      const stem = base.slice(0, -".md".length);
+      for (let index = 1; this.active; index++) {
+        const path = index === 1 ? base : `${stem} ${index}.md`;
+        if (used.has(path.toLowerCase())) continue;
+        const result = await this.fs.writeText(this.target(path), "", { mode: "create" });
+        if (!result.ok && result.error.code === "ALREADY_EXISTS") continue;
+        this.check(result);
+        if (this.active) this.selection = [path];
+        created = path;
+        return;
+      }
+    });
+    return success ? created : null;
+  }
   rename(path: string, name: string): Promise<boolean> {
     return this.mutate([parentPath(path)], async () => {
       const destination = this.name(parentPath(path), name);

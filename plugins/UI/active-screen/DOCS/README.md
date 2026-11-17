@@ -21,8 +21,10 @@ Mantine's `lunaris.active-screen` role supplies stable child targets. The contro
 mounts child roles only after layout mount/update returns, passing each screen's
 props plus Workspace context. Only previously selected screens are mounted.
 Switching hides and makes inactive targets inert, removes hidden focus, and retains
-the instance, input drafts and scroll. Null selection shows the localized empty
-state. Unavailable or failed selected roles show a localized failure state; later
+the instance, input drafts and scroll. Null selection in a document workspace
+mounts File Explorer's optional `lunaris.file-explorer-empty` role with the
+current Vault ID and localized create/open labels. Unavailable or failed selected
+roles show a localized failure state; later
 registration or props updates can recover. Renderer replacement can lose local
 view state and is outside the retention guarantee.
 

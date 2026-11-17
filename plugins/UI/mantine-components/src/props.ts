@@ -4,7 +4,13 @@ export interface StartupProps { readonly art: string; readonly logoLabel: string
 export interface WorkspaceHeaderProps {
   readonly name: string; readonly closeLabel: string; readonly busy: boolean; readonly error: string; readonly onClose: () => void;
 }
-export interface WorkspaceEmptyProps { readonly title: string; readonly detail: string }
+export interface WorkspaceEmptyProps {
+  readonly title: string; readonly detail: string;
+  readonly actions?: {
+    readonly createLabel: string; readonly openLabel: string; readonly busy: boolean;
+    readonly onCreate: () => void; readonly onOpen: () => void;
+  };
+}
 export function workspaceHeaderProps(value: ComponentProps): WorkspaceHeaderProps {
   for (const key of ["name", "closeLabel", "error"]) if (typeof value[key] !== "string") throw new TypeError(`Workspace header requires ${key}.`);
   if (typeof value.busy !== "boolean" || typeof value.onClose !== "function") throw new TypeError("Invalid workspace close action.");
@@ -12,6 +18,10 @@ export function workspaceHeaderProps(value: ComponentProps): WorkspaceHeaderProp
 }
 export function workspaceEmptyProps(value: ComponentProps): WorkspaceEmptyProps {
   if (typeof value.title !== "string" || typeof value.detail !== "string") throw new TypeError("Workspace placeholder requires localized title and detail.");
+  const actions = value.actions as WorkspaceEmptyProps["actions"];
+  if (actions !== undefined && (!actions || typeof actions.createLabel !== "string" || typeof actions.openLabel !== "string" ||
+      typeof actions.busy !== "boolean" || typeof actions.onCreate !== "function" || typeof actions.onOpen !== "function"))
+    throw new TypeError("Invalid workspace placeholder actions.");
   return value as unknown as WorkspaceEmptyProps;
 }
 export interface SelectorProps {

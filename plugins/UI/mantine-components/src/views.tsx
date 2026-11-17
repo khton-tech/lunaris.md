@@ -1,5 +1,5 @@
 import { useId, useLayoutEffect, useRef } from "react";
-import { Box, Button, Input, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
+import { Box, Button, Group, Input, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
 import type { SelectorProps, StartupProps, WorkspaceHeaderProps, WorkspaceEmptyProps } from "./props.js";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
@@ -15,6 +15,16 @@ export function WorkspaceHeader({ props, theme }: { props: WorkspaceHeaderProps;
   </Box>;
 }
 export function WorkspaceEmpty({ props, theme }: { props: WorkspaceEmptyProps; theme: ReturnType<typeof resolveTheme> }) {
+  const actions = props.actions;
+  if (actions) return <Box className="lm-workspace-empty" style={theme.contentStyle} aria-busy={actions.busy}>
+    <Stack align="center" gap="sm" maw="100%">
+      <Group className="lm-workspace-empty-actions" justify="center" gap="sm">
+        <Button variant="filled" leftSection={<Icon name="file-plus" />} disabled={actions.busy} onClick={actions.onCreate}>{actions.createLabel}</Button>
+        <Button variant="subtle" leftSection={<Icon name="browse" />} disabled={actions.busy} onClick={actions.onOpen}>{actions.openLabel}</Button>
+      </Group>
+      {props.detail && <Text role="alert">{props.detail}</Text>}
+    </Stack>
+  </Box>;
   return <Box component="section" className="lm-workspace-empty" style={theme.contentStyle} aria-label={props.title}>
     <Stack align="center" gap="md">
       <Box className="lm-workspace-empty-icon"><Icon name="package" /></Box>

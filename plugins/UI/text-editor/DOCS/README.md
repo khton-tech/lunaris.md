@@ -1,5 +1,10 @@
 # Text editor
 
+When the selected editor loses its active document after a clean close or
+reconciliation, it releases screen selection so Active Screen can show the
+blank tab actions. A removed document with unsaved changes retains the existing
+editor recovery view.
+
 The file-name title follows the same centered column width and responsive line
 insets as document text, including live text-width and wrapping changes. The
 controller supplies effective `contentWidth` through the public UIKit role:

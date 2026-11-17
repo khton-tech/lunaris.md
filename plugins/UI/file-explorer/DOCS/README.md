@@ -2,7 +2,25 @@
 
 Purpose: a replaceable Sidebar file tree and Vault-relative file operations.
 Package `@lunaris/file-explorer`, plugin `lunaris.file-explorer`. Tauri starts it by
-default. Require `filesystem.access` and `vault.access`; no DOM permission.
+default. Requires `filesystem.access`, `vault.access` and `config.access`.
+`ui.dom` is optional and enables the empty workspace component role.
+
+An unmodified primary-button double-click on the tree background creates an
+empty Markdown file at the Vault root and opens it through ActiveDocument.
+The unnamed document uses the active locale and receives a numbered suffix
+if its name is taken. Exclusive creation protects existing files. Row
+interactions retain their existing file and folder behavior.
+
+With `ui.dom` and the optional Components API, File Explorer registers
+`lunaris.file-explorer-empty`. Active Screen supplies the localized
+`createLabel`, `openLabel`, current `vaultId`, and embedded `presentation`.
+The role delegates the buttons to `lunaris.workspace-empty`. Creating uses
+the same operation as the tree background. Opening calls Filesystem.pickFile
+for the current Vault and activates the selected file through ActiveDocument.
+Drivers without a picker select the Files tab through Sidebar and open it
+through WorkspaceSidebar where available. The `lunaris.file-explorer` role
+accepts optional `onCreateUntitled()` and `onFocusTree()` callbacks for
+background creation and acknowledgment of a focus request.
 
 Provides no API/event contracts. Consumes Logger, Sidebar, Filesystem,
 FilesystemObservation, Vault, VaultHistory and Localization APIs; subscribes to FileChanged,

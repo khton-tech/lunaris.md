@@ -108,6 +108,7 @@ async function setup(options = {}) {
   const methods = Object.fromEntries(filesystemMethods.map(name => [name, async () => ok(null)]));
   Object.assign(methods, {
     capabilities: () => ({ watch: false, atomicReplace: true, versionCheck: 'optimistic', trash: false, maxFileBytes: 1024 }),
+    async pickFile(id) { return options.pickFile?.(id) ?? ok(null); },
     async pickSaveLocation(id) { return options.pickSaveLocation?.(id) ?? ok(null); },
     async list(t) { return ok([...disk.keys()].filter(key => key.startsWith(t.vaultId + "/") && !key.slice(t.vaultId.length + 1).includes("/")).map(key => ({path:key.slice(t.vaultId.length+1),kind:"file",size:disk.get(key).text.length,modifiedAt:1}))); },
     async stat(t) { return disk.has(`${t.vaultId}/${t.path}`) ? ok({ path: t.path, kind: 'file', size: 1, modifiedAt: 1 }) : fail('NOT_FOUND'); },
@@ -199,8 +200,9 @@ test('typing preserves footer mounts and skips unchanged footer updates', async 
   } finally { await s.stop(); }
 });
 
-test('creating from the real Explorer composes one tree entry, active tab and editable document', async () => {
-  const s = await setup({ backlinks: true, withLayout: true });
+test('Explorer and the empty workspace create and open files in the composed editor', async () => {
+  let picked = ok(null);
+  const s = await setup({ backlinks: true, withLayout: true, pickFile(id) { assert.equal(id, 'a'); return picked; } });
   try {
     const { default: explorer } = await import('@lunaris/file-explorer');
     const { Sidebar, SidebarChanged } = await import('@lunaris/sidebar');
@@ -226,6 +228,7 @@ test('creating from the real Explorer composes one tree entry, active tab and ed
     } }));
     s.kernel.register(explorer);
     for (const permission of explorer.manifest.permissions) s.kernel.grant(explorer.manifest.id, permission);
+    s.kernel.grant(explorer.manifest.id, 'ui.dom');
     await s.kernel.start('test.explorer-panel'); await s.kernel.start(explorer.manifest.id); await flush();
     const layout = s.target.querySelector('.lm-workspace-layout');
     const editorHost = s.target.querySelector('.lm-text-editor');
@@ -248,6 +251,36 @@ test('creating from the real Explorer composes one tree entry, active tab and ed
     assert.equal(s.disk.get('a/Created from Files.md').text, 'New note content');
     assert.equal((await s.documents.open({ vaultId: 'a', path: 'Created from Files.md' })).ok, true);
     await flush(); assert.equal(s.cm().state.sliceDoc(), 'New note content');
+
+    const doubleClick = element => element.dispatchEvent(new s.dom.window.MouseEvent('dblclick', { bubbles: true }));
+    doubleClick(panel.querySelector('[data-root]')); await flush();
+    assert.equal(s.disk.has('a/Unnamed.md'), false);
+    doubleClick(panel.querySelector('[data-root]')); await flush();
+    s.disk.set('a/Unnamed.md', { text: 'Existing note', version: 'v1' });
+    doubleClick(panel.querySelector('.lm-explorer-tree')); await flush();
+    assert.deepEqual(s.documents.current(), { vaultId: 'a', path: 'Unnamed 2.md' });
+    assert.equal(s.disk.get('a/Unnamed.md').text, 'Existing note');
+    assert.ok(panel.querySelector('[title="Unnamed 2.md"]'));
+
+    const blankButton = label => [...s.target.querySelectorAll('.lm-workspace-main .lm-workspace-empty button')].find(button => button.textContent === label);
+    await s.documents.close(); await flush();
+    assert.equal(s.target.querySelector('.lm-workspace-main .lm-workspace-empty h2'), null);
+    assert.ok(blankButton('Create file'));
+    blankButton('Open file').click(); await flush();
+    assert.equal(s.documents.current(), null);
+    picked = fail('UNSUPPORTED');
+    blankButton('Open file').click(); await flush();
+    assert.equal(s.dom.window.document.activeElement, panel.querySelector('[role=tree]'));
+    picked = ok('other.md');
+    blankButton('Open file').click(); await flush();
+    assert.deepEqual(s.documents.current(), { vaultId: 'a', path: 'other.md' });
+    await s.documents.close(); await flush();
+    assert.equal(s.language.setLocale('ru').ok, true); await flush();
+    assert.ok(blankButton('Открыть файл'));
+    blankButton('Создать файл').click(); await flush();
+    assert.deepEqual(s.documents.current(), { vaultId: 'a', path: 'Без имени.md' });
+    assert.ok(panel.querySelector('[title="Без имени.md"]'));
+    assert.equal(s.cm().state.doc.length, 0);
   } finally { await s.stop(); }
 });
 

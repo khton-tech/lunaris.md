@@ -7,6 +7,8 @@ import { Logger, scopeLogger } from "@lunaris/logging";
 import { ContextMenu } from "@lunaris/context-menu";
 import type { MenuOpenRequest, MenuSession } from "@lunaris/context-menu";
 import { Sidebar } from "@lunaris/sidebar";
+import { Components } from "@lunaris/components";
+import type { ComponentProps } from "@lunaris/components";
 import { Filesystem, FilesystemObservation, FileChanged } from "@lunaris/filesystem";
 import { Vault, VaultChanged } from "@lunaris/vault";
 import { Localization, LocaleChanged } from "@lunaris/localization";
@@ -20,6 +22,7 @@ import manifest from "../manifest.json" with { type: "json" };
 
 export default definePlugin({ manifest, async activate(ctx) {
   const navigation = ctx.optional(WorkspaceSidebar);
+  const components = ctx.permissions.has("ui.dom") ? ctx.optional(Components) : undefined;
   const logger = scopeLogger(ctx.use(Logger), ctx.signal); const sidebar = ctx.use(Sidebar); const fs = ctx.use(Filesystem);
   const documents = ctx.use(ActiveDocument);
   const menus = ctx.use(ContextMenu); let menu: MenuSession | undefined;
@@ -28,6 +31,7 @@ export default definePlugin({ manifest, async activate(ctx) {
   if (!messages.ok) throw new Error("Cannot register explorer localization.", { cause: messages.error });
   const tabId = `${ctx.pluginId}.files`; let registered = false; let scheduled = false;
   let session: ResourceScope | undefined; let model: ExplorerModel | undefined; let watchId: string | undefined;
+  let focusRequestedFor: ExplorerModel | undefined;
   let refreshing = false; let refreshEpoch = 0; let fullRefresh = false; let reconcile = false; const pendingDirectories = new Set<string>(); let ready = Promise.resolve();
   const text = (key: string) => localization.text(ctx.pluginId, key);
   const switcher = createVaultSwitcher(ctx, changed);
@@ -45,7 +49,9 @@ export default definePlugin({ manifest, async activate(ctx) {
     }
     const active = documents.current();
     const props = { activePath: active?.vaultId === current?.vaultId ? active?.path ?? null : null,
-      onOpen: (path: string) => openDocument(current, path), supportedExtensions: ["md"], vaultId: current?.vaultId ?? "", data: current?.tree() ?? [], expanded: [...(current?.expanded ?? [])], selection: current?.selection ?? [],
+      onOpen: async (path: string) => { await openDocument(current, path); }, supportedExtensions: ["md"], vaultId: current?.vaultId ?? "", data: current?.tree() ?? [], expanded: [...(current?.expanded ?? [])], selection: current?.selection ?? [],
+      onCreateUntitled: async () => { if (current?.active && current === model && !current.loading && !current.draft.form) await createUntitled(current); },
+      onFocusTree: current && focusRequestedFor === current ? () => { if (focusRequestedFor === current) { focusRequestedFor = undefined; changed(); } } : undefined,
       busy: current?.busy ?? false, loading: (current?.loading ?? 0) > 0, error: current?.error ? text(current.error) : "",
       degraded: current?.degraded ? text("unwatched") : "", canPaste: !!current?.clipboard?.paths.length,
       initialDraft: current?.draft ?? { form: null, name: "" },
@@ -124,7 +130,7 @@ export default definePlugin({ manifest, async activate(ctx) {
   function switchVault(): void {
     const root = vaults.current();
     if (root?.id === model?.vaultId) return;
-    const old = session; session = undefined; model = undefined; watchId = undefined; ready = Promise.resolve();
+    const old = session; session = undefined; model = undefined; watchId = undefined; focusRequestedFor = undefined; ready = Promise.resolve();
     refreshEpoch++; refreshing = false;
     fullRefresh = false; pendingDirectories.clear(); reconcile = false;
     if (old) void old.dispose().catch(() => {});
@@ -148,11 +154,24 @@ export default definePlugin({ manifest, async activate(ctx) {
       }
     })();
   }
-  async function openDocument(current: ExplorerModel | undefined, path: string): Promise<void> {
+  async function openDocument(current: ExplorerModel | undefined, path: string) {
     if (!current?.active || current !== model || current.busy) return;
     const result = await documents.open({ vaultId: current.vaultId, path });
     if (result.ok && current.active && current === model && !ctx.signal.aborted) navigation?.close();
     if (!result.ok && current.active) { current.error = result.error.code; changed(); logger.warn(ctx.pluginId, "Cannot open explorer document", { error: result.error }); }
+    return result;
+  }
+  async function createUntitled(current: ExplorerModel, live = () => current.active): Promise<boolean> {
+    try {
+      const path = await current.createUntitled(text("unnamedFile"));
+      if (path && live()) return (await openDocument(current, path))?.ok ?? false;
+    } catch (error) {
+      if (current.active) {
+        current.error = "IO_ERROR"; changed();
+        logger.error(ctx.pluginId, "Cannot create or open unnamed document", { error });
+      }
+    }
+    return false;
   }
   async function revealActive(): Promise<void> {
     await preferences.ready();
@@ -201,6 +220,56 @@ export default definePlugin({ manifest, async activate(ctx) {
   });
   ctx.events.on(VaultChanged, switchVault); ctx.events.on(LocaleChanged, changed);
   publish(); switchVault();
+  const emptyActions = components?.register({ id: "lunaris.file-explorer-empty", mount(target, initial, signal) {
+    let props = initial; let busy = false; let error = "";
+    const onCreate = () => void run(true);
+    const onOpen = () => void run(false);
+    const presentation = () => ({
+      title: "", detail: error ? text(error) : "", presentation: props.presentation,
+      actions: { createLabel: props.createLabel, openLabel: props.openLabel, busy, onCreate, onOpen },
+    });
+    const result = components.mount("lunaris.workspace-empty", target, presentation(), signal);
+    if (!result.ok) throw new Error("Cannot mount empty workspace file actions.", { cause: result.error });
+    const mounted = result.value;
+    function render(): void {
+      if (signal.aborted) return;
+      const result = mounted.update(presentation());
+      if (!result.ok) logger.warn(ctx.pluginId, "Cannot update empty workspace file actions", { error: result.error });
+    }
+    async function run(create: boolean): Promise<void> {
+      const current = model;
+      if (!current?.active || signal.aborted || current.vaultId !== props.vaultId || busy || current.busy) return;
+      const live = () => !signal.aborted && current.active && current === model;
+      busy = true; error = ""; render();
+      try {
+        if (create) {
+          if (!await createUntitled(current, live)) error = current.error || "IO_ERROR";
+        } else {
+          const picked = await fs.pickFile(current.vaultId);
+          if (!live()) return;
+          if (picked.ok) {
+            if (picked.value !== null) {
+              const result = await openDocument(current, picked.value);
+              if (result && !result.ok) error = result.error.code;
+            }
+          } else if (picked.error.code === "UNSUPPORTED") {
+            const selected = sidebar.select(tabId);
+            if (!selected.ok) throw new Error("Cannot select the Files panel.", { cause: selected.error });
+            navigation?.open();
+            if (!current.draft.form) { focusRequestedFor = current; changed(); }
+            logger.debug(ctx.pluginId, "Files panel opened for document selection");
+          } else if (picked.error.code !== "CANCELLED") {
+            error = picked.error.code;
+            logger.warn(ctx.pluginId, "Cannot select a file in the Vault", { error: picked.error });
+          }
+        }
+      } catch (failure) {
+        if (live()) { error = "IO_ERROR"; logger.error(ctx.pluginId, "Cannot complete empty workspace file action", { error: failure }); }
+      } finally { busy = false; render(); }
+    }
+    return { update(next: ComponentProps) { props = next; render(); }, dispose() {} };
+  } }, ctx.signal);
+  if (emptyActions && !emptyActions.ok) throw new Error("Cannot register empty workspace file actions.", { cause: emptyActions.error });
   await ctx.optional(Preparation)?.register({ id: ctx.pluginId, phase: "content", async prepare() { switchVault(); await ready; } }, ctx.signal);
   logger.info(ctx.pluginId, "File explorer ready", { code: "EXPLORER_READY" });
 } });

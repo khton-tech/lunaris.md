@@ -25,6 +25,8 @@ interface ExplorerProps {
   vaultSwitcher?: VaultSwitcherProps;
   supportedExtensions?: readonly string[];
   activePath?: string | null; onOpen?: (path: string) => Promise<void>;
+  onCreateUntitled?: () => Promise<void>;
+  onFocusTree?: () => void;
   vaultId: string; data: Entry[]; expanded: string[]; selection: string[]; busy: boolean; loading: boolean; error: string; degraded: string; canPaste: boolean;
   workspace?: { vaultId: string; vaultName?: string; compact?: boolean }; text: Record<string, string>;
   onToggle(path: string, open: boolean): void; onSelection(paths: string[]): void; onBuffer(paths: string[], cut: boolean): void;
@@ -51,7 +53,8 @@ export function explorerProps(value: ComponentProps): ExplorerProps {
     !["onToggle", "onSelection", "onBuffer", "onCreate", "onRename", "onMove", "onPaste", "onRemove", "onRefresh", "onDraft", "onContextMenu"].every(key => typeof value[key] === "function")) throw new TypeError("Invalid file explorer props.");
   if (value.supportedExtensions !== undefined && (!Array.isArray(value.supportedExtensions) || value.supportedExtensions.some(item => typeof item !== "string" || !/^[a-z0-9]+$/i.test(item)))) throw new TypeError("Invalid supported extensions.");
   if (value.activePath !== undefined && value.activePath !== null && typeof value.activePath !== "string") throw new TypeError("Invalid active document path.");
-  if (value.onOpen !== undefined && typeof value.onOpen !== "function") throw new TypeError("Invalid document activation callback.");
+  if (["onOpen", "onCreateUntitled", "onFocusTree"].some(key => value[key] !== undefined && typeof value[key] !== "function"))
+    throw new TypeError("Invalid document action callback.");
   const draft = value.initialDraft as Draft | undefined;
   if (!draft || typeof draft.name !== "string" || (draft.form !== null && (!draft.form ||
     (draft.form.kind === "delete" ? !Array.isArray(draft.form.paths) || draft.form.paths.some(path => typeof path !== "string") :
@@ -263,6 +266,11 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     return path === ROOT_ID ? "" : path;
   }
   function focusTree(): void { host.current?.querySelector<HTMLElement>("[role=tree]")?.focus({ preventScroll: true }); }
+  useEffect(() => {
+    if (!props.onFocusTree || props.loading || deleteForm) return;
+    focusTree();
+    props.onFocusTree();
+  }, [props.onFocusTree, props.loading, deleteForm]);
   function clearSelection(): void {
     tree.current?.focus(ROOT_ID, { scroll: false }); tree.current?.deselectAll(); props.onSelection([]);
   }
@@ -406,6 +414,13 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     {props.degraded && <Text role="status" className="lm-explorer-message">{props.degraded}</Text>}
     <Box ref={host} className="lm-explorer-tree" onClick={event => {
       if (!(event.target as HTMLElement).closest("[role=treeitem]") && !form) clearSelection();
+    }} onDoubleClick={event => {
+      const target = event.target as HTMLElement;
+      if (!props.onCreateUntitled || props.busy || props.loading || form || event.button !== 0 ||
+          event.ctrlKey || event.metaKey || event.shiftKey || event.altKey ||
+          target.closest("[role=treeitem],button,input,[role=status]") ||
+          usesTouchInput(event.currentTarget.ownerDocument.defaultView, event.nativeEvent)) return;
+      void props.onCreateUntitled();
     }} onContextMenu={event => {
       if (usesTouchInput(event.currentTarget.ownerDocument.defaultView, event.nativeEvent)) return;
       event.preventDefault(); event.stopPropagation(); openMenu(null, event.clientX, event.clientY);

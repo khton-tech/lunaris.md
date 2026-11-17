@@ -1,5 +1,16 @@
 # Mantine components
 
+## Empty document actions
+
+Workspace owns the main region's geometry and surface. Active Screen allocates
+the empty tab target, File Explorer supplies file actions, and the embedded
+`lunaris.workspace-empty` role owns only the action layout and controls.
+The role accepts optional `actions` with localized `createLabel`, `openLabel`,
+`busy`, `onCreate()`, and `onOpen()`. This presentation wraps two Mantine
+buttons, uses the Files toolbar's file-plus icon and the Vault selector's
+folder picker icon, and shows `detail` only as an operation error. Visual
+acceptance remains manual for theme, keyboard focus and narrow allocations.
+
 ## Explorer startup viewport (2026-11-13)
 
 Reference: the Owner's screenshot showing an empty root-row allocation above

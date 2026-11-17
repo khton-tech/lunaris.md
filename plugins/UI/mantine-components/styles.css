@@ -84,6 +84,7 @@
 .lm-workspace-empty-icon svg { width:1em;height:1em }
 .lm-workspace-empty h2 { font:inherit;font-size:1.125em;font-weight:500;margin:0 }
 .lm-workspace-empty p { color:var(--vault-secondary);max-width:40ch }
+.lm-workspace-empty-actions,.lm-workspace-empty-actions .lm-button { max-width:100% }
 .lm-workspace-layout { --workspace-gap:calc(var(--vault-space)*2);--workspace-rail-width:calc(44px + var(--workspace-gap)*2 + var(--vault-space));display:grid;grid-template-columns:0 minmax(0,1fr);position:relative;flex:1;min-height:0;overflow:hidden }
 .lm-workspace-layout[data-rail] { grid-template-columns:var(--workspace-rail-width) minmax(0,1fr) }
 .lm-workspace-content { grid-column:2;min-width:0;min-height:0;overflow:visible }

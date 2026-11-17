@@ -31,7 +31,7 @@ const catalogs = { en: {
   newTab: "New tab", workspaceView: "Workspace view", tabs: "Workspace tabs",
   mobileTabs: "Open tabs: {count}", addMobileTab: "Add tab",
   closeTab: "Close tab", back: "Back", forward: "Forward", tabFailed: "Could not complete the tab action.",
-  blank: "Choose a file to open",
+  createFile: "Create file", openFile: "Open file",
 }, ru: russian };
 
 export default definePlugin({ manifest, activate(ctx) {
@@ -148,17 +148,20 @@ export default definePlugin({ manifest, activate(ctx) {
       }
     }
     function showPlaceholder(element: HTMLElement, kind: "empty" | "blank" | "unavailable"): void {
-      const placeholderProps = { title: text(kind), detail: kind === "blank" ? "" : text(`${kind}Detail`), presentation: { mode: "embedded", sizing: "fill" } };
+      const role = kind === "blank" ? "lunaris.file-explorer-empty" : "lunaris.workspace-empty";
+      const presentation = { mode: "embedded", sizing: "fill" };
+      const placeholderProps = kind === "blank" ? { vaultId, createLabel: text("createFile"), openLabel: text("openFile"), presentation }
+        : { title: text(kind), detail: text(`${kind}Detail`), presentation };
       const signature = JSON.stringify(placeholderProps);
-      if (placeholderTarget && placeholderTarget !== element) clearPlaceholder();
+      if (placeholder && (placeholderTarget !== element || placeholder.componentId !== role)) clearPlaceholder();
       if (placeholder && signature !== placeholderSignature) {
         const updated = placeholder.update(placeholderProps);
         if (updated.ok) placeholderSignature = signature;
         else { logger.error(ctx.pluginId, "Cannot update screen placeholder", { error: updated.error }); clearPlaceholder(); }
       }
-      if (!placeholder && components.has("lunaris.workspace-empty")) {
+      if (!placeholder && components.has("lunaris.workspace-empty") && components.has(role)) {
         placeholderOwner = owner.child();
-        const mounted = components.mount("lunaris.workspace-empty", element, placeholderProps, placeholderOwner.signal);
+        const mounted = components.mount(role, element, placeholderProps, placeholderOwner.signal);
         if (mounted.ok) { placeholder = mounted.value; placeholderTarget = element; placeholderSignature = signature; }
         else { logger.error(ctx.pluginId, "Cannot mount screen placeholder", { error: mounted.error }); clearPlaceholder(); }
       }
@@ -247,7 +250,7 @@ export default definePlugin({ manifest, activate(ctx) {
     }
     const view: View = { refresh, transition: change => tabs.transition(change), fileMutated: change => tabs.fileMutated(change), removed(componentId) {
       if (componentId === "lunaris.active-screen") clearLayout();
-      if (componentId === "lunaris.workspace-empty") clearPlaceholder();
+      if (componentId === "lunaris.workspace-empty" || placeholder?.componentId === componentId) clearPlaceholder();
       for (const [id, cached] of cache) if (cached.mounted.componentId === componentId) { release(cached.owner); cache.delete(id); }
     } };
     function dispose(): void {
@@ -264,7 +267,7 @@ export default definePlugin({ manifest, activate(ctx) {
   ctx.events.on(LocaleChanged, () => { for (const view of views) view.refresh(); });
   ctx.events.on(ComponentsChanged, change => {
     if (views.size === 0 || change.componentId === "lunaris.active-screen-host") return;
-    if (!["lunaris.active-screen", "lunaris.workspace-empty", "lunaris.mobile-menu"].includes(change.componentId) &&
+    if (!["lunaris.active-screen", "lunaris.workspace-empty", "lunaris.file-explorer-empty", "lunaris.mobile-menu"].includes(change.componentId) &&
       !screens.snapshot().screens.some(screen => screen.componentId === change.componentId)) return;
     for (const view of views) {
       if (change.kind === "removed") view.removed(change.componentId);

@@ -198,10 +198,10 @@ export default definePlugin({ manifest, async activate(ctx) {
     if (current && !current.loaded && !current.loading) void current.load();
     changed();
   }
-  function selectScreen(): void {
+  function selectScreen(id: string | null = screenId): void {
     if (ctx.signal.aborted) return;
-    const result = screens.select(screenId);
-    if (!result.ok) logger.error(ctx.pluginId, "Cannot select editor screen", { error: result.error });
+    const result = screens.select(id);
+    if (!result.ok) logger.error(ctx.pluginId, "Cannot update editor screen selection", { error: result.error });
   }
   async function flushSessions(items: readonly DocumentSession[], settle: (listener: () => void) => void, allowLocalRecovery = false): Promise<FsFailure | null> {
     for (const session of items) settle(session.hold());
@@ -515,6 +515,7 @@ export default definePlugin({ manifest, async activate(ctx) {
     }
     choose(transition.current);
     if (transition.current && (transition.reason === "open" || transition.reason === "restore")) selectScreen();
+    else if (!transition.current && screens.snapshot().activeId === screenId) selectScreen(null);
   });
   ctx.events.on(VaultChanged, () => {
     for (const [id, session] of sessions) if (session.target.vaultId !== vaults.current()?.id) { session.dispose(); sessions.delete(id); states.delete(session); }
