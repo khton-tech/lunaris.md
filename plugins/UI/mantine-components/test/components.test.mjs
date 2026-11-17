@@ -798,7 +798,7 @@ test('shared context menu opens nested folders by keyboard, executes once and re
 function explorerFixture(overrides = {}) {
   return { supportedExtensions: ['md'], vaultId: 'a', workspace: { vaultId: 'a' }, data: [{ id: 'folder', name: 'Folder', kind: 'directory', children: [{ id: 'folder/note.md', name: 'note.md', kind: 'file' }] }, { id: 'a.md', name: '<img src=x>.md', kind: 'file' }],
     expanded: ['folder'], selection: [], busy: false, loading: false, error: '', degraded: '', canPaste: false,
-    text: { sort: 'Sort', sortAscending: 'Name: A–Z', sortDescending: 'Name: Z–A', expandAll: 'Expand all', unnamedFile: 'Unnamed.md', unnamedFolder: 'Unnamed folder', tabs: 'Tabs', title: 'Files', newFile: 'New file', newFolder: 'New folder', rename: 'Rename', copy: 'Copy', cut: 'Cut', paste: 'Paste', remove: 'Delete', refresh: 'Refresh', actions: 'Actions', name: 'Name', create: 'Create', cancel: 'Cancel', empty: 'No files', loading: 'Loading', root: 'Vault root', retry: 'Retry', confirmDelete: 'Delete permanently?', deleteWarning: 'No trash or undo' },
+    text: { sort: 'Sort', sortAscending: 'Name: A–Z', sortDescending: 'Name: Z–A', expandAll: 'Expand all', unnamedFile: 'Unnamed.md', unnamedFolder: 'Unnamed folder', tabs: 'Tabs', title: 'Files', newFile: 'New file', newFolder: 'New folder', rename: 'Rename', copy: 'Copy', cut: 'Cut', paste: 'Paste', remove: 'Delete', refresh: 'Refresh', actions: 'Actions', name: 'Name', create: 'Create', cancel: 'Cancel', empty: 'No files', loading: 'Loading', root: 'Vault root', retry: 'Retry', confirmDelete: 'Delete permanently?', deleteWarning: 'Deleted files and folders cannot be restored.', deletePermanently: 'Delete permanently', deleting: 'Deleting…', deleteFailed: 'Could not delete the selected items.' },
     initialDraft: { form: null, name: '' }, onContextMenu() {}, onDraft() {}, onToggle() {}, onSelection() {}, onBuffer() {}, onCreate: async () => true, onRename: async () => true, onMove: async () => true, onPaste: async () => true, onRemove: async () => true, onRefresh() {}, ...overrides };
 }
 
@@ -925,9 +925,9 @@ test('Arborist renders a virtualized, escaped tree and preserves owned roots acr
   await owner.dispose(); assert.equal(s.target.querySelector('[role=tree]'), null); await s.stop();
 });
 
-test('explorer creates in a tree row, preserves drafts and confirms permanent deletion before calling controller', async () => {
+test('explorer creates in a tree row and preserves drafts', async () => {
   const s = await setup(); await s.start(); const calls = [];
-  const props = explorerFixture({ onCreate: async (...args) => { calls.push(['create', ...args]); return true; }, onRemove: async paths => { calls.push(['remove', paths]); return true; } });
+  const props = explorerFixture({ onCreate: async (...args) => { calls.push(['create', ...args]); return true; } });
   const result = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); assert.equal(result.ok, true, s.logs.map(log => log[3]?.error?.stack).filter(Boolean).join('\n'));
   s.target.querySelector('[role=tree]').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'n', ctrlKey: true, bubbles: true, cancelable: true })); await settle();
   const input = s.target.querySelector('input'); assert.ok(input.classList.contains('mantine-TextInput-input'));
@@ -936,11 +936,56 @@ test('explorer creates in a tree row, preserves drafts and confirms permanent de
   result.value.update({ ...props, degraded: 'Watch unavailable' }); await settle(); assert.equal(s.target.querySelector('input').value, 'draft');
   input.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })); await settle();
   assert.deepEqual(calls[0], ['create', '', 'draft.md', false]);
-  result.value.update({ ...props, selection: ['a.md'] }); await settle();
-  s.target.querySelector('[role=tree]').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Delete', bubbles: true, cancelable: true })); await settle();
-  assert.equal(calls.length, 1); assert.ok(s.target.textContent.includes('No trash or undo'));
-  s.target.querySelector('form').dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true })); await settle();
-  assert.deepEqual(calls[1], ['remove', ['a.md']]); await s.stop();
+  await s.stop();
+});
+
+test('Explorer delete dialog starts on Cancel, restores focus and submits a pending operation only once', async () => {
+  const s = await setup(); await s.start();
+  try {
+    const { document } = s.dom.window;
+    s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 320);
+    const calls = [];
+    const deletion = Promise.withResolvers();
+    const props = explorerFixture({ selection: ['folder/note.md', 'a.md'], onRemove(paths) { calls.push(paths); return deletion.promise; },
+      onContextMenu: request => s.menus.open({ ...request, context: { source: 'lunaris.file-explorer', target: request.kind, data: {} } }, s.ctx.signal).value });
+    const mounted = s.components.mount('lunaris.file-explorer', s.target, props, s.ctx.signal); assert.equal(mounted.ok, true);
+    const tree = s.target.querySelector('[role=tree]');
+    const press = (target, key) => target.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key, bubbles: true, cancelable: true }));
+    const dialog = () => document.querySelector('.lm-dropdown-overlay [role=dialog]');
+    const button = label => [...dialog().querySelectorAll('button')].find(item => item.textContent === label);
+    tree.focus(); await settle();
+    mounted.value.update(props);
+    const originalFocus = document.activeElement;
+    press(tree, 'Delete'); await settle();
+    assert.ok(dialog()); assert.ok(!s.target.querySelector('[role=dialog]'));
+    assert.equal(document.activeElement.textContent, 'Cancel');
+    assert.deepEqual([...dialog().querySelectorAll('li')].map(item => item.textContent), ['folder/note.md', 'a.md']);
+    assert.equal(dialog().querySelector('ul').tabIndex, 0, 'the bounded paths list is keyboard reachable');
+    document.activeElement.click(); await settle();
+    assert.ok(!dialog()); assert.ok(document.activeElement === originalFocus, 'Cancel restores tree focus'); assert.deepEqual(calls, []);
+
+    const row = s.target.querySelector('[title="a.md"]');
+    row.dispatchEvent(new s.dom.window.MouseEvent('contextmenu', { button: 2, bubbles: true, cancelable: true })); await settle();
+    const menuDelete = document.querySelector('[role=menuitem][aria-label="Delete"]');
+    assert.ok(menuDelete); menuDelete.click(); await settle();
+    assert.equal(document.activeElement.textContent, 'Cancel');
+    press(document.activeElement, 'Escape'); await settle();
+    assert.ok(!dialog()); assert.ok(document.activeElement === originalFocus, 'Escape after a context-menu command restores tree focus'); assert.deepEqual(calls, []);
+
+    press(tree, 'Delete'); await settle();
+    button('Delete permanently').click(); await settle();
+    assert.equal(button('Deleting…').getAttribute('aria-disabled'), 'true');
+    button('Deleting…').click(); button('Cancel').click(); press(document.activeElement, 'Escape'); await settle();
+    assert.ok(dialog()); assert.deepEqual(calls, [['folder/note.md', 'a.md']]);
+    mounted.value.update({ ...props, error: 'Some items could not be deleted.' });
+    deletion.resolve(false); await settle();
+    assert.ok(!dialog()); assert.ok(document.activeElement === originalFocus, 'Completion restores tree focus');
+    assert.equal(s.target.querySelector('[role=alert]').textContent, 'Some items could not be deleted.');
+
+    press(tree, 'Delete'); await settle();
+    s.target.hidden = true; await settle();
+    assert.ok(!dialog()); assert.deepEqual(calls, [['folder/note.md', 'a.md']]);
+  } finally { await s.stop(); }
 });
 
 test('explorer structural updates preserve a draft caret without repeating its focus or scroll', async () => {

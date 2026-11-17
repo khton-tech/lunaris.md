@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { ActionIcon, Badge, Box, Button, Group, Menu, Paper, Stack, Text, TextInput } from "@mantine/core";
+import { ActionIcon, Badge, Box, Button, Group, Menu, Modal, Stack, Text, TextInput } from "@mantine/core";
 import { Tree } from "react-arborist";
 import type { CursorProps, DragPreviewProps, NodeRendererProps, RowRendererProps, TreeApi } from "react-arborist";
 import type { ComponentProps } from "@lunaris/components";
@@ -11,7 +11,7 @@ import { Icon } from "./icons.js";
 import { VaultSwitcher, validVaultSwitcher } from "./vault-switcher.js";
 import type { VaultSwitcherProps } from "./vault-switcher.js";
 import { ToolPanelHeader } from "./tool-navigation.js";
-import { ViewportMenu } from "./dropdown-overlay.js";
+import { useDropdownOverlay, ViewportMenu } from "./dropdown-overlay.js";
 
 // Absolute paths never occur in the Vault-relative controller tree.
 const ROOT_ID = "/";
@@ -195,7 +195,12 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
   const menu = useRef<MenuSession | undefined>(undefined);
   useEffect(() => () => { const previous = menu.current; void Promise.resolve().then(() => previous?.dispose()); }, []);
   const [form, setForm] = useState<Form | null>(() => props.initialDraft.form); const [name, setName] = useState(() => props.initialDraft.name);
-  const confirm = useRef<HTMLButtonElement>(null); const submitting = useRef(false); const closing = useRef(false); const [pending, setPending] = useState(false);
+  const submitting = useRef(false); const closing = useRef(false); const [pending, setPending] = useState(false);
+  const [deleteFailed, setDeleteFailed] = useState(false);
+  const deleteTrigger = useRef<HTMLElement | null>(null); const restoreDeleteFocus = useRef(false);
+  const deleteForm = form?.kind === "delete" ? form : null;
+  const deleteBusy = props.busy || pending;
+  const deleteOverlay = useDropdownOverlay(!!deleteForm, () => closeDelete(false));
   const t = props.text;
   const data = useMemo<Entry[]>(() => {
     const creation = form && form.kind !== "delete" ? form : null;
@@ -262,8 +267,21 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     tree.current?.focus(ROOT_ID, { scroll: false }); tree.current?.deselectAll(); props.onSelection([]);
   }
   function closeForm(restoreFocus = true): void { closing.current = true; setForm(null); if (restoreFocus) focusTree(); }
+  function closeDelete(restoreFocus = true): void {
+    restoreDeleteFocus.current = restoreFocus;
+    if (!restoreFocus) deleteTrigger.current = null;
+    closeForm(false);
+  }
+  useLayoutEffect(() => {
+    if (deleteForm || !restoreDeleteFocus.current) return;
+    restoreDeleteFocus.current = false;
+    const trigger = deleteTrigger.current; deleteTrigger.current = null;
+    if (trigger?.isConnected) trigger.focus({ preventScroll: true });
+    else focusTree();
+  }, [deleteForm]);
   function command(command: string, paths = selected(), parent = destination()): void {
-    if (props.busy || !alive.current) return;
+    if (props.busy || !alive.current || deleteForm || submitting.current) return;
+    setDeleteFailed(false);
     if (command === "newFile" || command === "newFolder") {
       const kind = command === "newFolder" ? "folder" : "file";
       const base = kind === "file" ? t.unnamedFile ?? "Unnamed.md" : t.unnamedFolder ?? "Unnamed folder";
@@ -278,7 +296,11 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     else if (command === "rename" && paths.length === 1) void tree.current?.edit(paths[0]!);
     else if ((command === "copy" || command === "cut") && paths.length) props.onBuffer(paths, command === "cut");
     else if (command === "paste") void props.onPaste(parent);
-    else if (command === "remove" && paths.length) { closing.current = false; setForm({ kind: "delete", paths }); }
+    else if (command === "remove" && paths.length) {
+      const active = host.current?.ownerDocument.activeElement;
+      deleteTrigger.current = active && host.current?.contains(active) ? active as HTMLElement : null;
+      closing.current = false; setForm({ kind: "delete", paths });
+    }
     else if (command === "refresh") props.onRefresh();
   }
   function openMenu(path: string | null, x: number, y: number, trigger?: HTMLElement): void {
@@ -332,28 +354,41 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     }
   }
   async function submit(restoreFocus = true): Promise<void> {
-    if (!form || closing.current || props.busy || submitting.current || (form.kind !== "delete" && !name.trim())) return;
+    if (!form || form.kind === "delete" || closing.current || props.busy || submitting.current || !name.trim()) return;
     submitting.current = true; setPending(true);
     try {
-      const success = form.kind === "delete" ? await props.onRemove(form.paths) : await props.onCreate(form.parent, name, form.kind === "folder");
-      if ((success || form.kind === "delete") && alive.current) closeForm(restoreFocus);
+      if (await props.onCreate(form.parent, name, form.kind === "folder") && alive.current) closeForm(restoreFocus);
     } finally { submitting.current = false; if (alive.current) setPending(false); }
+  }
+  async function remove(): Promise<void> {
+    if (!deleteForm || closing.current || props.busy || submitting.current) return;
+    submitting.current = true; setPending(true);
+    try {
+      const removed = await props.onRemove(deleteForm.paths);
+      if (alive.current && !removed) setDeleteFailed(true);
+    } catch {
+      if (alive.current) setDeleteFailed(true);
+    } finally {
+      submitting.current = false;
+      if (alive.current) {
+        setPending(false);
+        if (!closing.current) closeDelete();
+      }
+    }
   }
   const focusedForm = useRef<Form | null>(null);
   useLayoutEffect(() => {
-    if (!form) { focusedForm.current = null; return; }
+    if (!form || form.kind === "delete") { focusedForm.current = null; return; }
     if (focusedForm.current === form) return;
-    if (form.kind === "delete") confirm.current?.focus();
-    else {
-      if (!tree.current) return;
-      const containsDraft = (entries: Entry[]): boolean => entries.some(entry => entry.id === DRAFT_ID || !!entry.children && containsDraft(entry.children));
-      if (!containsDraft(data)) return;
-      tree.current.openParents(DRAFT_ID); tree.current.focus(DRAFT_ID, { scroll: false }); void tree.current.scrollTo(DRAFT_ID);
-    }
+    if (!tree.current) return;
+    const containsDraft = (entries: Entry[]): boolean => entries.some(entry => entry.id === DRAFT_ID || !!entry.children && containsDraft(entry.children));
+    if (!containsDraft(data)) return;
+    tree.current.openParents(DRAFT_ID); tree.current.focus(DRAFT_ID, { scroll: false }); void tree.current.scrollTo(DRAFT_ID);
     focusedForm.current = form;
   }, [form, props.data]);
   const showLoading = props.loading && !props.data.length && (!form || form.kind === "delete");
-  return <Box className="lm-explorer" style={theme.contentStyle} onKeyDownCapture={keyboard} data-compact={size.compact || undefined}
+  const error = props.error || (deleteFailed ? t.deleteFailed ?? t.IO_ERROR : "");
+  return <><Box className="lm-explorer" style={theme.contentStyle} inert={!!deleteForm} onKeyDownCapture={keyboard} data-compact={size.compact || undefined}
     onPointerDownCapture={() => setKeyboardNavigation(false)} data-keyboard-navigation={keyboardNavigation || undefined} aria-label={t.title} aria-busy={props.busy || props.loading}>
     <ToolPanelHeader title={t.title!} />
     <Group className="lm-explorer-actions" gap={0} wrap="nowrap" role="group" aria-label={t.actions}>
@@ -367,16 +402,8 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
       </ViewportMenu>
       <ActionIcon variant="subtle" aria-label={t.expandAll} title={t.expandAll} disabled={props.busy || props.loading || props.expanding || !!form || !props.onExpandAll} onClick={() => { tree.current?.open(ROOT_ID); void props.onExpandAll?.(); }}><Icon name="expand-all" /></ActionIcon>
     </Group>
-    {props.error && <Group className="lm-explorer-message" gap="xs"><Text role="alert">{props.error}</Text><Button disabled={props.busy} onClick={props.onRefresh}>{t.retry}</Button></Group>}
+    {error && <Group className="lm-explorer-message" gap="xs"><Text role="alert">{error}</Text><Button disabled={props.busy} onClick={() => { setDeleteFailed(false); props.onRefresh(); }}>{t.retry}</Button></Group>}
     {props.degraded && <Text role="status" className="lm-explorer-message">{props.degraded}</Text>}
-    {form?.kind === "delete" && <Paper className="lm-explorer-form" component="form" onSubmit={event => { event.preventDefault(); void submit(); }} onKeyDown={event => {
-      if (event.key === "Escape") { event.stopPropagation(); event.preventDefault(); if (!props.busy) closeForm(); }
-    }}>
-      <Stack gap="xs">
-        <Text fw={500}>{t.confirmDelete}</Text><Text>{t.deleteWarning}</Text><Box component="ul">{form.paths.map(path => <li key={path}>{path}</li>)}</Box>
-        <Group gap="xs"><Button ref={confirm} type="submit" disabled={props.busy || pending}>{t.remove}</Button><Button disabled={props.busy || pending} onClick={() => closeForm()}>{t.cancel}</Button></Group>
-      </Stack>
-    </Paper>}
     <Box ref={host} className="lm-explorer-tree" onClick={event => {
       if (!(event.target as HTMLElement).closest("[role=treeitem]") && !form) clearSelection();
     }} onContextMenu={event => {
@@ -400,5 +427,22 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
       </ExplorerContext.Provider>
     </Box>
     {props.vaultSwitcher && <VaultSwitcher props={props.vaultSwitcher} text={t} compact={size.compact} />}
-  </Box>;
+  </Box>
+    {deleteForm && <Modal opened title={t.confirmDelete} centered size="sm" xOffset="1rem" yOffset="1rem" zIndex={400}
+      withinPortal={!!deleteOverlay} {...(deleteOverlay ? { portalProps: { target: deleteOverlay } } : {})} returnFocus={false} withCloseButton={false}
+      closeOnClickOutside={false} closeOnEscape={!deleteBusy} transitionProps={{ duration: 0 }}
+      classNames={{ content: "lm-explorer-delete-dialog", header: "lm-explorer-delete-header" }}
+      onClose={() => { if (!deleteBusy && !submitting.current) closeDelete(); }}>
+      <Stack gap="sm" aria-busy={deleteBusy}>
+        <Text size="sm">{t.deleteWarning}</Text>
+        <Box component="ul" tabIndex={0} className="lm-explorer-delete-paths lm-focus">{deleteForm.paths.map(path => <li key={path}>{path}</li>)}</Box>
+        <Group gap="xs" justify="flex-end">
+          <Button type="button" data-autofocus size="compact-sm" aria-disabled={deleteBusy} data-disabled={deleteBusy}
+            onClick={() => { if (!deleteBusy && !submitting.current) closeDelete(); }}>{t.cancel}</Button>
+          <Button type="button" className="lm-explorer-delete-confirm" size="compact-sm" aria-disabled={deleteBusy} data-disabled={deleteBusy}
+            onClick={() => void remove()}>{pending ? t.deleting ?? t.remove : t.deletePermanently ?? t.remove}</Button>
+        </Group>
+      </Stack>
+    </Modal>}
+  </>;
 }

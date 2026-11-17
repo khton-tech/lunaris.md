@@ -30,6 +30,19 @@ nonempty drafts on blur and cancels empty drafts/Escape. These remain local unti
 the existing public creation callback succeeds; no file is written merely by
 opening the inline editor. Context-menu commands release their overlay first.
 
+Permanent deletion uses the shared Mantine modal pattern from Lime and the
+Explorer's themed viewport overlay. The dialog lists the Vault-relative paths
+in a bounded area and focuses Cancel on open. Escape cancels while idle. A
+pending deletion disables both actions and leaves the confirmed list visible.
+On completion Explorer restores focus to the original control or tree and
+shows any localized failure beside the tree. A partial batch must be selected
+and confirmed again before any further deletion. The existing onRemove and
+ActiveDocument reconciliation remain the integration points.
+
+Verify the dialog in the desktop Workspace with a short window, a long path,
+multiple selected files, and Light/Dark themes. Check initial focus,
+Delete followed by Enter, Escape, and focus return after the selected row is gone.
+
 See the [full reference](../../../../DOCS/reference/file-explorer.md) for keyboard
 commands, public component props, cancellation, operation/error semantics,
 completed integrations, outstanding document opening and manual acceptance.

@@ -81,8 +81,9 @@ the root or background. Multi-selection offers only selection operations.
   destination; a selected file uses its parent; multiple/no selection uses root.
 - Right-click an ordinary row or use ContextMenu/Shift+F10 for commands. Right-click
   preserves an existing multi-selection when the target is already selected.
-- Delete opens a confirmation naming all selected paths and warning explicitly
-  that there is no trash or undo. There is no implicit deletion on cut or drag.
+- Delete opens a viewport dialog listing the selected paths. Cancel takes the
+  initial focus, Escape cancels, and dismissal restores focus to Explorer.
+  Permanent deletion requires explicit activation of the destructive action.
 - F5 or Refresh reloads cached directories. If watching fails, manual refresh
   remains available and the UI identifies automatic-refresh degradation.
 
@@ -166,6 +167,8 @@ Theme and locale updates preserve input nodes/drafts. The tab selector stays ins
 the provider-owned overlay. Row truncation retains full paths in native tooltips; focus,
 selection, drop cursors and drag previews use semantic theme colors. Native
 scrollbar chrome stays hidden while scroll/keyboard access remains available.
+The deletion dialog uses the Explorer mount's themed viewport overlay. It follows
+the existing Lime modal pattern and is dismissed when the mount becomes inactive.
 
 ## Integration and verification
 
