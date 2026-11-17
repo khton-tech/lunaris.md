@@ -119,7 +119,10 @@ its runtime.manage facade through the guest SDK broker.
 HostSession.startSafeMode respects the running application's save gate, tears down
 the old session and starts with the host-owned policy already set. The independent
 recovery shell exposes Open without third-party plugins in browser and desktop
-hosts. The engine registers/inspects installed packages but does not evaluate them
+hosts. While the product is running, Ctrl+Shift+F8 (Cmd+Shift+F8 on macOS)
+invokes the same action before product keyboard handlers. A browser can also
+start directly in safe mode with the `safe-mode=1` URL query parameter.
+The engine registers/inspects installed packages but does not evaluate them
 until explicit resume. Enabled preferences remain intact. Cleanup-unsafe/frozen
 host recovery retains the documented process-restart limitation.
 

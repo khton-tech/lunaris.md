@@ -19,3 +19,29 @@ test('healthy polling does not serialize snapshots or rebuild hidden recovery UI
   assert.equal(root.querySelector('.metrics').childElementCount, 4);
   view.dispose(); dom.window.close();
 });
+
+test('safe recovery remains reachable with the product shell replaced', () => {
+  const dom = new JSDOM('<div id="system"></div><div id="app"><input></div></div>');
+  const { document, KeyboardEvent } = dom.window;
+  let notify; let restarts = 0;
+  const session = {
+    subscribe(listener) { notify = listener; return { dispose() {} }; },
+    async startSafeMode() { restarts++; },
+  };
+  const view = mountSystemView(document.getElementById('system'), document.getElementById('app'), session);
+  const input = document.querySelector('input');
+  const status = { phase: 'running', applicationVisible: true, pluginRuntimeAvailable: true };
+  const press = data => input.dispatchEvent(new KeyboardEvent('keydown', {
+    key: 'F8', ctrlKey: true, shiftKey: true, bubbles: true, cancelable: true, ...data,
+  }));
+  notify({ ...status, busy: true });
+  assert.equal(press(), true);
+  notify(status);
+  assert.equal(press({ repeat: true }), true);
+  assert.equal(press(), false);
+  assert.equal(restarts, 1);
+  view.dispose();
+  assert.equal(press(), true);
+  assert.equal(restarts, 1);
+  dom.window.close();
+});

@@ -13,7 +13,7 @@
 - [Independent plugin authoring](guides/plugin-authoring.md): packed toolchain bootstrap, public contracts, generated projects, lifecycle, UI and current limitations.
 - [Plugin recipes](guides/plugin-recipes.md): persisted settings, a custom screen, compatible service providers and managed files.
 - [Host registry mutations](reference/runtime-management.md): implemented explicit unregister/replacement, affected graph recovery, concurrency and rollback limits.
-- [Lime host runtime adapter](reference/lime-runtime.md): environment-bound registration, activation, dependency planning, replacement and removal in the shared application host.
+- [Lime host runtime adapter](reference/lime-runtime.md): environment-bound package management, dependency planning, Vault composition and recovery.
 - [Lunaris Lime engine](../plugins/systems/lime/DOCS/README.md): implemented headless Vault-local preview/install/enable/disable/update/retry service and recovery intent; remaining integration is explicit.
 - [Lime Settings](../plugins/UI/lime-settings/DOCS/README.md): localized Settings controller and shared Mantine management role, composed preview/confirmation and removal checks; native acceptance remains pending.
 - [QuickJS execution driver](../plugins/systems/driver/quickjs-execution/DOCS/README.md): isolated interpreter, scoped SDK calls and package resources.

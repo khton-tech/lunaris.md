@@ -18,4 +18,6 @@ window.addEventListener("pagehide", () => { releaseInput(); void session.stop();
 window.addEventListener("error", () => { void session.reportFault("runtime", "UNHANDLED_APPLICATION_ERROR"); });
 window.addEventListener("unhandledrejection", () => { void session.reportFault("runtime", "UNHANDLED_PROMISE_REJECTION"); });
 document.documentElement.dataset.lunarisBuild = __LUNARIS_BUILD_ID__;
-void session.start();
+const safeMode = new URLSearchParams(window.location.search).get("safe-mode") === "1";
+if (safeMode) void session.startSafeMode();
+else void session.start();

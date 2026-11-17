@@ -47,14 +47,23 @@ export function mountSystemView(root: HTMLElement, application: HTMLElement, ses
   let previousList = "";
   let previousDiagnostics = "";
   let previousRender = "";
+  let allowSafeRestart = false;
 
   function action(work: () => Promise<void>): void {
     void work().catch(() => session.reportFault("view", "RECOVERY_ACTION_FAILED"));
   }
   retry.onclick = () => action(session.start);
   safeRetry.onclick = () => action(session.startSafeMode);
+  const safeRestartKey = (event: KeyboardEvent) => {
+    if (!allowSafeRestart || event.repeat || event.altKey || event.ctrlKey === event.metaKey || !event.shiftKey || event.key !== "F8") return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    action(session.startSafeMode);
+  };
+  document.defaultView?.addEventListener("keydown", safeRestartKey, true);
 
   function render(snapshot: HostSnapshot): void {
+    allowSafeRestart = snapshot.pluginRuntimeAvailable && snapshot.phase === "running" && !snapshot.busy && !snapshot.recoveryBlocked;
     const showStartup = !!options.startup && (snapshot.phase === "idle" || snapshot.phase === "starting");
     const showSystem = !snapshot.applicationVisible && !showStartup &&
       (!options.startup || snapshot.phase === "fallback" || snapshot.phase === "running");
@@ -142,5 +151,11 @@ export function mountSystemView(root: HTMLElement, application: HTMLElement, ses
     }
   }
   const subscription = session.subscribe(render);
-  return { dispose() { subscription.dispose(); root.replaceChildren(); application.hidden = true; if (options.startup) options.startup.hidden = true; } };
+  return { dispose() {
+    subscription.dispose();
+    document.defaultView?.removeEventListener("keydown", safeRestartKey, true);
+    root.replaceChildren();
+    application.hidden = true;
+    if (options.startup) options.startup.hidden = true;
+  } };
 }
