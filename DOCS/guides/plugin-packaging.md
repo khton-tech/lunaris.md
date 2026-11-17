@@ -1,14 +1,14 @@
 # Build and inspect a local plugin package
 
-Implemented commands in the existing `lunaris-core` executable:
+From the toolchain directory, after building the plugin's TypeScript entry:
 
 ```sh
-lunaris-core pack ./my-plugin ./my-plugin-1.0.0.lup
-lunaris-core inspect-package ./my-plugin-1.0.0.lup
+npm exec -- lunaris-core pack ./projects/my-plugin ./my-plugin-1.0.0.lup
+npm exec -- lunaris-core inspect-package ./my-plugin-1.0.0.lup
 ```
 
-In a source checkout, build the CLI and use `node packages/cli/dist/bin.js` in
-place of `lunaris-core`. For portable packed tools and project generation, follow
+In a source checkout, build the CLI and use `npm run core -- <command>`.
+For portable packed tools and project generation, follow
 [independent authoring](plugin-authoring.md). Registry publication remains separate.
 
 Build TypeScript first so `manifest.json` points to an existing `.js`/`.mjs`

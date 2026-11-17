@@ -6,15 +6,23 @@ original records for `DevelopmentSession.logs()`; normal CLI JSON output stays
 clean. Custom Logger/LogSink providers take precedence. This is trusted Node
 development composition, not the installed package isolation boundary.
 
-From a built checkout use `npm run core -- <command>`. Generated packages additionally expose `npm run core -- <command>` and convenience scripts. All failures return nonzero. CLI wrapper errors use stable codes and safe messages without raw causes; the Node test runner emits its normal assertion reports.
+From an installed toolchain root use `npm exec -- lunaris-core <command>`.
+From a built checkout or a generated plugin project use `npm run core -- <command>`.
+Generated projects also expose convenience scripts. All failures return nonzero.
+CLI wrapper errors use stable codes and safe messages without raw causes. The Node
+test runner emits its normal assertion reports.
 
 | Command | Behavior |
 |---|---|
 | `create-plugin <directory> [--id plugin.id]` | New SDK-only TypeScript package, manifest, test and docs; existing targets fail `TARGET_EXISTS` |
+| `contracts` | List the public contract packages available in the installed toolchain |
+| `add-contract <package> [directory]` | Vendor a public contract and its dependencies into a plugin project |
 | `validate [roots...]` | Shared manifest/compatibility and real-path entry checks, without module evaluation |
 | `test [roots...]` | Validate roots, then run each package's focused `test/*.test.js` / `*.test.mjs` through a fresh Node test invocation |
 | `inspect [roots...]` | Load/start a local session, print frozen state/binding/permission/diagnostic snapshots, stop in finally |
-| `dev [roots...] [--once]` | Start a session; stop on `stop`, stdin EOF, SIGINT or SIGTERM; `--once` activates/stops immediately |
+| `dev [roots...] [--live] [--once]` | Start a session; `--live` uses isolated QuickJS with `reload` and `stop`; `--once` activates/stops immediately |
+| `pack <directory> [output.lup]` | Bundle and validate a plugin archive |
+| `inspect-package <file.lup>` | Read package metadata without evaluating plugin code |
 
 Roots default to the working directory. Build entries before validate/test/dev/inspect. Multiple local roots are all validated before entry imports; their required capabilities can resolve against one another. Grants for sensitive operations default to empty in CLI commands. Use the development host API to compose explicit host policy rather than granting arbitrary access from CLI arguments.
 

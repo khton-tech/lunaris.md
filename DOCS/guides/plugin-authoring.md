@@ -7,17 +7,20 @@ Supported toolchain: Node >=26.13.0 <27, npm >=11 <12, SDK/kernel/CLI 0.1.0,
 LUP format 1. Tool packages are currently private; use the prepared local packed
 distribution. Preparing it is not package registry publication.
 
-Maintainers prepare the distribution with `npm run toolchain:build`; output is
-`dist/lime-toolchain`. `npm run lime:dx` rehearses installation and authoring in a
-temporary directory using packed artifacts and the npm cache, without checkout
-links. It validates build, tests, packaging, inspection and dev shutdown.
+Maintainers run `npm run toolchain:archive` to create
+`dist/lunaris-plugin-sdk-<version>.tar.gz`. The archive requires `tar` to build and
+contains packed Lunaris dependencies, a lockfile, and this documentation.
+`npm run toolchain:build` prepares the unpackaged distribution at
+`dist/lime-toolchain`. Run `npm run lime:dx -- <archive>` to verify an archive with
+the local npm cache. The rehearsal checks generation, build, tests, packaging,
+inspection and dev shutdown in a temporary directory outside the checkout.
 
 ## Bootstrap and the first package
 
-In the supplied toolchain directory run:
+Extract the archive, open its root directory and run:
 
 ```sh
-npm install --ignore-scripts
+npm ci --ignore-scripts
 npm exec -- lunaris-core create-plugin ./projects/my-plugin --id author.my-plugin
 cd projects/my-plugin
 npm install --ignore-scripts
@@ -25,6 +28,9 @@ npm run check
 npm test
 npm run pack
 ```
+
+For an unpackaged toolchain directory without a lockfile, use
+`npm install --ignore-scripts` for the first command.
 
 The generated project includes versioned SDK tarballs, a manifest, TypeScript
 entry, focused test, English developer/agent guidance and npm scripts. Tarball
@@ -38,8 +44,8 @@ static JavaScript/JSON imports plus optional assets/ into a new
 manifest version for an update, or supply a new output explicitly:
 
 ```sh
-lunaris-core pack . ./another-output.lup
-lunaris-core inspect-package ./another-output.lup
+npm run core -- pack . ./another-output.lup
+npm run core -- inspect-package ./another-output.lup
 ```
 
 Inspection never evaluates package code. Install through Settings / Third-party
@@ -54,12 +60,12 @@ contexts from `@lunaris/sdk`. Every product plugin requires `Logger` from
 `@lunaris/logging` and logs through `ctx.use(Logger)` with ctx.pluginId as source.
 No direct console, host/native bridge or private implementation imports.
 
-Run `lunaris-core contracts` for the installed SDK package catalog. Add a public
+Run `npm run core -- contracts` for the installed SDK package catalog. Add a public
 contract dependency without editing bundler configuration:
 
 ```sh
-lunaris-core add-contract @lunaris/components
-lunaris-core add-contract @lunaris/active-screen
+npm run core -- add-contract @lunaris/components
+npm run core -- add-contract @lunaris/active-screen
 npm install --ignore-scripts
 ```
 

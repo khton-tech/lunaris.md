@@ -2,17 +2,24 @@ import { mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { command, npmCliPath, prepareEmbeddedToolchain } from './plugin-toolchain.mjs';
 
 const prefix = path.join(tmpdir(), 'lunaris-external-dx-');
 const root = await mkdtemp(prefix);
 try {
   const npm = await npmCliPath();
-  await prepareEmbeddedToolchain({ output: root });
-  await command([npm, 'install', '--ignore-scripts', '--no-audit', '--no-fund', '--offline'], root);
+  const archivePath = process.argv[2];
+  if (archivePath) {
+    execFileSync('tar', ['-xzf', path.resolve(archivePath), '--strip-components', '1', '-C', root], { windowsHide: true });
+    await readFile(path.join(root, 'DOCS/reference/sdk.md'), 'utf8');
+  } else {
+    await prepareEmbeddedToolchain({ output: root });
+  }
+  await command([npm, archivePath ? 'ci' : 'install', '--ignore-scripts', '--no-audit', '--no-fund', '--offline'], root);
   const cli = path.join(root, 'node_modules/@lunaris/cli/dist/bin.js');
   const project = path.join(root, 'projects/independent-plugin');
-  await command([cli, 'create-plugin', project, '--id', 'author.independent'], root);
+  await command([npm, 'exec', '--', 'lunaris-core', 'create-plugin', project, '--id', 'author.independent'], root);
   const catalog = JSON.parse(await command([cli, 'contracts'], project));
   assert.ok(catalog.packages.some(item => item.name === '@lunaris/components'));
   assert.ok(!catalog.packages.some(item => item.name === '@lunaris/kernel'));
