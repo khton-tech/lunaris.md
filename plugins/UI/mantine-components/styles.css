@@ -87,7 +87,7 @@
 .lm-workspace-empty-actions { --recent-card-inset:calc(var(--vault-space)*2);inline-size:min(100%,13rem);min-inline-size:0 }
 .lm-workspace-empty-actions .lm-button { text-align:start }
 .lm-workspace-empty-actions[data-has-recent] { inline-size:min(100%,28rem) }
-.lm-workspace-empty-actions[data-has-recent] > .lm-button { padding-inline-start:calc(var(--recent-card-inset) + var(--vault-space)*3 - var(--vault-border)) }
+.lm-workspace-empty-actions[data-has-recent] > .lm-button { padding-inline-start:calc(var(--recent-card-inset) + var(--vault-space)*3) }
 .lm-workspace-recent { min-inline-size:0;padding:var(--recent-card-inset);background:var(--vault-panel);text-align:start }
 .lm-workspace-empty .lm-workspace-recent h2 { padding:calc(var(--vault-space)*2) calc(var(--vault-space)*3);font-size:inherit }
 .lm-workspace-recent .mantine-Button-label { min-inline-size:0;text-box-trim:none }
@@ -723,6 +723,7 @@
 .lm-root .lm-button:not(.lm-card-row)[data-variant=filled]:enabled:hover { background-image:var(--vault-primary-hover-image,none) }
 .lm-root .lm-button:not(.lm-card-row)[data-variant=filled]:enabled:active { background-image:var(--vault-primary-pressed-image,none) }
 .lm-root .lm-button:not(.lm-card-row):disabled { background-image:none;box-shadow:none }
+.lm-workspace-recent,
 .lm-root .lm-workspace-empty-actions .lm-button[data-variant=outline]:enabled { border:var(--vault-border) solid var(--vault-button-border,var(--vault-separator)) }
 
 /* Boolean controls use semantic surfaces even outside Windows presets. */
