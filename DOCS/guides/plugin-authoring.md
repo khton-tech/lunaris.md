@@ -8,8 +8,9 @@ LUP format 1. Tool packages are currently private; use the prepared local packed
 distribution. Preparing it is not package registry publication.
 
 Maintainers run `npm run toolchain:archive` to create
-`dist/lunaris-plugin-sdk-<version>.tar.gz`. The archive requires `tar` to build and
-contains packed Lunaris dependencies, a lockfile, and this documentation.
+`dist/lunaris-plugin-sdk-<version>.7z`. Building the archive requires the `7z`
+command on PATH. It contains packed Lunaris dependencies, a lockfile, and this
+documentation.
 `npm run toolchain:build` prepares the unpackaged distribution at
 `dist/lime-toolchain`. Run `npm run lime:dx -- <archive>` to verify an archive with
 the local npm cache. The rehearsal checks generation, build, tests, packaging,

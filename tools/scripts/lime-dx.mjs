@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, realpath, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
@@ -10,16 +10,22 @@ const root = await mkdtemp(prefix);
 try {
   const npm = await npmCliPath();
   const archivePath = process.argv[2];
-  if (archivePath) {
+  let toolchain = root;
+  if (archivePath?.toLowerCase().endsWith('.7z')) {
+    execFileSync('7z', ['x', '-bso0', '-bsp0', `-o${root}`, '--', path.resolve(archivePath)], { windowsHide: true });
+    const entries = await readdir(root, { withFileTypes: true });
+    assert.ok(entries.length === 1 && entries[0].isDirectory(), 'Expected a single toolchain directory in the archive');
+    toolchain = path.join(root, entries[0].name);
+  } else if (archivePath) {
     execFileSync('tar', ['-xzf', path.resolve(archivePath), '--strip-components', '1', '-C', root], { windowsHide: true });
-    await readFile(path.join(root, 'DOCS/reference/sdk.md'), 'utf8');
   } else {
     await prepareEmbeddedToolchain({ output: root });
   }
-  await command([npm, archivePath ? 'ci' : 'install', '--ignore-scripts', '--no-audit', '--no-fund', '--offline'], root);
-  const cli = path.join(root, 'node_modules/@lunaris/cli/dist/bin.js');
-  const project = path.join(root, 'projects/independent-plugin');
-  await command([npm, 'exec', '--', 'lunaris-core', 'create-plugin', project, '--id', 'author.independent'], root);
+  if (archivePath) await readFile(path.join(toolchain, 'DOCS/reference/sdk.md'), 'utf8');
+  await command([npm, archivePath ? 'ci' : 'install', '--ignore-scripts', '--no-audit', '--no-fund', '--offline'], toolchain);
+  const cli = path.join(toolchain, 'node_modules/@lunaris/cli/dist/bin.js');
+  const project = path.join(toolchain, 'projects/independent-plugin');
+  await command([npm, 'exec', '--', 'lunaris-core', 'create-plugin', project, '--id', 'author.independent'], toolchain);
   const catalog = JSON.parse(await command([cli, 'contracts'], project));
   assert.ok(catalog.packages.some(item => item.name === '@lunaris/components'));
   assert.ok(!catalog.packages.some(item => item.name === '@lunaris/kernel'));

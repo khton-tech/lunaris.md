@@ -69,9 +69,9 @@ installed in the parent toolchain directory.
 - [CLI reference](DOCS/reference/cli.md)
 - [Packaging and installation workflow](DOCS/guides/plugin-packaging.md)
 `);
-    const filename = `${name}.tar.gz`;
+    const filename = `${name}.7z`;
     const archive = path.join(stage, filename);
-    execFileSync('tar', ['-czf', archive, '-C', stage, name], { encoding: 'utf8', windowsHide: true });
+    execFileSync('7z', ['a', '-t7z', '-bso0', '-bsp0', archive, name], { cwd: stage, windowsHide: true });
     await rename(archive, path.join(dist, filename));
     console.log(`Plugin SDK ${version}: dist/${filename} (${packages + 1} Lunaris packages, documentation and npm lockfile).`);
   } finally {
