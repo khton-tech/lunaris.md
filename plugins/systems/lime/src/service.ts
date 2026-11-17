@@ -133,13 +133,16 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
     const current = vault.current();
     if (!current) return fail('NO_VAULT', 'No Vault is active.');
     if (busy || transitioning) return fail('BUSY', 'Plugin operation or environment transition is still running.');
-    transitioning = true; previews.clear();
+    transitioning = true;
     try {
-      if (owner) await owner.dispose();
-      owner = ctx.scope.child(); environment = Object.freeze({ vaultId: current.id, generation: ++generation });
+      const nextEnvironment = Object.freeze({ vaultId: current.id, generation: ++generation });
+      const opened = await runtime.open(nextEnvironment, { safeMode: requestedSafeMode });
+      if (!opened.ok) { error = opened.error.message; return opened; }
+      const previousOwner = owner;
+      owner = ctx.scope.child(); environment = nextEnvironment; previews.clear();
       storage = createStorage(fs, current.id); backups = createBackups(fs, configSnapshots, current.id); packages.clear(); records = []; error = null; safeMode = requestedSafeMode;
-      const opened = await runtime.open(environment, { safeMode }); if (!opened.ok) { error = opened.error.message; return opened; }
       updateCheckpoints.clear();
+      if (previousOwner) await previousOwner.dispose();
       records = await storage.read();
       for (const record of [...records]) if (record.updating) {
         try { const recovered = await recoverUpdate(record, environment); if (!recovered.ok) error = recovered.error.message; }
