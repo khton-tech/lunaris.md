@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { isValidId } from "@lunaris/manifest";
-import { authoringGuide, authoringRecipes, vendor } from "./toolchain.js";
+import { authoringAgentFiles, authoringGuide, authoringRecipes, vendor } from "./toolchain.js";
 
 export class GenerationError extends Error {
   constructor(readonly code: string, message: string) { super(message); this.name = "GenerationError"; }
@@ -38,7 +38,7 @@ export async function createPlugin(target: string, requestedId?: string): Promis
     "DOCS/README.md": `# ${id}\n\nPurpose: an SDK-only plugin starting point. Implement one responsibility in src/plugin.ts.\n\nUsage: npm install --ignore-scripts, npm run check, npm test, npm run pack. The installed toolchain supplies lunaris-core. See [the bundled authoring guide](authoring.md).\n\nRequired API: lunaris.logger@^1.0.0 via Logger from @lunaris/logging. No APIs/events/hooks are provided by default. Every additional contract belongs in manifest.json and its own documentation.\n\nLifecycle: activation owns cleanup; SDK registrations are released on stop. No SDK access after scope closure. The tools/vendor archives are distributable SDK artifacts, not source-checkout links.\n`,
     'DOCS/authoring.md': await authoringGuide(),
     'DOCS/plugin-recipes.md': await authoringRecipes(),
-    'AGENTS.md': '# Plugin author instructions\n\nRead DOCS/README.md, DOCS/authoring.md and manifest.json first. Use actual public SDK package exports/declarations; do not invent APIs or import host/kernel/private implementations. Discover optional SDK contracts with lunaris-core contracts and add them with lunaris-core add-contract. Do not edit tools/vendor archives.\n\nRequire Logger and use ctx.use(Logger) with ctx.pluginId; preserve original errors without sensitive payloads. Use owned scopes/signals and release resources. Use Views/shared component roles and localization for product UI. Use ApplicationDom through the SDK to extend existing interface nodes, and own mutations in the activation scope. Use public providers for filesystem and native operations, including NativeProcesses for a packaged Windows helper.\n\nRun npm run check, npm test and npm run pack after meaningful changes. Metadata must match exported definition. Report missing SDK contracts with concrete requirements rather than bypassing the boundary. Do not publish tooling/packages without separate authorization.\n',
+    ...await authoringAgentFiles(),
   };
   for (const [relative, content] of Object.entries(files)) {
     const filename = path.join(root, relative);

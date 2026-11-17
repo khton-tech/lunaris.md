@@ -6,6 +6,7 @@ import { createHash } from 'node:crypto';
 import { spawn } from 'node:child_process';
 
 const workspace = fileURLToPath(new URL('../../', import.meta.url));
+const agentTemplates = path.join(workspace, 'resources/plugin-agent');
 export async function npmCliPath() {
   for (const candidate of [process.env.npm_execpath, path.join(path.dirname(process.execPath), 'node_modules/npm/bin/npm-cli.js'), path.resolve(path.dirname(process.execPath), '../lib/node_modules/npm/bin/npm-cli.js')]) {
     if (!candidate) continue;
@@ -54,9 +55,11 @@ export async function prepareEmbeddedToolchain({ build = true, output } = {}) {
   for (const [guide, destination] of [['plugin-authoring.md', 'authoring.md'], ['plugin-recipes.md', 'plugin-recipes.md']]) {
     const source = await readFile(path.join(workspace, 'DOCS/guides', guide), 'utf8');
     // A generated project receives these two guides. Full references ship with the archive.
-    const embeddedGuide = source.replace(/\[([^\[\]]+)\]\((\.\.\/[^)\s]+\.md(?:#[^)\s]*)?)\)/g, '$1');
+    const embeddedGuide = source.replace(/\[([^\[\]]+)\]\(([^)\s#]+\.md)(?:#[^)\s]*)?\)/g, (link, label, target) =>
+      /^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(target) || target === 'plugin-recipes.md' ? link : label);
     await writeFile(path.join(embedded, destination), embeddedGuide);
   }
+  await cp(path.join(agentTemplates, 'project'), path.join(embedded, 'agent'), { recursive: true });
   if (output) {
     const destination = path.resolve(output); const artifacts = path.join(destination, 'packages'); await mkdir(artifacts, { recursive: true });
     for (const entry of Object.values(index.packages)) await copyFile(path.join(embedded, entry.file), path.join(artifacts, entry.file));
@@ -65,6 +68,8 @@ export async function prepareEmbeddedToolchain({ build = true, output } = {}) {
     const dependencies = Object.fromEntries(Object.entries(all).map(([name, entry]) => [name, `file:./packages/${entry.file}`]));
     const overrides = Object.fromEntries(Object.keys(all).map(name => [name, `$${name}`]));
     await writeFile(path.join(destination, 'package.json'), JSON.stringify({ name: 'lunaris-plugin-toolchain', version: '0.1.0', private: true, dependencies, overrides, engines: { node: '>=26.13.0 <27', npm: '>=11 <12' } }, null, 2) + '\n');
+    await copyFile(path.join(agentTemplates, 'SDK-AGENTS.md'), path.join(destination, 'AGENTS.md'));
+    await cp(path.join(embedded, 'agent/.agents'), path.join(destination, '.agents'), { recursive: true });
     await writeFile(path.join(destination, 'README.md'), '# Local Lunaris plugin toolchain\n\nThis directory is a packed distribution, not a source checkout.\n\nRun `npm install --ignore-scripts`, then `npm exec -- lunaris-core create-plugin ./projects/my-plugin --id author.my-plugin`. In the generated directory run `npm install --ignore-scripts`, `npm run check`, `npm test` and `npm run pack`. The parent toolchain supplies the CLI. See the generated DOCS/authoring.md and AGENTS.md. No package is published by preparing this directory.\n');
   }
   return { packages: Object.keys(index.packages).length, embedded, ...(output ? { output: path.resolve(output) } : {}) };

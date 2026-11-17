@@ -46,6 +46,16 @@ export async function vendor(root: string, requested: readonly string[]): Promis
 }
 export async function authoringGuide(): Promise<string> { return await readFile(path.join(directory, 'authoring.md'), 'utf8'); }
 export async function authoringRecipes(): Promise<string> { return await readFile(path.join(directory, 'plugin-recipes.md'), 'utf8'); }
+export async function authoringAgentFiles(): Promise<Record<string, string>> {
+  const files = [
+    'AGENTS.md',
+    '.agents/skills/lunaris-plugin-development/SKILL.md',
+    '.agents/skills/lunaris-plugin-development/references/capabilities.md',
+    '.agents/skills/lunaris-plugin-review/SKILL.md',
+  ];
+  return Object.fromEntries(await Promise.all(files.map(async file =>
+    [file, await readFile(path.join(directory, 'agent', file), 'utf8')] as const)));
+}
 export async function addContract(name: string, root: string): Promise<void> {
   const index = await toolchain(); if (index.packages[name]?.kind !== 'sdk') throw new ToolchainError('CONTRACT_UNAVAILABLE', 'Choose a public SDK package listed by contracts.');
   const filename = path.join(path.resolve(root), 'package.json'); const pkg = JSON.parse(await readFile(filename, 'utf8')) as { dependencies?: Record<string, string>; devDependencies?: Record<string, string>; overrides?: Record<string, unknown> };

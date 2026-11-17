@@ -1,6 +1,6 @@
 # Version and environment policy
 
-SDK, kernel, manifest validator, test kit, host and CLI have independent package versions. Current packed packages use 0.1.0 and remain private npm packages. The `equal-plugins` archive label identifies the distribution of those packages. Plugin and contract versions are independently owned. Exact manifest/token versions use strict SemVer and prereleases require an admitting range. Compatibility also depends on the host supplying the declared contracts and permissions.
+SDK, kernel, manifest validator, test kit, host and CLI have independent package versions. Current packed packages use 0.1.0 and remain private npm packages. The `equal-plugins-ai` archive label identifies the distribution with bundled project skills. Plugin and contract versions are independently owned. Exact manifest/token versions use strict SemVer and prereleases require an admitting range. Compatibility also depends on the host supplying the declared contracts and permissions.
 
 Before 1.0, incompatible public changes increment minor; compatible fixes increment patch. Review exported declarations, stable error codes, manifest fields, dispatch/lifecycle ordering and permission changes for behavioral breaks. At a release, update each affected package's version and corresponding compatibility constants/defaults in kernel, loader, templates and tests. Do not silently change contract semantics or add sensitive access requirements under a patch.
 

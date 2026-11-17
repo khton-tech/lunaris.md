@@ -18,7 +18,7 @@ Use Node 26.13 or later within major 26 and npm 11. See the
 | Run the browser and server together with live reload | `npm run dev:server` · [local server development](DOCS/guides/server-development.md) |
 | Run the desktop app | `npm run tauri:dev` · [Tauri setup](DOCS/guides/tauri-host.md) |
 | Build a standalone server delivery | `npm run server:artifacts -- ../lunaris-artifacts` · [server artifacts](DOCS/guides/server-development.md#standalone-delivery) |
-| Prepare the SDK for plugin developers | `npm run toolchain:archive -- equal-plugins` · [independent plugin authoring](DOCS/guides/plugin-authoring.md) |
+| Prepare the SDK for plugin developers | `npm run toolchain:archive -- equal-plugins-ai` · [independent plugin authoring](DOCS/guides/plugin-authoring.md) |
 | Learn the runtime and public SDK | [first-plugin quickstart](DOCS/quickstart/first-plugin.md) · [SDK reference](DOCS/reference/sdk.md) |
 
 `packages/` contains the kernel, SDK, contracts and CLI. `hosts/application/`

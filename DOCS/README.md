@@ -18,6 +18,7 @@ installed packages. See [permission policy](concepts/permissions.md) and
 - [LUP package format](reference/lup.md): implemented bounded file-only container, shared pack/inspect validation and immutable package-byte identity.
 - [Plugin packaging](guides/plugin-packaging.md): implemented CLI bundle/pack and inert package inspection commands, resources and diagnostics.
 - [Independent plugin authoring](guides/plugin-authoring.md): packed toolchain bootstrap, public contracts, generated projects, lifecycle, UI and current limitations.
+- [AI-assisted plugin development](guides/ai-assisted-development.md): project instructions, development and review skills, and sample requests.
 - [Plugin recipes](guides/plugin-recipes.md): persisted settings, a custom screen, compatible service providers and managed files.
 - [Host registry mutations](reference/runtime-management.md): implemented explicit unregister/replacement, affected graph recovery, concurrency and rollback limits.
 - [Lime host runtime adapter](reference/lime-runtime.md): environment-bound package management, dependency planning, Vault composition and recovery.

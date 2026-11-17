@@ -8,15 +8,16 @@ Supported toolchain: Node >=26.13.0 <27, npm >=11 <12, SDK/kernel/CLI 0.1.0,
 LUP format 1. Tool packages are currently private; use the prepared local packed
 distribution. Preparing it is not package registry publication.
 
-Use `lunaris-plugin-sdk-0.1.0-equal-plugins.7z` with the Web or Windows
+Use `lunaris-plugin-sdk-0.1.0-equal-plugins-ai.7z` with the Web or Windows
 application built from the shared plugin runtime. The npm packages keep their
 0.1.0 versions. The archive contains the local SDK and CLI packages, an npm
 lockfile, the full developer reference, and example sources. The application
 is distributed separately. Start from the archive root to browse `DOCS/` and
-`examples/`.
+`examples/`. See [AI-assisted plugin development](ai-assisted-development.md)
+for the bundled project instructions and skills.
 
 Maintainers build the distribution with
-`npm run toolchain:archive -- equal-plugins` and the `7z` command on PATH.
+`npm run toolchain:archive -- equal-plugins-ai` and the `7z` command on PATH.
 `npm run toolchain:build` prepares the unpackaged distribution at
 `dist/lime-toolchain`. Run `npm run lime:dx -- <archive>` to verify a packed
 installation, project generation, build, tests, LUP inspection and development
@@ -49,9 +50,10 @@ contents. Increment the plugin's manifest version when packaging an update for
 an existing installation.
 
 The generated project includes versioned SDK tarballs, a manifest, TypeScript
-entry, focused test, English developer/agent guidance and npm scripts. Tarball
-dependencies are inside the project; no source-checkout file links or absolute
-CLI imports are generated. The installed parent toolchain supplies lunaris-core.
+entry, focused test, English developer guidance, `AGENTS.md`, local skills and
+npm scripts. Tarball dependencies are inside the project. No absolute CLI or
+source-checkout file links are generated. The installed parent toolchain supplies
+lunaris-core.
 Ordinary third-party npm dependencies may require a network connection or cache.
 
 `check` builds types and validates the declared entry/manifest. `pack` bundles all

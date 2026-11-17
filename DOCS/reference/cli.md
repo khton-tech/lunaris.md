@@ -15,7 +15,7 @@ test runner emits its normal assertion reports.
 
 | Command | Behavior |
 |---|---|
-| `create-plugin <directory> [--id plugin.id]` | New SDK-only TypeScript package, manifest, test and docs; existing targets fail `TARGET_EXISTS` |
+| `create-plugin <directory> [--id plugin.id]` | New SDK-only TypeScript package, manifest, test, docs and [agent guidance](../guides/ai-assisted-development.md). Existing targets fail `TARGET_EXISTS`. |
 | `contracts` | List the public contract packages available in the installed toolchain |
 | `add-contract <package> [directory]` | Vendor a public contract and its dependencies into a plugin project |
 | `validate [roots...]` | Shared manifest/compatibility and real-path entry checks, without module evaluation |

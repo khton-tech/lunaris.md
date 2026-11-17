@@ -26,6 +26,17 @@ try {
   const cli = path.join(toolchain, 'node_modules/@lunaris/cli/dist/bin.js');
   const project = path.join(toolchain, 'projects/independent-plugin');
   await command([npm, 'exec', '--', 'lunaris-core', 'create-plugin', project, '--id', 'author.independent'], toolchain);
+  await readFile(path.join(toolchain, 'AGENTS.md'), 'utf8');
+  await readFile(path.join(project, 'AGENTS.md'), 'utf8');
+  for (const asset of [
+    'lunaris-plugin-development/SKILL.md',
+    'lunaris-plugin-development/references/capabilities.md',
+    'lunaris-plugin-review/SKILL.md',
+  ]) {
+    const relative = path.join('.agents/skills', asset);
+    const packed = await readFile(path.join(toolchain, relative), 'utf8');
+    assert.equal(await readFile(path.join(project, relative), 'utf8'), packed, asset);
+  }
   const catalog = JSON.parse(await command([cli, 'contracts'], project));
   assert.ok(catalog.packages.some(item => item.name === '@lunaris/components'));
   assert.ok(!catalog.packages.some(item => item.name === '@lunaris/kernel'));
@@ -44,6 +55,7 @@ try {
   const archive = path.join(project, 'author.independent-0.1.0.lup');
   const inspection = JSON.parse(await command([cli, 'inspect-package', archive], project));
   assert.equal(inspection.pluginId, 'author.independent');
+  assert.ok(inspection.paths.every(name => name !== 'AGENTS.md' && !name.startsWith('.agents/')));
   assert.ok((await command([cli, 'dev', project, '--once'], project)).includes('DEV_STOPPED'));
   const isolated = await command([cli, 'dev', project, '--live', '--once'], project);
   assert.ok(isolated.includes('"mode":"isolated"') && isolated.includes('DEV_STOPPED'));
@@ -134,7 +146,7 @@ export default definePlugin({ manifest, activate(ctx) {
       assert.ok((await readFile(path.join(hotkey, file))).byteLength > 0, file);
     }
   }
-  process.stdout.write('External DX passed: packed SDK installation, generation, dev cleanup, counter and composition recipes.' +
+  process.stdout.write('External DX passed: packed SDK installation, agent guidance, generation, dev cleanup, counter and composition recipes.' +
     (archivePath?.toLowerCase().endsWith('.7z') ? ' Bundled Drema packaged and Global Hotkey TypeScript checked.\n' : '\n'));
 } catch (error) {
   process.stderr.write(`External DX failed: ${error.message}\n`); process.exitCode = 1;

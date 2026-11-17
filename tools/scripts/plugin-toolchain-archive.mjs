@@ -12,6 +12,7 @@ async function addDocumentation(output) {
     'DOCS/guides/plugin-authoring.md', 'DOCS/guides/plugin-packaging.md',
     'DOCS/guides/plugin-recipes.md', 'DOCS/UI_GUIDELINES.md',
     'DOCS/guides/compatibility.md', 'DOCS/quickstart/first-plugin.md',
+    'DOCS/guides/ai-assisted-development.md',
     'examples/drema/DOCS/README.md', 'examples/global-hotkey/DOCS/README.md',
   ]);
   for (const directory of ['DOCS/concepts', 'DOCS/reference']) {
@@ -84,6 +85,7 @@ installed in the parent toolchain directory.
 
 - [First plugin](DOCS/quickstart/first-plugin.md)
 - [Authoring guide](DOCS/guides/plugin-authoring.md)
+- [AI-assisted development](DOCS/guides/ai-assisted-development.md)
 - [Working recipes](DOCS/guides/plugin-recipes.md)
 - [SDK reference](DOCS/reference/sdk.md)
 - [Application DOM](DOCS/reference/application-dom.md) and [Drema source](examples/drema/DOCS/README.md)
@@ -99,7 +101,7 @@ installed in the parent toolchain directory.
     const archive = path.join(stage, filename);
     execFileSync('7z', ['a', '-t7z', '-bso0', '-bsp0', archive, name], { cwd: stage, windowsHide: true });
     await rename(archive, path.join(dist, filename));
-    console.log(`Plugin SDK ${release}: dist/${filename} (${packages + 1} Lunaris packages, documentation and npm lockfile).`);
+    console.log(`Plugin SDK ${release}: dist/${filename} (${packages + 1} Lunaris packages, documentation, agent skills and npm lockfile).`);
   } finally {
     await rm(stage, { recursive: true, force: true });
   }
