@@ -73,6 +73,23 @@ in layout CSS pixels. It uses editable focus and viewport contraction to detect
 the keyboard. Pinch zoom does not count as keyboard input. Dispose the returned
 subscription when the consuming host or view closes.
 
+## Existing interface access
+
+`ApplicationDom` from `@lunaris/components` provides
+`api:lunaris.application-dom@^1.0.0` with `ui.dom` on the shared application
+runtime. `ctx.use(ApplicationDom).root()` returns the live product root or
+`undefined` when the host has no rendered surface. Use browser selectors and
+DOM methods for integrations that need a part of the existing UI. This contract
+creates no slot and exposes no list of available insertion points.
+
+Own DOM edits, listeners and observers with the activation scope. Release every
+resource on disable and keep the original container's layout and surface intact
+when adding content. Recheck selector matches as the renderer changes. A cached
+DOM node is an ordinary browser object, so the SDK cannot revoke the reference
+after handing it to the consumer. The component role API remains available for
+rendering shared controls. See the
+[Drema package](../../examples/drema/DOCS/README.md) for a status bar example.
+
 ## Registering components (component sets)
 
 Declare `api:lunaris.components@^1.0.0`, the `ui.dom` permission, and Logger.

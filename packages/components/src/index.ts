@@ -48,6 +48,12 @@ export interface ViewSurfacesApi {
   mount(viewId: string, slotId: string, props: ComponentProps, owner: CancellationSignal): ComponentResult<MountedComponent>;
 }
 
+/** General browser access to the rendered product interface. */
+export interface ApplicationDomApi {
+  /** Existing live tree. Undefined when the host has no application surface. */
+  root(): HTMLElement | undefined;
+}
+
 /** A live rendering created by a component implementation. */
 export interface ComponentInstance {
   /** Replace all props. Throwing reports a render failure to the consumer. */
@@ -117,4 +123,8 @@ export const Views = defineApi<ViewsApi>({
 export const ViewSurfaces = defineApi<ViewSurfacesApi>({
   id: "lunaris.view-surfaces", version: "1.0.0", providePermission: "ui.dom", consumePermission: "ui.dom",
   validate: value => !!value && typeof value === "object" && fn(value, "mount"),
+});
+export const ApplicationDom = defineApi<ApplicationDomApi>({
+  id: "lunaris.application-dom", version: "1.0.0", providePermission: "ui.dom", consumePermission: "ui.dom",
+  validate: value => !!value && typeof value === "object" && fn(value, "root"),
 });

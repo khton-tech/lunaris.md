@@ -4,11 +4,14 @@ import { definePlugin } from '@lunaris/sdk';
 import { ActiveDocument, ActiveDocumentChanged, DocumentStatistics, DocumentStatisticsChanged } from '@lunaris/active-document';
 import { FilesystemSources } from '@lunaris/filesystem';
 import { AccountSession, AccountSessionChanged, ConnectionStatus, ConnectionChanged } from '@lunaris/remote';
+import { ApplicationDom } from '@lunaris/components';
+import { inspectLup } from '@lunaris/lup';
 import statusBar from '@lunaris/status-bar';
+import { packDrema } from '../../../../tools/scripts/lime-drema.mjs';
 import { setupWorkspace, flush } from '../../../../tools/test/workspace.mjs';
 const ok = value => ({ ok: true, value });
 const fail = () => ({ ok: false, error: { code: 'UNSUPPORTED', message: 'Local storage' } });
-async function setup(withStatistics = true) {
+async function setup(withStatistics = true, options = {}) {
  const state = { active: null, statistics: null, remote: null, connection: null, account: null }; let publisher;
  const tokens = [ActiveDocument, ActiveDocumentChanged, FilesystemSources, ConnectionStatus, ConnectionChanged, AccountSession, AccountSessionChanged,
   ...(withStatistics ? [DocumentStatistics, DocumentStatisticsChanged] : [])];
@@ -21,7 +24,8 @@ async function setup(withStatistics = true) {
    ctx.provide(AccountSession, { current: () => state.account, connect: async () => fail(), register: async () => fail(), login: async () => fail(), logout: async () => ok(null) });
    if (withStatistics) ctx.provide(DocumentStatistics, { current: () => state.statistics });
  } });
- const s = await setupWorkspace({ plugins: [provider, statusBar], entrypoints: [statusBar.manifest.id], grants: { [statusBar.manifest.id]: statusBar.manifest.permissions } });
+ const s = await setupWorkspace({ ...options, plugins: [provider, statusBar, ...options.plugins ?? []], entrypoints: [statusBar.manifest.id, ...options.entrypoints ?? []],
+   grants: { ...options.grants, [statusBar.manifest.id]: statusBar.manifest.permissions } });
  return { ...s, state, async emit(token, value) { await publisher.events.emit(token, value); await flush(); } };
 }
 test('composed status bar shows local document counts, hides stale counts and follows Vault lifecycle', async () => {
@@ -64,4 +68,62 @@ test('server status matches the selected root and account epoch, including offli
 });
 test('status bar remains available without an editor statistics provider', async () => {
  const s = await setup(false); try { await s.open(); const bar = s.surface.querySelector('.lm-status-bar'); assert.ok(bar); assert.equal(bar.querySelector('.lm-status-counts'), null); } finally { await s.stop(); }
+});
+
+test('an installed Drema package uses the same live DOM SDK as a built-in and edits the existing status bar', async () => {
+  const { createApplicationExecution } = await import('@lunaris/application-host');
+  const execution = createApplicationExecution(source => import('data:text/javascript;base64,' + Buffer.from(source).toString('base64')));
+  let builtInRoot;
+  const probe = definePlugin({ manifest: { manifestVersion: 1, id: 'test.dom-probe', version: '1.0.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './probe.js',
+    provides: [], requires: [{ kind: 'api', id: ApplicationDom.id, range: '^1.0.0' }], permissions: ['ui.dom'], optionalPermissions: [] },
+    activate(ctx) { builtInRoot = ctx.use(ApplicationDom).root(); },
+  });
+  const s = await setup(true, { pluginRuntime: true, plugins: [execution, probe], entrypoints: [probe.manifest.id], grants: { [probe.manifest.id]: ['ui.dom'] } });
+  try {
+    await s.open();
+    const bar = s.surface.querySelector('footer.lm-status-bar');
+    assert.ok(builtInRoot.contains(bar));
+    const filename = bar.querySelector('.lm-status-file');
+    const slots = () => [...s.surface.querySelectorAll('[data-lunaris-slot]')].map(node => node.dataset.lunarisSlot);
+    const beforeSlots = slots();
+    const archive = inspectLup(await packDrema());
+    const asset = 'assets/drema.svg';
+    const entry = archive.manifest.entry.slice(2);
+    const decode = new TextDecoder();
+    const env = { vaultId: s.service.current().id, generation: 1 };
+    const { runtime, composition } = s.tools;
+    assert.equal((await runtime.open(env)).ok, true);
+    const result = await runtime.register(env, archive.manifest, {
+      entry,
+      modules: { [entry]: decode.decode(archive.read(entry)) },
+      resources: { [asset]: [...archive.read(asset)] },
+    }, true);
+    assert.equal(result.ok, true, JSON.stringify({ result, logs: s.logs }));
+    const selector = 'img[data-plugin-mascot="example.drema"]';
+    const image = bar.querySelector(selector);
+    assert.ok(image);
+    assert.equal(image.parentElement, filename.parentElement);
+    assert.equal(bar.querySelector('.lm-status-file'), filename);
+    assert.equal(image.alt, '');
+    assert.equal(decodeURIComponent(image.src.slice(image.src.indexOf(',') + 1)), decode.decode(archive.read(asset)));
+    assert.deepEqual(slots(), beforeSlots);
+
+    const apply = async disabledBuiltins => {
+      const applied = await composition.apply(env, { bindings: [], disabledBuiltins }, composition.snapshot(env).value.revision);
+      assert.equal(applied.ok, true, JSON.stringify(applied));
+      await flush();
+    };
+    await apply([statusBar.manifest.id]);
+    assert.equal(s.surface.querySelector('footer.lm-status-bar'), null);
+    await apply([]);
+    const replacement = s.surface.querySelector('footer.lm-status-bar');
+    assert.notEqual(replacement, bar);
+    assert.equal(replacement.querySelector(selector), image);
+
+    assert.equal((await runtime.disable(env, archive.manifest.id)).ok, true);
+    await flush();
+    assert.equal(s.surface.querySelector(selector), null);
+    assert.equal(s.surface.querySelector('footer.lm-status-bar'), replacement);
+    assert.deepEqual(slots(), beforeSlots);
+  } finally { await s.stop(); }
 });

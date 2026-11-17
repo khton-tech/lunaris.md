@@ -1,9 +1,9 @@
 import { definePlugin, LunarisError } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
-import { Components, ComponentsChanged, Views, ViewSurfaces } from "@lunaris/components";
+import { ApplicationDom, Components, ComponentsChanged, Views, ViewSurfaces } from "@lunaris/components";
 import type { ComponentsApi, ComponentChange, ComponentDefinition, ComponentErrorCode, ComponentInstance, ComponentProps, ComponentResult, MountedComponent, ViewNode } from "@lunaris/components";
-import { Slots } from "@lunaris/slots";
+import { ROOT_SLOT, Slots } from "@lunaris/slots";
 import { SlotDom } from "@lunaris/slot-dom";
 import { isComponentId, isElement, isLiveOwner, readDefinition, readInstance, readProps } from "./input.js";
 import manifest from "../manifest.json" with { type: "json" };
@@ -192,6 +192,7 @@ export default definePlugin({ manifest, activate(ctx) {
   } });
   const slots = ctx.optional(Slots);
   const targets = ctx.optional(SlotDom);
+  ctx.provide(ApplicationDom, { root: () => targets?.get(ROOT_SLOT.id) });
   ctx.provide(ViewSurfaces, { mount(viewId, slotId, props, owner) {
     const copied = readProps(props);
     if (!isComponentId(viewId) || !isComponentId(slotId) || !copied || !isLiveOwner(owner)) {

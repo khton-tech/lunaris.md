@@ -1,0 +1,25 @@
+{
+  "manifestVersion": 1,
+  "id": "example.drema",
+  "version": "1.0.0",
+  "engine": "^0.1.0",
+  "sdk": "^0.1.0",
+  "entry": "./dist/src/plugin.js",
+  "metadata": {
+    "name": "Drema",
+    "author": "Lunaris examples",
+    "description": "Places an animated sleeping cat inside the existing workspace status bar.",
+    "platforms": ["desktop", "web"],
+    "languages": ["en", "ru"],
+    "translations": {
+      "ru": { "name": "Дрёма", "description": "Добавляет анимацию спящего кота в существующую строку состояния." }
+    }
+  },
+  "provides": [],
+  "requires": [
+    { "kind": "api", "id": "lunaris.logger", "range": "^1.0.0" },
+    { "kind": "api", "id": "lunaris.application-dom", "range": "^1.0.0" }
+  ],
+  "permissions": ["ui.dom"],
+  "optionalPermissions": []
+}

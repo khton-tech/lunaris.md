@@ -29,3 +29,8 @@ Run `npm run components:check` from the repository root.
 through optional Slots and SlotDom bindings. The provider owns allocation and
 teardown, while Mantine owns standalone rendering. See
 [standalone application surfaces](../../../../DOCS/reference/views.md#standalone-application-surfaces).
+
+`ApplicationDom.root()` returns the existing product root from the same
+SlotDom driver. Built-in and installed plugins declare the same API and
+`ui.dom` permission. The provider does not allocate a slot or interpret the
+consumer's DOM selectors. Consumers own cleanup of the modifications they make.
