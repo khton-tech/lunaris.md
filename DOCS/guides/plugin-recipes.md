@@ -195,3 +195,55 @@ For a custom editor or drawing surface, use the Views drawing node from
 CodeMirror-native extensions use `EditorExtensions` from `@lunaris/editor` in
 trusted host composition. Installed QuickJS packages currently use the
 declarative view contract for new editor-like surfaces.
+
+## Replace the editor's clipboard provider
+
+Generate a project with the plugin ID `example.vault-clipboard`. Add the public
+Clipboard contract with `npm run core -- add-contract @lunaris/clipboard` and
+run `npm install`. Keep the generated Logger requirement and add this provision
+to the package manifest.
+
+```json
+{ "kind": "api", "id": "lunaris.clipboard", "version": "1.0.0" }
+```
+
+Use the existing versioned token to provide an activation-local clipboard.
+
+```ts
+import { definePlugin } from "@lunaris/sdk";
+import { Clipboard } from "@lunaris/clipboard";
+import { Logger } from "@lunaris/logging";
+import manifest from "../manifest.json" with { type: "json" };
+
+export default definePlugin({
+  manifest,
+  activate(ctx) {
+    const logger = ctx.use(Logger);
+    let text = "";
+    ctx.provide(Clipboard, {
+      capabilities: () => ({ read: true, write: true }),
+      async readText() {
+        logger.debug(ctx.pluginId, "Read from the plugin clipboard");
+        return { ok: true, value: text };
+      },
+      async writeText(value) {
+        text = value;
+        logger.debug(ctx.pluginId, "Wrote to the plugin clipboard");
+        return { ok: true, value: null };
+      },
+    });
+    logger.info(ctx.pluginId, "Plugin clipboard ready");
+  },
+});
+```
+
+Pack and install the package in a Vault. In Settings → Third-party plugins →
+Built-in plugins, open Details for `lunaris.text-editor`. Under Dependencies,
+select `example.vault-clipboard` for `api:lunaris.clipboard` and choose Set
+provider. Optionally switch off `lunaris.clipboard-provider` in the built-in
+list. Apply composition to commit the edits together.
+
+Use Copy and Paste from the editor context menu to exercise the replacement.
+The copied text lives in the plugin's activation and disappears when it stops.
+Select Host default and re-enable the built-in Clipboard provider to restore
+this dependency, or use Restore defaults to clear the entire Vault profile.
