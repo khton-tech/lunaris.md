@@ -36,6 +36,9 @@
       "path": "../../../packages/themes"
     },
     {
+      "path": "../../../packages/workspace"
+    },
+    {
       "path": "../../../packages/context-menu"
     },
     {

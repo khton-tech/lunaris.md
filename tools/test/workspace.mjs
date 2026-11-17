@@ -1,7 +1,7 @@
 import mobileMenuPlugin from "@lunaris/mobile-menu-plugin";
 import { MobileMenu } from "@lunaris/mobile-menu";
 import { Settings } from "@lunaris/settings";
-import { LimeRuntime } from "@lunaris/lime";
+import { LimeCompositionRuntime, LimeRuntime } from "@lunaris/lime";
 import settingsProvider from "@lunaris/settings-provider";
 import settingsPlugin from "@lunaris/settings-plugin";
 import { ActiveScreen } from "@lunaris/active-screen";
@@ -83,10 +83,13 @@ export async function setupWorkspace(options = {}) {
     context.provide(VaultLocations, { describe: async reference => ok({ reference, label: 'Folder' }), select: async () => ok({ reference: 'saved', label: 'Folder' }), open });
     context.provide(VaultHistory, { list: async () => ok([{ location: { reference: 'saved', label: 'Folder' }, name: 'Notes' }]), open: () => service.open() });
   } });
-  const consumer = definePlugin({ manifest: manifest('test.consumer', [], [Workspace, WorkspaceSidebar, Components, Themes, Localization, ...(options.pluginRuntime ? [LimeRuntime] : []), ...(options.mobileMenu ? [MobileMenu] : []), ...(options.settings ? [Settings] : []), ...(options.activeScreen ? [ActiveScreen] : []), ...(options.sidebar ? [Sidebar] : [])], ['ui.dom', ...(options.pluginRuntime ? ['runtime.manage'] : [])]), activate(context) {
+  const consumer = definePlugin({ manifest: manifest('test.consumer', [], [Workspace, WorkspaceSidebar, Components, Themes, Localization, ...(options.pluginRuntime ? [LimeRuntime, LimeCompositionRuntime] : []), ...(options.mobileMenu ? [MobileMenu] : []), ...(options.settings ? [Settings] : []), ...(options.activeScreen ? [ActiveScreen] : []), ...(options.sidebar ? [Sidebar] : [])], ['ui.dom', ...(options.pluginRuntime ? ['runtime.manage'] : [])]), activate(context) {
     ctx = context; tools = { ...(options.mobileMenu ? { mobileMenu: context.use(MobileMenu) } : {}), ...(options.settings ? { settings: context.use(Settings) } : {}), ...(options.activeScreen ? { screens: context.use(ActiveScreen) } : {}), ...(options.sidebar ? { sidebar: context.use(Sidebar) } : {}), navigation: context.use(WorkspaceSidebar), workspace: context.use(Workspace), components: context.use(Components), themes: context.use(Themes), localization: context.use(Localization) };
     tools.themes.select('lunaris.base-theme-engine.monochrome');
-    if (options.pluginRuntime) tools.runtime = context.use(LimeRuntime);
+    if (options.pluginRuntime) {
+      tools.runtime = context.use(LimeRuntime);
+      tools.composition = context.use(LimeCompositionRuntime);
+    }
     options.onActivate?.(tools, context);
     options.beforeLoaded?.(surface);
   } });

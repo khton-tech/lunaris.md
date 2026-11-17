@@ -107,6 +107,13 @@
 .lm-workspace-panel { flex:1;margin-block:var(--workspace-gap) }
 .lm-workspace-layout:not([data-rail]) .lm-workspace-panel { margin-inline-start:var(--workspace-gap) }
 .lm-workspace-main { flex:1;background:var(--vault-content);border:0;border-radius:0;box-shadow:none }
+.lm-composed-workspace,.lm-composed-workspace-group,.lm-composed-workspace-region,.lm-composed-workspace-target { display:flex;flex:1 1 0;min-width:0;min-height:0;flex-direction:column }
+.lm-composed-workspace { overflow:hidden }
+.lm-composed-workspace-group { gap:var(--vault-space);overflow:hidden }
+.lm-composed-workspace-group[data-direction=row] { flex-direction:row }
+.lm-composed-workspace[data-compact] .lm-composed-workspace-group[data-direction=row] { flex-direction:column }
+.lm-composed-workspace-region { overflow:auto }
+.lm-composed-workspace-target { overflow:visible }
 .lm-workspace-content>.mantine-Splitter-handle { background:transparent;flex-shrink:0 }
 .lm-workspace-content>.mantine-Splitter-handle::after { content:"";width:var(--vault-border);height:calc(100% - var(--workspace-gap)*2);background:transparent;transition:background-color var(--vault-motion-fast) var(--vault-motion-easing) }
 .lm-workspace-content>.mantine-Splitter-handle:hover::after,.lm-workspace-content>.mantine-Splitter-handle[data-active]::after { background:var(--vault-control-border) }

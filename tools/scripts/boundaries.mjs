@@ -73,7 +73,7 @@ export const dependencies = {
   'theme-provider': ['sdk', 'logging', 'themes'],
   startup: ['sdk'],
   'startup-provider': ['sdk', 'logging', 'startup', 'vault'],
-  'mantine-components': ['settings', 'sdk', 'logging', 'components', 'themes', 'context-menu'],
+  'mantine-components': ['settings', 'sdk', 'logging', 'components', 'themes', 'context-menu', 'workspace'],
   'components-kit': ['sdk', 'logging', 'components', 'themes'],
   components: ['sdk'],
   'component-provider': ['sdk', 'logging', 'components'],

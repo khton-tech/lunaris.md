@@ -3,11 +3,15 @@ import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { ActionIcon, Box, FocusTrap, Paper, Splitter, Stack, UnstyledButton } from "@mantine/core";
 import { observeVirtualKeyboard } from "@lunaris/components";
 import type { ComponentProps } from "@lunaris/components";
+import { readWorkspaceLayout } from "@lunaris/workspace";
+import type { WorkspaceLayoutNode, WorkspaceRegion } from "@lunaris/workspace";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
+import { ComposedWorkspace } from "./workspace-composition.js";
 
-type Regions = Readonly<Record<"main" | "left-rail" | "left-panel" | "bottom" | "mobile-menu" | "mobile-launcher", HTMLElement>>;
+type Regions = Readonly<Partial<Record<WorkspaceRegion, HTMLElement>>>;
 interface LayoutProps {
+  readonly composition?: WorkspaceLayoutNode;
   readonly mobileLauncherVisible?: boolean; readonly mobileMenuVisible?: boolean; readonly mobileOpen?: boolean; readonly onMobileOpen?: (open: boolean) => void;
   readonly bottomVisible?: boolean; readonly railVisible: boolean; readonly panelVisible: boolean; readonly mainLabel: string; readonly panelLabel: string;
   readonly onTargets: (targets: Regions | null, compact?: boolean) => void; readonly onDismiss: () => void;
@@ -19,9 +23,17 @@ export function layoutProps(value: ComponentProps): LayoutProps {
   if (typeof value.railVisible !== "boolean" || typeof value.panelVisible !== "boolean" || typeof value.mainLabel !== "string" || typeof value.panelLabel !== "string" || typeof value.onTargets !== "function" || typeof value.onDismiss !== "function") throw new TypeError("Invalid workspace layout props.");
   if ((value.panelWidth !== undefined && (typeof value.panelWidth !== "number" || !Number.isFinite(value.panelWidth) || value.panelWidth < 120 || value.panelWidth > 4096)) ||
     (value.resizeLabel !== undefined && typeof value.resizeLabel !== "string") || (value.onPanelWidth !== undefined && typeof value.onPanelWidth !== "function")) throw new TypeError("Invalid side panel sizing props.");
-  return value as unknown as LayoutProps;
+  if (value.composition === undefined) return value as unknown as LayoutProps;
+  const composition = readWorkspaceLayout(value.composition);
+  if (!composition) throw new TypeError("Invalid workspace layout tree.");
+  return { ...(value as unknown as LayoutProps), composition };
 }
 export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: ReturnType<typeof resolveTheme> }) {
+  if (props.composition) return <ComposedWorkspace tree={props.composition} mainLabel={props.mainLabel} panelLabel={props.panelLabel}
+    onTargets={props.onTargets} onDismiss={props.onDismiss} theme={theme} />;
+  return <StandardWorkspace props={props} theme={theme} />;
+}
+function StandardWorkspace({ props, theme }: { props: LayoutProps; theme: ReturnType<typeof resolveTheme> }) {
   const bottom = useRef<HTMLDivElement>(null); const main = useRef<HTMLDivElement>(null); const rail = useRef<HTMLDivElement>(null); const panel = useRef<HTMLDivElement>(null);
   const root = useRef<HTMLDivElement>(null); const content = useRef<HTMLDivElement>(null);
   const panelPane = useRef<HTMLDivElement>(null);

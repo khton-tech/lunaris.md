@@ -85,3 +85,7 @@ Native acceptance of long Russian labels, menus and narrow layouts is pending.
 ## Awaited preparation integration
 
 Workspace optionally consumes Preparation/PreparationChanged and registers the presentation phase. It waits for settings/document/content work before constructing the existing layout, and rejects stale preparation notifications. The public tracksVault capability distinguishes complete shared-host lifecycle integration from legacy application-only hosts. Workspace retains geometry/surface ownership; embedded plugin views and Mantine roles are unchanged. Composed deferred-preference tests cover readiness; native visual acceptance remains manual.
+The optional `WorkspaceLayout` SDK provider can describe a custom region tree
+after owner selection in the Vault composition profile. Workspace lends region
+mounts to existing and independent Views contributions through Mantine.
+See the [layout contract and acceptance checks](../../../../DOCS/reference/workspace.md#replaceable-workspace-layout).

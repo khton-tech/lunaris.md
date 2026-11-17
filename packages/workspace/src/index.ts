@@ -1,5 +1,8 @@
 import { defineApi, defineEvent } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
+import type { WorkspaceRegion } from "./layout.js";
+export { isWorkspaceRegion, readWorkspaceLayout, workspaceRegions, WorkspaceLayout } from "./layout.js";
+export type { WorkspaceBuiltInRegion, WorkspaceLayoutApi, WorkspaceLayoutContext, WorkspaceLayoutNode, WorkspaceRegion } from "./layout.js";
 
 /** Component roles receive these props in addition to their registered props. */
 export interface WorkspaceContext {
@@ -14,7 +17,7 @@ export interface WorkspaceContent {
   readonly componentId: string;
   readonly props?: WorkspaceProps;
   readonly order?: number;
-  readonly region?: "main" | "left-rail" | "left-panel" | "bottom" | "mobile-menu" | "mobile-launcher";
+  readonly region?: WorkspaceRegion;
   /** Optional dismissal of a left-panel overlay (for example Escape). */
   readonly onDismiss?: (() => void) | undefined;
 }
@@ -30,7 +33,7 @@ export interface WorkspaceApi {
   list(): readonly WorkspaceContent[];
 }
 export const Workspace = defineApi<WorkspaceApi>({
-  id: "lunaris.workspace", version: "1.4.0",
+  id: "lunaris.workspace", version: "1.5.0",
   validate: value => !!value && typeof value === "object" &&
     ["register", "update", "list"].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function"),
 });

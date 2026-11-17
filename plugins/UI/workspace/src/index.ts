@@ -10,13 +10,13 @@ import { Components, ComponentsChanged } from "@lunaris/components";
 import type { ComponentProps, MountedComponent } from "@lunaris/components";
 import { Startup, StartupChanged } from "@lunaris/startup";
 import { Vault, VaultChanged } from "@lunaris/vault";
-import { Workspace, WorkspaceChanged, WorkspaceSidebar } from "@lunaris/workspace";
-import type { WorkspaceContent, WorkspaceContext } from "@lunaris/workspace";
+import { readWorkspaceLayout, Workspace, WorkspaceChanged, WorkspaceLayout, WorkspaceSidebar } from "@lunaris/workspace";
+import type { WorkspaceContent, WorkspaceContext, WorkspaceLayoutContext, WorkspaceLayoutNode, WorkspaceRegion } from "@lunaris/workspace";
 import { catalogs } from "./catalog.js";
 import manifest from "../manifest.json" with { type: "json" };
 
 interface View { readonly owner: ResourceScope; readonly target: HTMLElement; readonly componentId: string; readonly region?: string; mounted?: MountedComponent | undefined; props?: ComponentProps; content?: WorkspaceContent }
-type Regions = Readonly<Record<"main" | "left-rail" | "left-panel" | "bottom" | "mobile-menu" | "mobile-launcher", HTMLElement>>;
+type Regions = Readonly<Partial<Record<WorkspaceRegion, HTMLElement>>>;
 const standalone = Object.freeze({ mode: "standalone", sizing: "fill" });
 const embedded = Object.freeze({ mode: "embedded", sizing: "fill" });
 const intrinsic = Object.freeze({ mode: "embedded", sizing: "content" });
@@ -54,6 +54,7 @@ export default definePlugin({ manifest, async activate(ctx) {
   const registered = localization.register(ctx.pluginId, catalogs, ctx.signal);
   if (!registered.ok) throw new Error("Cannot register workspace messages.", { cause: registered.error });
   const navigation = ctx.use(WorkspaceSidebar); const workspace = ctx.use(Workspace); const views = new Map<string, View>();
+  const layoutProvider = ctx.optional(WorkspaceLayout);
   const rootId = `${ctx.pluginId}.screen`;
   const contentId = `${ctx.pluginId}.content`;
   let screen: ResourceScope | undefined; let screenVaultId: string | undefined;
@@ -66,6 +67,11 @@ export default definePlugin({ manifest, async activate(ctx) {
   let refreshPending = false;
   let compact = false;
   let context: WorkspaceContext | undefined;
+  let layoutContext: WorkspaceLayoutContext | undefined;
+  let customLayout: WorkspaceLayoutNode | undefined;
+  let layoutSignature: string | undefined;
+  let layoutStale = true;
+  let describingLayout = false;
   const text = (key: string) => localization.text(ctx.pluginId, key);
   function release(owner: ResourceScope | undefined): void {
     // Owned scopes report cleanup failures through independent kernel diagnostics.
@@ -80,6 +86,7 @@ export default definePlugin({ manifest, async activate(ctx) {
     release(screen);
     screen = undefined; screenVaultId = undefined;
     views.clear(); empty = undefined; sideEmpty = undefined; layout = undefined; regions = undefined; contentSignatures.clear();
+    layoutContext = undefined; customLayout = undefined; layoutSignature = undefined; layoutStale = true; compact = false;
   }
   ctx.scope.own({ dispose() {
     releaseScreen();
@@ -114,6 +121,30 @@ export default definePlugin({ manifest, async activate(ctx) {
     view.props = props;
     return true;
   }
+  function readLayout(current: WorkspaceLayoutContext): void {
+    if (!layoutProvider || (!layoutStale && layoutContext?.vaultId === current.vaultId && layoutContext.vaultName === current.vaultName)) return;
+    const target = Object.freeze({ vaultId: current.vaultId, vaultName: current.vaultName });
+    layoutContext = target;
+    layoutStale = false;
+    describingLayout = true;
+    try {
+      const provided: unknown = layoutProvider.describe(target);
+      if (provided instanceof Promise) {
+        void provided.catch(error => logger.warn(ctx.pluginId, "Cannot resolve workspace layout", { error }));
+        throw new TypeError("Workspace layout providers must describe layouts synchronously.");
+      }
+      const next = provided === null ? undefined : readWorkspaceLayout(provided);
+      if (provided !== null && !next) throw new TypeError("Invalid workspace layout tree.");
+      const signature = JSON.stringify(next);
+      if (signature === layoutSignature) return;
+      if (!!next !== !!customLayout) releaseContent();
+      layoutSignature = signature;
+      customLayout = next;
+      logger.info(ctx.pluginId, "Workspace layout changed", { data: { custom: !!next } });
+    } catch (error) {
+      logger.warn(ctx.pluginId, "Cannot use workspace layout", { code: "WORKSPACE_LAYOUT_INVALID", error });
+    } finally { describingLayout = false; }
+  }
   function render(): void {
     if (ctx.signal.aborted) return;
     const current = vaults.current();
@@ -126,19 +157,22 @@ export default definePlugin({ manifest, async activate(ctx) {
       if (!content.ok) { releaseScreen(); throw new Error("Cannot allocate workspace content region.", { cause: content.error }); }
       logger.info(ctx.pluginId, "Workspace opened", { code: "WORKSPACE_OPENED" });
     }
+    readLayout({ vaultId: current.id, vaultName: current.name });
     layout ??= createView("lunaris.workspace-layout", 0, 1);
     const entries = workspace.list();
     const available = entries.filter(entry => components.has(entry.componentId));
     const headerNavigation = available.some(entry => (entry.region ?? "main") === "main" && entry.props?.mobileNavigationInHeader === true);
-    if (!show(layout, { railVisible: available.some(entry => entry.region === "left-rail"), panelVisible: available.some(entry => entry.region === "left-panel"),
+    if (!show(layout, { composition: customLayout, railVisible: available.some(entry => entry.region === "left-rail"), panelVisible: available.some(entry => entry.region === "left-panel"),
       mobileOpen: navigation.isOpen(), onMobileOpen, mobileLauncherVisible: !headerNavigation && available.some(entry => entry.region === "mobile-launcher"), mobileMenuVisible: available.some(entry => entry.region === "mobile-menu"), bottomVisible: available.some(entry => entry.region === "bottom"), presentation: standalone, mainLabel: text("main"), panelLabel: text("panel"), panelWidth, resizeLabel: text("resizePanel"), onPanelWidth, onTargets, onDismiss })) {
       releaseContent(); release(layout.owner); layout = undefined; regions = undefined; return;
     }
     if (!regions) return;
-    for (const region of ["main", "left-rail", "left-panel", "bottom", "mobile-menu", "mobile-launcher"]) {
-      const signature = JSON.stringify(available.filter(entry => (entry.region ?? "main") === region).map(entry => [entry.id, entry.componentId, entry.order ?? 0]));
-      if (signature !== contentSignatures.get(region)) {
+    for (const region of new Set([...Object.keys(regions), ...contentSignatures.keys()])) {
+      const target = regions[region as WorkspaceRegion];
+      const signature = target && JSON.stringify(available.filter(entry => (entry.region ?? "main") === region).map(entry => [entry.id, entry.componentId, entry.order ?? 0]));
+      if (!target || signature !== contentSignatures.get(region)) {
         for (const [id, view] of views) if (view.region === region) { release(view.owner); views.delete(id); }
+        if (!signature) { contentSignatures.delete(region); continue; }
         contentSignatures.set(region, signature);
       }
     }
@@ -148,17 +182,24 @@ export default definePlugin({ manifest, async activate(ctx) {
     }
     for (const content of available) {
       const region = content.region ?? "main";
+      const target = regions[region];
+      if (!target) continue;
       let view = views.get(content.id);
-      if (!view) { view = { owner: screen!.child(), target: regions[region], componentId: content.componentId, region }; views.set(content.id, view); }
-      if (show(view, { ...content.props, workspace: context, presentation: ["bottom", "mobile-menu", "mobile-launcher"].includes(region) ? intrinsic : embedded }, view.content !== content)) { view.content = content; if (region === "main") visible++; if (region === "left-panel") sideVisible = true; }
+      if (view?.target !== target) {
+        release(view?.owner);
+        view = { owner: screen!.child(), target, componentId: content.componentId, region }; views.set(content.id, view);
+      }
+      if (show(view, { ...content.props, workspace: context, presentation: !customLayout && ["bottom", "mobile-menu", "mobile-launcher"].includes(region) ? intrinsic : embedded }, view.content !== content)) { view.content = content; if (region === "main") visible++; if (region === "left-panel") sideVisible = true; }
       else { release(view.owner); views.delete(content.id); }
     }
-    if (sideVisible || !available.some(entry => entry.region === "left-panel")) { release(sideEmpty?.owner); sideEmpty = undefined; }
+    if (sideEmpty?.target !== regions["left-panel"]) { release(sideEmpty?.owner); sideEmpty = undefined; }
+    if (sideVisible || !regions["left-panel"] || !available.some(entry => entry.region === "left-panel")) { release(sideEmpty?.owner); sideEmpty = undefined; }
     else {
       sideEmpty ??= { owner: screen!.child(), target: regions["left-panel"], componentId: "lunaris.workspace-empty" };
       if (!show(sideEmpty, { title: text("unavailable"), detail: text("unavailableDetail"), presentation: embedded })) { release(sideEmpty.owner); sideEmpty = undefined; }
     }
-    if (visible) { if (empty) release(empty.owner); empty = undefined; }
+    if (empty?.target !== regions.main) { release(empty?.owner); empty = undefined; }
+    if (visible || !regions.main) { release(empty?.owner); empty = undefined; }
     else {
       empty ??= { owner: screen!.child(), target: regions.main, componentId: "lunaris.workspace-empty" };
       if (!show(empty, { title: text("empty"), detail: text("emptyDetail"), presentation: embedded })) { release(empty.owner); empty = undefined; }
@@ -166,12 +207,20 @@ export default definePlugin({ manifest, async activate(ctx) {
   }
   // Publish a resize after the layout effect has returned.
   function onTargets(value: Regions | null, nextCompact = false): void {
+    const targetsChanged = !!value && (!regions || Object.keys(regions).length !== Object.keys(value).length ||
+      Object.entries(value).some(([region, target]) => regions?.[region as WorkspaceRegion] !== target));
     regions = value ?? undefined;
-    if (compact === nextCompact) return;
+    if (compact === nextCompact && !targetsChanged) return;
     compact = nextCompact;
     if (!value || ctx.signal.aborted) return;
     if (rendering) refreshPending = true;
     else void Promise.resolve().then(refresh).catch(() => {});
+  }
+  function layoutChanged(): void {
+    if (ctx.signal.aborted || layoutStale || describingLayout) return;
+    layoutStale = true;
+    // A QuickJS listener can run inside a provider method. Describe next turn.
+    void Promise.resolve().then(refresh).catch(() => {});
   }
   function onDismiss(): void { if (!ctx.signal.aborted) workspace.list().find(entry => entry.region === "left-panel")?.onDismiss?.(); }
   function onMobileOpen(open: boolean): void { if (open) navigation.open(); else navigation.close(); }
@@ -219,6 +268,12 @@ export default definePlugin({ manifest, async activate(ctx) {
     }
     if (change.componentId.startsWith("lunaris.workspace-") || workspace.list().some(entry => entry.componentId === change.componentId)) refresh();
   });
+  try {
+    const watch: unknown = layoutProvider?.watch(layoutChanged, ctx.signal);
+    if (watch instanceof Promise) void watch.catch(error => logger.warn(ctx.pluginId, "Cannot observe workspace layout changes", { error }));
+  } catch (error) {
+    logger.warn(ctx.pluginId, "Cannot observe workspace layout changes", { code: "WORKSPACE_LAYOUT_WATCH_FAILED", error });
+  }
   await preparation?.register({ id: ctx.pluginId, phase: "presentation", async prepare() { presentingVaultId = vaults.current()?.id; refresh(); } }, ctx.signal);
   refresh();
   for (const role of ["lunaris.workspace-empty", "lunaris.workspace-layout"]) {

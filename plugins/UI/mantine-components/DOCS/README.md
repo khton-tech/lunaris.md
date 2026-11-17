@@ -1518,3 +1518,10 @@ Targeted checks cover sort selection, disclosure/filter focus and editor/footer/
 pinned-screen/link integration. Native visual acceptance remains pending: compare
 Files and Backlinks in the real Sidebar, opened sort menu, long names, narrow/short
 windows, light/dark themes and keyboard focus.
+The `lunaris.workspace-layout` role also accepts an optional data-only
+`composition` tree. The standard Workspace layout remains the reference for
+open main content, supporting card surfaces, theme inheritance and compact
+thresholds. Custom trees place supporting regions inline and stack rows at
+compact widths. Mantine owns their placement and surfaces and retains borrowed
+content targets for regions moved within a custom tree. See the
+[Workspace layout contract](../../../../DOCS/reference/workspace.md#replaceable-workspace-layout).

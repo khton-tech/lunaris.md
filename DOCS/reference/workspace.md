@@ -201,3 +201,64 @@ Workspace 1.2 adds the exclusive bottom region to register(). The layout lends a
 Workspace 1.3 adds the exclusive mobile-menu region, visible at compact widths.
 The bottom region retains desktop status content. WorkspaceSidebar 1.0 controls
 mobile overlay visibility independently of Sidebar selection. See [mobile menu](mobile-menu.md) for ownership, contributions and lifecycle.
+
+## Replaceable workspace layout
+
+A package can provide `api:lunaris.workspace-layout@1.0.0`, exported as
+`WorkspaceLayout` from `@lunaris/workspace`. The Workspace controller consumes
+this optional dependency. An owner selects the alternative provider for
+`lunaris.workspace` through the Vault composition profile. The standard layout
+remains available when the profile releases the binding. A package can ship
+both a layout provider and new role contributions. Other packages can contribute
+views to that layout through `Workspace`.
+
+The provider implements two synchronous methods. `describe({ vaultId, vaultName })`
+returns a tree, or `null` for the standard layout. `watch(listener, owner)`
+registers a listener for description changes and removes it when the consumer
+owner aborts. Return the current description without publishing changes from
+`describe`. Call the listener after changing provider state. Invalid descriptions
+keep the last valid tree for the current Vault, or the standard layout on first
+render. Workspace logs the original validation or provider error.
+
+```ts
+const tree = {
+  kind: "column",
+  children: [
+    { kind: "row", grow: 4, children: [
+      { kind: "region", region: "main", grow: 3 },
+      { kind: "region", region: "example.tools", label: toolsLabel },
+    ] },
+    { kind: "region", region: "bottom" },
+  ],
+} satisfies WorkspaceLayoutNode;
+
+ctx.provide(WorkspaceLayout, {
+  describe: () => tree,
+  watch() {}, // This layout has no mutable preferences.
+});
+```
+
+Each region may occur once. Rows and columns accept one to eight children.
+Relative growth ranges from 1 to 16 (default 1). Trees are bounded to 32 nodes
+and eight levels. Labels are optional localized text up to 256 characters.
+Built-in regions can be repositioned or omitted. Package-defined dotted region
+names can host multiple ordered contributions in Workspace 1.5. Register
+content for those regions with `Workspace.register` and supply a role registered
+through Components or Views. A registration waits when its region is absent.
+
+The existing Workspace controller still owns Vault handoff and content instance
+lifetimes. Mantine owns geometry, theme surfaces and overflow in both layouts.
+In a custom layout, main stays open and other regions use one inherited card
+surface. Compact viewport rules stack rows and expose `workspace.compact` to
+embedded content. A custom tree places the navigation, panel and other regions
+inline. The standard layout's drawer, split handle and floating launcher are
+specific to the standard layout. A region retained in successive custom trees
+keeps its mount target and existing component state while moving.
+
+The composed regression bundles a real QuickJS layout provider and declarative
+Views contribution. It checks owner selection, a new package region, moving a
+nested region without remounting content, compact context, light-theme
+inheritance, malformed description recovery and restoring the standard layout
+before package removal. Native WebView acceptance remains pending. On a real
+Vault with a layout provider, check narrow and short windows, focus when moving
+a region, and overflow of long translated labels.

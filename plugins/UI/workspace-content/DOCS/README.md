@@ -25,3 +25,6 @@ The Workspace screen consumes the API/event through the SDK; future content
 plugins register component roles there. The provider contains no UI or direct
 integration with Mantine/Vault. See the [full reference and usage example](../../../../DOCS/reference/workspace.md).
 Run `npm run workspace:check` for ownership, event, restart, rendering and host checks.
+Workspace 1.5 accepts package-defined dotted region names. These regions accept
+ordered contributions and mount when the selected layout lends a matching
+target. See the [composition contract](../../../../DOCS/reference/workspace.md#replaceable-workspace-layout).

@@ -1,6 +1,6 @@
 import { definePlugin, LunarisError } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
-import { Workspace, WorkspaceChanged, WorkspaceSidebar } from "@lunaris/workspace";
+import { Workspace, WorkspaceChanged, WorkspaceSidebar, workspaceRegions } from "@lunaris/workspace";
 import type { WorkspaceContent, WorkspaceResult, WorkspaceChange } from "@lunaris/workspace";
 import { readContent, readProps } from "./input.js";
 import manifest from "../manifest.json" with { type: "json" };
@@ -36,7 +36,8 @@ export default definePlugin({ manifest, activate(ctx) {
         return reject("INVALID_ARGUMENT", "Valid workspace content and a live owner are required.");
       }
       if (entries.has(content.id)) return reject("ALREADY_REGISTERED", "Workspace content is already registered.");
-      if (content.region !== "main" && [...entries.values()].some(entry => entry.content.region === content.region)) return reject("REGION_OCCUPIED", "The workspace region already has an owner.");
+      if (workspaceRegions.some(region => region !== "main" && region === content.region) &&
+        [...entries.values()].some(entry => entry.content.region === content.region)) return reject("REGION_OCCUPIED", "The workspace region already has an owner.");
       const remove = () => {
         owner.removeEventListener("abort", remove); entries.delete(content.id);
         return notify("removed", content.id, true);
