@@ -75,6 +75,8 @@ product UI copy; future presenters own their localization catalogs.
 Portable packages can use [ViewSurfaces](views.md#standalone-application-surfaces)
 to mount a declarative view in a newly allocated product slot. The API binds
 the slot and view lifetimes and returns a portable component handle.
+Use [ApplicationDom](application-dom.md) when the desired parent is an existing
+application node and the plugin does not need a new slot.
 
 UI renderers additionally require `api:lunaris.slot-dom@^1.0.0`, declare and obtain
 `ui.dom`, and import the shared token from `@lunaris/slot-dom`:
@@ -100,8 +102,8 @@ Do not retain a borrowed target across removal/reallocation; an old node remains
 detached even if another allocation reuses its ID. DOM access is cooperative
 in-process access, not an isolation boundary.
 
-Web, Tauri and Capacitor WebViews can share this DOM driver; this milestone only
-composes it in Tauri. Other rendering platforms implement `SlotDriver` and expose
+Web and Tauri share this DOM driver. Other rendering platforms can implement
+`SlotDriver` and expose
 their own renderer contract without introducing platform types into `Slots`.
 
 ## Ownership and cleanup

@@ -16,7 +16,7 @@ visibility through AccountSessionChanged and retains saved references unchanged.
 `@lunaris/remote` defines AccountSession, AccountVaults, Drafts and DraftStorage.
 These are additive public SDK tokens; they do not implement a server or grant
 network access. Account consumers declare `account.access`; draft consumers declare
-`drafts.access`. Only a trusted storage driver provides `drafts.storage`.
+`drafts.access`. A driver that provides DraftStorage declares `drafts.storage`.
 
 AccountSession owns connection/login lifetime; connect requires a cancellation
 signal. current() contains account and server identities and an epoch, never a
@@ -97,7 +97,7 @@ acceptance in the actual selector. No storage or server protocol changes.
 
 ## Persistent desktop sessions
 
-SessionCredentials 1.0 is a trusted, replaceable SDK contract (credentials.access /
+SessionCredentials 1.0 is a replaceable SDK contract (credentials.access /
 credentials.native). It stores only the last { server, account, token }; methods
 are load(), save(record), and conditional remove(token). The Tauri credential
 driver uses OS credential storage, not Config or note files. Passwords are not

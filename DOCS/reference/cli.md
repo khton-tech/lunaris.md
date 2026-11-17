@@ -3,8 +3,9 @@
 The development host composes the existing replaceable Logger when authored roots
 require it and do not provide their own. A bounded owned LogSink retains up to 256
 original records for `DevelopmentSession.logs()`; normal CLI JSON output stays
-clean. Custom Logger/LogSink providers take precedence. This is trusted Node
-development composition, not the installed package isolation boundary.
+clean. Custom Logger/LogSink providers take precedence. The headless Node
+and QuickJS modes differ from Web and Tauri, where installed packages use the
+same application realm as built-ins. See the [runtime reference](lime-runtime.md).
 
 From an installed toolchain root use `npm exec -- lunaris-core <command>`.
 From a built checkout or a generated plugin project use `npm run core -- <command>`.
@@ -25,5 +26,11 @@ test runner emits its normal assertion reports.
 | `inspect-package <file.lup>` | Read package metadata without evaluating plugin code |
 
 Roots default to the working directory. Build entries before validate/test/dev/inspect. Multiple local roots are all validated before entry imports; their required capabilities can resolve against one another. Grants for sensitive operations default to empty in CLI commands. Use the development host API to compose explicit host policy rather than granting arbitrary access from CLI arguments.
+
+Use `dev --live` to exercise plugin lifecycle, shared contracts and the temporary
+Vault in a headless QuickJS environment. Use `pack` and a Web or Tauri Vault to
+exercise [DOM changes](application-dom.md), and use Tauri on Windows for
+[native helpers](native-processes.md). A successful headless run makes no claim
+about native window or system event behavior.
 
 `test` clears inherited Node test-runner context for its child invocation, so running the CLI from a test cannot silently skip nested test files. `inspect` does execute trusted plugin code; `validate` does not. Node module caching and noncooperative top-level module evaluation are normal Node behavior; process restart is required for changed modules. The host bounds activation/cleanup, not arbitrary module initialization or external effects.

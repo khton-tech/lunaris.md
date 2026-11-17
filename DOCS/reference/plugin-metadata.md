@@ -31,11 +31,12 @@ If both exist, show coarse platform and exact-target warnings independently;
 never silently synthesize an author's compatibility claim. Accepting a platform
 warning cannot bypass unavailable required public contracts.
 
-Verification: build of manifest/SDK and 37 manifest tests passed on 2026-11-10.
-Installer, UI and CLI consumption remain separate Lime integration work.
+The CLI and Lime inspector both use this validator. The package preview displays
+the inspected metadata before the application evaluates an installed entry.
 
 Language checking uses well-formed RFC 5646 syntax, including extensions and
 private use, and rejects duplicate variants/extension singletons. It does not
 depend on Intl, perform an IANA registry lookup or rewrite author casing. This
-keeps the same validator runnable in the isolated interpreter. A real bundled
-SDK/Logger plugin with display metadata is verified through the host runtime.
+keeps the validator portable across the application and the headless QuickJS
+fixture. Bundled SDK/Logger packages with display metadata participate in
+runtime integration checks.

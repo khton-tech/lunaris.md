@@ -1,4 +1,16 @@
-# Local development host
+# Local development modes
+
+The CLI offers two headless modes. Use `dev` or `inspect` to load built local
+modules in Node. Use `dev --live` for a QuickJS session with a temporary
+in-memory Vault and `reload` / `stop` commands. Rebuild entries before reload.
+Neither supplies the Web/Tauri application DOM or the Windows
+[native process provider](../reference/native-processes.md).
+
+For actual application integration, build a LUP with the CLI and install it in
+a Vault in Web or Tauri. Installed packages in those hosts share the realm and
+SDK authority of built-in plugins. See the [runtime reference](../reference/lime-runtime.md).
+
+## Source module loader
 
 `@lunaris/development` is the Node-specific host outside the platform-neutral kernel. `validateLocalPlugin(root)` parses `manifest.json`, checks schema and engine/SDK compatibility, resolves real paths and requires a regular JavaScript entry inside the package root. Manifest and entry symlinks cannot escape the root. It returns immutable metadata without importing the entry.
 

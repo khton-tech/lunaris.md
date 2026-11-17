@@ -29,14 +29,16 @@ activation signal: stop, failure, replacement and environment teardown revoke ol
 handles with `SCOPE_CLOSED`. New activations get fresh readers. Failed replacement
 restores both previous code and its captured resource bytes.
 
-Trusted native composition can pass `{ resources }` to `Kernel.register` or
+Host composition can pass `{ resources }` to `Kernel.register` or
 `Kernel.replace`. Replacement without resources supplies an empty set; it never
 silently inherits the previous package's files. Ordinary definitions still accept
 only manifest/activate. The SDK's `capturePackageResources(files)` is an
 authority-neutral adapter utility that snapshots byte data and returns a function
 binding a reader to a cancellation signal; it does not open files or grant access.
 
-Integration: CLI asset inclusion, Lime archive loading and actual isolated
-QuickJS SDK reads are implemented. Controls consuming images/audio still need
-explicit renderer roles; this contract does not expose DOM objects or host URLs.
+The runtime makes the same resource contract available to built-in and installed
+plugins. A desktop plugin can pass the path of a captured `.exe` asset to
+[NativeProcesses](native-processes.md). A UI plugin can render an image from its
+resource bytes via [ApplicationDom](application-dom.md) and own that element's
+cleanup. The resource contract itself returns bytes and text only.
 Native/WebView and visual acceptance remain separate from the Node tests.

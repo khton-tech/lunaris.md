@@ -3,8 +3,10 @@
 `ConfigSnapshots` provides portable per-namespace capture/restore with typed TOML
 values and one version-checked replacement. See [namespace snapshot methods and
 limits](../../plugins/systems/config/DOCS/README.md#namespace-snapshots). It requires
-config.access and an explicit global/Vault target; isolated consumers are limited
-to their own namespace in their captured Vault.
+`config.access` and an explicit global/Vault target. In the application, built-in
+and installed consumers use the same contract. Use your plugin ID and a captured
+Vault target for plugin-owned settings. The separate QuickJS headless adapter
+restricts access to the plugin's own namespace in its captured Vault.
 
 ## Responsibilities and storage
 

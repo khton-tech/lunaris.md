@@ -9,7 +9,9 @@ consistent: a plugin asks for `lunaris.button`, not for a private button.
 Existing: SDK typed APIs/events, owner signals, permissions, Logger, slot DOM
 targets and the theme provider. New: `@lunaris/components` contracts and
 `@lunaris/component-provider` in `plugins/UI/components`. No SDK/kernel extension
-is required.
+is required. Use [Views and ViewSurfaces](views.md) for declarative content and
+[ApplicationDom](application-dom.md) for owned additions to existing application
+nodes without creating a slot.
 
 The provider owns registration, lookup, instance tracking and cleanup. It
 contains no components, CSS, theme access or layout behavior and renders nothing

@@ -23,8 +23,10 @@ Recovery button, hover, focus, typography and diagnostic styles are scoped benea
 product interaction states belong to the active theme and Components Kit.
 
 The first application target is Tauri 2 on Windows. The existing TypeScript kernel
-runs in its WebView; Rust supplies the native window and packaged assets. No Node
-sidecar or Rust rewrite of the kernel is added. Product services include the
+runs in its WebView; Rust supplies the native window and packaged assets. Both
+built-in and installed plugins execute in that WebView and use the same SDK.
+Product services include the Windows [native process provider](../reference/native-processes.md),
+which launches a plugin's own packaged Windows helper, the
 [Logger and DevTools sink](../reference/logging.md) and the
 [Vault-scoped filesystem provider/driver](../reference/filesystem.md).
 The host also starts the [localization service](../reference/localization.md)
@@ -32,9 +34,9 @@ alongside Config Manager. Recovery copy remains in a standalone English catalog
 and works when product localization is unavailable.
 
 The host also starts the [slot provider and DOM driver](../reference/slots.md).
-Its view adapter mounts the isolated product surface only after successful plugin
-startup. The surface remains empty until product UI consumers are introduced;
-System/recovery controls remain host-owned and available independently.
+The view adapter mounts the product surface after startup. System/recovery
+controls remain host-owned. Plugins use [ApplicationDom](../reference/application-dom.md)
+to obtain the mounted product root through the SDK.
 
 The [theme provider](../reference/themes.md) starts as an empty registry; the
 separate [base theme engine](../reference/base-theme.md) then registers
@@ -103,11 +105,10 @@ resource failures. Native shortcut/window acceptance must be checked manually.
 Release CSP permits inline styles, matching development: Mantine theme variables,
 component styles and CodeMirror presentation are generated at runtime. Static
 asset hashes alone cannot authorize these changing styles. This allowance applies
-only to style-src; script-src remains self-only, and object/frame content remains
-disabled. A host regression checks development/release style compatibility and
-the retained script/object/frame restrictions. The Owner's release DevTools log
-identified the blocked inline style; native startup acceptance after rebuilding
-remains manual. No SDK contract or product-plugin integration changes are needed.
+to styles. The script policy permits the host's scripts and Blob module URLs
+for installed LUP entries. The loader revokes its temporary URL after import.
+Object/frame loading remains disabled. Tests check both the dev and release
+policy. Native WebView acceptance after build remains manual.
 
 Native prerequisites are Rust/MSVC C++ build tools and WebView2; see the official
 [Windows prerequisites](https://v2.tauri.app/start/prerequisites/). The toolchain is
@@ -123,20 +124,18 @@ an `ApplicationDefinition`:
 
 - `plugins`: SDK-created definitions to register.
 - `entrypoints`: root plugin IDs to start; dependencies start through the kernel.
-- Optional `grants`: trusted plugin-ID-to-permission-list map, applied after
-  registration and before starting plugins. Undeclared grants fail; excluded
-  plugins are skipped. Filesystem composition grants native authority to its
-  driver, filesystem/application-directory access to its provider, and filesystem
-  access to Vault Manager. Consumers require separate grants.
+- Optional `grants`: host plugin-ID-to-permission-list map applied after
+  registration and before activation. Undeclared grants fail. Production
+  composition supplies declared required and optional SDK permissions to
+  built-ins under the same default policy that Lime uses for installed packages.
 - Optional `view.mount(signal)`: a trusted renderer adapter that captures the
   supplied target and returns a disposable. It must cooperate with cancellation
   and release its rendering resources.
 
-This adapter is not an alternative plugin API. Do not pass its DOM target, session,
-kernel registry or native window into plugin contexts. A future plugin-driven UI
-must establish shared UI contracts and providers through the SDK; missing SDK
-operations must be specified before implementing a workaround. Layout, themes,
-localization and native drivers keep their own responsibilities.
+This adapter owns the host session, kernel registry and native window. Plugins
+extend the product surface through [public UI contracts](../reference/components.md)
+and call platform operations through SDK providers. The user chooses which
+packages to run. The host provides the same capabilities to both origins.
 
 Each load attempt receives a fresh rendering target. On cancellation the target is
 detached immediately. A late renderer cannot visibly replace a newer application
@@ -188,9 +187,10 @@ in-process recovery; close and restart the application. This avoids claiming saf
 recovery while external resources might still be live. Native close requests await
 session cleanup, and repeated close requests do not bypass that wait. Native
 permissions include event listen/unlisten, window destruction and the explicit
-`filesystem_request` permission for the main local window. The native file service
-exposes user-selected Vault roots through opaque IDs and relative paths; process
-and network drivers are not installed. See
+`filesystem_request` and `native_process_request` permissions for the main
+window. The native file service exposes user-selected Vault roots through
+opaque IDs and relative paths. Plugins invoke their packaged Windows helpers
+through the native process driver, whose job objects own process lifetime. See
 [Tauri close-request semantics](https://v2.tauri.app/reference/javascript/api/namespacewindow/#oncloserequested).
 
 ## Limits and manual acceptance
@@ -206,18 +206,17 @@ DOM tests run in Node with JSDOM, not desktop automation. Native compilation and
 mocked close callbacks do not establish actual WebView rendering or OS event
 behavior. Manually run `npm run tauri:dev` and check:
 
-1. The monochrome system view fits the window, versions are visible, and all six
-   service plugins are active without a blank application screen. Open DevTools:
-   the supplied artwork appears once, followed by the readable `LOGGER_READY`
-   record. Retry does not repeat the artwork; reloading the window does.
-   Confirm `FILESYSTEM_DRIVER_READY`, `FILESYSTEM_READY`, `VAULT_READY` and `CONFIG_READY` too. Native dialog
-   selection/cancellation requires a consumer action; its UI is outside this milestone.
-2. Labels remain English regardless of browser language; keyboard focus remains visible.
-   Resize to the minimum window width and check table scrolling when plugins exist.
-3. After product composition is introduced, verify full-window mounting without a host header,
-   a failing activation/API/render, retry, plugin exclusion and dependency failure.
-4. Close the native window while cleanup is pending and verify it waits, then
-   closes. Check development-server shutdown separately after ending Tauri dev.
+1. Verify startup opens the localized application and its actions retain visible
+   keyboard focus at the minimum window width.
+2. Open a test Vault and install [Drema](../../examples/drema/DOCS/README.md).
+   Open a note and check that the image appears in the existing status bar,
+   remains legible at narrow widths and disappears when disabled.
+3. Install the [global hotkey example](../../examples/global-hotkey/DOCS/README.md).
+   Focus another application and press Ctrl+Alt+Shift+H. Confirm
+   `Global hotkey pressed` in the Lunaris developer log. Disable the plugin and
+   confirm subsequent presses produce no log entry.
+4. Verify the native close request waits for application cleanup. Check
+   development-server shutdown separately after ending Tauri dev.
 
 The independent native workflow in `.github/workflows/tauri.yml` builds on the
 declared Windows target when host/core/tooling inputs change. It is configured;

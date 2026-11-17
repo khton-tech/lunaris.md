@@ -7,11 +7,11 @@ Authors declare that requirement and `ui.dom`, plus Logger as usual.
 `Views.register({ id, render(props) }, owner)` registers a new component ID with
 the same owned registry used by Components. Duplicate IDs are rejected.
 
-Unlike the trusted DOM component-set API, the render callback receives only
-public props and returns data/callbacks. No target, ownerDocument, framework event
-or host class instance is passed to package code. This surface works in QuickJS
-with the regular public SDK and permits entirely new screens and tools rather
-than only predefined product component roles.
+The render callback receives public props and returns data and callbacks. It
+does not receive a target element or framework event. This makes the same
+contract usable in the application realm and compatible QuickJS test fixtures.
+Use [ApplicationDom](application-dom.md) to augment an existing UI node, or the
+declarative surface to provide a new screen or tool.
 
 ## Rendering and mounting
 
@@ -46,9 +46,8 @@ screens.select(`${ctx.pluginId}.counter`);
 Import Views from `@lunaris/components` and ActiveScreen from
 `@lunaris/active-screen`; declare each API at `^1.0.0`. Check registration/update
 results and log useful outcomes/errors with `ctx.use(Logger)` and ctx.pluginId.
-Callback exceptions/rejections are contained and logged by the provider with the
-view ID. Guest errors retain a bounded message/code/stack snapshot in the cause;
-one failed action does not crash the host or disable unrelated plugins.
+The provider catches and logs callback exceptions/rejections with the view ID.
+QuickJS fixtures carry a bounded message/code/stack snapshot across their bridge.
 
 ## Node vocabulary
 
@@ -66,8 +65,8 @@ Controls are rendered by the shared Mantine component plugin. Select uses the
 existing themed Combobox composition, including opened options and focus, rather
 than a system dropdown. Text/labels never become HTML. Render data has bounds:
 2048 nodes, depth 32, 1 MiB total text, 4096 characters per value/text, 512 per
-control label and 256 select options. The execution bridge's transfer/nesting
-limits also apply and may constrain deeply nested trees earlier.
+control label and 256 select options. QuickJS test adapters can impose additional
+transfer limits. These bounds apply to declarative render data.
 
 Drawing is a general vector viewport, not a Markdown/editor-specific contribution.
 Supported shapes: path `{ d, color, fill? }`, circle `{ x, y, radius, color, fill? }`,
@@ -88,15 +87,16 @@ Workspace, ActiveScreen and Settings retain geometry/surface ownership. Presenta
 is supplied explicitly by the container. Views retain the render callback/props and
 delegate to `lunaris.declarative-view`; the registry recovers mounted views when
 that shared renderer is removed/replaced. Cancellation releases wrapper and nested
-renderer instances before the guest interpreter closes.
+renderer instances. The QuickJS test adapter closes its interpreter after cleanup.
 
 Composed tests bundle an actual SDK/Logger/Views/ActiveScreen plugin and run it
 through Kernel, LimeRuntime and QuickJS inside real Workspace/ActiveScreen/Mantine
-composition. They cover no guest DOM, a novel counter/graph, typed button/select/
+composition. They cover a custom counter/graph, typed button/select/
 pointer/key callbacks, themed opened menus, action failure containment, light/dark
 surface inheritance and disable cleanup. Separate tests cover input identity,
 invalid trees and renderer replacement. Native graphics geometry and narrow/short
-visual acceptance remain pending; this is not support for arbitrary host DOM access.
+visual acceptance remain pending. The declarative contract does not expose the
+mount element.
 
 ## Standalone application surfaces
 

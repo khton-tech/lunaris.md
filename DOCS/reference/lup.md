@@ -40,25 +40,26 @@ Supplying host versions checks engine/SDK compatibility. Platform declarations
 remain warnings. Preview requires no module evaluation; exported definition versus
 archive manifest consistency is a separate execution-time loader check.
 
-The archive carries complete built assets. Public SDK/contract dependencies must
-be bundled or resolved from a host-controlled versioned public import map by the
-execution adapter; native/host/private imports and remote code are unavailable.
-The container validates byte structure and manifests, not JavaScript import graphs.
-Author tooling must check/build the module graph before packing. Source projects,
-node_modules and implicit machine paths are not installation dependencies.
+The CLI bundles static JavaScript/JSON dependencies into one ESM entry and
+includes the package's `assets/` tree. Web and Tauri load the captured entry
+as an application module at activation. Node imports and private host imports
+are outside the supported bundle contract. A Windows executable may be packaged
+as an asset and started explicitly through [NativeProcesses](native-processes.md).
+The codec validates structure and metadata independently of the module graph.
+Installed packages require neither the author's source tree nor node_modules.
 
 Inspection returns immutable metadata/path snapshots, SHA-256 of all exact archive
 bytes, byte length and methods returning fresh copies of assets/archive bytes.
 Confirmation must retain this inspected byte identity. A digest binds preview to
 content; it is not a signature, trust decision or filesystem authorization.
 
-## Installation boundary still under implementation
+## Installation boundary
 
-Portable storage belongs under `.lunaris/plugins`. Committed registry, staging,
-installation recovery, migrations and data retention require the Lime storage and
-engine contracts; the codec does not implement them. A copied archive is inspected
-again before use. Registry/package version conflicts must not silently overwrite.
-No filesystem extraction, UI install or product execution is claimed by codec tests.
+Lime owns `.lunaris/plugins`, the Vault-local registry, staging, recovery and
+managed data retention. The codec only inspects package bytes. Lime rechecks the
+archive before use and reserves built-in IDs against package collisions. Choosing
+Install disabled keeps the entry unevaluated until enabled. See
+[Lime runtime](lime-runtime.md) for package lifecycle and recovery.
 
 Targeted codec tests cover deterministic/inert previews, immutable byte identity,
 malformed/truncated/oversized inputs, hostile raw paths, duplicate/prefix aliases,

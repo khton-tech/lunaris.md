@@ -25,7 +25,7 @@ continues. Programmatic updates, undo and redo do not trigger the effect.
 The [Deletion Particles example](../../examples/deletion-particles/README.md)
 uses this contract from an independently built LUP package.
 
-## Trusted CodeMirror contributions
+## CodeMirror contributions
 
 `@lunaris/editor` exports `EditorExtensions` 1.0, provided by Text Editor.
 A consumer declares the `lunaris.editor-extensions` API requirement (`^1.0.0`)
@@ -42,11 +42,14 @@ if (!registration.ok) throw new Error(registration.error.message);
 
 Both contribution fields are optional individually; at least one is required.
 `extension` is a CodeMirror 6 `Extension`; `markdown` is a Lezer `MarkdownConfig`.
-Use the application-compatible versions (state 6.7.6, view 6.43.15,
-lang-markdown 6.5.2, language 6.13.1, Lezer Markdown 1.8.1), sharing one installed
-CodeMirror instance. This is deliberately an adapter-specific contract, not a
-platform-independent rendering language. Only public upstream APIs are needed;
-private Text Editor imports and DOM discovery are forbidden.
+Extension objects must share the host editor's CodeMirror instance. The current
+Text Editor uses the following versions: state 6.7.6, view 6.43.15,
+lang-markdown 6.5.2, language 6.13.1 and Lezer Markdown 1.8.1. Matching package
+versions does not make a separately bundled CodeMirror copy the same instance.
+The single-entry LUP builder does not arrange shared CodeMirror imports.
+Use a data-based contract such as EditorEffects for portable packaged effects.
+These requirements apply regardless of plugin origin. Use public upstream APIs
+and the SDK to register contributions.
 
 ## Lifetime and failures
 
@@ -63,8 +66,8 @@ update in place through dedicated language/extension compartments, and future
 views use the current registry snapshot. Removal leaves Markdown source editable.
 No public change event is needed: the provider owns registry application.
 
-Extensions are trusted executable plugin code. Registration validates identity
-and lifetime, not the safety of arbitrary CodeMirror code. Invalid CodeMirror or
+Extensions execute in the editor. Registration validates identity and lifetime.
+Invalid CodeMirror or
 parser configurations can fail during application and are reported by existing
 editor diagnostics. Extension authors must not replace document persistence,
 read-only enforcement, base keymaps, language configuration, shell surfaces or
@@ -80,11 +83,9 @@ Mantine retains the stable editor target. Contributions own only their document
 syntax and presentation. Interactive product controls must mount public Mantine
 roles through Components; no React/Mantine imports in consumers.
 
-This change introduces no product controls or visual design. No callout renderer,
-Mantine callout role, insertion command or callout plugin is included. Those are
-subsequent work using this contract, Themes, Localization, Logger and Components.
-The application host already activates Text Editor in web and desktop; no new
-provider or host grants are needed. Contract integration is connected.
+The built-in [Callouts plugin](../../plugins/UI/callouts/DOCS/README.md)
+is an example of a CodeMirror contribution. The application host composes
+Text Editor on Web and Tauri.
 
 Targeted tests cover independent cancellation, duplicate/rejected registration,
 parser/extension installation and removal, existing/new views, retained view
