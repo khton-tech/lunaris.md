@@ -51,8 +51,12 @@ export async function prepareEmbeddedToolchain({ build = true, output } = {}) {
     index.packages[name] = { ...archive, kind: tool ? 'tool' : 'sdk' };
   }
   await writeFile(path.join(embedded, 'index.json'), JSON.stringify(index, null, 2) + '\n');
-  await copyFile(path.join(workspace, 'DOCS/guides/plugin-authoring.md'), path.join(embedded, 'authoring.md'));
-  await copyFile(path.join(workspace, 'DOCS/guides/plugin-recipes.md'), path.join(embedded, 'plugin-recipes.md'));
+  for (const [guide, destination] of [['plugin-authoring.md', 'authoring.md'], ['plugin-recipes.md', 'plugin-recipes.md']]) {
+    const source = await readFile(path.join(workspace, 'DOCS/guides', guide), 'utf8');
+    // A generated project receives these two guides. Full references ship with the archive.
+    const embeddedGuide = source.replace(/\[([^\[\]]+)\]\((\.\.\/[^)\s]+\.md(?:#[^)\s]*)?)\)/g, '$1');
+    await writeFile(path.join(embedded, destination), embeddedGuide);
+  }
   if (output) {
     const destination = path.resolve(output); const artifacts = path.join(destination, 'packages'); await mkdir(artifacts, { recursive: true });
     for (const entry of Object.values(index.packages)) await copyFile(path.join(embedded, entry.file), path.join(artifacts, entry.file));

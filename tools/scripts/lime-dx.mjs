@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, readdir, realpath, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { tmpdir } from 'node:os';
 import assert from 'node:assert/strict';
@@ -107,7 +107,35 @@ export default definePlugin({ manifest, activate(ctx) {
   const composition = JSON.parse(await command([cli, 'inspect-package', compositionArchive], project));
   assert.deepEqual(composition.manifest.provides, compositionManifest.provides);
   assert.deepEqual(composition.manifest.requires, compositionManifest.requires);
-  process.stdout.write('External DX passed: packed installation, generation, isolated dev cleanup, counter recipe and composition contract typecheck, LUP packaging and inspection.\n');
+  if (archivePath?.toLowerCase().endsWith('.7z')) {
+    for (const doc of ['DOCS/quickstart/first-plugin.md', 'DOCS/reference/application-dom.md', 'DOCS/reference/native-processes.md']) {
+      assert.ok((await readFile(path.join(toolchain, doc), 'utf8')).startsWith('# '), doc);
+    }
+    const drema = path.join(toolchain, 'examples/drema');
+    const hotkey = path.join(toolchain, 'examples/global-hotkey');
+    await copyFile(path.join(drema, 'manifest.json'), filename);
+    await copyFile(path.join(drema, 'src/plugin.ts'), path.join(project, 'src/plugin.ts'));
+    await mkdir(path.join(project, 'assets'));
+    await copyFile(path.join(drema, 'assets/drema.svg'), path.join(project, 'assets/drema.svg'));
+    await command([npm, 'run', 'check'], project);
+    const dremaPackage = path.join(project, 'drema.lup');
+    await command([cli, 'pack', project, dremaPackage], project);
+    const installedDrema = JSON.parse(await command([cli, 'inspect-package', dremaPackage], project));
+    assert.equal(installedDrema.pluginId, 'example.drema');
+    assert.ok(installedDrema.paths.includes('assets/drema.svg'));
+
+    await command([cli, 'add-contract', '@lunaris/execution'], project);
+    await command([npm, 'install', '--ignore-scripts', '--no-audit', '--no-fund', '--offline'], project);
+    await copyFile(path.join(hotkey, 'manifest.json'), filename);
+    await copyFile(path.join(hotkey, 'plugin.ts'), path.join(project, 'src/plugin.ts'));
+    await copyFile(path.join(hotkey, 'contract.ts'), path.join(project, 'src/contract.ts'));
+    await command([npm, 'run', 'check'], project);
+    for (const file of ['native/Cargo.toml', 'native/Cargo.lock', 'native/src/main.rs']) {
+      assert.ok((await readFile(path.join(hotkey, file))).byteLength > 0, file);
+    }
+  }
+  process.stdout.write('External DX passed: packed SDK installation, generation, dev cleanup, counter and composition recipes.' +
+    (archivePath?.toLowerCase().endsWith('.7z') ? ' Bundled Drema packaged and Global Hotkey TypeScript checked.\n' : '\n'));
 } catch (error) {
   process.stderr.write(`External DX failed: ${error.message}\n`); process.exitCode = 1;
 } finally {

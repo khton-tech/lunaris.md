@@ -5,9 +5,9 @@ See the [public view contract](../../../../DOCS/reference/views.md). It register
 arbitrary plugin-owned render callbacks returning data/typed actions, and delegates
 DOM/framework rendering to the public `lunaris.declarative-view` role. Renderer
 replacement refreshes live wrapper instances; owner cancellation releases both.
-Action exceptions/rejections are logged with original errors and view identity,
-remaining isolated from the host. Logger and ui.dom requirements are unchanged.
-Integration with the Mantine renderer and isolated SDK/ActiveScreen is covered by
+Action exceptions and rejections are logged with original errors and view identity.
+Logger and ui.dom requirements are unchanged.
+Integration with the Mantine renderer and ActiveScreen is covered by
 composed tests; native viewport geometry and visual acceptance remain pending.
 
 Purpose: register shared UI components from component set plugins and let other
@@ -34,3 +34,4 @@ teardown, while Mantine owns standalone rendering. See
 SlotDom driver. Built-in and installed plugins declare the same API and
 `ui.dom` permission. The provider does not allocate a slot or interpret the
 consumer's DOM selectors. Consumers own cleanup of the modifications they make.
+See the [Application DOM reference](../../../../DOCS/reference/application-dom.md).

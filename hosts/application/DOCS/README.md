@@ -19,19 +19,17 @@ Local app config remains independent from account authorization and remote roots
 
 Both hosts compose account access, Vault/Config/History, Workspace, Sidebar,
 Explorer, ActiveDocument/ActiveScreen, Editor, Settings, Themes and Localization.
-The optional editor/files/settings feature profile controls those UI entrypoints;
-SDK dependency validation remains the kernel's responsibility. Host grants are
-filtered to registered plugins. Platform extensions declare their own grants.
-
-The Lime runtime adapter grants both required and optional declared permissions
-before initial activation and replacement, without a permission prompt. Undeclared
-permissions remain denied. These grants do not bypass the isolated execution
-broker's captured-Vault/native authority restrictions.
+The optional editor/files/settings feature profile controls those UI entrypoints.
+SDK dependency validation remains the kernel's responsibility. Normal host
+composition grants declared required and optional permissions to built-in
+plugins. Lime applies the same policy to installed plugins on activation and
+replacement. Both run in the same application realm with the same SDK. SDK
+grants govern mediated calls. They do not isolate code sharing that realm.
 
 The adapter's [dependency planning contract](../../../DOCS/reference/lime-runtime.md)
 exposes immutable compatible candidates, affected consumers and revisions. Explicit
-provider changes delegate to kernel graph rebinding; stale plans are rejected.
-Persistent engine choices and product selection controls remain separate work.
+provider changes delegate to kernel graph rebinding, which rejects stale plans.
+Lime saves choices per Vault, and Settings accepts a complete composition profile.
 
 The host owns viewport and recovery geometry. Mantine roles own product surfaces;
 embedded views preserve their containers. Recovery is host-owned and remains

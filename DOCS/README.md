@@ -1,5 +1,12 @@
 # Lunaris developer documentation
 
+Start with [independent plugin authoring](guides/plugin-authoring.md) for the
+packed SDK and the complete create, build, test, package and install workflow.
+Use [plugin recipes](guides/plugin-recipes.md) and [the SDK reference](reference/sdk.md)
+to choose contracts. The product uses one plugin model for built-in and
+installed packages. See [permission policy](concepts/permissions.md) and
+[Lime runtime](reference/lime-runtime.md) for behavior and scope.
+
 - [Architecture proposal](TechDoc.md): original design input, preserved unchanged.
 - [Core implementation plan](CoreImplementationPlan.md): delivery scope, architecture decisions, ordered backlog, verification, and release gates.
 - [Tauri host and recovery shell](guides/tauri-host.md): first desktop target, diagnostic UI, recovery behavior, commands and manual acceptance.
@@ -31,6 +38,8 @@
 - [Theme provider](reference/themes.md): engine-owned descriptions, registration, selection, updates and lifecycle notifications.
 - [Base theme engine](reference/base-theme.md): Monochrome palette, semantic roles, geometry, typography and lifecycle.
 - [Component provider](reference/components.md): shared component registration by role ID, mounting, instance ownership and change events.
+- [Application DOM](reference/application-dom.md): extend an existing interface with activation-owned changes. See [Drema](../examples/drema/DOCS/README.md).
+- [Windows native processes](reference/native-processes.md): run a packaged executable and publish its results through the SDK. See [Global Hotkey](../examples/global-hotkey/DOCS/README.md).
 - [Declarative application views](reference/views.md): public DOM-free custom screens, shared controls and vector viewports, compatible with isolated third-party code.
 - [Mantine components](../plugins/UI/mantine-components/DOCS/README.md): Mantine startup/selector roles, theme adapter, lifecycle and future UI development.
 - [Vault-scoped filesystem](reference/filesystem.md): provider/driver APIs, relative paths, dialogs, writes, permissions and native verification.

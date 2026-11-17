@@ -24,9 +24,9 @@ are serialized after the requesting SDK callback unwinds.
 
 `register`, `replace`, `enable`, `disable`, `remove`, `close` and `snapshot` manage
 package definitions. Disabled packages remain outside the kernel registry
-and cannot start implicitly as dependencies. Required and optional declared
-permissions are granted before activation. Updates preserve code/resource
-rollback through the kernel.
+and cannot start implicitly as dependencies. The application grants declared
+required and optional permissions before activation for built-in and installed
+plugins. Updates preserve code and resources through kernel rollback.
 
 ## Dependency planning and selection
 
@@ -107,10 +107,11 @@ leaving it inactive; the manager can restore durable managed data before resumin
 old code. `finish` releases the retained checkpoint. Environment close/reopen
 revokes every checkpoint; they are not portable recovery journals.
 
-Actual isolated tests cover failed candidate activation, old resource restoration
+Headless runtime tests cover failed candidate activation, old resource restoration
 before resume, dependent pause/resume, unrelated activation preservation, mutation
-exclusion, stale generations and disabled updates. Durable data backup/journaling
-is the engine's next integration; checkpoints alone do not provide data rollback.
+exclusion, stale generations and disabled updates. The Lime engine journals
+updates and backs up the managed plugin directory and its Vault Config namespace.
+Effects outside those locations remain the plugin's responsibility.
 
 ## Host ownership and recovery bootstrap
 

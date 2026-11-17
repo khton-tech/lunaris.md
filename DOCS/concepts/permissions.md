@@ -24,6 +24,13 @@ A token can require `providePermission` and `consumePermission`. Providing an AP
 
 Denial at an operation throws `PERMISSION_DENIED` before the privileged callback executes. Revoked event listeners are skipped and diagnosed; a revoked hook handler aborts its pipeline. Owner revocation rejects further dispatch. Validators are plugin code, so authority/lifecycle is rechecked after validation before invoking callbacks. Already-running operations/callbacks may finish: revocation cannot undo an external effect or force JavaScript termination. Drivers should use activation cancellation for cooperative shutdown where applicable.
 
-This milestone trusts locally supplied code in a single JavaScript realm. These checks protect mediated SDK operations; plugins can still access ambient globals or return unmediated objects if their contract authors permit it. Types, source import checks and frozen facades do not isolate hostile code. Worker/process isolation, remote packages and native capabilities need separate designs and remain deferred. No capability with a sensitive token operation is released outside this gateway.
+Web and Tauri run built-in and installed plugins in one application realm. Both
+receive their declared required and optional permissions in normal product
+composition. The user decides which packages to enable. SDK permission checks
+mediate operations performed through SDK handles. The shared JavaScript realm
+and helpers launched under the user's OS account are outside that enforcement.
+Confining a test kernel with selected grants exercises the gateway only.
+See [Lime runtime](../reference/lime-runtime.md) and
+[Native processes](../reference/native-processes.md).
 
 `packages/kernel/test/permissions.test.mjs` includes minimal/restricted policy fixtures, denial/grant/revocation, stale approvals, provider/consumer checks, cached-method checks, dispatch revocation and in-flight behavior. Run `npm run check -- kernel`.

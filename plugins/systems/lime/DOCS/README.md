@@ -108,7 +108,7 @@ immutable copies and activation revocation. Manifest/source files are excluded.
 Headless engine tests use public SDK mocks for storage/runtime and cover inert
 preview, exact-byte confirmation, builtin collisions before commit, storage failure,
 recovery intent, explicit retry, safe-mode skip and cross-Vault preview invalidation.
-Actual Kernel/QuickJS runtime tests are separate host adapter evidence.
+The host adapter has separate kernel, shared application and headless tests.
 
 Unused hash-named archives are swept after restore and committed changes. Cleanup
 keeps every committed/tombstoned digest, ignores unknown files/symlinks and data,
@@ -119,13 +119,11 @@ External processes do not participate in filesystem locks: a race after a versio
 check cannot be made atomic by this API. Concurrent synchronization must quiesce
 Lime storage; no cross-process transactional deletion guarantee is claimed.
 
-Still pending: full prospective dependency disclosure and native/browser acceptance.
-Public declarative Views/viewport and package
-resources are implemented through SDK contracts. The shared host now
-composes the engine, SDK execution driver, picker, runtime adapter and Lime Settings.
-Lime management requires the host-only runtime.manage contract; guest code cannot
-use it through the execution broker. An update can run arbitrary package side effects against the Vault;
-rollback covers the updated package's managed data and Vault Config namespace.
+The package preview includes a prospective dependency graph. The shared host
+composes the engine, application loader, picker, runtime adapter and Lime
+Settings. Management APIs use the standard declaration and permission checks
+with `runtime.manage`. Updates execute in the shared application realm.
+Rollback covers the updated package's managed data and Vault Config namespace.
 Effects elsewhere in the Vault, including writes by restarted dependents, are
 outside the backup. Visual/native acceptance remains pending.
 

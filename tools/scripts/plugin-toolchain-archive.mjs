@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
+import { copyFile, mkdir, mkdtemp, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { command, npmCliPath, prepareEmbeddedToolchain } from './plugin-toolchain.mjs';
@@ -11,6 +11,8 @@ async function addDocumentation(output) {
   const files = new Set([
     'DOCS/guides/plugin-authoring.md', 'DOCS/guides/plugin-packaging.md',
     'DOCS/guides/plugin-recipes.md', 'DOCS/UI_GUIDELINES.md',
+    'DOCS/guides/compatibility.md', 'DOCS/quickstart/first-plugin.md',
+    'examples/drema/DOCS/README.md', 'examples/global-hotkey/DOCS/README.md',
   ]);
   for (const directory of ['DOCS/concepts', 'DOCS/reference']) {
     for (const name of await readdir(path.join(repository, directory))) {
@@ -28,6 +30,18 @@ async function addDocumentation(output) {
     const destination = path.join(output, file);
     await mkdir(path.dirname(destination), { recursive: true });
     await writeFile(destination, content);
+  }
+}
+
+async function addExampleSources(output) {
+  for (const file of [
+    'examples/drema/manifest.json', 'examples/drema/src/plugin.ts', 'examples/drema/assets/drema.svg',
+    'examples/global-hotkey/manifest.json', 'examples/global-hotkey/plugin.ts', 'examples/global-hotkey/contract.ts',
+    'examples/global-hotkey/native/Cargo.toml', 'examples/global-hotkey/native/Cargo.lock', 'examples/global-hotkey/native/src/main.rs',
+  ]) {
+    const destination = path.join(output, file);
+    await mkdir(path.dirname(destination), { recursive: true });
+    await copyFile(path.join(repository, file), destination);
   }
 }
 
@@ -49,6 +63,7 @@ async function archiveToolchain(edition) {
     const npm = await npmCliPath();
     await command([npm, 'install', '--package-lock-only', '--ignore-scripts', '--prefer-offline', '--no-audit', '--no-fund'], output);
     await addDocumentation(output);
+    await addExampleSources(output);
     await writeFile(path.join(output, 'README.md'), `# Lunaris Plugin SDK ${release}
 
 Use Node >=26.13.0 <27 and npm >=11 <12. The Lunaris packages are included.
@@ -67,9 +82,13 @@ npm run pack
 This produces \`author.my-plugin-0.1.0.lup\`. The generated project uses the CLI
 installed in the parent toolchain directory.
 
+- [First plugin](DOCS/quickstart/first-plugin.md)
 - [Authoring guide](DOCS/guides/plugin-authoring.md)
 - [Working recipes](DOCS/guides/plugin-recipes.md)
 - [SDK reference](DOCS/reference/sdk.md)
+- [Application DOM](DOCS/reference/application-dom.md) and [Drema source](examples/drema/DOCS/README.md)
+- [Native processes](DOCS/reference/native-processes.md) and [Global Hotkey source](examples/global-hotkey/DOCS/README.md)
+- [Platform compatibility](DOCS/guides/compatibility.md)
 - [Workspace layout providers](DOCS/reference/workspace.md#replaceable-workspace-layout)
 - [Standalone application surfaces](DOCS/reference/views.md#standalone-application-surfaces)
 - [Vault composition and recovery](DOCS/reference/lime-runtime.md#vault-composition)
