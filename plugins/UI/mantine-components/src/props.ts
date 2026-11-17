@@ -11,6 +11,7 @@ export interface WorkspaceEmptyProps {
   };
   readonly recent?: {
     readonly label: string; readonly paths: readonly string[]; readonly busy: boolean;
+    readonly vaultName?: string;
     readonly onOpen: (path: string) => void;
   };
 }
@@ -27,6 +28,7 @@ export function workspaceEmptyProps(value: ComponentProps): WorkspaceEmptyProps 
     throw new TypeError("Invalid workspace placeholder actions.");
   const recent = value.recent as WorkspaceEmptyProps["recent"];
   if (recent !== undefined && (!recent || typeof recent.label !== "string" || !Array.isArray(recent.paths) ||
+      (recent.vaultName !== undefined && typeof recent.vaultName !== "string") ||
       recent.paths.some(path => typeof path !== "string" || !path) || new Set(recent.paths).size !== recent.paths.length ||
       typeof recent.busy !== "boolean" || typeof recent.onOpen !== "function"))
     throw new TypeError("Invalid recent files.");

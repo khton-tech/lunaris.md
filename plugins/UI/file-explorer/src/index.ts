@@ -260,11 +260,17 @@ export default definePlugin({ manifest, async activate(ctx) {
     const onCreate = () => void run();
     const onOpen = (path: string) => void run(path);
     const recent = () => recentFiles?.vaultId === props.vaultId ? recentFiles : undefined;
-    const presentation = () => ({
-      title: "", detail: error ? text(error) : "", presentation: props.presentation,
-      actions: { createLabel: props.createLabel, busy, onCreate },
-      recent: { label: props.recentLabel, busy, onOpen, paths: recent()?.paths ?? [] },
-    });
+    const presentation = () => {
+      const vault = vaults.current();
+      return {
+        title: "", detail: error ? text(error) : "", presentation: props.presentation,
+        actions: { createLabel: props.createLabel, busy, onCreate },
+        recent: {
+          label: props.recentLabel, busy, onOpen, paths: recent()?.paths ?? [],
+          vaultName: vault && vault.id === props.vaultId ? vault.name : undefined,
+        },
+      };
+    };
     const result = components.mount("lunaris.workspace-empty", target, presentation(), signal);
     if (!result.ok) throw new Error("Cannot mount empty workspace file actions.", { cause: result.error });
     const mounted = result.value;

@@ -18,15 +18,23 @@ export function WorkspaceEmpty({ props, theme }: { props: WorkspaceEmptyProps; t
   const { actions, recent } = props;
   const recentId = useId();
   if (actions) return <Box className="lm-workspace-empty" style={theme.contentStyle} aria-busy={actions.busy}>
-    <Stack className="lm-workspace-empty-actions" align="stretch" gap="calc(var(--vault-space) * 2)">
+    <Stack className="lm-workspace-empty-actions" data-has-recent={!!recent?.paths.length || undefined} align="stretch" gap="calc(var(--vault-space) * 2)">
       <Button variant="outline" justify="start" leftSection={<Icon name="file-plus" />} disabled={actions.busy} onClick={actions.onCreate}>{actions.createLabel}</Button>
       {!!recent?.paths.length && <Paper component="section" className="lm-workspace-recent" aria-labelledby={recentId}>
         <Title id={recentId} order={2}>{recent.label}</Title>
         <Stack gap={0}>
-          {recent.paths.map(path => <Button key={path} type="button" variant="subtle" justify="start" title={path}
-            leftSection={<Icon name="file" />} disabled={recent.busy} onClick={() => recent.onOpen(path)}>
-            {path.slice(path.lastIndexOf("/") + 1).replace(/(.+)\.md$/i, "$1")}
-          </Button>)}
+          {recent.paths.map(path => {
+            const folders = path.split("/");
+            const name = folders.pop()!.replace(/(.+)\.md$/i, "$1");
+            const location = [recent.vaultName, ...folders].filter(Boolean).join(" / ") || "/";
+            return <Button key={path} type="button" variant="subtle" justify="start" title={path}
+              leftSection={<Icon name="file" />} disabled={recent.busy} onClick={() => recent.onOpen(path)}>
+              <span className="lm-workspace-recent-file">
+                <span>{name}</span>
+                <span className="lm-workspace-recent-location">{location}</span>
+              </span>
+            </Button>;
+          })}
         </Stack>
       </Paper>}
       {props.detail && <Text role="alert">{props.detail}</Text>}

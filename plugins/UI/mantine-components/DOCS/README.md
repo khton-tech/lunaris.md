@@ -6,12 +6,14 @@ Workspace owns the main region's geometry and surface. Active Screen allocates
 the empty tab target, File Explorer supplies file actions, and the embedded
 `lunaris.workspace-empty` role owns only the action layout and controls.
 The role accepts optional `actions` with localized `createLabel`, `busy` and
-`onCreate()`, plus optional `recent` with `label`, `paths`, `busy` and
-`onOpen(path)`. The Owner's vertical-action reference and the Vault selector's
-recent Vault list guide the centered stack, start-aligned rows and shared
-Lucide icons. The Recent card uses the active theme's panel surface and appears
-when there are entries. The create action, card and wrapping labels fit the
-allocated width. The role shows `detail` only as an operation error.
+`onCreate()`, plus optional `recent` with `label`, `paths`, `busy`,
+`onOpen(path)` and optional `vaultName`. The Owner's empty-tab reference
+and the Vault selector's recent list guide the centered card, start-aligned
+rows and shared Lucide icons. The card takes up to 28rem of the available
+width, with the create action at its leading edge. Each row shows the file
+name above its containing directory, prefixed by the Vault name. Root entries
+show the Vault name alone. Names and paths wrap inside the card. The role
+uses the active theme's panel surface and shows `detail` as an operation error.
 
 The editor heading remains beneath the tab controls in the editor's content
 column. The text-editor role accepts optional `onTitleFocused()`, selecting

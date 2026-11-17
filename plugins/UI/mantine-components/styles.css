@@ -86,8 +86,14 @@
 .lm-workspace-empty p { color:var(--vault-secondary);max-width:40ch }
 .lm-workspace-empty-actions { inline-size:min(100%,13rem);min-inline-size:0 }
 .lm-workspace-empty-actions .lm-button { text-align:start }
-.lm-workspace-recent { min-inline-size:0;padding:var(--vault-space);background:var(--vault-panel);text-align:start }
+.lm-workspace-empty-actions[data-has-recent] { inline-size:min(100%,28rem) }
+.lm-workspace-empty-actions[data-has-recent] > .lm-button { align-self:flex-start;max-inline-size:100% }
+.lm-workspace-recent { min-inline-size:0;padding:calc(var(--vault-space)*2);background:var(--vault-panel);text-align:start }
 .lm-workspace-empty .lm-workspace-recent h2 { padding:calc(var(--vault-space)*2) calc(var(--vault-space)*3);font-size:inherit }
+.lm-workspace-recent .mantine-Button-label { min-inline-size:0;text-box-trim:none }
+.lm-workspace-recent .mantine-Button-section { flex:none;align-self:flex-start }
+.lm-workspace-recent-file { display:grid;gap:calc(var(--vault-space)/2);min-inline-size:0;line-height:1.35 }
+.lm-workspace-recent-location { color:var(--vault-secondary);font-size:var(--vault-secondary-font-size);font-weight:400 }
 .lm-workspace-layout { --workspace-gap:calc(var(--vault-space)*2);--workspace-rail-width:calc(44px + var(--workspace-gap)*2 + var(--vault-space));display:grid;grid-template-columns:0 minmax(0,1fr);position:relative;flex:1;min-height:0;overflow:hidden }
 .lm-workspace-layout[data-rail] { grid-template-columns:var(--workspace-rail-width) minmax(0,1fr) }
 .lm-workspace-content { grid-column:2;min-width:0;min-height:0;overflow:visible }

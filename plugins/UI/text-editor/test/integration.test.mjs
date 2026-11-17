@@ -273,7 +273,8 @@ test('Explorer focuses a new title and the empty workspace shows five recent fil
     title.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true }));
     await flush();
     assert.deepEqual(s.documents.current(), { vaultId: 'a', path: 'Named from tree.md' });
-    for (const path of ['one.md', 'two.md', 'three.md']) {
+    const nested = 'Projects/2026/two.md';
+    for (const path of ['one.md', 'two.md', nested]) {
       s.disk.set(`a/${path}`, { text: '', version: 'v1' });
       assert.equal((await s.documents.open({ vaultId: 'a', path })).ok, true);
     }
@@ -282,13 +283,18 @@ test('Explorer focuses a new title and the empty workspace shows five recent fil
     await s.documents.close(); await flush();
     assert.equal(recent().querySelector('h2').textContent, 'Recent');
     const recentPaths = () => [...recent().querySelectorAll('button')].map(button => button.title);
-    assert.deepEqual(recentPaths(), ['two.md', 'other.md', 'three.md', 'one.md', 'Named from tree.md']);
+    assert.deepEqual(recentPaths(), ['two.md', 'other.md', nested, 'one.md', 'Named from tree.md']);
+    const location = path => [...recent().querySelectorAll('button')]
+      .find(button => button.title === path)?.querySelector('.lm-workspace-recent-location')?.textContent;
+    const vaultName = s.vault.current().name;
+    assert.equal(location('two.md'), vaultName);
+    assert.equal(location(nested), `${vaultName} / Projects / 2026`);
     await s.kernel.stop(explorer.manifest.id); await flush();
     assert.equal(recent(), null);
-    s.disk.delete('a/three.md');
+    s.disk.delete(`a/${nested}`);
     await s.kernel.start(explorer.manifest.id); await flush();
     assert.deepEqual(recentPaths(), ['two.md', 'other.md', 'one.md', 'Named from tree.md']);
-    blankButton('Named from tree').click(); await flush();
+    recent().querySelector('button[title="Named from tree.md"]').click(); await flush();
     assert.deepEqual(s.documents.current(), { vaultId: 'a', path: 'Named from tree.md' });
     await s.documents.close(); await flush();
     assert.equal(s.language.setLocale('ru').ok, true); await flush();
