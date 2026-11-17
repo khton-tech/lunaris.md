@@ -9,9 +9,9 @@ The role accepts optional `actions` with localized `createLabel`, `busy` and
 `onCreate()`, plus optional `recent` with `label`, `paths`, `busy`,
 `onOpen(path)` and optional `vaultName`. The Owner's empty-tab reference
 and the Vault selector's recent list guide the centered card, start-aligned
-rows and shared Lucide icons. The card takes up to 28rem of the available
-width, with the create action at its leading edge. Each row shows the file
-name above its containing directory, prefixed by the Vault name. Root entries
+rows and shared Lucide icons. The card and create button share a fluid width
+of up to 28rem. The create button's icon aligns with the file icons. Each row
+shows the file name above its containing directory, prefixed by the Vault name. Root entries
 show the Vault name alone. Names and paths wrap inside the card. The role
 uses the active theme's panel surface and shows `detail` as an operation error.
 

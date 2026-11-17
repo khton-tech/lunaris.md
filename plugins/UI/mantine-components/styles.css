@@ -84,11 +84,11 @@
 .lm-workspace-empty-icon svg { width:1em;height:1em }
 .lm-workspace-empty h2 { font:inherit;font-size:1.125em;font-weight:500;margin:0 }
 .lm-workspace-empty p { color:var(--vault-secondary);max-width:40ch }
-.lm-workspace-empty-actions { inline-size:min(100%,13rem);min-inline-size:0 }
+.lm-workspace-empty-actions { --recent-card-inset:calc(var(--vault-space)*2);inline-size:min(100%,13rem);min-inline-size:0 }
 .lm-workspace-empty-actions .lm-button { text-align:start }
 .lm-workspace-empty-actions[data-has-recent] { inline-size:min(100%,28rem) }
-.lm-workspace-empty-actions[data-has-recent] > .lm-button { align-self:flex-start;max-inline-size:100% }
-.lm-workspace-recent { min-inline-size:0;padding:calc(var(--vault-space)*2);background:var(--vault-panel);text-align:start }
+.lm-workspace-empty-actions[data-has-recent] > .lm-button { padding-inline-start:calc(var(--recent-card-inset) + var(--vault-space)*3 - var(--vault-border)) }
+.lm-workspace-recent { min-inline-size:0;padding:var(--recent-card-inset);background:var(--vault-panel);text-align:start }
 .lm-workspace-empty .lm-workspace-recent h2 { padding:calc(var(--vault-space)*2) calc(var(--vault-space)*3);font-size:inherit }
 .lm-workspace-recent .mantine-Button-label { min-inline-size:0;text-box-trim:none }
 .lm-workspace-recent .mantine-Button-section { flex:none;align-self:flex-start }
