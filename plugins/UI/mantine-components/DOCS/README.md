@@ -1535,9 +1535,10 @@ its geometry. The desktop screenshot supplied by the Owner is the reference
 for colors and information hierarchy. The compact layout fits a 384 × 64
 logical-pixel window and top-aligns the icon with the title and message column.
 Long copy stays in the scrollable text column and the icon keeps its size.
-Windows XP Luna and Luna Dark follow the Settings header. The notification title
-uses the shared caption gradient and text color. The body uses the theme's
-content surface, with a square icon background and a 3 px accent stripe.
+Windows XP Luna and Luna Dark use a full-width caption with the Lucide icon on
+the left and the same gradient, text color and frame divider as the app's Luna
+surfaces. The message sits in a scrollable row below on the theme's content
+surface. The card retains square edges and a 3 px accent stripe.
 The renderer owns internal spacing and status semantics. The
 [notification provider](../../../systems/notifications/DOCS/README.md)
 owns placement, timing and queue state.

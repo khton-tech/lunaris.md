@@ -574,8 +574,15 @@ test('compact desktop notifications top-align the icon and keep overflow in the 
       assert.equal(s.target.querySelector('.lm-notification'), card);
       assert.equal(card.style.getPropertyValue('--vault-panel'), colors.panel);
       assert.equal(card.style.getPropertyValue('--vault-accent-foreground'), colors.accentForeground);
-      assert.equal(card.style.getPropertyValue('--vault-selection'), colors.selection);
       assert.equal(card.style.getPropertyValue('--vault-caption-background'), s.themes.current().properties.components.windowChrome.captionBackground);
+      assert.equal(getComputedStyle(card).display, 'grid');
+      assert.equal(getComputedStyle(body).display, 'contents');
+      assert.equal(getComputedStyle(icon).gridRow, '1');
+      assert.equal(getComputedStyle(heading).gridRow, '1');
+      assert.equal(getComputedStyle(icon).backgroundImage, getComputedStyle(heading).backgroundImage);
+      assert.equal(getComputedStyle(heading).backgroundImage, 'var(--vault-caption-background)');
+      assert.equal(getComputedStyle(message).gridRow, '2');
+      assert.equal(getComputedStyle(message).overflowY, 'auto');
       assert.equal(getComputedStyle(heading).color, 'var(--vault-caption-text)');
       assert.equal(getComputedStyle(heading).fontFamily, getComputedStyle(card).fontFamily);
       assert.match(getComputedStyle(heading).fontFamily, /^Tahoma/);
