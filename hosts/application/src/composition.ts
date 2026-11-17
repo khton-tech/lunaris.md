@@ -6,7 +6,7 @@ import backlinksUI from "@lunaris/backlinks-ui";
 import mobileMenu from "@lunaris/mobile-menu-plugin";
 import { createLime } from "@lunaris/lime-manager";
 import limeSettings from "@lunaris/lime-settings";
-import quickjsExecution from "@lunaris/quickjs-execution";
+import { createApplicationExecution } from "./plugin-execution.js";
 import { createLupPicker } from "@lunaris/lup-picker";
 import { createCloseGuard } from "./close-guard.js";
 import callouts from "@lunaris/callouts";
@@ -109,56 +109,12 @@ export function composeApplication(target: HTMLElement, options: {
       return accepted;
     } },
     beforeClose: async () => await preservation.beforeClose() && (extra.beforeClose ? await extra.beforeClose() : true),
-    plugins: [linksDriver, externalLinks, documentLinks, backlinkIndex, backlinksUI, lime, quickjsExecution, lupPicker, ...(options.features && !options.features.includes('settings') ? [] : [limeSettings]), preservation.plugin, ...extra.plugins, ...updates, clipboardDriver, clipboardProvider, device, transport, accountSession, account, remoteFilesystem, draftsProvider, router, ...(options.platformPlugins ?? []), mobileMenu, statusBar, callouts, textEditor, interfaceSettings, settingsProvider, settings, activeScreenProvider, activeScreen, activeDocument, contextMenu, fileExplorer, sidebar, sidebarProvider, runner, ...(options.mode === "desktop" ? [selector] : []), workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
+    plugins: [linksDriver, externalLinks, documentLinks, backlinkIndex, backlinksUI, lime, createApplicationExecution(), lupPicker, ...(options.features && !options.features.includes('settings') ? [] : [limeSettings]), preservation.plugin, ...extra.plugins, ...updates, clipboardDriver, clipboardProvider, device, transport, accountSession, account, remoteFilesystem, draftsProvider, router, ...(options.platformPlugins ?? []), mobileMenu, statusBar, callouts, textEditor, interfaceSettings, settingsProvider, settings, activeScreenProvider, activeScreen, activeDocument, contextMenu, fileExplorer, sidebar, sidebarProvider, runner, ...(options.mode === "desktop" ? [selector] : []), workspace, workspaceProvider, themeSettings, mantineComponents, startup.plugin, baseThemeEngine, themeProvider, componentProvider, ...layout.plugins, devTools, logger, filesystem, vaultManager, vaultHistory, configManager, localizationManager],
     entrypoints: [documentLinks.manifest.id, backlinksUI.manifest.id, startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeSettings.manifest.id, preservation.plugin.manifest.id, ...extra.entrypoints, ...updates.map(plugin => plugin.manifest.id), account.manifest.id, mobileMenu.manifest.id, statusBar.manifest.id, callouts.manifest.id, textEditor.manifest.id, startup.plugin.manifest.id, baseThemeEngine.manifest.id, themeProvider.manifest.id, componentProvider.manifest.id, mantineComponents.manifest.id, ...layout.entrypoints, configManager.manifest.id, vaultHistory.manifest.id, themeSettings.manifest.id, localizationManager.manifest.id, runner.manifest.id, workspace.manifest.id, activeScreen.manifest.id, sidebar.manifest.id, fileExplorer.manifest.id, settings.manifest.id, interfaceSettings.manifest.id, lime.manifest.id, ...(options.mode === "desktop" ? [selector.manifest.id] : []), ...(options.features && !options.features.includes('settings') ? [] : [limeSettings.manifest.id])],
-    grants: {
-      [startup.plugin.manifest.id]: ["vault.access"],
-      [lime.manifest.id]: lime.manifest.permissions,
-      [limeSettings.manifest.id]: limeSettings.manifest.permissions,
-      ...layout.grants,
-      [preservation.plugin.manifest.id]: ["vault.access"],
-      ...extra.grants,
-      ...Object.fromEntries(updates.map(plugin => [plugin.manifest.id, plugin.manifest.permissions])),
-      [clipboardDriver.manifest.id]: clipboardDriver.manifest.permissions,
-      [clipboardProvider.manifest.id]: clipboardProvider.manifest.permissions,
-      [device.manifest.id]: device.manifest.permissions,
-      [transport.manifest.id]: options.mode === "desktop" ? ["credentials.access"] : [],
-      [accountSession.manifest.id]: ["vault.access", "filesystem.access", "account.network"],
-      [account.manifest.id]: ["account.access", "filesystem.access", "vault.access", "ui.dom"],
-      [remoteFilesystem.manifest.id]: ["filesystem.native", "account.network", "account.access"],
-      [draftsProvider.manifest.id]: ["drafts.access"],
-      [router.manifest.id]: ["filesystem.native", "filesystem.access", "filesystem.app-config"],
-      [statusBar.manifest.id]: statusBar.manifest.permissions,
-      [linksDriver.manifest.id]: linksDriver.manifest.permissions,
-      [externalLinks.manifest.id]: externalLinks.manifest.permissions,
-      [documentLinks.manifest.id]: documentLinks.manifest.permissions,
-      [backlinkIndex.manifest.id]: backlinkIndex.manifest.permissions,
-      [backlinksUI.manifest.id]: backlinksUI.manifest.permissions,
-      [callouts.manifest.id]: ["ui.dom"],
-      [textEditor.manifest.id]: ["config.access", "clipboard.access", "ui.dom", "filesystem.access", "vault.access", "drafts.access", "account.access"],
-      [interfaceSettings.manifest.id]: ["config.access", "vault.access"],
-      [settings.manifest.id]: ["ui.dom", "vault.access"],
-      [activeScreenProvider.manifest.id]: ["vault.access"],
-      [activeScreen.manifest.id]: ["ui.dom", "vault.access", "filesystem.access"],
-      [activeDocument.manifest.id]: ["vault.access", "config.access", "filesystem.access"],
-      [runner.manifest.id]: ["config.access", "ui.dom"],
-      ...(options.mode === "desktop" ? { [selector.manifest.id]: ["vault.access", "ui.dom", "account.access"] } : {}),
-      [workspace.manifest.id]: ["vault.access", "ui.dom", "config.access"],
-      [fileExplorer.manifest.id]: ["config.access", "filesystem.access", "vault.access", "ui.dom"],
-      [sidebar.manifest.id]: sidebar.manifest.permissions,
-      [contextMenu.manifest.id]: ["ui.dom"],
-      [themeSettings.manifest.id]: ["config.access"],
-      [componentProvider.manifest.id]: ["ui.dom"],
-      [mantineComponents.manifest.id]: ["ui.dom"],
-      [filesystem.manifest.id]: ["filesystem.access", "filesystem.app-config"],
-      [vaultManager.manifest.id]: ["filesystem.access"],
-      [vaultHistory.manifest.id]: ["config.access", "vault.access", "filesystem.access", "account.access"],
-      [configManager.manifest.id]: ["filesystem.access", "filesystem.app-config", "vault.access"],
-    },
   };
   const excluded = new Set(options.extensions?.excludeBuiltins ?? []);
   const plugins = definition.plugins.filter(plugin => !disabled.has(plugin.manifest.id) && (extra.plugins.includes(plugin) || !excluded.has(plugin.manifest.id)));
   const registeredIds = new Set(plugins.map(plugin => plugin.manifest.id));
   return { ...definition, ...(options.extensions?.selections ? { selections: options.extensions.selections } : {}), plugins, entrypoints: definition.entrypoints.filter(id => registeredIds.has(id)),
-    grants: Object.fromEntries(Object.entries({ ...definition.grants, ...extra.grants }).filter(([id]) => registeredIds.has(id))) };
+    grants: Object.fromEntries(plugins.map(({ manifest }) => [manifest.id, extra.grants[manifest.id] ?? [...manifest.permissions, ...manifest.optionalPermissions]])) };
 }

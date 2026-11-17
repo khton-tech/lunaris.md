@@ -4,7 +4,7 @@ import type { PluginDefinition, PluginManifest } from "@lunaris/sdk";
 import type { Kernel } from "@lunaris/kernel";
 import { Logger } from "@lunaris/logging";
 import { Vault, VaultPreservation } from "@lunaris/vault";
-import { PluginExecution } from "@lunaris/execution";
+import { PluginLoader } from "@lunaris/execution";
 import type { ExecutionSource } from "@lunaris/execution";
 import { LimeCompositionRuntime, LimeRuntime } from "@lunaris/lime";
 import type { LimeCompositionProfile, LimeDependency, LimeEnvironment, LimeResult } from "@lunaris/lime";
@@ -22,10 +22,12 @@ export function createLimeRuntime(kernel: Kernel, builtinIds: readonly string[],
   const protectedRoots = new Set(['lunaris.lime-runtime-adapter', 'lunaris.lime', ...options.protect ?? []]);
   return definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-runtime-adapter', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './dist/lime-runtime.js',
     provides: [LimeRuntime, LimeCompositionRuntime].map(token => ({ kind: token.kind, id: token.id, version: token.version })),
-    requires: [{ kind: 'api', id: Logger.id, range: '^1.0.0' }, { kind: 'api', id: PluginExecution.id, range: '^1.0.0' }, { kind: 'api', id: Vault.id, range: '^1.0.0' },
+    requires: [{ kind: 'api', id: Logger.id, range: '^1.0.0' }, { kind: 'api', id: Vault.id, range: '^1.0.0' },
+      { kind: 'api', id: PluginLoader.id, range: '^1.0.0' },
       { kind: 'api', id: VaultPreservation.id, range: '^1.0.0', optional: true }], permissions: ['runtime.manage', 'vault.access'], optionalPermissions: [],
   }, activate(ctx) {
-    const logger = ctx.use(Logger); const execution = ctx.use(PluginExecution);
+    const logger = ctx.use(Logger);
+    const execution = ctx.use(PluginLoader);
     const preservation = ctx.optional(VaultPreservation);
     const managed = new Map<string, PluginDefinition>(); let current: LimeEnvironment | null = null; let tail = Promise.resolve(); let generation = 0;
     const choices = new Map<string, Map<string, string>>(); let revision = 0; let signature = '';
@@ -265,7 +267,6 @@ export function createLimeRuntime(kernel: Kernel, builtinIds: readonly string[],
           if (!matches(captured)) return failure('STALE', 'Plugin environment changed.');
           if (builtin.has(metadata.id) || protectedRoots.has(metadata.id) || managed.has(metadata.id) || registered(metadata.id)) return failure('CONFLICT', 'Plugin ID collides with a registered or built-in plugin.');
           managed.set(metadata.id, definition);
-          // Declarations are granted internally; the execution broker enforces native authority.
           if (enabled) await start(metadata.id);
           logger.info(ctx.pluginId, 'Plugin registered in runtime', { data: { pluginId: metadata.id, enabled } }); return { ok: true, value: null };
         });

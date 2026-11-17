@@ -30,10 +30,11 @@
         "credentials",
         "external-links",
         "filesystem",
+        "native-processes",
         "window-controls"
       ],
-      "devCsp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http: https: ipc: http://ipc.localhost ws://127.0.0.1:1420; object-src 'none'; frame-src 'none'; base-uri 'self'",
-      "csp": "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http: https: ipc: http://ipc.localhost; object-src 'none'; frame-src 'none'; base-uri 'self'"
+      "devCsp": "default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http: https: ipc: http://ipc.localhost ws://127.0.0.1:1420; object-src 'none'; frame-src 'none'; base-uri 'self'",
+      "csp": "default-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http: https: ipc: http://ipc.localhost; object-src 'none'; frame-src 'none'; base-uri 'self'"
     }
   },
   "bundle": {

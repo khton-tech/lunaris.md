@@ -1,8 +1,21 @@
 # Lime host runtime
 
-`LimeRuntime` from `@lunaris/lime` is the host-backed management API. Its
-runtime.manage permission is internal composition authority; the isolated SDK
-broker denies it. Lime receives this API rather than a Kernel instance.
+`LimeRuntime` from `@lunaris/lime` is the host-backed management API. It uses the
+standard SDK declaration, permission and activation rules. Lime receives this
+API rather than a Kernel instance.
+
+Web and Tauri load installed packages in the same JavaScript realm as built-in
+plugins. The loader evaluates the bundled ESM entry on activation and checks
+its exported manifest against the inspected metadata before running
+`activate`. Disabled packages and previews remain inert. Each activation
+receives the standard kernel context and a snapshot of its own package assets.
+The execution environment has no origin-based SDK filter. SDK handles and
+registrations remain scoped, but unmanaged effects in the shared realm must
+be cleaned up by their plugin. Process-wide side effects can survive a plugin
+restart. Use the startup recovery path when a package prevents normal use.
+
+QuickJS remains available in the separate headless development environment and
+test fixtures. It does not represent an application plugin permission tier.
 
 All operations capture `{ vaultId, generation }`. Opening a new environment first
 unregisters the previous managed graph; generation must strictly increase. Stale
@@ -10,10 +23,10 @@ environment calls fail with STALE. Built-in/host package IDs are reserved. Mutat
 are serialized after the requesting SDK callback unwinds.
 
 `register`, `replace`, `enable`, `disable`, `remove`, `close` and `snapshot` manage
-isolated package definitions. Disabled packages remain outside the kernel registry
+package definitions. Disabled packages remain outside the kernel registry
 and cannot start implicitly as dependencies. Required and optional declared
-permissions are granted before activation; native authority remains restricted by
-the execution broker. Updates preserve code/resource rollback through the kernel.
+permissions are granted before activation. Updates preserve code/resource
+rollback through the kernel.
 
 ## Dependency planning and selection
 
@@ -102,7 +115,7 @@ is the engine's next integration; checkpoints alone do not provide data rollback
 ## Host ownership and recovery bootstrap
 
 `createLimeRuntime(kernel, builtinIds)` is exported by `@lunaris/application-host`.
-It creates lunaris.lime-runtime-adapter, requiring Logger, Vault and PluginExecution.
+It creates lunaris.lime-runtime-adapter, requiring Logger, Vault and PluginLoader.
 Guest ownership produces guest -> adapter -> execution/root cleanup order. Failed
 starts remain registered/failed for explicit retry. The adapter logs original
 failures, and kernel diagnostics retain their causes. Explicit runtime close must
@@ -113,8 +126,7 @@ ApplicationDefinition.pluginRuntime enables protected adapter/policy composition
 HostSession creates LimeBootPolicy before entrypoints start, capturing the current
 safe-mode choice. The policy is an essential host entrypoint and cannot silently
 disappear while safe mode is requested. It is independent of product Logger,
-Settings, Components and filesystem replacement. Installed code cannot consume
-its runtime.manage facade through the guest SDK broker.
+Settings, Components and filesystem replacement.
 
 HostSession.startSafeMode respects the running application's save gate, tears down
 the old session and starts with the host-owned policy already set. The independent
@@ -126,7 +138,6 @@ The engine registers/inspects installed packages but does not evaluate them
 until explicit resume. Enabled preferences remain intact. Cleanup-unsafe/frozen
 host recovery retains the documented process-restart limitation.
 
-Production browser bundling includes one release-sync QuickJS WASM asset. Tauri
-CSP permits WebAssembly compilation through wasm-unsafe-eval; host JavaScript
-unsafe-eval, arbitrary frames and objects remain blocked. Bundling/CSP source tests
-do not establish native dialog, WebView, filesystem or visual acceptance.
+The Tauri script policy permits Blob URLs for bundled plugin modules. The loader
+revokes the temporary module URL after evaluation. Source and bundle checks
+do not establish native dialog, WebView or visual acceptance.

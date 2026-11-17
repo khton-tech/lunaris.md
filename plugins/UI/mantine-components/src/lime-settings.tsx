@@ -102,6 +102,7 @@ function PackagePreview({ preview, props }: { preview: NonNullable<Props['previe
     dependencies={preview.requirements.length ? <Details item={{ description: '', fields: preview.requirements }} /> :
       <Text size="sm" c="dimmed">{props.labels.noDependencies}</Text>}
     footer={<>
+      <Text size="sm" c="dimmed">{props.labels.pluginAccess}</Text>
       {preview.warning && <Text role="alert" size="sm" c="var(--vault-error)">{props.labels.warning}</Text>}
       <Group gap="xs" wrap="wrap" justify="flex-end">
         <Button size="compact-sm" variant="subtle" disabled={props.busy} onClick={props.onCancel}>{props.labels.cancel}</Button>

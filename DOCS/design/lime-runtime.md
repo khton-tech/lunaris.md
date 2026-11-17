@@ -1,5 +1,9 @@
 # Lime runtime boundary and integration specification
 
+The execution policy below describes the original QuickJS design. The current
+Web and Tauri hosts share one plugin realm as documented in the
+[runtime reference](../reference/lime-runtime.md).
+
 Status: original L01 source audit and prerequisite specification; implementation in progress.
 Audited on 2026-11-10 at `4d259c199da4be969ec5e71eb451106d04fcdfa3` on
 `feat/lime`. Sections B01-B04 retain the original prerequisite specification;

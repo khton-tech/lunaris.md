@@ -44,5 +44,6 @@ use `inspect-package` for an inert package preview.
 
 Integration status: CLI/codec package build, portable scaffolding and inert
 inspection are tested together. The Lime engine/settings UI consume this format
-and execute installed code through the QuickJS driver. Live host attachment,
-media renderer adapters and native/visual acceptance remain in progress.
+and load installed packages into the application realm. The desktop process
+API can launch packaged native helpers from `assets/` as part of plugin
+activation. Native and visual acceptance must be verified in the application.

@@ -1,6 +1,9 @@
 import { defineApi } from "@lunaris/sdk";
 import type { CancellationSignal, PluginDefinition, PluginManifest, PackageResourceFiles } from "@lunaris/sdk";
 
+export { NativeProcesses } from './native-processes.js';
+export type { NativeProcess, NativeProcessOptions, NativeProcessOwner, NativeProcessesApi } from './native-processes.js';
+
 /** Only explicit data crosses this lowest-level boundary. No host object references. */
 export type ExecutionValue = null | boolean | number | string | readonly ExecutionValue[] | { readonly [key: string]: ExecutionValue };
 export interface ExecutionIdentity {
@@ -39,4 +42,10 @@ export interface PluginExecutionApi {
 export const PluginExecution = defineApi<PluginExecutionApi>({
   id: "lunaris.plugin-execution", version: "1.0.0", consumePermission: "runtime.manage",
   validate: value => !!value && typeof value === "object" && ['create', 'load'].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function"),
+});
+
+/** Host ingress for the application's loader, independent of a headless execution realm. */
+export const PluginLoader = defineApi<Pick<PluginExecutionApi, 'load'>>({
+  id: "lunaris.plugin-loader", version: "1.0.0", consumePermission: "runtime.manage",
+  validate: value => !!value && typeof value === "object" && typeof Object.getOwnPropertyDescriptor(value, 'load')?.value === 'function',
 });

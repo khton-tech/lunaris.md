@@ -26,6 +26,11 @@ test('complete browser composition prepares its real plugin graph before mountin
   try {
     await session.start();
     assert.equal(session.snapshot().phase, 'running', JSON.stringify({ incidents: session.snapshot().incidents, errors }));
+    assert.ok(session.snapshot().kernel.plugins.some(plugin => plugin.manifest.id === 'lunaris.application-execution'));
+    assert.ok(!session.snapshot().kernel.plugins.some(plugin => plugin.manifest.id === 'lunaris.quickjs-execution'));
+    for (const plugin of session.snapshot().kernel.plugins) {
+      assert.deepEqual([...plugin.effectivePermissions].sort(), [...plugin.manifest.permissions, ...plugin.manifest.optionalPermissions].sort(), plugin.manifest.id);
+    }
     assert.equal(session.snapshot().startup.state, 'loaded');
     assert.ok(target.childElementCount > 0);
     await session.stop();

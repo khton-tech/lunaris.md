@@ -5,8 +5,9 @@ Settings and Localization APIs, subscribes to LimeChanged/LocaleChanged, and
 requires Logger for readiness and meaningful action outcomes/failures. It provides
 no API. Registrations/catalogs are owned by ctx.signal. It imports no engine
 implementation, host, DOM, React or Mantine code.
-The host grants runtime.manage to this built-in UI to consume Lime; installed guest
-code cannot acquire that management facade through its scoped SDK bridge.
+The controller declares runtime.manage to consume Lime through the ordinary SDK
+permission and dependency model. In the package preview, the user sees that
+enabled packages run with the application's access.
 
 The controller registers Settings / Third-party plugins, with a custom section
 using the public `lunaris.lime-settings` component role. It maps immutable engine

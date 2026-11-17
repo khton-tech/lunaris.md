@@ -2,7 +2,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import ts from 'typescript';
 
-const tauriDependencies = ['application-host', 'logging', 'mantine-components', 'sdk', 'tauri-credentials', 'tauri-filesystem', 'tauri-links', 'tauri-window', 'vault', 'window-provider', 'window-titlebar'];
+const tauriDependencies = ['application-host', 'logging', 'mantine-components', 'sdk', 'tauri-credentials', 'tauri-filesystem', 'tauri-links', 'tauri-processes', 'tauri-window', 'vault', 'window-provider', 'window-titlebar'];
 const tauriTestDependencies = ['base-theme-engine', 'component-provider', 'components', 'config-manager', 'filesystem', 'filesystem-provider', 'localization', 'localization-manager', 'runner', 'slot-dom', 'slot-provider', 'slots', 'startup', 'startup-provider', 'test', 'theme-provider', 'theme-settings', 'themes', 'vault-manager'];
 
 export const dependencies = {
@@ -91,6 +91,7 @@ export const dependencies = {
   filesystem: ['sdk'],
   'filesystem-provider': ['sdk', 'filesystem', 'logging'],
   'tauri-credentials': ['sdk', 'remote', 'logging'],
+  'tauri-processes': ['sdk', 'execution', 'logging'],
   'tauri-filesystem': ['sdk', 'filesystem', 'logging'],
   vault: ['sdk', 'filesystem'],
   'vault-manager': ['sdk', 'filesystem', 'vault', 'logging'],
@@ -104,7 +105,7 @@ export const dependencies = {
   tauri: [...tauriDependencies, ...tauriTestDependencies],
 };
 
-dependencies['application-host'].push('manifest', 'lime', 'execution', 'lime-manager', 'lime-settings', 'quickjs-execution', 'lup-picker', 'components');
+dependencies['application-host'].push('manifest', 'lime', 'execution', 'lime-manager', 'lime-settings', 'lup-picker', 'components');
 
 export const packagePath = scope => {
   if (scope === 'external-links') return 'packages/external-links';
@@ -115,6 +116,7 @@ export const packagePath = scope => {
   if (scope === 'backlink-index') return 'plugins/systems/backlink-index';
   if (scope === 'backlinks-ui') return 'plugins/UI/backlinks';
   if (scope === 'tauri-credentials') return 'plugins/systems/driver/tauri-credentials';
+  if (scope === 'tauri-processes') return 'plugins/systems/driver/tauri-processes';
   if (scope === 'lime-settings') return 'plugins/UI/lime-settings';
   if (scope === 'lime-manager') return 'plugins/systems/lime';
   if (scope === 'lup-picker') return 'plugins/systems/driver/lup-picker';
@@ -184,6 +186,7 @@ export function checkSource(source, filename, scope) {
 
   if (scope === 'tauri-filesystem' && path.resolve(filename) === path.resolve('plugins/systems/driver/tauri-filesystem/src/native.ts')) allowed.add('@tauri-apps/api/core');
   if (scope === 'tauri-credentials' && path.resolve(filename) === path.resolve('plugins/systems/driver/tauri-credentials/src/index.ts')) allowed.add('@tauri-apps/api/core');
+  if (scope === 'tauri-processes' && path.resolve(filename) === path.resolve('plugins/systems/driver/tauri-processes/src/native.ts')) allowed.add('@tauri-apps/api/core');
   if (scope === 'tauri' && path.resolve(filename) === path.resolve('hosts/tauri/src/desktop.ts')) {
     allowed.add('@tauri-apps/api/core');
     allowed.add('@tauri-apps/api/window');
@@ -241,6 +244,9 @@ export function checkSource(source, filename, scope) {
     const applicationLoader = scope === 'tauri' && path.resolve(filename) === path.resolve('hosts/tauri/src/bootstrap.ts') &&
       ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword &&
       node.arguments.length === 1 && ts.isStringLiteral(node.arguments[0]) && node.arguments[0].text === './application.js';
+    const packageLoader = scope === 'application-host' && path.resolve(filename) === path.resolve('hosts/application/src/plugin-execution.ts') &&
+      ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword &&
+      node.arguments.length === 1 && ts.isIdentifier(node.arguments[0]) && node.arguments[0].text === 'url';
     if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier) {
       specifier(node.moduleSpecifier);
     }
@@ -249,7 +255,7 @@ export function checkSource(source, filename, scope) {
       else errors.push(`${filename}: nonliteral import type`);
     }
     if (ts.isImportEqualsDeclaration(node)) errors.push(`${filename}: import assignments are forbidden`);
-    if (!applicationLoader && ts.isCallExpression(node) && (scope !== 'development' || node.expression.kind !== ts.SyntaxKind.ImportKeyword) && (
+    if (!applicationLoader && !packageLoader && ts.isCallExpression(node) && (scope !== 'development' || node.expression.kind !== ts.SyntaxKind.ImportKeyword) && (
       node.expression.kind === ts.SyntaxKind.ImportKeyword ||
       (ts.isIdentifier(node.expression) && node.expression.text === 'require')
     )) errors.push(`${filename}: dynamic module loading is forbidden`);

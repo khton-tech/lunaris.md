@@ -97,12 +97,13 @@ Useful contract packages and exported tokens:
 | @lunaris/filesystem | Filesystem, FilesystemObservation; explicit Vault-relative targets |
 | @lunaris/vault | Vault, VaultChanged; active root identity |
 | @lunaris/settings | Settings; owned categories/groups/items/sections |
-| @lunaris/components | Views, ViewSurfaces; custom data/callback UI and standalone application surfaces |
+| @lunaris/components | Views, ViewSurfaces and ApplicationDom; custom UI, standalone surfaces and changes to existing DOM |
+| @lunaris/execution | NativeProcesses; run a packaged Windows helper and exchange lines |
 | @lunaris/active-screen | ActiveScreen; register/select a novel application screen |
 | @lunaris/workspace | Workspace, WorkspaceLayout; contribute to regions or provide a replacement layout |
 | @lunaris/localization | Localization, LocaleChanged; English-first localized UI |
 | @lunaris/themes | Themes, ThemeChanged; semantic theme data |
-| @lunaris/editor | EditorExtensions; cooperative editor contributions; host-object adapters must be verified before isolated use |
+| @lunaris/editor | EditorExtensions; cooperative editor contributions |
 
 ## Lifetime, dependencies and UI
 
@@ -123,7 +124,12 @@ Nodes support text, rows/columns/responsive grids, buttons, input/textarea,
 themed select, checkbox and SVG drawing shapes. Actions receive typed values or
 sanitized pointer/key data, never host DOM/framework events. Use localization for
 visible labels. Containers own geometry/surfaces; embedded views remain transparent.
-Raw React/Mantine/DOM rendering in consuming plugins is unsupported.
+For changes to existing UI, use ApplicationDom and own the inserted nodes and
+observers in the activation scope. Selectors bound to existing markup can need
+updates when that markup changes. On Windows, NativeProcesses lets a plugin
+implement a new OS operation in its own executable and expose the result
+through a plugin-defined SDK contract. Both contracts are available to installed
+and built-in plugins on the same platform.
 
 To rearrange Workspace while retaining its existing features, provide
 `WorkspaceLayout` and return a portable tree of rows, columns and named regions.
@@ -169,15 +175,18 @@ the browser, the `safe-mode=1` URL query parameter also starts with host default
 CLI failures have stable codes and nonzero exit status. Headless `inspect`/`dev`
 activate trusted Node code; do not use them as a sandbox for unknown packages.
 The development host supplies replaceable logging and retains bounded original
-records without corrupting JSON output. Installed code uses a separate QuickJS
-interpreter with memory/turn/transfer limits. Await/callbacks and owned cleanup are
-bridged; arbitrary host class instances are not. Package assets need supported
+records without corrupting JSON output. Web and Tauri run installed and built-in
+plugins in the same application realm. The user chooses which packages to run.
+SDK declarations and activation ownership apply equally to every plugin. Plugins
+can consume platform APIs available in the application and must own their
+changes. Package assets need supported
 resource contracts: `ctx.resources.text('assets/file.json')` reads bounded UTF-8
 text, and `ctx.resources.read(path, offset, length)` reads up to 16 KiB of binary
 data per call. Only this package's captured assets are available. These are not
 host resource URLs; renderer media roles need explicit adapters.
 
-Run `npm run core -- dev . --live` for a headless QuickJS session. After editing
+Run `npm run core -- dev . --live` for a headless QuickJS session. Run DOM and
+native process examples in the actual application. After editing
 TypeScript, run the project build again and enter `reload` in the session.
 Reload bundles all project roots before applying changes. Each changed package
 replaces its code and restarts its affected consumers. If activation fails, the

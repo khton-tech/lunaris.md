@@ -34,7 +34,6 @@
     "@lunaris/manifest": "0.1.0",
     "@lunaris/lime-manager": "0.1.0",
     "@lunaris/lime-settings": "0.1.0",
-    "@lunaris/quickjs-execution": "0.1.0",
     "@lunaris/lup-picker": "0.1.0",
     "@lunaris/lime": "0.1.0",
     "@lunaris/execution": "0.1.0",
@@ -101,6 +100,7 @@
     "build": "tsc -b"
   },
   "devDependencies": {
+    "@lunaris/quickjs-execution": "0.1.0",
     "esbuild": "0.28.2"
   }
 }

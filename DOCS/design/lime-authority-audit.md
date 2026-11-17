@@ -1,5 +1,9 @@
 # Lime authority audit
 
+Historical QuickJS boundary. For current Web and Tauri package execution, see
+[the runtime reference](../reference/lime-runtime.md). The isolated behavior
+below applies to the separate headless runtime.
+
 Status: incremental source audit, 2026-11-11. This is not native host acceptance
 or a claim that arbitrary trusted providers cannot act as deputies.
 
