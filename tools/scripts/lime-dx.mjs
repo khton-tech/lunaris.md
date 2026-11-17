@@ -31,6 +31,7 @@ try {
   assert.ok(!catalog.packages.some(item => item.name === '@lunaris/kernel'));
   await command([cli, 'add-contract', '@lunaris/components'], project);
   await command([cli, 'add-contract', '@lunaris/active-screen'], project);
+  await command([cli, 'add-contract', '@lunaris/workspace'], project);
   await command([npm, 'install', '--ignore-scripts', '--no-audit', '--no-fund', '--offline'], project);
   const pkg = JSON.parse(await readFile(path.join(project, 'package.json'), 'utf8'));
   for (const [name, spec] of Object.entries({ ...pkg.dependencies, ...pkg.devDependencies })) {
@@ -67,7 +68,46 @@ try {
   await command([cli, 'pack', project, recipeArchive], project);
   const counter = JSON.parse(await command([cli, 'inspect-package', recipeArchive], project));
   assert.deepEqual(counter.manifest.requires, recipeManifest.requires);
-  process.stdout.write('External DX passed: packed installation, generation, checks, LUP inspection, isolated dev cleanup and documented counter recipe.\n');
+
+  const compositionManifest = {
+    ...manifest,
+    provides: [{ kind: 'api', id: 'lunaris.workspace-layout', version: '1.0.0' }],
+    requires: [
+      ...manifest.requires,
+      { kind: 'api', id: 'lunaris.views', range: '^1.0.0' },
+      { kind: 'api', id: 'lunaris.view-surfaces', range: '^1.0.0' },
+    ],
+    permissions: ['ui.dom'],
+  };
+  await writeFile(filename, JSON.stringify(compositionManifest, null, 2) + '\n');
+  await writeFile(path.join(project, 'src/plugin.ts'), `
+import { definePlugin } from "@lunaris/sdk";
+import { Logger } from "@lunaris/logging";
+import { Views, ViewSurfaces } from "@lunaris/components";
+import { WorkspaceLayout } from "@lunaris/workspace";
+import manifest from "../manifest.json" with { type: "json" };
+
+export default definePlugin({ manifest, activate(ctx) {
+  const logger = ctx.use(Logger);
+  ctx.provide(WorkspaceLayout, {
+    describe: () => ({ kind: "region", region: "main" }),
+    watch() {},
+  });
+  const id = ctx.pluginId + ".view";
+  const view = ctx.use(Views).register({ id, render: () => ({ kind: "text", text: "SDK archive check" }) }, ctx.signal);
+  if (!view.ok) throw new Error(view.error.message);
+  const surface = ctx.use(ViewSurfaces).mount(id, ctx.pluginId + ".surface", {}, ctx.signal);
+  if (!surface.ok) throw new Error(surface.error.message);
+  logger.info(ctx.pluginId, "SDK archive check ready");
+} });
+`);
+  await command([npm, 'run', 'check'], project);
+  const compositionArchive = path.join(project, 'composition.lup');
+  await command([cli, 'pack', project, compositionArchive], project);
+  const composition = JSON.parse(await command([cli, 'inspect-package', compositionArchive], project));
+  assert.deepEqual(composition.manifest.provides, compositionManifest.provides);
+  assert.deepEqual(composition.manifest.requires, compositionManifest.requires);
+  process.stdout.write('External DX passed: packed installation, generation, isolated dev cleanup, counter recipe and composition contract typecheck, LUP packaging and inspection.\n');
 } catch (error) {
   process.stderr.write(`External DX failed: ${error.message}\n`); process.exitCode = 1;
 } finally {

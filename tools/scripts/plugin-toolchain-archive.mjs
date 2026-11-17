@@ -31,9 +31,13 @@ async function addDocumentation(output) {
   }
 }
 
-async function archiveToolchain() {
+async function archiveToolchain(edition) {
   const { version } = JSON.parse(await readFile(path.join(repository, 'packages/sdk/package.json'), 'utf8'));
-  const name = `lunaris-plugin-sdk-${version}`;
+  if (edition !== undefined && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(edition)) {
+    throw Error('Use a lowercase edition label such as composition.');
+  }
+  const release = edition ? `${version}-${edition}` : version;
+  const name = `lunaris-plugin-sdk-${release}`;
   await mkdir(dist, { recursive: true });
   const stage = await mkdtemp(path.join(dist, '.plugin-sdk-'));
   if (path.dirname(path.resolve(stage)) !== dist || !path.basename(stage).startsWith('.plugin-sdk-')) {
@@ -45,7 +49,7 @@ async function archiveToolchain() {
     const npm = await npmCliPath();
     await command([npm, 'install', '--package-lock-only', '--ignore-scripts', '--prefer-offline', '--no-audit', '--no-fund'], output);
     await addDocumentation(output);
-    await writeFile(path.join(output, 'README.md'), `# Lunaris Plugin SDK ${version}
+    await writeFile(path.join(output, 'README.md'), `# Lunaris Plugin SDK ${release}
 
 Use Node >=26.13.0 <27 and npm >=11 <12. The Lunaris packages are included.
 The first install needs npm registry access or a populated cache for third-party dependencies.
@@ -66,6 +70,9 @@ installed in the parent toolchain directory.
 - [Authoring guide](DOCS/guides/plugin-authoring.md)
 - [Working recipes](DOCS/guides/plugin-recipes.md)
 - [SDK reference](DOCS/reference/sdk.md)
+- [Workspace layout providers](DOCS/reference/workspace.md#replaceable-workspace-layout)
+- [Standalone application surfaces](DOCS/reference/views.md#standalone-application-surfaces)
+- [Vault composition and recovery](DOCS/reference/lime-runtime.md#vault-composition)
 - [CLI reference](DOCS/reference/cli.md)
 - [Packaging and installation workflow](DOCS/guides/plugin-packaging.md)
 `);
@@ -73,14 +80,14 @@ installed in the parent toolchain directory.
     const archive = path.join(stage, filename);
     execFileSync('7z', ['a', '-t7z', '-bso0', '-bsp0', archive, name], { cwd: stage, windowsHide: true });
     await rename(archive, path.join(dist, filename));
-    console.log(`Plugin SDK ${version}: dist/${filename} (${packages + 1} Lunaris packages, documentation and npm lockfile).`);
+    console.log(`Plugin SDK ${release}: dist/${filename} (${packages + 1} Lunaris packages, documentation and npm lockfile).`);
   } finally {
     await rm(stage, { recursive: true, force: true });
   }
 }
 
 try {
-  await archiveToolchain();
+  await archiveToolchain(process.argv[2]);
 } catch (error) {
   console.error(`Plugin SDK archive failed: ${error.message}`);
   process.exitCode = 1;
