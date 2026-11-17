@@ -2,7 +2,7 @@ import type { LoggerApi } from "@lunaris/logging";
 import type { PluginContext } from "@lunaris/sdk";
 import { validWindowOwner, windowFailure } from "@lunaris/window";
 import type { WindowResult } from "@lunaris/window";
-import { validWindowPosition, validWindowSize } from "@lunaris/window/external";
+import { validExternalWindowPosition, validWindowSize } from "@lunaris/window/external";
 import type { ExternalWindowDriverApi, ExternalWindowSurface } from "@lunaris/window/external";
 import type { ExternalWindowPort, WindowOperation } from "./native-external.js";
 
@@ -81,7 +81,7 @@ export async function createExternalWindowPort(ctx: PluginContext, logger: Logge
         return { ok: true, value: Object.freeze<ExternalWindowSurface>({
           target, signal: lifetime.signal, closed, close,
           show: () => enqueue({ kind: "show" }), hide: () => enqueue({ kind: "hide" }),
-          move: position => validWindowPosition(position) ? enqueue({ kind: "move", position }) : Promise.resolve(windowFailure("INVALID_ARGUMENT", "Invalid window position.")),
+          move: position => validExternalWindowPosition(position) ? enqueue({ kind: "move", position }) : Promise.resolve(windowFailure("INVALID_ARGUMENT", "Invalid window position.")),
           resize: size => validWindowSize(size) ? enqueue({ kind: "resize", size }) : Promise.resolve(windowFailure("INVALID_ARGUMENT", "Invalid window size.")),
         }) };
       } catch (error) {

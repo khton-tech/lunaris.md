@@ -1,9 +1,9 @@
 import { invoke, isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import type { NativeExternalWindowOptions, WindowPosition, WindowSize } from "@lunaris/window/external";
+import type { ExternalWindowPosition, NativeExternalWindowOptions, WindowSize } from "@lunaris/window/external";
 
 export type WindowOperation = { readonly kind: "show" | "hide" | "close" } |
-  { readonly kind: "move"; readonly position: WindowPosition } | { readonly kind: "resize"; readonly size: WindowSize };
+  { readonly kind: "move"; readonly position: ExternalWindowPosition } | { readonly kind: "resize"; readonly size: WindowSize };
 
 export interface ExternalWindowPort {
   listen(closed: (id: string) => void): Promise<() => void>;

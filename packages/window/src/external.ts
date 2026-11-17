@@ -5,13 +5,24 @@ import type { WindowResult } from "./index.js";
 
 export interface WindowSize { readonly width: number; readonly height: number }
 export interface WindowPosition { readonly x: number; readonly y: number }
+export type WindowAnchor = "top-left" | "top-center" | "top-right" | "center-left" | "center-right" |
+  "bottom-left" | "bottom-center" | "bottom-right";
+export type ExternalWindowPosition = WindowPosition | WindowAnchor;
+export type WindowLayer = "bottom" | "normal" | "top";
+
+const anchors: readonly WindowAnchor[] = ["top-left", "top-center", "top-right", "center-left", "center-right",
+  "bottom-left", "bottom-center", "bottom-right"];
 
 export interface NativeExternalWindowOptions {
   /** Accessible window title. The operating system may use it in its window list. */
   readonly title: string;
-  /** Coordinates and size use logical pixels. */
+  /** Size in logical pixels. */
   readonly size: WindowSize;
-  readonly position?: WindowPosition;
+  /** Anchor in the primary monitor's work area, or logical desktop coordinates. */
+  readonly position?: ExternalWindowPosition;
+  /** Native stacking level. Defaults to normal. */
+  readonly layer?: WindowLayer;
+  /** @deprecated Use layer: "top". An explicit layer takes precedence. */
   readonly alwaysOnTop?: boolean;
   readonly skipTaskbar?: boolean;
   readonly focusable?: boolean;
@@ -28,7 +39,8 @@ export interface ExternalWindowControls {
   readonly closed: Promise<void>;
   show(): Promise<WindowResult>;
   hide(): Promise<WindowResult>;
-  move(position: WindowPosition): Promise<WindowResult>;
+  /** Change the anchor, or detach from it and move to explicit coordinates. */
+  move(position: ExternalWindowPosition): Promise<WindowResult>;
   resize(size: WindowSize): Promise<WindowResult>;
   close(): Promise<WindowResult>;
 }
@@ -73,4 +85,12 @@ export function validWindowPosition(position: unknown): position is WindowPositi
   if (!position || typeof position !== "object") return false;
   const { x, y } = position as WindowPosition;
   return Number.isFinite(x) && Math.abs(x) <= 100000 && Number.isFinite(y) && Math.abs(y) <= 100000;
+}
+
+export function validExternalWindowPosition(position: unknown): position is ExternalWindowPosition {
+  return typeof position === "string" ? anchors.includes(position as WindowAnchor) : validWindowPosition(position);
+}
+
+export function validWindowLayer(layer: unknown): layer is WindowLayer {
+  return layer === "bottom" || layer === "normal" || layer === "top";
 }

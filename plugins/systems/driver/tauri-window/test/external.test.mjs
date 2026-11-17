@@ -40,3 +40,18 @@ test('owner cancellation during creation also releases the pending native ticket
   await fixture.cleanup();
   assert.deepEqual(fixture.operations, ['close']);
 });
+
+test('the external window driver forwards named placement and layer choices', async () => {
+  const openings = []; const moves = [];
+  const fixture = await setup({
+    open(options) { openings.push(options); return {}; },
+    operate(operation) { if (operation.kind === 'move') moves.push(operation.position); },
+  });
+  const { value } = await fixture.api.open({ ...options, position: 'bottom-right', layer: 'bottom' }, new AbortController().signal);
+  assert.deepEqual(openings, [{ ...options, position: 'bottom-right', layer: 'bottom' }]);
+  assert.equal((await value.move('center-left')).ok, true);
+  assert.equal((await value.move('center')).error.code, 'INVALID_ARGUMENT');
+  assert.equal((await value.move({ x: -100, y: 40 })).ok, true);
+  assert.deepEqual(moves, ['center-left', { x: -100, y: 40 }]);
+  await fixture.cleanup();
+});

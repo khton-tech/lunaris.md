@@ -9,11 +9,27 @@ reuse a compatible registered component. Registering a view uses the existing
 `supported()` reports whether the active platform driver supports external
 windows. `open(options, ctx.signal)` mounts the registered `componentId` with
 its props into an undecorated native window. Options include a localized title,
-a logical-pixel size and optional position, initial visibility, focusability,
-always-on-top behavior and taskbar visibility. `open` shows the window after
-mounting unless visibility was set to false.
+a logical-pixel size, optional position and layer, initial visibility,
+focusability and taskbar visibility. `open` shows the window after mounting
+unless visibility was set to false.
+
+For `position`, choose one of the eight anchors in the primary monitor's work
+area. Each anchor aligns the corresponding corner or edge midpoint of the
+whole window. The work area accounts for system UI such as the taskbar.
+
+| Top edge | Middle of the sides | Bottom edge |
+| --- | --- | --- |
+| `top-left`, `top-center`, `top-right` | `center-left`, `center-right` | `bottom-left`, `bottom-center`, `bottom-right` |
+
+`layer` accepts `bottom` (the native bottom level), `normal` (default), or `top`
+(native always-on-top). For example, `position: "bottom-right", layer: "top"`
+places a window at the lower-right corner of the work area and requests the top
+level. An explicit `layer` supersedes the older `alwaysOnTop` option.
 
 The handle offers `update`, `show`, `hide`, `move`, `resize` and `close`.
+`move` accepts another anchor or explicit `{ x, y }` coordinates in logical
+pixels. Explicit coordinates release the anchor. Tauri repositions anchored
+windows when shown and on native size and scale changes.
 `closed` resolves once on closure, whether initiated by the OS, caller or
 activation cleanup. Closing releases the component and native surface. A live
 activation can use a child scope for a shorter window lifetime.

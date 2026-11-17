@@ -11,6 +11,10 @@ serializes show, hide, move, resize and close operations. A native close or
 caller cancellation releases the window and its surface lifetime. See
 [External native windows](../../../../../DOCS/reference/external-windows.md).
 
+The native host resolves anchors from the primary monitor's physical work area
+and the window's measured outer dimensions. It applies the requested layer
+through Tauri's native window stacking options at creation.
+
 Methods, event payloads and lifecycle: [window reference](../../../../../DOCS/reference/window.md).
 Native listeners are scope-owned. Decoration changes are serialized; exclusive
 titlebar cancellation restores the original decoration state. Cleanup uses only

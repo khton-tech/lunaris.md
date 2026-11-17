@@ -2,14 +2,15 @@ import { Components } from "@lunaris/components";
 import { Logger, scopeLogger } from "@lunaris/logging";
 import { definePlugin } from "@lunaris/sdk";
 import { validWindowOwner, windowFailure } from "@lunaris/window";
-import { ExternalWindows, ExternalWindowDriver, validWindowPosition, validWindowSize } from "@lunaris/window/external";
+import { ExternalWindows, ExternalWindowDriver, validExternalWindowPosition, validWindowLayer, validWindowSize } from "@lunaris/window/external";
 import type { ExternalWindow, ExternalWindowOptions } from "@lunaris/window/external";
 import manifest from "../manifest.json" with { type: "json" };
 
 function validOptions(options: ExternalWindowOptions): boolean {
   return !!options && typeof options.title === "string" && !!options.title.trim() && options.title.length <= 1024 &&
     !/[\u0000-\u001f]/u.test(options.title) && typeof options.componentId === "string" &&
-    validWindowSize(options.size) && (options.position === undefined || validWindowPosition(options.position)) &&
+    validWindowSize(options.size) && (options.position === undefined || validExternalWindowPosition(options.position)) &&
+    (options.layer === undefined || validWindowLayer(options.layer)) &&
     [options.visible, options.alwaysOnTop, options.skipTaskbar, options.focusable].every(value => value === undefined || typeof value === "boolean");
 }
 
