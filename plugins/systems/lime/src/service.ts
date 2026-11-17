@@ -138,7 +138,7 @@ export function activateLime(ctx: PluginContext, platform: 'desktop' | 'web' | '
       if (owner) await owner.dispose();
       owner = ctx.scope.child(); environment = Object.freeze({ vaultId: current.id, generation: ++generation });
       storage = createStorage(fs, current.id); backups = createBackups(fs, configSnapshots, current.id); packages.clear(); records = []; error = null; safeMode = requestedSafeMode;
-      const opened = await runtime.open(environment); if (!opened.ok) { error = opened.error.message; return opened; }
+      const opened = await runtime.open(environment, { safeMode }); if (!opened.ok) { error = opened.error.message; return opened; }
       updateCheckpoints.clear();
       records = await storage.read();
       for (const record of [...records]) if (record.updating) {

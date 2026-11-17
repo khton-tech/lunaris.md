@@ -60,7 +60,7 @@ export const LimeCompositionRuntime = defineApi<LimeCompositionRuntimeApi>({
 });
 export interface LimeRuntimeApi {
   /** Stop/unregister previous environment before binding another one. */
-  open(environment: LimeEnvironment): Promise<LimeResult<null>>;
+  open(environment: LimeEnvironment, options?: { readonly safeMode?: boolean }): Promise<LimeResult<null>>;
   close(environment: LimeEnvironment): Promise<LimeResult<null>>;
   snapshot(environment: LimeEnvironment): LimeResult<readonly LimeRuntimeEntry[]>;
   plan(environment: LimeEnvironment, id: string, candidate?: PluginManifest): LimeResult<LimeDependencyPlan>;
