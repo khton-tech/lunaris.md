@@ -1,6 +1,11 @@
 fn main() {
     tauri_build::try_build(tauri_build::Attributes::new().app_manifest(
-        tauri_build::AppManifest::new().commands(&["filesystem_request", "credentials_request", "native_process_request"]),
+        tauri_build::AppManifest::new().commands(&[
+            "filesystem_request",
+            "credentials_request",
+            "native_process_request",
+            "external_window_request",
+        ]),
     ))
     .expect("Failed to build the host permission manifest");
 }

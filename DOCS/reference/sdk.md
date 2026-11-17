@@ -83,7 +83,8 @@ The SDK types and kernel rules apply equally to built-in and installed plugins i
 Web and Tauri. The [package authoring guide](../guides/plugin-authoring.md)
 documents the distributed SDK. Use [ApplicationDom](application-dom.md) for
 existing UI and [NativeProcesses](native-processes.md) for package-owned Windows
-helpers. See [permission policy](../concepts/permissions.md) for the distinction
+helpers. Use [ExternalWindows](external-windows.md) for owned frameless desktop
+windows. See [permission policy](../concepts/permissions.md) for the distinction
 between SDK mediation and access to the shared runtime.
 
 Run `npm run check -- sdk` to compile SDK/kernel, test metadata/identity/declarations, enforce package boundaries and compile positive/negative SDK fixtures. The [nine design scenarios](design-scenarios.md) compile as `packages/sdk/test/scenarios.ts`, importing only the public SDK. They are type-level scenarios, not executable lifecycle tests. Standalone example packages are deferred by Owner instruction; the ordinary runtime/integration tests and generated-plugin workflow cover implementation behavior.

@@ -2,7 +2,7 @@ import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import ts from 'typescript';
 
-const tauriDependencies = ['application-host', 'logging', 'mantine-components', 'sdk', 'tauri-credentials', 'tauri-filesystem', 'tauri-links', 'tauri-processes', 'tauri-window', 'vault', 'window-provider', 'window-titlebar'];
+const tauriDependencies = ['application-host', 'external-windows', 'logging', 'mantine-components', 'sdk', 'tauri-credentials', 'tauri-filesystem', 'tauri-links', 'tauri-processes', 'tauri-window', 'vault', 'window-provider', 'window-titlebar'];
 const tauriTestDependencies = ['base-theme-engine', 'component-provider', 'components', 'config-manager', 'filesystem', 'filesystem-provider', 'localization', 'localization-manager', 'runner', 'slot-dom', 'slot-provider', 'slots', 'startup', 'startup-provider', 'test', 'theme-provider', 'theme-settings', 'themes', 'vault-manager'];
 
 export const dependencies = {
@@ -43,7 +43,8 @@ export const dependencies = {
   'filesystem-router': ['sdk', 'filesystem', 'logging'],
   remote: ['sdk', 'filesystem'],
   'window-titlebar': ['sdk', 'logging', 'window', 'slots', 'slot-dom', 'components', 'localization'],
-  window: ['sdk'],
+  window: ['sdk', 'components'],
+  'external-windows': ['sdk', 'logging', 'window', 'components'],
   'window-provider': ['sdk', 'logging', 'window'],
   'tauri-window': ['sdk', 'logging', 'window'],
   'text-editor': ['startup', 'editor', 'config', 'settings', 'context-menu', 'clipboard', 'remote', 'sdk', 'logging', 'active-document', 'active-screen', 'filesystem', 'vault', 'components', 'localization', 'themes'],
@@ -139,6 +140,7 @@ export const packagePath = scope => {
   if (scope === 'filesystem-router') return 'plugins/systems/filesystem-router';
   if (scope === 'window-titlebar') return 'plugins/UI/window-titlebar';
   if (scope === 'window-provider') return 'plugins/systems/window';
+  if (scope === 'external-windows') return 'plugins/systems/external-windows';
   if (scope === 'tauri-window') return 'plugins/systems/driver/tauri-window';
   if (scope === 'callouts') return 'plugins/UI/callouts';
   if (scope === 'text-editor') return 'plugins/UI/text-editor';
@@ -180,7 +182,8 @@ export function checkSource(source, filename, scope) {
   const errors = [];
   const tree = ts.createSourceFile(filename, source, ts.ScriptTarget.Latest, true);
   const allowed = new Set((scope === 'tauri' ? tauriDependencies : dependencies[scope]).map(name => `@lunaris/${name}`));
-  if (scope === 'tauri-window' && path.resolve(filename) === path.resolve('plugins/systems/driver/tauri-window/src/native.ts')) {
+  if (allowed.has('@lunaris/window')) allowed.add('@lunaris/window/external');
+  if (scope === 'tauri-window' && ['native.ts', 'native-external.ts'].some(file => path.resolve(filename) === path.resolve('plugins/systems/driver/tauri-window/src', file))) {
     allowed.add('@tauri-apps/api/core'); allowed.add('@tauri-apps/api/window');
   }
 
@@ -212,7 +215,7 @@ export function checkSource(source, filename, scope) {
   if (scope === 'mantine-components') {
     for (const name of ['react', 'react/jsx-runtime', 'react-dom', 'react-dom/client', '@mantine/core', 'lucide', 'react-arborist']) allowed.add(name);
   }
-  if (scope === 'tauri' && path.resolve(filename) === path.resolve('hosts/tauri/src/application.ts')) allowed.add('@lunaris/mantine-components/styles.css');
+  if (scope === 'tauri' && ['application.ts', 'external-window.ts'].some(file => path.resolve(filename) === path.resolve('hosts/tauri/src', file))) allowed.add('@lunaris/mantine-components/styles.css');
   if (scope === 'tauri') for (const subpath of ['session', 'slots', 'view', 'scheduler']) allowed.add(`@lunaris/application-host/${subpath}`);
   if (scope === 'web') for (const name of ['@lunaris/application-host/scheduler', '@lunaris/application-host/view', '@lunaris/application-host/shell.css', '@lunaris/mantine-components/styles.css']) allowed.add(name);
   if (scope === 'tauri' || scope === 'web') allowed.add('@lunaris/application-host/browser-input');
@@ -227,6 +230,7 @@ export function checkSource(source, filename, scope) {
         value === '../manifest.json') return;
     if (scope === 'web' && path.resolve(filename) === path.resolve('hosts/web/src/bootstrap.ts') && value === '../../../resources/ascii_art.txt?raw') return;
     // The host owns startup artwork; plugins cannot reach outside their source roots.
+    if (['external-windows', 'desktop-background-settings'].includes(scope) && path.resolve(filename) === path.resolve(packagePath(scope), 'src/index.ts') && value === '../manifest.json') return;
     if (scope === 'tauri' && path.resolve(filename) === path.resolve('hosts/tauri/src/application.ts') &&
         value === '../../../resources/ascii_art.txt?raw') return;
     if (value.startsWith('./') || value.startsWith('../')) {

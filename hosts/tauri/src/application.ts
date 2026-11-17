@@ -4,6 +4,7 @@ import { composeApplication as composeShared } from "@lunaris/application-host";
 import windowTitlebar from "@lunaris/window-titlebar";
 import windowProvider from "@lunaris/window-provider";
 import tauriWindow from "@lunaris/tauri-window";
+import externalWindows from "@lunaris/external-windows";
 import { createTauriCredentials } from "@lunaris/tauri-credentials";
 import { createTauriFilesystemDriver } from "@lunaris/tauri-filesystem";
 import { createTauriProcesses } from "@lunaris/tauri-processes";
@@ -19,9 +20,10 @@ export function composeApplication(target: HTMLElement): ApplicationDefinition {
   const processes = createTauriProcesses();
   const close = createCloseGuard();
   return composeShared(target, { art, mode: "desktop", externalLinksDriver: createTauriLinks(), platformPlugins: [native, credentials, processes], extensions: {
-    plugins: [windowTitlebar, windowProvider, tauriWindow, close.plugin],
-    entrypoints: [windowTitlebar.manifest.id, close.plugin.manifest.id], beforeClose: close.beforeClose,
+    plugins: [windowTitlebar, windowProvider, tauriWindow, externalWindows, close.plugin],
+    entrypoints: [windowTitlebar.manifest.id, externalWindows.manifest.id, close.plugin.manifest.id], beforeClose: close.beforeClose,
     grants: { [credentials.manifest.id]: credentials.manifest.permissions, [native.manifest.id]: ["filesystem.native"], [windowTitlebar.manifest.id]: ["window.control", "ui.dom"],
-      [windowProvider.manifest.id]: ["window.control"], [tauriWindow.manifest.id]: ["window.native"], [close.plugin.manifest.id]: ["vault.access"] },
+      [windowProvider.manifest.id]: ["window.control"], [tauriWindow.manifest.id]: ["window.native"],
+      [externalWindows.manifest.id]: externalWindows.manifest.permissions, [close.plugin.manifest.id]: ["vault.access"] },
   } });
 }

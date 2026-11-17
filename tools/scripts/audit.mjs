@@ -22,7 +22,7 @@ try {
       assert.equal(pkg.private, true, `${scope} must remain private until separate publishing authorization`);
       const expectedExports = scope === 'web' ? [] : scope === 'application-host'
         ? ['.', './session', './slots', './view', './scheduler', './browser-input', './shell.css']
-        : scope === 'mantine-components' ? ['.', './styles.css'] : ['.'];
+        : scope === 'mantine-components' ? ['.', './styles.css'] : scope === 'window' ? ['.', './external'] : ['.'];
       assert.deepEqual(Object.keys(pkg.exports ?? {}), expectedExports, `${scope} public exports changed`);
       for (const [subpath, target] of Object.entries(pkg.exports ?? {})) {
         if (typeof target === 'string') await stat(path.join(root, target));

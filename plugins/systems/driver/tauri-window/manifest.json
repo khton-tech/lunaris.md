@@ -8,6 +8,11 @@
   "provides": [
     {
       "kind": "api",
+      "id": "lunaris.external-window-driver",
+      "version": "1.0.0"
+    },
+    {
+      "kind": "api",
       "id": "lunaris.window-driver",
       "version": "1.0.0"
     },

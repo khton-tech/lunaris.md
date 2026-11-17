@@ -1,0 +1,12 @@
+html, body, #external-window-root {
+  height: 100%;
+  margin: 0;
+}
+
+#external-window-root {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}

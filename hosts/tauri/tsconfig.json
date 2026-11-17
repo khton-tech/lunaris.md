@@ -47,6 +47,9 @@
       "path": "../../plugins/systems/window"
     },
     {
+      "path": "../../plugins/systems/external-windows"
+    },
+    {
       "path": "../../plugins/UI/mantine-components"
     },
     {

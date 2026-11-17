@@ -2,9 +2,12 @@ import { definePlugin, LunarisError } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
 import { WindowDriver, DriverWindowChanged, windowFailure, validWindowOwner } from "@lunaris/window";
+import { ExternalWindowDriver } from "@lunaris/window/external";
 import type { WindowSnapshot, WindowCapabilities, WindowResult } from "@lunaris/window";
 import { nativeWindow } from "./native.js";
 import type { NativeWindowPort } from "./native.js";
+import { createExternalWindowPort } from "./external.js";
+import { nativeExternalWindows } from "./native-external.js";
 import manifest from "../manifest.json" with { type: "json" };
 
 export function createTauriWindowDriver(port?: NativeWindowPort | null) {
@@ -109,6 +112,7 @@ export function createTauriWindowDriver(port?: NativeWindowPort | null) {
         }
       },
     });
+    ctx.provide(ExternalWindowDriver, await createExternalWindowPort(ctx, logger, native ? nativeExternalWindows() : null));
     publishing = true;
     logger.info(ctx.pluginId, "Native window driver ready");
   } });

@@ -14,6 +14,7 @@
     "windows": [
       {
         "label": "main",
+        "create": false,
         "devtools": true,
         "dragDropEnabled": false,
         "title": "Lunaris",
@@ -29,6 +30,7 @@
         "host-lifecycle",
         "credentials",
         "external-links",
+        "external-windows",
         "filesystem",
         "native-processes",
         "window-controls"

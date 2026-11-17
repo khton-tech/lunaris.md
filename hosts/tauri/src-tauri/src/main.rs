@@ -3,6 +3,7 @@
 use lunaris_filesystem_native::{Backend, Change, ChangeCallback, Request, SharedBackend};
 use std::sync::{Arc, Mutex};
 use tauri::Manager;
+mod external_windows;
 mod processes;
 
 #[tauri::command]
@@ -60,12 +61,15 @@ fn main() {
             app.manage(Arc::new(Mutex::new(Backend::with_config_directory(
                 app.path().app_config_dir()?,
             ))));
+            external_windows::setup(app)?;
             Ok(())
         })
+        .on_window_event(external_windows::on_window_event)
         .invoke_handler(tauri::generate_handler![
             filesystem_request,
             credentials_request,
-            native_process_request
+            native_process_request,
+            external_windows::external_window_request
         ])
         .run(tauri::generate_context!())
         .expect("Failed to run the Lunaris desktop host");

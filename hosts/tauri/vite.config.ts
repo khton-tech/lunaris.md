@@ -16,6 +16,7 @@ export default defineConfig({
   build: {
     outDir: "web-dist", target: "es2022", emptyOutDir: true,
     rolldownOptions: {
+      input: { main: "index.html", externalWindow: "external-window.html" },
       onLog(level, log, handler) {
         // This host is entirely client-rendered; Mantine's RSC markers carry no boundary here.
         if (log.code === "MODULE_LEVEL_DIRECTIVE" && log.message.includes('"use client"') && /node_modules[/\\]@mantine[/\\]/.test(log.id ?? log.message)) return;

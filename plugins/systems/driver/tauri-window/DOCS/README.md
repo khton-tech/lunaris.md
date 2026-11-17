@@ -5,6 +5,12 @@ Requires Logger and `window.native`; provides WindowDriver and DriverWindowChang
 The host registers this driver and a separate Window provider. Consumers do not
 import this plugin. Tests inject NativeWindowPort through createTauriWindowDriver.
 
+The driver also provides `ExternalWindowDriver` to the external window manager.
+It opens an empty owned native window, supplies its local mount target, and
+serializes show, hide, move, resize and close operations. A native close or
+caller cancellation releases the window and its surface lifetime. See
+[External native windows](../../../../../DOCS/reference/external-windows.md).
+
 Methods, event payloads and lifecycle: [window reference](../../../../../DOCS/reference/window.md).
 Native listeners are scope-owned. Decoration changes are serialized; exclusive
 titlebar cancellation restores the original decoration state. Cleanup uses only
