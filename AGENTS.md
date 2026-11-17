@@ -16,6 +16,8 @@
 - **Plugin Docs:** Every plugin must maintain its own `DOCS/` subfolder specifying: plugin purpose, usage guidelines, and callable API methods/event subscriptions.
 
 ## 3. Plugin Architecture & Development
+- **Plugins Are the Foundation:** Build Lunaris as a composition of plugins. Design the SDK so plugin authors can add, replace, or extend product behavior, including UI and system capabilities the project authors did not anticipate. Provide general extension mechanisms that let authors implement and share new capabilities without changing Lunaris for each new use case.
+- **Equal Rights and User-Owned Trust:** All plugins, built-in or third-party, follow the same permission and trust model and can access the same capabilities on a given platform. Never reserve privileges for built-in plugins or create separate ordinary, trusted, UI, or native privilege tiers. The user decides which plugins to install, enable, or disable and which risks to accept. Apply any user-selected restrictions equally to every plugin.
 - **Single Responsibility Principle:** One plugin = one architectural contour/responsibility (not strictly limited to a single function, but strictly bound to its scope).
 - **Decomposition:** Decompose functionality into dedicated services and providers instead of monolithic implementations.
   - *Example (Sidebar with tabs):*
