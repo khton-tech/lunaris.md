@@ -1318,15 +1318,21 @@ test('repeated hard tabs retain standalone and nested lists and Shift-Tab revers
   }
 });
 
-test('public statistics follow unsaved Unicode input, document changes and closure', async () => {
+test('public statistics coalesce typing but follow unsaved Unicode input, document changes and closure', async t => {
  const s = await setup({ initial: 'Привет мир' });
  try {
   assert.equal(s.statistics.current().words, 2); assert.equal(s.statistics.current().letters, 9);
   const changes = []; s.ctx.events.on(DocumentStatisticsChanged, value => changes.push(value.current));
+  t.mock.timers.enable({ apis: ['setTimeout'] });
+  s.edit('Intermediate'); await flush(); t.mock.timers.tick(100);
   s.edit('Hello, ёж! 123 👩‍💻'); await flush();
   assert.equal(s.statistics.current().words, 3); assert.equal(s.statistics.current().letters, 7);
-  assert.equal(s.disk.get('a/note.md').text, 'Привет мир'); assert.ok(changes.some(v => v?.letters === 7));
+  t.mock.timers.tick(149); await flush(); assert.deepEqual(changes, []);
+  t.mock.timers.tick(1); await flush(); assert.deepEqual(changes.map(value => value.letters), [7]);
+  assert.equal(s.disk.get('a/note.md').text, 'Привет мир');
+  s.edit('Unpublished'); await flush();
   await s.documents.open({ vaultId: 'a', path: 'other.md' }); await flush(); assert.equal(s.statistics.current().letters, 5);
+  t.mock.timers.tick(150); await flush(); assert.ok(!changes.some(value => value?.target.path === 'note.md' && value.letters === 11));
   await s.documents.open({ vaultId: 'a', path: 'image.png' }); await flush(); assert.equal(s.statistics.current().state, 'unavailable'); assert.equal(s.statistics.current().words, null);
   await s.documents.close(); await flush(); assert.equal(s.statistics.current(), null);
  } finally { await s.stop(); }

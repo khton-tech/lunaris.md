@@ -108,33 +108,58 @@ export default definePlugin({ manifest, async activate(ctx) {
   if (!messages.ok) throw new Error("Cannot register editor messages.", { cause: messages.error });
   const text = (id: keyof typeof catalogs.en, name?: string) => localization.text(ctx.pluginId, id, name === undefined ? undefined : { name });
   let initializing = true;
+  type StatisticsInput = { target: FileTarget; targetKey: string; state: NonNullable<DocumentStatisticsSnapshot>["state"]; content: string | null } | null;
+  let lastStatisticsInput: StatisticsInput = null;
+  let statisticsTimer: ReturnType<typeof setTimeout> | undefined;
   let statisticsSignature = ""; let cachedText: string | undefined; let cachedCounts = { words: 0, letters: 0 };
-  function statistics(): DocumentStatisticsSnapshot {
+  function statisticsInput(): StatisticsInput {
     const target = documents.current();
     if (!target) return null;
-    const session = current && key(current.target) === key(target) ? current : null;
+    const targetKey = key(target);
+    const session = current && key(current.target) === targetKey ? current : null;
     const state = session?.loading ? "loading" : session?.loaded ? "ready" : "unavailable";
-    if (state === "ready" && cachedText !== session!.text) { cachedText = session!.text; cachedCounts = countDocument(cachedText); }
+    return { target, targetKey, state, content: state === "ready" ? session!.text : null };
+  }
+  function statistics(input: StatisticsInput): DocumentStatisticsSnapshot {
+    if (!input) return null;
+    const { target, state, content } = input;
+    if (content !== null && cachedText !== content) { cachedCounts = countDocument(content); cachedText = content; }
     return Object.freeze({ target: Object.freeze({ ...target }), state,
       words: state === "ready" ? cachedCounts.words : null, letters: state === "ready" ? cachedCounts.letters : null });
   }
-  ctx.provide(DocumentStatistics, { current: statistics });
-  function publishStatistics(): void {
-    // Initial consumers read the API; events describe changes after initialization.
-    if (initializing) return;
-    const snapshot = statistics(); const signature = JSON.stringify(snapshot);
+  ctx.provide(DocumentStatistics, { current: () => statistics(statisticsInput()) });
+  function publishStatistics(input: StatisticsInput): void {
+    const snapshot = statistics(input); const signature = JSON.stringify(snapshot);
     if (signature === statisticsSignature) return;
     statisticsSignature = signature;
     void ctx.events.emit(DocumentStatisticsChanged, { current: snapshot }).catch(error => {
       if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot publish document statistics", { error });
     });
   }
+  function scheduleStatistics(): void {
+    // Initial consumers read the API; events describe changes after initialization.
+    if (initializing) return;
+    const input = statisticsInput();
+    const sameState = input?.targetKey === lastStatisticsInput?.targetKey && input?.state === lastStatisticsInput?.state;
+    if (sameState && input?.content === lastStatisticsInput?.content) return;
+    lastStatisticsInput = input;
+    clearTimeout(statisticsTimer);
+    statisticsTimer = undefined;
+    if (!sameState || input?.state !== "ready") { publishStatistics(input); return; }
+    // Keep typing responsive. Explicit SDK reads still return current counts.
+    statisticsTimer = setTimeout(() => {
+      statisticsTimer = undefined;
+      if (ctx.signal.aborted) return;
+      try { lastStatisticsInput = statisticsInput(); publishStatistics(lastStatisticsInput); }
+      catch (error) { if (!isSdkUnavailable(error)) logger.error(ctx.pluginId, "Cannot calculate document statistics", { error }); }
+    }, 150);
+  }
   function changed(): void {
     if (scheduled || ctx.signal.aborted) return; scheduled = true;
     void Promise.resolve().then(() => {
       scheduled = false; if (ctx.signal.aborted) return;
       // Contribution teardown can enqueue work while dependencies are retiring.
-      try { publishStatistics(); publishContent(); } catch (error) { if (isSdkUnavailable(error)) return; throw error; }
+      try { scheduleStatistics(); publishContent(); } catch (error) { if (isSdkUnavailable(error)) return; throw error; }
       for (const view of views) {
         try { view.render(); } catch (error) { logger.error(ctx.pluginId, "Cannot render editor", { error }); }
       }
@@ -515,7 +540,7 @@ export default definePlugin({ manifest, async activate(ctx) {
       changed();
     }
   });
-  ctx.scope.own({ dispose() { for (const session of sessions.values()) session.dispose(); sessions.clear(); states.clear(); } });
+  ctx.scope.own({ dispose() { clearTimeout(statisticsTimer); for (const session of sessions.values()) session.dispose(); sessions.clear(); states.clear(); } });
   choose(documents.current()); if (documents.current()) selectScreen();
   await ctx.optional(Preparation)?.register({ id: ctx.pluginId, phase: "content", async prepare() {
     await preferences.prepare();
@@ -523,7 +548,8 @@ export default definePlugin({ manifest, async activate(ctx) {
     if (current && (!current.loaded || current.loading)) await current.load();
     if (documents.current()) selectScreen();
   } }, ctx.signal);
-  statisticsSignature = JSON.stringify(statistics());
+  lastStatisticsInput = statisticsInput();
+  statisticsSignature = JSON.stringify(statistics(lastStatisticsInput));
   initializing = false;
   logger.info(ctx.pluginId, "Text editor ready", { data: { autosaveDelay: 1000 } });
 } });
