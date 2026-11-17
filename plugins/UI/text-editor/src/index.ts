@@ -15,7 +15,7 @@ import { definePlugin, isSdkUnavailable } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
 import { DocumentStatistics, DocumentStatisticsChanged, ActiveDocument, ActiveDocumentTransitioned, BeforeActiveDocumentChange, DocumentProtection } from "@lunaris/active-document";
 import { ActiveScreen } from "@lunaris/active-screen";
-import { BeforeFileMutation, Filesystem, FileChanged, FilesystemSources } from "@lunaris/filesystem";
+import { BeforeFileMutation, Filesystem, FileChanged, FilesystemSources, validPath } from "@lunaris/filesystem";
 import { Drafts, ConnectionChanged } from "@lunaris/remote";
 import type { FileTarget, FsFailure } from "@lunaris/filesystem";
 import { Vault, BeforeVaultRelease, VaultChanged } from "@lunaris/vault";
@@ -34,6 +34,10 @@ const catalogs = { en: {
   h1: "Heading 1", h2: "Heading 2", h3: "Heading 3", h4: "Heading 4", h5: "Heading 5", h6: "Heading 6", cut: "Cut", copy: "Copy", paste: "Paste", selectAll: "Select all", clipboardFailed: "Clipboard access failed. Use your keyboard shortcut or allow clipboard access.",
   empty: "Open a Markdown file", loading: "Loading", unsupported: "This file type is not supported", saved: "Saved", unsaved: "Unsaved", saving: "Saving",
   save: "Save", retry: "Retry save", reload: "Reload from disk", discard: "Discard changes and reload", cancel: "Cancel", editor: "Markdown editor", task: "Task",
+  copyBuffer: "Copy note text", copyBufferDone: "Note text copied.", copyBufferFailed: "Cannot copy note text.",
+  saveCopy: "Save as new note", saveCopyName: "New note name", saveCopyDone: "Saved as {name}.",
+  saveCopyFailed: "Cannot save a new note. Your text is retained.", saveCopyInvalid: "Choose a valid name for the new note.",
+  saveCopyExists: "A note already uses this name. Choose another name.", discardMissingAction: "Discard changes…", discardMissing: "Discard changes",
   title: "File name", renameFailed: "Cannot rename this file.", resizeWidth: "Resize text column",
   conflict: "The file changed outside the editor. Your changes are retained.", missing: "The file was removed. Your text is retained.",
   readFailed: "Cannot read this file.", saveFailed: "Cannot save changes. Your text is retained.",
@@ -49,6 +53,13 @@ const parentPath = (path: string) => path.slice(0, Math.max(0, path.lastIndexOf(
 const stem = (path: string) => basename(path).replace(/\.md$/i, "");
 const emptyRecoveryCandidates: readonly never[] = Object.freeze([]);
 const embeddedPresentation = Object.freeze({ mode: "embedded", sizing: "fill" });
+const needsRecovery = (session: DocumentSession) => session.missing || session.error?.code === "CONFLICT";
+const recoveryActionsAvailable = (session: DocumentSession) => session.loaded && !session.recoveryCandidates.length && needsRecovery(session);
+type RecoveryFeedback = {
+  readonly key: "copyBufferDone" | "copyBufferFailed" | "saveCopyDone" | "saveCopyFailed" | "saveCopyInvalid" | "saveCopyExists";
+  readonly name?: string;
+};
+const recoveryState = () => ({ pending: false, naming: false, feedback: undefined as RecoveryFeedback | undefined });
 
 export default definePlugin({ manifest, async activate(ctx) {
   const menus = ctx.use(ContextMenu); const clipboard = ctx.use(Clipboard);
@@ -95,7 +106,7 @@ export default definePlugin({ manifest, async activate(ctx) {
   }
   const messages = localization.register(ctx.pluginId, catalogs, ctx.signal);
   if (!messages.ok) throw new Error("Cannot register editor messages.", { cause: messages.error });
-  const text = (id: keyof typeof catalogs.en) => localization.text(ctx.pluginId, id);
+  const text = (id: keyof typeof catalogs.en, name?: string) => localization.text(ctx.pluginId, id, name === undefined ? undefined : { name });
   let initializing = true;
   let statisticsSignature = ""; let cachedText: string | undefined; let cachedCounts = { words: 0, letters: 0 };
   function statistics(): DocumentStatisticsSnapshot {
@@ -230,6 +241,7 @@ export default definePlugin({ manifest, async activate(ctx) {
     const onFooterTarget = (value: HTMLElement | null) => { if (footerTarget !== value) clearFooters(); footerTarget = value; };
     let taskUnavailableReported = false; let commandError = ""; let commandDocument = "";
     let renameError = "";
+    let recovery = recoveryState();
     let recoveryRecords: DocumentSession["recoveryCandidates"] | undefined;
     let recoveryChoices: { id: string; label: string }[] = [];
     let editor: ReturnType<typeof mountEditor> | undefined; let rendered: DocumentSession | null = null;
@@ -239,6 +251,69 @@ export default definePlugin({ manifest, async activate(ctx) {
     };
     function clearEditor(): void { if (editor && rendered) states.set(rendered, editor.dispose()); editor = undefined; rendered = null; }
     const onSave = () => { if (!disposed && !signal.aborted && current?.active && !current.locks) void current.flush(); };
+    async function runRecovery(failure: "copyBufferFailed" | "saveCopyFailed", work: (
+      session: DocumentSession, target: FileTarget, state: ReturnType<typeof recoveryState>, active: () => boolean,
+    ) => Promise<void>): Promise<void> {
+      const session = current;
+      const context = props.workspace as { vaultId?: string } | undefined;
+      if (disposed || signal.aborted || ctx.signal.aborted || !session?.active || session.target.vaultId !== context?.vaultId ||
+          !recoveryActionsAvailable(session) || session.loading || session.saving || session.locks || recovery.pending) return;
+      const state = recovery;
+      const source = session.target;
+      const active = () => !disposed && !signal.aborted && !ctx.signal.aborted && recovery === state &&
+        current === session && session.active && session.target === source && recoveryActionsAvailable(session);
+      state.pending = true; state.feedback = undefined; changed();
+      try { await work(session, source, state, active); }
+      catch (error) {
+        if (!active()) return;
+        state.feedback = { key: failure };
+        logger.warn(ctx.pluginId, "Document recovery action failed", { error });
+      } finally {
+        state.pending = false;
+        if (!disposed && !signal.aborted && !ctx.signal.aborted && recovery === state) changed();
+      }
+    }
+    const onCopyBuffer = () => runRecovery("copyBufferFailed", async (session, _source, state, active) => {
+      const result = await clipboard.writeText(session.text);
+      if (!active()) return;
+      if (result.ok) { state.feedback = { key: "copyBufferDone" }; logger.info(ctx.pluginId, "Document recovery text copied"); }
+      else { state.feedback = { key: "copyBufferFailed" }; logger.warn(ctx.pluginId, "Cannot copy document recovery text", { error: result.error }); }
+    });
+    const onSaveCopy = (name?: string) => runRecovery("saveCopyFailed", async (session, source, state, active) => {
+      let path: string;
+      if (name === undefined) {
+        if (state.naming) { state.naming = false; return; }
+        const selected = await fs.pickSaveLocation(source.vaultId);
+        if (!active()) return;
+        if (!selected.ok) {
+          if (selected.error.code === "UNSUPPORTED") { state.naming = true; return; }
+          if (selected.error.code === "CANCELLED") return;
+          state.feedback = { key: "saveCopyFailed" };
+          logger.warn(ctx.pluginId, "Cannot choose document recovery destination", { error: selected.error });
+          return;
+        }
+        if (selected.value === null) return;
+        path = selected.value;
+      } else {
+        if (!state.naming) return;
+        const cleaned = name.trim();
+        if (!cleaned || cleaned.includes("/")) { state.feedback = { key: "saveCopyInvalid" }; return; }
+        const parent = parentPath(source.path);
+        path = parent ? `${parent}/${cleaned}` : cleaned;
+      }
+      if (!/\.md$/i.test(path)) path += ".md";
+      if (!validPath(path)) { state.feedback = { key: "saveCopyInvalid" }; return; }
+      if (path.toLowerCase() === source.path.toLowerCase()) { state.feedback = { key: "saveCopyExists" }; return; }
+      const result = await fs.writeText({ vaultId: source.vaultId, path }, session.text, { mode: "create" });
+      if (!active()) return;
+      if (!result.ok) {
+        state.feedback = { key: result.error.code === "ALREADY_EXISTS" ? "saveCopyExists" : "saveCopyFailed" };
+        logger.warn(ctx.pluginId, "Cannot save document recovery copy", { error: result.error });
+        return;
+      }
+      state.naming = false; state.feedback = { key: "saveCopyDone", name: path };
+      logger.info(ctx.pluginId, "Document recovery copy saved");
+    });
     const onContentWidthChange = (width: number, phase: "preview" | "commit" | "cancel") => {
       const context = props.workspace as { vaultId?: string } | undefined;
       if (!disposed && !signal.aborted && !owner.signal.aborted && context?.vaultId) preferences.resizeWidth(width, phase, context.vaultId);
@@ -258,7 +333,7 @@ export default definePlugin({ manifest, async activate(ctx) {
     const onRename = async (name: string): Promise<boolean> => {
       if (disposed || signal.aborted || ctx.signal.aborted) return false;
       const session = current;
-      if (!session?.active || session.locks || session.saving || session.loading) return false;
+      if (!session?.active || needsRecovery(session) || session.locks || session.saving || session.loading) return false;
       const cleaned = name.trim();
       const source = session.target;
       if (!cleaned || cleaned.includes("/")) { renameError = cleaned ? text("renameFailed") : ""; changed(); return false; }
@@ -291,7 +366,11 @@ export default definePlugin({ manifest, async activate(ctx) {
         recoveryRecords = candidates;
         recoveryChoices = candidates.map((record, index) => ({ id: String(index), label: `${new Date(record.updatedAt).toISOString()} · ${record.text.slice(0, 100)}` }));
       }
-      if (commandDocument !== documentKey) { commandDocument = documentKey; commandError = ""; renameError = ""; }
+      if (commandDocument !== documentKey) { commandDocument = documentKey; commandError = ""; renameError = ""; recovery = recoveryState(); }
+      const offerRecovery = !!session && recoveryActionsAvailable(session);
+      const feedback = offerRecovery ? recovery.feedback : undefined;
+      const success = feedback?.key === "copyBufferDone" || feedback?.key === "saveCopyDone";
+      const nameError = feedback && !success && recovery.naming && feedback.key !== "copyBufferFailed" ? text(feedback.key) : undefined;
       const error = session?.draftError ? text("draftFailed") : session?.error ? text(session.error.code === "CONFLICT" ? "conflict" : session.missing ? "missing" : session.draftSaved && ["OFFLINE", "SERVER_UNAVAILABLE"].includes(session.error.code) ? "offline" : session.loaded ? "saveFailed" : "readFailed") : "";
       const next = { documentKey: session ? key(session.target) : "", name: session?.target.path ?? text(unsupported ? "unsupported" : "empty"),
         title: session ? stem(session.target.path) : "", titleLabel: text("title"), renameError, compact: context?.compact,
@@ -299,12 +378,21 @@ export default definePlugin({ manifest, async activate(ctx) {
         contentWidth: display.wrapLines && display.textWidth !== "full" ? Number(display.textWidth) : "full",
         resizeWidthLabel: text("resizeWidth"), canResizeWidth: preferences.canResize(),
         onContentWidthChange,
-        canRename: !!session?.active && !session.locks && !session.saving && !session.loading,
+        canRename: !!session?.active && !needsRecovery(session) && !session.locks && !session.saving && !session.loading,
         onRename,
         status: session?.loading ? text("loading") : session?.saving ? text("saving") : session?.loaded ? text(session.dirty ? "unsaved" : "saved") : "",
         recoveryLabel: text("recovery"), recoveryCandidates: recoveryChoices, onRecovery,
-        error, commandError: commandError || preferences.widthError(), ready, dirty: session?.dirty ?? false, busy: !!session && (session.loading || session.saving || session.locks > 0),
-        saveLabel: text("save"), retryLabel: text("retry"), reloadLabel: text("reload"), discardLabel: text("discard"), cancelLabel: text("cancel"), onSave, onReload, onTarget, onFooterTarget,
+        error, commandError: commandError || preferences.widthError(), ready, dirty: session?.dirty ?? false,
+        busy: !!session && (session.loading || session.saving || session.locks > 0 || recovery.pending),
+        canRetrySave: !!session && !needsRecovery(session) && !recoveryChoices.length,
+        copyBufferLabel: offerRecovery ? text("copyBuffer") : undefined, onCopyBuffer,
+        saveCopyLabel: offerRecovery ? text("saveCopy") : undefined, onSaveCopy,
+        saveCopyNameLabel: offerRecovery && recovery.naming ? text("saveCopyName") : undefined,
+        saveCopyNameError: nameError,
+        recoveryError: feedback && !success && !nameError ? text(feedback.key) : undefined,
+        recoveryStatus: feedback && success ? text(feedback.key, feedback.name) : undefined,
+        saveLabel: text("save"), retryLabel: text("retry"), reloadLabel: text(session?.missing && session.dirty ? "discardMissingAction" : "reload"),
+        discardLabel: text(session?.missing ? "discardMissing" : "discard"), cancelLabel: text("cancel"), onSave, onReload, onTarget, onFooterTarget,
         presentation: embeddedPresentation };
       if (mounted && (!renderedProps || Object.keys(next).some(name => next[name as keyof typeof next] !== renderedProps![name]))) {
         const result = mounted.update(next);

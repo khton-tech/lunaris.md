@@ -259,6 +259,7 @@ The EditorExtensions service allows scoped syntax/presentation contributions (se
 | Vault.current / VaultChanged | Root identity and session lifetime |
 | BeforeVaultRelease | Flush buffers while the old root remains writable |
 | Filesystem.readText / writeText | Read and optimistic saves through existing drivers |
+| Filesystem.pickSaveLocation / Clipboard.writeText | Select a recovery copy destination and copy the live Markdown buffer |
 | BeforeFileMutation | Flush/lock before move/copy/remove; retarget on committed completion |
 | FileChanged | Refresh clean buffers, retain dirty buffers and recognize deletion |
 | ActiveScreen.register / select | Contribute the editor screen within Workspace |
@@ -296,6 +297,32 @@ mount returns; do not style/reparent borrowed targets. The role confirms dirty
 discard before invoking onReload. The title field commits on blur or Enter and
 reverts on Escape; it stays read-only while the document is busy. Controller
 callbacks become inert on cancellation.
+
+### Save failure recovery
+
+The existing error row keeps Retry save for ordinary write failures. For a
+conflict or a removed file with a loaded buffer, it offers Copy note text and
+Save as new note. Copy passes the entire live Markdown buffer to `Clipboard`,
+independent of the editor selection. The file action uses the SDK save picker
+within the active Vault. When that backend has no picker, the same role accepts
+a note name next to the source. It normalizes the Markdown suffix and writes in
+`create` mode. Cancelling the picker or selecting an existing name preserves all
+files. The original buffer and its navigation guards remain active after either
+action. The user can then reload the changed source or explicitly discard the
+removed buffer. A confirmed discard permits departure from a removed local note
+even when no Drafts provider is active.
+
+The role accepts `canRetrySave`, localized `copyBufferLabel`, `saveCopyLabel`,
+`saveCopyNameLabel` and `saveCopyNameError`, action callbacks `onCopyBuffer()`
+and `onSaveCopy(name?)`, and localized `recoveryError` / `recoveryStatus`.
+Workspace and Active Screen own the main allocation. Mantine retains the
+existing error/reload composition and owns its buttons and inline form, using
+the established Files naming form as a reference. The editor owns file writes,
+buffer state and localized outcomes. Integration uses the existing Clipboard,
+Filesystem and component role boundaries. The composed tests cover live buffer
+identity, picker cancellation, existing names, no replacement, unavailable
+clipboard/picker, retry and guarded departure. Manually verify the native file
+dialog, focus and Russian action labels in a narrow Windows window.
 
 ## Ownership and visual reference
 

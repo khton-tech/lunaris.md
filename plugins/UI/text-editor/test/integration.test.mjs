@@ -108,6 +108,7 @@ async function setup(options = {}) {
   const methods = Object.fromEntries(filesystemMethods.map(name => [name, async () => ok(null)]));
   Object.assign(methods, {
     capabilities: () => ({ watch: false, atomicReplace: true, versionCheck: 'optimistic', trash: false, maxFileBytes: 1024 }),
+    async pickSaveLocation(id) { return options.pickSaveLocation?.(id) ?? ok(null); },
     async list(t) { return ok([...disk.keys()].filter(key => key.startsWith(t.vaultId + "/") && !key.slice(t.vaultId.length + 1).includes("/")).map(key => ({path:key.slice(t.vaultId.length+1),kind:"file",size:disk.get(key).text.length,modifiedAt:1}))); },
     async stat(t) { return disk.has(`${t.vaultId}/${t.path}`) ? ok({ path: t.path, kind: 'file', size: 1, modifiedAt: 1 }) : fail('NOT_FOUND'); },
     async readText(t) { if (options.read) { const result = await options.read(t); if (result) return result; } return closed.has(t.vaultId) ? fail('VAULT_CLOSED') : disk.has(`${t.vaultId}/${t.path}`) ? ok({ ...disk.get(`${t.vaultId}/${t.path}`) }) : fail('NOT_FOUND'); },
@@ -905,6 +906,93 @@ test('conflicts block document and Vault departure, retain the buffer and recove
   button('Reload from disk').click(); await flush(); assert.equal(s.cm().state.doc.toString(), 'Local draft');
   button('Discard changes and reload').click(); await flush(); assert.equal(s.cm().state.doc.toString(), 'External change');
   assert.equal((await s.vault.close()).ok, true); await s.stop();
+});
+
+test('conflict recovery copies the whole live note and saves a new file without replacing any existing file', async () => {
+  const choices = [ok(null), ok('other.md'), ok('recovered')];
+  const s = await setup({ withLayout: true, pickSaveLocation(id) { assert.equal(id, 'a'); return choices.shift(); } });
+  const button = label => [...s.target.querySelectorAll('button')].find(item => item.textContent === label);
+  try {
+    const buffer = '# Unsaved\n\n**Full Markdown**';
+    s.edit(buffer);
+    s.disk.set('a/note.md', { text: 'External change', version: 'external' });
+    assert.equal((await s.documents.open({ vaultId: 'a', path: 'other.md' })).error.code, 'CONFLICT'); await flush();
+    const view = s.cm();
+    view.dispatch({ selection: { anchor: 0, head: 4 } });
+    assert.equal(button('Retry save'), undefined);
+    button('Copy note text').click(); await flush();
+    assert.deepEqual(s.clipboardCalls, [['write', buffer]]);
+    assert.match(s.target.querySelector('[role=status]').textContent, /Note text copied/);
+    assert.equal(s.cm(), view);
+    assert.equal(view.state.selection.main.head, 4);
+
+    button('Save as new note').click(); await flush();
+    assert.equal(s.calls.filter(call => call[3]?.mode === 'create').length, 0);
+    button('Save as new note').click(); await flush();
+    assert.match(s.target.textContent, /already uses this name/);
+    assert.equal(s.disk.get('a/other.md').text, 'Other');
+    button('Save as new note').click(); await flush();
+    assert.deepEqual(s.calls.filter(call => call[3]?.mode === 'create').at(-1),
+      ['write', { vaultId: 'a', path: 'recovered.md' }, buffer, { mode: 'create' }]);
+    assert.equal(s.disk.get('a/recovered.md').text, buffer);
+    assert.equal(s.disk.get('a/note.md').text, 'External change');
+    assert.match(s.target.querySelector('[role=status]').textContent, /Saved as recovered\.md/);
+    assert.equal((await s.documents.open({ vaultId: 'a', path: 'recovered.md' })).error.code, 'CONFLICT');
+    assert.equal(s.cm(), view);
+    assert.equal(view.state.sliceDoc(), buffer);
+  } finally { await s.stop(); }
+});
+
+test('removed-note recovery uses the in-role name form when the picker is unavailable', async () => {
+  const s = await setup({ withLayout: true, pickSaveLocation: () => fail('UNSUPPORTED'), clipboardFailure: true });
+  const button = label => [...s.target.querySelectorAll('button')].find(item => item.textContent === label);
+  const submit = async name => {
+    const form = s.target.querySelector('.lm-text-editor form');
+    assert.match(form.textContent, /New note name/);
+    typeInput(form.querySelector('input'), name);
+    form.querySelector('button[type=submit]').click(); await flush();
+  };
+  try {
+    const buffer = '# Removed\n\nLocal changes';
+    s.edit(buffer); s.disk.delete('a/note.md');
+    assert.equal((await s.documents.open({ vaultId: 'a', path: 'other.md' })).error.code, 'NOT_FOUND'); await flush();
+    assert.equal(button('Retry save'), undefined);
+    assert.equal(s.cm().state.sliceDoc(), buffer);
+    button('Copy note text').click(); await flush();
+    assert.match(s.target.textContent, /Cannot copy note text/);
+
+    button('Save as new note').click(); await flush();
+    await submit('NOTE.md');
+    assert.match(s.target.textContent, /already uses this name/);
+    assert.equal(s.disk.has('a/note.md'), false);
+    await submit('Recovery.md');
+    assert.equal(s.target.querySelector('.lm-text-editor form'), null);
+    assert.equal(s.disk.get('a/Recovery.md').text, buffer);
+    assert.equal(s.cm().state.sliceDoc(), buffer);
+    assert.equal((await s.documents.open({ vaultId: 'a', path: 'Recovery.md' })).error.code, 'NOT_FOUND');
+
+    button('Discard changes…').click(); await flush();
+    assert.equal(s.cm().state.sliceDoc(), buffer);
+    button('Discard changes').click(); await flush();
+    assert.equal((await s.documents.open({ vaultId: 'a', path: 'Recovery.md' })).ok, true); await flush();
+    assert.equal(s.cm().state.sliceDoc(), buffer);
+    assert.equal(s.disk.has('a/note.md'), false);
+  } finally { await s.stop(); }
+});
+
+test('temporary save failures retain retry without conflict recovery actions', async () => {
+  const options = { writeFailure: 'IO_ERROR' };
+  const s = await setup(options);
+  try {
+    s.edit('Unsaved');
+    assert.equal((await s.documents.open({ vaultId: 'a', path: 'other.md' })).error.code, 'IO_ERROR'); await flush();
+    assert.match(s.target.textContent, /Cannot save changes/);
+    assert.doesNotMatch(s.target.textContent, /Copy note text|Save as new note/);
+    options.writeFailure = undefined;
+    const retry = [...s.target.querySelectorAll('button')].find(item => item.textContent === 'Retry save');
+    retry.click(); await flush();
+    assert.equal(s.disk.get('a/note.md').text, 'Unsaved');
+  } finally { await s.stop(); }
 });
 
 test('file moves and deletion flush first, preserve buffer history and never recreate removed files', async () => {

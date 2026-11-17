@@ -135,9 +135,9 @@ export class DocumentSession {
             const removed = await this.draft.remove(revision, record);
             if (!removed.ok) { this.error = removed.error; this.draftError = true; this.log("error", "Cannot discard local recovery draft", removed.error); return; }
           }
-          if (this.missing) this.savedText = this.text;
           this.revision = ""; this.recoveryRecord = undefined; this.recovered = false; this.draftSaved = false; this.draftError = false;
         }
+        if (discard && this.missing) { this.savedText = this.text; this.recovered = false; }
         if (!this.active) return;
         const local = this.draft ? await this.draft.load() : null;
         if (!this.active) return;
