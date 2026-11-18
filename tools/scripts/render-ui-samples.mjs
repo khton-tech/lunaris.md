@@ -23,6 +23,7 @@ const scenes = [
   ['menu', 'everforest-dark', 390, 680],
   ['menu', 'windows-xp-dark', 844, 390],
   ['editor', 'everforest-dark', 1120, 740],
+  ['editor', 'rose-pine', 850, 946],
   ['editor', 'monochrome', 390, 680],
   ['files', 'windows-xp-dark', 390, 680],
 ];
@@ -238,6 +239,15 @@ async function renderScene({ view, theme }) {
         const row = selected.getBoundingClientRect();
         throw new Error(`Menu y=${top}..${bottom}, selected y=${row.top}..${row.bottom}, viewport height=${innerHeight}.`);
       }
+    }
+  }
+  const workspace = document.querySelector('.lm-workspace-layout[data-panel]:not([data-compact])');
+  if (workspace) {
+    const main = workspace.querySelector('.lm-workspace-main');
+    const panel = workspace.querySelector('.lm-workspace-panel');
+    if (Math.abs(main.getBoundingClientRect().top - panel.getBoundingClientRect().top) > 1
+      || getComputedStyle(main).borderStartStartRadius !== getComputedStyle(panel).borderStartStartRadius) {
+      throw new Error('The desktop content and sidebar must share their top edge and corner radius.');
     }
   }
   document.documentElement.dataset.sample = 'ready';

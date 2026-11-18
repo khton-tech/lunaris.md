@@ -111,6 +111,10 @@
 .lm-workspace-panel { flex:1;margin-block:var(--workspace-gap) }
 .lm-workspace-layout:not([data-rail]) .lm-workspace-panel { margin-inline-start:var(--workspace-gap) }
 .lm-workspace-main { flex:1;background:var(--vault-content);border:0;border-radius:0;box-shadow:none }
+.lm-workspace-layout:not([data-compact]) .lm-workspace-main {
+  margin-block-start:var(--workspace-gap);margin-inline-end:var(--workspace-gap);
+  border-start-start-radius:var(--vault-radius);border-start-end-radius:var(--vault-radius)
+}
 .lm-composed-workspace,.lm-composed-workspace-group,.lm-composed-workspace-region,.lm-composed-workspace-target { display:flex;flex:1 1 0;min-width:0;min-height:0;flex-direction:column }
 .lm-composed-workspace { overflow:hidden }
 .lm-composed-workspace-group { gap:var(--vault-space);overflow:hidden }
