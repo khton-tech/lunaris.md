@@ -1,135 +1,21 @@
-import mobileMenuPlugin from "@lunaris/mobile-menu-plugin";
-import { MobileMenu } from "@lunaris/mobile-menu";
-import { Settings } from "@lunaris/settings";
-import { LimeCompositionRuntime, LimeRuntime } from "@lunaris/lime";
-import settingsProvider from "@lunaris/settings-provider";
-import settingsPlugin from "@lunaris/settings-plugin";
-import { ActiveScreen } from "@lunaris/active-screen";
-import activeScreenProvider from "@lunaris/active-screen-provider";
-import activeScreenPlugin from "@lunaris/active-screen-plugin";
-import { definePlugin } from '@lunaris/sdk';
-import { TestScheduler } from '@lunaris/test';
-import { Logger } from '@lunaris/logging';
-import { Config, ConfigChanged } from '@lunaris/config';
-import { Components } from '@lunaris/components';
-import { Themes } from '@lunaris/themes';
-import { Localization } from '@lunaris/localization';
-import { VaultLifecycle, Vault, VaultCreation, VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged } from '@lunaris/vault';
-import { Workspace, WorkspaceSidebar } from '@lunaris/workspace';
-import { Sidebar } from "@lunaris/sidebar";
-import sidebarPlugin from "@lunaris/sidebar-plugin";
-import sidebarProvider from "@lunaris/sidebar-provider";
-import workspaceProvider from "@lunaris/workspace-provider";
-import workspacePlugin from '@lunaris/workspace-plugin';
-import { createVaultSelector } from '@lunaris/vault-selector';
-import { createStartupProvider } from '@lunaris/startup-provider';
-import localization from '@lunaris/localization-manager';
-import componentProvider from '@lunaris/component-provider';
-import kit from '@lunaris/mantine-components';
-import themes from '@lunaris/theme-provider';
-import baseTheme from '@lunaris/base-theme-engine';
-import { HostSession } from '@lunaris/tauri';
-import { composeSlotSurface } from '../../hosts/tauri/dist/slots.js';
+// React DOM detects input-event support when its module is first evaluated.
+// Install the Node browser environment before importing the component runtime.
+import { useBrowser } from './browser.mjs';
+import { JSDOM } from 'jsdom';
+import { setupWorkspace as mountWorkspace } from './workspace-surface.mjs';
 
-const ok = value => ({ ok: true, value });
-const fail = code => ({ ok: false, error: { code, message: code } });
-export const flush = async () => {
-  for (let i = 0; i < 4; i++) await new Promise(resolve => {
-    if (typeof setImmediate === 'function') setImmediate(resolve);
-    else setTimeout(resolve, 0);
-  });
-};
-const manifest = (id, provides = [], requires = [], permissions = []) => ({ manifestVersion: 1, id, version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js',
-  provides: provides.map(t => ({ kind: t.kind, id: t.id, version: t.version })), requires: requires.map(t => ({ kind: t.kind, id: t.id, range: `^${t.version}` })), permissions, optionalPermissions: [] });
+export { flush, panel } from './workspace-surface.mjs';
 
 export async function setupWorkspace(options = {}) {
-  if (options.settings) options = { ...options, activeScreen: true, sidebar: true };
-  let dom;
-  let surface = options.surface;
-  if (surface) {
-    dom = { window: surface.ownerDocument.defaultView };
-  } else {
-    const [{ useBrowser }, { JSDOM }] = await Promise.all([import('./browser.mjs'), import('jsdom')]);
-    dom = useBrowser(new JSDOM('<div id="app"></div>'));
-    surface = dom.window.document.getElementById('app');
+  if (options.surface) return mountWorkspace(options);
+  const dom = useBrowser(new JSDOM('<div id="app"></div>'));
+  try {
+    const workspace = await mountWorkspace(options, dom.window.document.getElementById('app'));
+    return { ...workspace, dom, async stop() {
+      try { await workspace.stop(); } finally { dom.window.close(); }
+    } };
+  } catch (error) {
+    dom.window.close();
+    throw error;
   }
-  const logs = []; let current = options.current ?? null; let serial = 0; let ctx; let tools; let service;
-  const preferences = options.preferences ?? new Map(); const preferenceWrites = [];
-  const config = definePlugin({ manifest: manifest('test.config', [Config, ConfigChanged]), activate(context) {
-    context.provide(Config, {
-      read: async () => ok(Object.fromEntries(preferences)),
-      get: async (_, key) => options.configReadFailure ? fail('IO_ERROR') : ok(preferences.get(key)),
-      set: async (pluginId, key, value, target) => {
-        preferenceWrites.push({ pluginId, key, value, target });
-        if (options.configWriteFailure) return fail('IO_ERROR');
-        preferences.set(key, value); return ok(null);
-      },
-      remove: async (_, key) => ok(preferences.delete(key)),
-      ...options.config,
-    });
-  } });
-  const logger = definePlugin({ manifest: manifest('test.logger', [Logger]), activate(context) {
-    context.provide(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { logs.push([level, ...args]); return true; }])));
-  } });
-  const vaults = definePlugin({ manifest: manifest('test.vaults', [VaultLifecycle, Vault, VaultCreation, VaultLocations, VaultChanged, VaultHistory, VaultHistoryChanged]), activate(context) {
-    const participants = new Set();
-    context.provide(VaultLifecycle, { register(participant, owner) { participants.add(participant); owner.addEventListener("abort", () => participants.delete(participant), { once: true }); return ok(null); } });
-    async function settle(previous) { for (const participant of [...participants].sort((a,b) => (a.settlementOrder ?? 0) - (b.settlementOrder ?? 0))) await participant.settled(previous, current); }
-    async function open(location, input) {
-      const previous = current; current = { id: `vault-${++serial}`, name: input?.name ?? 'Notes' };
-      await settle(previous);
-      await context.events.emit(VaultChanged, { kind: previous ? 'switched' : 'opened', previous, current, location });
-      return ok(current);
-    }
-    service = { current: () => current, open: () => open({ reference: 'saved', label: 'Folder' }), async close() {
-      options.closeCalls = (options.closeCalls ?? 0) + 1;
-      await options.beforeClose?.();
-      if (options.closeFailure) return fail(options.closeFailure);
-      const previous = current; current = null; await settle(previous);
-      await context.events.emit(VaultChanged, { kind: 'closed', previous, current }); return ok(null);
-    } };
-    context.provide(Vault, service);
-    context.provide(VaultCreation, { create: (parent, name) => open({ reference: parent.reference + "/" + name, label: parent.label + "/" + name }, { name }) });
-    context.provide(VaultLocations, { describe: async reference => ok({ reference, label: 'Folder' }), select: async () => ok({ reference: 'saved', label: 'Folder' }), open });
-    context.provide(VaultHistory, { list: async () => ok([{ location: { reference: 'saved', label: 'Folder' }, name: 'Notes' }]), open: () => service.open() });
-  } });
-  const consumer = definePlugin({ manifest: manifest('test.consumer', [], [Workspace, WorkspaceSidebar, Components, Themes, Localization, ...(options.pluginRuntime ? [LimeRuntime, LimeCompositionRuntime] : []), ...(options.mobileMenu ? [MobileMenu] : []), ...(options.settings ? [Settings] : []), ...(options.activeScreen ? [ActiveScreen] : []), ...(options.sidebar ? [Sidebar] : [])], ['ui.dom', ...(options.pluginRuntime ? ['runtime.manage'] : [])]), activate(context) {
-    ctx = context; tools = { ...(options.mobileMenu ? { mobileMenu: context.use(MobileMenu) } : {}), ...(options.settings ? { settings: context.use(Settings) } : {}), ...(options.activeScreen ? { screens: context.use(ActiveScreen) } : {}), ...(options.sidebar ? { sidebar: context.use(Sidebar) } : {}), navigation: context.use(WorkspaceSidebar), workspace: context.use(Workspace), components: context.use(Components), themes: context.use(Themes), localization: context.use(Localization) };
-    tools.themes.select('lunaris.base-theme-engine.monochrome');
-    if (options.pluginRuntime) {
-      tools.runtime = context.use(LimeRuntime);
-      tools.composition = context.use(LimeCompositionRuntime);
-    }
-    options.onActivate?.(tools, context);
-    options.beforeLoaded?.(surface);
-  } });
-  const startup = createStartupProvider(); const layout = composeSlotSurface(surface); const selector = createVaultSelector({ art: options.art ?? 'ASCII', hideWhenVaultOpen: true, restoreLastVault: false });
-  const session = new HostSession({ scheduler: new TestScheduler(), load: async () => ({ ...layout, startup, pluginRuntime: options.pluginRuntime === true,
-    plugins: [...(options.mobileMenu ? [mobileMenuPlugin] : []),...(options.plugins ?? []), ...(options.settings ? [settingsProvider, settingsPlugin] : []), ...(options.activeScreen ? [activeScreenProvider, activeScreenPlugin] : []), ...(options.sidebar ? [sidebarPlugin, sidebarProvider] : []), config, logger, vaults, localization, componentProvider, kit, themes, baseTheme, consumer, startup.plugin, selector, workspacePlugin, workspaceProvider, ...layout.plugins],
-    entrypoints: [...(options.mobileMenu ? [mobileMenuPlugin.manifest.id] : []),startup.plugin.manifest.id, baseTheme.manifest.id, ...(options.noKit ? [] : [kit.manifest.id]), selector.manifest.id, workspacePlugin.manifest.id, ...(options.sidebar ? [sidebarPlugin.manifest.id] : []), ...(options.activeScreen ? [activeScreenPlugin.manifest.id] : []), ...(options.settings ? [settingsPlugin.manifest.id] : []), consumer.manifest.id, ...(options.entrypoints ?? [])],
-    grants: { ...layout.grants, ...(options.preparation ? { [startup.plugin.manifest.id]: ["vault.access"] } : {}), ...(options.settings ? { [settingsPlugin.manifest.id]: ["ui.dom", "vault.access"] } : {}), ...(options.activeScreen ? { [activeScreenProvider.manifest.id]: ["vault.access"], [activeScreenPlugin.manifest.id]: ["ui.dom"] } : {}), [componentProvider.manifest.id]: ['ui.dom'], [kit.manifest.id]: ['ui.dom'], 'test.consumer': ['ui.dom', ...(options.pluginRuntime ? ['runtime.manage'] : [])], ...(options.sidebar ? { [sidebarPlugin.manifest.id]: sidebarPlugin.manifest.permissions } : {}),
-      [selector.manifest.id]: ['ui.dom', 'vault.access'], [workspacePlugin.manifest.id]: options.denied ? ['ui.dom', 'config.access'] : ['ui.dom', 'vault.access', 'config.access'], ...options.grants },
-  }) });
-  await session.start(); await flush();
-  return { dom, surface, session, logs, ctx, tools, service, preferences, preferenceWrites, async open() { await service.open(); await flush(); },
-    async stop() {
-      await session.stop();
-      if (surface.childElementCount) throw new Error('Workspace fixture left mounted children.');
-      if (session.snapshot().kernel.diagnostics.some(item => item.code === 'CLEANUP_FAILED')) {
-        throw new Error(logs.filter(log => log[0] === 'error').map(log => log[3]?.error?.stack).join('\n') || 'Workspace cleanup failed.');
-      }
-      if (!options.surface) dom.window.close();
-    } };
-}
-export function panel(s, id = 'test.panel', options = {}) {
-  const owner = s.ctx.scope.child(); const seen = []; const releases = [];
-  const result = s.tools.components.register({ id, mount(target, props, signal) {
-    if (options.fail) throw new Error('Panel render failure');
-    const node = target.ownerDocument.createElement('article'); node.dataset.panel = id; target.append(node);
-    const update = next => { if (options.updateFail) throw new Error('Panel update failure'); seen.push(next); node.textContent = `${next.label ?? 'Panel'}: ${next.workspace.vaultName}`; };
-    update(props); signal.addEventListener('abort', () => releases.push(props.workspace.vaultId), { once: true });
-    return { update, dispose() { node.remove(); } };
-  } }, owner.signal);
-  if (!result.ok) throw new Error('Cannot register fixture panel.', { cause: result.error });
-  return { owner, seen, releases };
 }

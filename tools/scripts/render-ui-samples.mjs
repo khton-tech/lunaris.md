@@ -162,7 +162,7 @@ async function renderScene({ view, theme }) {
 try {
   await mkdir(output, { recursive: true });
   const source = `
-    import { setupWorkspace, flush } from './tools/test/workspace.mjs';
+    import { setupWorkspace, flush } from './tools/test/workspace-surface.mjs';
     import { createInterfaceSettings } from '@lunaris/interface-settings';
     import { catalogs as filesText } from './plugins/UI/file-explorer/src/catalog.ts';
     import { russian as editorText } from './plugins/UI/text-editor/src/locales/ru.ts';
