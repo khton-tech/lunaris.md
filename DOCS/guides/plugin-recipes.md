@@ -238,16 +238,14 @@ export default definePlugin({
 });
 ```
 
-Pack and install the package in a Vault. Open Settings → Plugins and choose
-Details for `lunaris.text-editor` in the Built-in tab. Under Dependencies,
-select `example.vault-clipboard` for `api:lunaris.clipboard` and choose Set
-provider. Optionally switch off `lunaris.clipboard-provider` in the built-in
-list. Apply composition to commit the edits together.
+Pack and install the package in a Vault. Through the
+[Lime composition API](../reference/lime-runtime.md#vault-composition), bind
+`lunaris.text-editor` to `example.vault-clipboard` for `api:lunaris.clipboard`.
+The profile can also disable `lunaris.clipboard-provider` in the same transaction.
 
-Use Copy and Paste from the editor context menu to exercise the replacement.
 The copied text lives in the plugin's activation and disappears when it stops.
-Select Host default and re-enable the built-in Clipboard provider to restore
-this dependency, or use Restore defaults to clear the entire Vault profile.
+To restore this dependency, remove the explicit binding and re-enable the
+built-in Clipboard provider in the Vault profile.
 
 ### Wrap the existing provider
 
@@ -293,8 +291,7 @@ export default definePlugin({
 Pack the decorator and choose Install disabled in the package preview. In its
 installed package Details, select `lunaris.clipboard-provider` for
 `api:lunaris.clipboard` and apply that provider choice before enabling the
-decorator. Then select the decorator as the editor's provider in the Built-in tab
-and apply the composition profile. Keep the upstream provider enabled. The two
+decorator. Then bind the editor to the decorator through the Lime composition API. Keep the upstream provider enabled. The two
 explicit choices form the chain from editor to decorator to upstream provider.
 
 ## Supply a Workspace layout
@@ -331,9 +328,8 @@ register a declarative view as in the counter recipe and pass its ID to
 Declare `api:lunaris.workspace@^1.5.0` and the view's dependencies for the
 package that registers the content.
 
-Install and enable the layout. In the Built-in tab, open Details for
-`lunaris.workspace` and select the package for
-`api:lunaris.workspace-layout`. Apply the composition. Each region appears at
+Install and enable the layout. Use the Lime composition API to bind
+`lunaris.workspace` to the package for `api:lunaris.workspace-layout`. Each region appears at
 most once. For dynamic layouts, `describe` can read the Vault context and
 `watch(listener, owner)` can invoke the listener when the layout changes.
 Release the listener when the supplied owner aborts.
@@ -365,9 +361,8 @@ Use the returned handle's `update(props)` to refresh the view and
 `dispose()` to remove the surface early. Both registrations are owned by
 the activation. The surface requires a fresh dotted slot ID. It uses the
 shared theme and declarative controls. After installing this package, the
-owner can disable `lunaris.workspace` in the Built-in tab and apply the
-composition to use the separate interface. Restore defaults brings back
-Workspace. Safe mode provides access to the default application even when
+owner can disable `lunaris.workspace` through the Lime composition API to use
+the separate interface. Remove the disabled entry to restore Workspace. Safe mode provides access to the default application even when
 the custom interface omits Settings.
 
 ## Add a decoration to existing UI

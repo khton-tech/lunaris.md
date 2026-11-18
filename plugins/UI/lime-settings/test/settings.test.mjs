@@ -101,7 +101,7 @@ test('Lime composes inside real Settings/Workspace and confirms preview before i
   try {
     assert.equal(s.surface.querySelector('.lm-settings-page h1').textContent, 'Plugins');
     assert.equal(s.surface.querySelector('.lm-settings-page h2').textContent, 'Vault plugins');
-    assert.deepEqual([...s.view().querySelectorAll('.lm-lime-overview button')].map(button => button.textContent), ['Open without third-party plugins', 'Add plugin']);
+    assert.deepEqual([...s.view().querySelectorAll('.lm-lime-overview button')].map(button => button.textContent), ['Add plugin']);
     assert.equal(s.view().querySelector('.lm-lime-installed-count').textContent, '0');
     assert.equal(s.view().querySelector('h3').textContent, 'Manage plugins');
     assert.equal(s.search(), null);
@@ -171,44 +171,16 @@ test('Lime composes inside real Settings/Workspace and confirms preview before i
   } finally { await s.stop(); }
 });
 
-test('built-in composition stages providers and suppression together through the shared Settings role', async () => {
+test('installed plugin management has no tabs or built-in rows even with composition support', async () => {
   const s = await fixture({ composition: true });
   try {
-    const [thirdParty, builtin] = s.view().querySelectorAll('[role=tab]');
-    assert.equal(thirdParty.textContent, 'Third-party');
-    assert.equal(thirdParty.getAttribute('aria-selected'), 'true');
-    assert.equal(builtin.textContent, 'Built-in');
-    builtin.click(); await flush();
-    assert.equal(builtin.getAttribute('aria-selected'), 'true');
-    assert.equal(s.row('test.core').querySelector('input[type=checkbox]'), null);
-    const detailsButton = s.row('test.consumer').querySelector('button[aria-label="Details: test.consumer"]');
-    assert.equal(detailsButton.getAttribute('aria-haspopup'), 'dialog');
-    detailsButton.click(); await flush();
-    const dialog = s.dom.window.document.querySelector('.lm-lime-overlay [role=dialog]');
-    [...dialog.querySelectorAll('[role=tab]')].find(tab => tab.textContent === 'Dependencies').click(); await flush();
-    const menu = dialog.querySelector('[aria-label="Provider test.dependency"]');
-    menu.click(); await flush();
-    assert.ok(s.dom.window.document.getElementById(menu.getAttribute('aria-controls')).closest('.lm-dropdown-overlay'));
-    [...s.dom.window.document.querySelectorAll('[role=option]')].find(option => option.textContent.includes('test.third')).click(); await flush();
-    s.button('Set provider').click(); await flush();
-    assert.equal(s.calls.length, 0);
-    s.button('Close').click(); await flush();
-    s.row('test.first').querySelector('input').click(); await flush();
-    assert.equal(s.row('test.first').querySelector('input').checked, false);
-    assert.equal(s.calls.length, 0);
-    thirdParty.click(); await flush();
-    assert.equal(thirdParty.getAttribute('aria-selected'), 'true');
-    assert.equal(s.row('test.first'), null);
-    builtin.click(); await flush();
-    assert.equal(s.row('test.first').querySelector('input').checked, false);
-    s.button('Apply composition').click(); await flush();
-    assert.deepEqual(s.calls.at(-1), ['applyComposition', {
-      bindings: [{ consumerId: 'test.consumer', kind: 'api', contractId: 'test.dependency', providerId: 'test.third' }],
-      disabledBuiltins: ['test.first'],
-    }, 7]);
-    s.button('Restore defaults').click(); await flush();
-    s.button('Apply composition').click(); await flush();
-    assert.deepEqual(s.calls.at(-1), ['applyComposition', { bindings: [], disabledBuiltins: [] }, 8]);
+    assert.equal(s.view().querySelector('[role=tablist]'), null);
+    assert.equal(s.row('test.core'), null);
+    s.button('Add plugin').click(); await flush();
+    s.button('Install plugin').click(); await flush();
+    assert.ok(s.row());
+    assert.equal(s.view().querySelector('[role=tablist]'), null);
+    assert.equal(s.row('test.consumer'), null);
   } finally { await s.stop(); }
 });
 
@@ -240,15 +212,18 @@ test('search finds installed packages and safe mode keeps their management list 
     assert.equal(search.value, '');
     assert.ok(s.row());
 
-    const safeMode = s.button('Open without third-party plugins');
+    const safeMode = s.view().querySelector('input[role="switch"][aria-label="Safe mode"]');
+    assert.equal(safeMode.checked, false);
     assert.ok(safeMode.closest('.lm-lime-overview'));
     safeMode.click(); await flush();
     assert.deepEqual(s.calls.at(-1), ['restore', true]);
     assert.match(s.view().textContent, /Third-party plugins are paused\./);
     assert.ok(s.row().querySelector('input[type=checkbox]').disabled);
-    assert.ok(s.dom.window.document.activeElement === s.button('Resume third-party plugins'));
-    s.button('Resume third-party plugins').click(); await flush();
+    assert.equal(safeMode.checked, true);
+    assert.ok(s.dom.window.document.activeElement === safeMode);
+    safeMode.click(); await flush();
     assert.deepEqual(s.calls.at(-1), ['restore', false]);
+    assert.equal(safeMode.checked, false);
     assert.doesNotMatch(s.view().textContent, /Third-party plugins are paused\./);
     assert.equal(s.row().querySelector('input[type=checkbox]').disabled, false);
     assert.ok(s.dom.window.document.activeElement === safeMode);

@@ -17,17 +17,15 @@ Russian catalogs are supplied. The native picker call runs before the first
 `await` to preserve user activation.
 
 Settings owns the category heading and section geometry, surface and scrolling.
-With the composition adapter, the shared Mantine role presents Third-party and
-Built-in tabs. Search matches names and IDs in the current list and is omitted
-when that list is empty. An overview above the manager shows the safe-mode
-action and status, local package installation and the total third-party
-installation count. The count includes disabled plugins and is independent of
-the current tab or search. Add plugin uses the native package picker from
-either tab. Without a Vault, the section shows the unavailable state.
+Search matches installed third-party plugins by name and ID and is omitted
+when the list is empty. The overview shows the controlled safe-mode switch,
+local package installation and the total third-party installation count.
+The count includes disabled plugins and is independent of the current search.
+Without a Vault, the section shows the unavailable state.
 
 Rows show the plugin name, version, runtime state and an enablement switch where
 available. The third-party row menu contains Details, Update and Remove, with
-Retry available for recovery. Built-in rows expose Details directly.
+Retry available for recovery.
 
 Add plugin opens selection, then an inert metadata preview. Confirmation chooses
 Install or Update explicitly according to the installed ID. Per-row Update checks
@@ -60,23 +58,9 @@ package. Disabled providers are not enabled implicitly; running consumers requir
 an enabled choice. Refresh dependencies obtains a new revision. Engine failures
 are localized and successful changes refresh the plan. Vault changes clear it.
 
-The Built-in tab is available on hosts with the composition adapter. Each
-eligible row has a switch and uses the same Details dialog and themed dependency
-picker as a third-party package. The picker can stage an explicit provider or
-clear that override with Host default.
-Protected rows display read-only dependency details. Changes to built-in switches
-and providers are staged together. Disabling a built-in clears its own provider
-overrides from the draft. Apply composition submits the whole profile
-with its original revision. Discard changes clears the draft. Restore defaults
-stages an empty profile, including in safe mode. Vault changes discard the draft.
-
-The `lunaris.lime-settings` role accepts an optional `composition` object with
-metadata rows, draft and customized flags, and callbacks for toggling a built-in,
-applying, discarding and restoring defaults. Built-in rows supply `mutable` and
-their staged `bindings` for the Details picker. The optional `vaultId` prop
-scopes local view state to the current Vault. The controller owns the draft,
-Vault, revision and SDK calls. The role owns the list, presentation and keyboard
-interactions within the same Settings section.
+The optional `vaultId` prop scopes view state to the current Vault. The page
+manages third-party packages. Vault composition remains available through the
+[Lime SDK](../../../../DOCS/reference/lime-runtime.md#vault-composition).
 
 Enable, disable, retry, update and safe-mode restore use the public Lime API.
 Remove opens inline confirmation with explicit choices to keep or delete plugin
@@ -107,13 +91,11 @@ themed, keyboard-operable overflow. [Mantine UI tables](https://ui.mantine.dev/c
 [Mantine Menu](https://mantine.dev/core/menu/#accessibility).
 
 The composed test fixture mounts the controller with Settings, Workspace and
-the shared Mantine role for package lifecycle, dependency selection, built-in
-composition and theme coverage. Application-host development attachment remains
+the shared Mantine role for package lifecycle, dependency selection, safe mode,
+third-party-only listing and theme coverage. Application-host development attachment remains
 pending.
 
 Native visual acceptance remains pending. In real Settings on a narrow and
-short window, check both tabs, long Russian labels, light and dark themes, menu
+short window, check long Russian labels, light and dark themes, menu
 positioning and keyboard focus when opening Details or cancelling removal.
-Check the native file picker and its cancellation, safe-mode status and recovery,
-and staged built-in changes through Apply composition, Discard changes and
-Restore defaults.
+Check the native file picker and its cancellation, safe-mode switch and recovery.

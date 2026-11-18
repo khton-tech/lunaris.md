@@ -72,7 +72,8 @@ of disabled built-ins. An installed provider must already be active. Built-in
 consumers resolve host defaults unless the owner chooses an explicit override.
 
 Lime persists the profile per Vault and applies it after installed packages
-start. Settings submits a complete profile, so the owner can redirect multiple
+start. A management plugin can submit a complete profile through
+`Lime.applyComposition(profile, expectedRevision)` to redirect multiple
 consumers and disable their original provider in the same operation. The kernel
 preflights the dependencies, then restarts only the affected graph. A failed
 activation restores the prior profile and active consumers. Vault save guards

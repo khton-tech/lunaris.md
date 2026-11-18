@@ -274,13 +274,11 @@ pointer mapping/focus and narrow/short visuals remain manual acceptance.
 ## Lime Settings role
 
 `lunaris.lime-settings` embeds plugin management in the Settings page using
-shared Mantine controls and existing Settings row styles. Mantine Tabs separate
-third-party and built-in rows when composition is available. Search filters the
-selected list. The overview shows safe mode, Add plugin and the installed count
-above both lists. Mantine Menu handles third-party row actions, while
-built-in rows keep Details directly accessible. The optional `vaultId` prop
-scopes local view state to the active Vault.
-Search and the overview actions share a 36 px height with a 44 px target in
+shared Mantine controls and existing Settings row styles. Search filters the
+third-party list. The overview shows a safe-mode switch, Add plugin and the
+installed count. Mantine Menu handles package row actions. The optional
+`vaultId` prop scopes local view state to the active Vault.
+Search and Add plugin share a 36 px height with a 44 px target in
 narrow layouts and with coarse pointers.
 Required props: localized labels, rows of inert metadata plus enabled/recovery/
 removing/state, nullable preview metadata with warning/action, busy/available/
@@ -290,7 +288,6 @@ there is no HTML injection or native/engine access. Metadata and descriptions wr
 The list uses `search`, `noMatches`, `pluginActions` and `retryRemoval`.
 The overview and manager use `manage`, `safeModeTitle`, `safeModeHint`,
 `paused`, `localPackages`, `localPackagesHint` and `installed`.
-Composition also uses `thirdParty`, `builtIn` and `noBuiltins`.
 The containing Settings page owns its surface/geometry; the role paints no card.
 Package preview opens a themed Mantine modal with Overview and Dependencies tabs.
 The role mounts dialogs and menus in the overlay target lent by Settings, above
@@ -341,7 +338,9 @@ when contributed actions exceed its available width, matching the bottom toolbar
 SidebarRail adapts its own padding to an allocated width of 60px or less so Luna
 padding cannot squeeze compact navigation controls. Settings wraps long category
 titles and scrolls them with the page inside the Settings window. The dialog
-caption and its navigation controls sit outside the page scroll region.
+caption and its navigation controls sit outside the page scroll region. The
+category title and icon use the base UI font size. Compact windows present the
+registered category icon with the title in the dialog caption.
 
 File Explorer uses a minimum 44px virtual row height for coarse pointers, including
 draft rows, and recalculates on pointer-capability changes. Virtual geometry is

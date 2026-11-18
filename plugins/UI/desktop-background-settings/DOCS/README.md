@@ -9,7 +9,8 @@ The controller registers one declarative switch through Settings 1.2, following
 the existing inline preference rows used by Interface Settings. Workspace owns
 the surrounding geometry and surface. Settings owns navigation and group layout.
 The shared Mantine role renders the switch, associated text and any retry error.
-The controller owns localized labels, persistence and the platform preference.
+The controller owns localized labels, the Application category icon, persistence
+and the platform preference.
 
 The controller consumes Config, Settings, Localization, Logger and
 `DesktopBackground` from `@lunaris/window`. It observes `ConfigChanged` and

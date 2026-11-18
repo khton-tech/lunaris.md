@@ -25,10 +25,14 @@ test('the composed Mantine switch persists a global preference and relocalizes t
     await openSettings(application);
     const category = [...application.surface.querySelectorAll('.lm-settings-category')].find(button => button.textContent === 'Application');
     assert.ok(category);
+    assert.ok(category.querySelector('svg'));
     category.click();
     await flush();
     const control = application.surface.querySelector('input[aria-label="Run in background"]');
     assert.ok(control);
+    const heading = application.surface.querySelector('.lm-settings-page-header h1');
+    assert.equal(heading.textContent, 'Application');
+    assert.ok(heading.querySelector('svg'));
     assert.equal(control.checked, false);
     assert.equal(control.closest('.lm-root').style.backgroundColor, 'transparent');
     control.click();
@@ -39,6 +43,8 @@ test('the composed Mantine switch persists a global preference and relocalizes t
     application.tools.localization.setLocale('ru');
     await flush();
     assert.equal(control.getAttribute('aria-label'), 'Работать в фоне');
+    assert.equal(heading.textContent, 'Приложение');
+    assert.ok(heading.querySelector('svg'));
     assert.deepEqual(changes.at(-1), { enabled: true, labels: { open: 'Открыть Lunaris', quit: 'Выйти' } });
   } finally { await application.stop(); }
 

@@ -73,7 +73,10 @@ export function SettingsWindow({ props, theme }: { props: Props; theme: ReturnTy
       <Modal.Header>
         {props.compact && selected && <ActionIcon ref={back} size={32} variant="subtle" className="lm-settings-window-action lm-focus"
           aria-label={props.backLabel} title={props.backLabel} onClick={props.onBack}><Icon name="back" /></ActionIcon>}
-        <Modal.Title>{props.compact && selected ? selected.title : props.title}</Modal.Title>
+        <Modal.Title>
+          {props.compact && selected?.icon && <Icon name={selected.icon} />}
+          <span>{props.compact && selected ? selected.title : props.title}</span>
+        </Modal.Title>
         <ActionIcon ref={close} size={32} variant="subtle" className="lm-settings-window-action lm-focus"
           aria-label={props.closeLabel} title={props.closeLabel} onClick={props.onClose} data-autofocus><Icon name="window-close" /></ActionIcon>
       </Modal.Header>

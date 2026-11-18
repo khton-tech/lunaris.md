@@ -182,11 +182,11 @@ manifest declares. Earlier builds may share the same base SDK version while
 lacking individual contracts or their providers. Review the dependency plan in
 the package preview before installing.
 
-In the Built-in tab of Settings → Plugins, open Details for the consumer and
-choose the replacement provider under Dependencies. Stage any related built-in
-switches and choose Apply composition once. The profile belongs
-to the current Vault. An invalid or unsuccessful activation leaves the previous
-composition in place when rollback succeeds. Restore defaults clears the profile.
+Manage built-in consumers through the [Lime composition API](../reference/lime-runtime.md#vault-composition).
+Read the current profile and revision with `Lime.composition()`. Submit provider
+bindings and related disabled built-ins in one `Lime.applyComposition()` call.
+The profile belongs to the current Vault. An empty profile restores default
+bindings and enables built-ins.
 
 Use Install disabled when the package needs an explicit upstream provider before
 activation. Set that dependency in its installed package Details and then enable

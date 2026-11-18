@@ -212,6 +212,7 @@ test('mobile Settings opens full screen from the dock and navigates between the 
     };
     s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, width, 720);
     const view = panel(s, 'test.controls'); register(s); section(s); await s.open();
+    s.tools.settings.updateCategory('test.category', { title: 'Example', icon: 'palette' });
     assert.ok(!s.surface.querySelector('.lm-sidebar-rail button[aria-label="Settings"]'));
     const launcher = s.surface.querySelector('.lm-workspace-mobile-toolbar button[aria-label="Settings"]');
     assert.ok(launcher); launcher.focus(); launcher.click(); await flush();
@@ -221,7 +222,9 @@ test('mobile Settings opens full screen from the dock and navigates between the 
     const navigation = entry.closest('.lm-settings-navigation'); navigation.scrollTop = 40;
     entry.click(); await flush();
     assert.equal(entry.closest('[hidden]')?.className, 'lm-settings-window-navigation');
-    assert.equal(dialog(s).querySelector('.lm-settings-dialog-title').textContent, 'Example');
+    const title = dialog(s).querySelector('.lm-settings-dialog-title');
+    assert.equal(title.textContent, 'Example');
+    assert.ok(title.querySelector('svg'));
     const viewNode = dialog(s).querySelector('[data-settings-section] article'); assert.ok(viewNode);
     width = 1200; resize(); await flush();
     assert.equal(dialog(s).hasAttribute('data-full-screen'), false);

@@ -505,7 +505,8 @@
   border-bottom:var(--vault-border) solid var(--vault-separator);background:var(--vault-panel);color:inherit;
   border-radius:inherit;border-end-start-radius:0;border-end-end-radius:0;user-select:none
 }
-.lm-root .lm-settings-dialog-title { flex:1;min-width:0;overflow-wrap:anywhere;font-weight:650 }
+.lm-root .lm-settings-dialog-title { display:flex;align-items:center;gap:var(--vault-space);flex:1;min-width:0;overflow-wrap:anywhere;font-weight:650 }
+.lm-settings-dialog-title > svg { flex:none }
 .lm-root .lm-settings-window-action { flex:none;color:inherit;--ai-hover:var(--vault-hover);--ai-hover-color:var(--vault-text) }
 .lm-root .lm-settings-dialog-body { display:flex;flex:1;min-height:0;min-width:0;padding:0 }
 .lm-settings-window-navigation { display:flex;flex:0 0 clamp(10rem,27%,15rem);min-width:0;min-height:0;background:var(--vault-panel);border-inline-end:var(--vault-border) solid var(--vault-separator);border-end-start-radius:var(--vault-radius) }
@@ -531,7 +532,7 @@
   box-sizing:border-box; width:100%;max-width:var(--settings-column-width);margin-inline:auto
 }
 .lm-settings-page-header { margin-block-end:12px }
-.lm-settings-page-header h1 { font-size:2em;line-height:1.25;font-weight:600 }
+.lm-settings-page-header h1 { font-size:1em;line-height:1.5;font-weight:650 }
 .lm-settings-group {
   padding:var(--settings-group-inset);margin-block-end:calc(var(--vault-space)*4);
   background:color-mix(in srgb,var(--vault-panel) 55%,var(--vault-content));border-radius:var(--vault-radius)
@@ -546,8 +547,6 @@
   border:var(--vault-border) solid var(--vault-separator);border-radius:var(--vault-radius)
 }
 .lm-lime-settings { min-width:0;width:100%;padding-block:calc(var(--vault-space)*3);--lime-divider:color-mix(in srgb,var(--vault-control-border) 20%,transparent) }
-.lm-lime-category-bar { min-width:0;margin-block-end:calc(var(--vault-space)*3) }
-.lm-lime-category-bar .mantine-Tabs-tab { min-height:max(34px,var(--lime-touch-size,0px));max-width:100%;padding:var(--vault-space) calc(var(--vault-space)*3);white-space:normal;overflow-wrap:anywhere }
 .lm-lime-settings { --lime-control-height:max(36px,var(--lime-touch-size,0px)) }
 .lm-lime-overview-row { padding-block:calc(var(--vault-space)*3);border-block-end:var(--vault-border) solid var(--lime-divider) }
 .lm-lime-overview-row:first-child { padding-block-start:0 }
@@ -574,7 +573,7 @@
 @media (pointer:coarse),(max-width:640px) { .lm-lime-settings { --lime-touch-size:44px } }
 .lm-lime-settings :is(.lm-action-button,.lm-lime-icon,.mantine-Switch-body) { min-height:var(--lime-touch-size,0px) }
 .lm-lime-settings :is(.lm-lime-icon,.mantine-Switch-body) { min-width:var(--lime-touch-size,0px) }
-.lm-lime-row-actions .mantine-Switch-body { align-items:center;justify-content:center }
+.lm-lime-settings .mantine-Switch-body { align-items:center;justify-content:center }
 .lm-lime-metadata,.lm-lime-metadata dd,.lm-lime-dependency-list { margin:0 }
 .lm-lime-metadata-row {
   display:grid; grid-template-columns:minmax(0, 8rem) minmax(0, 1fr);
@@ -990,8 +989,6 @@
 .lm-settings-page-header h1 > svg { flex:none }
 .lm-settings-page-header h1 > span { min-width:0 }
 .lm-root .lm-settings-page[data-compact=true] .lm-settings-open-sidebar { display:var(--workspace-header-navigation-display,inline-flex);min-width:44px;min-height:44px }
-.lm-root .lm-settings-page[data-compact=true] .lm-settings-page-header h1,
-.lm-root[data-window-chrome=true]>.lm-settings-page[data-compact=true]>.lm-settings-page-header h1 { font-size:1.25em;line-height:1.4 }
 .lm-root .lm-settings-items[data-compact=true] :is(.lm-setting-input,.lm-setting-slider-control),
 .lm-dropdown-overlay[data-compact=true] .lm-setting-option { min-height:44px }
 .lm-root .lm-settings-items[data-compact=true] .lm-setting-input { font-size:max(16px,var(--mantine-font-size-md)) }
@@ -1037,7 +1034,6 @@
  }
  .lm-root :is(.lm-sidebar-tab,.lm-settings-open-sidebar,.lm-explorer-actions .mantine-ActionIcon-root,.lm-account-icon)>svg { width:22px;height:22px;flex-shrink:0 }
  .lm-root :is(.lm-tool-navigation-item,.lm-explorer-tabs,.lm-setting-option,.lm-context-menu) svg { width:20px;height:20px;flex-shrink:0 }
- .lm-root .lm-settings-page-header h1,.lm-root[data-window-chrome=true]>.lm-settings-page>.lm-settings-page-header h1 { font-size:1.25em;line-height:1.4 }
  .lm-explorer .lm-explorer-extension { font-size:max(12px,var(--vault-secondary-font-size)) }
  .lm-root .lm-mobile-menu-items[data-density=compact] .lm-sidebar-tab { width:44px;height:44px;min-width:44px;min-height:44px }
  .lm-root .lm-settings-open-sidebar,.lm-root .lm-explorer-actions .mantine-ActionIcon-root,.lm-root .lm-account-icon { min-width:44px;min-height:44px }

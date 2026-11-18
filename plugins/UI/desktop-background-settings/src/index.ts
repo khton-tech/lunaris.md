@@ -8,6 +8,7 @@ import { DesktopBackground } from "@lunaris/window";
 import manifest from "../manifest.json" with { type: "json" };
 
 const key = "runInBackground";
+const categoryIcon = "settings";
 const globalTarget = { scope: "global" } as const;
 const catalogs = {
   en: {
@@ -52,7 +53,7 @@ export default definePlugin({ manifest, async activate(ctx) {
 
   function publish(): void {
     if (ctx.signal.aborted) return;
-    ensure(settings.updateCategory(categoryId, { title: text("category") }));
+    ensure(settings.updateCategory(categoryId, { title: text("category"), icon: categoryIcon }));
     ensure(settings.updateGroup(groupId, { title: text("group") }));
     ensure(settings.updateItem(itemId, item()));
   }
@@ -126,7 +127,7 @@ export default definePlugin({ manifest, async activate(ctx) {
   }
 
   ensure(language.register(ctx.pluginId, catalogs, ctx.signal));
-  ensure(settings.registerCategory({ id: categoryId, title: text("category"), order: 5 }, ctx.signal));
+  ensure(settings.registerCategory({ id: categoryId, title: text("category"), icon: categoryIcon, order: 5 }, ctx.signal));
   ensure(settings.registerGroup({ id: groupId, categoryId, title: text("group") }, ctx.signal));
   ensure(settings.registerItem({ id: itemId, groupId, ...item() }, ctx.signal));
   ctx.events.on(ConfigChanged, change => {
