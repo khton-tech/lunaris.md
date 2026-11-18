@@ -75,6 +75,15 @@ async function documentScene(s, showDrawer) {
   if (!document.querySelector('.cm-content') || !document.querySelector('[role=treeitem][aria-level="4"]')) {
     throw new Error('The sample document or its expanded Files path did not mount.');
   }
+  if (!showDrawer) {
+    await document.fonts.ready;
+    const field = document.querySelector('.lm-editor-title textarea');
+    const line = parseFloat(getComputedStyle(field).lineHeight);
+    if (field.value !== title || field.scrollHeight > field.clientHeight + 1 || field.clientHeight < line * 1.5) {
+      throw new Error(`Document title clipped: height=${field.clientHeight}, content=${field.scrollHeight}, line=${line}.`);
+    }
+    document.documentElement.dataset.titleBounds = `${innerWidth}px: ${field.clientHeight}/${field.scrollHeight}px, line ${line}px`;
+  }
   if (showDrawer || innerWidth > 760) {
     const row = document.querySelector('.lm-explorer-node[data-active]');
     const name = row.querySelector('.lm-explorer-filename').getBoundingClientRect();
@@ -173,6 +182,7 @@ try {
     define: { 'process.env.NODE_ENV': '"production"' }, loader: { '.txt': 'text' },
     external: ['jsdom', './browser.mjs'],
   });
+  const titleBounds = [];
   for (const [view, slug, width, height] of scenes) {
     const name = `${view}-${slug}-${width}x${height}`;
     const page = path.join(temp, name + '.html');
@@ -185,6 +195,8 @@ try {
       `--window-size=${width},${height}`, `--screenshot=${png}`, '--dump-dom', pathToFileURL(page).href,
     ], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024, timeout: 30000, windowsHide: true });
     const stateMarker = result.stdout?.match(/<html[^>]*data-sample="([^"]+)"/)?.[1];
+    const bounds = result.stdout?.match(/<html[^>]*data-title-bounds="([^"]+)"/)?.[1];
+    if (bounds) titleBounds.push(bounds);
     if (result.error || result.status !== 0 || stateMarker !== 'ready') {
       throw new Error(`${name}: ${result.error?.message ?? stateMarker ?? result.stderr?.slice(-400) ?? 'Renderer unavailable'}`);
     }
@@ -192,7 +204,7 @@ try {
     if (image.readUInt32BE(16) !== width || image.readUInt32BE(20) !== height) throw new Error('Unexpected image size for ' + name);
   }
   const menus = scenes.filter(([view]) => view === 'menu').length;
-  console.log(`Rendered ${scenes.length} UI samples. Verified viewport and selected-option bounds in ${menus} menus. Output: ${output}.`);
+  console.log(`Rendered ${scenes.length} UI samples. Verified ${menus} menu viewports. Title client/scroll heights (${titleBounds.join(' / ')}). Output: ${output}.`);
 } finally {
   await rm(temp, { recursive: true, force: true });
 }
