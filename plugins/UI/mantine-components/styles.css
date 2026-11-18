@@ -113,6 +113,9 @@
 .lm-workspace-recent .mantine-Button-section { flex:none;align-self:flex-start }
 .lm-workspace-recent-file { display:grid;gap:calc(var(--vault-space)/2);min-inline-size:0;line-height:1.35 }
 .lm-workspace-recent-location { color:var(--vault-secondary);font-size:var(--vault-secondary-font-size);font-weight:400 }
+.lm-workspace-stage,.lm-workspace-background { display:flex;flex:1;min-width:0;min-height:0 }
+.lm-workspace-stage { position:relative }
+.lm-workspace-overlay { position:absolute;inset:0;z-index:250;display:flex;pointer-events:none }
 .lm-workspace-layout { --workspace-gap:calc(var(--vault-space)*2);--workspace-rail-width:calc(44px + var(--workspace-gap)*2 + var(--vault-space));display:grid;grid-template-columns:0 minmax(0,1fr);position:relative;flex:1;min-height:0;overflow:hidden }
 .lm-workspace-layout[data-rail] { grid-template-columns:var(--workspace-rail-width) minmax(0,1fr) }
 .lm-workspace-content { grid-column:2;min-width:0;min-height:0;overflow:visible }
@@ -490,6 +493,31 @@
 .lm-dropdown .mantine-Menu-divider { border-color:var(--vault-separator) }
 .lm-setting-options { display:flex;flex-direction:column;min-height:0;max-height:min(18rem,50dvh);overflow:auto;overscroll-behavior:contain }
 .lm-setting-options > [role=option] { flex-shrink:0 }
+.lm-root .lm-settings-window-inner { position:absolute;inset:var(--workspace-overlay-top,0px) 0 auto;width:100%;height:var(--workspace-overlay-height,100%);padding:16px;overflow:visible }
+.lm-root .lm-settings-window-backdrop { position:absolute;pointer-events:auto }
+.lm-root .lm-settings-dialog {
+  display:flex;flex-direction:column;flex:0 1 58rem;height:min(42rem,100%);max-height:100%;min-width:0;
+  overflow:visible;pointer-events:auto;background:var(--vault-content);color:var(--vault-text);
+  border:var(--vault-border) solid var(--vault-separator);border-radius:var(--vault-radius);box-shadow:var(--vault-surface-shadow,none)
+}
+.lm-root .lm-settings-dialog-header {
+  position:static;flex:none;gap:var(--vault-space);padding:calc(var(--vault-space)*2) calc(var(--vault-space)*3);
+  border-bottom:var(--vault-border) solid var(--vault-separator);background:var(--vault-panel);color:inherit;
+  border-radius:inherit;border-end-start-radius:0;border-end-end-radius:0;user-select:none
+}
+.lm-root .lm-settings-dialog-title { flex:1;min-width:0;overflow-wrap:anywhere;font-weight:650 }
+.lm-root .lm-settings-window-action { flex:none;color:inherit;--ai-hover:var(--vault-hover);--ai-hover-color:var(--vault-text) }
+.lm-root .lm-settings-dialog-body { display:flex;flex:1;min-height:0;min-width:0;padding:0 }
+.lm-settings-window-navigation { display:flex;flex:0 0 clamp(10rem,27%,15rem);min-width:0;min-height:0;background:var(--vault-panel);border-inline-end:var(--vault-border) solid var(--vault-separator);border-end-start-radius:var(--vault-radius) }
+.lm-settings-window-navigation:only-child { flex:1;border:0;background:transparent }
+.lm-settings-window-navigation .lm-settings-navigation { padding-block:calc(var(--vault-space)*2);overscroll-behavior:contain }
+.lm-settings-window-page { display:flex;flex:1;min-width:0;min-height:0 }
+.lm-settings-window-page .lm-settings-page { overscroll-behavior:contain }
+.lm-settings-window[data-compact] .lm-settings-window-inner { padding:0 }
+.lm-settings-window[data-compact] .lm-settings-dialog { height:100%;flex-basis:100%;border:0;border-radius:0;box-shadow:none }
+.lm-settings-window[data-compact] .lm-settings-window-navigation { flex:1;border:0;background:transparent }
+.lm-settings-window[data-compact] .lm-settings-window-action { min-width:44px;min-height:44px }
+.lm-settings-window[data-compact] .lm-settings-category { min-height:44px }
 .lm-settings-page {
   --settings-divider:color-mix(in srgb,var(--vault-control-border) 20%,transparent);
   --settings-column-width:878px;

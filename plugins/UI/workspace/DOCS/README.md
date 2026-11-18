@@ -5,7 +5,7 @@ The plugin owns screen/content slots, component instances and empty-state placeh
 There is no top Vault-name header or close action. It does not own document state, files, tabs or content
 registration. Default export: `@lunaris/workspace-plugin`, ID `lunaris.workspace`.
 
-Provides no callable APIs or events. Requires Logger, Workspace/WorkspaceChanged,
+Provides no callable APIs or events. Requires Logger, Workspace 1.6/WorkspaceChanged,
 Vault/VaultChanged, Startup/StartupChanged, Slots, SlotDom,
 Components/ComponentsChanged, Config and Localization/LocaleChanged. The host grants
 `ui.dom`, `config.access` and `vault.access`. All access uses `ctx.use` and SDK events.
@@ -28,6 +28,12 @@ role lends stable targets through its public callback contract; SDK-owned scopes
 release content before using new targets after replacement. Narrow panels overlay
 main within that layout. Workspace contains no Sidebar imports or tab state. Renderer replacement,
 consumer removal, locale changes and external Vault transitions update the screen.
+
+The exclusive overlay target sits above both default and custom layouts. The
+layout marks its background inert after a successful overlay mount and restores
+the initiating control on dismissal. The modal role owns its controls and surface.
+Workspace supplies the same Vault and compact context and tracks the available
+height above the virtual keyboard.
 
 A contribution can register Workspace content during its own mount. Workspace
 finishes mounting the current view before processing the resulting update, so

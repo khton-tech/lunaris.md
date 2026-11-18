@@ -93,6 +93,15 @@ cannot leave its content attached.
 
 ## Rendering and ownership
 
+Workspace 1.6 adds the exclusive `overlay` region, above both standard and custom
+compositions. Register a component in this region for the lifetime of its modal
+surface. Workspace supplies the same frozen Vault and compact context as other
+regions and makes its underlying content inert once the overlay component mounts.
+After release it restores focus to the initiating control when available, with
+the main area as fallback. The overlay component owns its dialog, backdrop,
+interactive pointer surface and dismissal behavior. Custom layout descriptions leave placement of `overlay` to
+the Workspace layout role.
+
 Each role receives its registered props plus a reserved, frozen context:
 
 ```ts

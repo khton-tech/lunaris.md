@@ -66,6 +66,7 @@ export default definePlugin({ manifest, async activate(ctx) {
   let rendering = false;
   let refreshPending = false;
   let compact = false;
+  let overlayVisible = false;
   let context: WorkspaceContext | undefined;
   let layoutContext: WorkspaceLayoutContext | undefined;
   let customLayout: WorkspaceLayoutNode | undefined;
@@ -86,7 +87,7 @@ export default definePlugin({ manifest, async activate(ctx) {
     release(screen);
     screen = undefined; screenVaultId = undefined;
     views.clear(); empty = undefined; sideEmpty = undefined; layout = undefined; regions = undefined; contentSignatures.clear();
-    layoutContext = undefined; customLayout = undefined; layoutSignature = undefined; layoutStale = true; compact = false;
+    layoutContext = undefined; customLayout = undefined; layoutSignature = undefined; layoutStale = true; compact = false; overlayVisible = false;
   }
   ctx.scope.own({ dispose() {
     releaseScreen();
@@ -161,8 +162,10 @@ export default definePlugin({ manifest, async activate(ctx) {
     layout ??= createView("lunaris.workspace-layout", 0, 1);
     const entries = workspace.list();
     const available = entries.filter(entry => components.has(entry.componentId));
+    const rail = available.find(entry => entry.region === "left-rail");
     const headerNavigation = available.some(entry => (entry.region ?? "main") === "main" && entry.props?.mobileNavigationInHeader === true);
-    if (!show(layout, { composition: customLayout, railVisible: available.some(entry => entry.region === "left-rail"), panelVisible: available.some(entry => entry.region === "left-panel"),
+    if (!show(layout, { composition: customLayout, railVisible: !!rail, mobileSidebarAvailable: rail?.props?.mobileSidebarAvailable !== false,
+      panelVisible: available.some(entry => entry.region === "left-panel"), overlayVisible,
       mobileOpen: navigation.isOpen(), onMobileOpen, mobileLauncherVisible: !headerNavigation && available.some(entry => entry.region === "mobile-launcher"), mobileMenuVisible: available.some(entry => entry.region === "mobile-menu"), bottomVisible: available.some(entry => entry.region === "bottom"), presentation: standalone, mainLabel: text("main"), panelLabel: text("panel"), panelWidth, resizeLabel: text("resizePanel"), onPanelWidth, onTargets, onDismiss })) {
       releaseContent(); release(layout.owner); layout = undefined; regions = undefined; return;
     }
@@ -192,6 +195,8 @@ export default definePlugin({ manifest, async activate(ctx) {
       if (show(view, { ...content.props, workspace: context, presentation: !customLayout && ["bottom", "mobile-menu", "mobile-launcher"].includes(region) ? intrinsic : embedded }, view.content !== content)) { view.content = content; if (region === "main") visible++; if (region === "left-panel") sideVisible = true; }
       else { release(view.owner); views.delete(content.id); }
     }
+    const overlayMounted = [...views.values()].some(view => view.region === "overlay" && view.mounted);
+    if (overlayVisible !== overlayMounted) { overlayVisible = overlayMounted; refreshPending = true; }
     if (sideEmpty?.target !== regions["left-panel"]) { release(sideEmpty?.owner); sideEmpty = undefined; }
     if (sideVisible || !regions["left-panel"] || !available.some(entry => entry.region === "left-panel")) { release(sideEmpty?.owner); sideEmpty = undefined; }
     else {

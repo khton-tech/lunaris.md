@@ -13,6 +13,7 @@ import { textEditorProps, TextEditor } from "./text-editor.js";
 import { taskCheckboxProps, TaskCheckbox } from "./task-checkbox.js";
 import { settingsChoicesProps, SettingsChoices, settingsNavigationProps, settingsPageProps, SettingsNavigation, SettingsPage } from "./settings.js";
 import { settingsItemsProps, SettingsItems } from "./settings-items.js";
+import { settingsWindowProps, SettingsWindow } from "./settings-window.js";
 import { readPresentation } from "./presentation.js";
 import { activeScreenProps, ActiveScreenView } from "./active-screen.js";
 import { createElement } from "react";
@@ -56,9 +57,9 @@ export default definePlugin({ manifest, activate(ctx) {
     notifiedTheme = selected;
     for (const instance of instances) instance.applyTheme();
   });
-  for (const id of ["lunaris.backlinks", "lunaris.declarative-view", "lunaris.lime-settings", "lunaris.mobile-menu", "lunaris.callout-header", "lunaris.status-bar", "lunaris.client-update", "lunaris.account-access", "lunaris.window-titlebar", "lunaris.task-checkbox", "lunaris.text-editor", "lunaris.settings-items", "lunaris.settings-choices", "lunaris.settings-navigation", "lunaris.settings-page", "lunaris.active-screen", "lunaris.startup-screen", "lunaris.vault-selector", "lunaris.workspace-header", "lunaris.workspace-empty", "lunaris.workspace-layout", "lunaris.sidebar-rail", "lunaris.file-explorer", "lunaris.context-menu", NotificationRole] as const) {
+  for (const id of ["lunaris.backlinks", "lunaris.declarative-view", "lunaris.lime-settings", "lunaris.mobile-menu", "lunaris.callout-header", "lunaris.status-bar", "lunaris.client-update", "lunaris.account-access", "lunaris.window-titlebar", "lunaris.task-checkbox", "lunaris.text-editor", "lunaris.settings-items", "lunaris.settings-choices", "lunaris.settings-navigation", "lunaris.settings-page", "lunaris.settings-window", "lunaris.active-screen", "lunaris.startup-screen", "lunaris.vault-selector", "lunaris.workspace-header", "lunaris.workspace-empty", "lunaris.workspace-layout", "lunaris.sidebar-rail", "lunaris.file-explorer", "lunaris.context-menu", NotificationRole] as const) {
     const validate = { "lunaris.backlinks": backlinksProps, "lunaris.mobile-menu": mobileMenuProps, "lunaris.callout-header": calloutHeaderProps, "lunaris.status-bar": statusBarProps, "lunaris.client-update": noticeProps, "lunaris.account-access": accountAccessProps, "lunaris.window-titlebar": windowTitlebarProps, "lunaris.task-checkbox": taskCheckboxProps, "lunaris.text-editor": textEditorProps, "lunaris.settings-items": settingsItemsProps, "lunaris.settings-choices": settingsChoicesProps, "lunaris.settings-navigation": settingsNavigationProps, "lunaris.settings-page": settingsPageProps, "lunaris.active-screen": activeScreenProps, "lunaris.startup-screen": startupProps, "lunaris.vault-selector": selectorProps,
-      "lunaris.declarative-view": declarativeViewProps, "lunaris.lime-settings": limeSettingsProps, "lunaris.workspace-header": workspaceHeaderProps, "lunaris.workspace-empty": workspaceEmptyProps,
+      "lunaris.declarative-view": declarativeViewProps, "lunaris.lime-settings": limeSettingsProps, "lunaris.settings-window": settingsWindowProps, "lunaris.workspace-header": workspaceHeaderProps, "lunaris.workspace-empty": workspaceEmptyProps,
       "lunaris.workspace-layout": layoutProps, "lunaris.sidebar-rail": railProps, "lunaris.file-explorer": explorerProps, "lunaris.context-menu": contextMenuProps, [NotificationRole]: notificationProps }[id];
     const registration = components.register({ id, mount(target, initial, signal): ComponentInstance {
       let props = initial;
@@ -67,8 +68,6 @@ export default definePlugin({ manifest, activate(ctx) {
       const container = target.ownerDocument.createElement("div");
       container.id = `lunaris-mantine-${++nextId}`; container.className = "lm-root";
       let disposed = false; let failed = false; let renderError: unknown; let rendering = false;
-      const overlay = { id: container.id + "-overlay", target: target.ownerDocument.body };
-      const dropdownOverlay = { ...overlay, id: container.id + "-dropdowns", owner: container };
       const ownsDropdowns = ["lunaris.account-access", "lunaris.file-explorer", "lunaris.settings-items", "lunaris.settings-choices", "lunaris.backlinks", "lunaris.declarative-view", "lunaris.lime-settings"].includes(id);
       const root = createRoot(container, { onUncaughtError(error) {
         failed = true; renderError = error;
@@ -78,6 +77,11 @@ export default definePlugin({ manifest, activate(ctx) {
         if (disposed) return;
         failed = false;
         const theme = currentTheme();
+        const popupTarget = props.overlayTarget;
+        if (ownsDropdowns && popupTarget !== undefined && (!(popupTarget instanceof target.ownerDocument.defaultView!.HTMLElement) ||
+            popupTarget.ownerDocument !== target.ownerDocument)) throw new TypeError("Invalid component overlay target.");
+        const overlay = { id: container.id + "-overlay", target: ownsDropdowns && popupTarget ? popupTarget as HTMLElement : target.ownerDocument.body };
+        const dropdownOverlay = { ...overlay, id: container.id + "-dropdowns", owner: container };
         const presentation = readPresentation(id, props);
         const intrinsicHeight = presentation.sizing === "content";
         // Only this owned root is styled. Borrowed target geometry is untouched.
@@ -87,6 +91,7 @@ export default definePlugin({ manifest, activate(ctx) {
         container.dataset.windowChrome = String(theme.windowChrome);
         // The context-menu role owns its overlay geometry, independently of its target.
         if (id === "lunaris.context-menu") Object.assign(container.style, { containerType: "normal", position: "fixed", inset: "0", pointerEvents: "none" });
+        if (id === "lunaris.settings-window") container.style.containerType = "normal";
         if (id === "lunaris.mobile-menu") Object.assign(container.style, { containerType: "normal", flex: "1 0 auto" });
         if (id === "lunaris.status-bar") Object.assign(container.style, { flex: "1 1 auto", containerType: "normal" });
         if (id === "lunaris.callout-header") Object.assign(container.style, { display: "inline-flex", containerType: "normal", maxWidth: "100%", verticalAlign: "middle" });
@@ -95,6 +100,7 @@ export default definePlugin({ manifest, activate(ctx) {
         const view = id === "lunaris.backlinks" ? createElement(BacklinksView, { props: backlinksProps(props), theme }) : id === "lunaris.declarative-view" ? createElement(DeclarativeView, { props: declarativeViewProps(props), theme }) : id === "lunaris.lime-settings" ? createElement(LimeSettings, { props: limeSettingsProps(props), theme, overlay }) : id === "lunaris.mobile-menu" ? createElement(MobileMenuView, { props: mobileMenuProps(props), theme, overlay, target }) : id === "lunaris.callout-header" ? createElement(CalloutHeader, { props: calloutHeaderProps(props), theme }) : id === "lunaris.status-bar" ? createElement(StatusBar, { props: statusBarProps(props), theme }) : id === "lunaris.client-update" ? createElement(ClientUpdateNotice, { props: noticeProps(props), theme }) : id === "lunaris.account-access" ? createElement(AccountAccessView, { props: accountAccessProps(props), theme }) : id === "lunaris.window-titlebar" ? createElement(WindowTitlebar, { props: windowTitlebarProps(props), theme }) : id === "lunaris.text-editor" ? createElement(TextEditor, { props: textEditorProps(props), theme }) : id === "lunaris.settings-items" ? createElement(SettingsItems, { props: settingsItemsProps(props), theme }) : id === "lunaris.settings-choices" ? createElement(SettingsChoices, { props: settingsChoicesProps(props), theme }) : id === "lunaris.settings-navigation" ? createElement(SettingsNavigation, { props: settingsNavigationProps(props), theme }) : id === "lunaris.settings-page" ? createElement(SettingsPage, { props: settingsPageProps(props), theme }) : id === "lunaris.active-screen" ? createElement(ActiveScreenView, { props: activeScreenProps(props), theme }) : id === "lunaris.startup-screen"
           ? createElement(StartupScreen, { props: startupProps(props), theme })
           : id === "lunaris.task-checkbox" ? createElement(TaskCheckbox, { props: taskCheckboxProps(props), theme })
+          : id === "lunaris.settings-window" ? createElement(SettingsWindow, { props: settingsWindowProps(props), theme })
           : id === "lunaris.vault-selector" ? createElement(VaultSelector, { props: selectorProps(props), theme })
           : id === "lunaris.workspace-header" ? createElement(WorkspaceHeader, { props: workspaceHeaderProps(props), theme })
           : id === "lunaris.workspace-empty" ? createElement(WorkspaceEmpty, { props: workspaceEmptyProps(props), theme })

@@ -26,6 +26,22 @@ async function setup() {
 }
 const tab = (id, extra = {}) => ({ id, componentId: 'test.content', title: id, icon: 'files', ...extra });
 
+test('owned rail actions publish updates independently of selected tabs and invalidate replaced callbacks', async () => {
+  const s = await setup(); const owner = s.ctx.scope.child(); let invoked = 0;
+  s.api.register(tab('test.files'), s.ctx.signal);
+  const action = { id: 'test.action', title: 'Settings', icon: 'settings', onPress: () => { invoked++; } };
+  assert.equal(s.api.registerAction(action, owner.signal).ok, true);
+  assert.equal(s.api.register(tab(action.id), s.ctx.signal).error.code, 'ALREADY_REGISTERED');
+  assert.equal(s.api.select(action.id).error.code, 'NOT_FOUND');
+  const old = s.api.snapshot().actions[0]; old.onPress();
+  s.api.updateAction({ ...action, title: 'Preferences' }); old.onPress();
+  const updated = s.api.snapshot().actions[0]; updated.onPress();
+  assert.equal(s.api.snapshot().activeId, 'test.files');
+  await owner.dispose(); updated.onPress();
+  assert.equal(invoked, 2); assert.equal(s.api.snapshot().actions, undefined);
+  await s.stop();
+});
+
 test('bottom placement is independent of numeric order and survives presentation updates', async () => {
   const s = await setup();
   s.api.register(tab('test.settings', { placement: 'end', order: -100 }), s.ctx.signal);

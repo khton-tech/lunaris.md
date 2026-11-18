@@ -4,6 +4,7 @@ import { definePlugin } from "@lunaris/sdk";
 import type { ResourceScope } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
 import { Sidebar, SidebarChanged } from "@lunaris/sidebar";
+import type { SidebarAction } from "@lunaris/sidebar";
 import { Workspace, WorkspaceSidebar } from "@lunaris/workspace";
 import { Components, ComponentsChanged } from "@lunaris/components";
 import { Localization, LocaleChanged } from "@lunaris/localization";
@@ -21,6 +22,7 @@ export default definePlugin({ manifest, activate(ctx) {
   const mobileActions = new Set<string>();
   let rail: ResourceScope | undefined; let panel: ResourceScope | undefined; let panelKey = "";
   let railSignature = ""; let mobileSignature = ""; let panelInput: unknown;
+  let railActions: readonly SidebarAction[] = [];
   const text = (key: string) => localization.text(ctx.pluginId, key);
   const dismiss = () => { if (!ctx.signal.aborted) sidebar.select(null); };
   const onSelect = (id: string) => { if (!ctx.signal.aborted) { const current = sidebar.snapshot(); sidebar.select(current.activeId === id ? null : id); } };
@@ -43,20 +45,23 @@ export default definePlugin({ manifest, activate(ctx) {
       }
       if (successful) mobileSignature = nextMobileSignature;
     }
-    if (!snapshot.tabs.length || !components.has("lunaris.sidebar-rail")) {
+    const actions = snapshot.actions ?? [];
+    if ((!snapshot.tabs.length && !actions.length) || !components.has("lunaris.sidebar-rail")) {
       release(panel); panel = undefined; panelKey = ""; panelInput = undefined; release(rail); rail = undefined; railSignature = ""; return;
     }
-    const props = { label: text("label"), activeId: snapshot.activeId, tabs: snapshot.tabs.map(tab => ({ id: tab.id, title: tab.title, icon: tab.icon, placement: tab.placement ?? "start" })), onSelect };
+    const props = { label: text("label"), activeId: snapshot.activeId, tabs: snapshot.tabs.map(tab => ({ id: tab.id, title: tab.title, icon: tab.icon, placement: tab.placement ?? "start", order: tab.order })), actions, onSelect,
+      mobileSidebarAvailable: snapshot.tabs.length > 0 };
     const nextRailSignature = JSON.stringify([props.label, props.activeId, props.tabs]);
     if (!rail) {
       rail = ctx.scope.child();
       const result = workspace.register({ id: `${ctx.pluginId}.rail`, componentId: "lunaris.sidebar-rail", region: "left-rail", props }, rail.signal);
       if (!result.ok) { release(rail); rail = undefined; throw new Error("Cannot register sidebar rail.", { cause: result.error }); }
-    } else if (railSignature !== nextRailSignature) {
+    } else if (railSignature !== nextRailSignature || railActions.length !== actions.length || actions.some((action, index) => action !== railActions[index])) {
       const result = workspace.update(`${ctx.pluginId}.rail`, props);
       if (!result.ok) throw new Error("Cannot update sidebar rail.", { cause: result.error });
     }
     railSignature = nextRailSignature;
+    railActions = actions;
     const active = snapshot.tabs.find(tab => tab.id === snapshot.activeId);
     const available = active && components.has(active.componentId);
     const key = active ? `${active.id}:${available ? active.componentId : "unavailable"}` : "";

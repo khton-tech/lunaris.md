@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { definePlugin } from '@lunaris/sdk';
 import { DesktopBackground } from '@lunaris/window';
 import controller from '@lunaris/desktop-background-settings';
-import { setupWorkspace, flush } from '../../../../tools/test/workspace.mjs';
+import { setupWorkspace, openSettings, flush } from '../../../../tools/test/workspace.mjs';
 
 test('the composed Mantine switch persists a global preference and relocalizes the tray', async () => {
   const changes = [];
@@ -22,8 +22,7 @@ test('the composed Mantine switch persists a global preference and relocalizes t
     assert.equal(application.session.snapshot().phase, 'running');
     assert.equal(changes.at(-1).enabled, false);
     await application.open();
-    application.tools.sidebar.select('lunaris.settings.navigation');
-    await flush();
+    await openSettings(application);
     const category = [...application.surface.querySelectorAll('.lm-settings-category')].find(button => button.textContent === 'Application');
     assert.ok(category);
     category.click();

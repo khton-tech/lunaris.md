@@ -4,7 +4,7 @@ Purpose: own portable content registrations independently of UI, Vault lifecycle
 and platform rendering. Default export: `@lunaris/workspace-provider`, plugin ID
 `lunaris.workspace-provider`. Requires Logger only; no permissions or DOM access.
 
-Provides `api:lunaris.workspace@1.1.0`: `register(content, owner)`, `update(id, props)`
+Provides `api:lunaris.workspace@1.6.0`: `register(content, owner)`, `update(id, props)`
 and `list()`. Provides `event:lunaris.workspace-changed@1.0.0`: frozen
 `{ kind: "registered" | "updated" | "removed", id }`. Subscribes to no events.
 Descriptors declare an ID, component role, optional props/order, main/left-rail/left-panel
@@ -28,3 +28,5 @@ Run `npm run workspace:check` for ownership, event, restart, rendering and host 
 Workspace 1.5 accepts package-defined dotted region names. These regions accept
 ordered contributions and mount when the selected layout lends a matching
 target. See the [composition contract](../../../../DOCS/reference/workspace.md#replaceable-workspace-layout).
+Workspace 1.6 accepts the exclusive `overlay` region. An overlay is registered
+with an owner for its visible lifetime and removed on cancellation.

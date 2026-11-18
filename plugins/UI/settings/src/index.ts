@@ -1,89 +1,100 @@
-import { WorkspaceSidebar } from "@lunaris/workspace";
-import { russian } from "./locales/ru.js";
 import { definePlugin } from "@lunaris/sdk";
+import type { ResourceScope } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
 import { Settings, SettingsChanged } from "@lunaris/settings";
 import { Sidebar } from "@lunaris/sidebar";
-import { ActiveScreen } from "@lunaris/active-screen";
+import { MobileMenu } from "@lunaris/mobile-menu";
+import { Workspace } from "@lunaris/workspace";
 import { Components, ComponentsChanged } from "@lunaris/components";
-import type { ComponentProps, MountedComponent } from "@lunaris/components";
 import { Localization, LocaleChanged } from "@lunaris/localization";
 import { Vault, VaultChanged } from "@lunaris/vault";
-import { mountSettingsPage } from "./page.js";
 import { mountSettingsGroup } from "./group.js";
+import { mountSettingsWindow } from "./window.js";
+import { russian } from "./locales/ru.js";
 import manifest from "../manifest.json" with { type: "json" };
 
-const catalogs = { en: { openSidebar: "Open sidebar", settings: "Settings", empty: "No settings available", select: "Select a category",
-  emptyCategory: "No settings in this category", unavailable: "Section unavailable", unavailableDetail: "This settings section could not be displayed.", itemFailed: "Cannot update this setting. Try again." }, ru: russian };
+const catalogs = { en: {
+  settings: "Settings", close: "Close settings", back: "Back to categories", empty: "No settings available",
+  emptyCategory: "No settings in this category", unavailable: "Section unavailable",
+  unavailableDetail: "This settings section could not be displayed.", itemFailed: "Cannot update this setting. Try again.",
+}, ru: russian };
+
+function ensure(result: { ok: boolean; error?: unknown }, message: string): void {
+  if (!result.ok) throw new Error(message, { cause: result.error });
+}
 
 export default definePlugin({ manifest, activate(ctx) {
-  const navigation = ctx.optional(WorkspaceSidebar);
-  const logger = scopeLogger(ctx.use(Logger), ctx.signal); const registry = ctx.use(Settings); const sidebar = ctx.use(Sidebar);
-  const screens = ctx.use(ActiveScreen); const components = ctx.use(Components); const localization = ctx.use(Localization); const vaults = ctx.use(Vault);
-  const messages = localization.register(ctx.pluginId, catalogs, ctx.signal);
-  if (!messages.ok) throw new Error("Cannot register settings messages.", { cause: messages.error });
-  const tabId = `${ctx.pluginId}.navigation`; const screenId = `${ctx.pluginId}.screen`;
-  let categoryId: string | null = null; let vaultId = vaults.current()?.id ?? null;
-  const text = (key: string) => localization.text(ctx.pluginId, key);
-  const navigationProps = () => navigation ? { mobileNavigationInHeader: true, navigationLabel: text("openSidebar"), onNavigation: () => { if (ctx.signal.aborted) return; const result = sidebar.select(tabId); if (!result.ok) { logger.warn(ctx.pluginId, "Cannot select Settings navigation", { error: result.error }); return; } navigation.open(); logger.debug(ctx.pluginId, "Settings navigation opened"); } } : {};
-  const ensure = (result: { ok: boolean; error?: unknown }, message: string) => { if (!result.ok) throw new Error(message, { cause: result.error }); };
-  function choose(id: string, viewVaultId: string): void {
-    if (ctx.signal.aborted || vaults.current()?.id !== viewVaultId || !registry.snapshot().categories.some(item => item.id === id)) return;
-    categoryId = id; refresh();
-    const selected = screens.select(screenId);
-    if (!selected.ok) logger.error(ctx.pluginId, "Cannot open settings screen", { error: selected.error });
-    else { navigation?.close(); logger.info(ctx.pluginId, "Settings category opened", { data: { id } }); }
+  const logger = scopeLogger(ctx.use(Logger), ctx.signal);
+  const registry = ctx.use(Settings);
+  const sidebar = ctx.use(Sidebar);
+  const menu = ctx.optional(MobileMenu);
+  const workspace = ctx.use(Workspace);
+  const components = ctx.use(Components);
+  const localization = ctx.use(Localization);
+  const vaults = ctx.use(Vault);
+  const groupRole = "lunaris.settings-group-host";
+  const windowRole = "lunaris.settings-window-host";
+  const actionId = `${ctx.pluginId}.open`;
+  const windowId = `${ctx.pluginId}.window`;
+  let opened: { readonly owner: ResourceScope; readonly vaultId: string } | undefined;
+
+  ensure(localization.register(ctx.pluginId, catalogs, ctx.signal), "Cannot register settings messages.");
+  const text = (key: keyof typeof russian) => localization.text(ctx.pluginId, key);
+
+  function close(): void {
+    if (!opened) return;
+    const { owner } = opened;
+    opened = undefined;
+    void owner.dispose().catch(() => {});
+    if (!ctx.signal.aborted) logger.info(ctx.pluginId, "Settings closed");
   }
-  ensure(components.register({ id: "lunaris.settings-navigation-host", mount(target, initial, signal) {
-    const owner = ctx.scope.child(); let mounted: MountedComponent | undefined; let props = initial; let disposed = false;
-    const onSelect = (id: string) => {
-      if (disposed || signal.aborted || ctx.signal.aborted) return;
-      const context = props.workspace as { vaultId?: string } | undefined;
-      if (context?.vaultId) choose(id, context.vaultId);
-    };
-    function render(): void {
-      if (disposed || signal.aborted || ctx.signal.aborted) return;
-      const next = { ...props, onSelect, presentation: { mode: "embedded", sizing: "fill" } };
-      if (mounted) { const result = mounted.update(next); if (result.ok) return; mounted.dispose(); mounted = undefined; }
-      const result = components.mount("lunaris.settings-navigation", target, next, owner.signal);
-      if (!result.ok) throw new Error("Cannot mount settings navigation.", { cause: result.error });
-      mounted = result.value;
+  function open(): void {
+    if (ctx.signal.aborted || opened) return;
+    const vault = vaults.current();
+    if (!vault) return;
+    if (!components.has("lunaris.settings-window") || !components.has("lunaris.settings-page")) {
+      logger.warn(ctx.pluginId, "Settings presentation is unavailable");
+      return;
     }
-    function dispose(): void { if (disposed) return; disposed = true; signal.removeEventListener("abort", dispose); void owner.dispose().catch(() => {}); }
-    signal.addEventListener("abort", dispose, { once: true });
-    try { render(); } catch (error) { dispose(); throw error; }
-    return { update(next: ComponentProps) { props = next; render(); }, dispose };
-  } }, ctx.signal), "Cannot register settings navigation host.");
-  ensure(components.register({ id: "lunaris.settings-host", mount: (target, props, signal) => mountSettingsPage(ctx, components, logger, target, props, signal) }, ctx.signal), "Cannot register settings screen host.");
-  ensure(components.register({ id: "lunaris.settings-group-host", mount: (target, props, signal) => mountSettingsGroup(ctx, registry, components, logger, target, props, signal) }, ctx.signal), "Cannot register settings group host.");
-  ensure(screens.register({ id: screenId, componentId: "lunaris.settings-host", props: { ...navigationProps(), tabTitle: text("settings"), title: text("settings"), emptyLabel: text("select"), sections: [] } }, ctx.signal), "Cannot register settings screen.");
-  ensure(sidebar.register({ id: tabId, title: text("settings"), icon: "settings", placement: "end", componentId: "lunaris.settings-navigation-host",
-    props: { title: text("settings"), emptyLabel: text("empty"), categories: [], selectedId: null } }, ctx.signal), "Cannot register settings tab.");
-  let refreshing = false; let pending = false;
-  function refresh(): void {
-    if (ctx.signal.aborted) return;
-    if (refreshing) { pending = true; return; }
-    refreshing = true;
-    try { do {
-      pending = false;
-      const currentId = vaults.current()?.id ?? null;
-      if (vaultId !== currentId) { vaultId = currentId; categoryId = null; }
-      const snapshot = registry.snapshot(); const category = snapshot.categories.find(item => item.id === categoryId);
-      if (!category) categoryId = null;
-      ensure(sidebar.update(tabId, { title: text("settings"), icon: "settings", props: {
-        title: text("settings"), emptyLabel: text("empty"), categories: snapshot.categories.map(item => ({ id: item.id, title: item.title, icon: item.icon })), selectedId: categoryId,
-      } }), "Cannot update settings navigation.");
-      ensure(screens.update(screenId, { ...navigationProps(), tabTitle: text("settings"), categoryId, title: category?.title ?? text("settings"), icon: category?.icon, emptyLabel: text(category ? "emptyCategory" : "select"),
-        sections: category ? [...snapshot.sections.filter(item => item.categoryId === category.id),
-          ...snapshot.groups.filter(group => group.categoryId === category.id).map(group => ({ id: group.id, title: group.title, description: group.description, order: group.order,
-            componentId: "lunaris.settings-group-host", props: { groupId: group.id, items: snapshot.items.filter(item => item.groupId === group.id), failureLabel: text("itemFailed") } }))]
-          .sort((a, b) => (a.order ?? 0) - (b.order ?? 0)) : [], unavailable: text("unavailable"), unavailableDetail: text("unavailableDetail"),
-      }), "Cannot update settings screen.");
-    } while (pending && !ctx.signal.aborted); }
-    catch (error) { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot refresh settings", { error }); throw error; }
-    finally { refreshing = false; }
+    const owner = ctx.scope.child();
+    opened = { owner, vaultId: vault.id };
+    const result = workspace.register({ id: windowId, componentId: windowRole, region: "overlay" }, owner.signal);
+    if (!result.ok) {
+      opened = undefined;
+      void owner.dispose().catch(() => {});
+      logger.warn(ctx.pluginId, "Cannot open settings", { error: result.error });
+      return;
+    }
+    logger.info(ctx.pluginId, "Settings opened");
   }
-  ctx.events.on(SettingsChanged, refresh); ctx.events.on(LocaleChanged, refresh); ctx.events.on(VaultChanged, refresh);
-  ctx.events.on(ComponentsChanged, change => { if (!["lunaris.settings-host", "lunaris.settings-navigation-host", "lunaris.settings-group-host"].includes(change.componentId)) refresh(); });
-  refresh(); logger.info(ctx.pluginId, "Settings foundation ready");
+  function refresh(): void {
+    if (ctx.signal.aborted || !opened) return;
+    const result = workspace.update(windowId, {});
+    if (!result.ok) logger.error(ctx.pluginId, "Cannot refresh settings", { error: result.error });
+  }
+  const sidebarAction = () => ({ id: actionId, title: text("settings"), icon: "settings", placement: "end" as const, opensDialog: true, onPress: open });
+  const mobileAction = () => ({ id: actionId, label: text("settings"), icon: "settings", order: 60, onPress: open });
+
+  ensure(components.register({ id: groupRole, mount: (target, props, signal) => mountSettingsGroup(ctx, registry, components, logger, target, props, signal) }, ctx.signal), "Cannot register settings group host.");
+  ensure(components.register({ id: windowRole, mount: (target, props, signal) => {
+    const current = opened;
+    return mountSettingsWindow({ ctx, registry, components, logger, text, groupRole, target, props, signal,
+      isCurrent: vaultId => opened === current && current?.vaultId === vaultId && vaults.current()?.id === vaultId, close });
+  } }, ctx.signal), "Cannot register settings window host.");
+  ensure(sidebar.registerAction(sidebarAction(), ctx.signal), "Cannot register settings action.");
+  if (menu) ensure(menu.register(mobileAction(), ctx.signal), "Cannot register mobile settings action.");
+  else logger.warn(ctx.pluginId, "Mobile settings action is unavailable");
+
+  ctx.events.on(SettingsChanged, refresh);
+  ctx.events.on(LocaleChanged, () => {
+    ensure(sidebar.updateAction(sidebarAction()), "Cannot update settings action.");
+    if (menu) ensure(menu.update(mobileAction()), "Cannot update mobile settings action.");
+    refresh();
+  });
+  ctx.events.on(VaultChanged, () => { if (opened && opened.vaultId !== vaults.current()?.id) close(); });
+  ctx.events.on(ComponentsChanged, change => {
+    if (change.kind === "removed" && ["lunaris.settings-window", "lunaris.settings-page"].includes(change.componentId)) close();
+    else if (![windowRole, groupRole].includes(change.componentId)) refresh();
+  });
+  logger.info(ctx.pluginId, "Settings UI ready");
 } });

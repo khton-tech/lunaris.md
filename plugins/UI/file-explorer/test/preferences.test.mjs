@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { definePlugin } from '@lunaris/sdk';
 import explorer from '@lunaris/file-explorer';
 import { createPreferences } from '../dist/src/preferences.js';
-import { setupWorkspace, flush } from '../../../../tools/test/workspace.mjs';
+import { setupWorkspace, openSettings, flush } from '../../../../tools/test/workspace.mjs';
 
 test('Files preferences compose with actual Settings navigation and themed menus', async () => {
   const contracts = new Set(['lunaris.logger', 'lunaris.config', 'lunaris.config-changed', 'lunaris.settings', 'lunaris.vault', 'lunaris.vault-changed', 'lunaris.localization', 'lunaris.locale-changed']);
@@ -11,7 +11,7 @@ test('Files preferences compose with actual Settings navigation and themed menus
     activate(ctx) { createPreferences(ctx, () => {}); } });
   const s = await setupWorkspace({ settings: true, plugins: [controller], entrypoints: [controller.manifest.id], grants: { [controller.manifest.id]: controller.manifest.permissions } });
   assert.equal(s.session.snapshot().phase, 'running', JSON.stringify(s.session.snapshot().incidents));
-  await s.open(); s.tools.sidebar.select('lunaris.settings.navigation'); await flush();
+  await s.open(); await openSettings(s);
   const category = [...s.surface.querySelectorAll('.lm-settings-category')].find(node => node.textContent === 'Files'); assert.ok(category); category.click(); await flush();
   const input = s.surface.querySelector('.lm-settings-items [role=combobox]'); assert.ok(input);
   const toggle = s.surface.querySelector('.lm-settings-items input[type=checkbox]'); assert.ok(toggle.checked);

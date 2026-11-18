@@ -3,8 +3,16 @@
 import { useBrowser } from './browser.mjs';
 import { JSDOM } from 'jsdom';
 import { setupWorkspace as mountWorkspace } from './workspace-surface.mjs';
+import { flush } from './workspace-surface.mjs';
 
 export { flush, panel } from './workspace-surface.mjs';
+
+export async function openSettings(workspace) {
+  if (!workspace.surface.querySelector('.lm-settings-dialog')) {
+    workspace.surface.querySelector('.lm-sidebar-rail button[aria-haspopup="dialog"]').click();
+    await flush();
+  }
+}
 
 export async function setupWorkspace(options = {}) {
   if (options.surface) return mountWorkspace(options);

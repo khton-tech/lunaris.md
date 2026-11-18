@@ -1,17 +1,19 @@
 # Sidebar controller
 
-Purpose: connect independently registered tool tabs to Workspace's left regions.
+Purpose: connect independently registered tool tabs and actions to Workspace's left regions.
 Default export: `@lunaris/sidebar-plugin`, ID `lunaris.sidebar`. This is a separate
 plugin; Workspace owns only geometry/mounting and contains no tab logic.
 
-Provides no API/events. Requires Logger, Sidebar/SidebarChanged,
+Provides no API/events. Requires Logger, Sidebar 1.2/SidebarChanged,
 Workspace@1.1, Components/ComponentsChanged, Localization/LocaleChanged and
 Vault/VaultChanged. The host grants `ui.dom` and `vault.access`.
 Opening or switching Vaults selects the first tab in visual order.
 
 The controller registers `lunaris.sidebar-rail` in `left-rail` and the active tool's
 component role in `left-panel`. Repeating an active icon selects null and collapses
-the panel. No tabs removes both contributions. Missing selected roles use a
+the panel. Desktop rail actions invoke their callbacks independently of tool
+selection. The rail stays available while tabs or actions are registered. The
+compact drawer serves tabs, and Settings uses the mobile dock. Missing selected roles use a
 localized unavailable placeholder; ComponentsChanged reacquires later roles.
 Tool-prop changes update only the selected panel. Rail props change with visible
 tab metadata or selection, and mobile open actions change with localized labels

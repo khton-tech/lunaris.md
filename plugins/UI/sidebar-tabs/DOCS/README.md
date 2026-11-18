@@ -4,9 +4,10 @@ Purpose: own portable sidebar tab registration, ordering and selection independe
 of UI, rendering or Vault state. Default export: `@lunaris/sidebar-provider`, ID
 `lunaris.sidebar-provider`. Requires Logger only, with no permissions.
 
-Provides `api:lunaris.sidebar@1.0.0`: `register(tab, owner)`,
-`update(id, { title, icon, props? })`, `select(id | null)` and `snapshot()`.
-Provides `event:lunaris.sidebar-changed@1.0.0` with a frozen `{ tabs, activeId }`
+Provides `api:lunaris.sidebar@1.2.0`: `register(tab, owner)`,
+`update(id, { title, icon, props? })`, `select(id | null)`, `snapshot()`,
+`registerAction(action, owner)` and `updateAction(action)`.
+Provides `event:lunaris.sidebar-changed@1.0.0` with a frozen `{ tabs, activeId, actions? }`
 snapshot. Subscribes to no events. Inputs are validated and shallow copied/frozen.
 
 First registration opens automatically. Further additions preserve selection or
@@ -26,3 +27,5 @@ consumer, UI/host, type and boundary checks.
 Sidebar API 1.1 supports `placement: "start" | "end"` (default start). End tabs
 form a bottom group; numeric order stays local to each group. Snapshot and keyboard
 order follow visual order. Updates preserve placement; existing consumers remain compatible.
+Actions share the same ID namespace with tabs. The owner signal controls their
+lifetime. Replacing or removing an action invalidates its previous callback.

@@ -72,7 +72,7 @@ IDs provide attribution rather than authenticated caller isolation.
 The first tab opens automatically. Adding more tabs preserves the current selection
 or deliberate collapse. Removing the active tab selects the first remaining tab
 in sorted order; removing another tab leaves selection alone. Removing the last
-tab removes both sidebar regions. Owner cancellation removes a registration;
+tab removes the panel. Owner cancellation removes a registration;
 providers use their own live SDK event context for cleanup notifications and
 never invoke Workspace/renderers/Logger during owner cleanup.
 
@@ -83,6 +83,14 @@ localized title and content props. The Sidebar catalog owns navigation and
 unavailable-panel labels; tab content localization remains tool-owned.
 
 ## Interaction and mounting
+
+Sidebar 1.2 exposes `registerAction(action, owner)` and `updateAction(action)`.
+An action supplies a dotted `id`, localized `title`, `icon`, optional `placement`,
+`order` and `opensDialog`, and an `onPress` callback. IDs are shared with tabs.
+`snapshot().actions` is a frozen array when actions are present. Registration,
+updates and removal publish `SidebarChanged`. Callbacks from replaced or cancelled
+actions are inert. Pressing an action leaves the selected tab and panel intact.
+The standard compact rail shows tool tabs. Compact actions can use `MobileMenu`.
 
 The left rail contains only Mantine ActionIcon controls and Lucide icons. Titles
 are accessible names and native tooltips. `aria-pressed`/`aria-expanded` expose
@@ -103,7 +111,7 @@ show the left panel as a nonmodal overlay inside the owned layout. The rail rema
 available, Escape closes the overlay, and each region owns scrolling with hidden
 native scrollbar chrome. No portals escape the component target or host surface.
 
-No tabs means no rail, panel, reserved width or default demo tools. Missing content
+The rail reserves width only while tabs or desktop actions are registered. Missing content
 roles retain their tab and show a localized unavailable panel. Later/replacement
 roles mount automatically; renderer failures show a Workspace-owned failure
 placeholder and are retried on subsequent relevant updates. Removing the rail

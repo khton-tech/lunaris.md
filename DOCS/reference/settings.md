@@ -130,9 +130,10 @@ Controllers declare the services needed to apply and persist their own values.
 
 Status: implemented on 2026-11-07; native visual acceptance remains manual.
 
-Settings is an extensible UI foundation. A Settings icon in the bottom group of
-Sidebar opens category navigation. Selecting a category opens one Settings active
-screen; section headings organize contributed content. No categories or controls
+Settings is an extensible UI foundation. The icon at the bottom of the desktop
+rail opens a modal with categories alongside the selected page. The mobile dock
+opens a full-screen category list with navigation into and back from each page.
+Section headings organize contributed content. No categories or controls
 are hardcoded into the foundation. With no contributions, navigation shows
 "No settings available". The foundation itself supplies no concrete controls.
 The separate [interface settings controller](../../plugins/UI/interface-settings/DOCS/README.md)
@@ -203,17 +204,17 @@ changes contributors update their own category/section titles and props.
 
 ## Rendering and Vault scope
 
-Sections receive `{ ...props, workspace: { vaultId, vaultName } }` through
-Components with an owned mount signal. The Workspace context is explicit and frozen.
-The selected category survives Sidebar collapse and active-screen changes within
-the current Vault. Retained Settings instances keep their section drafts/scroll.
-Changing categories releases the old category's section views. Updating a section's
+Sections receive `{ ...props, workspace: { vaultId, vaultName, compact }, overlayTarget }`
+through Components with an owned mount signal. The Workspace context is explicit
+and frozen. `overlayTarget` is borrowed for popups within the current dialog.
+Closing Settings, going back to the mobile category list, or changing categories
+releases the old section views. Updating a section's
 props/title or changing locale/theme preserves its mounted target and instance
 unless rendering fails. Missing/removed/failing roles show localized section
 placeholders; late roles and later updates can recover without losing other sections.
 
-Vault changes reset category selection. Workspace/ActiveScreen release the old
-Settings screen and every section view. Old navigation callbacks check both view
+Vault changes close the Settings window and release every section view.
+Old navigation callbacks check both view
 cancellation and their explicit Vault ID and cannot open Settings in a later Vault.
 The provider registry survives Vault changes because it describes available UI,
 not saved values. Selection/drafts are not persisted across application restarts.
@@ -229,17 +230,19 @@ are implemented separately; the registry and Settings container remain unchanged
 
 ## Composition and visual roles
 
-Tauri composes `lunaris.settings-provider` and `lunaris.settings`. The UI consumes
-Settings, Sidebar 1.1 bottom placement, ActiveScreen, Components, Localization, Vault
-and required Logger through the SDK. Sidebar owns tab selection/collapse; ActiveScreen
-owns screen selection/retention; Workspace owns layout and Vault view lifetime.
-No private slots, host internals, DOM reparenting or direct plugin imports are used.
+The shared web and desktop host composes `lunaris.settings-provider` and
+`lunaris.settings`. Settings uses Sidebar 1.2 actions, Workspace 1.6 overlays,
+Components, Localization, Vault and required Logger through the SDK.
+The standard compact layout opens the same window through `MobileMenu`.
+Workspace owns placement and the Vault view lifetime.
 
-Mantine supplies:
+Mantine supplies the following roles.
 
 - `lunaris.settings-navigation`: title, emptyLabel, categories `{ id, title }[]`,
   selectedId or null, and onSelect(id). Category labels wrap; aria-current exposes
   selection without forcing focus.
+- `lunaris.settings-window` presents the settings dialog or compact screen and
+  lends stable page and popup targets.
 - `lunaris.settings-page`: title, optional category icon, emptyLabel, sections `{ id, title }[]`, and
   onTargets(map or null). Stable section targets are borrowed; mount children only
   after the parent Components call returns. The container passes public
@@ -247,29 +250,26 @@ Mantine supplies:
   fallbacks; intrinsic height never depends on target classes. The page and
   navigation use embedded/fill presentation and inherit their owning surfaces.
 
-The main screen remains open and borderless. Sidebar content inherits the existing
-card surface. Navigation and page own scrolling with hidden native scrollbar chrome.
-All labels are localized and styles use the active theme. Layout was informed by
-[Mantine UI navbar compositions](https://ui.mantine.dev/category/navbars/).
+The underlying workspace stays mounted with its selection intact. Navigation and
+page own scrolling with hidden native scrollbar chrome. Labels are localized and
+styles use the active theme. See [Mantine Modal](https://mantine.dev/core/modal/)
+and [Mantine UI navbar compositions](https://ui.mantine.dev/category/navbars/).
 
-Completed foundation integrations: registry, UI, Sidebar, ActiveScreen, Workspace
-context, Mantine roles, Localization/Vault lifecycle, Logger and Tauri composition.
+The window integrates the registry, Sidebar, MobileMenu, Workspace, Mantine,
+Localization, Vault lifecycle and Logger through public contracts.
 The separate interface settings contribution connects Config, Themes and
 Localization without making the foundation depend on those preference controllers.
 
 ## Verification
 
-Run `npm run settings:check` and targeted Sidebar/Mantine checks. Tests cover
-validation, ordering, independent ownership, orphan sections, bottom placement,
-empty navigation, category selection, retained instances, missing/replaced/failing
-roles, category removal, locale/theme updates, screen switching, stale navigation,
-Vault isolation and cleanup. Run the Tauri frontend production build and export/docs
-audit. Native visual acceptance is manual; desktop automation is prohibited.
+Target Settings integration checks and affected Sidebar, Workspace and Mantine
+tests. Settings tests cover bottom placement, empty navigation, category
+selection, focus restoration, retained workspace views, missing or failing roles,
+locale and theme updates, mobile navigation, Vault isolation and cleanup.
 
-Manual acceptance: open a Vault and verify Settings is at the bottom, opening it
-shows the empty navigation, and existing File Explorer remains usable. With a real
-contribution, verify category/heading hierarchy, editable controls, local scrolling,
-long translations, narrow/short windows and state reset on Vault switch.
+Manual acceptance covers desktop and mobile entry points, independent scrolling,
+opened dropdowns and nested dialogs, keyboard focus and restoration, narrow and
+short windows, and theme contrast within the running application.
 
 Local evidence, 2026-11-07: targeted Settings, Sidebar, Mantine and affected consumer
 checks passed 131 tests with zero skipped, including build, boundaries and type

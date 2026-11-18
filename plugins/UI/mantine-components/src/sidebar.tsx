@@ -1,4 +1,4 @@
-import { useEffectEvent, useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffectEvent, useLayoutEffect, useRef, useState } from "react";
 import type { KeyboardEvent as ReactKeyboardEvent } from "react";
 import { ActionIcon, Box, FocusTrap, Paper, Splitter, Stack, UnstyledButton } from "@mantine/core";
 import { observeVirtualKeyboard } from "@lunaris/components";
@@ -12,12 +12,15 @@ import { ComposedWorkspace } from "./workspace-composition.js";
 type Regions = Readonly<Partial<Record<WorkspaceRegion, HTMLElement>>>;
 interface LayoutProps {
   readonly composition?: WorkspaceLayoutNode;
+  readonly overlayVisible?: boolean;
+  readonly mobileSidebarAvailable?: boolean;
   readonly mobileLauncherVisible?: boolean; readonly mobileMenuVisible?: boolean; readonly mobileOpen?: boolean; readonly onMobileOpen?: (open: boolean) => void;
   readonly bottomVisible?: boolean; readonly railVisible: boolean; readonly panelVisible: boolean; readonly mainLabel: string; readonly panelLabel: string;
   readonly onTargets: (targets: Regions | null, compact?: boolean) => void; readonly onDismiss: () => void;
   readonly panelWidth?: number; readonly resizeLabel?: string; readonly onPanelWidth?: (width: number) => void;
 }
 export function layoutProps(value: ComponentProps): LayoutProps {
+  if ([value.overlayVisible, value.mobileSidebarAvailable].some(flag => flag !== undefined && typeof flag !== "boolean")) throw new TypeError("Invalid workspace layer visibility.");
   if ((value.mobileLauncherVisible !== undefined && typeof value.mobileLauncherVisible !== "boolean") || (value.mobileOpen !== undefined && typeof value.mobileOpen !== "boolean") || (value.mobileMenuVisible !== undefined && typeof value.mobileMenuVisible !== "boolean") || (value.onMobileOpen !== undefined && typeof value.onMobileOpen !== "function")) throw new TypeError("Invalid mobile workspace presentation.");
   if (value.bottomVisible !== undefined && typeof value.bottomVisible !== "boolean") throw new TypeError("Invalid bottom visibility.");
   if (typeof value.railVisible !== "boolean" || typeof value.panelVisible !== "boolean" || typeof value.mainLabel !== "string" || typeof value.panelLabel !== "string" || typeof value.onTargets !== "function" || typeof value.onDismiss !== "function") throw new TypeError("Invalid workspace layout props.");
@@ -29,9 +32,46 @@ export function layoutProps(value: ComponentProps): LayoutProps {
   return { ...(value as unknown as LayoutProps), composition };
 }
 export function WorkspaceLayout({ props, theme }: { props: LayoutProps; theme: ReturnType<typeof resolveTheme> }) {
-  if (props.composition) return <ComposedWorkspace tree={props.composition} mainLabel={props.mainLabel} panelLabel={props.panelLabel}
-    onTargets={props.onTargets} onDismiss={props.onDismiss} theme={theme} />;
-  return <StandardWorkspace props={props} theme={theme} />;
+  const layer = useRef<HTMLDivElement>(null);
+  const background = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLElement | null>(null);
+  const wasVisible = useRef(false);
+  const { onTargets, overlayVisible } = props;
+  const publish = useCallback((targets: Regions | null, compact?: boolean) => {
+    onTargets(targets && layer.current ? Object.freeze({ ...targets, overlay: layer.current }) : targets, compact);
+  }, [onTargets]);
+  useLayoutEffect(() => {
+    const element = layer.current!;
+    if (!overlayVisible) return;
+    const clear = () => { element.style.removeProperty("--workspace-overlay-top"); element.style.removeProperty("--workspace-overlay-height"); };
+    const release = observeVirtualKeyboard(element.ownerDocument.defaultView!, viewport => {
+      if (!viewport) { clear(); return; }
+      const { top, bottom } = element.getBoundingClientRect();
+      const visibleTop = Math.max(viewport.top, top);
+      element.style.setProperty("--workspace-overlay-top", `${visibleTop - top}px`);
+      element.style.setProperty("--workspace-overlay-height", `${Math.max(0, Math.min(bottom, viewport.top + viewport.height) - visibleTop)}px`);
+    });
+    return () => { release(); clear(); };
+  }, [overlayVisible]);
+  useLayoutEffect(() => {
+    if (wasVisible.current && !overlayVisible) {
+      const opener = trigger.current;
+      const view = opener?.ownerDocument.defaultView;
+      const visible = opener?.isConnected && !opener.matches(":disabled") && !opener.closest("[hidden],[inert]") && view?.getComputedStyle(opener).display !== "none";
+      (visible ? opener : background.current?.querySelector<HTMLElement>("main"))?.focus({ preventScroll: true });
+    }
+    wasVisible.current = !!overlayVisible;
+  }, [overlayVisible]);
+  return <Box className="lm-workspace-stage">
+    <Box ref={layer} className="lm-workspace-overlay" data-workspace-region="overlay" />
+    <Box ref={background} className="lm-workspace-background" inert={overlayVisible} aria-hidden={overlayVisible || undefined}
+      onFocusCapture={event => { if (!overlayVisible) trigger.current = event.target; }}
+      onClickCapture={event => { if (!overlayVisible) trigger.current = (event.target as Element).closest("button") ?? trigger.current; }}>
+      {props.composition ? <ComposedWorkspace tree={props.composition} mainLabel={props.mainLabel} panelLabel={props.panelLabel}
+        onTargets={publish} onDismiss={props.onDismiss} theme={theme} /> :
+        <StandardWorkspace props={{ ...props, onTargets: publish }} theme={theme} />}
+    </Box>
+  </Box>;
 }
 function StandardWorkspace({ props, theme }: { props: LayoutProps; theme: ReturnType<typeof resolveTheme> }) {
   const bottom = useRef<HTMLDivElement>(null); const main = useRef<HTMLDivElement>(null); const rail = useRef<HTMLDivElement>(null); const panel = useRef<HTMLDivElement>(null);
@@ -72,13 +112,14 @@ function StandardWorkspace({ props, theme }: { props: LayoutProps; theme: Return
     measure();
     return () => { observer.disconnect(); unsubscribe(); };
   }, []);
-  const overlayOpen = compact && mobileOpen && props.railVisible;
+  const mobileSidebarAvailable = props.railVisible && props.mobileSidebarAvailable !== false;
+  const overlayOpen = compact && mobileOpen && mobileSidebarAvailable;
   const openFromSwipe = useEffectEvent(() => {
     opener.current = null;
     setMobileOpen(true);
   });
   useLayoutEffect(() => {
-    if (!compact || overlayOpen || keyboardOpen || !props.railVisible) return;
+    if (!compact || overlayOpen || keyboardOpen || !mobileSidebarAvailable || props.overlayVisible) return;
     const element = root.current!;
     const region = main.current!;
     const document = element.ownerDocument;
@@ -142,8 +183,8 @@ function StandardWorkspace({ props, theme }: { props: LayoutProps; theme: Return
       element.removeEventListener("touchcancel", reset, true);
       reset();
     };
-  }, [compact, overlayOpen, keyboardOpen, props.railVisible, props.panelVisible, available]);
-  useLayoutEffect(() => { if (!compact || !props.railVisible) setMobileOpen(false); }, [compact, props.railVisible]);
+  }, [compact, overlayOpen, keyboardOpen, mobileSidebarAvailable, props.overlayVisible, props.panelVisible, available]);
+  useLayoutEffect(() => { if (!compact || !mobileSidebarAvailable) setMobileOpen(false); }, [compact, mobileSidebarAvailable]);
   useLayoutEffect(() => {
     const previous = previousPresentation.current;
     previousPresentation.current = { open: overlayOpen, compact };
@@ -223,8 +264,8 @@ function StandardWorkspace({ props, theme }: { props: LayoutProps; theme: Return
     publish(Object.freeze({ main: main.current!, "left-rail": rail.current!, "left-panel": panel.current!, bottom: bottom.current!, "mobile-menu": mobileMenu.current!, "mobile-launcher": mobileLauncher.current! }), compact);
   }, [publish, compact]);
   useLayoutEffect(() => () => publish(null), [publish]);
-  const floatingInactive = floatingHidden || overlayOpen || keyboardOpen;
-  return <FocusTrap active={overlayOpen} innerRef={root}><Box className="lm-workspace-layout" style={{ ...theme.contentStyle, "--workspace-panel-width": `${width}px`, "--workspace-content-width": `${available}px` }} data-launcher={props.mobileLauncherVisible || undefined} data-compact={compact || undefined} data-mobile-open={overlayOpen || undefined} data-mobile-menu={props.mobileMenuVisible || undefined} data-window-chrome={theme.windowChrome || undefined} data-bottom={props.bottomVisible || undefined} data-rail={props.railVisible || undefined} data-panel={props.panelVisible || undefined}
+  const floatingInactive = floatingHidden || overlayOpen || keyboardOpen || !!props.overlayVisible;
+  return <FocusTrap active={overlayOpen && !props.overlayVisible} innerRef={root}><Box className="lm-workspace-layout" style={{ ...theme.contentStyle, "--workspace-panel-width": `${width}px`, "--workspace-content-width": `${available}px` }} data-launcher={props.mobileLauncherVisible || undefined} data-compact={compact || undefined} data-mobile-open={overlayOpen || undefined} data-mobile-menu={props.mobileMenuVisible || undefined} data-window-chrome={theme.windowChrome || undefined} data-bottom={props.bottomVisible || undefined} data-rail={props.railVisible || undefined} data-panel={props.panelVisible || undefined}
     role={overlayOpen ? "dialog" : undefined} aria-modal={overlayOpen || undefined} aria-label={overlayOpen ? props.panelLabel : undefined}
     onClickCapture={event => {
       if (!compact || overlayOpen) return;
@@ -257,15 +298,23 @@ function StandardWorkspace({ props, theme }: { props: LayoutProps; theme: Return
 
 interface RailProps {
   readonly label: string; readonly activeId: string | null;
-  readonly tabs: readonly { readonly id: string; readonly title: string; readonly icon: string; readonly placement?: "start" | "end" }[];
+  readonly tabs: readonly RailItem[];
+  readonly actions?: readonly (RailItem & { readonly onPress: () => void })[];
+  readonly workspace?: { readonly compact?: boolean };
   readonly onSelect: (id: string) => void;
+}
+interface RailItem {
+  readonly id: string; readonly title: string; readonly icon: string; readonly placement?: "start" | "end"; readonly order?: number;
+  readonly onPress?: () => void; readonly opensDialog?: boolean;
 }
 export function railProps(value: ComponentProps): RailProps {
   if (typeof value.label !== "string" || (value.activeId !== null && typeof value.activeId !== "string") || typeof value.onSelect !== "function" || !Array.isArray(value.tabs) || value.tabs.some(tab => !tab || ["id", "title", "icon"].some(key => typeof tab[key] !== "string") || (tab.placement !== undefined && !["start", "end"].includes(tab.placement)))) throw new TypeError("Invalid sidebar rail props.");
+  if (value.actions !== undefined && (!Array.isArray(value.actions) || value.actions.some(action => !action || ["id", "title", "icon"].some(key => typeof action[key] !== "string") || typeof action.onPress !== "function"))) throw new TypeError("Invalid sidebar actions.");
   return value as unknown as RailProps;
 }
 export function SidebarRail({ props, theme }: { props: RailProps; theme: ReturnType<typeof resolveTheme> }) {
-  const ordered = [...props.tabs.filter(tab => tab.placement !== "end"), ...props.tabs.filter(tab => tab.placement === "end")];
+  const ordered = [...props.tabs, ...(props.workspace?.compact ? [] : props.actions ?? [])].sort((a, b) =>
+    Number(a.placement === "end") - Number(b.placement === "end") || (a.order ?? 0) - (b.order ?? 0));
   const buttons = useRef(new Map<string, HTMLButtonElement>()); const previous = useRef(props.activeId);
   useLayoutEffect(() => {
     const old = previous.current; previous.current = props.activeId;
@@ -281,19 +330,20 @@ export function SidebarRail({ props, theme }: { props: RailProps; theme: ReturnT
     else return;
     event.preventDefault(); buttons.current.get(ordered[next]!.id)?.focus();
   }
-  const renderTab = (tab: RailProps["tabs"][number]) => <ActionIcon key={tab.id}
-    ref={node => { if (node) buttons.current.set(tab.id, node); else buttons.current.delete(tab.id); }}
-    className="lm-sidebar-tab lm-focus" variant="subtle" size="lg" aria-label={tab.title} title={tab.title}
-    aria-pressed={props.activeId === tab.id} aria-expanded={props.activeId === tab.id}
-    onKeyDown={event => navigate(event, ordered.indexOf(tab))} onClick={() => props.onSelect(tab.id)}>
-    <Icon name={tab.icon} />
+  const renderItem = (item: typeof ordered[number]) => <ActionIcon key={item.id}
+    ref={node => { if (node) buttons.current.set(item.id, node); else buttons.current.delete(item.id); }}
+    className="lm-sidebar-tab lm-focus" variant="subtle" size="lg" aria-label={item.title} title={item.title}
+    {...(item.onPress ? { "aria-haspopup": item.opensDialog ? "dialog" as const : undefined, onClick: item.onPress } :
+      { "aria-pressed": props.activeId === item.id, "aria-expanded": props.activeId === item.id, onClick: () => props.onSelect(item.id) })}
+    onKeyDown={event => navigate(event, ordered.indexOf(item))}>
+    <Icon name={item.icon} />
   </ActionIcon>;
   return <Box component="nav" className="lm-sidebar-rail" aria-label={props.label} style={theme.contentStyle}>
     <Stack gap="xs" align="center" className="lm-sidebar-start">
-      {ordered.filter(tab => tab.placement !== "end").map(renderTab)}
+      {ordered.filter(item => item.placement !== "end").map(renderItem)}
     </Stack>
     <Stack gap="xs" align="center" className="lm-sidebar-end">
-      {ordered.filter(tab => tab.placement === "end").map(renderTab)}
+      {ordered.filter(item => item.placement === "end").map(renderItem)}
     </Stack>
   </Box>;
 }

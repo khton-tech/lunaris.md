@@ -1,12 +1,12 @@
 import { defineApi } from "@lunaris/sdk";
 import type { CancellationSignal } from "@lunaris/sdk";
 
-export const workspaceRegions = Object.freeze(["main", "left-rail", "left-panel", "bottom", "mobile-menu", "mobile-launcher"] as const);
+export const workspaceRegions = Object.freeze(["main", "left-rail", "left-panel", "bottom", "mobile-menu", "mobile-launcher", "overlay"] as const);
 export type WorkspaceBuiltInRegion = typeof workspaceRegions[number];
 export type WorkspaceRegion = WorkspaceBuiltInRegion | `${string}.${string}`;
 export type WorkspaceLayoutNode = {
   readonly kind: "region";
-  readonly region: WorkspaceRegion;
+  readonly region: Exclude<WorkspaceRegion, "overlay">;
   readonly label?: string;
   readonly grow?: number;
 } | {
@@ -50,7 +50,7 @@ export function readWorkspaceLayout(value: unknown): WorkspaceLayoutNode | undef
     if (kind === "region") {
       const region: unknown = fields.region?.value;
       const label: unknown = fields.label?.value;
-      if (!isWorkspaceRegion(region) || regions.has(region) || (label !== undefined && (typeof label !== "string" || label.length > 256))) return;
+      if (!isWorkspaceRegion(region) || region === "overlay" || regions.has(region) || (label !== undefined && (typeof label !== "string" || label.length > 256))) return;
       regions.add(region);
       return Object.freeze({ kind, region, grow, ...(label === undefined ? {} : { label }) });
     }

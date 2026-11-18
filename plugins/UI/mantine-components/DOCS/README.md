@@ -983,25 +983,35 @@ order follow visual order. Updates preserve placement; existing consumers remain
 
 ## Settings foundation roles
 
+`lunaris.settings-window` receives `compact`, the localized title, empty, back
+and close labels, `categories`, `selectedId`, `onSelect`, `onBack`, `onClose` and
+`onTargets(page, popups)`. It owns the themed Mantine Modal and switches to a
+full-screen, two-step layout when Workspace supplies compact presentation.
+The callback publishes null for absent targets. Consumers mount nested roles
+after `Components.mount` or `update` returns. The `overlayTarget` prop lets
+popup-capable roles use a borrowed target in the same document for themed dropdowns
+and nested dialogs. When omitted, these roles use the document overlay.
+
 `lunaris.settings-navigation` renders owned category buttons with wrapping labels,
-localized title/emptyLabel, categories, selectedId and onSelect.
+localized title/emptyLabel, categories, selectedId and onSelect. The window
+supplies its title and uses the shared category rows.
 `lunaris.settings-page` renders the title with the selected category's optional
 icon, emptyLabel and section headings, lending
 stable targets through onTargets(map or null). Both use the active theme and local
-scrolling. The page has no enclosing card; the Sidebar view inherits its surface.
+scrolling. The page inherits the dialog surface. The compact dialog header
+supplies the category title when the page's `hideTitle` is true.
 Section control roots use intrinsic block sizing inside targets owned by this set.
 No concrete settings, storage or theme controls are supplied. See
 [the settings reference](../../../../DOCS/reference/settings.md). Compositions were
 reviewed against [Mantine UI navbars](https://ui.mantine.dev/category/navbars/).
 
 The Owner's Customization and Third-party plugins screenshots define the Settings
-composition reference. The settings page centers its heading, groups and empty
-state within Workspace main, following the editor's centered column. Groups fill
-the column with local theme surfaces and compact rows. Section content inherits
+composition reference. Groups fill the page column with local theme surfaces
+and compact rows. Section content inherits
 that surface. The Lime role emphasizes Add plugin and separates package entries
 within its borrowed section. The existing Mantine Combobox owns its trigger and
-options, including keyboard interaction and selection. Workspace retains the
-main and Sidebar geometry and surfaces. Verify wide and compact layouts,
+options, including keyboard interaction and selection. The Workspace layout role
+owns the overlay geometry above main and Sidebar. Verify wide and compact layouts,
 opened menus, focus and theme contrast in the application.
 
 ## Text editor role
@@ -1360,7 +1370,7 @@ heading metrics still come from CodeMirror.
 
 Floating geometry correction follows the Owner screenshot: no top/bottom padding is added to main for mobile controls. Workspace owns absolute overlay surfaces; the mobile menu role receives explicit density compact for the 32px launcher and comfortable for the 44px bottom actions. Launcher surface padding is 2px. Manual acceptance of overlap, scroll/focus and both themes remains pending.
 
-Both floating regions share scroll-direction visibility. The Sidebar layer and backdrop stack above both floating regions, which become inert and aria-hidden while the overlay is open. There is no main-area return button. Files and Settings explicitly close WorkspaceSidebar after successful content selection; failures preserve the panel for recovery. Tool switching itself keeps navigation available. Desktop selection remains intact. Native stacking and scroll/focus acceptance remain pending.
+Both floating regions share scroll-direction visibility. The Sidebar layer and backdrop stack above both floating regions, which become inert and aria-hidden while the overlay is open. There is no main-area return button. Files closes WorkspaceSidebar after successful content selection. The Settings dock action opens the separate Workspace overlay. Tool switching itself keeps navigation available. Desktop selection remains intact. Native stacking and scroll/focus acceptance remain pending.
 
 ## Persistent Settings navigation
 

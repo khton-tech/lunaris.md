@@ -34,14 +34,16 @@ export function SettingsChoices({ props, theme }: { props: ChoicesProps; theme: 
     {props.canRetry && <ActionButton disabled={props.disabled} onClick={props.onRetry}>{props.retryLabel}</ActionButton>}
   </Stack>;
 }
-interface NavigationProps {
+export interface NavigationProps {
   readonly title: string; readonly emptyLabel: string; readonly categories: readonly Item[];
   readonly selectedId: string | null; readonly onSelect: (id: string) => void;
+  readonly showTitle?: boolean;
 }
 interface PageProps {
   readonly categoryId?: string | null;
   readonly navigationLabel?: string; readonly onNavigation?: () => void;
   readonly compact?: boolean;
+  readonly hideTitle?: boolean;
   readonly icon?: string;
   readonly title: string; readonly emptyLabel: string; readonly sections: readonly Item[];
   readonly onTargets: (targets: ReadonlyMap<string, HTMLElement> | null) => void;
@@ -49,12 +51,13 @@ interface PageProps {
 const items = (value: unknown): value is readonly Item[] => Array.isArray(value) && value.every(item => item && typeof item.id === "string" && typeof item.title === "string" && (item.icon === undefined || typeof item.icon === "string") && (item.description === undefined || typeof item.description === "string")) && new Set(value.map(item => item.id)).size === value.length;
 export function settingsNavigationProps(value: ComponentProps): NavigationProps {
   if (typeof value.title !== "string" || typeof value.emptyLabel !== "string" || !items(value.categories) ||
-      (value.selectedId !== null && (typeof value.selectedId !== "string" || !value.categories.some(item => item.id === value.selectedId))) || typeof value.onSelect !== "function") throw new TypeError("Invalid settings navigation props.");
+      (value.selectedId !== null && (typeof value.selectedId !== "string" || !value.categories.some(item => item.id === value.selectedId))) || typeof value.onSelect !== "function" ||
+      (value.showTitle !== undefined && typeof value.showTitle !== "boolean")) throw new TypeError("Invalid settings navigation props.");
   return value as unknown as NavigationProps;
 }
 export function settingsPageProps(value: ComponentProps): PageProps {
   if (value.categoryId != null && typeof value.categoryId !== "string") throw new TypeError("Invalid settings category.");
-  if (value.compact !== undefined && typeof value.compact !== "boolean") throw new TypeError("Invalid settings presentation.");
+  if ([value.compact, value.hideTitle].some(flag => flag !== undefined && typeof flag !== "boolean")) throw new TypeError("Invalid settings presentation.");
   if ((value.onNavigation !== undefined || value.navigationLabel !== undefined) && (typeof value.onNavigation !== "function" || typeof value.navigationLabel !== "string" || !value.navigationLabel.trim())) throw new TypeError("Invalid settings navigation action.");
   if (typeof value.title !== "string" || (value.icon !== undefined && typeof value.icon !== "string") ||
       typeof value.emptyLabel !== "string" || !items(value.sections) || typeof value.onTargets !== "function") throw new TypeError("Invalid settings page props.");
@@ -62,10 +65,10 @@ export function settingsPageProps(value: ComponentProps): PageProps {
 }
 export function SettingsNavigation({ props, theme }: { props: NavigationProps; theme: ReturnType<typeof resolveTheme> }) {
   return <Stack component="nav" className="lm-settings-navigation" aria-label={props.title} style={theme.contentStyle} gap={0}>
-    <ToolPanelHeader title={props.title} />
+    {props.showTitle !== false && <ToolPanelHeader title={props.title} />}
     <Stack className="lm-settings-categories" gap={0}>
       {props.categories.length ? props.categories.map(item => <ToolNavigationItem key={item.id} title={item.title} icon={item.icon} selected={item.id === props.selectedId}
-        onSelect={() => props.onSelect(item.id)} />) : <Text size="sm" c="dimmed">{props.emptyLabel}</Text>}
+        id={item.id} onSelect={() => props.onSelect(item.id)} />) : <Text size="sm" c="dimmed">{props.emptyLabel}</Text>}
     </Stack>
   </Stack>;
 }
@@ -78,13 +81,13 @@ export function SettingsPage({ props, theme }: { props: PageProps; theme: Return
   useLayoutEffect(() => { publish(new Map(targets.current)); }, [signature, publish]);
   useLayoutEffect(() => () => publish(null), [publish]);
   return <Stack ref={page} className="lm-settings-page" data-compact={props.compact} data-workspace-scroll style={theme.contentStyle} gap={0}>
-    <Box component="header" className="lm-settings-page-header">
+    {!props.hideTitle && <Box component="header" className="lm-settings-page-header">
       {props.onNavigation && <ActionIcon className="lm-settings-open-sidebar lm-focus" variant="subtle" size={32} aria-label={props.navigationLabel!} title={props.navigationLabel!} onClick={props.onNavigation}><Icon name="sidebar" /></ActionIcon>}
       <Title order={1} size="h2">
         {props.icon && <Icon name={props.icon} />}
         <span>{props.title}</span>
       </Title>
-    </Box>
+    </Box>}
     {props.sections.length ? props.sections.map(section => <Stack component="section" className="lm-settings-group" key={section.id} gap={0} aria-labelledby={`${headingId}-${section.id}`}>
       <Stack component="header" className="lm-settings-group-header" gap="xs">
         <Title id={`${headingId}-${section.id}`} order={2} size="md" fw={650}>{section.title}</Title>

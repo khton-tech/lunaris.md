@@ -72,7 +72,7 @@ export function mountSettingsGroup(ctx: PluginContext, registry: SettingsApi, co
     for (const item of active) if (!states.has(item.id)) states.set(item.id, { scope: owner.child(), pending: false, error: "" });
     const items = active.map(item => { const state = states.get(item.id)!; return { ...item, disabled: !!item.disabled || state.pending, error: state.error || item.error || "" }; });
     const sources = new Map(active.map(item => [item.id, item]));
-    const next = { items, compact: (props.workspace as WorkspaceContext | undefined)?.compact, portalDropdowns: true, onChange: (id: string, value: unknown) => { const item = sources.get(id); if (item) invoke(item, value); },
+    const next = { items, compact: (props.workspace as WorkspaceContext | undefined)?.compact, overlayTarget: props.overlayTarget, portalDropdowns: true, onChange: (id: string, value: unknown) => { const item = sources.get(id); if (item) invoke(item, value); },
       onRetry: (id: string) => { const item = sources.get(id); if (item) invoke(item, undefined, "retry"); },
       onReset: (id: string) => { const item = sources.get(id); if (item) invoke(item, undefined, "reset"); }, presentation: { mode: "embedded", sizing: "content" } };
     if (mounted) { const result = mounted.update(next); if (!result.ok) throw new Error("Cannot update declarative settings.", { cause: result.error }); }

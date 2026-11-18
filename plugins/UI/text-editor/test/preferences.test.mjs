@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { definePlugin } from '@lunaris/sdk';
 import editor from '@lunaris/text-editor';
 import { createPreferences } from '../dist/src/preferences.js';
-import { setupWorkspace, flush } from '../../../../tools/test/workspace.mjs';
+import { setupWorkspace, openSettings, flush } from '../../../../tools/test/workspace.mjs';
 
 const contracts = new Set(['lunaris.logger', 'lunaris.config', 'lunaris.config-changed', 'lunaris.settings', 'lunaris.vault', 'lunaris.vault-changed', 'lunaris.localization', 'lunaris.locale-changed', 'lunaris.themes', 'lunaris.theme-changed']);
 const controller = definePlugin({ manifest: { ...editor.manifest, provides: [], requires: editor.manifest.requires.filter(item => contracts.has(item.id)), permissions: ['config.access', 'vault.access'], optionalPermissions: [] },
@@ -14,7 +14,7 @@ async function setup(config) {
   return s;
 }
 async function show(s) {
-  s.tools.sidebar.select('lunaris.settings.navigation'); await flush();
+  await openSettings(s);
   const category = [...s.surface.querySelectorAll('.lm-settings-category')].find(node => node.textContent === 'Editor');
   assert.ok(category); category.click(); await flush();
 }

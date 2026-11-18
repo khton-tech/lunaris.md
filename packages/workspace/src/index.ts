@@ -26,14 +26,14 @@ export type WorkspaceResult = { readonly ok: true; readonly value: null } | {
   readonly error: { readonly code: "INVALID_ARGUMENT" | "ALREADY_REGISTERED" | "REGION_OCCUPIED" | "NOT_FOUND"; readonly message: string };
 };
 export interface WorkspaceApi {
-  /** Register once; Workspace remounts the role with fresh context on Vault switches. */
+  /** Register content owned by a live scope. The exclusive overlay region sits above the layout. */
   register(content: WorkspaceContent, owner: CancellationSignal): WorkspaceResult;
   /** Replace all custom props. The reserved `workspace` prop is supplied by Workspace. */
   update(id: string, props: WorkspaceProps): WorkspaceResult;
   list(): readonly WorkspaceContent[];
 }
 export const Workspace = defineApi<WorkspaceApi>({
-  id: "lunaris.workspace", version: "1.5.0",
+  id: "lunaris.workspace", version: "1.6.0",
   validate: value => !!value && typeof value === "object" &&
     ["register", "update", "list"].every(name => typeof Object.getOwnPropertyDescriptor(value, name)?.value === "function"),
 });

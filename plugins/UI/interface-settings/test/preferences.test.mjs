@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createInterfaceSettings } from '@lunaris/interface-settings';
-import { setupWorkspace, flush } from '../../../../tools/test/workspace.mjs';
+import { setupWorkspace, openSettings, flush } from '../../../../tools/test/workspace.mjs';
 
 const base = 'lunaris.base-theme-engine.monochrome';
 const ok = value => ({ ok: true, value });
@@ -31,7 +31,7 @@ async function setup(options = {}) {
   return { ...s, reads, writes, values };
 }
 async function show(s) {
-  s.tools.sidebar.select('lunaris.settings.navigation'); await flush();
+  await openSettings(s);
   const button = [...s.surface.querySelectorAll('.lm-settings-category')].find(node => node.textContent === 'Customization');
   assert.ok(button); button.click(); await flush();
 }
@@ -77,8 +77,10 @@ test('composed controls apply and persist explicit Vault preferences, preserve i
   assert.ok(options.closest('.lm-setting-dropdown'));
   const overlay = options.closest('.lm-dropdown-overlay');
   assert.equal(overlay?.id, `${theme.closest('.lm-root').id}-dropdowns`);
-  assert.equal(overlay.parentElement, s.dom.window.document.body);
+  assert.equal(overlay.closest('.lm-settings-dialog'), s.surface.querySelector('.lm-settings-dialog'));
   theme.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await flush();
+  assert.equal(theme.getAttribute('aria-expanded'), 'false');
+  assert.ok(s.surface.querySelector('.lm-settings-dialog'), 'Escape dismisses the menu while Settings stays open');
   await change(s, 0, 'fr'); assert.equal(s.tools.localization.locale(), 'fr');
   assert.equal(select(s, 0), language); assert.equal(select(s, 1), theme);
   await change(s, 1, 'test.alternate'); assert.equal(s.tools.themes.current().id, 'test.alternate');
@@ -96,10 +98,10 @@ test('Russian selection translates the composed Workspace and Settings and resto
   assert.equal(select(s, 0), language);
   assert.match(s.surface.querySelector('.lm-settings-page').textContent, /Оформление/);
   assert.match(s.surface.querySelector('.lm-settings-items').textContent, /Язык/);
-  assert.match(s.surface.querySelector('.lm-settings-navigation').textContent, /Настройки/);
+  assert.equal(s.surface.querySelector('.lm-settings-dialog-title').textContent, 'Настройки');
   assert.equal(s.writes[0].value, 'ru');
   s.tools.screens.select(null); await flush();
-  s.tools.sidebar.select('lunaris.settings.navigation'); await flush();
+  await openSettings(s);
   assert.ok([...s.surface.querySelectorAll('.lm-settings-category')].some(node => node.textContent === 'Оформление'));
   await s.stop(); s = await setup({ values }); await s.open();
   assert.equal(s.tools.localization.locale(), 'ru');

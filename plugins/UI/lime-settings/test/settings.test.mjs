@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { definePlugin } from '@lunaris/sdk';
 import { Lime, LimeChanged } from '@lunaris/lime';
 import ui from '@lunaris/lime-settings';
-import { setupWorkspace, flush } from '../../../../tools/test/workspace.mjs';
+import { setupWorkspace, openSettings, flush } from '../../../../tools/test/workspace.mjs';
 
 const ok = value => ({ ok: true, value });
 const manifest = { manifestVersion: 1, id: 'test.package', version: '1.0.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './plugin.js', metadata: { name: '<img src=x> Novel view', author: 'Author', description: 'Long metadata '.repeat(30), languages: ['en', 'ru'], translations: { ru: { name: 'Новый инструмент' } }, platforms: ['desktop'], repository: 'https://example.com/plugin', fields: [{ label: 'License', value: 'MIT' }] }, provides: [], requires: [{ kind: 'api', id: 'test.dependency', range: '^1.0.0' }], permissions: [], optionalPermissions: [] };
@@ -48,7 +48,7 @@ async function fixture({ composition = false } = {}) {
     });
   } });
   const s = await setupWorkspace({ settings: true, plugins: [plugin, ui], entrypoints: [ui.manifest.id], grants: { [ui.manifest.id]: ui.manifest.permissions } });
-  await s.open(); s.tools.sidebar.select('lunaris.settings.navigation'); await flush();
+  await s.open(); await openSettings(s);
   [...s.surface.querySelectorAll('.lm-settings-category')].find(element => element.textContent === 'Third-party plugins').click(); await flush();
   const button = text => [...s.dom.window.document.querySelectorAll('.lm-lime-settings button, .lm-lime-overlay button')].find(element => element.textContent === text);
   return { ...s, calls, button,
@@ -77,7 +77,7 @@ test('Lime composes inside real Settings/Workspace and confirms preview before i
     const overlay = s.dom.window.document.querySelector('.lm-lime-overlay');
     const dialog = overlay?.querySelector('[role=dialog]');
     assert.ok(dialog);
-    assert.equal(overlay.parentElement, s.dom.window.document.body);
+    assert.equal(overlay.closest('.lm-settings-dialog'), s.surface.querySelector('.lm-settings-dialog'));
     assert.equal(view.querySelector('[role=dialog]'), null);
     assert.equal(overlay.dataset.mantineColorScheme, root.dataset.mantineColorScheme);
     const [overview, dependencies] = dialog.querySelectorAll('[role=tab]');

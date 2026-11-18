@@ -1,97 +1,41 @@
-# Settings UI foundation
+# Settings window
 
-Purpose: bottom Sidebar entry, category navigation and one extensible Settings
-active screen. Default export of `@lunaris/settings-plugin`: `lunaris.settings`.
-No concrete controls, theme-engine integrations or configuration writes ship.
+`@lunaris/settings-plugin` (`lunaris.settings`) presents contributed settings for
+the current Vault. The plugin exposes no API or events. Contributors register
+categories, groups and items through `@lunaris/settings`. Legacy sections can
+still contribute a Components role.
 
-These exclusions describe this container plugin. Tauri now also composes the
-separate [interface settings contribution](../../interface-settings/DOCS/README.md)
-for Vault-local language/theme choices, using the public group/item contract.
+The desktop Sidebar 1.2 action uses the bottom rail position. The compact
+layout provides the same action in `MobileMenu`. It opens the Settings view in
+Workspace 1.6's `overlay` region. Desktop shows categories alongside the initial
+or selected page. Compact mode opens the category list and provides Back from
+each category. Closing returns to the underlying workspace and restores focus.
 
-Requires Logger, Settings/SettingsChanged 1.2, Sidebar 1.1, ActiveScreen, Components/
-ComponentsChanged, Localization/LocaleChanged and Vault/VaultChanged. Host grants
-`ui.dom` and `vault.access`. It provides no API/events. Subscribes to SettingsChanged,
-ComponentsChanged, LocaleChanged and VaultChanged.
+Workspace owns overlay placement, background interactivity and Vault lifetime.
+The Mantine `lunaris.settings-window` role owns the themed window, its backdrop
+and title bar, its category region and its borrowed page and popup targets.
+Settings owns category selection and section composition. Mantine renders page
+headings and intrinsic controls in their assigned targets. Dropdowns and the
+Lime details and preview dialogs stay inside the window's popup target. The
+existing Settings category rows and Lime dialogs define the product references.
+See [Mantine Modal](https://mantine.dev/core/modal/).
 
-Registers `lunaris.settings.navigation` through Sidebar with `placement: "end"`,
-and `lunaris.settings.screen` through ActiveScreen. Opening the Sidebar tab shows
-categories; selecting a category activates Settings in main. The localized
-`tabTitle` keeps the Settings tab stable as the page title follows the category.
-The plugin registers
-the orchestration roles `lunaris.settings-navigation-host` and
-`lunaris.settings-host` and `lunaris.settings-group-host`, while Mantine supplies
-`lunaris.settings-navigation`, `lunaris.settings-page` and `lunaris.settings-items`.
-Group renderers mount through public Components roles
-after the page lends stable targets. No React/Mantine is imported here.
+Settings subscribes to `SettingsChanged`, `ComponentsChanged`, `LocaleChanged`
+and `VaultChanged`. It uses required Logger, Settings, Sidebar, Workspace,
+Components, Localization and Vault, plus optional MobileMenu. The shared web and
+desktop hosts already compose these integrations. Custom hosts need the Sidebar
+controller and Mantine roles for desktop, and MobileMenu for the compact action.
+Custom workspace layouts supply their own entry regions.
 
-Compact Workspace gives the upper navigation position to the Settings header.
-The public page role receives the compact state and uses Workspace's dock inset
-to keep scrollable controls above the floating toolbar. Settings groups request
-the themed viewport overlay for dropdowns so sticky headers and scroll boundaries
-do not cover options. The picker measures the available space around its field
-and keeps the options in one scrollable list. Opening reveals the current value
-and keyboard navigation continues from that option. Active Screen forwards the header declaration and compact
-state through the existing Workspace and Components contracts.
+Edits and localization or theme changes within one selected category preserve
+mounted inputs. Changing categories, going back in compact mode, closing the
+window or changing Vaults releases the affected section views. Settings passes
+the frozen Workspace context and an owned cancellation signal. Declarative item
+callbacks receive `{ vaultId, signal }`; individual removal also aborts that
+item's context. Missing sections show localized placeholders and can recover.
+Preference values and accepted writes remain the responsibility of contributors.
 
-Category selection survives panel collapse and switching active screens within one
-Vault. The controller passes the optional stable `categoryId` to the Mantine
-page role. Changing categories releases old section views and scrolls the new
-category to its heading. Edits, translations and theme changes within the same
-category preserve its scroll position. Removing contributions or
-roles updates the screen; missing/failing sections show localized placeholders and
-can recover. View cancellation releases owned scopes without calling closed SDK
-handles. Stale navigation callbacks cannot select a category in a new Vault.
-
-Sections receive Workspace's explicit frozen Vault context and owned view signals.
-The foundation stores no values. Future settings contributors must apply changes
-immediately and only to the explicit current Vault; see
-[the extension contract](../../../../DOCS/reference/settings.md).
-
-Run `npm run settings:check`, relevant Mantine/Sidebar checks and the Tauri frontend
-build. Native appearance, focus and short/narrow-window acceptance remain manual;
-desktop automation is prohibited.
-
-Settings navigation/page use embedded/fill presentation. Section roles and their
-fallbacks receive `presentation: { mode: "embedded", sizing: "content" }` after
-custom props; sizing never depends on target classes. All embedded roots inherit
-the owning surface.
-
-The primary hierarchy is category -> group -> item. Groups share the page's
-ordered heading/target infrastructure with legacy custom sections, which remain
-supported for compatibility. Settings maps item type/value/options/layout/state
-to the shared Mantine role; contributors no longer need a renderer or DOM grant.
-The group host validates interaction values, supplies frozen `{ vaultId, signal }`
-contexts, prevents duplicate pending invocations and contains callback failures.
-Item removal cancels its owned context independently of siblings. Group/category
-removal, switching categories, Vault transitions and view closure cancel descendant
-contexts. Old callbacks cannot target replacements with a reused ID. Hiding a
-retained Settings screen preserves its mounted inputs and contexts.
-
-Workspace owns region geometry/surfaces; Settings owns group headings/targets;
-Mantine owns row content, responsive internal spacing and controls. Group/item
-presentation never paints a second surrounding surface. Config remains entirely
-outside this container.
-
-Settings 1.2 passes category icon metadata to the shared navigation role and
-supports bounded sliders and reset actions. Reset callbacks run through the same
-owned item context, pending/cancellation checks and failure containment as changes
-and retries; disabled reset actions cannot execute. No category-specific icons,
-numeric default policies or renderer-specific behavior are hardcoded here.
-Integration with the registry, Mantine and product controllers is complete through
-public SDK contracts. Native visual acceptance of the refined controls remains
-manual, including opened menus, focus, both themes and narrow/short containers.
-
-## Russian UI copy
-
-English and Russian catalogs are owned by this consumer. Messages reach shared
-Mantine roles through Localization/LocaleChanged and existing public component
-props; no renderer translation or SDK change is required. Interface Settings
-selects and persists Russian per Vault. Names and user content stay unchanged.
-Run `npm run ui-localization:check` for complete keys and matching placeholders.
-Native acceptance of long Russian labels, menus and narrow layouts is pending.
-
-Successful content selection closes the optional WorkspaceSidebar overlay through its public API, including reselection of the current document/category. Failed selections leave navigation open; desktop Sidebar selection is unchanged. Mobile stacking/focus acceptance remains manual.
-
-## Persistent Settings navigation
-
-Reference: Owner screenshot of the compact Luna Settings page and existing sidebar icon controls. The Settings controller supplies localized navigationLabel/onNavigation through its page host to the public settings-page role. The UIKit header owns a compact 32px sidebar action at allocated widths <=640px and stays sticky inside Settings scrolling. The action selects the Settings tool and opens WorkspaceSidebar; it does not depend on the floating controls or their scroll visibility. No other plugin DOM is inspected or styled. Native acceptance remains pending in Luna and Monochrome: narrow/short Settings, scrolling, focus and reopening Sidebar then returning to Files.
+Manual acceptance in the running application covers desktop and compact window
+geometry, category and page scrolling, keyboard and touch focus, nested popups,
+the virtual keyboard and theme changes. See the
+[settings reference](../../../../DOCS/reference/settings.md) for the extension API.

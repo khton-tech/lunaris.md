@@ -4,9 +4,11 @@ import type { LoggerApi } from "@lunaris/logging";
 import type { SettingsSection } from "@lunaris/settings";
 import type { WorkspaceContext } from "@lunaris/workspace";
 
+type PageSection = Pick<SettingsSection, "id" | "title" | "componentId" | "props"> & { readonly description?: string | undefined };
 export interface PageInput extends ComponentProps {
   readonly categoryId?: string | null;
-  readonly title: string; readonly icon?: string; readonly emptyLabel: string; readonly sections: readonly SettingsSection[];
+  readonly overlayTarget?: HTMLElement;
+  readonly title: string; readonly icon?: string | undefined; readonly emptyLabel: string; readonly sections: readonly PageSection[];
   readonly unavailable: string; readonly unavailableDetail: string;
 }
 interface SectionView { readonly owner: ResourceScope; readonly componentId: string; readonly mounted: MountedComponent; props: unknown; readonly failed: boolean }
@@ -33,7 +35,7 @@ export function mountSettingsPage(ctx: PluginContext, components: ComponentsApi,
       release(section.owner); sections.delete(id);
     }
     const compact = (props.workspace as WorkspaceContext | undefined)?.compact;
-    const layoutProps = { ...(typeof props.onNavigation === "function" ? { onNavigation: props.onNavigation, navigationLabel: props.navigationLabel } : {}), compact, categoryId: props.categoryId, title: props.title, icon: props.icon, emptyLabel: props.emptyLabel, sections: descriptions.map(item => ({ id: item.id, title: item.title, description: (item as SettingsSection & { description?: string }).description })), onTargets, presentation: { mode: "embedded", sizing: "fill" } };
+    const layoutProps = { compact, hideTitle: compact === true, categoryId: props.categoryId, title: props.title, icon: props.icon, emptyLabel: props.emptyLabel, sections: descriptions.map(item => ({ id: item.id, title: item.title, description: item.description })), onTargets, presentation: { mode: "embedded", sizing: "fill" } };
     if (layout) { const result = layout.update(layoutProps); if (!result.ok) { logger.warn(ctx.pluginId, "Settings layout needs replacement", { error: result.error }); clear(); } }
     if (!layout) {
       layoutOwner = owner.child(); const result = components.mount("lunaris.settings-page", target, layoutProps, layoutOwner.signal);
@@ -42,19 +44,20 @@ export function mountSettingsPage(ctx: PluginContext, components: ComponentsApi,
     }
     for (const section of descriptions) {
       const element = targets?.get(section.id); if (!element) continue;
+      const sectionProps = { ...section.props, workspace: props.workspace, overlayTarget: props.overlayTarget, presentation: { mode: "embedded", sizing: "content" } };
       let current = sections.get(section.id);
       const available = components.has(section.componentId);
       if (current && current.failed && (available || current.props !== section.props)) {
         release(current.owner); sections.delete(section.id); current = undefined;
       }
       if (current) {
-        const updated = current.mounted.update(current.failed ? { title: props.unavailable, detail: props.unavailableDetail, presentation: { mode: "embedded", sizing: "content" } } : { ...section.props, workspace: props.workspace, presentation: { mode: "embedded", sizing: "content" } });
+        const updated = current.mounted.update(current.failed ? { title: props.unavailable, detail: props.unavailableDetail, presentation: { mode: "embedded", sizing: "content" } } : sectionProps);
         if (!updated.ok) { logger.error(ctx.pluginId, "Cannot update settings section", { data: { id: section.id }, error: updated.error }); release(current.owner); sections.delete(section.id); current = undefined; }
         else current.props = section.props;
       }
       if (current) continue;
       let child = owner.child(); let failed = false;
-      let result = components.mount(section.componentId, element, { ...section.props, workspace: props.workspace, presentation: { mode: "embedded", sizing: "content" } }, child.signal);
+      let result = components.mount(section.componentId, element, sectionProps, child.signal);
       if (!result.ok) {
         logger.warn(ctx.pluginId, "Settings section unavailable", { data: { id: section.id, componentId: section.componentId }, error: result.error });
         release(child); child = owner.child(); failed = true;

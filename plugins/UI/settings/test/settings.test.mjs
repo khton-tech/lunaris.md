@@ -1,21 +1,24 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { setupWorkspace, panel, flush } from '../../../../tools/test/workspace.mjs';
+import { setupWorkspace, openSettings, panel, flush } from '../../../../tools/test/workspace.mjs';
 import { typeInput } from '../../../../tools/test/browser.mjs';
 const setup = () => setupWorkspace({ settings: true });
 const button = s => s.surface.querySelector('.lm-sidebar-tab[aria-label="Settings"]');
+const dialog = s => s.surface.querySelector('.lm-settings-dialog');
+const close = async s => { dialog(s).querySelector('[aria-label="Close settings"]').click(); await flush(); };
 const category = (s, title) => [...s.surface.querySelectorAll('.lm-settings-category')].find(element => element.textContent === title);
 const register = (s, id = 'test.category', title = 'Example') => s.tools.settings.registerCategory({ id, title }, s.ctx.signal);
 const section = (s, extra = {}, owner = s.ctx.signal) => s.tools.settings.registerSection({ id: 'test.section', categoryId: 'test.category', title: 'Controls', componentId: 'test.controls', ...extra }, owner);
 
-test('Settings preserves the Workspace panel surface and lends explicit embedded intrinsic presentation to sections', async () => {
+test('the Workspace owns the overlay and Settings lends explicit embedded intrinsic presentation to sections', async () => {
   const s = await setup(); const form = panel(s, 'test.controls'); register(s);
   section(s, { props: { presentation: { mode: 'standalone', sizing: 'fill' } } }); await s.open();
-  s.tools.sidebar.select('lunaris.settings.navigation'); await flush();
-  const region = s.surface.querySelector('.lm-workspace-panel');
+  await openSettings(s);
+  const region = s.surface.querySelector('[data-workspace-region="overlay"]');
   const navigation = region.querySelector('.lm-settings-navigation');
   const roots = () => [...region.querySelectorAll('.lm-root')];
-  assert.ok(region.classList.contains('lm-workspace-card'));
+  assert.ok(region.contains(dialog(s)));
+  assert.equal(s.surface.querySelector('.lm-workspace-panel').hidden, true, 'Settings owns no panel contribution');
   assert.equal(navigation.style.backgroundColor, '');
   for (const root of roots()) assert.ok(['', 'transparent'].includes(root.style.backgroundColor));
   category(s, 'Example').click(); await flush();
@@ -33,35 +36,50 @@ test('Settings preserves the Workspace panel surface and lends explicit embedded
   await s.stop();
 });
 
-test('foundation adds a bottom settings entry and shows empty navigation without fake settings or writes', async () => {
+test('the bottom rail action opens an accessible empty dialog without selecting a sidebar or screen tab', async () => {
   const s = await setup(); await s.open();
   assert.equal(button(s).parentElement.classList.contains('lm-sidebar-end'), true);
-  button(s).click(); await flush();
-  // The sole tab may already be active; explicitly open it after a toggle.
-  s.tools.sidebar.select('lunaris.settings.navigation'); await flush();
-  assert.match(s.surface.querySelector('.lm-workspace-panel').textContent, /No settings available/);
+  assert.equal(button(s).getAttribute('aria-haspopup'), 'dialog');
+  await openSettings(s);
+  assert.match(dialog(s).textContent, /No settings available/);
+  assert.equal(dialog(s).getAttribute('aria-modal'), 'true');
+  assert.equal(s.tools.sidebar.snapshot().activeId, null);
   assert.deepEqual(s.tools.settings.snapshot(), { categories: [], sections: [], groups: [], items: [] });
   assert.equal(s.tools.screens.snapshot().activeId, null); assert.deepEqual(s.preferenceWrites, []); await s.stop();
 });
-test('categories open one settings screen and section views survive props, locale, theme and Sidebar updates', async () => {
-  const s = await setup(); const view = panel(s, 'test.controls'); register(s); section(s); await s.open();
-  s.tools.sidebar.select('lunaris.settings.navigation'); await flush(); category(s, 'Example').click(); await flush();
-  assert.equal(s.tools.screens.snapshot().activeId, 'lunaris.settings.screen');
-  const tab = s.surface.querySelector('.lm-workspace-tabs [role=tab][aria-selected=true]');
-  assert.equal(tab.textContent, 'Settings');
+test('desktop Settings preserves workspace and sidebar selection, theme updates and focus on dismissal', async () => {
+  const s = await setup(); const view = panel(s, 'test.controls'); panel(s, 'test.files'); panel(s, 'test.editor'); register(s); section(s);
+  s.tools.sidebar.register({ id: 'test.files', title: 'Files', icon: 'files', componentId: 'test.files' }, s.ctx.signal);
+  s.tools.screens.register({ id: 'test.editor', componentId: 'test.editor', props: { tabTitle: 'Document' } }, s.ctx.signal);
+  await s.open(); s.tools.screens.select('test.editor'); await flush();
+  const editor = s.surface.querySelector('[data-panel="test.editor"]');
+  const sidebar = s.surface.querySelector('[data-panel="test.files"]');
+  const opener = button(s); opener.focus(); await openSettings(s);
+  assert.equal(s.tools.screens.snapshot().activeId, 'test.editor');
+  assert.equal(s.tools.sidebar.snapshot().activeId, 'test.files');
+  assert.ok(editor?.isConnected && sidebar?.isConnected);
+  const background = s.surface.querySelector('.lm-workspace-background');
+  assert.equal(background.hasAttribute('inert'), true);
   const content = s.surface.querySelector('[data-settings-section="test.section"] article'); assert.ok(content);
   s.tools.settings.updateSection('test.section', { title: 'Updated controls', props: { label: 'Changed' } }); await flush();
   assert.equal(s.surface.querySelector('[data-settings-section="test.section"] article'), content); assert.match(content.textContent, /Changed/);
   s.tools.localization.register('test.translations', { en: {}, fr: {} }, s.ctx.signal); s.tools.localization.setLocale('fr');
   s.tools.themes.select(null); await flush(); assert.equal(s.surface.querySelector('[data-settings-section="test.section"] article'), content);
-  assert.equal(s.surface.querySelector('.lm-workspace-tabs [role=tab][aria-selected=true]'), tab);
-  s.tools.sidebar.select(null); await flush(); assert.equal(content.isConnected, true);
-  s.tools.sidebar.select('lunaris.settings.navigation'); await flush(); assert.equal(category(s, 'Example').getAttribute('aria-current'), 'page');
-  assert.equal(view.releases.length, 0); assert.deepEqual(s.preferenceWrites, []); await s.stop();
+  assert.equal(category(s, 'Example').getAttribute('aria-current'), 'page');
+  dialog(s).querySelector('[aria-label="Close settings"]').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  await flush();
+  assert.ok(!dialog(s)); assert.equal(background.hasAttribute('inert'), false);
+  assert.ok(s.dom.window.document.activeElement === opener, 'Desktop focus returns to the rail action');
+  assert.equal(s.surface.querySelector('[data-panel="test.editor"]'), editor);
+  assert.equal(s.surface.querySelector('[data-panel="test.files"]'), sidebar);
+  assert.equal(view.releases.length, 1);
+  await openSettings(s); s.surface.querySelector('.lm-settings-window-backdrop').click(); await flush();
+  assert.ok(!dialog(s)); assert.equal(view.releases.length, 2);
+  assert.deepEqual(s.preferenceWrites, []); await s.stop();
 });
 test('switching categories releases old sections and supports categories without controls', async () => {
   const s = await setup(); const view = panel(s, 'test.controls'); register(s); register(s, 'test.other', 'Other'); section(s); await s.open();
-  category(s, 'Example').click(); await flush(); const old = s.surface.querySelector('[data-settings-section]');
+  await openSettings(s); const old = s.surface.querySelector('[data-settings-section]');
   const page = s.surface.querySelector('.lm-settings-page'); page.scrollTop = 420;
   s.tools.settings.updateCategory('test.category', { title: 'Translated' }); await flush();
   assert.equal(page.scrollTop, 420, 'updates within the current category preserve the reading position');
@@ -71,50 +89,49 @@ test('switching categories releases old sections and supports categories without
 });
 test('orphan and missing sections appear after late category/role registration, recover and leave on owner removal', async () => {
   const s = await setup(); const owner = s.ctx.scope.child(); section(s, {}, owner.signal); await s.open();
-  register(s); await flush(); category(s, 'Example').click(); await flush();
+  await openSettings(s); register(s); await flush();
   assert.match(s.surface.querySelector('.lm-settings-page').textContent, /Section unavailable/);
   const view = panel(s, 'test.controls'); await flush(); assert.ok(s.surface.querySelector('[data-settings-section] article'));
   await view.owner.dispose(); await flush(); assert.match(s.surface.querySelector('.lm-settings-page').textContent, /Section unavailable/);
   panel(s, 'test.controls'); await flush(); assert.ok(s.surface.querySelector('[data-settings-section] article'));
   await owner.dispose(); await flush(); assert.equal(s.surface.querySelector('[data-settings-section]'), null); await s.stop();
 });
-test('Vault changes clear selected categories and section instances without reopening settings', async () => {
+test('Vault changes close settings and cancel section instances', async () => {
   const s = await setup(); const view = panel(s, 'test.controls'); register(s); section(s); await s.open();
-  category(s, 'Example').click(); await flush(); const old = s.surface.querySelector('[data-settings-section]');
-  await s.open(); assert.equal(old.isConnected, false); assert.equal(s.tools.screens.snapshot().activeId, null);
-  assert.equal(category(s, 'Example').getAttribute('aria-current'), null); assert.ok(view.releases.length >= 1);
-  category(s, 'Example').click(); await flush(); assert.match(s.surface.querySelector('.lm-settings-page').textContent, /Example/);
+  await openSettings(s); const old = s.surface.querySelector('[data-settings-section]');
+  await s.open(); assert.equal(old.isConnected, false); assert.ok(!dialog(s));
+  assert.equal(s.tools.screens.snapshot().activeId, null); assert.equal(view.releases.length, 1);
+  await openSettings(s); assert.match(s.surface.querySelector('.lm-settings-page').textContent, /Example/);
   await s.service.close(); await flush(); assert.equal(s.surface.querySelector('.lm-settings-page'), null); await s.stop();
 });
 
 test('failed sections recover after props updates and removing the current category releases its view', async () => {
   const s = await setup(); const options = { fail: true }; const view = panel(s, 'test.controls', options);
   const owner = s.ctx.scope.child(); s.tools.settings.registerCategory({ id: 'test.category', title: 'Example' }, owner.signal); section(s); await s.open();
-  category(s, 'Example').click(); await flush(); assert.match(s.surface.querySelector('.lm-settings-page').textContent, /Section unavailable/);
+  await openSettings(s); assert.match(s.surface.querySelector('.lm-settings-page').textContent, /Section unavailable/);
   options.fail = false; s.tools.settings.updateSection('test.section', { title: 'Recovered', props: { label: 'Ready' } }); await flush();
   assert.match(s.surface.querySelector('[data-settings-section] article').textContent, /Ready/);
   await owner.dispose(); await flush(); assert.equal(view.releases.length, 1); assert.equal(s.surface.querySelector('[data-settings-section]'), null);
-  assert.match(s.surface.querySelector('.lm-settings-page').textContent, /Select a category/); await s.stop();
+  assert.match(dialog(s).textContent, /No settings available/); await s.stop();
 });
 
-test('screen switching preserves settings inputs; callbacks from a released navigation view are inert', async () => {
+test('closing Settings releases its inputs and an old category button cannot reopen it', async () => {
   const s = await setup(); register(s); section(s); let disposed = 0;
   s.tools.components.register({ id: 'test.controls', mount(target) {
     const input = target.ownerDocument.createElement('input'); target.append(input);
     return { update() {}, dispose() { disposed++; input.remove(); } };
   } }, s.ctx.signal);
-  await s.open(); const oldButton = category(s, 'Example'); oldButton.click(); await flush();
+  await s.open(); await openSettings(s); const oldButton = category(s, 'Example');
   const input = s.surface.querySelector('[data-settings-section] input'); input.value = 'Draft';
   s.tools.screens.select(null); await flush(); assert.equal(input.isConnected, true);
-  category(s, 'Example').click(); await flush(); assert.equal(s.surface.querySelector('[data-settings-section] input'), input); assert.equal(input.value, 'Draft');
-  s.tools.sidebar.select(null); await flush(); s.tools.screens.select(null); oldButton.click(); await flush();
-  assert.equal(s.tools.screens.snapshot().activeId, null);
-  await s.open(); oldButton.click(); await flush(); assert.equal(s.tools.screens.snapshot().activeId, null); assert.equal(disposed, 1); await s.stop();
+  await close(s); assert.equal(input.isConnected, false); assert.equal(disposed, 1);
+  oldButton.click(); await flush(); assert.ok(!dialog(s));
+  await s.open(); oldButton.click(); await flush(); assert.ok(!dialog(s)); await s.stop();
 });
 
 const group = (s, id = 'test.group', extra = {}, owner = s.ctx.signal) => s.tools.settings.registerGroup({ id, categoryId: 'test.category', title: 'Group', ...extra }, owner);
 const item = (s, id, extra = {}, owner = s.ctx.signal) => s.tools.settings.registerItem({ id, groupId: 'test.group', title: id, type: 'text', value: '', onChange() {}, ...extra }, owner);
-const openCategory = async s => { await s.open(); s.tools.sidebar.select('lunaris.settings.navigation'); await flush(); category(s, 'Example').click(); await flush(); };
+const openCategory = async s => { await s.open(); await openSettings(s); category(s, 'Example').click(); await flush(); };
 
 test('category icons follow public metadata and slider reset shares item cancellation and pending guards', async () => {
   const s = await setup(); register(s); group(s);
@@ -184,18 +201,43 @@ test('declarative callback failures are contained, logged with the original erro
   assert.ok(s.logs.some(log => log[0] === 'error' && log[3]?.error === original)); await s.stop();
 });
 
-test('opening a settings category closes mobile presentation while preserving navigation selection', async () => {
- const s=await setupWorkspace({settings:true,mobileMenu:true});
- try {
-  s.dom.window.HTMLElement.prototype.getBoundingClientRect=()=>new s.dom.window.DOMRect(0,0,360,720);
-  register(s); await s.open(); s.tools.sidebar.select('lunaris.settings.navigation'); await flush();
-  s.tools.navigation.open(); await flush(); assert.equal(s.tools.navigation.isOpen(),true);
-  category(s,'Example').click(); await flush(); assert.equal(s.tools.navigation.isOpen(),false);
-  assert.equal(s.tools.screens.snapshot().activeId,'lunaris.settings.screen');
-  const reopen=s.surface.querySelector('.lm-settings-open-sidebar'); assert.ok(reopen);
-  reopen.click(); await flush(); assert.equal(s.tools.navigation.isOpen(),true);
-  category(s,'Example').click(); await flush(); assert.equal(s.tools.navigation.isOpen(),false);
-  s.tools.navigation.open(); await flush(); category(s,'Example').click(); await flush();
-  assert.equal(s.tools.navigation.isOpen(),false);
- } finally {await s.stop();}
+test('mobile Settings opens full screen from the dock and navigates between the list and category', async () => {
+  const s = await setupWorkspace({ settings: true, mobileMenu: true });
+  try {
+    let width = 360; let resize;
+    const { ResizeObserver } = s.dom.window;
+    s.dom.window.ResizeObserver = globalThis.ResizeObserver = class extends ResizeObserver {
+      constructor(callback) { super(callback); this.callback = callback; }
+      observe(element) { if (element.classList.contains('lm-workspace-layout')) resize = this.callback; }
+    };
+    s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, width, 720);
+    const view = panel(s, 'test.controls'); register(s); section(s); await s.open();
+    assert.ok(!s.surface.querySelector('.lm-sidebar-rail button[aria-label="Settings"]'));
+    const launcher = s.surface.querySelector('.lm-workspace-mobile-toolbar button[aria-label="Settings"]');
+    assert.ok(launcher); launcher.focus(); launcher.click(); await flush();
+    assert.equal(dialog(s).hasAttribute('data-full-screen'), true);
+    assert.ok(!s.surface.querySelector('.lm-settings-page'));
+    const entry = category(s, 'Example'); assert.ok(entry);
+    const navigation = entry.closest('.lm-settings-navigation'); navigation.scrollTop = 40;
+    entry.click(); await flush();
+    assert.equal(entry.closest('[hidden]')?.className, 'lm-settings-window-navigation');
+    assert.equal(dialog(s).querySelector('.lm-settings-dialog-title').textContent, 'Example');
+    const viewNode = dialog(s).querySelector('[data-settings-section] article'); assert.ok(viewNode);
+    width = 1200; resize(); await flush();
+    assert.equal(dialog(s).hasAttribute('data-full-screen'), false);
+    assert.ok(dialog(s).querySelector('[data-settings-section] article') === viewNode);
+    width = 360; resize(); await flush();
+    assert.equal(dialog(s).hasAttribute('data-full-screen'), true);
+    assert.ok(dialog(s).querySelector('[data-settings-section] article') === viewNode);
+    const back = dialog(s).querySelector('[aria-label="Back to categories"]');
+    back.click(); await flush();
+    assert.ok(!s.surface.querySelector('.lm-settings-page'));
+    assert.equal(view.releases.length, 1);
+    assert.equal(navigation.scrollTop, 40);
+    assert.ok(s.dom.window.document.activeElement === entry, 'Back restores the category row');
+    assert.equal(s.tools.screens.snapshot().activeId, null);
+    assert.equal(s.tools.navigation.isOpen(), false);
+    await close(s); assert.ok(!dialog(s));
+    assert.ok(s.dom.window.document.activeElement === launcher, 'Mobile focus returns to the dock action');
+  } finally { await s.stop(); }
 });
