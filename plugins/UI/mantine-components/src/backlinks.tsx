@@ -1,6 +1,7 @@
+import { ActionButton } from "./action-button.js";
 import { ProductDropdown } from "./product-dropdown.js";
 import { useId, useLayoutEffect, useRef, useState } from "react";
-import { ActionIcon, Box, Button, Group, Menu, Text, TextInput, UnstyledButton } from "@mantine/core";
+import { ActionIcon, Box, Group, Menu, Text, TextInput, UnstyledButton } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
@@ -44,7 +45,7 @@ function SourceGroup({ source, collapsed, busy, linkLabel }: { source: Source; c
       <UnstyledButton className="lm-backlink-context lm-focus" disabled={busy} onClick={result.onOpen} title={`${source.id}:${result.line}`}>
         {result.before}<mark>{result.match}</mark>{result.after}
       </UnstyledButton>
-      {result.onLink && <Button size="compact-xs" variant="subtle" disabled={busy} onClick={result.onLink}>{linkLabel}</Button>}
+      {result.onLink && <ActionButton disabled={busy} onClick={result.onLink}>{linkLabel}</ActionButton>}
     </Box>)}</Box>
   </Box>;
 }

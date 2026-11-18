@@ -1,5 +1,6 @@
+import { ActionButton } from "./action-button.js";
 import { useLayoutEffect, useRef, useState } from "react";
-import { Box, Button, Group, Text, Textarea, TextInput } from "@mantine/core";
+import { Box, Group, Text, Textarea, TextInput } from "@mantine/core";
 import type { KeyboardEvent } from "react";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
@@ -139,22 +140,22 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
     {hasFeedback && <Box className="lm-editor-feedback lm-editor-column" style={columnStyle}>
       {!!props.recoveryCandidates?.length && <Box className="lm-editor-draft-choices" role="group" aria-label={props.recoveryLabel}>
         <Text size="sm">{props.recoveryLabel}</Text>
-        {props.recoveryCandidates.map(item => <Button key={item.id} size="compact-xs" variant="subtle" styles={{ root: { height: "auto", maxWidth: "100%" }, label: { whiteSpace: "pre-wrap", overflowWrap: "anywhere" } }} disabled={props.busy} onClick={() => props.onRecovery?.(item.id)}>{item.label}</Button>)}
+        {props.recoveryCandidates.map(item => <ActionButton key={item.id} styles={{ root: { height: "auto", maxWidth: "100%" }, label: { whiteSpace: "pre-wrap", overflowWrap: "anywhere" } }} disabled={props.busy} onClick={() => props.onRecovery?.(item.id)}>{item.label}</ActionButton>)}
       </Box>}
       {props.commandError && <Text size="sm" role="alert" className="lm-editor-error">{props.commandError}</Text>}
       {!props.ready && <Text className="lm-editor-placeholder" size="sm" c="dimmed" role="status">{props.status || props.name}</Text>}
       {props.error && <Group className="lm-editor-error" gap="xs">
         <Text size="sm" role="alert">{props.error}</Text>
-        {props.ready && props.dirty && props.canRetrySave !== false && <Button size="compact-xs" onClick={props.onSave} disabled={props.busy}>{props.retryLabel}</Button>}
-        {props.copyBufferLabel && <Button size="compact-xs" variant="light" disabled={props.busy} onClick={props.onCopyBuffer}>{props.copyBufferLabel}</Button>}
-        {props.saveCopyLabel && <Button ref={saveCopyButton} size="compact-xs" variant="light" disabled={props.busy}
-          aria-expanded={namingCopy || undefined} onClick={() => props.onSaveCopy?.()}>{props.saveCopyLabel}</Button>}
-        <Button size="compact-xs" {...(props.copyBufferLabel ? { variant: "subtle" } : {})} disabled={props.busy} onClick={() => {
+        {props.ready && props.dirty && props.canRetrySave !== false && <ActionButton onClick={props.onSave} disabled={props.busy}>{props.retryLabel}</ActionButton>}
+        {props.copyBufferLabel && <ActionButton disabled={props.busy} onClick={props.onCopyBuffer}>{props.copyBufferLabel}</ActionButton>}
+        {props.saveCopyLabel && <ActionButton ref={saveCopyButton} disabled={props.busy}
+          aria-expanded={namingCopy || undefined} onClick={() => props.onSaveCopy?.()}>{props.saveCopyLabel}</ActionButton>}
+        <ActionButton disabled={props.busy} onClick={() => {
           if (props.dirty) setConfirm(true); else props.onReload();
-        }}>{props.reloadLabel}</Button>
+        }}>{props.reloadLabel}</ActionButton>
         {confirm && <Group gap="xs">
-          <Button size="compact-xs" disabled={props.busy} onClick={() => { setConfirm(false); props.onReload(); }}>{props.discardLabel}</Button>
-          <Button size="compact-xs" onClick={() => setConfirm(false)}>{props.cancelLabel}</Button>
+          <ActionButton disabled={props.busy} onClick={() => { setConfirm(false); props.onReload(); }}>{props.discardLabel}</ActionButton>
+          <ActionButton onClick={() => setConfirm(false)}>{props.cancelLabel}</ActionButton>
         </Group>}
       </Group>}
       {namingCopy && <Group component="form" gap="xs" align="flex-start" onSubmit={event => {
@@ -165,8 +166,8 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
       }}>
         <TextInput size="xs" label={props.saveCopyNameLabel} value={copyName} error={props.saveCopyNameError}
           errorProps={{ role: "alert" }} disabled={props.busy} onChange={event => setCopyName(event.currentTarget.value)} />
-        <Button type="submit" size="compact-xs" disabled={props.busy || !copyName.trim()}>{props.saveLabel}</Button>
-        <Button type="button" size="compact-xs" variant="subtle" disabled={props.busy} onClick={cancelCopyName}>{props.cancelLabel}</Button>
+        <ActionButton type="submit" disabled={props.busy || !copyName.trim()}>{props.saveLabel}</ActionButton>
+        <ActionButton type="button" disabled={props.busy} onClick={cancelCopyName}>{props.cancelLabel}</ActionButton>
       </Group>}
       {props.recoveryError && <Text size="sm" role="alert" className="lm-editor-error">{props.recoveryError}</Text>}
       {props.recoveryStatus && <Text size="sm" role="status" c="dimmed">{props.recoveryStatus}</Text>}

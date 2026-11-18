@@ -15,6 +15,8 @@ const temp = await mkdtemp(path.join(tmpdir(), 'lunaris-render-'));
 const scenes = [
   ['server', 'monochrome', 1120, 740],
   ['account-menu', 'monochrome', 1120, 740],
+  ['buttons', 'rose-pine', 1120, 740],
+  ['buttons-disabled', 'monochrome', 1120, 740],
   ['package', 'windows-xp-dark', 844, 390],
   ['selector', 'monochrome', 1120, 740],
   ['create', 'windows-xp', 1120, 740],
@@ -130,11 +132,11 @@ function scenePlugins(view, theme) {
         capabilitiesFor: unsupported, remoteIdentity: unsupported, locationVisible: () => true });
     }));
     grants['lunaris.vault-selector'] = ['ui.dom', 'vault.access', 'account.access'];
-  } else if (view === 'package') {
+  } else if (view === 'package' || view.startsWith('buttons')) {
     ui = limeSettings;
     providers.push(sampleProvider('sample.packages', [Lime, LimeChanged], ctx => {
       ctx.provide(Lime, {
-        snapshot: () => ({ vaultId: 'vault-1', busy: false, safeMode: false, error: null, installations: [] }),
+        snapshot: () => ({ vaultId: 'vault-1', busy: view === 'buttons-disabled', safeMode: false, error: null, installations: view.startsWith('buttons') ? [{ id: sampleManifest.id, version: sampleManifest.version, manifest: sampleManifest, enabled: true, recoveryRequired: false, removalPending: false, state: 'active' }] : [] }),
         composition: unsupported, plan: unsupported, selectProvider: unsupported, applyComposition: unsupported,
         cancelPreview: unsupported, install: unsupported, update: unsupported, enable: unsupported, disable: unsupported,
         retry: unsupported, remove: unsupported, restore: unsupported,
@@ -205,7 +207,7 @@ async function renderScene({ view, theme }) {
     required('.lm-settings-category').click();
     await flush();
     if (view === 'package') {
-      required('.lm-lime-toolbar button[data-variant=filled]').click();
+      required('.lm-lime-toolbar button[data-accent]').click();
       await flush();
       await new Promise(resolve => setTimeout(resolve, 250));
       const dialog = required('.lm-lime-overlay [role=dialog]');
@@ -222,7 +224,18 @@ async function renderScene({ view, theme }) {
       dialog.scrollTop = 0;
     }
     const fields = document.querySelectorAll('.lm-settings-items [role=combobox]');
-    if (view !== 'package' && fields.length !== 2) throw new Error('Missing interface preferences.');
+    if (view.startsWith('buttons')) {
+      const actions = [...document.querySelectorAll('.lm-lime-settings .lm-button')].filter(button => button.getBoundingClientRect().height);
+      const accent = required('.lm-lime-toolbar [data-accent]');
+      const normal = required('.lm-lime-package-header .lm-button');
+      if (actions.length < 4 || actions.some(button => {
+        const style = getComputedStyle(button);
+        return button.disabled !== (view === 'buttons-disabled') || style.backgroundColor !== 'rgba(0, 0, 0, 0)'
+          || style.backgroundImage !== 'none' || style.borderTopStyle !== 'solid' || Math.abs(button.getBoundingClientRect().height - 30) > 1;
+      })) throw new Error('Unexpected package button surface or size: ' + actions.map(b => [b.textContent,b.disabled,b.offsetHeight,getComputedStyle(b).backgroundColor,getComputedStyle(b).borderTopStyle].join('/')).join(', '));
+      if (view === 'buttons' && getComputedStyle(accent).borderColor === getComputedStyle(normal).borderColor) throw new Error('Missing accent outline.');
+    }
+    if (!view.startsWith('buttons') && view !== 'package' && fields.length !== 2) throw new Error('Missing interface preferences.');
     if (view === 'menu') {
       fields[1].click();
       await flush();

@@ -886,14 +886,14 @@ test('folder picker uses one native button, shares input sizing and keeps primar
   assert.equal(form.querySelectorAll('[aria-label=Browse]').length, 1);
   picker.querySelector('.ln-vault-path').click(); assert.equal(browsed, 1); assert.equal(submitted, 0);
   const next = form.querySelector('[type=submit]');
-  assert.equal(next.dataset.variant, 'filled'); assert.equal(next.style.getPropertyValue('--button-bg'), '#abcdef');
-  assert.equal(next.style.getPropertyValue('--button-color'), '#123456');
+  assert.equal(next.dataset.variant, 'outline'); assert.ok(next.hasAttribute('data-accent'));
+  assert.equal(next.closest('.ln-vault').style.getPropertyValue('--vault-accent-foreground'), '#abcdef');
   result.value.update({ ...props, busy: true }); picker.click(); next.click();
   assert.equal(browsed, 1); assert.equal(submitted, 0); assert.equal(input.disabled, true);
   result.value.update(props); next.click(); assert.equal(submitted, 1);
   s.themes.update({ ...theme, properties: { colors: { accent: '#112233', onAccent: '#ffffff' } } });
   assert.equal(form.querySelector('[type=submit]'), next);
-  assert.equal(next.style.getPropertyValue('--button-bg'), '#112233');
+  assert.equal(next.closest('.ln-vault').style.getPropertyValue('--vault-accent-foreground'), '#112233');
   await s.stop();
 });
 
@@ -1691,7 +1691,7 @@ test('Workspace owns supporting cards and an open main region across desktop and
     assert.equal(style(recent).boxShadow, xp ? 'var(--vault-surface-shadow)' : 'none');
     assert.equal(recent.querySelector('button'), row);
     assert.equal(targets.main.querySelector('button[data-variant=outline]'), create);
-    assert.equal(style(create).backgroundImage, 'var(--vault-button-image,none)');
+    assert.equal(style(create).backgroundImage, 'none');
     assert.ok(!style(row).backgroundImage.includes('--vault-button-image'));
    }
    empty.value.dispose(); files.value.dispose(); rail.value.dispose(); layout.value.dispose();

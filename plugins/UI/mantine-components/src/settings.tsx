@@ -1,5 +1,6 @@
+import { ActionButton } from "./action-button.js";
 import { useId, useLayoutEffect, useRef } from "react";
-import { ActionIcon, Box, Button, Stack, Text, Title } from "@mantine/core";
+import { ActionIcon, Box, Stack, Text, Title } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
@@ -30,7 +31,7 @@ export function SettingsChoices({ props, theme }: { props: ChoicesProps; theme: 
       options={field.options} disabled={props.disabled || field.options.length === 0}
       onChange={value => props.onChange(field.id, value)} />)}
     {props.error && <Text role="alert" c="var(--vault-error)" size="sm">{props.error}</Text>}
-    {props.canRetry && <Button variant="subtle" disabled={props.disabled} onClick={props.onRetry}>{props.retryLabel}</Button>}
+    {props.canRetry && <ActionButton disabled={props.disabled} onClick={props.onRetry}>{props.retryLabel}</ActionButton>}
   </Stack>;
 }
 interface NavigationProps {

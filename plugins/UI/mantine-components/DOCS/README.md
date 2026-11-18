@@ -4,6 +4,15 @@ The [November interface review](../../../../DOCS/design/interface-review-2026-11
 records the current scroll and surface ownership, themed control states and
 reproducible geometry checks across the Vault selector, Workspace and Settings.
 
+## Action buttons
+
+Use ActionButton for labeled commands such as Add plugin, Update, Save or
+Cancel. It gives commands a compact outlined surface with a 30 px desktop
+minimum and a 44 px touch target. Set `accent` for a primary command.
+Disabled commands have a transparent background and muted text and border.
+Navigation rows, tab controls, menu triggers and icon tools use their own
+role-specific components.
+
 ## Dropdowns
 
 ProductDropdown is the shared Mantine surface for action menus, nested menus

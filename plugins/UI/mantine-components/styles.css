@@ -791,7 +791,7 @@
 
 /* Action finishes follow the state backgrounds. Rows and destructive actions
    retain their own semantic surfaces. */
-.lm-root .lm-button:not(:where(.lm-card-row,.lm-tool-navigation-item,.lm-explorer-tabs,.lm-workspace-recent-row,.lm-explorer-delete-confirm)):not(:disabled,[data-disabled]) {
+.lm-root .lm-button:not(:where(.lm-card-row,.lm-tool-navigation-item,.lm-explorer-tabs,.lm-workspace-recent-row,.lm-explorer-delete-confirm,.lm-action-button)):not(:disabled,[data-disabled]) {
   background-image:var(--vault-button-image,none);border-color:var(--vault-button-border,var(--button-bd));box-shadow:var(--vault-button-shadow,none);
   --action-hover-image:var(--vault-button-hover-image,none);--action-pressed-image:var(--vault-button-pressed-image,none)
 }
@@ -805,8 +805,7 @@
 }
 .lm-root .lm-button:not(:disabled,[data-disabled]):active { background-image:var(--action-pressed-image,none) }
 .lm-root .lm-button[data-variant=filled]:not(:disabled,[data-disabled]):active { background-image:var(--action-pressed-image,none) }
-.lm-workspace-recent,
-.lm-root .lm-workspace-empty-actions .lm-button[data-variant=outline]:enabled { border:var(--vault-border) solid var(--vault-button-border,var(--vault-separator)) }
+.lm-workspace-recent { border:var(--vault-border) solid var(--vault-button-border,var(--vault-separator)) }
 
 /* Boolean controls use semantic surfaces even outside Windows presets. */
 :is(.lm-settings-items,.lm-lime-settings) .mantine-Switch-track { --switch-bg:var(--vault-content);border:var(--vault-border) solid var(--vault-control-border);transition:background-color var(--vault-motion-fast) var(--vault-motion-easing),border-color var(--vault-motion-fast) var(--vault-motion-easing) }
@@ -1296,3 +1295,18 @@
   overscroll-behavior: contain;
   scrollbar-width: none;
 }
+
+/* Only labeled commands opt into the outlined action treatment. */
+.lm-root .lm-button.lm-action-button {
+  --action-border:var(--vault-control-border);
+  height:auto;min-height:30px;padding:3px calc(var(--vault-space)*2.5);
+  line-height:1.35;border:var(--vault-border) solid var(--action-border);
+  border-radius:var(--vault-radius-small);background:transparent;box-shadow:none;color:var(--vault-text)
+}
+.lm-root .lm-action-button[data-accent] { --action-border:var(--vault-accent-foreground);color:var(--vault-accent-foreground) }
+.lm-root .lm-action-button.lm-explorer-delete-confirm:not([data-disabled]) { --action-border:var(--vault-error);color:var(--vault-error);background:transparent }
+.lm-root .lm-button.lm-action-button:is(:disabled,[data-disabled],[aria-disabled=true]) {
+  --button-bg:transparent;--button-color:var(--vault-secondary);--button-bd:var(--vault-separator);
+  background:transparent;border-color:var(--vault-separator);color:var(--vault-secondary);box-shadow:none
+}
+@media (pointer:coarse),(max-width:640px) { .lm-root .lm-button.lm-action-button { min-height:44px } }

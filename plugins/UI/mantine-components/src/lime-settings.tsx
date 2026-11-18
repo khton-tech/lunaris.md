@@ -1,7 +1,8 @@
+import { ActionButton } from "./action-button.js";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Box, Button, Group, Modal, Stack, Switch, Tabs, Text } from "@mantine/core";
+import { Box, Group, Modal, Stack, Switch, Tabs, Text } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
 import { Icon } from './icons.js';
@@ -106,10 +107,10 @@ function PackagePreview({ preview, props }: { preview: NonNullable<Props['previe
       {preview.warning && <Text role="alert" size="sm" c="var(--vault-error)">{props.labels.warning}</Text>}
       {props.error && <Text role="alert" size="sm" c="var(--vault-error)">{props.error}</Text>}
       <Group gap="xs" wrap="wrap" justify="flex-end">
-        <Button size="compact-sm" variant="subtle" disabled={props.busy} onClick={props.onCancel}>{props.labels.cancel}</Button>
-        {preview.installDisabled && <Button size="compact-sm" variant="subtle" disabled={props.busy || !props.available}
-          onClick={() => props.onConfirm(false)}>{props.labels.installDisabled}</Button>}
-        <Button size="compact-sm" disabled={props.busy || !props.available} onClick={() => props.onConfirm()}>{preview.action}</Button>
+        <ActionButton disabled={props.busy} onClick={props.onCancel}>{props.labels.cancel}</ActionButton>
+        {preview.installDisabled && <ActionButton disabled={props.busy || !props.available}
+          onClick={() => props.onConfirm(false)}>{props.labels.installDisabled}</ActionButton>}
+        <ActionButton disabled={props.busy || !props.available} onClick={() => props.onConfirm()}>{preview.action}</ActionButton>
       </Group>
     </>} />;
 }
@@ -140,8 +141,8 @@ function ProviderSelection({ dependency, plan, props, row }: { dependency: Depen
           <Box className="lm-lime-provider-select">
             <SettingsSelect aria-label={`${props.labels.provider} ${dependency.id}`} value={selected || props.labels.selectProvider!} options={options} disabled={locked} onChange={setSelected} />
           </Box>
-          <Button size="compact-sm" variant="subtle" disabled={locked || !selectable || needsEnable || selected === current}
-            onClick={() => props.onSelectProvider(plan.pluginId, dependency.kind, dependency.id, selected === hostDefault ? '' : selected, plan.revision)}>{props.labels[builtin ? 'setProvider' : 'applyProvider']}</Button>
+          <ActionButton disabled={locked || !selectable || needsEnable || selected === current}
+            onClick={() => props.onSelectProvider(plan.pluginId, dependency.kind, dependency.id, selected === hostDefault ? '' : selected, plan.revision)}>{props.labels[builtin ? 'setProvider' : 'applyProvider']}</ActionButton>
         </Group>}
     {needsEnable && <Text size="sm" c="dimmed">{props.labels.enableProvider}</Text>}
   </Box>;
@@ -160,8 +161,8 @@ function PackageDetails({ row, props, onClose }: { row: Row | BuiltinRow; props:
     </Stack>}
     dependencies={<Stack gap="xs">
       <Group justify="flex-end" gap="xs">
-        <Button size="compact-sm" variant="subtle" leftSection={<Icon name="refresh" />} disabled={props.busy}
-          onClick={() => props.onPlan(row.id)}>{props.labels.refreshDependencies}</Button>
+        <ActionButton leftSection={<Icon name="refresh" />} disabled={props.busy}
+          onClick={() => props.onPlan(row.id)}>{props.labels.refreshDependencies}</ActionButton>
       </Group>
       {plan ? <>
         {plan.affected.some(pluginId => pluginId !== row.id) &&
@@ -176,7 +177,7 @@ function PackageDetails({ row, props, onClose }: { row: Row | BuiltinRow; props:
     footer={<>
       {props.error && <Text size="sm" c="var(--vault-error)" role="alert">{props.error}</Text>}
       <Group justify="flex-end">
-        <Button size="compact-sm" variant="subtle" onClick={onClose}>{props.labels.close ?? props.labels.cancel}</Button>
+        <ActionButton onClick={onClose}>{props.labels.close ?? props.labels.cancel}</ActionButton>
       </Group>
     </>} />;
 }
@@ -205,10 +206,10 @@ export function LimeSettings({ props, theme, overlay }: {
       {!props.available ? <Text size="sm" c="dimmed">{props.labels.noVault}</Text> : <>
         {!props.rows.length && !props.preview && <Text size="sm" c="dimmed">{props.labels.empty}</Text>}
         <Group gap="xs" wrap="wrap">
-          <Button size="sm" variant="filled" leftSection={<Icon name="create" />} disabled={disabled || dialogOpen} onClick={event => { dialogTrigger.current = event.currentTarget; props.onAdd(); }}>{props.labels.add}</Button>
-          {composition && <Button size="compact-sm" variant="subtle" aria-expanded={showBuiltins}
-            disabled={disabled || dialogOpen} onClick={() => setShowBuiltins(value => !value)}>{props.labels.builtins}</Button>}
-          {(props.safeMode || props.rows.length > 0 || composition?.customized) && <Button size="compact-sm" variant="subtle" disabled={disabled || !!props.preview} onClick={() => props.onSafeMode(!props.safeMode)}>{props.safeMode ? props.labels.resume : props.labels.safeMode}</Button>}
+          <ActionButton accent leftSection={<Icon name="create" />} disabled={disabled || dialogOpen} onClick={event => { dialogTrigger.current = event.currentTarget; props.onAdd(); }}>{props.labels.add}</ActionButton>
+          {composition && <ActionButton aria-expanded={showBuiltins}
+            disabled={disabled || dialogOpen} onClick={() => setShowBuiltins(value => !value)}>{props.labels.builtins}</ActionButton>}
+          {(props.safeMode || props.rows.length > 0 || composition?.customized) && <ActionButton disabled={disabled || !!props.preview} onClick={() => props.onSafeMode(!props.safeMode)}>{props.safeMode ? props.labels.resume : props.labels.safeMode}</ActionButton>}
         </Group>
       </>}
     </Group>
@@ -229,17 +230,17 @@ export function LimeSettings({ props, theme, overlay }: {
         </Stack>
         <Group gap="xs" wrap="wrap">
           <Switch aria-label={`${props.labels.enabled} ${row.name}`} checked={row.enabled} disabled={disabled || row.removing || props.safeMode} onChange={event => props.onToggle(row.id, event.currentTarget.checked)} />
-          <Button size="compact-xs" variant="subtle" aria-haspopup="dialog" disabled={disabled}
-            onClick={event => { dialogTrigger.current = event.currentTarget; props.onPlan(row.id); setDetailsId(row.id); }}>{props.labels.details}</Button>
-          {row.recovery && !row.removing && <Button size="compact-xs" variant="subtle" disabled={disabled || props.safeMode} onClick={() => props.onRetry(row.id)}>{props.labels.retry}</Button>}
-          <Button size="compact-xs" variant="subtle" disabled={disabled || row.removing || dialogOpen} onClick={event => { dialogTrigger.current = event.currentTarget; props.onUpdate(row.id); }}>{props.labels.update}</Button>
-          <Button ref={element => { if (element) removeButtons.current.set(row.id, element); else removeButtons.current.delete(row.id); }} size="compact-xs" variant="subtle" disabled={disabled} onClick={() => {
+          <ActionButton aria-haspopup="dialog" disabled={disabled}
+            onClick={event => { dialogTrigger.current = event.currentTarget; props.onPlan(row.id); setDetailsId(row.id); }}>{props.labels.details}</ActionButton>
+          {row.recovery && !row.removing && <ActionButton disabled={disabled || props.safeMode} onClick={() => props.onRetry(row.id)}>{props.labels.retry}</ActionButton>}
+          <ActionButton disabled={disabled || row.removing || dialogOpen} onClick={event => { dialogTrigger.current = event.currentTarget; props.onUpdate(row.id); }}>{props.labels.update}</ActionButton>
+          <ActionButton ref={element => { if (element) removeButtons.current.set(row.id, element); else removeButtons.current.delete(row.id); }} disabled={disabled} onClick={() => {
             if (row.removing) props.onRemove(row.id, false);
             else {
               if (removing !== row.id) props.onPlan(row.id);
               setRemoving(removing === row.id ? null : row.id);
             }
-          }}>{row.removing ? props.labels.retry : props.labels.remove}</Button>
+          }}>{row.removing ? props.labels.retry : props.labels.remove}</ActionButton>
         </Group>
       </Box>
       {removing === row.id && <Stack gap="xs" role="group" aria-label={`${props.labels.remove} ${row.name}`}>
@@ -247,19 +248,19 @@ export function LimeSettings({ props, theme, overlay }: {
         {props.dependencyPlan?.pluginId === row.id && props.dependencyPlan.affected.length > 1 &&
           <Text size="sm" style={{ overflowWrap: 'anywhere' }}>{props.labels.affected}: {props.dependencyPlan.affected.join(', ')}</Text>}
         <Group gap="xs" wrap="wrap">
-          <Button size="compact-sm" variant="subtle" disabled={disabled} onClick={() => props.onRemove(row.id, false)}>{props.labels.keepData}</Button>
-          <Button size="compact-sm" variant="subtle" disabled={disabled} onClick={() => props.onRemove(row.id, true)}>{props.labels.deleteData}</Button>
-          <Button size="compact-sm" variant="subtle" disabled={props.busy} onClick={() => { setRemoving(null); removeButtons.current.get(row.id)?.focus(); }}>{props.labels.cancel}</Button>
+          <ActionButton disabled={disabled} onClick={() => props.onRemove(row.id, false)}>{props.labels.keepData}</ActionButton>
+          <ActionButton disabled={disabled} onClick={() => props.onRemove(row.id, true)}>{props.labels.deleteData}</ActionButton>
+          <ActionButton disabled={props.busy} onClick={() => { setRemoving(null); removeButtons.current.get(row.id)?.focus(); }}>{props.labels.cancel}</ActionButton>
         </Group>
       </Stack>}
     </Box>)}
     {props.available && composition && showBuiltins && <Stack gap="xs" role="group" aria-label={props.labels.builtins}>
       {(composition.draft || composition.customized) && <Group gap="xs" wrap="wrap">
         {composition.draft && <>
-          <Button size="compact-sm" disabled={disabled || dialogOpen || (props.safeMode && composition.customized)} onClick={composition.onApply}>{props.labels.applyComposition}</Button>
-          <Button size="compact-sm" variant="subtle" disabled={disabled || dialogOpen} onClick={composition.onDiscard}>{props.labels.discardComposition}</Button>
+          <ActionButton disabled={disabled || dialogOpen || (props.safeMode && composition.customized)} onClick={composition.onApply}>{props.labels.applyComposition}</ActionButton>
+          <ActionButton disabled={disabled || dialogOpen} onClick={composition.onDiscard}>{props.labels.discardComposition}</ActionButton>
         </>}
-        {composition.customized && <Button size="compact-sm" variant="subtle" disabled={disabled || dialogOpen} onClick={composition.onReset}>{props.labels.resetComposition}</Button>}
+        {composition.customized && <ActionButton disabled={disabled || dialogOpen} onClick={composition.onReset}>{props.labels.resetComposition}</ActionButton>}
       </Group>}
       {composition.rows.map(row => <Box key={row.id} className="lm-lime-package" data-lime-id={row.id}>
         <Box className="lm-lime-package-header">
@@ -270,8 +271,8 @@ export function LimeSettings({ props, theme, overlay }: {
           <Group gap="xs" wrap="wrap">
             {row.mutable && <Switch aria-label={`${props.labels.enabled} ${row.name}`} checked={row.enabled}
               disabled={disabled || props.safeMode || dialogOpen} onChange={event => composition.onToggle(row.id, event.currentTarget.checked)} />}
-            <Button size="compact-xs" variant="subtle" aria-haspopup="dialog" disabled={disabled || dialogOpen}
-              onClick={event => { dialogTrigger.current = event.currentTarget; props.onPlan(row.id); setDetailsId(row.id); }}>{props.labels.details}</Button>
+            <ActionButton aria-haspopup="dialog" disabled={disabled || dialogOpen}
+              onClick={event => { dialogTrigger.current = event.currentTarget; props.onPlan(row.id); setDetailsId(row.id); }}>{props.labels.details}</ActionButton>
           </Group>
         </Box>
       </Box>)}

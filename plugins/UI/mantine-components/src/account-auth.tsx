@@ -1,4 +1,5 @@
-import { Box, Button, Group, Loader, PasswordInput, Stack, Text, TextInput, Title } from "@mantine/core";
+import { ActionButton } from "./action-button.js";
+import { Box, Group, Loader, PasswordInput, Stack, Text, TextInput, Title } from "@mantine/core";
 import type { AccountAccessProps } from "./account-access.js";
 import { AccountError } from "./account-feedback.js";
 import { Icon } from "./icons.js";
@@ -20,15 +21,15 @@ export function AccountAuth({ props: p }: { props: AccountAccessProps }) {
           </>}
           <AccountError props={p} />
           <Group className="lm-account-auth-actions" gap="sm">
-            <Button type="submit" variant="filled" aria-busy={p.busy} disabled={p.busy} leftSection={p.busy ? <Loader type="oval" size={16} color="currentColor" aria-hidden="true" /> : undefined}>{p.busy ? (p.text[`pending${p.mode}`] ?? p.text[p.mode]) : p.text[p.mode]}</Button>
-            {p.mode !== "connect" && <Button disabled={p.busy} onClick={p.onToggleAuth}>{p.text[p.mode === "login" ? "register" : "login"]}</Button>}
+            <ActionButton type="submit" accent aria-busy={p.busy} disabled={p.busy} leftSection={p.busy ? <Loader type="oval" size={16} color="currentColor" aria-hidden="true" /> : undefined}>{p.busy ? (p.text[`pending${p.mode}`] ?? p.text[p.mode]) : p.text[p.mode]}</ActionButton>
+            {p.mode !== "connect" && <ActionButton disabled={p.busy} onClick={p.onToggleAuth}>{p.text[p.mode === "login" ? "register" : "login"]}</ActionButton>}
           </Group>
         </Stack>
         </Box>
         {p.mode !== "connect" && ((p.allowChangeServer ?? p.allowLocal) || showPasswordReset) && <Box component="footer" className="lm-account-auth-footer">
           {showPasswordReset && <Text className="lm-account-context">{p.text.passwordReset}</Text>}
-          {(p.allowChangeServer ?? p.allowLocal) && <Button disabled={p.busy} onClick={p.onChangeServer}>{p.text.changeServer}</Button>}
+          {(p.allowChangeServer ?? p.allowLocal) && <ActionButton disabled={p.busy} onClick={p.onChangeServer}>{p.text.changeServer}</ActionButton>}
         </Box>}
-        {p.allowLocal && <Button className="lm-account-local" disabled={p.busy} onClick={p.onLocal} leftSection={<Icon name="back" />}>{p.text.local}</Button>}
+        {p.allowLocal && <ActionButton className="lm-account-local" disabled={p.busy} onClick={p.onLocal} leftSection={<Icon name="back" />}>{p.text.local}</ActionButton>}
       </Box>;
 }

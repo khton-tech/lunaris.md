@@ -64,7 +64,8 @@ test('Lime composes inside real Settings/Workspace and confirms preview before i
     assert.equal(s.surface.querySelector('.lm-settings-page h1').textContent, 'Third-party plugins');
     assert.equal(s.surface.querySelector('.lm-settings-page h2').textContent, 'Installed plugins');
     assert.deepEqual([...view.querySelectorAll('button')].map(button => button.textContent), ['Add plugin']);
-    assert.equal(s.button('Add plugin').dataset.variant, 'filled');
+    assert.equal(s.button('Add plugin').dataset.variant, 'outline');
+    assert.ok(s.button('Add plugin').hasAttribute('data-accent'));
     await s.setVault(null);
     assert.match(view.textContent, /Open a Vault/);
     assert.equal(view.querySelector('button'), null);

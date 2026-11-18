@@ -1,7 +1,8 @@
+import { ActionButton } from "./action-button.js";
 import { ProductDropdown } from "./product-dropdown.js";
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { ActionIcon, Badge, Box, Button, Group, Menu, Modal, Stack, Text, TextInput } from "@mantine/core";
+import { ActionIcon, Badge, Box, Group, Menu, Modal, Stack, Text, TextInput } from "@mantine/core";
 import { Tree } from "react-arborist";
 import type { CursorProps, DragPreviewProps, NodeRendererProps, RowRendererProps, TreeApi } from "react-arborist";
 import type { ComponentProps } from "@lunaris/components";
@@ -408,7 +409,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
       </ViewportMenu>
       <ActionIcon variant="subtle" aria-label={t.expandAll} title={t.expandAll} disabled={props.busy || props.loading || props.expanding || !!form || !props.onExpandAll} onClick={() => { tree.current?.open(ROOT_ID); void props.onExpandAll?.(); }}><Icon name="expand-all" /></ActionIcon>
     </Group>
-    {error && <Group className="lm-explorer-message" gap="xs"><Text role="alert">{error}</Text><Button disabled={props.busy} onClick={() => { setDeleteFailed(false); props.onRefresh(); }}>{t.retry}</Button></Group>}
+    {error && <Group className="lm-explorer-message" gap="xs"><Text role="alert">{error}</Text><ActionButton disabled={props.busy} onClick={() => { setDeleteFailed(false); props.onRefresh(); }}>{t.retry}</ActionButton></Group>}
     {props.degraded && <Text role="status" className="lm-explorer-message">{props.degraded}</Text>}
     {showLoading && <Text role="status" className="lm-explorer-message">{t.loading}</Text>}
     <Box ref={host} className="lm-explorer-tree" onClick={event => {
@@ -450,10 +451,10 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
         <Text size="sm">{t.deleteWarning}</Text>
         <Box component="ul" tabIndex={0} className="lm-explorer-delete-paths lm-focus">{deleteForm.paths.map(path => <li key={path}>{path}</li>)}</Box>
         <Group gap="xs" justify="flex-end">
-          <Button type="button" data-autofocus size="compact-sm" aria-disabled={deleteBusy} data-disabled={deleteBusy}
-            onClick={() => { if (!deleteBusy && !submitting.current) closeDelete(); }}>{t.cancel}</Button>
-          <Button type="button" className="lm-explorer-delete-confirm" size="compact-sm" aria-disabled={deleteBusy} data-disabled={deleteBusy}
-            onClick={() => void remove()}>{pending ? t.deleting ?? t.remove : t.deletePermanently ?? t.remove}</Button>
+          <ActionButton type="button" data-autofocus aria-disabled={deleteBusy} data-disabled={deleteBusy}
+            onClick={() => { if (!deleteBusy && !submitting.current) closeDelete(); }}>{t.cancel}</ActionButton>
+          <ActionButton type="button" className="lm-explorer-delete-confirm" aria-disabled={deleteBusy} data-disabled={deleteBusy}
+            onClick={() => void remove()}>{pending ? t.deleting ?? t.remove : t.deletePermanently ?? t.remove}</ActionButton>
         </Group>
       </Stack>
     </Modal>}

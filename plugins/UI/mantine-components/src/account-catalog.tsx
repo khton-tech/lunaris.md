@@ -1,6 +1,7 @@
+import { ActionButton } from "./action-button.js";
 import { ProductDropdown } from "./product-dropdown.js";
 import { useId, useRef, useState } from "react";
-import { ActionIcon, Box, Button, Group, Loader, Menu, Stack, Text, TextInput } from "@mantine/core";
+import { ActionIcon, Box, Group, Loader, Menu, Stack, Text, TextInput } from "@mantine/core";
 import type { AccountAccessProps } from "./account-access.js";
 import { AccountError } from "./account-feedback.js";
 import { CardRow } from "./card-row.js";
@@ -25,7 +26,7 @@ export function AccountCatalog({ props: p }: { props: AccountAccessProps }) {
           {p.entries.map(entry => <Box component="li" key={entry.id} className="lm-account-row">
             {p.mode === "trash" ? <Box className="lm-account-trash-entry"><Icon name="folder" /><Box><Text>{entry.name}</Text><Text className="lm-account-context" size="sm">{entry.detail}</Text></Box></Box> :
               <CardRow label={entry.name} detail={entry.detail} icon={<Icon name="folder" />} disabled={p.busy} onClick={() => p.onOpen(entry.id)} />}
-            {p.mode === "trash" ? <Button disabled={p.busy} leftSection={<Icon name="restore" />} onClick={() => p.onRestore(entry.id)}>{p.text.restore}</Button> :
+            {p.mode === "trash" ? <ActionButton disabled={p.busy} leftSection={<Icon name="restore" />} onClick={() => p.onRestore(entry.id)}>{p.text.restore}</ActionButton> :
               <ViewportMenu disabled={p.busy} position="bottom-end" offset={6} returnFocus>
                 <Menu.Target><ActionIcon className="lm-account-icon" variant="subtle" size="lg" disabled={p.busy} aria-label={`${p.text.vaultActions}: ${entry.name}`} title={p.text.vaultActions}><Icon name="actions" /></ActionIcon></Menu.Target>
                 <ProductDropdown aria-label={`${p.text.vaultActions}: ${entry.name}`}>
@@ -57,8 +58,8 @@ export function AccountCatalog({ props: p }: { props: AccountAccessProps }) {
                 }}>
                   <TextInput label={p.text.name} value={p.name} maxLength={200} disabled={p.busy} required onChange={event => p.onField("name", event.currentTarget.value)} />
                   <Group justify="end" gap="xs" mt="sm">
-                    <Button disabled={p.busy} onClick={closeCreate}>{p.text.cancel}</Button>
-                    <Button type="submit" variant="filled" disabled={p.busy || !p.name.trim()}>{p.text.create}</Button>
+                    <ActionButton disabled={p.busy} onClick={closeCreate}>{p.text.cancel}</ActionButton>
+                    <ActionButton type="submit" accent disabled={p.busy || !p.name.trim()}>{p.text.create}</ActionButton>
                   </Group>
                 </Box>
               </Box>

@@ -1,3 +1,4 @@
+import { ActionButton } from "./action-button.js";
 import { useId, useLayoutEffect, useRef } from "react";
 import { Box, Button, Input, Paper, Stack, Text, TextInput, Title } from "@mantine/core";
 import type { SelectorProps, StartupProps, WorkspaceHeaderProps, WorkspaceEmptyProps } from "./props.js";
@@ -10,7 +11,7 @@ export function WorkspaceHeader({ props, theme }: { props: WorkspaceHeaderProps;
   return <Box component="header" className="lm-workspace-header" style={theme.contentStyle} aria-busy={props.busy}>
     <Box className="lm-workspace-toolbar">
       <Text component="h1" className="lm-workspace-name" title={props.name}>{props.name}</Text>
-      <Button variant="subtle" disabled={props.busy} onClick={props.onClose}>{props.closeLabel}</Button>
+      <ActionButton disabled={props.busy} onClick={props.onClose}>{props.closeLabel}</ActionButton>
     </Box>
     <Text role="alert" hidden={!props.error}>{props.error}</Text>
   </Box>;
@@ -20,7 +21,7 @@ export function WorkspaceEmpty({ props, theme }: { props: WorkspaceEmptyProps; t
   const recentId = useId();
   if (actions) return <Box className="lm-workspace-empty" style={theme.contentStyle} aria-busy={actions.busy}>
     <Stack className="lm-workspace-empty-actions" data-has-recent={!!recent?.paths.length || undefined} align="stretch" gap="calc(var(--vault-space) * 2)">
-      <Button variant="outline" justify="start" leftSection={<Icon name="file-plus" />} disabled={actions.busy} onClick={actions.onCreate}>{actions.createLabel}</Button>
+      <ActionButton justify="start" leftSection={<Icon name="file-plus" />} disabled={actions.busy} onClick={actions.onCreate}>{actions.createLabel}</ActionButton>
       {!!recent?.paths.length && <Paper component="section" className="lm-workspace-recent" aria-labelledby={recentId}>
         <Title id={recentId} order={2}>{recent.label}</Title>
         <Stack gap={0}>
@@ -102,7 +103,7 @@ function ActionForm({ mode, props }: { mode: "create" | "select"; props: Selecto
             <TextInput ref={name} hidden={mode !== "create"} label={props.text.name} value={props.name} maxLength={200} required={mode === "create"} autoComplete="off" spellCheck={false}
               disabled={props.busy || !expanded} onChange={event => props.onName(event.currentTarget.value)} />
             <Text role="alert" hidden={!expanded || !props.error}>{expanded ? props.error : ""}</Text>
-            <Button ref={next} type="submit" variant="filled" className="ln-vault-next" rightSection={<Icon name="next" />} disabled={props.busy || !props.canContinue || !expanded}>{props.text.next}</Button>
+            <ActionButton ref={next} type="submit" accent className="ln-vault-next" rightSection={<Icon name="next" />} disabled={props.busy || !props.canContinue || !expanded}>{props.text.next}</ActionButton>
           </Stack>
         </Paper>
       </Box>
@@ -144,7 +145,7 @@ export function VaultSelector({ props, theme }: { props: SelectorProps; theme: R
       </Stack>
       <Text hidden={props.entries.length > 0 || !!props.historyError}>{props.text.empty}</Text>
       <Text role="status" hidden={!props.historyError}>{props.historyError}</Text>
-      <Button hidden={!props.historyError} disabled={props.busy} onClick={props.onRetry}>{props.text.retry}</Button>
+      <ActionButton hidden={!props.historyError} disabled={props.busy} onClick={props.onRetry}>{props.text.retry}</ActionButton>
     </Paper>
     <Paper ref={main} className="ln-vault-main">
       <Box ref={content} className="ln-vault-content">

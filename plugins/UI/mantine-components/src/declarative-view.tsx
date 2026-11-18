@@ -1,4 +1,5 @@
-import { Box, Button, Checkbox, Group, Stack, Text, TextInput, Textarea } from "@mantine/core";
+import { ActionButton } from "./action-button.js";
+import { Box, Checkbox, Group, Stack, Text, TextInput, Textarea } from "@mantine/core";
 import type { CSSProperties } from "react";
 import type { ComponentProps, ViewColor, ViewNode, ViewShape } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
@@ -53,7 +54,7 @@ function Node({ node }: { node: ViewNode }) {
     case 'row': return <Group gap="sm" wrap="wrap" style={{ minWidth: 0 }}>{node.children.map((child, index) => <Node key={index} node={child} />)}</Group>;
     case 'column': return <Stack gap="sm" style={{ minWidth: 0 }}>{node.children.map((child, index) => <Node key={index} node={child} />)}</Stack>;
     case 'grid': return <Box className="lm-declarative-grid" style={{ '--view-columns': node.columns ?? 1 } as CSSProperties}>{node.children.map((child, index) => <Node key={index} node={child} />)}</Box>;
-    case 'button': return <Button variant="subtle" size="compact-sm" disabled={!!node.disabled} onClick={() => node.onPress()}>{node.label}</Button>;
+    case 'button': return <ActionButton disabled={!!node.disabled} onClick={() => node.onPress()}>{node.label}</ActionButton>;
     case 'input': return <TextInput size="sm" label={node.label} value={node.value} disabled={!!node.disabled} classNames={{ input: 'lm-input lm-setting-input' }} onChange={event => node.onChange(event.currentTarget.value)} />;
     case 'textarea': return <Textarea size="sm" label={node.label} value={node.value} disabled={!!node.disabled} autosize minRows={3} maxRows={16} classNames={{ input: 'lm-input lm-setting-input' }} onChange={event => node.onChange(event.currentTarget.value)} />;
     case 'select': return <SettingsSelect label={node.label} aria-label={node.label} value={node.value} options={node.options} disabled={!!node.disabled} onChange={node.onChange} />;

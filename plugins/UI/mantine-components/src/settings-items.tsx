@@ -1,5 +1,6 @@
+import { ActionButton } from "./action-button.js";
 import { useEffect, useId, useState } from "react";
-import { Box, Button, Group, NumberInput, Slider, Stack, Switch, Text, TextInput } from "@mantine/core";
+import { Box, Group, NumberInput, Slider, Stack, Switch, Text, TextInput } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { SettingsItem } from "@lunaris/settings";
 import type { resolveTheme } from "./theme.js";
@@ -56,9 +57,9 @@ function SettingRow({ item, onChange, onRetry, onReset, withinPortal }: { item: 
     </Stack>
     <Stack className="lm-setting-control" gap="xs">
       {control}
-      {item.onReset && <Button className="lm-setting-reset" variant="subtle" size="compact-xs" disabled={!!item.disabled || !!item.resetDisabled} onClick={() => onReset?.(item.id)}>{item.resetLabel}</Button>}
+      {item.onReset && <ActionButton className="lm-setting-reset" disabled={!!item.disabled || !!item.resetDisabled} onClick={() => onReset?.(item.id)}>{item.resetLabel}</ActionButton>}
       {item.error && <Text id={errorId} role="alert" size="sm" c="var(--vault-error)">{item.error}</Text>}
-      {item.onRetry && <Button variant="subtle" disabled={!!item.disabled} onClick={() => onRetry(item.id)}>{item.retryLabel}</Button>}
+      {item.onRetry && <ActionButton disabled={!!item.disabled} onClick={() => onRetry(item.id)}>{item.retryLabel}</ActionButton>}
     </Stack>
   </Box>;
 }
