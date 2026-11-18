@@ -27,7 +27,7 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: "lunaris.accou
   }
   ctx.provide(AccountSession, {
     current: () => transport.current(),
-    async connect(address, owner) { const closed = await releaseRemote(); if (ctx.signal.aborted) return cancelled(); if (!closed.ok) return closed; return transport.connect(address, owner); },
+    async connect(address, owner) { if (owner.aborted) return cancelled(); const closed = await releaseRemote(); if (ctx.signal.aborted || owner.aborted) return cancelled(); if (!closed.ok) return closed; return transport.connect(address, owner); },
     register: (login, password, invitation) => transport.register(login, password, invitation),
     async login(login, password) { const closed = await releaseRemote(); if (ctx.signal.aborted) return cancelled(); if (!closed.ok) return closed; return transport.login(login, password); },
     async logout() { const closed = await releaseRemote(); if (ctx.signal.aborted) return cancelled(); if (!closed.ok) return closed; return transport.logout(); },

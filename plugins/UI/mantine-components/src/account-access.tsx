@@ -21,6 +21,7 @@ export interface AccountAccessProps {
   readonly invitationRequired: boolean;
   readonly entries: readonly { readonly id: string; readonly name: string; readonly detail: string }[];
   readonly onField: (field: "address" | "login" | "password" | "invitation" | "name", value: string) => void;
+  readonly onCancelConnect?: () => void;
   readonly onSubmit: () => void; readonly onToggleAuth: () => void; readonly onLocal: () => void; readonly onLogout: () => void;
   readonly onOpen: (id: string) => void; readonly onTrash: (id: string) => void; readonly onRestore: (id: string) => void;
   readonly onToggleTrash: () => void; readonly onRefresh: () => void; readonly onChangeServer: () => void;
@@ -30,6 +31,7 @@ export function accountAccessProps(value: ComponentProps): AccountAccessProps {
   for (const name of ["address", "login", "password", "invitation", "name", "account", "error"]) if (typeof value[name] !== "string") throw TypeError(`Account access requires ${name}.`);
   for (const name of ["busy", "allowLocal", "invitationRequired"]) if (typeof value[name] !== "boolean") throw TypeError(`Account access requires ${name}.`);
   for (const name of ["onField", "onSubmit", "onToggleAuth", "onLocal", "onLogout", "onOpen", "onTrash", "onRestore", "onToggleTrash", "onRefresh", "onChangeServer"]) if (typeof value[name] !== "function") throw TypeError(`Account access requires ${name}.`);
+  if (value.onCancelConnect !== undefined && typeof value.onCancelConnect !== "function") throw TypeError("Invalid connection cancellation callback.");
   const labels = ["connect", "login", "register", "vaults", "trash", "local", "address", "username", "password", "showPassword", "invitation", "name", "create", "restore", "delete", "logout", "refresh", "empty", "changeServer", "passwordReset", "cancel", "accountMenu", "vaultActions", "loginDetail", "registerDetail", "connectDetail", "vaultsDetail", "trashDetail", "emptyTrash", "emptyDetail", "emptyTrashDetail"];
   if (!value.text || typeof value.text !== "object" || labels.some(key => typeof (value.text as Record<string, unknown>)[key] !== "string") || !Array.isArray(value.entries) || value.entries.some(entry => !entry || ["id", "name", "detail"].some(key => typeof entry[key] !== "string"))) throw TypeError("Invalid account access content.");
   if (value.catalogState !== undefined && !["loading", "ready", "error"].includes(value.catalogState as string)) throw TypeError("Invalid catalog state.");

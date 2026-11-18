@@ -1,5 +1,5 @@
 // Run against the same built workspace packages used by the integration tests.
-// Usage: node tools/scripts/render-ui-samples.mjs <chrome-headless-shell> <output-directory>
+// Usage: node tools/scripts/render-ui-samples.mjs <chrome-headless-shell> <output-directory> [view]
 import { spawnSync } from 'node:child_process';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -13,6 +13,7 @@ if (!binary || !directory) throw new Error('Provide a headless-shell executable 
 const output = path.resolve(directory);
 const temp = await mkdtemp(path.join(tmpdir(), 'lunaris-render-'));
 const scenes = [
+  ['connecting', 'monochrome', 1120, 740],
   ['server', 'monochrome', 1120, 740],
   ['account-menu', 'monochrome', 1120, 740],
   ['buttons', 'rose-pine', 1120, 740],
@@ -120,13 +121,13 @@ function scenePlugins(view, theme) {
   let ui = createInterfaceSettings({ defaultThemeId: theme });
   const providers = [];
   const grants = {};
-  if (['server','account-menu','selector','create','empty','history'].includes(view)) {
+  if (['server','connecting','account-menu','selector','create','empty','history'].includes(view)) {
     ui = createAccountAccess({ allowLocal: true, art });
     providers.push(sampleProvider('sample.server', [AccountSession, AccountSessionChanged, AccountVaults, FilesystemSources], ctx => {
       const server = 'https://notes.example';
       ctx.provide(AccountSession, {
         current: () => ({ server, account: { id: 'sample', login: 'anna' }, epoch: '1' }),
-        connect: async () => ok({ protocol: 1, buildId: 'sample', registration: 'invitation', name: 'Архив команды' }),
+        connect: async () => view === 'connecting' ? new Promise(() => {}) : ok({ protocol: 1, buildId: 'sample', registration: 'invitation', name: 'Архив команды' }),
         register: unsupported, login: unsupported, logout: unsupported,
       });
       ctx.provide(AccountVaults, { list: async () => ok([{
@@ -178,7 +179,15 @@ async function renderScene({ view, theme }) {
     if (!element) throw new Error('Missing fixture element ' + selector);
     return element;
   };
-  if (view === 'account-menu') {
+  if (view === 'connecting') {
+    required('.ln-vault-action:last-child .ln-vault-toggle').click();
+    await flush();
+    await new Promise(resolve => setTimeout(resolve, 250));
+    const cancel = required('.lm-account-auth-actions button[type=button]');
+    const spinner = required('.lm-account-auth-actions .mantine-Loader-root');
+    if (![cancel, spinner].every(el => el.checkVisibility() && el.getBoundingClientRect().height > 0)
+      || cancel.disabled || required('.ln-vault-toggle').disabled) throw new Error('Missing connection feedback or active navigation.');
+  } else if (view === 'account-menu') {
     required('.ln-vault-action:last-child .ln-vault-toggle').click();
     await flush();
     required('.lm-account-identity').click();
@@ -335,7 +344,9 @@ try {
     external: ['jsdom', './browser.mjs'],
   });
   const titleBounds = [];
-  for (const [view, slug, width, height] of scenes) {
+  const selected = scenes.filter(([view]) => !process.argv[4] || view === process.argv[4]);
+  if (!selected.length) throw new Error('Unknown sample view.');
+  for (const [view, slug, width, height] of selected) {
     const name = `${view}-${slug}-${width}x${height}`;
     const page = path.join(temp, name + '.html');
     const state = JSON.stringify({ view, theme: 'lunaris.base-theme-engine.' + slug });
@@ -355,8 +366,7 @@ try {
     const image = await readFile(png);
     if (image.readUInt32BE(16) !== width || image.readUInt32BE(20) !== height) throw new Error('Unexpected image size for ' + name);
   }
-  const menus = scenes.filter(([view]) => view === 'menu').length;
-  console.log(`Rendered ${scenes.length} UI samples. Verified the embedded catalog, package dialog, and ${menus} menu viewports. Title client/scroll heights (${titleBounds.join(' / ')}). Output: ${output}.`);
+  console.log(`Verified ${selected.length} UI sample(s).${titleBounds.length ? ' Title client/scroll heights: ' + titleBounds.join(' / ') + '.' : ''} Output: ${output}.`);
 } finally {
   await rm(temp, { recursive: true, force: true });
 }

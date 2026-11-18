@@ -112,7 +112,7 @@ export function createVaultSelector(options: { readonly art: string; readonly hi
       if (accountAccess) ctx.events.on(AccountAccessChanged, change => { if (!change.visible) serverExpanded = false; refresh(); });
       async function loadHistory(): Promise<void> {
         const version = historyVersion;
-        const result = await history.list();
+        const result = await history.list({ refreshLocations: false });
         if (ctx.signal.aborted || version !== historyVersion) return;
         historyFailed = !result.ok;
         if (result.ok) entries = result.value;
@@ -151,7 +151,9 @@ export function createVaultSelector(options: { readonly art: string; readonly hi
         });
       }
       function recent(reference: string): void {
-        if (busy) return; mode = null;
+        if (busy || accountBusy) return;
+        if (serverExpanded) { serverExpanded = false; accountAccess?.close(); }
+        mode = null;
         run(async () => {
           const result = await history.open(reference);
           if (ctx.signal.aborted) return;

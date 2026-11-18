@@ -46,6 +46,8 @@ export function createAccountAccess(options: { readonly art?: string; readonly d
     let listRevision = 0;
     const fields = { address: session.current()?.server ?? options.defaultAddress ?? "", login: "", password: "", invitation: "", name: "" };
     let screen = ctx.scope.child(); let mounted: MountedComponent | undefined; let allocated = false; let autoConnected = false;
+    let connectionOwner: ReturnType<typeof ctx.scope.child> | undefined;
+    let pendingConnection: typeof connectionOwner;
     let placement: AccountAccessPlacement | undefined;
     let unbindPlacement: (() => void) | undefined;
     let viewGeneration = 0; let operationGeneration = 0;
@@ -94,8 +96,8 @@ export function createAccountAccess(options: { readonly art?: string; readonly d
         text: Object.fromEntries(Object.keys(catalog.en).filter(key => key !== "expires").map(key => [key, text(key)])),
         entries: entries.map(entry => ({ id: entry.id, name: entry.name, detail: entry.expiresAt ? localization.text(ctx.pluginId, "expires", { date: new Date(entry.expiresAt).toLocaleDateString(localization.locale()) }) : "" })),
         onField(field: keyof typeof fields, value: string) { if (!busy && Object.hasOwn(fields, field)) { fields[field] = value; error = ""; render(); } },
-        onSubmit: submit, onToggleAuth() { if (!busy) { mode = mode === "login" ? "register" : "login"; fields.password = ""; error = ""; render(); } },
-        onLocal() { if (!busy) setVisible(false); }, onLogout: () => run(async () => { const result = await session.logout(); if (!result.ok) error = errorKey(result.error.code); else { entries = []; mode = "login"; } }),
+        onCancelConnect: pendingConnection ? cancelConnect : undefined, onSubmit: submit, onToggleAuth() { if (!busy) { mode = mode === "login" ? "register" : "login"; fields.password = ""; error = ""; render(); } },
+        onLocal() { cancelConnect(); if (!busy) setVisible(false); }, onLogout: () => run(async () => { const result = await session.logout(); if (!result.ok) error = errorKey(result.error.code); else { entries = []; mode = "login"; } }),
         onOpen: (id: string) => run(async () => { const entry = entries.find(v => v.id === id); if (entry) await openEntry(entry); }),
         onTrash: (id: string) => run(async () => { const result = await vaults.trash(id); if (stopped()) return; if (!result.ok) error = errorKey(result.error.code); else await list(); }),
         onRestore: (id: string) => run(async () => { const result = await vaults.restore(id); if (stopped()) return; if (!result.ok) error = errorKey(result.error.code); else await list(); }),
@@ -122,26 +124,57 @@ export function createAccountAccess(options: { readonly art?: string; readonly d
       if (opened.ok) logger.info(ctx.pluginId, "Last server Vault restored");
       else logger.warn(ctx.pluginId, "Cannot restore last server Vault", { code: opened.error.code, error: opened.error });
     }
+    function cancelConnect() {
+      if (!pendingConnection) return;
+      const owner = pendingConnection;
+      pendingConnection = undefined;
+      void owner.dispose();
+      busy = false; error = "";
+      if (!ctx.signal.aborted) { logger.debug(ctx.pluginId, "Server connection cancelled"); render(); }
+    }
     async function connect(restore = false) {
-      const result = await session.connect(fields.address, ctx.signal); if (stopped()) return;
-      if (!result.ok) { error = errorKey(result.error.code); return; }
-      info = result.value; mode = session.current() ? "vaults" : "login";
-      if (mode === "vaults") {
+      if (busy || ctx.signal.aborted) return;
+      const owner = ctx.scope.child();
+      pendingConnection = owner;
+      busy = true; error = ""; mode = "connect"; info = null; render();
+      try {
+        const result = await session.connect(fields.address, owner.signal);
+        if (owner.signal.aborted || pendingConnection !== owner) return;
+        if (result.ok || result.error.code === "OFFLINE" || result.error.code === "SERVER_UNAVAILABLE") {
+          void connectionOwner?.dispose();
+          connectionOwner = owner;
+        }
+        if (!result.ok) { error = errorKey(result.error.code); return; }
+        info = result.value; mode = session.current() ? "vaults" : "login";
+      } catch (failure) {
+        if (owner.signal.aborted || pendingConnection !== owner) return;
+        error = "error"; logger.error(ctx.pluginId, "Cannot connect to server", { error: failure });
+        return;
+      } finally {
+        if (!owner.signal.aborted && pendingConnection === owner) {
+          pendingConnection = undefined;
+          if (connectionOwner !== owner) void owner.dispose();
+          busy = false; render();
+        }
+      }
+      if (mode === "vaults") run(async () => {
         if (restore) await restoreLastVault();
         if (!stopped() && session.current() && !active.current()) await list();
-      }
+      });
     }
-    function submit() { run(async () => {
-      if (mode === "connect") return connect();
-      if (mode === "vaults") { const result = await vaults.create(fields.name.trim()); if (stopped()) return; if (!result.ok) error = errorKey(result.error.code); else { fields.name = ""; catalogState = "ready"; entries = [...entries, result.value]; await openEntry(result.value, true); } return; }
-      if (mode !== "login" && mode !== "register") return;
-      const password = fields.password; fields.password = "";
-      if (mode === "register") { const created = await session.register(fields.login, password, fields.invitation); if (stopped()) return; if (!created.ok) { error = errorKey(created.error.code); return; } }
-      if (stopped()) return;
-      const result = await session.login(fields.login, password); fields.invitation = "";
-      if (stopped()) return;
-      if (!result.ok) error = errorKey(result.error.code); else { mode = "vaults"; await list(); }
-    }); }
+    function submit() {
+      if (mode === "connect") { void connect(); return; }
+      run(async () => {
+        if (mode === "vaults") { const result = await vaults.create(fields.name.trim()); if (stopped()) return; if (!result.ok) error = errorKey(result.error.code); else { fields.name = ""; catalogState = "ready"; entries = [...entries, result.value]; await openEntry(result.value, true); } return; }
+        if (mode !== "login" && mode !== "register") return;
+        const password = fields.password; fields.password = "";
+        if (mode === "register") { const created = await session.register(fields.login, password, fields.invitation); if (stopped()) return; if (!created.ok) { error = errorKey(created.error.code); return; } }
+        if (stopped()) return;
+        const result = await session.login(fields.login, password); fields.invitation = "";
+        if (stopped()) return;
+        if (!result.ok) error = errorKey(result.error.code); else { mode = "vaults"; await list(); }
+      });
+    }
     function setVisible(value: boolean) { visible = value; render(); void ctx.events.emit(AccountAccessChanged, { visible }).catch(failure => { if (!ctx.signal.aborted) logger.error(ctx.pluginId, "Cannot publish account screen state", { error: failure }); }); }
     ctx.provide(AccountAccess, {
       visible: () => visible,
@@ -152,21 +185,21 @@ export function createAccountAccess(options: { readonly art?: string; readonly d
         placement = nextPlacement;
         if (placement) {
           const owner = placement.owner;
-          const abort = () => { viewGeneration++; visible = false; fields.password = ""; releaseView(); detach(); };
+          const abort = () => { viewGeneration++; visible = false; cancelConnect(); fields.password = ""; releaseView(); detach(); };
           owner.addEventListener("abort", abort, { once: true });
           unbindPlacement = () => owner.removeEventListener("abort", abort);
         }
         mode = session.current() ? "vaults" : info ? "login" : "connect";
-        setVisible(true); if (mode === "vaults") { fields.address = session.current()!.server; run(info ? list : connect); }
+        setVisible(true); if (mode === "vaults") { fields.address = session.current()!.server; if (info) run(list); else void connect(); }
       },
-      close() { if (busy) return; viewGeneration++; fields.password = ""; setVisible(false); detach(); },
+      close() { cancelConnect(); if (busy) return; viewGeneration++; fields.password = ""; setVisible(false); detach(); },
     });
     ctx.scope.own({ dispose() { detach(); } });
     ctx.events.on(VaultChanged, change => { render(); if (!change.current && visible && session.current()) run(list); });
     ctx.events.on(AccountSessionChanged, change => { listRevision++; entries = []; catalogState = "ready"; fields.password = ""; fields.invitation = ""; fields.name = ""; if (!change.current && mode !== "connect") mode = info ? "login" : "connect"; render(); });
     ctx.events.on(ComponentsChanged, change => { if (change.componentId === "lunaris.account-access") { if (change.kind === "removed") mounted = undefined; render(); } });
     ctx.events.on(LocaleChanged, render);
-    function loaded() { render(); if (visible && options.defaultAddress && !autoConnected && startup.snapshot().state === "loaded") { autoConnected = true; run(() => connect(true)); } }
+    function loaded() { render(); if (visible && options.defaultAddress && !autoConnected && startup.snapshot().state === "loaded") { autoConnected = true; void connect(true); } }
     ctx.events.on(StartupChanged, loaded); loaded(); logger.info(ctx.pluginId, "Account access ready");
   } });
 }

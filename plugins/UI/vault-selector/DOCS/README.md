@@ -111,8 +111,8 @@ Native acceptance of long Russian labels, menus and narrow layouts is pending.
 
 AccountAccess 1.1 adds open({ target, owner, onBusyChange? }); open() retains the
 standalone screen. The target is a borrowed HTMLElement; owner cancellation
-releases only the view. AccountSession and its connection outlive the disclosure
-so opening a remote Vault cannot revoke its own session. Busy operations reject
+aborts pending discovery and releases the view. An established connection outlives
+the disclosure so opening a remote Vault preserves its session. Account mutations reject
 competing open/close actions. Late operation results after owner cancellation
 cannot advance forms or open a newly created Vault. Passwords clear on closure.
 
@@ -126,7 +126,9 @@ The **Server vaults** label identifies the destination throughout the sequence o
 server address, sign-in or invitation-aware registration, and the server vault list.
 Change server returns to the first step. Reopening preserves account
 and server context. Escape closes the disclosure and restores toggle focus; nested
-creation Escape is handled locally first. Pending work disables sibling actions.
+creation Escape is handled locally first. During discovery, the account role shows
+progress and exposes an optional `onCancelConnect` action. Selecting another
+destination cancels discovery. Late responses cannot replace the new view.
 
 Integration is complete through AccountAccess, Components, AccountSession,
 AccountVaults, FilesystemSources and VaultLocations. The browser's standalone

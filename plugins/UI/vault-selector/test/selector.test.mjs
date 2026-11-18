@@ -65,11 +65,11 @@ function setup(options = {}) {
   const slow = definePlugin({ manifest: manifest('test.slow'), async activate() { entered.resolve(); await finish.promise; } });
   const startup = createStartupProvider(); const runner = createRunner({ art: 'ASCII LOGO', hideWhenLoaded: true }); const selector = createVaultSelector({ art: 'ASCII LOGO', hideWhenVaultOpen: options.hideWhenVaultOpen, restoreLastVault: options.restoreLastVault });
   const account = createAccountAccess({ allowLocal: true });
-  let accountState = null;
+  let accountState = options.accountState ?? null;
   const remote = definePlugin({ manifest: manifest('test.remote', [AccountSession, AccountSessionChanged, AccountVaults, FilesystemSources]), activate(ctx) {
     ctx.provide(AccountSession, {
       current: () => accountState,
-      async connect(address) { calls.push({ operation: 'connect', address }); await options.connectGate; return ok({ protocol: 1, buildId: 'test', registration: 'invitation', name: 'Test server' }); },
+      async connect(address, owner) { calls.push({ operation: 'connect', address, owner }); return await options.connect?.() ?? ok({ protocol: 1, buildId: 'test', registration: 'invitation', name: 'Test server' }); },
       async register(login) { calls.push({ operation: 'register', login }); return ok({ id: 'a', login }); },
       async login(login) { accountState = { server: 'https://notes.example', account: { id: 'a', login }, epoch: '1' }; await ctx.events.emit(AccountSessionChanged, { current: accountState }); return ok(accountState.account); },
       async logout() { accountState = null; await ctx.events.emit(AccountSessionChanged, { current: null }); return ok(null); },
@@ -299,25 +299,54 @@ test('server disclosure stays inside the local selector through address, registr
   await s.stop();
 });
 
-test('server disclosure blocks competing actions and ignores late connection results after its owner closes', async () => {
-  const gate = deferred(); const s = setup({ server: true, connectGate: gate.promise }); await s.ready();
+test('server discovery can be cancelled, retried and abandoned for a local vault', async () => {
+  const first = deferred(), second = deferred(), third = deferred();
+  const attempts = [first, second, third];
+  const s = setup({ server: true, connect: () => attempts.shift().promise }); await s.ready();
   find(s, 'Server vaults').click(); await flush();
   const form = s.surface.querySelector('.lm-account-access form');
   typeInput(form.querySelector('input'), 'https://notes.example');
   form.dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true })); await flush();
-  assert.equal(find(s, 'Create vault').disabled, true); assert.equal(find(s, 'Server vaults').disabled, true);
+  assert.equal(find(s, 'Create vault').disabled, false); assert.equal(find(s, 'Server vaults').disabled, false);
   assert.ok(form.querySelector('.mantine-Loader-root'));
   assert.equal(form.querySelector('input').readOnly, true);
   assert.equal(form.querySelector('input').disabled, false);
   assert.equal(form.querySelector('button[type=submit]').textContent, 'Connecting…');
   form.dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true }));
   assert.equal(s.calls.filter(call => call.operation === 'connect').length, 1);
-  const stopping = s.session.stop(); gate.resolve(); await stopping; await flush();
+  find(s, 'Cancel').click(); await flush();
+  assert.equal(s.calls[0].owner.aborted, true);
+  assert.equal(form.querySelector('input').value, 'https://notes.example');
+  const submit = () => form.dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true }));
+  submit(); await flush(); first.resolve(); await flush();
+  assert.equal(form.querySelector('button[type=submit]').textContent, 'Connecting…');
+  second.resolve(fail('SERVER_UNAVAILABLE')); await flush();
+  assert.match(form.textContent, /server is unavailable/i);
+  submit(); await flush();
+  find(s, 'Create vault').click(); await flush();
+  assert.equal(s.calls[2].owner.aborted, true);
+  third.resolve(); await flush();
   assert.equal(s.surface.querySelector('.lm-account-access'), null);
-  assert.equal(s.session.snapshot().kernel.diagnostics.some(d => d.code === 'CLEANUP_FAILED'), false);
-  s.dom.window.close();
+  assert.equal(find(s, 'Create vault').getAttribute('aria-expanded'), 'true');
+  await s.stop();
 });
 
+
+test('saved server reconnect shows progress immediately and a recent local vault cancels it', async () => {
+  const gate = deferred();
+  const s = setup({ server: true, connect: () => gate.promise, restoreLastVault: false,
+    accountState: { server: 'https://notes.example', account: { id: 'a', login: 'alice' }, epoch: '1' },
+    entries: [{ name: 'Local notes', location }] });
+  await s.ready();
+  find(s, 'Server vaults').click(); await flush();
+  assert.ok(find(s, 'Connecting…')); assert.ok(find(s, 'Cancel'));
+  s.surface.querySelector('.ln-vault-recents button').click(); await flush();
+  assert.equal(s.calls[0].owner.aborted, true);
+  gate.resolve(); await flush();
+  assert.equal(s.surface.querySelector('.lm-account-access'), null);
+  assert.ok(s.tools.vaults.current());
+  await s.stop();
+});
 
 test('embedded sign-in supports server navigation, Escape focus and theme replacement', async () => {
   const s = setup({ server: true }); await s.ready();

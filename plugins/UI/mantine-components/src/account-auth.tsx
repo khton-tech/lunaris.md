@@ -22,6 +22,7 @@ export function AccountAuth({ props: p }: { props: AccountAccessProps }) {
           <AccountError props={p} />
           <Group className="lm-account-auth-actions" gap="sm">
             <ActionButton type="submit" accent aria-busy={p.busy} disabled={p.busy} leftSection={p.busy ? <Loader type="oval" size={16} color="currentColor" aria-hidden="true" /> : undefined}>{p.busy ? (p.text[`pending${p.mode}`] ?? p.text[p.mode]) : p.text[p.mode]}</ActionButton>
+            {p.mode === "connect" && p.busy && p.onCancelConnect && <ActionButton type="button" onClick={p.onCancelConnect}>{p.text.cancel}</ActionButton>}
             {p.mode !== "connect" && <ActionButton disabled={p.busy} onClick={p.onToggleAuth}>{p.text[p.mode === "login" ? "register" : "login"]}</ActionButton>}
           </Group>
         </Stack>
@@ -30,6 +31,6 @@ export function AccountAuth({ props: p }: { props: AccountAccessProps }) {
           {showPasswordReset && <Text className="lm-account-context">{p.text.passwordReset}</Text>}
           {(p.allowChangeServer ?? p.allowLocal) && <ActionButton disabled={p.busy} onClick={p.onChangeServer}>{p.text.changeServer}</ActionButton>}
         </Box>}
-        {p.allowLocal && <ActionButton className="lm-account-local" disabled={p.busy} onClick={p.onLocal} leftSection={<Icon name="back" />}>{p.text.local}</ActionButton>}
+        {p.allowLocal && <ActionButton className="lm-account-local" disabled={p.busy && !p.onCancelConnect} onClick={p.onLocal} leftSection={<Icon name="back" />}>{p.text.local}</ActionButton>}
       </Box>;
 }
