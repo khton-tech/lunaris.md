@@ -1360,7 +1360,7 @@ test('Explorer restores its root row when the startup viewport expands after rev
   } finally { await s.stop(); }
 });
 
-test('Files keeps nested names, branch guides and row actions inside a resized compact panel', async () => {
+test('Files preserves branch spacing when the compact panel resizes', async () => {
   const s = await setup(); await s.start();
   const { window } = s.dom;
   let width = 180; let resizeTree;
@@ -1380,7 +1380,8 @@ test('Files keeps nested names, branch guides and row actions inside a resized c
     const leaf = s.target.querySelector(`[title="${path}"]`);
     assert.ok(leaf.querySelector('.lm-explorer-row-action'));
     const padding = element => parseFloat(element.style.paddingLeft);
-    assert.ok(padding(leaf) > 0 && padding(leaf) <= width / 3 + 0.1);
+    assert.equal(padding(leaf), (folders.length + 1) * 44 * 0.6);
+    assert.equal(parseFloat(leaf.querySelector(".lm-explorer-guide").style.insetInlineStart), folders.length * (44 * 0.6) + 8);
     assert.ok([...leaf.querySelectorAll('.lm-explorer-guide')].every(guide => parseFloat(guide.style.insetInlineStart) < padding(leaf)));
     width = 900; resizeTree(); await settle();
     assert.equal(s.target.querySelector(`[title="${path}"]`), leaf);

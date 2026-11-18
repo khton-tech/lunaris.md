@@ -155,7 +155,7 @@ function ExplorerNode(payload: NodeRendererProps<Entry>) {
     const last = entry.nextSibling === null;
     if (entry !== node && last) continue;
     guides.push(<span className="lm-explorer-guide" key={entry.id} data-last={last || undefined}
-      style={{ insetInlineStart: (entry.level - 1) * tree.indent + Math.min(8, tree.indent / 2) }}>
+      style={{ insetInlineStart: (entry.level - 1) * tree.indent + 8 }}>
       {entry === node && <span className="lm-explorer-branch" />}
     </span>);
   }
@@ -204,20 +204,15 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
   const deleteBusy = props.busy || pending;
   const deleteOverlay = useDropdownOverlay(!!deleteForm, () => closeDelete(false));
   const t = props.text;
-  const { data, depth } = useMemo(() => {
+  const data = useMemo<Entry[]>(() => {
     const creation = form && form.kind !== "delete" ? form : null;
     const placeholder: Entry = { id: DRAFT_ID, name: creation?.initialName ?? props.initialDraft.name, kind: creation?.kind === "folder" ? "directory" : "file", draft: true };
-    let depth = 1;
-    const insert = (items: Entry[], parent: string, level: number): Entry[] => {
-      if (items.length || creation?.parent === parent) depth = Math.max(depth, level);
-      const children = items.map(item => item.children ? { ...item, children: insert(item.children, item.id, level + 1) } : item);
+    const insert = (items: Entry[], parent: string): Entry[] => {
+      const children = items.map(item => item.children ? { ...item, children: insert(item.children, item.id) } : item);
       return creation?.parent === parent ? [...children, placeholder].sort((a, b) => Number(b.kind === "directory") - Number(a.kind === "directory") || a.name.localeCompare(b.name) * (props.sortDirection === "desc" ? -1 : 1)) : children;
     };
-    const data: Entry[] = [{ id: ROOT_ID, name: props.workspace?.vaultName || t.root!, kind: "directory", children: insert(props.data, "", 1) }];
-    return { data, depth };
+    return [{ id: ROOT_ID, name: props.workspace?.vaultName || t.root!, kind: "directory", children: insert(props.data, "") }];
   }, [props.data, props.workspace?.vaultName, props.sortDirection, t.root, form]);
-  // Give Arborist the same indent for rows, branch guides, cursor and drop hit testing.
-  const indent = Math.min(size.row * 0.6, size.width > 0 ? size.width / (3 * depth) : Infinity);
   useLayoutEffect(() => { props.onDraft({ form, name }); }, [form, name, props.onDraft]);
   useLayoutEffect(() => {
     alive.current = true;
@@ -430,7 +425,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     }}>
       <ExplorerContext.Provider value={{ props, compact: size.compact, actionsDisabled: props.busy || props.loading || !!form, creation: form && form.kind !== "delete" ? { name, kind: form.kind, pending, onName: setName, submit, cancel: closeForm } : null, surface: () => host.current?.closest<HTMLElement>(".lm-explorer") ?? null,
         context: openMenu }}>
-        <Tree<Entry> ref={tree} data={data} width="100%" height={size.height} rowHeight={size.row} indent={indent}
+        <Tree<Entry> ref={tree} data={data} width="100%" height={size.height} rowHeight={size.row} indent={size.row * 0.6}
           openByDefault={false} selectionFollowsFocus={!form || form.kind === "delete"} initialOpenState={Object.fromEntries([ROOT_ID, ...props.expanded].map(path => [path, true]))} aria-label={t.title!} rowClassName="lm-explorer-row"
           renderRow={ExplorerRow} renderCursor={ExplorerCursor} renderDragPreview={ExplorerDragPreview}
           disableSelect={node => node.draft === true}

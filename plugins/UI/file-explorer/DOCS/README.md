@@ -8,8 +8,8 @@ default. Requires `filesystem.access`, `vault.access` and `config.access`.
 The Files panel is the reference for tree density. The Mantine file-explorer
 role puts the toolbar and loading messages above the virtual list. Its measured
 box contains only rows. The four toolbar actions wrap when their touch targets
-exceed the available width. In a deep loaded tree, indentation occupies up to
-one third of the list width. Arborist uses the same step for rows, branch guides,
+exceed the available width. Branch guides retain their eight-pixel elbow and a fixed
+indentation step of 60% of row height when the panel resizes. Arborist uses the same step for rows, branch guides,
 drop markers and pointer hit testing. Workspace owns the panel surface.
 
 An unmodified primary-button double-click on the tree background creates an

@@ -89,7 +89,7 @@ export const baseThemes: readonly ThemeDefinition[] = [
         accent: "#E7E7E7",
         onAccent: "#0F0F0F",
         selection: "#373737",
-        separator: "#333333",
+        separator: "#333333", treeGuide: "#4C4C4C",
         controlBorder: "#898989",
         hover: "#292929",
         accentHover: "#F5F5F5",
