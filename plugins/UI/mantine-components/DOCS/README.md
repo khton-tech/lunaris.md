@@ -1,5 +1,9 @@
 # Mantine components
 
+The [November interface review](../../../../DOCS/design/interface-review-2026-11-18.md)
+records the current scroll and surface ownership, themed control states and
+reproducible geometry checks across the Vault selector, Workspace and Settings.
+
 ## Empty document actions
 
 Workspace owns the main region's geometry and surface. Active Screen allocates
@@ -1534,7 +1538,8 @@ with a Lucide icon, title and wrapping text. The owning external window supplies
 its geometry. The desktop screenshot supplied by the Owner is the reference
 for colors and information hierarchy. The compact layout fits a 384 × 64
 logical-pixel window and top-aligns the icon with the title and message column.
-Long copy stays in the scrollable text column and the icon keeps its size.
+The first line of the title and two lines of message text fit at the standard
+font sizes. Longer titles and messages scroll independently.
 Windows XP Luna and Luna Dark use a full-width caption with the Lucide icon on
 the left and the same gradient, text color and frame divider as the app's Luna
 surfaces. The message sits in a scrollable row below on the theme's content
