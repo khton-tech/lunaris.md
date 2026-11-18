@@ -16,6 +16,8 @@ const scenes = [
   ['server', 'monochrome', 1120, 740],
   ['account-menu', 'monochrome', 1120, 740],
   ['buttons', 'rose-pine', 1120, 740],
+  ['buttons', 'monochrome', 1120, 740],
+  ['buttons', 'windows-xp', 1120, 740],
   ['buttons-disabled', 'monochrome', 1120, 740],
   ['package', 'windows-xp-dark', 844, 390],
   ['selector', 'monochrome', 1120, 740],
@@ -233,7 +235,12 @@ async function renderScene({ view, theme }) {
         return button.disabled !== (view === 'buttons-disabled') || style.backgroundColor !== 'rgba(0, 0, 0, 0)'
           || style.backgroundImage !== 'none' || style.borderTopStyle !== 'solid' || Math.abs(button.getBoundingClientRect().height - 30) > 1;
       })) throw new Error('Unexpected package button surface or size: ' + actions.map(b => [b.textContent,b.disabled,b.offsetHeight,getComputedStyle(b).backgroundColor,getComputedStyle(b).borderTopStyle].join('/')).join(', '));
-      if (view === 'buttons' && getComputedStyle(accent).borderColor === getComputedStyle(normal).borderColor) throw new Error('Missing accent outline.');
+      if (view === 'buttons') {
+        const primary = getComputedStyle(accent), secondary = getComputedStyle(normal);
+        if (primary.borderColor === secondary.borderColor || primary.color === secondary.color || Number(primary.fontWeight) <= Number(secondary.fontWeight)) {
+          throw new Error('Primary actions must have a distinct outline, label color and weight.');
+        }
+      }
     }
     if (!view.startsWith('buttons') && view !== 'package' && fields.length !== 2) throw new Error('Missing interface preferences.');
     if (view === 'menu') {

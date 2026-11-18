@@ -28,6 +28,10 @@ export function resolveTheme(theme: ThemeDefinition | null) {
   const palette = { background: "background", panel: "panel", content: "content", text: "text", secondary: "textSecondary", selection: "selection", separator: "separator", "control-border": "controlBorder", hover: "hover", focus: "focus", caret: "caret", error: "error", accent: "accent", "on-accent": "onAccent", "accent-hover": "accentHover" };
   for (const [variable, key] of Object.entries(palette)) variables[`--vault-${variable}`] = color(key, ["background", "panel", "content", "selection", "hover", "separator"].includes(variable) ? "transparent" : "currentColor");
   variables["--vault-accent-foreground"] = color("accentForeground", variables["--vault-accent"]);
+  variables["--vault-action-border"] = color("actionBorder", "color-mix(in srgb,var(--vault-control-border) 30%,var(--vault-separator))");
+  variables["--vault-action-text"] = color("actionText", "color-mix(in srgb,var(--vault-text) 80%,var(--vault-secondary))");
+  variables["--vault-primary-action-border"] = color("primaryActionBorder", "color-mix(in srgb,var(--vault-accent-foreground) 62%,var(--vault-panel))");
+  variables["--vault-primary-action-text"] = color("primaryActionText", variables["--vault-accent-foreground"]);
   variables["--vault-tree-guide"] = color("treeGuide", variables["--vault-separator"]);
   variables["--vault-link"] = color("link", variables["--vault-accent-foreground"]);
   variables["--vault-link-missing"] = color("linkMissing", variables["--vault-secondary"]);
