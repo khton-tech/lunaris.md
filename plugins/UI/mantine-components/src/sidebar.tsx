@@ -66,7 +66,10 @@ function StandardWorkspace({ props, theme }: { props: LayoutProps; theme: Return
       setKeyboardOpen(keyboardVisible);
       if (!keyboardVisible) measure();
     });
-    const observer = new ResizeObserver(measure); observer.observe(element); measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    observer.observe(content.current!);
+    measure();
     return () => { observer.disconnect(); unsubscribe(); };
   }, []);
   const overlayOpen = compact && mobileOpen && props.railVisible;
@@ -227,7 +230,7 @@ function StandardWorkspace({ props, theme }: { props: LayoutProps; theme: Return
       if (!compact || overlayOpen) return;
       opener.current = (event.target as Element).closest<HTMLButtonElement>("button");
     }}
-    onKeyDown={event => { if (event.key === "Escape" && (compact ? overlayOpen : props.panelVisible)) {
+    onKeyDown={event => { if (event.key === "Escape" && !event.defaultPrevented && (compact ? overlayOpen : props.panelVisible)) {
       event.preventDefault(); dismiss();
     } }}>
     <Paper ref={rail} className="lm-workspace-rail lm-workspace-card" shadow="none" hidden={!props.railVisible} inert={compact && !overlayOpen} aria-hidden={compact && !overlayOpen || undefined} />

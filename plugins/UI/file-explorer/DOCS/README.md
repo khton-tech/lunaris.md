@@ -5,6 +5,13 @@ Package `@lunaris/file-explorer`, plugin `lunaris.file-explorer`. Tauri starts i
 default. Requires `filesystem.access`, `vault.access` and `config.access`.
 `ui.dom` is optional and enables the empty workspace component role.
 
+The Files panel is the reference for tree density. The Mantine file-explorer
+role puts the toolbar and loading messages above the virtual list. Its measured
+box contains only rows. The four toolbar actions wrap when their touch targets
+exceed the available width. In a deep loaded tree, indentation occupies up to
+one third of the list width. Arborist uses the same step for rows, branch guides,
+drop markers and pointer hit testing. Workspace owns the panel surface.
+
 An unmodified primary-button double-click on the tree background creates an
 empty Markdown file at the Vault root and opens it through ActiveDocument
 with `editTitle: true`. The editor selects the initial name in its heading.

@@ -155,7 +155,7 @@ function ExplorerNode(payload: NodeRendererProps<Entry>) {
     const last = entry.nextSibling === null;
     if (entry !== node && last) continue;
     guides.push(<span className="lm-explorer-guide" key={entry.id} data-last={last || undefined}
-      style={{ insetInlineStart: (entry.level - 1) * tree.indent + 8 }}>
+      style={{ insetInlineStart: (entry.level - 1) * tree.indent + Math.min(8, tree.indent / 2) }}>
       {entry === node && <span className="lm-explorer-branch" />}
     </span>);
   }
@@ -192,7 +192,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
   const host = useRef<HTMLDivElement>(null); const tree = useRef<TreeApi<Entry>>(null); const alive = useRef(true);
   const synchronizing = useRef(false);
   const initializing = useRef(true);
-  const [size, setSize] = useState({ height: 1, row: 34, compact: props.workspace?.compact === true });
+  const [size, setSize] = useState({ width: 0, height: 1, row: 34, compact: props.workspace?.compact === true });
   const [keyboardNavigation, setKeyboardNavigation] = useState(false);
   const menu = useRef<MenuSession | undefined>(undefined);
   useEffect(() => () => { const previous = menu.current; void Promise.resolve().then(() => previous?.dispose()); }, []);
@@ -204,15 +204,20 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
   const deleteBusy = props.busy || pending;
   const deleteOverlay = useDropdownOverlay(!!deleteForm, () => closeDelete(false));
   const t = props.text;
-  const data = useMemo<Entry[]>(() => {
+  const { data, depth } = useMemo(() => {
     const creation = form && form.kind !== "delete" ? form : null;
     const placeholder: Entry = { id: DRAFT_ID, name: creation?.initialName ?? props.initialDraft.name, kind: creation?.kind === "folder" ? "directory" : "file", draft: true };
-    const insert = (items: Entry[], parent: string): Entry[] => {
-      const children = items.map(item => item.children ? { ...item, children: insert(item.children, item.id) } : item);
+    let depth = 1;
+    const insert = (items: Entry[], parent: string, level: number): Entry[] => {
+      if (items.length || creation?.parent === parent) depth = Math.max(depth, level);
+      const children = items.map(item => item.children ? { ...item, children: insert(item.children, item.id, level + 1) } : item);
       return creation?.parent === parent ? [...children, placeholder].sort((a, b) => Number(b.kind === "directory") - Number(a.kind === "directory") || a.name.localeCompare(b.name) * (props.sortDirection === "desc" ? -1 : 1)) : children;
     };
-    return [{ id: ROOT_ID, name: props.workspace?.vaultName || t.root!, kind: "directory", children: insert(props.data, "") }];
+    const data: Entry[] = [{ id: ROOT_ID, name: props.workspace?.vaultName || t.root!, kind: "directory", children: insert(props.data, "", 1) }];
+    return { data, depth };
   }, [props.data, props.workspace?.vaultName, props.sortDirection, t.root, form]);
+  // Give Arborist the same indent for rows, branch guides, cursor and drop hit testing.
+  const indent = Math.min(size.row * 0.6, size.width > 0 ? size.width / (3 * depth) : Infinity);
   useLayoutEffect(() => { props.onDraft({ form, name }); }, [form, name, props.onDraft]);
   useLayoutEffect(() => {
     alive.current = true;
@@ -220,10 +225,13 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     const pointer = element.ownerDocument.defaultView!.matchMedia("(pointer: coarse)");
     const measure = () => {
       const css = element.ownerDocument.defaultView!.getComputedStyle(element);
-      const height = Math.max(1, element.getBoundingClientRect().height);
+      const bounds = element.getBoundingClientRect();
+      const width = bounds.width;
+      const height = Math.max(1, bounds.height);
       const compact = props.workspace?.compact === true || usesTouchInput(element.ownerDocument.defaultView);
       const row = Math.max(compact ? 44 : 34, Math.ceil((parseFloat(css.fontSize) || 14) * 2));
-      setSize(previous => previous.height === height && previous.row === row && previous.compact === compact ? previous : { height, row, compact });
+      setSize(previous => previous.width === width && previous.height === height && previous.row === row && previous.compact === compact
+        ? previous : { width, height, row, compact });
     };
     const observer = new ResizeObserver(measure); observer.observe(element); pointer.addEventListener("change", measure); measure();
     return () => { alive.current = false; observer.disconnect(); pointer.removeEventListener("change", measure); };
@@ -393,7 +401,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
   return <><Box className="lm-explorer" style={theme.contentStyle} inert={!!deleteForm} onKeyDownCapture={keyboard} data-compact={size.compact || undefined}
     onPointerDownCapture={() => setKeyboardNavigation(false)} data-keyboard-navigation={keyboardNavigation || undefined} aria-label={t.title} aria-busy={props.busy || props.loading}>
     <ToolPanelHeader title={t.title!} />
-    <Group className="lm-explorer-actions" gap={0} wrap="nowrap" role="group" aria-label={t.actions}>
+    <Group className="lm-explorer-actions" role="group" aria-label={t.actions}>
       <ActionIcon variant="subtle" aria-label={t.newFile} title={t.newFile} disabled={props.busy || props.loading || !!form} onClick={() => command("newFile")}><Icon name="file-plus" /></ActionIcon>
       <ActionIcon variant="subtle" aria-label={t.newFolder} title={t.newFolder} disabled={props.busy || props.loading || !!form} onClick={() => command("newFolder")}><Icon name="folder-plus" /></ActionIcon>
       <ViewportMenu disabled={props.busy || !!form || !props.onSort} compact={size.compact} position="bottom-start" offset={4} returnFocus>
@@ -406,6 +414,7 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
     </Group>
     {error && <Group className="lm-explorer-message" gap="xs"><Text role="alert">{error}</Text><Button disabled={props.busy} onClick={() => { setDeleteFailed(false); props.onRefresh(); }}>{t.retry}</Button></Group>}
     {props.degraded && <Text role="status" className="lm-explorer-message">{props.degraded}</Text>}
+    {showLoading && <Text role="status" className="lm-explorer-message">{t.loading}</Text>}
     <Box ref={host} className="lm-explorer-tree" onClick={event => {
       if (!(event.target as HTMLElement).closest("[role=treeitem]") && !form) clearSelection();
     }} onDoubleClick={event => {
@@ -419,10 +428,9 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
       if (usesTouchInput(event.currentTarget.ownerDocument.defaultView, event.nativeEvent)) return;
       event.preventDefault(); event.stopPropagation(); openMenu(null, event.clientX, event.clientY);
     }}>
-      {showLoading && <Text role="status" className="lm-explorer-message">{t.loading}</Text>}
       <ExplorerContext.Provider value={{ props, compact: size.compact, actionsDisabled: props.busy || props.loading || !!form, creation: form && form.kind !== "delete" ? { name, kind: form.kind, pending, onName: setName, submit, cancel: closeForm } : null, surface: () => host.current?.closest<HTMLElement>(".lm-explorer") ?? null,
         context: openMenu }}>
-        <Tree<Entry> ref={tree} data={data} width="100%" height={Math.max(1, size.height - (showLoading ? size.row : 0))} rowHeight={size.row} indent={size.row * 0.6}
+        <Tree<Entry> ref={tree} data={data} width="100%" height={size.height} rowHeight={size.row} indent={indent}
           openByDefault={false} selectionFollowsFocus={!form || form.kind === "delete"} initialOpenState={Object.fromEntries([ROOT_ID, ...props.expanded].map(path => [path, true]))} aria-label={t.title!} rowClassName="lm-explorer-row"
           renderRow={ExplorerRow} renderCursor={ExplorerCursor} renderDragPreview={ExplorerDragPreview}
           disableSelect={node => node.draft === true}

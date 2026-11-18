@@ -59,8 +59,9 @@ The controller owns this presentation change directly.
 The Owner's screenshot defines the two-row composition. The top row holds rounded
 tabs with close icons and a trailing add button. The second row holds Back,
 Forward and the current title or Vault-relative path. Theme tokens determine the
-colors, spacing and geometry. The tab strip can scroll horizontally while the
-add button remains visible. Workspace owns the main area's geometry and content
+colors, spacing and geometry. Tabs share the available width down to a readable
+minimum, then the strip scrolls horizontally with the add button still visible.
+Workspace owns the main area's geometry and content
 surface. The [Mantine role](../../mantine-components/DOCS/README.md#active-screen-role)
 owns the local tab controls and their presentation. Editor and Settings own
 their content inside borrowed targets.
