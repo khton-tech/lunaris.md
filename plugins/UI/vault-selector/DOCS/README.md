@@ -24,7 +24,8 @@ Narrow surfaces stack actions before recents. The `lunaris.vault-selector` role
 is supplied by Mantine components; a compatible set may replace it.
 
 Create/Select each expand a card below their action. Only one card is open.
-Browse is an icon-only Lucide control with localized accessible name and tooltip.
+The folder picker shows its selected path and a Lucide Browse icon. Long paths
+wrap within the control. The server disclosure uses the Server glyph.
 It selects a candidate without activation or Vault writes. Create labels this
 field Parent folder and requires a portable directory name. Next invokes
 VaultCreation.create(parent, name), which exclusively creates and opens that

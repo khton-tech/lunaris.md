@@ -13,6 +13,7 @@ export interface AccountAccessProps {
   readonly account: string; readonly busy: boolean; readonly error: string; readonly allowLocal: boolean;
   readonly presentation?: { readonly mode?: "standalone" | "embedded"; readonly sizing?: "fill" | "content" };
   readonly allowChangeServer?: boolean;
+  readonly showPasswordReset?: boolean;
   readonly art?: string;
   readonly serverName?: string; readonly serverDescription?: string;
   readonly catalogState?: "loading" | "ready" | "error";
@@ -34,6 +35,7 @@ export function accountAccessProps(value: ComponentProps): AccountAccessProps {
   if (value.catalogState === "loading" && typeof (value.text as Record<string, unknown>).loading !== "string") throw TypeError("Missing loading label.");
   for (const key of ["art", "serverName", "serverDescription"]) if (value[key] !== undefined && typeof value[key] !== "string") throw TypeError("Invalid server information.");
   if (value.allowChangeServer !== undefined && typeof value.allowChangeServer !== "boolean") throw TypeError("Invalid server navigation flag.");
+  if (value.showPasswordReset !== undefined && typeof value.showPasswordReset !== "boolean") throw TypeError("Invalid password recovery flag.");
   return value as unknown as AccountAccessProps;
 }
 export function AccountAccessView({ props: p, theme }: { props: AccountAccessProps; theme: ReturnType<typeof resolveTheme> }) {

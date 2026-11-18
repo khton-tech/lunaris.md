@@ -4,6 +4,7 @@ import { AccountError } from "./account-feedback.js";
 import { Icon } from "./icons.js";
 
 export function AccountAuth({ props: p }: { props: AccountAccessProps }) {
+  const showPasswordReset = p.mode === "login" && !!p.error && (p.showPasswordReset ?? true);
   return <Box className="lm-account-auth">
         <Box component="header" className="lm-account-auth-heading">
           {p.presentation?.mode !== "embedded" && <Text className="lm-account-brand">Lunaris</Text>}
@@ -24,8 +25,8 @@ export function AccountAuth({ props: p }: { props: AccountAccessProps }) {
           </Group>
         </Stack>
         </Box>
-        {p.mode !== "connect" && ((p.allowChangeServer ?? p.allowLocal) || (p.mode === "login" && p.error)) && <Box component="footer" className="lm-account-auth-footer">
-          {p.mode === "login" && p.error && <Text className="lm-account-context">{p.text.passwordReset}</Text>}
+        {p.mode !== "connect" && ((p.allowChangeServer ?? p.allowLocal) || showPasswordReset) && <Box component="footer" className="lm-account-auth-footer">
+          {showPasswordReset && <Text className="lm-account-context">{p.text.passwordReset}</Text>}
           {(p.allowChangeServer ?? p.allowLocal) && <Button disabled={p.busy} onClick={p.onChangeServer}>{p.text.changeServer}</Button>}
         </Box>}
         {p.allowLocal && <Button className="lm-account-local" disabled={p.busy} onClick={p.onLocal} leftSection={<Icon name="back" />}>{p.text.local}</Button>}

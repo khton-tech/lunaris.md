@@ -5,10 +5,12 @@ import { AccountError } from "./account-feedback.js";
 import { CardRow } from "./card-row.js";
 import { Icon } from "./icons.js";
 import { ViewportMenu } from "./dropdown-overlay.js";
+import { useVaultActionAlignment } from "./vault-action-alignment.js";
 
 export function AccountCatalog({ props: p }: { props: AccountAccessProps }) {
   const [creating, setCreating] = useState(false);
   const createId = useId(); const createToggle = useRef<HTMLButtonElement>(null);
+  const { main, content } = useVaultActionAlignment(".lm-account-disclosure", ".lm-account-create", p.mode === "vaults", p.presentation?.mode !== "embedded");
   const closeCreate = () => { setCreating(false); createToggle.current?.focus({ preventScroll: true }); };
   return <Box className="lm-account-catalog">
     <Box component="section" className="lm-account-vaults" aria-label={p.text[p.mode]}>
@@ -17,7 +19,7 @@ export function AccountCatalog({ props: p }: { props: AccountAccessProps }) {
         <ActionIcon className="lm-account-icon" variant="subtle" disabled={p.busy} aria-label={p.text.refresh} title={p.text.refresh} onClick={p.onRefresh}><Icon name="refresh" /></ActionIcon>
       </Group>
       {p.catalogState === "loading" && <Group role="status" gap="sm"><Loader type="oval" size={16} color="var(--vault-secondary)" aria-hidden="true" /><Text className="lm-account-context">{p.text.loading}</Text></Group>}
-      {p.catalogState === "error" && <Button disabled={p.busy} onClick={p.onRefresh}>{p.text.refresh}</Button>}
+      {p.catalogState === "error" && <AccountError props={p} />}
         {p.catalogState !== "loading" && p.catalogState !== "error" && p.entries.length > 0 && <Stack component="ul" className="lm-account-list" gap={0}>
           {p.entries.map(entry => <Box component="li" key={entry.id} className="lm-account-row">
             {p.mode === "trash" ? <Box className="lm-account-trash-entry"><Icon name="folder" /><Box><Text>{entry.name}</Text><Text className="lm-account-context" size="sm">{entry.detail}</Text></Box></Box> :
@@ -35,21 +37,34 @@ export function AccountCatalog({ props: p }: { props: AccountAccessProps }) {
         {p.catalogState !== "loading" && p.catalogState !== "error" && !p.entries.length && <Box className="lm-account-empty"><Icon name={p.mode === "trash" ? "trash" : "folder"} /><Text fw={500}>{p.text[p.mode === "trash" ? "emptyTrash" : "empty"]}</Text><Text className="lm-account-context">{p.text[p.mode === "trash" ? "emptyTrashDetail" : "emptyDetail"]}</Text></Box>}
 
     </Box>
-    <Box className="lm-account-main">
-      <Box className="lm-account-main-content">
+    <Box ref={main} className="lm-account-main">
+      <Box ref={content} className="lm-account-main-content">
         {p.art ? <Box component="pre" className="lm-account-art" aria-label="Lunaris">{p.art}</Box> : <Text className="lm-account-wordmark">Lunaris</Text>}
         {p.serverName && <Text className="lm-account-catalog-server">{p.serverName}</Text>}
-        <AccountError props={p} />
+        {p.catalogState !== "error" && <AccountError props={p} />}
         <Stack className="lm-account-toolbar" gap="xs">
-          {p.mode === "vaults" && <CardRow ref={createToggle} label={p.text.create!} icon={<Icon name="create" />} disabled={p.busy} aria-expanded={creating} aria-controls={createId} onClick={() => setCreating(value => !value)} />}
+          {p.mode === "vaults" && <Box>
+            <CardRow ref={createToggle} label={p.text.create!} icon={<Icon name="create" />} disabled={p.busy} aria-expanded={creating} aria-controls={createId} onClick={() => setCreating(value => !value)} />
+            <Box className="lm-account-disclosure" data-open={creating} aria-hidden={!creating} inert={!creating}>
+              <Box className="lm-account-disclosure-body">
+                <Box component="form" className="lm-account-create" id={createId} onSubmit={event => {
+                  event.preventDefault(); if (creating && !p.busy && p.name.trim()) p.onSubmit();
+                }} onKeyDown={event => {
+                  if (event.key === "Escape" && !event.nativeEvent.isComposing && !event.defaultPrevented && creating && !p.busy) {
+                    event.preventDefault(); event.stopPropagation(); closeCreate();
+                  }
+                }}>
+                  <TextInput label={p.text.name} value={p.name} maxLength={200} disabled={p.busy} required onChange={event => p.onField("name", event.currentTarget.value)} />
+                  <Group justify="end" gap="xs" mt="sm">
+                    <Button disabled={p.busy} onClick={closeCreate}>{p.text.cancel}</Button>
+                    <Button type="submit" variant="filled" disabled={p.busy || !p.name.trim()}>{p.text.create}</Button>
+                  </Group>
+                </Box>
+              </Box>
+            </Box>
+          </Box>}
           <CardRow label={p.text[p.mode === "trash" ? "vaults" : "trash"]!} disabled={p.busy} icon={<Icon name={p.mode === "trash" ? "back" : "trash"} />} onClick={() => { setCreating(false); p.onToggleTrash(); }} />
         </Stack>
-        {p.mode === "vaults" && <Box className="lm-account-disclosure" data-open={creating} aria-hidden={!creating} inert={!creating}>
-          <Box className="lm-account-disclosure-body"><Box component="form" className="lm-account-create" id={createId} onSubmit={event => { event.preventDefault(); if (creating && !p.busy && p.name.trim()) p.onSubmit(); }} onKeyDown={event => { if (event.key === "Escape" && !p.busy) { event.preventDefault(); closeCreate(); } }}>
-            <TextInput label={p.text.name} value={p.name} maxLength={200} disabled={p.busy} required onChange={e => p.onField("name", e.currentTarget.value)} />
-            <Group justify="end" gap="xs" mt="sm"><Button disabled={p.busy} onClick={closeCreate}>{p.text.cancel}</Button><Button type="submit" variant="filled" disabled={p.busy || !p.name.trim()}>{p.text.create}</Button></Group>
-          </Box></Box>
-        </Box>}
       </Box>
     </Box>
   </Box>;

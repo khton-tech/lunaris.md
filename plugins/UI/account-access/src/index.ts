@@ -89,7 +89,8 @@ export function createAccountAccess(options: { readonly art?: string; readonly d
         const created = slots.create({ id: slotId, grow: 1 }, screen.signal); if (!created.ok) throw Error("Cannot allocate account screen."); allocated = true;
       }
       const props = { ...fields, art: options.art ?? "", presentation: placement ? { mode: "embedded", sizing: "content" } : { mode: "standalone", sizing: "fill" }, mode, catalogState, serverName: info?.name ?? "", serverDescription: info?.description ?? "", account: session.current()?.account.login ?? "", busy,
-        error: error ? text(error) : "", allowChangeServer: !!placement || (options.allowLocal ?? false), allowLocal: !placement && (options.allowLocal ?? false), invitationRequired: info?.registration === "invitation",
+        error: error ? text(error) : "", showPasswordReset: error === "credentials",
+        allowChangeServer: !!placement || (options.allowLocal ?? false), allowLocal: !placement && (options.allowLocal ?? false), invitationRequired: info?.registration === "invitation",
         text: Object.fromEntries(Object.keys(catalog.en).filter(key => key !== "expires").map(key => [key, text(key)])),
         entries: entries.map(entry => ({ id: entry.id, name: entry.name, detail: entry.expiresAt ? localization.text(ctx.pluginId, "expires", { date: new Date(entry.expiresAt).toLocaleDateString(localization.locale()) }) : "" })),
         onField(field: keyof typeof fields, value: string) { if (!busy && Object.hasOwn(fields, field)) { fields[field] = value; error = ""; render(); } },

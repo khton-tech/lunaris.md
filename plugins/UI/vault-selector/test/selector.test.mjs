@@ -275,6 +275,14 @@ test('server disclosure stays inside the local selector through address, registr
   typeInput(form().querySelector('[autocomplete=off]'), 'invitation');
   form().querySelector('form').dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true })); await flush();
   assert.ok(selector.contains(form())); assert.ok(find(s, 'Remote notes'));
+  const create = form().querySelector('.lm-account-toolbar [aria-expanded]');
+  create.click(); await flush();
+  const name = form().querySelector('.lm-account-create input');
+  name.focus();
+  name.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); await flush();
+  assert.equal(create.getAttribute('aria-expanded'), 'false');
+  assert.equal(toggle.getAttribute('aria-expanded'), 'true', 'closing Create preserves the server disclosure');
+  assert.equal(s.dom.window.document.activeElement, create);
   toggle.click(); await flush(); assert.equal(toggle.getAttribute('aria-expanded'), 'false'); assert.equal(form(), null);
   toggle.click(); await flush(); assert.ok(find(s, 'Remote notes'));
   find(s, 'Create vault').click(); await flush();

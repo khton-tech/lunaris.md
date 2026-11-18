@@ -4,6 +4,7 @@ import type { SelectorProps, StartupProps, WorkspaceHeaderProps, WorkspaceEmptyP
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
 import { CardRow } from "./card-row.js";
+import { useVaultActionAlignment } from "./vault-action-alignment.js";
 
 export function WorkspaceHeader({ props, theme }: { props: WorkspaceHeaderProps; theme: ReturnType<typeof resolveTheme> }) {
   return <Box component="header" className="lm-workspace-header" style={theme.contentStyle} aria-busy={props.busy}>
@@ -53,7 +54,7 @@ export function WorkspaceEmpty({ props, theme }: { props: WorkspaceEmptyProps; t
 
 export function StartupScreen({ props, theme }: { props: StartupProps; theme: ReturnType<typeof resolveTheme> }) {
   return <Box component="section" className="lm-startup" style={{ ...theme.contentStyle, padding: theme.startup.padding, gap: theme.startup.gap }}>
-    <Box component="pre" role="img" aria-label={props.logoLabel} style={{ fontSize: theme.startup.logoFontSize, lineHeight: theme.startup.logoLineHeight }}>{props.art}</Box>
+    <Box component="pre" role="img" aria-label={props.logoLabel} style={{ fontSize: `min(${theme.startup.logoFontSize}, 2cqi)`, lineHeight: theme.startup.logoLineHeight }}>{props.art}</Box>
     <Text role="status" aria-live="polite" aria-atomic="true" style={{ fontWeight: theme.startup.statusFontWeight }}>{props.status}</Text>
     <Text hidden={!props.detail} style={{ color: "var(--vault-secondary)" }}>{props.detail ?? ""}</Text>
   </Box>;
@@ -112,12 +113,12 @@ function ServerForm({ props }: { props: SelectorProps }) {
     if (!expanded && target.current?.contains(target.current.ownerDocument.activeElement)) toggle.current?.focus({ preventScroll: true });
   }, [expanded]);
   return <Box className="ln-vault-action" data-open={String(expanded)}>
-    <CardRow ref={toggle} className="ln-vault-toggle" label={props.text.server!} icon={<Icon name="browse" />} disabled={props.busy}
+    <CardRow ref={toggle} className="ln-vault-toggle" label={props.text.server!} icon={<Icon name="server-connected" />} disabled={props.busy}
       aria-expanded={expanded} aria-controls={id} onClick={props.onServer} />
     <Box className="ln-vault-disclosure" aria-hidden={!expanded} inert={!expanded}>
       <Box className="ln-vault-disclosure-body">
         <Paper className="ln-vault-form" id={id} onKeyDown={event => {
-          if (event.key === "Escape" && !event.defaultPrevented && expanded && !props.busy) { event.preventDefault(); toggle.current?.focus({ preventScroll: true }); props.onServer?.(); }
+          if (event.key === "Escape" && !event.nativeEvent.isComposing && !event.defaultPrevented && expanded && !props.busy) { event.preventDefault(); toggle.current?.focus({ preventScroll: true }); props.onServer?.(); }
         }}><Box ref={target} /></Paper>
       </Box>
     </Box>
@@ -125,27 +126,7 @@ function ServerForm({ props }: { props: SelectorProps }) {
 }
 
 export function VaultSelector({ props, theme }: { props: SelectorProps; theme: ReturnType<typeof resolveTheme> }) {
-  const main = useRef<HTMLDivElement>(null); const content = useRef<HTMLDivElement>(null);
-  useLayoutEffect(() => {
-    const panel = main.current; const body = content.current; const view = panel?.ownerDocument.defaultView;
-    if (!panel || !body || !view?.ResizeObserver) return;
-    // Measure owned disclosure surfaces, including asynchronously mounted account content.
-    const surfaces = [...body.querySelectorAll<HTMLElement>(".ln-vault-form")];
-    const observer = new view.ResizeObserver(() => {
-      const padding = view.getComputedStyle(panel);
-      const available = panel.clientHeight - parseFloat(padding.paddingTop) - parseFloat(padding.paddingBottom);
-      const disclosed = [...body.querySelectorAll<HTMLElement>(".ln-vault-disclosure")].reduce((height, node) => height + node.offsetHeight, 0);
-      const resting = body.offsetHeight - disclosed;
-      const expansion = Math.max(0, ...surfaces.map(surface => {
-        const style = view.getComputedStyle(surface);
-        return surface.offsetHeight + parseFloat(style.marginTop) + parseFloat(style.marginBottom);
-      }));
-      const offset = `${Math.max(0, Math.min((available - resting) / 2, available - resting - expansion))}px`;
-      if (panel.style.getPropertyValue("--vault-center-offset") !== offset) panel.style.setProperty("--vault-center-offset", offset);
-    });
-    observer.observe(panel); observer.observe(body); for (const surface of surfaces) observer.observe(surface);
-    return () => observer.disconnect();
-  }, [!!props.onServer]);
+  const { main, content } = useVaultActionAlignment(".ln-vault-disclosure", ".ln-vault-form", !!props.onServer);
   return <Box component="section" className="ln-vault" style={theme.contentStyle} aria-busy={props.busy}>
     <Paper component="aside" className="ln-vault-recents" aria-label={props.text.recent}>
       <Title order={2}>{props.text.recent}</Title>

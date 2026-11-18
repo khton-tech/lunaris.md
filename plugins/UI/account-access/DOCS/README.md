@@ -46,7 +46,9 @@ secondary sign-in/register switch. The server address and password-reset guidanc
 are subordinate footer context. Catalog actions are separated into the main Vault
 list, a collapsible create form, a Trash route, refresh and a themed account menu.
 Per-Vault menus contain recoverable trash; trash rows expose restore and expiry.
-Create drafts survive closing the form; Escape/Cancel returns focus to its toggle.
+Create expands immediately below its action, before Trash. The catalog reserves
+the form's measured height so desktop artwork stays anchored. Create drafts
+survive closing the form. Escape or Cancel returns focus to its toggle.
 Hidden forms are inert and cannot submit. All copy comes from Localization.
 
 Integration: account-access supplies the additional localized text through the
@@ -118,7 +120,10 @@ Embedded presentation does not receive standalone frame/shadow styling.
 The title, labels and buttons use product typography. Password explicitly uses
 the same md size as TextInput. Primary submit has no decorative arrow. Permanent
 explanatory copy is removed; server address remains secondary context and password
-reset guidance appears with login errors. Existing localized labels and SDK role
+reset guidance appears for rejected credentials. The optional role flag
+`showPasswordReset` lets the controller suppress this hint for transport errors.
+Catalog load failures appear next to the list's Refresh control.
+Existing localized labels and SDK role
 callbacks remain compatible; AccountSession/Vault integration is unchanged.
 
 Targeted tests cover form/error placement, retained inputs through Monochrome and
