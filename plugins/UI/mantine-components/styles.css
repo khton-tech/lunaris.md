@@ -359,8 +359,8 @@
 }
 .lm-explorer-node[data-active] .lm-explorer-entry-icon { color:var(--vault-accent-foreground) }
 
-.lm-vault-switcher { flex-shrink:0;min-width:0;padding:12px;position:relative;border-block-start:var(--vault-border) solid var(--vault-separator) }
-.lm-root .lm-vault-switcher-toggle { justify-content:flex-start;background:color-mix(in srgb,var(--vault-panel) 75%,var(--vault-hover));border:var(--vault-border) solid var(--vault-separator);border-radius:6px }
+.lm-vault-switcher { flex-shrink:0;min-width:0;padding:calc(var(--vault-space)*2) calc(var(--vault-space)*3);position:relative }
+.lm-root .lm-vault-switcher-toggle { justify-content:flex-start;height:auto;min-height:calc(var(--vault-space)*7);padding-block:calc(var(--vault-space)*0.5);background:color-mix(in srgb,var(--vault-panel) 75%,var(--vault-hover));border:var(--vault-border) solid var(--vault-separator);border-radius:6px }
 .lm-root .lm-vault-switcher-toggle[aria-expanded=true] { background:var(--vault-selection) }
 .lm-vault-switcher-toggle .mantine-Button-inner { justify-content:flex-start }
 .lm-vault-switcher-toggle .mantine-Button-label { flex:1 }
