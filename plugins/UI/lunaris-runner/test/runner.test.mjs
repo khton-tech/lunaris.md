@@ -83,6 +83,10 @@ test('runner renders supplied ASCII art, real milestones and configured theme, t
   assert.equal(s.surface.querySelector('[role=status]').textContent, 'Starting plugins'); assert.match(s.surface.textContent, /Starting test.slow/);
   assert.equal(s.surface.querySelector('section').closest('.lm-root').style.backgroundColor, 'rgb(15, 15, 15)');
   assert.equal(s.surface.querySelector('pre').style.fontSize, 'min(10px, 2cqi)');
+  const layout = s.surface.querySelector('.lm-startup').style;
+  assert.equal(layout.paddingInline, 'min(32px, 6cqi)');
+  assert.equal(layout.paddingBlock, 'min(32px, 6cqb)');
+  assert.equal(layout.gap, 'min(24px, 5cqb)');
   assert.deepEqual(s.reads, ['lunaris.theme-settings','lunaris.runner']);
   s.finish.resolve(); await s.starting;
   assert.equal(s.surface.querySelector('[role=status]').textContent, 'System Loaded');

@@ -53,7 +53,12 @@ export function WorkspaceEmpty({ props, theme }: { props: WorkspaceEmptyProps; t
 }
 
 export function StartupScreen({ props, theme }: { props: StartupProps; theme: ReturnType<typeof resolveTheme> }) {
-  return <Box component="section" className="lm-startup" style={{ ...theme.contentStyle, padding: theme.startup.padding, gap: theme.startup.gap }}>
+  return <Box component="section" className="lm-startup" style={{
+    ...theme.contentStyle,
+    paddingInline: `min(${theme.startup.padding}, 6cqi)`,
+    paddingBlock: `min(${theme.startup.padding}, 6cqb)`,
+    gap: `min(${theme.startup.gap}, 5cqb)`,
+  }}>
     <Box component="pre" role="img" aria-label={props.logoLabel} style={{ fontSize: `min(${theme.startup.logoFontSize}, 2cqi)`, lineHeight: theme.startup.logoLineHeight }}>{props.art}</Box>
     <Text role="status" aria-live="polite" aria-atomic="true" style={{ fontWeight: theme.startup.statusFontWeight }}>{props.status}</Text>
     <Text hidden={!props.detail} style={{ color: "var(--vault-secondary)" }}>{props.detail ?? ""}</Text>
