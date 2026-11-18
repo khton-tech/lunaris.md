@@ -12,7 +12,7 @@ minimum and a 44 px touch target. Set `accent` for a primary command.
 Themes can set `colors.actionBorder`, `colors.actionText`,
 `colors.primaryActionBorder` and `colors.primaryActionText`. Omitted values
 derive from the theme's separator, control border, text and accent colors.
-Primary labels also use semibold weight.
+Primary labels use semibold weight, with a 2-unit Lucide stroke for their icons.
 Disabled commands have a transparent background and muted text and border.
 Navigation rows, tab controls, menu triggers and icon tools use their own
 role-specific components.

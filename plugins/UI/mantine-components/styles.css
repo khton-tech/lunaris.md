@@ -1349,6 +1349,7 @@
   border-radius:var(--vault-radius-small);background:transparent;box-shadow:none;color:var(--vault-action-text)
 }
 .lm-root .lm-action-button[data-accent] { --action-border:var(--vault-primary-action-border);color:var(--vault-primary-action-text);font-weight:600 }
+.lm-root .lm-action-button[data-accent] .mantine-Button-section > svg[stroke="currentColor"] { stroke-width:2 }
 .lm-root .lm-action-button.lm-explorer-delete-confirm:not([data-disabled]) { --action-border:var(--vault-error);color:var(--vault-error);background:transparent }
 .lm-root .lm-button.lm-action-button:is(:disabled,[data-disabled],[aria-disabled=true]) {
   --button-bg:transparent;--button-color:var(--vault-secondary);--button-bd:var(--vault-separator);

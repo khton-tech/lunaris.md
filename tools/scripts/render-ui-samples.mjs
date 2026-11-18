@@ -285,6 +285,10 @@ async function renderScene({ view, theme }) {
       const more = required('.lm-lime-row-actions button[aria-haspopup="menu"]');
       const disabled = view === 'buttons-disabled';
       const addStyle = getComputedStyle(add);
+      const addIcon = required('.lm-lime-overview button[data-accent] .mantine-Button-section > svg');
+      if (Number.parseFloat(getComputedStyle(addIcon).strokeWidth) !== 2) {
+        throw new Error('The Add plugin icon must match the primary label weight.');
+      }
       const searchBounds = search.getBoundingClientRect();
       const addBounds = add.getBoundingClientRect();
       if ([searchBounds.height, addBounds.height].some(height => Math.abs(height - 36) > 0.5) || searchBounds.top <= addBounds.bottom) {
