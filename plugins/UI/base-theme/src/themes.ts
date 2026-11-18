@@ -28,11 +28,16 @@ const communityTheme = (slug: string, name: string, appearance: "dark" | "light"
   properties: { schema: "lunaris.base-theme", schemaVersion: 1, appearance, colors, geometry, typography, components, motion },
 });
 
-const darkPalette = (background: string, panel: string, text: string, accent: string, hover: string, selection: string, border: string, focus: string, onAccent = "#FFFFFF"): ThemeProperties => ({
-  background, main: accent, sub: border, text, caret: text, subAlt: panel,
+interface DarkPalette {
+  background: string; panel: string; text: string; textSecondary: string;
+  accent: string; accentHover: string; onAccent: string; hover: string; selection: string;
+  controlBorder: string; focus: string;
+}
+
+const darkPalette = (colors: DarkPalette): ThemeProperties => ({
+  ...colors, main: colors.accent, sub: colors.controlBorder, caret: colors.text, subAlt: colors.panel,
   error: "#FFB4AB", extraError: "#FFDAD4", colorfulError: "#F2C078", colorfulExtraError: "#FFE0A8",
-  panel, content: background, textSecondary: text, linkMissing: "#A0A0A0", accent, onAccent, selection, separator: hover,
-  controlBorder: border, hover, accentHover: accent, focus,
+  content: colors.background, linkMissing: "#A0A0A0", separator: colors.hover,
 });
 
 /** Engine-owned presets consumed through the shared semantic theme contract. */
@@ -45,11 +50,14 @@ export const baseThemes: readonly ThemeDefinition[] = [
       schemaVersion: 1,
       appearance: "dark",
       colors: {
-        ...darkPalette("#242B2C", "#252D2E", "#EEEDE5", "#C1D8A5", "#303A3B", "#39483D", "#394344", "#C1D8A5", "#202628"),
+        ...darkPalette({
+          background: "#242B2C", panel: "#252D2E", text: "#EEEDE5", textSecondary: "#ACB9B3",
+          accent: "#C1D8A5", accentHover: "#CDDFB6", onAccent: "#202628",
+          hover: "#303A3B", selection: "#39483D", controlBorder: "#899E85", focus: "#C1D8A5",
+        }),
         content: "#202628",
-        textSecondary: "#ACB9B3",
+        sub: "#394344",
         separator: "#394344",
-        controlBorder: "#899E85",
       },
       geometry: { ...geometry, radius: { small: 4, medium: 10 } },
       typography: { ...typography, monoFontFamily: ["Consolas", "ui-monospace", "monospace"], fontSize: 15, lineHeight: 1.3 },
@@ -76,14 +84,14 @@ export const baseThemes: readonly ThemeDefinition[] = [
         colorfulError: "#ACA98A",
         colorfulExtraError: "#C4C19E",
         panel: "#1A1A1A",
-        content: "#1A1A1A",
-        textSecondary: "#E7E7E7",
+        content: "#141414",
+        textSecondary: "#B8B8B8",
         accent: "#E7E7E7",
         onAccent: "#0F0F0F",
-        selection: "#4C4C4C",
-        separator: "#4C4C4C",
-        controlBorder: "#E7E7E7",
-        hover: "#4C4C4C",
+        selection: "#373737",
+        separator: "#333333",
+        controlBorder: "#898989",
+        hover: "#292929",
         accentHover: "#F5F5F5",
         focus: "#F5F5F5",
       },
@@ -197,20 +205,52 @@ export const baseThemes: readonly ThemeDefinition[] = [
     },
   },
   communityTheme("catppuccin-mocha", "Catppuccin Mocha", "dark", {
-    ...darkPalette("#1E1E2E", "#181825", "#CDD6F4", "#CBA6F7", "#313244", "#45475A", "#A6ADC8", "#B4BEFE", "#1E1E2E"),
+    ...darkPalette({
+      background: "#1E1E2E", panel: "#181825", text: "#CDD6F4", textSecondary: "#B2BAD4",
+      accent: "#CBA6F7", accentHover: "#D5B7F9", onAccent: "#1E1E2E",
+      hover: "#313244", selection: "#45475A", controlBorder: "#A6ADC8", focus: "#B4BEFE",
+    }),
     linkMissing: "#909090",
   }),
-  communityTheme("dracula", "Dracula", "dark", darkPalette("#282A36", "#21222C", "#F8F8F2", "#BD93F9", "#343746", "#44475A", "#8995B7", "#8BE9FD", "#282A36")),
-  communityTheme("nord", "Nord", "dark", darkPalette("#2E3440", "#3B4252", "#ECEFF4", "#88C0D0", "#434C5E", "#4C566A", "#9FB3C8", "#8FBCBB", "#2E3440")),
-  communityTheme("tokyo-night", "Tokyo Night", "dark", darkPalette("#1A1B26", "#16161E", "#C0CAF5", "#7AA2F7", "#292E42", "#343A52", "#7F89B4", "#BB9AF7", "#1A1B26")),
-  communityTheme("rose-pine", "Rosé Pine", "dark", darkPalette("#191724", "#1F1D2E", "#E0DEF4", "#EBBCBA", "#26233A", "#403D52", "#9E9AAF", "#C4A7E7", "#191724")),
-  communityTheme("gruvbox-dark", "Gruvbox Dark", "dark", darkPalette("#282828", "#1D2021", "#EBDBB2", "#FABD2F", "#3C3836", "#504945", "#BDAE93", "#FE8019", "#282828")),
+  communityTheme("dracula", "Dracula", "dark", darkPalette({
+    background: "#282A36", panel: "#21222C", text: "#F8F8F2", textSecondary: "#B8BDCD",
+    accent: "#BD93F9", accentHover: "#CAA8FA", onAccent: "#282A36",
+    hover: "#343746", selection: "#44475A", controlBorder: "#8995B7", focus: "#8BE9FD",
+  })),
+  communityTheme("nord", "Nord", "dark", darkPalette({
+    background: "#2E3440", panel: "#3B4252", text: "#ECEFF4", textSecondary: "#CBD3DF",
+    accent: "#88C0D0", accentHover: "#9FCCD9", onAccent: "#2E3440",
+    hover: "#434C5E", selection: "#4C566A", controlBorder: "#9FB3C8", focus: "#8FBCBB",
+  })),
+  communityTheme("tokyo-night", "Tokyo Night", "dark", darkPalette({
+    background: "#1A1B26", panel: "#16161E", text: "#C0CAF5", textSecondary: "#A7B1D4",
+    accent: "#7AA2F7", accentHover: "#93B4F9", onAccent: "#1A1B26",
+    hover: "#292E42", selection: "#343A52", controlBorder: "#7F89B4", focus: "#BB9AF7",
+  })),
+  communityTheme("rose-pine", "Rosé Pine", "dark", darkPalette({
+    background: "#191724", panel: "#1F1D2E", text: "#E0DEF4", textSecondary: "#BDB9D5",
+    accent: "#EBBCBA", accentHover: "#EFC9C7", onAccent: "#191724",
+    hover: "#26233A", selection: "#403D52", controlBorder: "#9E9AAF", focus: "#C4A7E7",
+  })),
+  communityTheme("gruvbox-dark", "Gruvbox Dark", "dark", darkPalette({
+    background: "#282828", panel: "#1D2021", text: "#EBDBB2", textSecondary: "#CDBFA0",
+    accent: "#FABD2F", accentHover: "#FBCA57", onAccent: "#282828",
+    hover: "#3C3836", selection: "#504945", controlBorder: "#BDAE93", focus: "#FE8019",
+  })),
   communityTheme("everforest-dark", "Everforest Dark", "dark", {
-    ...darkPalette("#2D353B", "#343F44", "#D3C6AA", "#A7C080", "#3D484D", "#4A555B", "#A7C080", "#83C092", "#2D353B"),
+    ...darkPalette({
+      background: "#2D353B", panel: "#343F44", text: "#D3C6AA", textSecondary: "#C6C1B1",
+      accent: "#A7C080", accentHover: "#B8CC98", onAccent: "#2D353B",
+      hover: "#3D484D", selection: "#425055", controlBorder: "#A0A9AD", focus: "#83C092",
+    }),
     separator: "#485357",
-    controlBorder: "#A0A9AD",
+    sub: "#A7C080",
   }),
-  communityTheme("sakura-night", "Sakura Night", "dark", darkPalette("#211A22", "#2B202B", "#F4E8F0", "#E89AB8", "#392B38", "#50384B", "#C18AA9", "#F2B6D0", "#211A22")),
+  communityTheme("sakura-night", "Sakura Night", "dark", darkPalette({
+    background: "#211A22", panel: "#2B202B", text: "#F4E8F0", textSecondary: "#CCB7C7",
+    accent: "#E89AB8", accentHover: "#ECADC5", onAccent: "#211A22",
+    hover: "#392B38", selection: "#50384B", controlBorder: "#C18AA9", focus: "#F2B6D0",
+  })),
   communityTheme("maiami-night", "Maiami Night", "dark", {
     background: "#18181A", main: "#E4609B", sub: "#47BAC0",
     text: "#FFFFFF", caret: "#E4609B", subAlt: "#0F0F10",
@@ -219,6 +259,6 @@ export const baseThemes: readonly ThemeDefinition[] = [
     panel: "#0F0F10", content: "#18181A", textSecondary: "#47BAC0",
     accent: "#E4609B", onAccent: "#18181A", selection: "#40303B",
     separator: "#343038", controlBorder: "#47BAC0", hover: "#292327",
-    accentHover: "#E4609B", focus: "#E4609B",
+    accentHover: "#E97EAE", focus: "#E4609B",
   }),
 ];

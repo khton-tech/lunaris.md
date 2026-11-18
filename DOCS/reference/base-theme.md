@@ -8,7 +8,7 @@ with the requested display name Maiami Night and the shared dark v1 schema.
 | Reference role | Hex | Semantic mapping |
 |---|---|---|
 | background | #18181A | background, content, onAccent |
-| main | #E4609B | main, accent, accentHover, focus |
+| main | #E4609B | main, accent, focus |
 | sub | #47BAC0 | sub, textSecondary, controlBorder |
 | text | #FFFFFF | text |
 | caret | #E4609B | caret |
@@ -16,7 +16,7 @@ with the requested display name Maiami Night and the shared dark v1 schema.
 | error / colorful error | #FFF591 | error, colorfulError |
 | extra error / colorful extra error | #B6AF68 | extraError, colorfulExtraError |
 
-Hover (#292327), selection (#40303B) and the separator (#343038) are restrained
+Primary hover (#E97EAE), row hover (#292327), selection (#40303B) and the separator (#343038) are restrained
 derived colors.
 Dark primary labels preserve contrast against the pink accent. Existing geometry,
 typography and motion are reused. This adapts the palette rather than the reference
@@ -44,21 +44,21 @@ compatible with Mantine components. Colors are transcribed from the Owner's refe
 | Reference role | Hex | Shared component mapping |
 |---|---|---|
 | background | #0F0F0F | background, onAccent |
-| main | #E7E7E7 | accent, controlBorder |
-| text | #E7E7E7 | text, textSecondary |
-| sub | #4C4C4C | sub, separator, hover, selection |
+| main | #E7E7E7 | accent |
+| text | #E7E7E7 | text |
+| sub | #4C4C4C | sub |
 | caret | #F5F5F5 | caret, focus, accentHover |
-| sub alt | #1A1A1A | subAlt, panel, content |
+| sub alt | #1A1A1A | subAlt, panel |
 | error | #AC8C8C | error |
 | extra error | #C49EA0 | extraError |
 | colorful error | #ACA98A | colorfulError |
 | colorful extra error | #C4C19E | colorfulExtraError |
 
-The reference sub color is decorative, not a readable small-text role. Secondary
-labels use the text color; typography and spacing provide hierarchy. Selector
-artwork uses text for a readable logo, editable fields use caret, and alerts use error. Extra error and
-colorful variants are available as data for future consumers; no colorful-mode
-setting or theme editor is introduced. Selection uses sub with readable text.
+The active content surface uses #141414. Supporting labels use #B8B8B8,
+editable control boundaries use #898989 and decorative separators use #333333.
+Rows use #292929 on hover and #373737 for persistent selection. The primary
+action, caret, artwork and errors retain the reference colors. Each built-in
+preset provides independent colors for secondary labels and primary hover.
 
 ## Measurements
 

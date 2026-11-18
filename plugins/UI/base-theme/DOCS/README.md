@@ -1,5 +1,9 @@
 # Base theme engine
 
+Supporting labels, primary hover and row selection have distinct semantic values
+in every preset. The engine tests their contrast on all supported control
+surfaces, including the destructive action inside the Files dialog.
+
 Maiami Night (`lunaris.base-theme-engine.maiami-night`) transcribes the Owner's
 reference palette. It uses the existing Themes/ThemeChanged contracts for
 Interface Settings, Mantine and the editor; no additional integration is needed.

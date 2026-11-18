@@ -121,7 +121,7 @@ test('both Luna palettes keep selection markers, backlink matches and deletion f
 test('Lunaris and community separators are subdued against workspace surfaces', async () => {
   const s = await setup(); await s.host.start(engine.manifest.id);
   for (const theme of s.themes.list()) {
-    if (theme.id === presetId || theme.properties.components.windowChrome?.enabled) continue;
+    if (theme.properties.components.windowChrome?.enabled) continue;
     const colors = theme.properties.colors;
     for (const surface of ['background', 'panel', 'content']) {
       assert.ok(contrast(colors.separator, colors[surface]) < 2, `${theme.name}: separator/${surface}`);
@@ -134,6 +134,13 @@ test('text and meaningful controls meet contrast thresholds across their intende
   const s = await setup(); await s.host.start(engine.manifest.id);
   for (const theme of s.themes.list()) {
     const colors = theme.properties.colors;
+    assert.notEqual(colors.text, colors.textSecondary, `${theme.name}: supporting labels`);
+    assert.notEqual(colors.hover, colors.selection, `${theme.name}: navigation states`);
+    assert.notEqual(colors.accent, colors.accentHover, `${theme.name}: primary button states`);
+    const dialogSurface = theme.properties.components.windowChrome?.enabled ? colors.content : colors.panel;
+    for (const weight of [0.04, 0.08, 0.12]) {
+      assert.ok(contrast(colors.error, blend(colors.error, dialogSurface, weight)) >= 4.5, `${theme.name}: destructive action at ${weight}`);
+    }
     for (const surface of ['background', 'panel', 'content', 'hover', 'selection']) {
       for (const text of ['text', 'textSecondary']) assert.ok(contrast(colors[text], colors[surface]) >= 4.5, `${theme.name}: ${text}/${surface}`);
       for (const role of ['controlBorder', 'focus']) assert.ok(contrast(colors[role], colors[surface]) >= 3, `${theme.name}: ${role}/${surface}`);
