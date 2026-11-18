@@ -276,19 +276,21 @@ pointer mapping/focus and narrow/short visuals remain manual acceptance.
 `lunaris.lime-settings` embeds plugin management in the Settings page using
 shared Mantine controls and existing Settings row styles. Mantine Tabs separate
 third-party and built-in rows when composition is available. Search filters the
-selected list. Mantine Menu handles page and third-party row actions, while
+selected list. The overview shows safe mode, Add plugin and the installed count
+above both lists. Mantine Menu handles third-party row actions, while
 built-in rows keep Details directly accessible. The optional `vaultId` prop
 scopes local view state to the active Vault.
-Search and Add plugin share a 36 px toolbar height with a 44 px target in
+Search and the overview actions share a 36 px height with a 44 px target in
 narrow layouts and with coarse pointers.
 Required props: localized labels, rows of inert metadata plus enabled/recovery/
 removing/state, nullable preview metadata with warning/action, busy/available/
 safeMode booleans, error text and onAdd/onConfirm/onCancel/onToggle/onRetry/
 onUpdate/onRemove/onSafeMode callbacks. Fields contain only label/value strings;
 there is no HTML injection or native/engine access. Metadata and descriptions wrap.
-The list uses `search`, `noMatches`, `pluginActions`, `managementActions`,
-`retryRemoval` and `paused` labels. Composition also uses `section`,
-`thirdParty`, `builtIn` and `noBuiltins`.
+The list uses `search`, `noMatches`, `pluginActions` and `retryRemoval`.
+The overview and manager use `manage`, `safeModeTitle`, `safeModeHint`,
+`paused`, `localPackages`, `localPackagesHint` and `installed`.
+Composition also uses `thirdParty`, `builtIn` and `noBuiltins`.
 The containing Settings page owns its surface/geometry; the role paints no card.
 Package preview opens a themed Mantine modal with Overview and Dependencies tabs.
 The role mounts dialogs and menus in the overlay target lent by Settings, above

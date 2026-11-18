@@ -243,7 +243,7 @@ async function renderScene({ view, theme }) {
     required('.lm-settings-dialog .lm-settings-category').click();
     await flush();
     if (view === 'package') {
-      required('.lm-lime-toolbar button[data-accent]').click();
+      required('.lm-lime-overview button[data-accent]').click();
       await flush();
       await new Promise(resolve => setTimeout(resolve, 250));
       const dialog = required('.lm-lime-overlay [role=dialog]');
@@ -261,13 +261,15 @@ async function renderScene({ view, theme }) {
     }
     const fields = document.querySelectorAll('.lm-settings-items [role=combobox]');
     if (view.startsWith('buttons')) {
-      const add = required('.lm-lime-toolbar button[data-accent]');
-      const search = required('.lm-lime-toolbar input[type=search]');
+      const add = required('.lm-lime-overview button[data-accent]');
+      const search = required('.lm-lime-search input[type=search]');
       const more = required('.lm-lime-row-actions button[aria-haspopup="menu"]');
       const disabled = view === 'buttons-disabled';
       const addStyle = getComputedStyle(add);
-      if (Math.abs(search.getBoundingClientRect().height - add.getBoundingClientRect().height) > 0.5) {
-        throw new Error('Plugin search and Add plugin must have the same height.');
+      const searchBounds = search.getBoundingClientRect();
+      const addBounds = add.getBoundingClientRect();
+      if (Math.abs(searchBounds.height - addBounds.height) > 0.5 || searchBounds.top <= addBounds.bottom) {
+        throw new Error('Plugin search must match the Add plugin height and sit below the overview.');
       }
       if ([add, more].some(button => button.disabled !== disabled || button.getBoundingClientRect().height < 29)
         || addStyle.backgroundColor !== 'rgba(0, 0, 0, 0)' || addStyle.backgroundImage !== 'none'

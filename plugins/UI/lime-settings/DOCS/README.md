@@ -19,11 +19,11 @@ Russian catalogs are supplied. The native picker call runs before the first
 Settings owns the category heading and section geometry, surface and scrolling.
 With the composition adapter, the shared Mantine role presents Third-party and
 Built-in tabs. Search matches names and IDs in the current list and is omitted
-when that list is empty. The third-party toolbar exposes Add plugin as its
-primary action, including for an empty Vault. Without a Vault, the section shows
-the unavailable state. The page's actions menu contains the option to reopen
-without third-party plugins. When safe mode is active, its status and the option
-to resume third-party plugins are visible above the list.
+when that list is empty. An overview above the manager shows the safe-mode
+action and status, local package installation and the total third-party
+installation count. The count includes disabled plugins and is independent of
+the current tab or search. Add plugin uses the native package picker from
+either tab. Without a Vault, the section shows the unavailable state.
 
 Rows show the plugin name, version, runtime state and an enablement switch where
 available. The third-party row menu contains Details, Update and Remove, with
@@ -96,8 +96,9 @@ the platform warning and confirmation. The Details footer contains the close
 action and operation errors.
 
 Lunaris Settings item rows, quiet actions and shared Switch controls are the
-product references. Obsidian's installed-plugin switch and name search informed
-the list. VS Code's per-extension management menu informed the row overflow.
+product references. The Owner's Obsidian screenshot informed the overview and
+manager split. Local package installation and the existing safe-mode callback
+serve the overview. VS Code's per-extension management menu informed the row overflow.
 [Obsidian community plugins](https://obsidian.md/help/community-plugins),
 [VS Code extension management](https://code.visualstudio.com/docs/configure/extensions/extension-marketplace#_manage-extensions).
 

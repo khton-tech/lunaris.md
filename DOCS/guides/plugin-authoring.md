@@ -67,7 +67,7 @@ npm run core -- inspect-package ./another-output.lup
 ```
 
 Inspection never evaluates package code. Open a Vault, go to Settings → Plugins
-and choose Add plugin in the third-party list. Review the metadata and runtime
+and choose Add plugin in the Install from file row. Review the metadata and runtime
 notice, then install and start the package or choose Install disabled. The
 latter keeps the package inert until enabled, so you can configure its upstream
 provider first.

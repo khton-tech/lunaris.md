@@ -1,7 +1,10 @@
 const en = {
   title: 'Plugins', section: 'Vault plugins', add: 'Add plugin', install: 'Install plugin', update: 'Update',
   thirdParty: 'Third-party', builtIn: 'Built-in', search: 'Search plugins', noMatches: 'No plugins found.',
-  pluginActions: 'Actions', managementActions: 'Plugin management actions', retryRemoval: 'Retry removal',
+  pluginActions: 'Actions', manage: 'Manage plugins', retryRemoval: 'Retry removal',
+  safeModeTitle: 'Safe mode', safeModeHint: 'Installed packages and their data are kept.',
+  localPackages: 'Install from file', localPackagesHint: 'Lunaris packages (.lup)',
+  installed: 'Installed third-party plugins',
   paused: 'Third-party plugins are paused.', noBuiltins: 'No built-in plugins available.',
   installDisabled: 'Install disabled',
   pluginAccess: 'Enabled plugins run with the same access as Lunaris.',
@@ -31,7 +34,10 @@ const en = {
 const ru: typeof en = {
   title: 'Плагины', section: 'Плагины хранилища', add: 'Добавить плагин', install: 'Установить плагин', update: 'Обновить',
   thirdParty: 'Сторонние', builtIn: 'Встроенные', search: 'Поиск плагинов', noMatches: 'Плагины не найдены.',
-  pluginActions: 'Действия', managementActions: 'Управление плагинами', retryRemoval: 'Повторить удаление',
+  pluginActions: 'Действия', manage: 'Управление плагинами', retryRemoval: 'Повторить удаление',
+  safeModeTitle: 'Безопасный режим', safeModeHint: 'Установленные пакеты и их данные сохраняются.',
+  localPackages: 'Установка из файла', localPackagesHint: 'Пакеты Lunaris (.lup)',
+  installed: 'Установлено сторонних плагинов',
   paused: 'Сторонние плагины приостановлены.', noBuiltins: 'Встроенные плагины недоступны.',
   installDisabled: 'Установить без запуска',
   pluginAccess: 'Включённые плагины получают тот же доступ, что и Lunaris.',

@@ -101,7 +101,9 @@ test('Lime composes inside real Settings/Workspace and confirms preview before i
   try {
     assert.equal(s.surface.querySelector('.lm-settings-page h1').textContent, 'Plugins');
     assert.equal(s.surface.querySelector('.lm-settings-page h2').textContent, 'Vault plugins');
-    assert.deepEqual([...s.view().querySelectorAll('button')].map(button => button.textContent), ['Add plugin']);
+    assert.deepEqual([...s.view().querySelectorAll('.lm-lime-overview button')].map(button => button.textContent), ['Open without third-party plugins', 'Add plugin']);
+    assert.equal(s.view().querySelector('.lm-lime-installed-count').textContent, '0');
+    assert.equal(s.view().querySelector('h3').textContent, 'Manage plugins');
     assert.equal(s.search(), null);
     assert.equal(s.button('Add plugin').dataset.variant, 'outline');
     assert.ok(s.button('Add plugin').hasAttribute('data-accent'));
@@ -135,6 +137,7 @@ test('Lime composes inside real Settings/Workspace and confirms preview before i
     await s.setError(null);
     assert.equal(s.button('Install plugin').closest('.lm-lime-panel'), null);
     s.button('Install plugin').click(); await flush(); assert.ok(s.calls.some(call => call[0] === 'install'));
+    assert.equal(view.querySelector('.lm-lime-installed-count').textContent, '1');
     assert.equal(s.dom.window.document.querySelector('.lm-lime-overlay'), null);
     assert.equal(s.dom.window.document.activeElement.textContent, 'Add plugin');
     const actions = s.rowActions();
@@ -237,9 +240,9 @@ test('search finds installed packages and safe mode keeps their management list 
     assert.equal(search.value, '');
     assert.ok(s.row());
 
-    const management = s.view().querySelector('[aria-label="Plugin management actions"]');
-    assert.equal(s.button('Open without third-party plugins'), undefined);
-    await s.chooseMenuItem(management, 'Open without third-party plugins');
+    const safeMode = s.button('Open without third-party plugins');
+    assert.ok(safeMode.closest('.lm-lime-overview'));
+    safeMode.click(); await flush();
     assert.deepEqual(s.calls.at(-1), ['restore', true]);
     assert.match(s.view().textContent, /Third-party plugins are paused\./);
     assert.ok(s.row().querySelector('input[type=checkbox]').disabled);
@@ -248,7 +251,7 @@ test('search finds installed packages and safe mode keeps their management list 
     assert.deepEqual(s.calls.at(-1), ['restore', false]);
     assert.doesNotMatch(s.view().textContent, /Third-party plugins are paused\./);
     assert.equal(s.row().querySelector('input[type=checkbox]').disabled, false);
-    assert.ok(s.dom.window.document.activeElement === s.view().querySelector('[aria-label="Plugin management actions"]'));
+    assert.ok(s.dom.window.document.activeElement === safeMode);
   } finally { await s.stop(); }
 });
 

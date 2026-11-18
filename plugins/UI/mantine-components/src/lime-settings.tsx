@@ -38,8 +38,8 @@ interface Props {
   readonly onPlan: (id: string) => void;
   readonly onSelectProvider: (id: string, kind: Dependency['kind'], contractId: string, providerId: string, revision: number) => void;
 }
-const labels = ['add', 'empty', 'noVault', 'enabled', 'details', 'remove', 'cancel', 'keepData', 'deleteData', 'removePrompt', 'warning', 'retry', 'update', 'safeMode', 'resume', 'provider', 'applyProvider', 'refreshDependencies', 'affected', 'missingDependency', 'noDependencies', 'selectProvider', 'enableProvider', 'optional', 'overview', 'requires', 'previewTabs', 'search', 'noMatches', 'pluginActions', 'managementActions', 'retryRemoval', 'paused'];
-const compositionLabels = ['section', 'thirdParty', 'builtIn', 'noBuiltins', 'useDefaultProvider', 'setProvider', 'applyComposition', 'discardComposition', 'resetComposition'];
+const labels = ['add', 'empty', 'noVault', 'enabled', 'details', 'remove', 'cancel', 'keepData', 'deleteData', 'removePrompt', 'warning', 'retry', 'update', 'safeMode', 'resume', 'provider', 'applyProvider', 'refreshDependencies', 'affected', 'missingDependency', 'noDependencies', 'selectProvider', 'enableProvider', 'optional', 'overview', 'requires', 'previewTabs', 'search', 'noMatches', 'pluginActions', 'manage', 'retryRemoval', 'paused', 'safeModeTitle', 'safeModeHint', 'localPackages', 'localPackagesHint', 'installed'];
+const compositionLabels = ['thirdParty', 'builtIn', 'noBuiltins', 'useDefaultProvider', 'setProvider', 'applyComposition', 'discardComposition', 'resetComposition'];
 const hostDefault = 'host-default';
 const validFields = (fields: unknown): fields is Metadata['fields'] =>
   Array.isArray(fields) && fields.every(field => typeof field?.label === 'string' && typeof field.value === 'string');
@@ -261,8 +261,7 @@ function LimeManagement({ props, theme, overlay }: LimeViewProps) {
   const cancelRemoval = useRef<HTMLButtonElement>(null);
   const addButton = useRef<HTMLButtonElement>(null);
   const searchInput = useRef<HTMLInputElement>(null);
-  const managementButton = useRef<HTMLButtonElement>(null);
-  const resumeButton = useRef<HTMLButtonElement>(null);
+  const safeModeButton = useRef<HTMLButtonElement>(null);
   const changingMode = useRef(false);
   const hadDialog = useRef(false);
   useEffect(() => {
@@ -288,8 +287,7 @@ function LimeManagement({ props, theme, overlay }: LimeViewProps) {
   useEffect(() => {
     if (!changingMode.current || props.busy) return;
     changingMode.current = false;
-    const target = props.safeMode ? resumeButton.current : managementButton.current;
-    (target ?? searchInput.current ?? addButton.current)?.focus({ preventScroll: true });
+    safeModeButton.current?.focus({ preventScroll: true });
   }, [props.safeMode, props.busy]);
 
   const locked = props.busy || !props.available || dialogOpen;
@@ -315,25 +313,12 @@ function LimeManagement({ props, theme, overlay }: LimeViewProps) {
     changingMode.current = true;
     props.onSafeMode(enabled);
   };
-  const safeModeMenu = !props.safeMode && (props.rows.length > 0 || composition?.customized) &&
-    <ViewportMenu disabled={locked} position="bottom-end" offset={6} returnFocus>
-      <Menu.Target>
-        <ActionIcon ref={managementButton} className="lm-lime-icon lm-focus" variant="subtle" size={30} aria-label={props.labels.managementActions}
-          title={props.labels.managementActions} disabled={locked}><Icon name="actions" /></ActionIcon>
-      </Menu.Target>
-      <ProductDropdown aria-label={props.labels.managementActions}>
-        <Menu.Item leftSection={<Icon name="refresh" />} onClick={() => changeSafeMode(true)}>{props.labels.safeMode}</Menu.Item>
-      </ProductDropdown>
-    </ViewportMenu>;
-  const add = <ActionButton ref={addButton} accent leftSection={<Icon name="create" />} disabled={locked}
-    onClick={event => { dialogTrigger.current = event.currentTarget; props.onAdd(); }}>{props.labels.add}</ActionButton>;
   const filter = query.trim().toLowerCase();
 
-  function renderList(rows: readonly (Row | BuiltinRow)[], empty: string | undefined, actions?: ReactNode, controls?: ReactNode) {
+  function renderList(rows: readonly (Row | BuiltinRow)[], empty: string | undefined, controls?: ReactNode) {
     const filtered = filter ? rows.filter(row => row.name.toLowerCase().includes(filter) || row.id.toLowerCase().includes(filter)) : rows;
     return <Stack gap="sm">
-      {(rows.length > 0 || actions) && <Group className="lm-lime-toolbar" gap="xs">
-        {rows.length > 0 && <TextInput ref={searchInput} className="lm-lime-search" classNames={{ input: 'lm-input' }} type="search"
+      {rows.length > 0 && <TextInput ref={searchInput} className="lm-lime-search" classNames={{ input: 'lm-input' }} type="search"
           aria-label={props.labels.search} placeholder={props.labels.search} leftSection={<Icon name="search" />} value={query}
           onChange={event => { setRemoving(null); setQuery(event.currentTarget.value); }}
           onKeyDown={event => {
@@ -342,8 +327,6 @@ function LimeManagement({ props, theme, overlay }: LimeViewProps) {
               setQuery('');
             }
           }} />}
-        {actions}
-      </Group>}
       {controls}
       {filtered.length > 0 ? <Box component="ul" className="lm-lime-package-list">
         {filtered.map(row => <PackageRow key={row.id} row={row} props={props} locked={locked}
@@ -379,26 +362,43 @@ function LimeManagement({ props, theme, overlay }: LimeViewProps) {
   return <Stack className="lm-lime-settings" gap="sm" style={theme.contentStyle} aria-busy={props.busy}>
     {props.error && !dialogOpen && <Text className="lm-lime-message" size="sm" c="var(--vault-error)" role="alert">{props.error}</Text>}
     {!props.available ? <Text className="lm-lime-message" size="sm" c="dimmed">{props.labels.noVault}</Text> : <>
-      {props.safeMode && <Group className="lm-lime-safe-mode" gap="xs" justify="space-between">
-        <Text size="sm" role="status">{props.labels.paused}</Text>
-        <ActionButton ref={resumeButton} disabled={locked} onClick={() => changeSafeMode(false)}>{props.labels.resume}</ActionButton>
-      </Group>}
+      <Box className="lm-lime-overview">
+        <Group className="lm-lime-overview-row" gap="xs">
+          <Box className="lm-lime-overview-copy">
+            <Text size="sm" fw={600}>{props.labels.safeModeTitle}</Text>
+            <Text size="sm" c="dimmed" role="status">{props.safeMode ? props.labels.paused : props.labels.safeModeHint}</Text>
+          </Box>
+          <ActionButton ref={safeModeButton} disabled={locked} onClick={() => changeSafeMode(!props.safeMode)}>
+            {props.safeMode ? props.labels.resume : props.labels.safeMode}
+          </ActionButton>
+        </Group>
+        <Group className="lm-lime-overview-row" gap="xs">
+          <Box className="lm-lime-overview-copy">
+            <Text size="sm" fw={600}>{props.labels.localPackages}</Text>
+            <Text size="sm" c="dimmed">{props.labels.localPackagesHint}</Text>
+          </Box>
+          <ActionButton ref={addButton} accent leftSection={<Icon name="create" />} disabled={locked}
+            onClick={event => { dialogTrigger.current = event.currentTarget; props.onAdd(); }}>{props.labels.add}</ActionButton>
+        </Group>
+        <Group className="lm-lime-overview-row" gap="xs">
+          <Text className="lm-lime-overview-copy" size="sm" fw={600}>{props.labels.installed}</Text>
+          <Text className="lm-lime-installed-count" size="sm">{props.rows.length}</Text>
+        </Group>
+      </Box>
+      <Text component="h3" className="lm-lime-management-heading" size="md" fw={650}>{props.labels.manage}</Text>
       {composition ? <Tabs className="lm-lime-tabs" color="var(--vault-accent-foreground)" keepMounted={false}
         value={tab} onChange={next => { if (next) { setTab(next); setQuery(''); setRemoving(null); } }}>
-        <Box className="lm-lime-category-bar">
-          <Tabs.List aria-label={props.labels.section}>
-            <Tabs.Tab value="third-party" disabled={locked} className="lm-focus">{props.labels.thirdParty}</Tabs.Tab>
-            <Tabs.Tab value="builtin" disabled={locked} className="lm-focus">{props.labels.builtIn}</Tabs.Tab>
-          </Tabs.List>
-          {safeModeMenu}
-        </Box>
+        <Tabs.List className="lm-lime-category-bar" aria-label={props.labels.manage}>
+          <Tabs.Tab value="third-party" disabled={locked} className="lm-focus">{props.labels.thirdParty}</Tabs.Tab>
+          <Tabs.Tab value="builtin" disabled={locked} className="lm-focus">{props.labels.builtIn}</Tabs.Tab>
+        </Tabs.List>
         <Tabs.Panel value="third-party">
-          {renderList(props.rows, props.labels.empty, add)}
+          {renderList(props.rows, props.labels.empty)}
         </Tabs.Panel>
         <Tabs.Panel value="builtin">
-          {renderList(composition.rows, props.labels.noBuiltins, undefined, compositionActions)}
+          {renderList(composition.rows, props.labels.noBuiltins, compositionActions)}
         </Tabs.Panel>
-      </Tabs> : renderList(props.rows, props.labels.empty, <>{add}{safeModeMenu}</>)}
+      </Tabs> : renderList(props.rows, props.labels.empty)}
     </>}
     {dialogOpen && createPortal(
       <div id={overlay.id} className="lm-root lm-lime-overlay" data-mantine-color-scheme={theme.scheme}
