@@ -339,8 +339,9 @@ Reference: the existing mobile Workspace, Files rail and Settings header, plus
 ownership of floating surfaces and their scroll overflow. The launcher now scrolls
 when contributed actions exceed its available width, matching the bottom toolbar.
 SidebarRail adapts its own padding to an allocated width of 60px or less so Luna
-padding cannot squeeze compact navigation controls. Settings owns heading wrapping;
-long unbroken category titles stay within the existing sticky header.
+padding cannot squeeze compact navigation controls. Settings wraps long category
+titles and scrolls them with the page inside the Settings window. The dialog
+caption and its navigation controls sit outside the page scroll region.
 
 File Explorer uses a minimum 44px virtual row height for coarse pointers, including
 draft rows, and recalculates on pointer-capability changes. Virtual geometry is

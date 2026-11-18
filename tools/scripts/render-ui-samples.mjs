@@ -242,6 +242,10 @@ async function renderScene({ view, theme }) {
     await flush();
     required('.lm-settings-dialog .lm-settings-category').click();
     await flush();
+    const pageHeading = document.querySelector('.lm-settings-dialog .lm-settings-page-header');
+    if (pageHeading && getComputedStyle(pageHeading).position !== 'static') {
+      throw new Error('The Settings category heading must scroll with the page.');
+    }
     if (view === 'package') {
       required('.lm-lime-overview button[data-accent]').click();
       await flush();

@@ -983,7 +983,8 @@
 
 .lm-root .lm-mobile-menu-items[data-density=compact] .lm-sidebar-tab { width:32px;height:32px;min-width:32px;min-height:32px }
 
-.lm-settings-page-header { display:flex;align-items:center;gap:8px;position:sticky;top:0;z-index:1;background:var(--vault-content) }
+.lm-settings-page-header { display:flex;align-items:center;gap:8px }
+.lm-settings-page-header:has(> .lm-settings-open-sidebar) { position:sticky;top:0;z-index:1;background:var(--vault-content) }
 .lm-root .lm-settings-open-sidebar { display:none;flex-shrink:0;color:inherit;--ai-hover:var(--vault-hover);--ai-hover-color:var(--vault-text) }
 .lm-settings-page-header h1 { display:flex;align-items:center;gap:calc(var(--vault-space)*2);min-width:0;overflow-wrap:anywhere }
 .lm-settings-page-header h1 > svg { flex:none }
