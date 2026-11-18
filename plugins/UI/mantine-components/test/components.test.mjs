@@ -92,6 +92,7 @@ test('real Luna presets adapt settings controls and opened menus without replaci
   const root = s.target.querySelector('.lm-root'); const content = s.target.querySelector('.lm-settings-items');
   const toggle = s.target.querySelector('.mantine-Switch-input'); const picker = s.target.querySelector('[role=combobox]');
   const thumb = s.target.querySelector('.mantine-Slider-thumb');
+  assert.equal(s.dom.window.getComputedStyle(picker).getPropertyValue('--input-bd'), 'var(--vault-control-border)');
   for (const id of ['windows-xp', 'windows-xp-dark']) {
     s.themes.select(`lunaris.base-theme-engine.${id}`); await settle();
     assert.equal(root.dataset.windowChrome, 'true'); assert.equal(root.style.backgroundColor, 'transparent');
@@ -100,6 +101,8 @@ test('real Luna presets adapt settings controls and opened menus without replaci
     assert.equal(s.dom.window.getComputedStyle(thumb).borderRadius, 'var(--vault-radius)');
     assert.match(content.style.getPropertyValue('--vault-button-image'), /linear-gradient/);
     assert.equal(root.getAttribute('data-mantine-color-scheme'), id.endsWith('dark') ? 'dark' : 'light');
+    const { colors } = s.themes.current().properties;
+    assert.equal(content.style.getPropertyValue('--vault-link'), colors.link ?? colors.accentForeground);
     const pickerIcon = picker.closest('.lm-setting-picker').querySelector('[data-position=left]');
     assert.equal(s.dom.window.getComputedStyle(pickerIcon).boxShadow, 'var(--vault-surface-shadow)');
     picker.click(); await settle();
@@ -145,13 +148,18 @@ test('account access uses controlled Mantine password fields, escaped catalog na
   mounted.value.update({ ...props, mode: 'login' });
   assert.equal(password.hasAttribute('minlength'), false);
   assert.equal(password.getAttribute('autocomplete'), 'current-password');
+  mounted.value.update({ ...props, mode: 'login', error: 'Offline', showPasswordReset: false });
+  assert.equal(s.target.textContent.includes(props.text.passwordReset), false);
+  mounted.value.update({ ...props, mode: 'login', error: 'Invalid credentials', showPasswordReset: true });
+  assert.ok(s.target.textContent.includes(props.text.passwordReset));
   mounted.value.update({ ...props, mode: 'vaults', busy: true, catalogState: 'loading', text: { ...props.text, loading: 'Loading vaults' }, entries: [{ id: 'old', name: 'Stale vault', detail: '' }] });
   assert.equal(s.target.querySelector('[role=status]').textContent, 'Loading vaults');
   assert.equal(s.target.querySelector('.lm-account-empty'), null);
   assert.equal(s.target.querySelector('.lm-account-row'), null);
   mounted.value.update({ ...props, mode: 'trash', catalogState: 'error', error: 'Offline' });
   assert.equal(s.target.querySelector('.lm-account-empty'), null);
-  assert.equal(s.target.querySelector('[role=alert]').textContent, 'Offline');
+  assert.equal(s.target.querySelector('.lm-account-vaults [role=alert]').textContent, 'Offline');
+  assert.equal(s.target.querySelectorAll('.lm-account-vaults button').length, 1, 'the catalog has one refresh action');
   mounted.value.update({ ...props, mode: 'vaults', entries: [{ id: 'v', name: '<script>bad</script>', detail: 'Notes' }] });
   assert.equal(s.target.querySelector('script'), null); assert.ok(s.target.textContent.includes('<script>bad</script>'));
   assert.ok(s.target.querySelector('.lm-account-vaults .lm-account-list'));
@@ -161,9 +169,13 @@ test('account access uses controlled Mantine password fields, escaped catalog na
   const toggle = s.target.querySelector('[aria-controls]');
   assert.equal(toggle.getAttribute('aria-expanded'), 'false');
   assert.equal(s.target.querySelector('.lm-account-disclosure').getAttribute('aria-hidden'), 'true');
+  assert.equal(toggle.nextElementSibling, s.target.querySelector('.lm-account-disclosure'), 'the form expands directly under Create');
   toggle.click(); await new Promise(setImmediate);
   assert.equal(toggle.getAttribute('aria-expanded'), 'true');
   assert.equal(s.target.querySelector('.lm-account-disclosure').getAttribute('aria-hidden'), 'false');
+  s.target.querySelector('form').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', isComposing: true, bubbles: true }));
+  await settle();
+  assert.equal(toggle.getAttribute('aria-expanded'), 'true');
   s.target.querySelector('form').dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
   await new Promise(setImmediate);
   assert.equal(s.target.querySelector('.lm-account-disclosure').getAttribute('aria-hidden'), 'true');
@@ -262,7 +274,17 @@ test('editor title cancellation, composition and late rename results preserve th
       saveLabel: 'Save', retryLabel: 'Retry', reloadLabel: 'Reload', discardLabel: 'Discard', cancelLabel: 'Cancel', onSave() {}, onReload() {}, onTarget() {} };
     const mounted = s.components.mount('lunaris.text-editor', s.target, props, s.ctx.signal);
     const input = s.target.querySelector('.lm-editor-title input');
+    const sheet = s.dom.window.document.createElement('style');
+    sheet.textContent = readFileSync(new URL('../styles.css', import.meta.url), 'utf8').replace(/^@import .*$/gm, '');
+    s.dom.window.document.head.append(sheet);
+    input.dispatchEvent(new s.dom.window.Event('pointerdown', { bubbles: true }));
+    input.focus(); await settle();
+    assert.equal(input.hasAttribute('data-pointer-focus'), true);
+    assert.equal(s.dom.window.getComputedStyle(input).boxShadow.includes('--vault-focus-width'), false);
+    input.blur(); await settle();
     input.focus(); typeInput(input, 'Cancelled'); await settle();
+    assert.equal(input.hasAttribute('data-pointer-focus'), false);
+    assert.match(s.dom.window.getComputedStyle(input).boxShadow, /--vault-focus-width/);
     input.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); await settle();
     assert.deepEqual(calls, []); assert.equal(input.value, 'First');
     input.focus(); typeInput(input, 'Composing'); await settle();
@@ -480,6 +502,16 @@ test('Backlinks disclosures identify their contents and retain focus when collap
     assert.equal(s.target.querySelector('.lm-backlink-context'), null);
     mounted.value.update({ ...props, inline: true });
     assert.notEqual(getComputedStyle(title).color, 'var(--vault-caption-text)');
+    assert.equal(getComputedStyle(s.target.querySelector('.lm-backlinks')).overflow, 'visible');
+    mounted.value.update({ ...props, note: '', status: 'Open a note', linked: [] });
+    assert.equal(s.target.querySelector('[role=status]').textContent, 'Open a note');
+    assert.equal(s.target.querySelector('.lm-backlink-results'), null);
+    assert.equal(s.target.querySelector('[aria-label=sort]'), null);
+    assert.ok(s.target.querySelector('[aria-label=refresh]'));
+    mounted.value.update({ ...props, status: 'Indexing', linked: [] });
+    assert.equal(s.target.querySelector('.lm-backlink-results'), null);
+    mounted.value.update({ ...props, status: 'Indexing' });
+    assert.ok(s.target.querySelector('.lm-backlink-context'));
   } finally { await s.stop(); }
 });
 
@@ -542,7 +574,7 @@ test('compact desktop notifications top-align the icon and keep overflow in the 
     const input = document.body.appendChild(document.createElement('input'));
     input.focus();
 
-    const title = 'Проверка длинного заголовка уведомления';
+    const title = 'Проверка длинного заголовка уведомления '.repeat(3).trim();
     const text = 'длинная-строка-без-пробелов'.repeat(10);
     const mounted = s.components.mount('lunaris.notification', s.target, { icon: 'bell', title, text }, s.ctx.signal);
     assert.equal(mounted.ok, true);
@@ -555,10 +587,14 @@ test('compact desktop notifications top-align the icon and keep overflow in the 
     assert.equal(getComputedStyle(card).alignItems, 'flex-start');
     assert.equal(getComputedStyle(card).borderRadius, '0px');
     assert.equal(getComputedStyle(card).borderLeftWidth, '3px');
-    assert.equal(getComputedStyle(body).overflowY, 'auto');
+    assert.equal(getComputedStyle(body).display, 'grid');
+    assert.equal(getComputedStyle(message).overflowY, 'auto');
     assert.equal(getComputedStyle(message).overflowWrap, 'anywhere');
     assert.equal(icon.querySelector('svg')?.getAttribute('aria-hidden'), 'true');
     const heading = body.querySelector('.lm-notification-title');
+    assert.equal(getComputedStyle(heading).overflowY, 'auto');
+    const titleRule = [...styles.sheet.cssRules].find(rule => rule.selectorText === '.lm-root .lm-notification-title');
+    assert.equal(titleRule.style.getPropertyValue('max-block-size'), '1lh');
     assert.equal(heading.textContent, title);
     assert.equal(getComputedStyle(heading).fontWeight, '750');
     assert.equal(message.textContent, text);
@@ -576,9 +612,12 @@ test('compact desktop notifications top-align the icon and keep overflow in the 
       assert.equal(card.style.getPropertyValue('--vault-accent-foreground'), colors.accentForeground);
       assert.equal(card.style.getPropertyValue('--vault-caption-background'), s.themes.current().properties.components.windowChrome.captionBackground);
       assert.equal(getComputedStyle(card).display, 'grid');
+      assert.equal(getComputedStyle(card).gridTemplateRows, 'fit-content(45%) minmax(0, 1fr)');
       assert.equal(getComputedStyle(body).display, 'contents');
       assert.equal(getComputedStyle(icon).gridRow, '1');
       assert.equal(getComputedStyle(heading).gridRow, '1');
+      assert.equal(getComputedStyle(heading).overflowY, 'auto');
+      assert.equal(getComputedStyle(heading).overflowWrap, 'anywhere');
       assert.equal(getComputedStyle(icon).backgroundImage, getComputedStyle(heading).backgroundImage);
       assert.equal(getComputedStyle(heading).backgroundImage, 'var(--vault-caption-background)');
       assert.equal(getComputedStyle(message).gridRow, '2');
@@ -653,6 +692,30 @@ test('Settings Select opens themed options, supports keyboard selection and Esca
   assert.equal(trigger.getAttribute('aria-expanded'), 'false'); assert.equal(s.dom.window.document.activeElement, trigger); assert.equal(changes.length, 1);
   mounted.value.update({ ...props, disabled: true }); await settle(); trigger.click(); await settle();
   assert.equal(trigger.disabled, true); assert.notEqual(trigger.getAttribute('aria-expanded'), 'true'); await s.stop();
+});
+
+test('opening a retained Settings picker reveals the current option in the visible list', async () => {
+  const s = await setup(); await s.start();
+  try {
+    const options = Array.from({ length: 24 }, (_, index) => ({ value: String(index), label: `Theme ${index}` }));
+    const scrolls = [];
+    s.dom.window.HTMLElement.prototype.scrollIntoView = function () {
+      if (this.getAttribute('role') === 'option' && this.closest('.lm-setting-dropdown')?.style.display !== 'none') scrolls.push(this);
+    };
+    const props = { fields: [{ id: 'theme', label: 'Theme', value: '21', options }],
+      disabled: false, error: '', canRetry: false, retryLabel: 'Retry', onChange() {}, onRetry() {} };
+    Object.defineProperties(s.dom.window.document.documentElement, { clientWidth: { value: 844 }, clientHeight: { value: 390 } });
+    s.components.mount('lunaris.settings-choices', s.target, props, s.ctx.signal);
+    const trigger = s.target.querySelector('[role=combobox]'); trigger.click(); await settle();
+    const list = s.dom.window.document.getElementById(trigger.getAttribute('aria-controls'));
+    assert.equal(list.getAttribute('aria-label'), 'Theme');
+    assert.equal(scrolls.at(-1), list.querySelector('[aria-selected=true]'));
+    assert.equal(scrolls.at(-1).textContent, 'Theme 21');
+    assert.notEqual(list.closest('.lm-setting-dropdown').style.maxHeight, '', 'Floating UI applies its available height');
+    trigger.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { code: 'ArrowDown', key: 'ArrowDown', bubbles: true }));
+    await settle();
+    assert.equal(s.dom.window.document.getElementById(trigger.getAttribute('aria-activedescendant')).textContent, 'Theme 22');
+  } finally { await s.stop(); }
 });
 
 test('Settings Items lends compact dropdowns a themed viewport overlay and releases it with the role', async () => {
@@ -1296,6 +1359,34 @@ test('Explorer restores its root row when the startup viewport expands after rev
   } finally { await s.stop(); }
 });
 
+test('Files keeps nested names, branch guides and row actions inside a resized compact panel', async () => {
+  const s = await setup(); await s.start();
+  const { window } = s.dom;
+  let width = 180; let resizeTree;
+  globalThis.ResizeObserver = window.ResizeObserver = class {
+    constructor(callback) { this.callback = callback; }
+    observe(element) { if (element.classList.contains('lm-explorer-tree')) resizeTree = () => this.callback([]); }
+    unobserve() {} disconnect() {}
+  };
+  window.HTMLElement.prototype.getBoundingClientRect = () => new window.DOMRect(0, 0, width, 600);
+  try {
+    const folders = Array.from({ length: 8 }, (_, index) => Array(index + 1).fill('folder').join('/'));
+    const path = folders.at(-1) + '/document.md';
+    const file = { kind: 'file', id: path, name: 'document.md' };
+    const data = folders.reduceRight((children, id) => [{ kind: 'directory', id, name: 'folder', children }], [file]);
+    const mounted = s.components.mount('lunaris.file-explorer', s.target, explorerFixture({ data, expanded: folders, workspace: { vaultId: 'a', compact: true } }), s.ctx.signal);
+    assert.equal(mounted.ok, true); await settle();
+    const leaf = s.target.querySelector(`[title="${path}"]`);
+    assert.ok(leaf.querySelector('.lm-explorer-row-action'));
+    const padding = element => parseFloat(element.style.paddingLeft);
+    assert.ok(padding(leaf) > 0 && padding(leaf) <= width / 3 + 0.1);
+    assert.ok([...leaf.querySelectorAll('.lm-explorer-guide')].every(guide => parseFloat(guide.style.insetInlineStart) < padding(leaf)));
+    width = 900; resizeTree(); await settle();
+    assert.equal(s.target.querySelector(`[title="${path}"]`), leaf);
+    assert.equal(padding(leaf), (folders.length + 1) * 44 * 0.6);
+  } finally { await s.stop(); }
+});
+
 test('explorer uses the shared panel heading and protects the visible Vault root', async () => {
   const s = await setup(); await s.start(); const calls = [];
   s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, 320, 320);
@@ -1479,6 +1570,10 @@ test('status role escapes names, preserves its root across theme changes and own
   assert.equal(computed(footer.querySelector('.lm-status-counts')).display, 'flex');
   assert.equal(computed(footer.querySelector('.lm-status-counts')).flexWrap, 'wrap');
   assert.equal(computed(footer.querySelector('.lm-status-counts')).marginInlineStart, 'auto');
+  const fileContext = footer.querySelector('.lm-status-context');
+  const filenameBasis = computed(fileContext).flexBasis;
+  assert.notEqual(filenameBasis, 'auto');
+  assert.equal(computed(footer.querySelector('.lm-status-context')).flexWrap, 'nowrap');
   s.themes.register({ id: 'test.large-status', name: 'Large text', properties: { typography: { fontSize: 21, fontSizeUnit: 'px' } } }, s.ctx.signal);
   s.themes.select('test.large-status');
   assert.equal(s.target.querySelector('footer'), footer);
@@ -1520,14 +1615,17 @@ test('callout title stays plain, has the note pencil icon and no native edit too
 });
 
 test('Workspace leaves Tab and Shift+Tab to embedded controls and sibling views', async () => {
- const s=await setup(); await s.start(); let targets;
- const mounted=s.components.mount('lunaris.workspace-layout',s.target,{railVisible:true,panelVisible:true,mainLabel:'Main',panelLabel:'Panel',onTargets:value=>{targets=value;},onDismiss(){}},s.ctx.signal);
+ const s=await setup(); await s.start(); let targets; let dismissals=0;
+ const mounted=s.components.mount('lunaris.workspace-layout',s.target,{railVisible:true,panelVisible:true,mainLabel:'Main',panelLabel:'Panel',onTargets:value=>{targets=value;},onDismiss(){dismissals++;}},s.ctx.signal);
  assert.equal(mounted.ok,true); assert.ok(targets);
  const sibling=s.dom.window.document.createElement('input'); s.target.append(sibling);
  const input=s.dom.window.document.createElement('input'); targets.main.append(input);
  for(const target of [sibling,input]) for(const shiftKey of [false,true]) {
    const event=new s.dom.window.KeyboardEvent('keydown',{key:'Tab',shiftKey,bubbles:true,cancelable:true}); target.dispatchEvent(event); assert.equal(event.defaultPrevented,false);
  }
+ input.addEventListener('keydown', event => event.preventDefault(), {once:true});
+ const escape=()=>input.dispatchEvent(new s.dom.window.KeyboardEvent('keydown',{key:'Escape',bubbles:true,cancelable:true}));
+ escape(); assert.equal(dismissals,0); escape(); assert.equal(dismissals,1);
  sibling.remove(); await s.stop();
 });
 

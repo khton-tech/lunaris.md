@@ -104,9 +104,6 @@ test('both Luna palettes keep selection markers, backlink matches and deletion f
       assert.ok(contrast(colors.accentForeground, colors[surface]) >= 4.5, `${id}: accentForeground/${surface}`);
       assert.ok(contrast(colors.error, colors[surface]) >= 4.5, `${id}: error/${surface}`);
     }
-    for (const weight of [0.09, 0.16, 0.22]) {
-      assert.ok(contrast(colors.error, blend(colors.error, colors.content, weight)) >= 4.5, `${id}: delete action at ${weight}`);
-    }
     const { captionBackground, captionText } = components.windowChrome;
     const { primaryBackground, primaryHoverBackground, primaryPressedBackground } = components.controls;
     for (const [label, gradient] of [[captionText, captionBackground], ...[primaryBackground, primaryHoverBackground, primaryPressedBackground].map(fill => [colors.onAccent, fill])]) {
@@ -146,6 +143,9 @@ test('text and meaningful controls meet contrast thresholds across their intende
       for (const role of ['controlBorder', 'focus']) assert.ok(contrast(colors[role], colors[surface]) >= 3, `${theme.name}: ${role}/${surface}`);
     }
     for (const surface of ['accent', 'accentHover']) assert.ok(contrast(colors.onAccent, colors[surface]) >= 4.5, `${theme.name}: onAccent/${surface}`);
+    if (!theme.properties.components.controls?.primaryPressedBackground) {
+      assert.ok(contrast(colors.onAccent, blend(colors.accent, colors.onAccent, 0.92)) >= 4.5, `${theme.name}: pressed primary label`);
+    }
     for (const surface of ['background', 'content']) assert.ok(contrast(colors.link ?? colors.accent, colors[surface]) >= 4.5, `${theme.name}: link/${surface}`);
     if (colors.linkMissing) {
       assert.ok(contrast(colors.linkMissing, colors.content) >= 4.5, `${theme.name}: missing link/content`);

@@ -28,6 +28,7 @@ export function resolveTheme(theme: ThemeDefinition | null) {
   const palette = { background: "background", panel: "panel", content: "content", text: "text", secondary: "textSecondary", selection: "selection", separator: "separator", "control-border": "controlBorder", hover: "hover", focus: "focus", caret: "caret", error: "error", accent: "accent", "on-accent": "onAccent", "accent-hover": "accentHover" };
   for (const [variable, key] of Object.entries(palette)) variables[`--vault-${variable}`] = color(key, ["background", "panel", "content", "selection", "hover", "separator"].includes(variable) ? "transparent" : "currentColor");
   variables["--vault-accent-foreground"] = color("accentForeground", variables["--vault-accent"]);
+  variables["--vault-link"] = color("link", variables["--vault-accent-foreground"]);
   variables["--vault-link-missing"] = color("linkMissing", variables["--vault-secondary"]);
   variables["--vault-space"] = dimension(field(field(geometry, "spacing"), "step"), 4);
   variables["--vault-radius"] = radius;
@@ -70,14 +71,14 @@ export function resolveTheme(theme: ThemeDefinition | null) {
     "--mantine-color-body": color("background", "transparent"),
     "--mantine-color-text": color("text"), "--mantine-color-dimmed": color("textSecondary"),
     "--mantine-color-placeholder": color("textSecondary"), "--mantine-color-error": color("error"),
-    "--mantine-color-anchor": color("link", color("accent")), "--mantine-color-default": color("content", "transparent"),
+    "--mantine-color-anchor": variables["--vault-link"], "--mantine-color-default": color("content", "transparent"),
     "--mantine-color-default-hover": color("hover", "transparent"), "--mantine-color-default-color": color("text"),
     "--mantine-color-default-border": color("controlBorder"),
     "--mantine-color-disabled": color("selection", "transparent"),
     "--mantine-color-disabled-color": color("textSecondary"),
     "--mantine-color-disabled-border": color("separator", "transparent"),
     "--mantine-primary-color-filled": color("accent"), "--mantine-primary-color-filled-hover": color("accentHover"),
-    "--mantine-primary-color-contrast": color("onAccent"), "--mantine-primary-color-light-color": color("accent"),
+    "--mantine-primary-color-contrast": color("onAccent"), "--mantine-primary-color-light-color": variables["--vault-accent-foreground"],
     "--mantine-primary-color-light": color("selection", "transparent"), "--mantine-primary-color-light-hover": color("hover", "transparent"),
   };
   return {

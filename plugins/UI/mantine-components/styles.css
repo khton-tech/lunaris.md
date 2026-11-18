@@ -29,7 +29,7 @@
 .lm-root .lm-declarative-drawing { display:block;max-width:100%;max-height:100%;outline:none }
 .lm-root .lm-declarative-drawing:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset) }
 .lm-root .lm-declarative-grid { display:grid;grid-template-columns:repeat(var(--view-columns,1),minmax(0,1fr));gap:calc(var(--vault-space)*2);min-width:0 }
-@container(max-width:640px) { .lm-declarative-grid { grid-template-columns:minmax(0,1fr) } }
+@container(max-width:640px) { .lm-root .lm-declarative-grid { grid-template-columns:minmax(0,1fr) } }
 
 .lm-root .lm-window-titlebar { display:flex;flex:1 1 0%;align-items:stretch;min-height:max(2.25em,calc(var(--vault-space)*8));margin:0;background:var(--vault-panel);border-radius:0;border:0;box-shadow:none;user-select:none;overflow:hidden }
 .lm-window-titlebar-drag { display:flex;flex:1;align-items:center;gap:8px;padding-inline:16px;overflow:hidden;cursor:default }
@@ -41,6 +41,8 @@
 .lm-root .lm-window-action { width:max(2.75em,calc(var(--vault-space)*10));height:auto;min-height:2.25em;flex:none;border:0;border-radius:0;color:inherit;background:transparent;transition:background-color var(--vault-motion-fast) var(--vault-motion-easing) }
 .lm-root .lm-window-action:not(:disabled):hover { background:var(--vault-hover) }
 .lm-root .lm-window-action:not(:disabled):active { background:var(--vault-selection) }
+.lm-root .lm-window-titlebar[data-chrome=false] .lm-window-close:enabled:hover { background:color-mix(in srgb,var(--vault-error) 14%,var(--vault-background)) }
+.lm-root .lm-window-titlebar[data-chrome=false] .lm-window-close:enabled:active { background:color-mix(in srgb,var(--vault-error) 24%,var(--vault-background)) }
 .lm-root .lm-window-action:disabled { color:var(--vault-secondary);cursor:default }
 .lm-root .lm-window-action:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
 .lm-root .lm-window-titlebar[data-chrome=true] { margin:0;border-radius:0;background:var(--vault-caption-background,var(--vault-panel));color:var(--vault-caption-text,var(--vault-text)) }
@@ -52,6 +54,7 @@
 .lm-task-checkbox .mantine-Checkbox-input:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset) }
 .lm-task-checkbox .mantine-Checkbox-input:disabled { background:var(--vault-selection);border-color:var(--vault-separator);cursor:default }
 .lm-task-checkbox .mantine-Checkbox-input:disabled:checked { background:var(--vault-secondary) }
+.lm-task-checkbox .mantine-Checkbox-input:disabled:checked+.mantine-Checkbox-icon { color:var(--vault-background) }
 .lm-root .lm-task-checkbox-hit { display:inline-flex;align-items:center;min-inline-size:var(--editor-task-target-width,0px);min-block-size:var(--editor-task-target-height,0px) }
 .lm-task-checkbox-hit:not([data-disabled]) { cursor:pointer }
 @media(max-width:760px),(pointer:coarse) {
@@ -121,6 +124,9 @@
 .lm-workspace-content>.mantine-Splitter-handle:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
 .lm-sidebar-rail { flex:1;min-height:0;overflow:auto;padding:calc(var(--vault-space)*2);user-select:none }
 .lm-root .lm-sidebar-tab { flex-shrink:0;color:var(--vault-secondary);background:transparent;--ai-hover:var(--vault-hover);--ai-hover-color:var(--vault-text);border-radius:var(--vault-radius) }
+@media(hover:hover) {
+  .lm-root .lm-sidebar-tab:enabled:hover:not([aria-pressed=true]):not(:active) { color:var(--vault-text);background:var(--vault-hover) }
+}
 .lm-root .lm-sidebar-tab[aria-pressed=true] { color:var(--vault-text);background:var(--vault-selection) }
 .lm-root .lm-sidebar-tab[aria-pressed=true]:enabled:hover { color:var(--vault-text);background:var(--vault-selection) }
 .lm-root .lm-sidebar-tab:enabled:active { color:var(--vault-text);background:var(--vault-selection) }
@@ -175,7 +181,7 @@
 .lm-root .mantine-Button-inner { min-width:0;height:auto }
 .lm-root .mantine-Button-label { height:auto;overflow:visible;white-space:normal;overflow-wrap:anywhere }
 .lm-root .lm-button:not(:disabled,[data-disabled]):active { background:var(--vault-selection) }
-.lm-root .lm-button[data-variant=filled]:not(:disabled,[data-disabled]):active { background:var(--vault-accent);color:var(--vault-on-accent) }
+.lm-root .lm-button[data-variant=filled]:not(:disabled,[data-disabled]):active { background:color-mix(in srgb,var(--vault-accent) 92%,var(--vault-on-accent));color:var(--vault-on-accent) }
 .lm-root .lm-focus:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset) }
 .lm-root .lm-sidebar-rail .lm-sidebar-tab:focus-visible { outline-offset:calc(-1 * var(--vault-focus-width)) }
 .lm-root .lm-button:disabled { cursor:default }
@@ -183,14 +189,14 @@
 .lm-root .mantine-ActionIcon-root:enabled:active { background-color:var(--vault-selection) }
 /* Optional theme finishes apply only to controls, never borrowed region surfaces. */
 .lm-root .lm-input:not(:disabled) { box-shadow:var(--vault-input-shadow,none) }
-.lm-root .lm-input { --input-bd:color-mix(in srgb,var(--vault-control-border) 35%,var(--vault-content));--input-bg:var(--vault-content);--input-bd-focus:var(--vault-focus);--input-disabled-bg:var(--vault-selection);--input-disabled-color:var(--vault-secondary);caret-color:var(--vault-caret);border-width:var(--vault-border);transition:border-color var(--vault-motion-fast) var(--vault-motion-easing),background-color var(--vault-motion-fast) var(--vault-motion-easing) }
+.lm-root .lm-input { --input-bd:var(--vault-control-border);--input-bg:var(--vault-content);--input-bd-focus:var(--vault-focus);--input-disabled-bg:var(--vault-selection);--input-disabled-color:var(--vault-secondary);caret-color:var(--vault-caret);border-width:var(--vault-border);transition:border-color var(--vault-motion-fast) var(--vault-motion-easing),background-color var(--vault-motion-fast) var(--vault-motion-easing) }
 .lm-root input.lm-input:focus,.lm-root textarea.lm-input:focus,.lm-root button.lm-input:focus-visible { outline:none;border-color:var(--vault-focus) }
 .lm-root .mantine-PasswordInput-input:focus-within { border-color:var(--vault-focus) }
 .lm-root .lm-input[aria-invalid=true] { border-color:var(--vault-error) }
 .lm-root .lm-input::selection { background:var(--vault-selection);color:var(--vault-text) }
 .lm-root .lm-label { color:var(--vault-text);font-size:inherit;font-weight:500;display:block;margin-bottom:calc(var(--vault-space)*2) }
 .lm-root [role=alert] { color:var(--vault-error) }
-.lm-startup { display:flex;flex:1 1 0%;flex-direction:column;align-items:center;justify-content:safe center;min-height:0;overflow:auto }
+.lm-startup { display:flex;flex:1 1 0%;flex-direction:column;align-items:center;justify-content:safe center;min-height:0;overflow:auto;container-type:inline-size }
 .lm-startup pre { margin:0;max-width:100%;flex-shrink:0;overflow:auto;white-space:pre;font-family:var(--vault-mono) }
 .lm-startup p { text-align:center;max-width:100% }
 .ln-vault { --vault-row-height:calc(var(--vault-space)*10);--vault-card-border:color-mix(in srgb,var(--vault-control-border) 22%,transparent);display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2fr);grid-template-rows:minmax(0,1fr);gap:calc(var(--vault-space)*3);padding:calc(var(--vault-space)*3);flex:1 1 0%;min-height:0;overflow:auto }
@@ -225,13 +231,12 @@
 .ln-vault-action[data-open=true] .ln-vault-disclosure { grid-template-rows:1fr;opacity:1;visibility:visible }
 .ln-vault-disclosure-body { overflow:hidden;min-height:0 }
 .lm-root .ln-vault-form { margin-top:calc(var(--vault-space)*2);padding:calc(var(--vault-space)*3);color:var(--vault-text);background:var(--vault-content);border:var(--vault-border) solid var(--vault-card-border);border-radius:var(--vault-radius);box-shadow:none }
-.ln-vault-form .lm-input { --input-height:var(--vault-row-height);--input-bd:var(--vault-card-border) }
+.ln-vault-form .lm-input { --input-height:var(--vault-row-height) }
 .lm-root .ln-vault-form .lm-label { margin-bottom:var(--vault-space) }
-.lm-root .ln-vault-folder { text-align:start }
-.ln-vault-path { display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
+.lm-root .ln-vault-folder { height:auto;min-height:var(--input-height);padding-block:var(--vault-space);text-align:start }
+.ln-vault-path { display:block;white-space:normal;overflow-wrap:anywhere;line-height:var(--mantine-line-height) }
 .ln-vault-path[data-placeholder] { color:var(--mantine-color-placeholder) }
 .lm-root .ln-vault-next { width:100%;min-height:var(--vault-row-height);margin-top:0 }
-.lm-root .ln-vault-next:enabled:active { background:var(--vault-selection);color:var(--vault-text) }
 .ln-vault-status { min-height:1.5em;margin-bottom:calc(var(--vault-space)*4)!important }
 .ln-vault-status:empty { min-height:0;margin-bottom:0!important;visibility:hidden }
 @media(hover:hover) {
@@ -239,7 +244,7 @@
  .lm-root .lm-button[data-variant=filled]:not(:disabled,[data-disabled]):hover:not(:active) { background:var(--vault-accent-hover);color:var(--vault-on-accent) }
  .lm-root .ln-vault-next:enabled:hover:not(:active) { background:var(--vault-accent-hover) }
  .lm-root .lm-card-row:enabled:hover:not([aria-current=true]) { border-color:color-mix(in srgb,var(--vault-control-border) 45%,transparent) }
- .lm-root .lm-input:enabled:hover:not(:focus):not(:focus-visible):not([aria-invalid=true]) { border-color:var(--vault-control-border) }
+ .lm-root .lm-input:not(:disabled,[data-disabled],[aria-invalid=true]):hover:not(:focus-within) { border-color:color-mix(in srgb,var(--vault-control-border) 60%,var(--vault-text)) }
 }
 @media(prefers-reduced-motion:reduce) { .lm-root .lm-button,.lm-root .lm-input,.lm-root .mantine-ActionIcon-root,.lm-root .ln-vault-disclosure { transition:none } }
 .lm-explorer,.lm-backlinks { --explorer-control-hover:color-mix(in srgb,var(--vault-hover) 35%,var(--vault-panel));--explorer-control-pressed:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel)) }
@@ -261,7 +266,7 @@
 .lm-root .lm-explorer-actions .mantine-ActionIcon-root:enabled:active { background:var(--tool-pressed,var(--explorer-control-pressed)) }
 .lm-root .lm-explorer-actions .mantine-ActionIcon-root:disabled { color:var(--vault-secondary);opacity:0.45;background:transparent }
 .lm-explorer-menu-anchor { position:absolute;inset-inline-start:0;bottom:0;width:1px;height:1px }
-.lm-explorer-tree { flex:1;min-height:3em;min-width:0;padding:4px 12px 0 8px;overflow:hidden }
+.lm-explorer-tree { flex:1;min-height:3em;min-width:0;margin:4px 12px 0 8px;overflow:hidden }
 .lm-explorer-row { min-width:0;outline:none }
 .lm-explorer-cursor { position:absolute;pointer-events:none;height:var(--vault-focus-width);background:var(--vault-focus);z-index:1 }
 .lm-explorer-drag-preview { position:absolute;display:flex;align-items:center;gap:var(--vault-space);max-width:50%;padding:var(--vault-space);overflow:hidden;pointer-events:none;z-index:2;background:var(--vault-selection);color:var(--vault-text);border:var(--vault-border) solid var(--vault-control-border);border-radius:var(--vault-radius) }
@@ -306,11 +311,11 @@
 .lm-root .lm-explorer-delete-header { background:var(--vault-panel);overflow-wrap:anywhere }
 .lm-explorer-delete-header .mantine-Modal-title { font-weight:600 }
 .lm-explorer-delete-paths { margin:0;padding-inline-start:1.5em;max-block-size:min(8em,30dvh);overflow:auto;overflow-wrap:anywhere;scrollbar-width:none }
-.lm-root .lm-button.lm-explorer-delete-confirm:not([data-disabled]) { color:var(--vault-error);background:color-mix(in srgb,var(--vault-error) 9%,var(--delete-action-surface,var(--vault-panel))) }
+.lm-root .lm-button.lm-explorer-delete-confirm:not([data-disabled]) { color:var(--vault-error);background:color-mix(in srgb,var(--vault-error) 4%,var(--delete-action-surface,var(--vault-panel))) }
 @media(hover:hover) {
-  .lm-root .lm-button.lm-explorer-delete-confirm:not([data-disabled]):hover:not(:active) { background:color-mix(in srgb,var(--vault-error) 16%,var(--delete-action-surface,var(--vault-panel))) }
+  .lm-root .lm-button.lm-explorer-delete-confirm:not([data-disabled]):hover:not(:active) { background:color-mix(in srgb,var(--vault-error) 8%,var(--delete-action-surface,var(--vault-panel))) }
 }
-.lm-root .lm-button.lm-explorer-delete-confirm:not([data-disabled]):active { background:color-mix(in srgb,var(--vault-error) 22%,var(--delete-action-surface,var(--vault-panel))) }
+.lm-root .lm-button.lm-explorer-delete-confirm:not([data-disabled]):active { background:color-mix(in srgb,var(--vault-error) 12%,var(--delete-action-surface,var(--vault-panel))) }
 .lm-explorer-message { padding:calc(var(--vault-space)*2);font-size:inherit;overflow-wrap:anywhere;flex-shrink:0 }
 .lm-root .lm-explorer-menu { max-width:min(28rem,calc(100vw - 16px));max-height:min(28rem,calc(100dvh - 16px));overflow:auto;overscroll-behavior:contain;padding:var(--vault-space);background:var(--vault-panel);color:var(--vault-text);border:var(--vault-border) solid var(--vault-menu-border,color-mix(in srgb,var(--vault-control-border) 22%,transparent));border-radius:var(--vault-radius);box-shadow:var(--vault-surface-shadow,0 var(--vault-space) calc(var(--vault-space)*3) color-mix(in srgb,var(--vault-background) 35%,transparent) )}
 .lm-explorer-menu [role=menuitem] { min-height:calc(var(--vault-space)*8);padding:var(--vault-space) calc(var(--vault-space)*2);border-radius:calc(var(--vault-radius)*0.5);font:inherit;color:var(--vault-text);white-space:normal;transition:background-color var(--vault-motion-fast) var(--vault-motion-easing) }
@@ -381,7 +386,8 @@
 .lm-workspace-tab-list::-webkit-scrollbar { display:none }
 .lm-workspace-tab {
   --tab-surface:transparent;
-  display:flex;align-items:center;flex:0 0 auto;inline-size:clamp(6em,60cqi,calc(var(--vault-space)*50));
+  display:flex;align-items:center;flex:0 1 auto;inline-size:clamp(6em,60cqi,calc(var(--vault-space)*50));
+  min-inline-size:min(8.5em,60cqi);
   min-height:calc(var(--vault-space)*8.5);padding-inline-end:var(--vault-space);
   scroll-margin-inline:var(--tab-gap);background:var(--tab-surface);
   border:var(--vault-border) solid transparent;border-radius:var(--vault-radius) var(--vault-radius) 0 0;color:var(--vault-secondary)
@@ -429,7 +435,7 @@
 .lm-workspace-tab-action svg { width:1em;height:1em }
 .lm-root .lm-workspace-tab-action:not(:disabled):hover { background:var(--tab-hover);color:var(--vault-text) }
 .lm-root .lm-workspace-tab-action:not(:disabled):active { background:var(--tab-pressed) }
-.lm-root .lm-workspace-tab-action:disabled { opacity:.55 }
+.lm-root .lm-workspace-tab-action:disabled { color:var(--vault-secondary);background:transparent;opacity:.55 }
 .lm-workspace-tab .lm-focus:focus-visible { outline-offset:calc(-1*var(--vault-focus-width)) }
 .lm-workspace-tab-navigation {
   display:flex;align-items:center;min-width:0;min-height:calc(var(--vault-space)*9);
@@ -462,10 +468,15 @@
 .lm-root .lm-tool-navigation-item:enabled:active { background:var(--tool-pressed) }
 @media(hover:hover) { .lm-root .lm-tool-navigation-item:enabled:hover:not([aria-current=page]):not(:active) { background:var(--tool-hover) } }
 .lm-root .lm-tool-navigation-item[aria-current=page]:enabled:hover:not(:active) { background:var(--vault-selection) }
-.lm-root .lm-setting-dropdown { background:var(--vault-panel);color:var(--vault-text);border:var(--vault-border) solid var(--vault-menu-border,color-mix(in srgb,var(--vault-control-border) 22%,transparent));border-radius:var(--vault-radius);padding:var(--vault-space);box-shadow:var(--vault-surface-shadow,none);max-width:calc(100vw - 16px);overflow:auto }
+.lm-root .lm-setting-dropdown { display:flex;flex-direction:column;background:var(--vault-panel);color:var(--vault-text);border:var(--vault-border) solid var(--vault-menu-border,color-mix(in srgb,var(--vault-control-border) 22%,transparent));border-radius:var(--vault-radius);padding:var(--vault-space);box-shadow:var(--vault-surface-shadow,none);max-width:calc(100vw - 16px);overflow:hidden }
 .lm-setting-dropdown [role=option] { display:flex;align-items:center;justify-content:space-between;gap:calc(var(--vault-space)*3);min-height:calc(var(--vault-space)*9);padding:calc(var(--vault-space)*2) calc(var(--vault-space)*3);font:inherit;color:var(--vault-text);border-radius:calc(var(--vault-radius)*0.5);white-space:normal;overflow-wrap:anywhere }
-.lm-setting-dropdown [role=option][data-combobox-selected] { background:color-mix(in srgb,var(--vault-hover) 35%,var(--vault-panel)) }
-.lm-setting-dropdown [role=option][data-checked] { font-weight:500;background:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel)) }
+.lm-setting-dropdown [role=option][data-checked] { font-weight:500;background:var(--vault-selection) }
+.lm-setting-dropdown [role=option][data-combobox-selected]:not([data-checked]) { background:var(--vault-hover) }
+.lm-setting-dropdown [role=option][data-combobox-selected] { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
+@media(hover:hover) {
+  .lm-setting-dropdown [role=option]:not([data-checked],[data-combobox-disabled]):hover { background:var(--vault-hover) }
+}
+.lm-setting-dropdown [role=option]:not([data-combobox-disabled]):active { background:var(--vault-selection) }
 .lm-setting-option svg { flex-shrink:0 }
 .lm-root.lm-dropdown-overlay { isolation:auto }
 .lm-dropdown-overlay {
@@ -477,7 +488,8 @@
 .lm-dropdown-overlay .mantine-Menu-itemLabel { white-space:normal;overflow-wrap:anywhere }
 .lm-dropdown-overlay [role=menuitem][aria-current=true] { background:var(--vault-selection);font-weight:500 }
 .lm-dropdown-overlay [role=menuitem]:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
-.lm-setting-options { display:flex;flex-direction:column;gap:var(--vault-space);max-height:min(18rem,50dvh);overflow:auto }
+.lm-setting-options { display:flex;flex-direction:column;gap:var(--vault-space);min-height:0;max-height:min(18rem,50dvh);overflow:auto;overscroll-behavior:contain }
+.lm-setting-options > [role=option] { flex-shrink:0 }
 .lm-settings-page {
   --settings-divider:color-mix(in srgb,var(--vault-control-border) 20%,transparent);
   --settings-column-width:878px;
@@ -505,7 +517,8 @@
   padding-inline:var(--settings-group-inset);background:var(--vault-panel);
   border:var(--vault-border) solid var(--vault-separator);border-radius:var(--vault-radius)
 }
-.lm-lime-toolbar { padding-block-start:calc(var(--vault-space)*3); min-width:0 }
+.lm-lime-settings { padding-block:calc(var(--vault-space)*3) }
+.lm-lime-toolbar { min-width:0 }
 .lm-lime-package { min-width:0;border-block-start:var(--vault-border) solid var(--settings-divider) }
 .lm-lime-package-header {
   display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between;
@@ -541,13 +554,18 @@
 .lm-lime-tabs .mantine-Tabs-list, .lm-lime-dialog-footer { flex-shrink:0 }
 .lm-lime-panel { min-height:0; overflow:auto; overscroll-behavior:contain; scrollbar-width:none; padding-block:calc(var(--vault-space)*3) }
 .lm-lime-dialog-footer { border-top:var(--vault-border) solid var(--settings-divider); padding-block-start:calc(var(--vault-space)*3) }
+@media(max-height:32rem) {
+ .lm-root .lm-lime-dialog,.lm-lime-dialog-body,.lm-lime-tabs { display:block }
+ .lm-root .lm-lime-dialog-header { position:static }
+ .lm-lime-panel { overflow:visible }
+}
 .lm-settings-items { flex:1; min-width:0 }
 .lm-setting-row { display:flex; flex-wrap:nowrap; align-items:center; gap:calc(var(--vault-space)*3) calc(var(--vault-space)*6); min-width:0;padding-block:calc(var(--vault-space)*3) }
 .lm-setting-row+.lm-setting-row { border-top:var(--vault-border) solid color-mix(in srgb,var(--vault-control-border) 14%,transparent) }
 .lm-setting-label { flex:1 1 0; min-width:0; overflow-wrap:anywhere }
 .lm-setting-control { flex:0 1 18rem; min-width:0; max-width:100%; overflow-wrap:anywhere }
 .lm-setting-row[data-layout=inline]>.lm-setting-control { margin-inline-start:auto }
-.lm-root .lm-setting-input { --input-height:calc(var(--vault-space)*8);--input-bd:color-mix(in srgb,var(--vault-control-border) 22%,transparent);--input-bg:var(--vault-content);border-radius:6px;font-weight:500 }
+.lm-root .lm-setting-input { --input-height:calc(var(--vault-space)*8);border-radius:var(--vault-radius-small);font-weight:500 }
 .lm-root .lm-setting-select { user-select:none;text-align:end;padding-inline-end:calc(var(--vault-space)*3);cursor:pointer;height:auto;min-height:var(--input-height);padding-block:var(--vault-space);white-space:normal;overflow-wrap:anywhere }
 .lm-setting-control .mantine-Input-section { color:var(--vault-secondary) }
 .lm-setting-static-value { min-height:calc(var(--vault-space)*8);display:flex;align-items:center;justify-content:flex-end;padding-inline:calc(var(--vault-space)*3);font-weight:500 }
@@ -573,9 +591,11 @@
 @container(max-width:640px) { .lm-editor-width-handles { display:none } }
 @media(max-width:640px),(pointer:coarse) { .lm-editor-width-handles { display:none } }
 @media (prefers-reduced-motion:reduce) { .lm-editor-width-handle::after { transition:none } }
+.lm-editor-column {
+  flex:0 0 auto;width:calc(100% - 2 * var(--editor-gutter));min-width:0;margin-inline:auto
+}
 .lm-editor-heading {
   --editor-heading-inset:clamp(24px,5cqi,56px);
-  flex:0 0 auto;width:calc(100% - 2 * var(--editor-gutter));margin-inline:auto;
   padding-block-start:var(--editor-heading-inset)
 }
 .lm-root .lm-editor-title .lm-input {
@@ -601,9 +621,25 @@
   }
 }
 .lm-editor-title input::placeholder { color:var(--vault-secondary);opacity:1 }
-.lm-editor-placeholder { padding:calc(var(--vault-space)*2) clamp(12px,3cqi,40px);user-select:none;overflow-wrap:anywhere }
-.lm-editor-error { flex:0 0 auto;padding:calc(var(--vault-space)*2) clamp(12px,3cqi,40px);color:var(--vault-error);user-select:none }
-.lm-editor-heading .lm-editor-error { padding-inline:0 }
+.lm-root .lm-editor-title input.lm-input:focus-visible:not([data-pointer-focus]) {
+  box-shadow:inset 0 calc(-1 * var(--vault-focus-width)) var(--vault-focus)
+}
+.lm-editor-feedback { display:flex;flex-direction:column;gap:calc(var(--vault-space)*2);padding-block:calc(var(--vault-space)*3);overflow-wrap:anywhere }
+.lm-editor-draft-choices { display:grid;justify-items:start;gap:var(--vault-space) }
+.lm-editor-draft-choices .lm-button { text-align:start }
+.lm-editor-feedback form .mantine-TextInput-root { flex:1 1 12em;min-width:0 }
+.lm-editor-placeholder { user-select:none;overflow-wrap:anywhere }
+.lm-editor-error { color:var(--vault-error);user-select:none }
+.lm-editor-heading .lm-editor-error { padding-block:var(--vault-space) }
+.lm-editor-footer:not(:empty) { padding-block-end:var(--workspace-dock-inset,0px) }
+.lm-text-editor:has(> .lm-editor-feedback, > .lm-editor-footer:not(:empty)) {
+  --editor-view-height:auto;--editor-scroller-flex:1 0 auto;
+  overflow:hidden auto;overscroll-behavior:contain
+}
+.lm-text-editor:has(> .lm-editor-feedback, > .lm-editor-footer:not(:empty)) > .lm-editor-target:not([hidden]) {
+  flex:1 0 auto;overflow:visible
+}
+.lm-text-editor:has(> .lm-editor-footer:not(:empty)) > .lm-editor-target:not([hidden]) { --editor-dock-clearance:0px;flex:0 0 auto }
 .lm-editor-target { display:flex;flex:1 1 0%;min-width:0;min-height:0;overflow:hidden;background:transparent }
 .lm-editor-target[hidden] { display:none }
 .lm-text-editor[data-compact=true] {
@@ -655,7 +691,7 @@
 .lm-root[data-window-chrome=true]>.lm-settings-page>.lm-settings-page-header h1 { font-size:1em;line-height:1.5;font-weight:700;color:inherit }
 .lm-root[data-window-chrome=true]>.lm-settings-page>.lm-settings-group { margin-block:0;padding:12px;background:transparent;box-shadow:var(--vault-inset-shadow) }
 .lm-root[data-window-chrome=true]>.lm-settings-page .lm-settings-group-header { padding-bottom:8px;border-color:var(--vault-separator) }
-.lm-root[data-window-chrome=true] .lm-setting-input { --input-bd:var(--vault-control-border);border-radius:var(--vault-radius-small);font-weight:400 }
+.lm-root[data-window-chrome=true] .lm-setting-input { font-weight:400 }
 .lm-root[data-window-chrome=true] .lm-setting-select { text-align:start;padding-inline:calc(var(--vault-space)*2) calc(var(--vault-space)*8) }
 .lm-root[data-window-chrome=true] .lm-setting-picker .mantine-Input-section[data-position=left] {
   inset-inline-start:auto;inset-inline-end:var(--vault-border);width:calc(var(--vault-space)*6);inset-block:var(--vault-border);
@@ -663,9 +699,6 @@
 }
 .lm-root[data-window-chrome=true] .lm-setting-picker:has(button:disabled) .mantine-Input-section[data-position=left] {
   box-shadow:none;background:transparent;color:var(--vault-secondary)
-}
-.lm-root[data-window-chrome=true] .lm-setting-option[data-combobox-selected] {
-  outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width))
 }
 .lm-root[data-window-chrome=true]>.lm-explorer .lm-explorer-tabs { min-height:26px;border-radius:0;box-shadow:var(--vault-surface-shadow);background:var(--vault-panel) }
 
@@ -724,22 +757,22 @@
 
 .lm-status-bar {display:flex;flex:1 1 auto;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:var(--vault-space) calc(var(--vault-space)*3);padding:var(--vault-space) calc(var(--vault-space)*2);min-width:0;user-select:none }
 .lm-status-bar span { font-size:inherit;line-height:1.4 }
-.lm-status-bar .lm-status-context,.lm-status-bar .lm-status-counts { display:flex;flex-wrap:wrap;align-items:center }
-.lm-status-context { flex:1 1 auto;min-width:0 }
+.lm-status-bar .lm-status-context,.lm-status-bar .lm-status-counts { display:flex;align-items:center }
+.lm-status-context { flex:1 1 8ch;min-width:0;flex-wrap:nowrap }
 .lm-status-file { flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
 .lm-status-server,.lm-status-metric { display:inline-flex;align-items:center;gap:var(--vault-space);flex:0 0 auto;color:var(--vault-secondary) }
-.lm-status-counts { flex:0 1 auto;margin-inline-start:auto;max-width:100%;font-variant-numeric:tabular-nums }
+.lm-status-counts { flex:0 1 auto;flex-wrap:wrap;margin-inline-start:auto;max-width:100%;font-variant-numeric:tabular-nums }
 .lm-status-metric + .lm-status-metric { border-inline-start:var(--vault-border) solid var(--vault-separator);padding-inline-start:12px }
 .lm-root[data-window-chrome=false]>.lm-status-bar { padding-inline:calc(var(--vault-space)*3) }
 .lm-root[data-window-chrome=false]>.lm-status-bar .lm-status-file { color:var(--vault-secondary) }
 .lm-root[data-window-chrome=false]>.lm-status-bar .lm-status-metric + .lm-status-metric { border:0;padding-inline-start:0 }
 .lm-status-bar svg { flex:none;width:1.15em;height:1.15em }
 
-.lm-root .lm-context-composite { padding:0;border:0;background:transparent;box-shadow:none;display:flex;flex-direction:column;gap:calc(var(--vault-space)*1.5);overflow:visible }
-.lm-root .lm-context-island { display:flex;flex-wrap:wrap;align-items:center;gap:var(--vault-space);padding:var(--vault-space);background:var(--vault-panel);border:var(--vault-border) solid var(--vault-control-border);border-radius:var(--vault-radius);max-width:calc(100vw - 8px);overflow:visible }
+.lm-root .lm-context-composite { padding:var(--vault-space);border:0;background:transparent;box-shadow:none;display:flex;flex-direction:column;gap:calc(var(--vault-space)*1.5);overflow:auto;overscroll-behavior:contain }
+.lm-root .lm-context-island { display:flex;flex:none;flex-wrap:wrap;align-items:center;gap:var(--vault-space);padding:var(--vault-space);background:var(--vault-panel);border:var(--vault-border) solid var(--vault-control-border);border-radius:var(--vault-radius);max-width:calc(100vw - 8px);overflow:visible }
 .lm-root .lm-island-control { width:auto;min-width:2em;flex:0 0 auto;padding:calc(var(--vault-space)*1.5);border-radius:calc(var(--vault-radius)/2) }
 .lm-root .lm-island-control .mantine-Menu-itemLabel { display:flex;align-items:center;justify-content:center }
-.lm-root .lm-context-actions { width:100%;min-width:0 }
+.lm-root .lm-context-actions { flex:none;width:100%;min-width:0;max-height:none;overflow:visible }
 
 /* Sliders own only their labeled control area, inheriting the Settings surface. */
 .lm-setting-slider-control { min-width:0;width:100%;min-height:calc(var(--vault-space)*8);user-select:none }
@@ -772,18 +805,18 @@
 .lm-root .lm-workspace-empty-actions .lm-button[data-variant=outline]:enabled { border:var(--vault-border) solid var(--vault-button-border,var(--vault-separator)) }
 
 /* Boolean controls use semantic surfaces even outside Windows presets. */
-.lm-settings-items .mantine-Switch-track { --switch-bg:var(--vault-content);border:var(--vault-border) solid var(--vault-control-border);transition:background-color var(--vault-motion-fast) var(--vault-motion-easing),border-color var(--vault-motion-fast) var(--vault-motion-easing) }
-.lm-settings-items .mantine-Switch-thumb { background:var(--vault-text);transition:inset-inline-start var(--vault-motion-fast) var(--vault-motion-easing) }
-.lm-settings-items .mantine-Switch-input:checked+.mantine-Switch-track { --switch-bg:var(--vault-accent) }
-.lm-settings-items .mantine-Switch-input:checked+.mantine-Switch-track .mantine-Switch-thumb { background:var(--vault-on-accent) }
-.lm-settings-items .mantine-Switch-input:disabled+.mantine-Switch-track { --switch-bg:var(--vault-selection);border-color:var(--vault-secondary);cursor:default }
-.lm-settings-items .mantine-Switch-input:disabled+.mantine-Switch-track .mantine-Switch-thumb { background:var(--vault-secondary) }
-.lm-settings-items .mantine-Switch-input:focus-visible+.mantine-Switch-track { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset) }
-.lm-settings-items .mantine-Switch-input[aria-invalid=true]+.mantine-Switch-track { border-color:var(--vault-error) }
+:is(.lm-settings-items,.lm-lime-settings) .mantine-Switch-track { --switch-bg:var(--vault-content);border:var(--vault-border) solid var(--vault-control-border);transition:background-color var(--vault-motion-fast) var(--vault-motion-easing),border-color var(--vault-motion-fast) var(--vault-motion-easing) }
+:is(.lm-settings-items,.lm-lime-settings) .mantine-Switch-thumb { background:var(--vault-text);transition:inset-inline-start var(--vault-motion-fast) var(--vault-motion-easing) }
+:is(.lm-settings-items,.lm-lime-settings) .mantine-Switch-input:checked+.mantine-Switch-track { --switch-bg:var(--vault-accent) }
+:is(.lm-settings-items,.lm-lime-settings) .mantine-Switch-input:checked+.mantine-Switch-track .mantine-Switch-thumb { background:var(--vault-on-accent) }
+:is(.lm-settings-items,.lm-lime-settings) .mantine-Switch-input:disabled+.mantine-Switch-track { --switch-bg:var(--vault-selection);border-color:var(--vault-secondary);cursor:default }
+:is(.lm-settings-items,.lm-lime-settings) .mantine-Switch-input:disabled+.mantine-Switch-track .mantine-Switch-thumb { background:var(--vault-secondary) }
+:is(.lm-settings-items,.lm-lime-settings) .mantine-Switch-input:focus-visible+.mantine-Switch-track { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:var(--vault-focus-offset) }
+:is(.lm-settings-items,.lm-lime-settings) .mantine-Switch-input[aria-invalid=true]+.mantine-Switch-track { border-color:var(--vault-error) }
 
 /* Each role adapts only its owned controls, never a borrowed region surface. */
-.lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Switch-track { border-radius:var(--vault-radius);box-shadow:var(--vault-inset-shadow) }
-.lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Switch-thumb { border-radius:var(--vault-radius) }
+.lm-root[data-window-chrome=true]>:is(.lm-settings-items,.lm-lime-settings) .mantine-Switch-track { border-radius:var(--vault-radius);box-shadow:var(--vault-inset-shadow) }
+.lm-root[data-window-chrome=true]>:is(.lm-settings-items,.lm-lime-settings) .mantine-Switch-thumb { border-radius:var(--vault-radius) }
 .lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Slider-track { --slider-track-bg:var(--vault-content);--slider-radius:var(--vault-radius);box-shadow:var(--vault-inset-shadow) }
 .lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Slider-bar { border:var(--vault-border) solid var(--vault-control-border) }
 .lm-root[data-window-chrome=true]>.lm-settings-items .mantine-Slider-thumb { border-radius:var(--vault-radius);background:var(--vault-panel);background-image:var(--vault-button-image);border-color:var(--vault-control-border);box-shadow:var(--vault-button-shadow) }
@@ -795,7 +828,6 @@
 .lm-root[data-window-chrome=true]>.lm-task-checkbox-hit .mantine-Checkbox-input:checked { background:var(--vault-accent);box-shadow:none }
 .lm-root[data-window-chrome=true]>.lm-task-checkbox-hit .mantine-Checkbox-input:disabled { background:var(--vault-selection);box-shadow:none }
 .lm-root[data-window-chrome=true]>.lm-task-checkbox-hit .mantine-Checkbox-input:disabled:checked { background:var(--vault-secondary) }
-.lm-root[data-window-chrome=true]>.lm-task-checkbox-hit .mantine-Checkbox-input:disabled:checked+.mantine-Checkbox-icon { color:var(--vault-background) }
 .lm-root[data-window-chrome=true] .lm-explorer-actions .mantine-ActionIcon-root { border:var(--vault-border) solid transparent }
 .lm-root[data-window-chrome=true] .lm-explorer-actions .mantine-ActionIcon-root[aria-pressed=true]:enabled {
   color:var(--vault-accent-foreground);background:var(--vault-selection);box-shadow:var(--vault-inset-shadow)
@@ -823,12 +855,14 @@
 .lm-window-titlebar[data-chrome=true] .lm-window-titlebar-title { font-weight:700;color:var(--vault-caption-text) }
 .lm-window-titlebar[data-chrome=true] .lm-window-titlebar-actions { gap:3px;align-items:center }
 .lm-root .lm-window-titlebar[data-chrome=true] .lm-window-action { width:23px;min-height:21px;height:21px;border:var(--vault-border) solid var(--vault-caption-text);border-radius:3px;color:var(--vault-on-accent);background:var(--vault-accent);background-image:var(--vault-primary-image);box-shadow:var(--vault-button-shadow) }
-.lm-root .lm-window-titlebar[data-chrome=true] .lm-window-action:enabled:hover { background-image:var(--vault-primary-hover-image) }
-.lm-root .lm-window-titlebar[data-chrome=true] .lm-window-action:enabled:active { background-image:var(--vault-primary-pressed-image);box-shadow:var(--vault-inset-shadow) }
+.lm-root .lm-window-titlebar[data-chrome=true] .lm-window-action:not(.lm-window-close):enabled:hover { background-image:var(--vault-primary-hover-image) }
+.lm-root .lm-window-titlebar[data-chrome=true] .lm-window-action:not(.lm-window-close):enabled:active { background-image:var(--vault-primary-pressed-image);box-shadow:var(--vault-inset-shadow) }
 .lm-root .lm-window-titlebar[data-chrome=true] .lm-window-close:enabled { background:var(--vault-error);color:var(--vault-background) }
+.lm-root .lm-window-titlebar[data-chrome=true] .lm-window-close:enabled:hover { background:color-mix(in srgb,var(--vault-error) 90%,var(--vault-text)) }
+.lm-root .lm-window-titlebar[data-chrome=true] .lm-window-close:enabled:active { background:var(--vault-error);box-shadow:var(--vault-inset-shadow) }
 .lm-root .lm-window-titlebar[data-chrome=true] .lm-window-action:focus-visible { outline-color:var(--vault-caption-text) }
 .lm-root .lm-window-titlebar[data-chrome=true] .lm-window-action:disabled { background:var(--vault-panel);color:var(--vault-secondary);border-color:var(--vault-secondary);box-shadow:none }
-@media(prefers-reduced-motion:reduce) { .lm-settings-items :is(.mantine-Switch-track,.mantine-Switch-thumb) { transition:none } }
+@media(prefers-reduced-motion:reduce) { :is(.lm-settings-items,.lm-lime-settings) :is(.mantine-Switch-track,.mantine-Switch-thumb) { transition:none } }
 
 /* Inline callout controls inherit the document contribution's local surface. */
 .lm-callout-header { display: inline-flex; max-width: 100%; vertical-align: middle; }
@@ -875,6 +909,7 @@
 .lm-mobile-choice-row { position:relative;display:flex;align-items:stretch;border-radius:calc(var(--vault-radius)*.5) }
 .lm-mobile-choice-row[data-selected]::before { z-index:1 }
 .lm-mobile-choice-row > [role=menuitem] { flex:1;min-width:0 }
+.lm-root .lm-mobile-choice-row > [role=menuitem]:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
 .lm-mobile-choice-row:not([data-selected]):has(> [role=menuitem]:enabled[data-hovered]) { background:var(--explorer-control-hover) }
 .lm-mobile-choice-row:has(> [role=menuitem]:enabled:active),
 .lm-mobile-choice-row[data-dragging] { background:var(--explorer-control-pressed) }
@@ -979,6 +1014,7 @@
 /* Settings owns field composition at its allocated width, in every theme. */
 @media(max-width:640px),(pointer:coarse) {
  .lm-root :is(.lm-explorer-menu,.lm-explorer-tab-menu) [role=menuitem] { min-height:44px }
+ :is(.lm-settings-items,.lm-lime-settings) .mantine-Switch-body { min-height:44px;min-width:44px;align-items:center;justify-content:center }
 }
 
 /* Keep menu feedback quiet when motion is reduced, including the more specific tab menu. */
@@ -989,8 +1025,10 @@
 @container(max-width:640px) {
  .lm-setting-row:not([data-type=switch]) { flex-direction:column;align-items:stretch;gap:calc(var(--vault-space)*2) }
  .lm-setting-row:not([data-type=switch])>.lm-setting-label,.lm-setting-row:not([data-type=switch])>.lm-setting-control { flex:0 0 auto;min-width:0;width:100%;margin-inline:0 }
- .lm-setting-row[data-type=switch][data-layout=inline] { min-height:44px }
- .lm-setting-row[data-type=switch][data-layout=inline]>.lm-setting-control { flex:0 0 auto }
+ .lm-setting-row[data-type=switch][data-layout=inline] { display:grid;grid-template-columns:minmax(0,1fr) auto;min-height:44px }
+ .lm-setting-row[data-type=switch][data-layout=inline]>.lm-setting-control { display:contents }
+ .lm-setting-row[data-type=switch][data-layout=inline] .mantine-Switch-root { grid-column:2;grid-row:1;align-self:center }
+ .lm-setting-row[data-type=switch][data-layout=inline]>.lm-setting-control>:not(.mantine-Switch-root) { grid-column:1/-1;justify-self:start }
  .lm-root .lm-setting-input,.lm-root[data-window-chrome=true]>.lm-settings-items .lm-setting-input { --input-height:44px;min-height:44px }
  .lm-root .lm-setting-select,.lm-root[data-window-chrome=true]>.lm-settings-items .lm-setting-select { text-align:start }
  .lm-setting-static-value { justify-content:flex-start;padding-inline:0 }
@@ -1046,12 +1084,17 @@
 .lm-account-vaults .lm-account-list { padding:0;background:transparent }
 .lm-account-vaults .lm-account-row { padding:0;margin-bottom:var(--vault-space);border:0;align-items:center }
 .lm-account-vaults .lm-card-row { border:var(--vault-border) solid color-mix(in srgb,var(--vault-control-border) 22%,transparent) }
+@container(max-width:20rem) {
+ .lm-account-vaults .lm-account-row:has(.lm-account-trash-entry) { align-items:flex-start;flex-direction:column;gap:0 }
+ .lm-account-trash-entry { flex:none }
+ .lm-account-trash-entry + .lm-button { max-width:100% }
+}
 .lm-account-main { display:flex;flex-direction:column;align-items:center;padding:clamp(16px,5cqw,64px) }
-.lm-account-main-content { width:100%;max-width:28rem;margin-block:auto;flex:none;container-type:inline-size }
+.lm-account-main-content { width:100%;max-width:28rem;margin-block-start:var(--vault-center-offset,0px);flex:none;container-type:inline-size }
 .lm-account-art { font:min(8px,1.7cqw)/1.2 var(--vault-mono);white-space:pre;text-align:center;margin:0 0 calc(var(--vault-space)*6);overflow:auto }
 .lm-account-wordmark { text-align:center;font-size:2em;font-weight:600;margin-bottom:calc(var(--vault-space)*6) }
 .lm-account-catalog-server { text-align:center;color:var(--vault-secondary);overflow-wrap:anywhere;margin-bottom:calc(var(--vault-space)*4) }
-.lm-account-main .lm-account-disclosure { margin-top:calc(var(--vault-space)*2) }
+.lm-account-main .lm-account-create { margin-top:calc(var(--vault-space)*2) }
 .lm-root[data-presentation=standalone] .lm-account-main .lm-account-create { background:var(--vault-content) }
 .lm-account-main .lm-account-error:not([hidden]) { margin-bottom:calc(var(--vault-space)*3) }
 @container(max-width:640px) {
@@ -1060,6 +1103,7 @@
  .lm-account-catalog { display:flex;flex-direction:column;flex:none;min-height:auto }
  .lm-account-vaults,.lm-account-main { overflow:visible;flex:none }
  .lm-account-main { padding:calc(var(--vault-space)*4) }
+ .lm-account-main-content { margin-block-start:0 }
  .lm-account-art,.lm-account-wordmark { display:none }
  .lm-account-catalog-server { margin-bottom:calc(var(--vault-space)*3) }
  .lm-account-catalog .lm-card-row,.lm-account-catalog .lm-account-row>.lm-button { min-height:44px }
@@ -1104,9 +1148,9 @@
 .lm-backlinks>*{flex-shrink:0}
 .lm-backlink-toolbar{margin-block-end:var(--vault-space)}
 .lm-backlink-note{margin:var(--vault-space) calc(var(--vault-space)*5);user-select:none}
-.lm-backlinks[data-inline=true]{flex:0 0 auto;margin-block:var(--vault-space,12px)}
+.lm-backlinks[data-inline=true]{flex:0 0 auto;margin-block:var(--vault-space,12px);overflow:visible;overscroll-behavior:auto}
 .lm-backlink-results{padding:4px 12px 0 8px;user-select:none;flex:1 1 auto;overflow:hidden auto;min-height:3em;scrollbar-width:none;overscroll-behavior:contain}
-.lm-backlinks[data-inline=true] .lm-backlink-results{overflow:visible}
+.lm-backlinks[data-inline=true] .lm-backlink-results{overflow:visible;overscroll-behavior:auto}
 .lm-backlink-heading{display:flex;align-items:center;gap:calc(var(--vault-space)*1.5);width:100%;min-height:32px;padding:var(--vault-space) calc(var(--vault-space)*2);color:var(--vault-secondary);text-align:start;border-radius:var(--vault-radius-small,4px)}
 @media(hover:hover){.lm-backlink-heading:enabled:hover:not(:active),.lm-backlink-context:enabled:hover:not(:active){background:var(--vault-hover)}}
 .lm-backlink-heading:enabled:active,.lm-backlink-context:enabled:active{background:var(--vault-selection)}
@@ -1162,10 +1206,13 @@
   margin: 0;
 }
 .lm-root .lm-notification-body {
+  align-self: stretch;
+  display: grid;
+  grid-template-rows: fit-content(45%) minmax(0, 1fr);
   margin: 0;
   max-block-size: 100%;
   min-inline-size: 0;
-  overflow-y: auto;
+  overflow: hidden;
   overscroll-behavior: contain;
   scrollbar-width: none;
 }
@@ -1176,6 +1223,8 @@
   font-weight: 750;
   line-height: 1.2;
   margin-block-end: calc(var(--vault-space) * 0.5);
+  max-block-size: 1lh;
+  overflow-y: auto;
   overflow-wrap: anywhere;
 }
 .lm-root .lm-notification-text {
@@ -1183,6 +1232,8 @@
   font-family: inherit;
   font-size: var(--notification-text-size);
   line-height: 1.25;
+  min-block-size: 0;
+  overflow-y: auto;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
 }
@@ -1191,7 +1242,7 @@
   --lm-notification-caption-icon-width: calc(var(--vault-space) * 7);
   display: grid;
   grid-template-columns: var(--lm-notification-caption-icon-width) minmax(0, 1fr);
-  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-rows: fit-content(45%) minmax(0, 1fr);
   align-items: stretch;
   gap: 0;
   padding: 0;
@@ -1219,9 +1270,11 @@
 .lm-root[data-window-chrome=true] .lm-notification-title {
   grid-column: 2;
   min-inline-size: 0;
-  max-block-size: 2.8em;
+  min-block-size: 0;
+  max-block-size: calc(1lh + var(--vault-border));
+  line-height: 1.55;
   margin: 0;
-  padding: calc(var(--vault-space) * 0.5) var(--vault-space);
+  padding: 0 var(--vault-space);
   padding-inline-start: calc(var(--vault-space) * 0.5);
   overflow-y: auto;
   scrollbar-width: none;
@@ -1231,7 +1284,9 @@
   grid-column: 1 / -1;
   min-block-size: 0;
   min-inline-size: 0;
-  padding-block: var(--vault-space);
+  max-block-size: 2lh;
+  margin-block: var(--vault-space);
+  padding-block: 0;
   padding-inline: var(--vault-space);
   padding-inline-start: calc(var(--lm-notification-caption-icon-width) + var(--vault-space) * 0.5);
   overflow-y: auto;

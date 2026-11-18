@@ -44,7 +44,7 @@ function Shape({ shape }: { shape: ViewShape }) {
     case 'path': return <path d={shape.d} stroke={color(shape.color)} fill={color(shape.fill)} />;
     case 'circle': return <circle cx={shape.x} cy={shape.y} r={shape.radius} stroke={color(shape.color)} fill={color(shape.fill)} />;
     case 'line': return <line x1={shape.x} y1={shape.y} x2={shape.x2} y2={shape.y2} stroke={color(shape.color)} />;
-    case 'text': return <text x={shape.x} y={shape.y} fill={color(shape.color)}>{shape.text}</text>;
+    case 'text': return <text x={shape.x} y={shape.y} fill={shape.color === 'accent' ? 'var(--vault-accent-foreground)' : color(shape.color)}>{shape.text}</text>;
   }
 }
 function Node({ node }: { node: ViewNode }) {
@@ -57,7 +57,8 @@ function Node({ node }: { node: ViewNode }) {
     case 'input': return <TextInput size="sm" label={node.label} value={node.value} disabled={!!node.disabled} classNames={{ input: 'lm-input lm-setting-input' }} onChange={event => node.onChange(event.currentTarget.value)} />;
     case 'textarea': return <Textarea size="sm" label={node.label} value={node.value} disabled={!!node.disabled} autosize minRows={3} maxRows={16} classNames={{ input: 'lm-input lm-setting-input' }} onChange={event => node.onChange(event.currentTarget.value)} />;
     case 'select': return <SettingsSelect label={node.label} aria-label={node.label} value={node.value} options={node.options} disabled={!!node.disabled} onChange={node.onChange} />;
-    case 'checkbox': return <Checkbox className="lm-task-checkbox" label={node.label} checked={node.checked} disabled={!!node.disabled} onChange={event => node.onChange(event.currentTarget.checked)} />;
+    case 'checkbox': return <Checkbox className="lm-task-checkbox" label={node.label} color="var(--vault-accent)" iconColor="var(--vault-on-accent)"
+      checked={node.checked} disabled={!!node.disabled} onChange={event => node.onChange(event.currentTarget.checked)} />;
     case 'drawing': return <svg className="lm-declarative-drawing" viewBox={`0 0 ${node.width} ${node.height}`} width={node.width} height={node.height} role={node.onPointer || node.onKey ? 'application' : 'img'} aria-label={node.label} tabIndex={node.onPointer || node.onKey ? 0 : undefined}
       style={{ width: '100%', height: 'auto', minWidth: 0 }}
       onPointerDown={event => {
