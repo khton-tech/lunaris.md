@@ -19,6 +19,7 @@ const scenes = [
   ['buttons', 'rose-pine', 1120, 740],
   ['buttons', 'monochrome', 1120, 740],
   ['buttons', 'windows-xp', 1120, 740],
+  ['buttons', 'monochrome', 390, 680],
   ['buttons-disabled', 'monochrome', 1120, 740],
   ['package', 'windows-xp-dark', 844, 390],
   ['history', 'rose-pine', 390, 680],
@@ -261,9 +262,13 @@ async function renderScene({ view, theme }) {
     const fields = document.querySelectorAll('.lm-settings-items [role=combobox]');
     if (view.startsWith('buttons')) {
       const add = required('.lm-lime-toolbar button[data-accent]');
+      const search = required('.lm-lime-toolbar input[type=search]');
       const more = required('.lm-lime-row-actions button[aria-haspopup="menu"]');
       const disabled = view === 'buttons-disabled';
       const addStyle = getComputedStyle(add);
+      if (Math.abs(search.getBoundingClientRect().height - add.getBoundingClientRect().height) > 0.5) {
+        throw new Error('Plugin search and Add plugin must have the same height.');
+      }
       if ([add, more].some(button => button.disabled !== disabled || button.getBoundingClientRect().height < 29)
         || addStyle.backgroundColor !== 'rgba(0, 0, 0, 0)' || addStyle.backgroundImage !== 'none'
         || addStyle.borderTopStyle !== 'solid' || Number(addStyle.fontWeight) < 600) {

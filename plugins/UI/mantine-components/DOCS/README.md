@@ -279,6 +279,8 @@ third-party and built-in rows when composition is available. Search filters the
 selected list. Mantine Menu handles page and third-party row actions, while
 built-in rows keep Details directly accessible. The optional `vaultId` prop
 scopes local view state to the active Vault.
+Search and Add plugin share a 36 px toolbar height with a 44 px target in
+narrow layouts and with coarse pointers.
 Required props: localized labels, rows of inert metadata plus enabled/recovery/
 removing/state, nullable preview metadata with warning/action, busy/available/
 safeMode booleans, error text and onAdd/onConfirm/onCancel/onToggle/onRetry/
