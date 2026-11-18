@@ -87,7 +87,7 @@
 .lm-root .lm-context-menu { pointer-events:auto;width:max-content;min-width:min(12rem,calc(100vw - 16px)) }
 .lm-context-menu .mantine-Menu-itemSection[data-position=left] { width:1.15em;margin-inline-end:calc(var(--vault-space)*2) }
 
-.lm-root { --settings-control-height:36px;isolation:isolate;font-family:var(--mantine-font-family);font-size:var(--mantine-font-size-md);line-height:var(--mantine-line-height);color-scheme:var(--mantine-color-scheme) }
+.lm-root { --settings-control-height:var(--settings-compact-control-height,36px);--settings-control-font-size:var(--vault-ui-font-size);isolation:isolate;font-family:var(--mantine-font-family);font-size:var(--mantine-font-size-md);line-height:var(--mantine-line-height);color-scheme:var(--mantine-color-scheme) }
 @media (pointer:coarse),(max-width:640px) { .lm-root { --settings-control-height:44px } }
 .lm-root,.lm-root *,.lm-root *::before,.lm-root *::after { box-sizing:border-box;scrollbar-width:none;min-width:0 }
 .lm-root *::-webkit-scrollbar { display:none;width:0;height:0 }
@@ -516,7 +516,9 @@
 .lm-settings-window-page { display:flex;flex:1;min-width:0;min-height:0 }
 .lm-settings-window-page .lm-settings-page { overscroll-behavior:contain }
 .lm-settings-window[data-compact] .lm-settings-window-inner { padding:0 }
+.lm-settings-window[data-compact] { --settings-compact-control-height:44px;--settings-row-padding:calc(var(--vault-space)*2) }
 .lm-settings-window[data-compact] .lm-settings-dialog { height:100%;flex-basis:100%;border:0;border-radius:0;box-shadow:none }
+.lm-root .lm-settings-window[data-compact] .lm-settings-dialog-header { padding-block:var(--vault-space) }
 .lm-settings-window[data-compact] .lm-settings-window-navigation { flex:1;border:0;background:transparent }
 .lm-settings-window[data-compact] .lm-settings-window-action { min-width:44px;min-height:44px }
 .lm-settings-window[data-compact] .lm-settings-category { min-height:44px }
@@ -528,6 +530,7 @@
   flex:1; min-width:0; min-height:0; overflow:auto; padding:var(--settings-page-padding);
   margin-block-end:var(--workspace-dock-inset,0px)
 }
+.lm-settings-page[data-compact=true] { --settings-page-padding:max(12px,calc(var(--vault-space)*3)) }
 .lm-settings-page>*,.lm-settings-navigation>* { flex-shrink:0 }
 .lm-settings-page > :is(.lm-settings-page-header,.lm-settings-group,.lm-settings-empty) {
   box-sizing:border-box; width:100%;max-width:var(--settings-column-width);margin-inline:auto
@@ -548,7 +551,7 @@
   border:var(--vault-border) solid var(--vault-separator);border-radius:var(--vault-radius)
 }
 .lm-lime-settings { min-width:0;width:100%;padding-block:calc(var(--vault-space)*3);--lime-divider:color-mix(in srgb,var(--vault-control-border) 20%,transparent) }
-.lm-lime-overview-row { padding-block:calc(var(--vault-space)*3);border-block-end:var(--vault-border) solid var(--lime-divider) }
+.lm-lime-overview-row { padding-block:var(--settings-row-padding,calc(var(--vault-space)*3));border-block-end:var(--vault-border) solid var(--lime-divider) }
 .lm-lime-overview-row:first-child { padding-block-start:0 }
 .lm-lime-overview-copy { flex:1 1 12rem;min-width:0;overflow-wrap:anywhere }
 .lm-lime-overview-row .mantine-Button-label { white-space:normal }
@@ -574,8 +577,7 @@
   :is(.lm-settings-items,.lm-settings-choices,.lm-lime-settings,.lm-lime-provider-actions,.lm-setting-picker) { --settings-control-height:44px }
 }
 @media (pointer:coarse),(max-width:640px) { .lm-lime-settings { --lime-touch-size:44px } }
-.lm-lime-settings :is(.lm-action-button,.lm-lime-icon,.mantine-Switch-body) { min-height:var(--lime-touch-size,0px) }
-.lm-lime-settings :is(.lm-lime-icon,.mantine-Switch-body) { min-width:var(--lime-touch-size,0px) }
+.lm-lime-settings :is(.lm-lime-icon,.mantine-Switch-body) { min-height:var(--lime-touch-size,var(--settings-compact-control-height,0px));min-width:var(--lime-touch-size,var(--settings-compact-control-height,0px)) }
 .lm-lime-settings .mantine-Switch-body { align-items:center;justify-content:center }
 .lm-lime-metadata,.lm-lime-metadata dd,.lm-lime-dependency-list { margin:0 }
 .lm-lime-metadata-row {
@@ -608,17 +610,16 @@
  .lm-lime-panel { overflow:visible }
 }
 .lm-settings-items { flex:1; min-width:0 }
-.lm-setting-row { display:flex; flex-wrap:nowrap; align-items:center; gap:calc(var(--vault-space)*3) calc(var(--vault-space)*6); min-width:0;padding-block:calc(var(--vault-space)*3) }
+.lm-setting-row { display:flex; flex-wrap:nowrap; align-items:center; gap:calc(var(--vault-space)*3) calc(var(--vault-space)*6); min-width:0;padding-block:var(--settings-row-padding,calc(var(--vault-space)*3)) }
 .lm-setting-row+.lm-setting-row { border-top:var(--vault-border) solid color-mix(in srgb,var(--vault-control-border) 14%,transparent) }
 .lm-setting-label { flex:1 1 0; min-width:0; overflow-wrap:anywhere }
 .lm-setting-control { flex:0 1 18rem; min-width:0; max-width:100%; overflow-wrap:anywhere }
 .lm-setting-row[data-layout=inline]>.lm-setting-control { margin-inline-start:auto }
-.lm-root .lm-setting-input { border-radius:var(--vault-radius-small);font-weight:500 }
-.lm-root .lm-setting-input:not(.lm-setting-select) { --input-height:calc(var(--vault-space)*8) }
-.lm-setting-picker { --input-height-sm:var(--settings-control-height) }
-.lm-root .lm-setting-select { user-select:none;text-align:start;padding-inline-end:calc(var(--vault-space)*8);cursor:pointer;height:auto;min-height:var(--settings-control-height);line-height:1.35;padding-block:var(--vault-space);white-space:normal;overflow-wrap:anywhere }
+.lm-settings-items .mantine-Input-wrapper,.lm-setting-picker { --input-height-sm:var(--settings-control-height) }
+.lm-root .lm-setting-input { min-height:var(--settings-control-height);border-radius:var(--vault-radius-small);font-weight:500 }
+.lm-root .lm-setting-select { user-select:none;text-align:start;padding-inline-end:calc(var(--vault-space)*8);cursor:pointer;height:auto;line-height:1.35;padding-block:var(--vault-space);white-space:normal;overflow-wrap:anywhere }
 .lm-setting-control .mantine-Input-section { color:var(--vault-secondary) }
-.lm-setting-static-value { min-height:calc(var(--vault-space)*8);display:flex;align-items:center;justify-content:flex-end;padding-inline:calc(var(--vault-space)*3);font-weight:500 }
+.lm-setting-static-value { min-height:var(--settings-control-height);display:flex;align-items:center;justify-content:flex-end;padding-inline:calc(var(--vault-space)*3);font-weight:500 }
 .lm-setting-control .mantine-Switch-root { align-self:flex-end }
 .lm-root .lm-setting-select:focus-visible { outline:none;border-color:var(--vault-focus) }
 .lm-root .lm-setting-input:disabled { cursor:default }
@@ -832,7 +833,7 @@
 .lm-root .lm-context-actions { flex:none;width:100%;min-width:0;max-height:none;overflow:visible }
 
 /* Sliders own only their labeled control area, inheriting the Settings surface. */
-.lm-setting-slider-control { min-width:0;width:100%;min-height:calc(var(--vault-space)*8);user-select:none }
+.lm-setting-slider-control { min-width:0;width:100%;min-height:var(--settings-control-height);user-select:none }
 .lm-root .lm-setting-slider { flex:1;min-width:0;--slider-track-bg:var(--vault-hover);--slider-track-disabled-bg:var(--vault-selection) }
 .lm-setting-slider .mantine-Slider-thumb { background:var(--vault-panel);border-color:var(--vault-text);box-shadow:none;transition:border-color var(--vault-motion-fast) var(--vault-motion-easing) }
 .lm-setting-slider .mantine-Slider-thumb[data-dragging] { transform:translate(-50%,-50%);box-shadow:none }
@@ -990,9 +991,9 @@
 .lm-settings-page-header h1 > svg { flex:none }
 .lm-settings-page-header h1 > span { min-width:0 }
 .lm-root .lm-settings-page[data-compact=true] .lm-settings-open-sidebar { display:var(--workspace-header-navigation-display,inline-flex);min-width:44px;min-height:44px }
-.lm-root .lm-settings-items[data-compact=true] :is(.lm-setting-input:not(.lm-setting-select),.lm-setting-slider-control),
+.lm-settings-items[data-compact=true] { --settings-control-height:44px;--settings-row-padding:calc(var(--vault-space)*2) }
+.lm-settings-items[data-compact=true] .mantine-Switch-body { min-height:var(--settings-control-height);min-width:var(--settings-control-height);align-items:center;justify-content:center }
 .lm-dropdown-overlay[data-compact=true] .lm-setting-option { min-height:44px }
-.lm-root .lm-settings-items[data-compact=true] .lm-setting-input { font-size:max(16px,var(--mantine-font-size-md)) }
 @container(max-width:640px) {
   .lm-root .lm-settings-page:not([data-compact]) .lm-settings-open-sidebar { display:var(--workspace-header-navigation-display,inline-flex) }
 }
@@ -1028,6 +1029,8 @@
 
 /* Phone density belongs to each UIKit role; desktop geometry stays unchanged. */
 @media(max-width:640px) {
+ .lm-root { --settings-control-font-size:max(16px,var(--vault-ui-font-size)) }
+ .lm-settings-items { --settings-row-padding:calc(var(--vault-space)*2) }
  /* Adapt chrome typography locally; document and callout metrics stay editor-owned. */
  .lm-root :is(.lm-sidebar-rail,.lm-mobile-menu-items,.lm-settings-navigation,.lm-settings-page,.lm-settings-items,.lm-settings-choices,.lm-account-access,.lm-context-surface,.ln-vault),.lm-dropdown-overlay {
   --lm-ui-font-size:max(16px,var(--vault-ui-font-size));
@@ -1039,10 +1042,9 @@
  .lm-root .lm-mobile-menu-items[data-density=compact] .lm-sidebar-tab { width:44px;height:44px;min-width:44px;min-height:44px }
  .lm-root .lm-settings-open-sidebar,.lm-root .lm-explorer-actions .mantine-ActionIcon-root,.lm-root .lm-account-icon { min-width:44px;min-height:44px }
  .lm-root .lm-button,.lm-root .lm-tool-navigation-item,.lm-root .lm-explorer-tabs,.lm-root .lm-setting-reset,.lm-root .lm-setting-option,.lm-root .lm-context-menu [role=menuitem] { min-height:44px }
- .lm-root .lm-input,.lm-root[data-window-chrome=true]>.lm-settings-items .lm-setting-input { --input-height:44px;min-height:44px }
+ .lm-root .lm-input:not(.lm-setting-input) { --input-height:44px;min-height:44px }
  .lm-root input.lm-input,.lm-root textarea.lm-input,.lm-root .mantine-PasswordInput-innerInput { font-size:max(16px,var(--mantine-font-size-md)) }
  .lm-settings-page,.lm-settings-navigation,.lm-explorer { overscroll-behavior-y:contain }
- .lm-setting-slider-control { min-height:44px }
  .lm-settings-page-header { padding-block:8px }
 }
 
@@ -1082,8 +1084,6 @@
  .lm-setting-row[data-type=switch][data-layout=inline]>.lm-setting-control { display:contents }
  .lm-setting-row[data-type=switch][data-layout=inline] .mantine-Switch-root { grid-column:2;grid-row:1;align-self:center }
  .lm-setting-row[data-type=switch][data-layout=inline]>.lm-setting-control>:not(.mantine-Switch-root) { grid-column:1/-1;justify-self:start }
- .lm-root .lm-setting-input:not(.lm-setting-select) { --input-height:44px;min-height:44px }
- .lm-root .lm-setting-select,.lm-root[data-window-chrome=true]>.lm-settings-items .lm-setting-select { text-align:start }
  .lm-setting-static-value { justify-content:flex-start;padding-inline:0 }
  .lm-root .lm-setting-reset { align-self:flex-start }
 }
@@ -1361,5 +1361,6 @@
   background:transparent;border-color:var(--vault-separator);color:var(--vault-secondary);box-shadow:none
 }
 @media (pointer:coarse),(max-width:640px) { .lm-root .lm-button.lm-action-button { min-height:44px } }
-.lm-root :is(.lm-settings-items,.lm-settings-choices,.lm-lime-settings,.lm-lime-overlay) .lm-action-button { min-height:var(--settings-control-height) }
+.lm-root :is(.lm-settings-items,.lm-settings-choices,.lm-lime-settings,.lm-lime-overlay) .lm-action-button { min-height:var(--settings-control-height);font-size:var(--settings-control-font-size) }
+.lm-root :is(.lm-setting-input.lm-input,.lm-lime-search .lm-input) { font-size:var(--settings-control-font-size) }
 .lm-root .lm-lime-overview .lm-action-button { max-width:100% }

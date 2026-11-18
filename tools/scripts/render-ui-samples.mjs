@@ -28,6 +28,8 @@ const scenes = [
   ['create', 'windows-xp', 1120, 740],
   ['create', 'everforest-dark', 390, 680],
   ['settings', 'monochrome', 1120, 740],
+  ['settings-fields', 'everforest-dark', 1120, 740],
+  ['settings-fields', 'everforest-dark', 390, 680],
   ['menu', 'windows-xp', 1120, 740],
   ['menu', 'everforest-dark', 390, 680],
   ['menu', 'windows-xp-dark', 844, 390],
@@ -234,6 +236,19 @@ async function renderScene({ view, theme }) {
     await documentScene(s, view === 'files');
   } else {
     await s.open();
+    if (view === 'settings-fields') {
+      const { settings } = s.tools;
+      const categoryId = settings.snapshot().categories[0].id;
+      const groupId = 'sample.fields';
+      const owner = s.ctx.signal;
+      const onChange = () => {};
+      settings.registerGroup({ id: groupId, categoryId, title: 'Поля ввода' }, owner);
+      settings.registerItem({ id: 'sample.fields.paths', groupId, type: 'text', layout: 'stacked',
+        title: 'Исключённые пути', value: 'Архив', onChange, resetLabel: 'Сбросить', onReset: () => {} }, owner);
+      settings.registerItem({ id: 'sample.fields.count', groupId, type: 'number', layout: 'stacked',
+        title: 'Число результатов', value: 10, onChange }, owner);
+      await flush();
+    }
     if (document.querySelector('.lm-workspace-layout[data-compact]')) {
       required('.lm-workspace-mobile-launcher:not([hidden]) button[aria-label="Боковая панель"]').click();
       await flush();
@@ -303,9 +318,18 @@ async function renderScene({ view, theme }) {
       }
     }
     if (!view.startsWith('buttons') && view !== 'package' && fields.length !== 2) throw new Error('Missing interface preferences.');
+    if (view === 'settings-fields') {
+      const compact = document.querySelector('.lm-settings-window[data-compact]');
+      const height = compact || matchMedia('(pointer: coarse)').matches ? 44 : 36;
+      const controls = [...fields, ...document.querySelectorAll('.lm-settings-items input.lm-setting-input'),
+        required('.lm-settings-items .lm-setting-reset')];
+      if (controls.length !== 5 || controls.some(control => Math.abs(control.getBoundingClientRect().height - height) > 0.5)) {
+        throw new Error('Settings input, dropdown and action heights must match at each density.');
+      }
+    }
     if (view === 'menu') {
       for (const field of fields) {
-        const compact = field.closest('.lm-root').clientWidth <= 420
+        const compact = field.closest('.lm-settings-window[data-compact]') || field.closest('.lm-root').clientWidth <= 420
           || matchMedia('(pointer: coarse), (max-width: 640px)').matches;
         const expected = compact ? 44 : 36;
         const height = field.getBoundingClientRect().height;
