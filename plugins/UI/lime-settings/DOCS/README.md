@@ -9,17 +9,25 @@ The controller declares runtime.manage to consume Lime through the ordinary SDK
 permission and dependency model. In the package preview, the user sees that
 enabled packages run with the application's access.
 
-The controller registers Settings / Third-party plugins, with a custom section
-using the public `lunaris.lime-settings` component role. It maps immutable engine
-state into localized props, translates operation failure codes and selects metadata
-translations by locale/base language. English and Russian catalogs are supplied.
-The native picker call runs before the first await to preserve user activation.
+The controller registers the Plugins category in Settings and mounts the public
+`lunaris.lime-settings` component role in its Vault plugins section. It maps
+immutable engine state into localized props, translates operation failure codes
+and selects metadata translations by locale and base language. English and
+Russian catalogs are supplied. The native picker call runs before the first
+`await` to preserve user activation.
 
-The Settings page owns the category heading and its Installed plugins section.
-The shared Mantine role uses the section's surface and presents Add plugin as the
-primary action. An empty Vault shows the empty message and Add plugin. Without a
-Vault, the section shows the unavailable message. The safe-mode action is
-shown when packages exist or safe mode is active.
+Settings owns the category heading and section geometry, surface and scrolling.
+With the composition adapter, the shared Mantine role presents Third-party and
+Built-in tabs. Search matches names and IDs in the current list and is omitted
+when that list is empty. The third-party toolbar exposes Add plugin as its
+primary action, including for an empty Vault. Without a Vault, the section shows
+the unavailable state. The page's actions menu contains the option to reopen
+without third-party plugins. When safe mode is active, its status and the option
+to resume third-party plugins are visible above the list.
+
+Rows show the plugin name, version, runtime state and an enablement switch where
+available. The third-party row menu contains Details, Update and Remove, with
+Retry available for recovery. Built-in rows expose Details directly.
 
 Add plugin opens selection, then an inert metadata preview. Confirmation chooses
 Install or Update explicitly according to the installed ID. Per-row Update checks
@@ -46,16 +54,16 @@ hosts the refresh action and shows declared requirements when the live plan is
 unavailable. An already selected sole provider is shown as text. When a change is
 possible, the shared themed SettingsSelect sits beside Apply provider, which
 submits the plan revision. Escape closes an open provider menu before closing
-the dialog. Closing Details returns focus to its package row action.
+the dialog. Closing Details returns focus to its row action.
 Missing providers direct users to Add plugin for an explicitly selected local
 package. Disabled providers are not enabled implicitly; running consumers require
 an enabled choice. Refresh dependencies obtains a new revision. Engine failures
 are localized and successful changes refresh the plan. Vault changes clear it.
 
-On a host with the composition adapter, Built-in plugins opens built-in rows
-inside the same Settings section. Each eligible row has a switch and uses the
-same Details dialog and themed dependency picker as an installed package. The
-picker can stage an explicit provider or clear that override with Host default.
+The Built-in tab is available on hosts with the composition adapter. Each
+eligible row has a switch and uses the same Details dialog and themed dependency
+picker as a third-party package. The picker can stage an explicit provider or
+clear that override with Host default.
 Protected rows display read-only dependency details. Changes to built-in switches
 and providers are staged together. Disabling a built-in clears its own provider
 overrides from the draft. Apply composition submits the whole profile
@@ -65,50 +73,46 @@ stages an empty profile, including in safe mode. Vault changes discard the draft
 The `lunaris.lime-settings` role accepts an optional `composition` object with
 metadata rows, draft and customized flags, and callbacks for toggling a built-in,
 applying, discarding and restoring defaults. Built-in rows supply `mutable` and
-their staged `bindings` for the Details picker. The controller owns the draft,
-Vault, revision and SDK calls. The role owns the collapsible list, presentation
-and keyboard interactions within the same Settings section.
+their staged `bindings` for the Details picker. The optional `vaultId` prop
+scopes local view state to the current Vault. The controller owns the draft,
+Vault, revision and SDK calls. The role owns the list, presentation and keyboard
+interactions within the same Settings section.
 
-Enable/disable, retry, update and safe-mode restore call engine APIs only. Remove
-offers explicit retain/delete-data actions. A pending removal exposes Retry using
-the already committed data choice, never a misleading new choice. No Vault/busy,
-empty, failed and cancelled operations have explicit states. A Vault change clears
-the local preview. Long metadata wraps. Labels update on locale changes; no native
-dropdowns or provider-specific UI imports are introduced.
+Enable, disable, retry, update and safe-mode restore use the public Lime API.
+Remove opens inline confirmation with explicit choices to keep or delete plugin
+data. Cancelling returns focus to the row menu trigger. During pending removal,
+Retry uses the previously committed data choice. Empty, unavailable, busy,
+failed and cancelled operations have explicit states. A Vault change clears the
+local preview. Long metadata wraps and labels update on locale changes.
 
 ## Ownership, reference and verification
 
-Workspace and Settings own region geometry, surfaces, corners, navigation and
-overflow. Lime contributes embedded intrinsic-height content; the Mantine role
-owns its controls and internal spacing. It adds no outer card/background and never
-inspects or styles another region. The product reference is existing Settings item
-rows, quiet action buttons and shared Switch controls. Mantine UI
-[buttons](https://ui.mantine.dev/category/buttons/) and
-[tables](https://ui.mantine.dev/category/tables/) and
-[inputs](https://ui.mantine.dev/category/inputs/) were consulted; no gallery runtime
-or copied shell was added. The Mantine role owns the package preview modal and
-its Overview and Dependencies tabs. Details uses the same modal surface, tab
-layout and scroll area. The platform warning and installation confirmation stay
-in the preview footer. Details puts its close action and operation errors in the
-footer. Removal confirmation remains in its installation row.
+Workspace and Settings own the outer regions, navigation and scrolling. Lime
+contributes content to the Settings section through the existing Lime, Settings
+and Mantine Components SDK contracts. The Mantine role owns its internal spacing,
+themed controls and package dialogs. Preview and Details share a centered modal,
+Overview and Dependencies tabs and scroll behavior. The preview footer contains
+the platform warning and confirmation. The Details footer contains the close
+action and operation errors.
 
-Composed tests mount the actual controller, Settings, Workspace and Mantine role.
-They prove preview-before-install, metadata escaping/dependency disclosure,
-platform warning, confirmation, retained-data removal, switch operation, preview
-focus/return, Russian metadata/cancel, and transparent embedded roots across Luna
-light/dark and Monochrome. Shared UIKit regression checks pass separately.
+Lunaris Settings item rows, quiet actions and shared Switch controls are the
+product references. Obsidian's installed-plugin switch and name search informed
+the list. VS Code's per-extension management menu informed the row overflow.
+[Obsidian community plugins](https://obsidian.md/help/community-plugins),
+[VS Code extension management](https://code.visualstudio.com/docs/configure/extensions/extension-marketplace#_manage-extensions).
 
-Native visual acceptance remains pending: real file dialog/gesture/cancel,
-light/dark control sizing and focus, long metadata/locales, removal/recovery states
-and narrow/short Settings. Automated DOM tests do not establish native geometry.
-Engine/Settings/UIKit integration is tested and included in normal shared host
-composition. Provider-choice integration is implemented and tested with an opened
-Mantine menu, disabled candidates, explicit application and revision forwarding.
-Native acceptance and application-host development attachment remain pending.
+Mantine's searchable list composition and Menu control inform the search and
+themed, keyboard-operable overflow. [Mantine UI tables](https://ui.mantine.dev/category/tables/),
+[Mantine Menu](https://mantine.dev/core/menu/#accessibility).
 
-The composed Settings test verifies built-in row restrictions, the opened
-provider menu, staging a provider and disabling a built-in without a runtime
-call, one revision-checked commit, and restoring defaults. Manually check the
-built-in list at narrow and short viewport sizes in English and Russian. Open
-Details with the keyboard, choose a provider, close the dialog, toggle a built-in
-and inspect keyboard focus and restored defaults after applying.
+The composed test fixture mounts the controller with Settings, Workspace and
+the shared Mantine role for package lifecycle, dependency selection, built-in
+composition and theme coverage. Application-host development attachment remains
+pending.
+
+Native visual acceptance remains pending. In real Settings on a narrow and
+short window, check both tabs, long Russian labels, light and dark themes, menu
+positioning and keyboard focus when opening Details or cancelling removal.
+Check the native file picker and its cancellation, safe-mode status and recovery,
+and staged built-in changes through Apply composition, Discard changes and
+Restore defaults.

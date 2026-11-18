@@ -238,8 +238,8 @@ export default definePlugin({
 });
 ```
 
-Pack and install the package in a Vault. In Settings → Third-party plugins →
-Built-in plugins, open Details for `lunaris.text-editor`. Under Dependencies,
+Pack and install the package in a Vault. Open Settings → Plugins and choose
+Details for `lunaris.text-editor` in the Built-in tab. Under Dependencies,
 select `example.vault-clipboard` for `api:lunaris.clipboard` and choose Set
 provider. Optionally switch off `lunaris.clipboard-provider` in the built-in
 list. Apply composition to commit the edits together.
@@ -293,7 +293,7 @@ export default definePlugin({
 Pack the decorator and choose Install disabled in the package preview. In its
 installed package Details, select `lunaris.clipboard-provider` for
 `api:lunaris.clipboard` and apply that provider choice before enabling the
-decorator. Then select the decorator as the editor's provider in Built-in plugins
+decorator. Then select the decorator as the editor's provider in the Built-in tab
 and apply the composition profile. Keep the upstream provider enabled. The two
 explicit choices form the chain from editor to decorator to upstream provider.
 
@@ -331,7 +331,7 @@ register a declarative view as in the counter recipe and pass its ID to
 Declare `api:lunaris.workspace@^1.5.0` and the view's dependencies for the
 package that registers the content.
 
-Install and enable the layout. In Built-in plugins, open Details for
+Install and enable the layout. In the Built-in tab, open Details for
 `lunaris.workspace` and select the package for
 `api:lunaris.workspace-layout`. Apply the composition. Each region appears at
 most once. For dynamic layouts, `describe` can read the Vault context and
@@ -365,7 +365,7 @@ Use the returned handle's `update(props)` to refresh the view and
 `dispose()` to remove the surface early. Both registrations are owned by
 the activation. The surface requires a fresh dotted slot ID. It uses the
 shared theme and declarative controls. After installing this package, the
-owner can disable `lunaris.workspace` in Built-in plugins and apply the
+owner can disable `lunaris.workspace` in the Built-in tab and apply the
 composition to use the separate interface. Restore defaults brings back
 Workspace. Safe mode provides access to the default application even when
 the custom interface omits Settings.

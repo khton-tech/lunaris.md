@@ -51,9 +51,10 @@ Notable codes: `PACKAGE_METADATA_REQUIRED`, `PACKAGE_BUILD_FAILED`,
 Use `inspect-package` for an inert package preview. The `inspect` command
 activates development directories in Node.
 
-Install through Settings → Third-party plugins in an open Vault. Preview and
-installation in the disabled state leave the entry unevaluated. After activation,
-Lime loads the entry in the same JavaScript environment as the application.
+Open Settings → Plugins in a Vault and choose Add plugin in the third-party
+list. Preview and installation in the disabled state leave the entry
+unevaluated. After activation, Lime loads the entry in the same JavaScript
+environment as the application.
 The user selects the package to run. SDK checks apply to both built-in and
 installed packages, and packaging validates format and identity without making
 claims about the safety of executable code.

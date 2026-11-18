@@ -66,10 +66,11 @@ npm run core -- pack . ./another-output.lup
 npm run core -- inspect-package ./another-output.lup
 ```
 
-Inspection never evaluates package code. Open a Vault and use Settings →
-Third-party plugins → Add plugin. Review the metadata and runtime notice, then
-install and start the package or choose Install disabled. The latter keeps the
-package inert until enabled, so you can configure its upstream provider first.
+Inspection never evaluates package code. Open a Vault, go to Settings → Plugins
+and choose Add plugin in the third-party list. Review the metadata and runtime
+notice, then install and start the package or choose Install disabled. The
+latter keeps the package inert until enabled, so you can configure its upstream
+provider first.
 For an update, select a package with the same ID and a newer plugin version.
 Removal can retain package settings and managed data.
 
@@ -181,9 +182,9 @@ manifest declares. Earlier builds may share the same base SDK version while
 lacking individual contracts or their providers. Review the dependency plan in
 the package preview before installing.
 
-In Settings → Third-party plugins → Built-in plugins, open Details for the
-consumer and choose the replacement provider under Dependencies. Stage any
-related built-in switches and choose Apply composition once. The profile belongs
+In the Built-in tab of Settings → Plugins, open Details for the consumer and
+choose the replacement provider under Dependencies. Stage any related built-in
+switches and choose Apply composition once. The profile belongs
 to the current Vault. An invalid or unsuccessful activation leaves the previous
 composition in place when rollback succeeds. Restore defaults clears the profile.
 

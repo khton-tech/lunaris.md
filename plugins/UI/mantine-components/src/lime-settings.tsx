@@ -2,10 +2,12 @@ import { ActionButton } from "./action-button.js";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { createPortal } from "react-dom";
-import { Box, Group, Modal, Stack, Switch, Tabs, Text } from "@mantine/core";
+import { ActionIcon, Box, Group, Menu, Modal, Stack, Switch, Tabs, Text, TextInput } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
+import { ViewportMenu } from './dropdown-overlay.js';
 import { Icon } from './icons.js';
+import { ProductDropdown } from './product-dropdown.js';
 import { SettingsSelect } from './settings-select.js';
 
 interface Metadata { readonly id: string; readonly name: string; readonly version: string; readonly description: string; readonly fields: readonly { readonly label: string; readonly value: string }[] }
@@ -24,6 +26,7 @@ interface Composition {
 interface Props {
   readonly labels: Readonly<Record<string, string>>;
   readonly rows: readonly Row[];
+  readonly vaultId?: string | null;
   readonly preview: (Metadata & { readonly requirements: Metadata['fields']; readonly warning: boolean; readonly action: string; readonly installDisabled?: boolean }) | null;
   readonly busy: boolean; readonly available: boolean; readonly safeMode: boolean; readonly error: string;
   readonly onAdd: () => void; readonly onConfirm: (enabled?: boolean) => void; readonly onCancel: () => void;
@@ -35,8 +38,8 @@ interface Props {
   readonly onPlan: (id: string) => void;
   readonly onSelectProvider: (id: string, kind: Dependency['kind'], contractId: string, providerId: string, revision: number) => void;
 }
-const labels = ['add', 'empty', 'noVault', 'enabled', 'details', 'remove', 'cancel', 'keepData', 'deleteData', 'removePrompt', 'warning', 'retry', 'update', 'safeMode', 'resume', 'provider', 'applyProvider', 'refreshDependencies', 'affected', 'missingDependency', 'noDependencies', 'selectProvider', 'enableProvider', 'optional', 'overview', 'requires', 'previewTabs'];
-const compositionLabels = ['builtins', 'useDefaultProvider', 'setProvider', 'applyComposition', 'discardComposition', 'resetComposition'];
+const labels = ['add', 'empty', 'noVault', 'enabled', 'details', 'remove', 'cancel', 'keepData', 'deleteData', 'removePrompt', 'warning', 'retry', 'update', 'safeMode', 'resume', 'provider', 'applyProvider', 'refreshDependencies', 'affected', 'missingDependency', 'noDependencies', 'selectProvider', 'enableProvider', 'optional', 'overview', 'requires', 'previewTabs', 'search', 'noMatches', 'pluginActions', 'managementActions', 'retryRemoval', 'paused'];
+const compositionLabels = ['section', 'thirdParty', 'builtIn', 'noBuiltins', 'useDefaultProvider', 'setProvider', 'applyComposition', 'discardComposition', 'resetComposition'];
 const hostDefault = 'host-default';
 const validFields = (fields: unknown): fields is Metadata['fields'] =>
   Array.isArray(fields) && fields.every(field => typeof field?.label === 'string' && typeof field.value === 'string');
@@ -49,6 +52,7 @@ export function limeSettingsProps(value: ComponentProps): Props {
     !Array.isArray(value.rows) || !value.rows.every(row => metadata(row) && ['enabled', 'recovery', 'removing'].every(key => typeof (row as unknown as Record<string, unknown>)[key] === 'boolean') && typeof (row as Row).state === 'string' && ((row as Row).requirements === undefined || validFields((row as Row).requirements))) || new Set(value.rows.map(row => row.id)).size !== value.rows.length ||
     (value.preview !== null && (!metadata(value.preview) || !validFields((value.preview as Props['preview'])?.requirements) || typeof (value.preview as Props['preview'])?.warning !== 'boolean' || typeof (value.preview as Props['preview'])?.action !== 'string')) ||
     !['busy', 'available', 'safeMode'].every(key => typeof value[key] === 'boolean') || typeof value.error !== 'string' ||
+    (value.vaultId != null && typeof value.vaultId !== 'string') ||
     !['onAdd', 'onConfirm', 'onCancel', 'onToggle', 'onRetry', 'onUpdate', 'onRemove', 'onSafeMode', 'onPlan', 'onSelectProvider'].every(key => typeof value[key] === 'function')) throw new TypeError('Invalid Lime Settings props.');
   const plan = value.dependencyPlan as DependencyPlan | null;
   if (plan !== null && (!plan || typeof plan.pluginId !== 'string' || !Number.isSafeInteger(plan.revision) || !Array.isArray(plan.affected) || !plan.affected.every(id => typeof id === 'string') || !Array.isArray(plan.dependencies) || !plan.dependencies.every(item => item && ['api','event','hook'].includes(item.kind) && typeof item.id === 'string' && typeof item.range === 'string' && typeof item.optional === 'boolean' && (item.selected === undefined || typeof item.selected === 'string') && Array.isArray(item.candidates) && item.candidates.every((candidate: Dependency['candidates'][number]) => candidate && ['id','version','state'].every(key => typeof (candidate as unknown as Record<string, unknown>)[key] === 'string'))))) throw new TypeError('Invalid Lime dependency plan.');
@@ -181,39 +185,221 @@ function PackageDetails({ row, props, onClose }: { row: Row | BuiltinRow; props:
       </Group>
     </>} />;
 }
-export function LimeSettings({ props, theme, overlay }: {
+interface PackageRowProps {
+  readonly row: Row | BuiltinRow;
+  readonly props: Props;
+  readonly locked: boolean;
+  readonly onDetails: (id: string, trigger: HTMLButtonElement) => void;
+  readonly onUpdate: (id: string, trigger: HTMLButtonElement) => void;
+  readonly onRequestRemoval: (id: string, trigger: HTMLButtonElement) => void;
+  readonly confirmation?: ReactNode;
+}
+
+function PackageRow({ row, props, locked, onDetails, onUpdate, onRequestRemoval, confirmation }: PackageRowProps) {
+  const trigger = useRef<HTMLButtonElement>(null);
+  const builtin = 'bindings' in row;
+  const detailsLabel = `${props.labels.details}: ${row.name}`;
+  const menuLabel = `${props.labels.pluginActions}: ${row.name}`;
+  return <Box component="li" className="lm-lime-package" data-lime-id={row.id}>
+    <Box className="lm-lime-package-header">
+      <Stack className="lm-lime-package-name" gap={4}>
+        <Text size="sm" fw={600}>{row.name}</Text>
+        <Text size="xs" c="dimmed">{row.version} · {row.state}</Text>
+      </Stack>
+      <Group className="lm-lime-row-actions" gap="xs" wrap="nowrap">
+        {(!builtin || row.mutable) && <Switch aria-label={`${props.labels.enabled} ${row.name}`} checked={row.enabled}
+          disabled={locked || props.safeMode || (!builtin && row.removing)}
+          onChange={event => (builtin ? props.composition!.onToggle : props.onToggle)(row.id, event.currentTarget.checked)} />}
+        {builtin ? <ActionIcon className="lm-lime-icon lm-focus" variant="subtle" size={30}
+          aria-label={detailsLabel} title={props.labels.details} aria-haspopup="dialog" disabled={locked}
+          onClick={event => onDetails(row.id, event.currentTarget)}><Icon name="callout-info" /></ActionIcon> :
+          <ViewportMenu disabled={locked} position="bottom-end" offset={6} returnFocus>
+            <Menu.Target>
+              <ActionIcon ref={trigger} className="lm-lime-icon lm-focus" variant="subtle" size={30}
+                aria-label={menuLabel} title={props.labels.pluginActions} disabled={locked}><Icon name="actions" /></ActionIcon>
+            </Menu.Target>
+            <ProductDropdown aria-label={menuLabel}>
+              <Menu.Item leftSection={<Icon name="callout-info" />} aria-haspopup="dialog"
+                onClick={() => onDetails(row.id, trigger.current!)}>{props.labels.details}</Menu.Item>
+              {row.recovery && !row.removing && <Menu.Item leftSection={<Icon name="refresh" />} disabled={props.safeMode}
+                onClick={() => props.onRetry(row.id)}>{props.labels.retry}</Menu.Item>}
+              <Menu.Item leftSection={<Icon name="refresh" />} disabled={row.removing}
+                onClick={() => onUpdate(row.id, trigger.current!)}>{props.labels.update}</Menu.Item>
+              <Menu.Divider />
+              <Menu.Item className="lm-lime-remove-action" leftSection={<Icon name={row.removing ? 'refresh' : 'trash'} />}
+                onClick={() => row.removing ? props.onRemove(row.id, false) : onRequestRemoval(row.id, trigger.current!)}>
+                {props.labels[row.removing ? 'retryRemoval' : 'remove']}
+              </Menu.Item>
+            </ProductDropdown>
+          </ViewportMenu>}
+      </Group>
+    </Box>
+    {confirmation}
+  </Box>;
+}
+
+interface LimeViewProps {
   props: Props;
   theme: ReturnType<typeof resolveTheme>;
   overlay: { id: string; target: HTMLElement };
-}) {
-  const [detailsId, setDetailsId] = useState<string | null>(null); const [removing, setRemoving] = useState<string | null>(null);
-  const [showBuiltins, setShowBuiltins] = useState(false);
+}
+
+export function LimeSettings(view: LimeViewProps) {
+  return <LimeManagement key={view.props.vaultId} {...view} />;
+}
+
+function LimeManagement({ props, theme, overlay }: LimeViewProps) {
+  const [detailsId, setDetailsId] = useState<string | null>(null);
+  const [removing, setRemoving] = useState<string | null>(null);
+  const [tab, setTab] = useState('third-party');
+  const [query, setQuery] = useState('');
   const composition = props.composition;
   const details = props.available ? props.rows.find(row => row.id === detailsId) ?? composition?.rows.find(row => row.id === detailsId) : undefined;
   const dialogOpen = !!(props.preview || details);
   const dialogTrigger = useRef<HTMLButtonElement>(null);
+  const removeTrigger = useRef<HTMLButtonElement>(null);
+  const cancelRemoval = useRef<HTMLButtonElement>(null);
+  const addButton = useRef<HTMLButtonElement>(null);
+  const searchInput = useRef<HTMLInputElement>(null);
+  const managementButton = useRef<HTMLButtonElement>(null);
+  const resumeButton = useRef<HTMLButtonElement>(null);
+  const changingMode = useRef(false);
   const hadDialog = useRef(false);
-  const removeButtons = useRef(new Map<string, HTMLButtonElement>());
   useEffect(() => {
-    if (!dialogOpen && hadDialog.current) dialogTrigger.current?.focus();
-    hadDialog.current = dialogOpen;
-  }, [dialogOpen]);
+    if (dialogOpen) {
+      hadDialog.current = true;
+      return;
+    }
+    if (!hadDialog.current || props.busy) return;
+    hadDialog.current = false;
+    const trigger = dialogTrigger.current;
+    (trigger?.isConnected ? trigger : searchInput.current ?? addButton.current)?.focus({ preventScroll: true });
+  }, [dialogOpen, props.busy]);
   useEffect(() => { if (detailsId && !details) setDetailsId(null); }, [detailsId, details]);
-  useEffect(() => { if (removing && !props.rows.some(row => row.id === removing)) setRemoving(null); }, [props.rows, removing]);
-  const disabled = props.busy || !props.available;
-  return <Stack className="lm-lime-settings" gap="md" style={{ ...theme.contentStyle, minWidth: 0, width: '100%' }}>
-    <Group className="lm-lime-toolbar" gap="sm" wrap="wrap" justify="space-between">
-      {!props.available ? <Text size="sm" c="dimmed">{props.labels.noVault}</Text> : <>
-        {!props.rows.length && !props.preview && <Text size="sm" c="dimmed">{props.labels.empty}</Text>}
-        <Group gap="xs" wrap="wrap">
-          <ActionButton accent leftSection={<Icon name="create" />} disabled={disabled || dialogOpen} onClick={event => { dialogTrigger.current = event.currentTarget; props.onAdd(); }}>{props.labels.add}</ActionButton>
-          {composition && <ActionButton aria-expanded={showBuiltins}
-            disabled={disabled || dialogOpen} onClick={() => setShowBuiltins(value => !value)}>{props.labels.builtins}</ActionButton>}
-          {(props.safeMode || props.rows.length > 0 || composition?.customized) && <ActionButton disabled={disabled || !!props.preview} onClick={() => props.onSafeMode(!props.safeMode)}>{props.safeMode ? props.labels.resume : props.labels.safeMode}</ActionButton>}
-        </Group>
+  useEffect(() => { if (removing) cancelRemoval.current?.focus({ preventScroll: true }); }, [removing]);
+  useEffect(() => {
+    if (!removing || props.busy) return;
+    const row = props.rows.find(item => item.id === removing);
+    if (row && !row.removing) return;
+    setRemoving(null);
+    if (!props.rows.length) setQuery('');
+    (row ? removeTrigger.current : searchInput.current ?? addButton.current)?.focus({ preventScroll: true });
+  }, [props.rows, props.busy, removing]);
+  useEffect(() => {
+    if (!changingMode.current || props.busy) return;
+    changingMode.current = false;
+    const target = props.safeMode ? resumeButton.current : managementButton.current;
+    (target ?? searchInput.current ?? addButton.current)?.focus({ preventScroll: true });
+  }, [props.safeMode, props.busy]);
+
+  const locked = props.busy || !props.available || dialogOpen;
+  const selectDetails = (id: string, trigger: HTMLButtonElement) => {
+    dialogTrigger.current = trigger;
+    props.onPlan(id);
+    setDetailsId(id);
+  };
+  const update = (id: string, trigger: HTMLButtonElement) => {
+    dialogTrigger.current = trigger;
+    props.onUpdate(id);
+  };
+  const requestRemoval = (id: string, trigger: HTMLButtonElement) => {
+    removeTrigger.current = trigger;
+    props.onPlan(id);
+    setRemoving(id);
+  };
+  const closeRemoval = () => {
+    setRemoving(null);
+    removeTrigger.current?.focus({ preventScroll: true });
+  };
+  const changeSafeMode = (enabled: boolean) => {
+    changingMode.current = true;
+    props.onSafeMode(enabled);
+  };
+  const safeModeMenu = !props.safeMode && (props.rows.length > 0 || composition?.customized) &&
+    <ViewportMenu disabled={locked} position="bottom-end" offset={6} returnFocus>
+      <Menu.Target>
+        <ActionIcon ref={managementButton} className="lm-lime-icon lm-focus" variant="subtle" size={30} aria-label={props.labels.managementActions}
+          title={props.labels.managementActions} disabled={locked}><Icon name="actions" /></ActionIcon>
+      </Menu.Target>
+      <ProductDropdown aria-label={props.labels.managementActions}>
+        <Menu.Item leftSection={<Icon name="refresh" />} onClick={() => changeSafeMode(true)}>{props.labels.safeMode}</Menu.Item>
+      </ProductDropdown>
+    </ViewportMenu>;
+  const add = <ActionButton ref={addButton} accent leftSection={<Icon name="create" />} disabled={locked}
+    onClick={event => { dialogTrigger.current = event.currentTarget; props.onAdd(); }}>{props.labels.add}</ActionButton>;
+  const filter = query.trim().toLowerCase();
+
+  function renderList(rows: readonly (Row | BuiltinRow)[], empty: string | undefined, actions?: ReactNode, controls?: ReactNode) {
+    const filtered = filter ? rows.filter(row => row.name.toLowerCase().includes(filter) || row.id.toLowerCase().includes(filter)) : rows;
+    return <Stack gap="sm">
+      {(rows.length > 0 || actions) && <Group className="lm-lime-toolbar" gap="xs">
+        {rows.length > 0 && <TextInput ref={searchInput} className="lm-lime-search" classNames={{ input: 'lm-input' }} type="search"
+          aria-label={props.labels.search} placeholder={props.labels.search} leftSection={<Icon name="search" />} value={query}
+          onChange={event => { setRemoving(null); setQuery(event.currentTarget.value); }}
+          onKeyDown={event => {
+            if (event.key === 'Escape' && query && !event.nativeEvent.isComposing) {
+              event.preventDefault();
+              setQuery('');
+            }
+          }} />}
+        {actions}
+      </Group>}
+      {controls}
+      {filtered.length > 0 ? <Box component="ul" className="lm-lime-package-list">
+        {filtered.map(row => <PackageRow key={row.id} row={row} props={props} locked={locked}
+          onDetails={selectDetails} onUpdate={update} onRequestRemoval={requestRemoval}
+          confirmation={'removing' in row && removing === row.id && !row.removing && <Stack className="lm-lime-removal" gap="xs" role="group"
+            aria-label={`${props.labels.remove} ${row.name}`} onKeyDown={event => {
+              if (event.key !== 'Escape' || event.nativeEvent.isComposing) return;
+              event.preventDefault();
+              if (!locked) closeRemoval();
+            }}>
+            <Text size="sm">{props.labels.removePrompt}</Text>
+            {props.dependencyPlan?.pluginId === row.id && props.dependencyPlan.affected.some(id => id !== row.id) &&
+              <Text size="sm" c="dimmed">{props.labels.affected}: {props.dependencyPlan.affected.join(', ')}</Text>}
+            <Group gap="xs" wrap="wrap">
+              <ActionButton disabled={locked} onClick={() => props.onRemove(row.id, false)}>{props.labels.keepData}</ActionButton>
+              <ActionButton className="lm-lime-remove-action" disabled={locked} onClick={() => props.onRemove(row.id, true)}>{props.labels.deleteData}</ActionButton>
+              <ActionButton ref={cancelRemoval} disabled={locked} onClick={closeRemoval}>{props.labels.cancel}</ActionButton>
+            </Group>
+          </Stack>} />)}
+      </Box> : <Text className="lm-lime-message" role="status" size="sm" c="dimmed">{rows.length ? props.labels.noMatches : empty}</Text>}
+    </Stack>;
+  }
+
+  const compositionActions = composition && (composition.draft || composition.customized) &&
+    <Group gap="xs" wrap="wrap">
+      {composition.draft && <>
+        <ActionButton accent disabled={locked || (props.safeMode && composition.customized)} onClick={composition.onApply}>{props.labels.applyComposition}</ActionButton>
+        <ActionButton disabled={locked} onClick={composition.onDiscard}>{props.labels.discardComposition}</ActionButton>
       </>}
-    </Group>
-    {props.error && !dialogOpen && <Text size="sm" c="var(--vault-error)" role="alert" style={{ overflowWrap: 'anywhere' }}>{props.error}</Text>}
+      {composition.customized && <ActionButton disabled={locked} onClick={composition.onReset}>{props.labels.resetComposition}</ActionButton>}
+    </Group>;
+
+  return <Stack className="lm-lime-settings" gap="sm" style={theme.contentStyle} aria-busy={props.busy}>
+    {props.error && !dialogOpen && <Text className="lm-lime-message" size="sm" c="var(--vault-error)" role="alert">{props.error}</Text>}
+    {!props.available ? <Text className="lm-lime-message" size="sm" c="dimmed">{props.labels.noVault}</Text> : <>
+      {props.safeMode && <Group className="lm-lime-safe-mode" gap="xs" justify="space-between">
+        <Text size="sm" role="status">{props.labels.paused}</Text>
+        <ActionButton ref={resumeButton} disabled={locked} onClick={() => changeSafeMode(false)}>{props.labels.resume}</ActionButton>
+      </Group>}
+      {composition ? <Tabs className="lm-lime-tabs" color="var(--vault-accent-foreground)" keepMounted={false}
+        value={tab} onChange={next => { if (next) { setTab(next); setQuery(''); setRemoving(null); } }}>
+        <Box className="lm-lime-category-bar">
+          <Tabs.List aria-label={props.labels.section}>
+            <Tabs.Tab value="third-party" disabled={locked} className="lm-focus">{props.labels.thirdParty}</Tabs.Tab>
+            <Tabs.Tab value="builtin" disabled={locked} className="lm-focus">{props.labels.builtIn}</Tabs.Tab>
+          </Tabs.List>
+          {safeModeMenu}
+        </Box>
+        <Tabs.Panel value="third-party">
+          {renderList(props.rows, props.labels.empty, add)}
+        </Tabs.Panel>
+        <Tabs.Panel value="builtin">
+          {renderList(composition.rows, props.labels.noBuiltins, undefined, compositionActions)}
+        </Tabs.Panel>
+      </Tabs> : renderList(props.rows, props.labels.empty, <>{add}{safeModeMenu}</>)}
+    </>}
     {dialogOpen && createPortal(
       <div id={overlay.id} className="lm-root lm-lime-overlay" data-mantine-color-scheme={theme.scheme}
         data-window-chrome={theme.windowChrome} style={theme.contentStyle}>
@@ -222,60 +408,5 @@ export function LimeSettings({ props, theme, overlay }: {
       </div>,
       overlay.target,
     )}
-    {props.rows.map(row => <Box key={row.id} className="lm-lime-package" data-lime-id={row.id}>
-      <Box className="lm-lime-package-header">
-        <Stack className="lm-lime-package-name" gap={4}>
-          <Text size="sm" fw={600}>{row.name} <Text span fw={400} c="dimmed">{row.version}</Text></Text>
-          <Text size="sm" c="dimmed">{row.state}</Text>
-        </Stack>
-        <Group gap="xs" wrap="wrap">
-          <Switch aria-label={`${props.labels.enabled} ${row.name}`} checked={row.enabled} disabled={disabled || row.removing || props.safeMode} onChange={event => props.onToggle(row.id, event.currentTarget.checked)} />
-          <ActionButton aria-haspopup="dialog" disabled={disabled}
-            onClick={event => { dialogTrigger.current = event.currentTarget; props.onPlan(row.id); setDetailsId(row.id); }}>{props.labels.details}</ActionButton>
-          {row.recovery && !row.removing && <ActionButton disabled={disabled || props.safeMode} onClick={() => props.onRetry(row.id)}>{props.labels.retry}</ActionButton>}
-          <ActionButton disabled={disabled || row.removing || dialogOpen} onClick={event => { dialogTrigger.current = event.currentTarget; props.onUpdate(row.id); }}>{props.labels.update}</ActionButton>
-          <ActionButton ref={element => { if (element) removeButtons.current.set(row.id, element); else removeButtons.current.delete(row.id); }} disabled={disabled} onClick={() => {
-            if (row.removing) props.onRemove(row.id, false);
-            else {
-              if (removing !== row.id) props.onPlan(row.id);
-              setRemoving(removing === row.id ? null : row.id);
-            }
-          }}>{row.removing ? props.labels.retry : props.labels.remove}</ActionButton>
-        </Group>
-      </Box>
-      {removing === row.id && <Stack gap="xs" role="group" aria-label={`${props.labels.remove} ${row.name}`}>
-        <Text size="sm">{props.labels.removePrompt}</Text>
-        {props.dependencyPlan?.pluginId === row.id && props.dependencyPlan.affected.length > 1 &&
-          <Text size="sm" style={{ overflowWrap: 'anywhere' }}>{props.labels.affected}: {props.dependencyPlan.affected.join(', ')}</Text>}
-        <Group gap="xs" wrap="wrap">
-          <ActionButton disabled={disabled} onClick={() => props.onRemove(row.id, false)}>{props.labels.keepData}</ActionButton>
-          <ActionButton disabled={disabled} onClick={() => props.onRemove(row.id, true)}>{props.labels.deleteData}</ActionButton>
-          <ActionButton disabled={props.busy} onClick={() => { setRemoving(null); removeButtons.current.get(row.id)?.focus(); }}>{props.labels.cancel}</ActionButton>
-        </Group>
-      </Stack>}
-    </Box>)}
-    {props.available && composition && showBuiltins && <Stack gap="xs" role="group" aria-label={props.labels.builtins}>
-      {(composition.draft || composition.customized) && <Group gap="xs" wrap="wrap">
-        {composition.draft && <>
-          <ActionButton disabled={disabled || dialogOpen || (props.safeMode && composition.customized)} onClick={composition.onApply}>{props.labels.applyComposition}</ActionButton>
-          <ActionButton disabled={disabled || dialogOpen} onClick={composition.onDiscard}>{props.labels.discardComposition}</ActionButton>
-        </>}
-        {composition.customized && <ActionButton disabled={disabled || dialogOpen} onClick={composition.onReset}>{props.labels.resetComposition}</ActionButton>}
-      </Group>}
-      {composition.rows.map(row => <Box key={row.id} className="lm-lime-package" data-lime-id={row.id}>
-        <Box className="lm-lime-package-header">
-          <Stack className="lm-lime-package-name" gap={4}>
-            <Text size="sm" fw={600}>{row.name} <Text span fw={400} c="dimmed">{row.version}</Text></Text>
-            <Text size="sm" c="dimmed">{row.state}</Text>
-          </Stack>
-          <Group gap="xs" wrap="wrap">
-            {row.mutable && <Switch aria-label={`${props.labels.enabled} ${row.name}`} checked={row.enabled}
-              disabled={disabled || props.safeMode || dialogOpen} onChange={event => composition.onToggle(row.id, event.currentTarget.checked)} />}
-            <ActionButton aria-haspopup="dialog" disabled={disabled || dialogOpen}
-              onClick={event => { dialogTrigger.current = event.currentTarget; props.onPlan(row.id); setDetailsId(row.id); }}>{props.labels.details}</ActionButton>
-          </Group>
-        </Box>
-      </Box>)}
-    </Stack>}
   </Stack>;
 }

@@ -17,10 +17,10 @@ npm run pack
 npm run core -- inspect-package ./local.my-plugin-0.1.0.lup
 ```
 
-Open a Vault in Lunaris, then choose Settings / Third-party plugins / Add plugin
-and select `local.my-plugin-0.1.0.lup`. Confirm to run it, or choose Install
-disabled to keep it inactive. The generated plugin logs its readiness through
-Logger. Disable it in Settings to end its activation.
+Open a Vault in Lunaris, then go to Settings → Plugins. In the third-party list,
+choose Add plugin and select `local.my-plugin-0.1.0.lup`. Confirm to run it, or
+choose Install disabled to keep it inactive. The generated plugin logs its
+readiness through Logger. Disable it in Settings to end its activation.
 
 Edit `src/plugin.ts` and declare all used or provided contracts in
 `manifest.json`. The scaffold includes Logger, a focused test and vendored SDK

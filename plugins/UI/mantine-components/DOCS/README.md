@@ -273,21 +273,30 @@ pointer mapping/focus and narrow/short visuals remain manual acceptance.
 
 ## Lime Settings role
 
-`lunaris.lime-settings` renders embedded/content management rows using shared
-Mantine Switch/Button/Text/Group/Stack controls and existing Settings row styles.
+`lunaris.lime-settings` embeds plugin management in the Settings page using
+shared Mantine controls and existing Settings row styles. Mantine Tabs separate
+third-party and built-in rows when composition is available. Search filters the
+selected list. Mantine Menu handles page and third-party row actions, while
+built-in rows keep Details directly accessible. The optional `vaultId` prop
+scopes local view state to the active Vault.
 Required props: localized labels, rows of inert metadata plus enabled/recovery/
 removing/state, nullable preview metadata with warning/action, busy/available/
 safeMode booleans, error text and onAdd/onConfirm/onCancel/onToggle/onRetry/
 onUpdate/onRemove/onSafeMode callbacks. Fields contain only label/value strings;
 there is no HTML injection or native/engine access. Metadata and descriptions wrap.
+The list uses `search`, `noMatches`, `pluginActions`, `managementActions`,
+`retryRemoval` and `paused` labels. Composition also uses `section`,
+`thirdParty`, `builtIn` and `noBuiltins`.
 The containing Settings page owns its surface/geometry; the role paints no card.
 Package preview opens a themed Mantine modal with Overview and Dependencies tabs.
-The role mounts its overlay at the document level, above the Settings scroll
-region and its sticky header. The overlay shares the component theme scope.
+The role mounts dialogs and menus in the overlay target lent by Settings, above
+the scrolling region and its header. Standalone mounts use the document body.
+The overlays share the component theme scope.
 The scrollable panel is separate from the action footer. The first tab receives
 initial focus and dismissing the modal returns focus to the opening control.
-Remove exposes retain/delete-data actions; pending removal retries its committed
-choice. Theme/locale updates preserve role controls through the existing adapter.
+Remove exposes inline keep-data and delete-data actions. Cancelling returns
+focus to the row menu trigger. Pending removal retries its committed choice.
+Theme and locale updates preserve role controls through the existing adapter.
 
 The role also accepts dependencyPlan (pluginId/revision/affected/direct dependencies
 and candidate ID/version/state), onPlan and onSelectProvider callbacks. Details
@@ -1005,14 +1014,13 @@ No concrete settings, storage or theme controls are supplied. See
 [the settings reference](../../../../DOCS/reference/settings.md). Compositions were
 reviewed against [Mantine UI navbars](https://ui.mantine.dev/category/navbars/).
 
-The Owner's Customization and Third-party plugins screenshots define the Settings
-composition reference. Groups fill the page column with local theme surfaces
-and compact rows. Section content inherits
-that surface. The Lime role emphasizes Add plugin and separates package entries
-within its borrowed section. The existing Mantine Combobox owns its trigger and
-options, including keyboard interaction and selection. The Workspace layout role
-owns the overlay geometry above main and Sidebar. Verify wide and compact layouts,
-opened menus, focus and theme contrast in the application.
+The Owner's Customization and plugin management screenshots define the Settings
+composition reference. Groups fill the page column with local theme surfaces and
+compact rows. Section content inherits that surface. The Lime role aligns its
+list and controls within the supplied section. The existing Mantine Combobox
+owns its trigger and options, including keyboard interaction and selection. The
+Workspace layout role owns the overlay geometry above main and Sidebar. Verify
+wide and compact layouts, opened menus, focus and theme contrast in the application.
 
 ## Text editor role
 

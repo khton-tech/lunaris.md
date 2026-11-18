@@ -233,9 +233,13 @@ async function renderScene({ view, theme }) {
     await documentScene(s, view === 'files');
   } else {
     await s.open();
-    s.tools.sidebar.select('lunaris.settings.navigation');
+    const launcher = required(
+      '.lm-workspace-layout:not([data-compact]) .lm-sidebar-rail button[aria-haspopup="dialog"], ' +
+      '.lm-workspace-layout[data-compact] .lm-workspace-mobile-toolbar:not([hidden]) button[aria-label="Настройки"]',
+    );
+    launcher.click();
     await flush();
-    required('.lm-settings-category').click();
+    required('.lm-settings-dialog .lm-settings-category').click();
     await flush();
     if (view === 'package') {
       required('.lm-lime-toolbar button[data-accent]').click();
@@ -256,19 +260,35 @@ async function renderScene({ view, theme }) {
     }
     const fields = document.querySelectorAll('.lm-settings-items [role=combobox]');
     if (view.startsWith('buttons')) {
-      const actions = [...document.querySelectorAll('.lm-lime-settings .lm-button')].filter(button => button.getBoundingClientRect().height);
-      const accent = required('.lm-lime-toolbar [data-accent]');
-      const normal = required('.lm-lime-package-header .lm-button');
-      if (actions.length < 4 || actions.some(button => {
-        const style = getComputedStyle(button);
-        return button.disabled !== (view === 'buttons-disabled') || style.backgroundColor !== 'rgba(0, 0, 0, 0)'
-          || style.backgroundImage !== 'none' || style.borderTopStyle !== 'solid' || Math.abs(button.getBoundingClientRect().height - 30) > 1;
-      })) throw new Error('Unexpected package button surface or size: ' + actions.map(b => [b.textContent,b.disabled,b.offsetHeight,getComputedStyle(b).backgroundColor,getComputedStyle(b).borderTopStyle].join('/')).join(', '));
-      if (view === 'buttons') {
-        const primary = getComputedStyle(accent), secondary = getComputedStyle(normal);
-        if (primary.borderColor === secondary.borderColor || primary.color === secondary.color || Number(primary.fontWeight) <= Number(secondary.fontWeight)) {
-          throw new Error('Primary actions must have a distinct outline, label color and weight.');
+      const add = required('.lm-lime-toolbar button[data-accent]');
+      const more = required('.lm-lime-row-actions button[aria-haspopup="menu"]');
+      const disabled = view === 'buttons-disabled';
+      const addStyle = getComputedStyle(add);
+      if ([add, more].some(button => button.disabled !== disabled || button.getBoundingClientRect().height < 29)
+        || addStyle.backgroundColor !== 'rgba(0, 0, 0, 0)' || addStyle.backgroundImage !== 'none'
+        || addStyle.borderTopStyle !== 'solid' || Number(addStyle.fontWeight) < 600) {
+        throw new Error('Unexpected size, availability or styling of the plugin actions.');
+      }
+      if (!disabled) {
+        more.click();
+        await flush();
+        await document.fonts.ready;
+        let fits = false;
+        for (let frame = 0; frame < 40 && !fits; frame++) {
+          await new Promise(resolve => setTimeout(resolve, 16));
+          const menu = document.getElementById(more.getAttribute('aria-controls'));
+          if (!menu?.matches('.lm-dropdown[role="menu"]') || more.getAttribute('aria-expanded') !== 'true') continue;
+          const bounds = menu.getBoundingClientRect();
+          const items = [...menu.querySelectorAll('[role="menuitem"]')];
+          fits = items.length >= 3 && bounds.width > 0 && bounds.height > 0
+            && bounds.top >= -1 && bounds.bottom <= innerHeight + 1
+            && bounds.left >= -1 && bounds.right <= innerWidth + 1
+            && items.every(item => {
+              const row = item.getBoundingClientRect();
+              return row.height > 0 && row.top >= bounds.top - 1 && row.bottom <= bounds.bottom + 1;
+            });
         }
+        if (!fits) throw new Error('The plugin actions menu or one of its items is outside the viewport.');
       }
     }
     if (!view.startsWith('buttons') && view !== 'package' && fields.length !== 2) throw new Error('Missing interface preferences.');

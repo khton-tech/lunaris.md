@@ -147,7 +147,7 @@ export default definePlugin({ manifest: { manifestVersion: 1, id: 'lunaris.lime-
         onDiscard: () => { if (!busy) { draft = null; error = ''; changed(); } },
         onReset: () => stage({ bindings: [], disabledBuiltins: [] }),
       } : null,
-      busy, available: !!state.vaultId, safeMode: state.safeMode, error: error || (state.error ? text('environmentError') : ''),
+      vaultId: state.vaultId, busy, available: !!state.vaultId, safeMode: state.safeMode, error: error || (state.error ? text('environmentError') : ''),
       onAdd: () => { void choose(); }, onUpdate: (id: string) => { void choose(id); },
       onConfirm: (enabled = true) => { const selected = preview; if (!selected) return; void operate(async () => {
         try { return await (engine.snapshot().installations.some(item => item.id === selected.manifest.id) ? engine.update(selected.ticket) : engine.install(selected.ticket, enabled)); }
