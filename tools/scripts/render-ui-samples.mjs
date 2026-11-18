@@ -287,10 +287,10 @@ async function renderScene({ view, theme }) {
       const addStyle = getComputedStyle(add);
       const searchBounds = search.getBoundingClientRect();
       const addBounds = add.getBoundingClientRect();
-      if (Math.abs(searchBounds.height - addBounds.height) > 0.5 || searchBounds.top <= addBounds.bottom) {
+      if ([searchBounds.height, addBounds.height].some(height => Math.abs(height - 36) > 0.5) || searchBounds.top <= addBounds.bottom) {
         throw new Error('Plugin search must match the Add plugin height and sit below the overview.');
       }
-      if ([add, more].some(button => button.disabled !== disabled || button.getBoundingClientRect().height < 29)
+      if ([add, more].some(button => button.disabled !== disabled || Math.abs(button.getBoundingClientRect().height - 36) > 0.5)
         || addStyle.backgroundColor !== 'rgba(0, 0, 0, 0)' || addStyle.backgroundImage !== 'none'
         || addStyle.borderTopStyle !== 'solid' || Number(addStyle.fontWeight) < 600) {
         throw new Error('Unexpected size, availability or styling of the plugin actions.');
@@ -311,7 +311,7 @@ async function renderScene({ view, theme }) {
             && bounds.left >= -1 && bounds.right <= innerWidth + 1
             && items.every(item => {
               const row = item.getBoundingClientRect();
-              return row.height > 0 && row.top >= bounds.top - 1 && row.bottom <= bounds.bottom + 1;
+              return Math.abs(row.height - 36) <= 0.5 && row.top >= bounds.top - 1 && row.bottom <= bounds.bottom + 1;
             });
         }
         if (!fits) throw new Error('The plugin actions menu or one of its items is outside the viewport.');
@@ -319,21 +319,17 @@ async function renderScene({ view, theme }) {
     }
     if (!view.startsWith('buttons') && view !== 'package' && fields.length !== 2) throw new Error('Missing interface preferences.');
     if (view === 'settings-fields') {
-      const compact = document.querySelector('.lm-settings-window[data-compact]');
-      const height = compact || matchMedia('(pointer: coarse)').matches ? 44 : 36;
       const controls = [...fields, ...document.querySelectorAll('.lm-settings-items input.lm-setting-input'),
         required('.lm-settings-items .lm-setting-reset')];
-      if (controls.length !== 5 || controls.some(control => Math.abs(control.getBoundingClientRect().height - height) > 0.5)) {
-        throw new Error('Settings input, dropdown and action heights must match at each density.');
+      controls.push(...document.querySelectorAll('.lm-settings-dialog-header .lm-settings-window-action'));
+      if (controls.length < 6 || controls.some(control => Math.abs(control.getBoundingClientRect().height - 36) > 0.5)) {
+        throw new Error('Settings inputs, dropdowns and actions must be 36px tall.');
       }
     }
     if (view === 'menu') {
       for (const field of fields) {
-        const compact = field.closest('.lm-settings-window[data-compact]') || field.closest('.lm-root').clientWidth <= 420
-          || matchMedia('(pointer: coarse), (max-width: 640px)').matches;
-        const expected = compact ? 44 : 36;
         const height = field.getBoundingClientRect().height;
-        if (Math.abs(height - expected) > 0.5) throw new Error(`Settings dropdown height ${height}px differs from ${expected}px.`);
+        if (Math.abs(height - 36) > 0.5) throw new Error(`Settings dropdown height ${height}px differs from 36px.`);
       }
       fields[1].click();
       await flush();
@@ -351,7 +347,7 @@ async function renderScene({ view, theme }) {
         const menu = dropdown.getBoundingClientRect();
         const row = selected.getBoundingClientRect();
         fits = menu.height > 0 && menu.width > 0 && menu.top >= -1 && menu.bottom <= innerHeight + 1
-          && menu.left >= -1 && menu.right <= innerWidth + 1 && row.height > 0
+          && menu.left >= -1 && menu.right <= innerWidth + 1 && Math.abs(row.height - 36) <= 0.5
           && row.top >= menu.top - 1 && row.bottom <= menu.bottom + 1;
       }
       if (!fits) {

@@ -24,12 +24,12 @@ and value pickers. It owns the panel finish, row spacing, keyboard highlight,
 selection and disabled states. Use it inside the corresponding Menu, Menu.Sub
 or Combobox so the control keeps its focus, positioning and selection behavior.
 Settings, Lime and declarative forms use SettingsSelect for labeled values.
-Settings text and number fields, closed dropdowns, sliders, action buttons and
-plugin search share a 36 px baseline. Narrow and touch layouts use a 44 px
-baseline. Text inputs and Mantine steppers inherit the same field height from
+Settings text and number fields, dropdowns, sliders, action buttons and plugin
+search share a 36 px baseline at desktop and compact widths. Text inputs and
+Mantine steppers inherit the same field height from
 the input wrapper. Compact Settings reduce caption and row padding around the
-controls. Long selected labels can wrap. Open menus retain their viewport and
-option sizing rules.
+controls. Short dropdown options use the same baseline. Long option and field
+labels can wrap inside the available width.
 Mobile choices retain touch sizing and reorder handles.
 
 ## Empty document actions
@@ -284,8 +284,7 @@ shared Mantine controls and existing Settings row styles. Search filters the
 third-party list. The overview shows a safe-mode switch, Add plugin and the
 installed count. Mantine Menu handles package row actions. The optional
 `vaultId` prop scopes local view state to the active Vault.
-Search and Add plugin share a 36 px height with a 44 px target in
-narrow layouts and with coarse pointers.
+Search, Add plugin and row actions share a 36 px baseline in both layouts.
 Required props: localized labels, rows of inert metadata plus enabled/recovery/
 removing/state, nullable preview metadata with warning/action, busy/available/
 safeMode booleans, error text and onAdd/onConfirm/onCancel/onToggle/onRetry/
@@ -366,8 +365,8 @@ touch scrolling, opened menus and password focus with the virtual keyboard.
 Reference: the existing Files toolbar, Settings rows and floating Workspace actions,
 with [Mantine UI inputs](https://ui.mantine.dev/category/inputs/) as the composition
 catalog. At viewport widths up to 640px, shared form fields, navigation actions,
-opened menu options, reset actions and the compact launcher have a 44px minimum
-target. Editable fields retain a 16px minimum font to avoid focus zoom on phones.
+opened menu options and the compact launcher have a 44px minimum target outside
+Settings. Editable fields retain a 16px minimum font to avoid focus zoom on phones.
 Desktop rules above that breakpoint remain unchanged.
 
 Phone typography uses a 16px minimum in Files, Settings, account/vault screens,
@@ -384,7 +383,7 @@ Settings owns its internal layout. Reference: the Owner's Gruvbox narrow Setting
 and Luna desktop screenshots. At an allocated form width up to 640px (independent
 of viewport width), fields move below their labels and span the available width
 with a shared leading edge. Values align to the start in both ordinary and Luna
-themes, and inputs have a 44px minimum height. Wider inline rows do not wrap:
+themes, and inputs use the standard 36px minimum height. Wider inline rows do not wrap:
 the label and trailing field remain on one line. Explicit stacked rows retain
 their public layout contract; inline switches keep a compact label/control row.
 This replaces accidental flex wrapping with an explicit responsive composition.

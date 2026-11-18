@@ -187,7 +187,7 @@ function PackageRow({ row, props, locked, onDetails, onUpdate, onRequestRemoval,
             <ActionIcon ref={trigger} className="lm-lime-icon lm-focus" variant="subtle" size={30}
               aria-label={menuLabel} title={props.labels.pluginActions} disabled={locked}><Icon name="actions" /></ActionIcon>
           </Menu.Target>
-          <ProductDropdown aria-label={menuLabel}>
+          <ProductDropdown className="lm-lime-row-menu" aria-label={menuLabel}>
             <Menu.Item leftSection={<Icon name="callout-info" />} aria-haspopup="dialog"
               onClick={() => onDetails(row.id, trigger.current!)}>{props.labels.details}</Menu.Item>
             {row.recovery && !row.removing && <Menu.Item leftSection={<Icon name="refresh" />} disabled={props.safeMode}
