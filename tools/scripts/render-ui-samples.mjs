@@ -304,6 +304,13 @@ async function renderScene({ view, theme }) {
     }
     if (!view.startsWith('buttons') && view !== 'package' && fields.length !== 2) throw new Error('Missing interface preferences.');
     if (view === 'menu') {
+      for (const field of fields) {
+        const compact = field.closest('.lm-root').clientWidth <= 420
+          || matchMedia('(pointer: coarse), (max-width: 640px)').matches;
+        const expected = compact ? 44 : 36;
+        const height = field.getBoundingClientRect().height;
+        if (Math.abs(height - expected) > 0.5) throw new Error(`Settings dropdown height ${height}px differs from ${expected}px.`);
+      }
       fields[1].click();
       await flush();
       await document.fonts.ready;

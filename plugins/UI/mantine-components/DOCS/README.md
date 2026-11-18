@@ -24,6 +24,9 @@ and value pickers. It owns the panel finish, row spacing, keyboard highlight,
 selection and disabled states. Use it inside the corresponding Menu, Menu.Sub
 or Combobox so the control keeps its focus, positioning and selection behavior.
 Settings, Lime and declarative forms use SettingsSelect for labeled values.
+Closed Settings dropdowns, Settings actions and the plugin search share a
+36 px baseline and a 44 px baseline in narrow or touch layouts. Long selected
+labels can wrap. The open menu retains its viewport and option sizing rules.
 Mobile choices retain touch sizing and reorder handles.
 
 ## Empty document actions
