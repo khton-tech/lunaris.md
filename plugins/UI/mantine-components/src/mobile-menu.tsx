@@ -1,3 +1,4 @@
+import { ProductDropdown } from "./product-dropdown.js";
 import { ActionIcon, Group, Menu, useDirection } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import { useCallback, useLayoutEffect, useRef, useState } from "react";
@@ -105,7 +106,7 @@ function MobileAction({ item, compact, target, overlay }: {
     offset={geometry ? { mainAxis: geometry.mainAxis, crossAxis: geometry.crossAxis } : 8} returnFocus
     portalProps={{ target: `#${overlay.id}` }} transitionProps={{ duration: 0 }}>
     <Menu.Target>{button}</Menu.Target>
-    <Menu.Dropdown ref={reorder.list} {...reorder.handlers} className="lm-explorer-menu lm-explorer-tab-menu lm-mobile-choice-menu" aria-label={item.label}
+    <ProductDropdown ref={reorder.list} {...reorder.handlers} className="lm-mobile-choice-menu" aria-label={item.label}
       style={dock ? { width: geometry?.width ?? "70vw" } : undefined}>
       {item.choices.map((choice, index, choices) => {
         const selected = choice.id === item.selectedChoiceId;
@@ -141,7 +142,7 @@ function MobileAction({ item, compact, target, overlay }: {
             disabled={item.disabled || trailing.disabled || false} onClick={() => item.onPress(trailing.id)}><Icon name={trailing.icon ?? "actions"} /></Menu.Item>}
         </div>;
       })}
-    </Menu.Dropdown>
+    </ProductDropdown>
   </Menu>;
 }
 

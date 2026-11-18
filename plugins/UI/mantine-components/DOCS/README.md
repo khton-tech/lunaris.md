@@ -4,6 +4,15 @@ The [November interface review](../../../../DOCS/design/interface-review-2026-11
 records the current scroll and surface ownership, themed control states and
 reproducible geometry checks across the Vault selector, Workspace and Settings.
 
+## Dropdowns
+
+ProductDropdown is the shared Mantine surface for action menus, nested menus
+and value pickers. It owns the panel finish, row spacing, keyboard highlight,
+selection and disabled states. Use it inside the corresponding Menu, Menu.Sub
+or Combobox so the control keeps its focus, positioning and selection behavior.
+Settings, Lime and declarative forms use SettingsSelect for labeled values.
+Mobile choices retain touch sizing and reorder handles.
+
 ## Empty document actions
 
 Workspace owns the main region's geometry and surface. Active Screen allocates
@@ -556,9 +565,8 @@ indented rows with quiet separators. Header spacing and bounded content width ke
 groups legible without painting another card over Workspace. Group headings label
 their semantic sections with aria-labelledby; borrowed targets retain identity.
 Control rows wrap on narrow widths and inherit the existing embedded surface.
-Select/text/number fields use compact theme-sized controls, the same 22% semantic
-border treatment and corner radius as the Vault switcher reference. Selects use
-the shared Lucide up/down icon on the left and align the selected value at the end.
+Select, text and number fields use the theme's control border. Selects align
+the selected value at the start and put the Lucide up/down indicator at the end.
 Only interactive controls receive a field surface; sole select values remain text.
 The shared stylesheet imports Mantine InlineInput/Switch/NumberInput styles for
 the registered control types. Native visual acceptance remains manual.

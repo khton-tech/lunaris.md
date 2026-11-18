@@ -1,3 +1,4 @@
+import { ProductDropdown } from "./product-dropdown.js";
 import { Box, Button, Group, Menu, Text } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
@@ -47,13 +48,13 @@ export function AccountAccessView({ props: p, theme }: { props: AccountAccessPro
         <Text className="lm-account-brand">Lunaris</Text>
         <ViewportMenu disabled={p.busy} position="bottom-end" offset={6} returnFocus>
           <Menu.Target><Button className="lm-account-identity" disabled={p.busy} aria-label={`${p.text.accountMenu}: ${p.account}`} leftSection={<Icon name="account" />} rightSection={<Icon name="expand" />}>{p.account}</Button></Menu.Target>
-          <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu" aria-label={p.text.accountMenu}>
+          <ProductDropdown aria-label={p.text.accountMenu}>
             <Menu.Label className="lm-account-server">{p.account}</Menu.Label>
             <Menu.Label className="lm-account-server">{p.address}</Menu.Label>
             {p.allowLocal && <Menu.Item leftSection={<Icon name="folder" />} onClick={p.onLocal}>{p.text.local}</Menu.Item>}
             {p.allowChangeServer && <Menu.Item leftSection={<Icon name="back" />} onClick={p.onChangeServer}>{p.text.changeServer}</Menu.Item>}
             <Menu.Item leftSection={<Icon name="logout" />} onClick={p.onLogout}>{p.text.logout}</Menu.Item>
-          </Menu.Dropdown>
+          </ProductDropdown>
         </ViewportMenu>
       </Group>}
       {!catalog && p.mode !== "connect" && (p.serverName || p.serverDescription) && <Box className="lm-account-server-info"><Text fw={600}>{p.serverName}</Text>{p.serverDescription && <Text className="lm-account-context">{p.serverDescription}</Text>}</Box>}

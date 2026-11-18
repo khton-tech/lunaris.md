@@ -63,14 +63,29 @@
 @media(prefers-reduced-motion:reduce) { .lm-task-checkbox .mantine-Checkbox-input { transition:none } }
 .lm-context-surface { position:fixed;inset:0;pointer-events:none;user-select:none }
 .lm-context-anchor { position:fixed;width:0;height:0;pointer-events:none }
-.lm-root .lm-context-menu { pointer-events:auto;max-width:calc(100vw - 8px);max-height:calc(100dvh - 8px);overflow:auto;width:max-content;min-width:min(12rem,calc(100vw - 8px));padding:var(--vault-space);background:var(--vault-panel);color:var(--vault-text);border:var(--vault-border) solid var(--vault-menu-border,color-mix(in srgb,var(--vault-control-border) 12%,transparent));border-radius:var(--vault-radius);box-shadow:var(--vault-surface-shadow,none )}
-.lm-context-menu [role=menuitem] { min-height:calc(var(--vault-space)*7);padding:var(--vault-space) calc(var(--vault-space)*2);border-radius:calc(var(--vault-radius)*0.5);font:inherit;font-weight:400;color:var(--vault-text);white-space:normal;overflow-wrap:anywhere;transition:background-color var(--vault-motion-fast) var(--vault-motion-easing) }
-.lm-context-menu .mantine-Menu-itemSection { flex-shrink:0;color:var(--vault-secondary) }
+.lm-root .lm-dropdown {
+  max-width:min(28rem,calc(100vw - 16px));max-height:min(28rem,calc(100dvh - 16px));
+  overflow:auto;overscroll-behavior:contain;padding:var(--vault-space);
+  background:var(--vault-panel);color:var(--vault-text);border:var(--vault-border) solid var(--vault-menu-border,var(--vault-separator));
+  border-radius:var(--vault-radius);box-shadow:var(--vault-surface-shadow,0 4px 12px color-mix(in srgb,var(--vault-background) 40%,transparent))
+}
+.lm-dropdown :is([role=option],[role=menuitem]) {
+  min-height:calc(var(--vault-space)*8);padding:var(--vault-space) calc(var(--vault-space)*2);
+  border-radius:var(--vault-radius-small);font:inherit;color:var(--vault-text);background:transparent;
+  white-space:normal;overflow-wrap:anywhere
+}
+.lm-dropdown .mantine-Menu-itemLabel { min-width:0;white-space:normal;overflow-wrap:anywhere }
+.lm-dropdown .mantine-Menu-itemSection { flex-shrink:0;color:var(--vault-secondary) }
+.lm-dropdown :is([aria-current=true],[role=option][data-checked]) { background:var(--vault-selection);font-weight:500 }
+.lm-dropdown :is([data-hovered],[data-combobox-selected]):not([data-disabled],[data-combobox-disabled],[aria-current=true],[data-checked]) { background:var(--vault-hover) }
+@media(hover:hover) {
+  .lm-dropdown [role=option]:not([data-combobox-disabled],[data-checked]):hover { background:var(--vault-hover) }
+}
+.lm-dropdown :is([role=option],[role=menuitem]):not([data-disabled],[data-combobox-disabled]):active { background:var(--vault-selection) }
+.lm-dropdown :is([role=menuitem]:focus-visible,[role=option][data-combobox-selected]) { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
+.lm-dropdown :is([role=menuitem][data-disabled],[role=option][data-combobox-disabled]) { color:var(--vault-secondary) }
+.lm-root .lm-context-menu { pointer-events:auto;width:max-content;min-width:min(12rem,calc(100vw - 16px)) }
 .lm-context-menu .mantine-Menu-itemSection[data-position=left] { width:1.15em;margin-inline-end:calc(var(--vault-space)*2) }
-.lm-context-menu [role=menuitem][data-hovered]:not([data-disabled]) { background:color-mix(in srgb,var(--vault-hover) 35%,var(--vault-panel)) }
-.lm-context-menu [role=menuitem]:not([data-disabled]):active { background:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel)) }
-.lm-context-menu [role=menuitem][data-disabled] { color:var(--vault-secondary) }
-.lm-context-menu [role=menuitem]:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
 
 .lm-root { isolation:isolate;font-family:var(--mantine-font-family);font-size:var(--mantine-font-size-md);line-height:var(--mantine-line-height);color-scheme:var(--mantine-color-scheme) }
 .lm-root,.lm-root *,.lm-root *::before,.lm-root *::after { box-sizing:border-box;scrollbar-width:none;min-width:0 }
@@ -321,19 +336,7 @@
 }
 .lm-root .lm-button.lm-explorer-delete-confirm:not([data-disabled]):active { background:color-mix(in srgb,var(--vault-error) 12%,var(--delete-action-surface,var(--vault-panel))) }
 .lm-explorer-message { padding:calc(var(--vault-space)*2);font-size:inherit;overflow-wrap:anywhere;flex-shrink:0 }
-.lm-root .lm-explorer-menu { max-width:min(28rem,calc(100vw - 16px));max-height:min(28rem,calc(100dvh - 16px));overflow:auto;overscroll-behavior:contain;padding:var(--vault-space);background:var(--vault-panel);color:var(--vault-text);border:var(--vault-border) solid var(--vault-menu-border,color-mix(in srgb,var(--vault-control-border) 22%,transparent));border-radius:var(--vault-radius);box-shadow:var(--vault-surface-shadow,0 var(--vault-space) calc(var(--vault-space)*3) color-mix(in srgb,var(--vault-background) 35%,transparent) )}
-.lm-explorer-menu [role=menuitem] { min-height:calc(var(--vault-space)*8);padding:var(--vault-space) calc(var(--vault-space)*2);border-radius:calc(var(--vault-radius)*0.5);font:inherit;color:var(--vault-text);white-space:normal;transition:background-color var(--vault-motion-fast) var(--vault-motion-easing) }
-.lm-explorer-menu [role=menuitem][data-hovered]:not([data-disabled]) { background:var(--explorer-control-hover) }
-.lm-explorer-menu [role=menuitem]:not([data-disabled]):active { background:var(--explorer-control-pressed) }
-.lm-explorer-menu [role=menuitem][data-disabled] { color:var(--vault-secondary) }
-.lm-root .lm-explorer-tab-menu { padding:var(--vault-space);border:var(--vault-border) solid var(--vault-menu-border,color-mix(in srgb,var(--vault-control-border) 22%,transparent));border-radius:var(--vault-radius);background:var(--vault-panel);box-shadow:var(--vault-surface-shadow,0 var(--vault-space) calc(var(--vault-space)*3) color-mix(in srgb,var(--vault-background) 35%,transparent) )}
-.lm-explorer-tab-menu [role=menuitem] { min-height:calc(var(--vault-space)*8);padding:var(--vault-space) calc(var(--vault-space)*2);border-radius:calc(var(--vault-radius)*0.5);font:inherit;white-space:nowrap;background:transparent;transition:background-color var(--vault-motion-fast) var(--vault-motion-easing) }
-.lm-explorer-tab-menu .mantine-Menu-itemLabel { overflow:hidden;text-overflow:ellipsis;white-space:nowrap }
-.lm-vault-switcher-menu .mantine-Menu-itemLabel { white-space:normal;overflow-wrap:anywhere }
-.lm-explorer-tab-menu .mantine-Menu-itemSection { flex-shrink:0;color:var(--vault-secondary) }
-.lm-explorer-tab-menu [role=menuitem][data-hovered]:not([data-disabled]) { background:var(--explorer-control-hover) }
-.lm-explorer-tab-menu [role=menuitem]:not([data-disabled]):active { background:var(--explorer-control-pressed) }
-@media(prefers-reduced-motion:reduce) { .lm-root .lm-explorer-tabs,.lm-explorer-menu [role=menuitem],.lm-explorer-node-content,.lm-explorer-disclosure span { transition:none } }
+@media(prefers-reduced-motion:reduce) { .lm-root .lm-explorer-tabs,.lm-explorer-node-content,.lm-explorer-disclosure span { transition:none } }
 @media(hover:hover) { .lm-explorer:not([aria-busy=true]) .lm-explorer-node:not([data-selected],[data-active]):hover:not(:active) > .lm-explorer-node-content { background:var(--explorer-control-hover) } }
 @container(max-height:44rem) {
  .lm-root .ln-vault-main { padding:calc(var(--vault-space)*4) }
@@ -472,15 +475,8 @@
 .lm-root .lm-tool-navigation-item:enabled:active { background:var(--tool-pressed) }
 @media(hover:hover) { .lm-root .lm-tool-navigation-item:enabled:hover:not([aria-current=page]):not(:active) { background:var(--tool-hover) } }
 .lm-root .lm-tool-navigation-item[aria-current=page]:enabled:hover:not(:active) { background:var(--vault-selection) }
-.lm-root .lm-setting-dropdown { display:flex;flex-direction:column;background:var(--vault-panel);color:var(--vault-text);border:var(--vault-border) solid var(--vault-menu-border,color-mix(in srgb,var(--vault-control-border) 22%,transparent));border-radius:var(--vault-radius);padding:var(--vault-space);box-shadow:var(--vault-surface-shadow,none);max-width:calc(100vw - 16px);overflow:hidden }
-.lm-setting-dropdown [role=option] { display:flex;align-items:center;justify-content:space-between;gap:calc(var(--vault-space)*3);min-height:calc(var(--vault-space)*9);padding:calc(var(--vault-space)*2) calc(var(--vault-space)*3);font:inherit;color:var(--vault-text);border-radius:calc(var(--vault-radius)*0.5);white-space:normal;overflow-wrap:anywhere }
-.lm-setting-dropdown [role=option][data-checked] { font-weight:500;background:var(--vault-selection) }
-.lm-setting-dropdown [role=option][data-combobox-selected]:not([data-checked]) { background:var(--vault-hover) }
-.lm-setting-dropdown [role=option][data-combobox-selected] { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
-@media(hover:hover) {
-  .lm-setting-dropdown [role=option]:not([data-checked],[data-combobox-disabled]):hover { background:var(--vault-hover) }
-}
-.lm-setting-dropdown [role=option]:not([data-combobox-disabled]):active { background:var(--vault-selection) }
+.lm-root .lm-setting-dropdown { display:flex;flex-direction:column;overflow:hidden }
+.lm-setting-dropdown [role=option] { display:flex;align-items:center;justify-content:space-between;gap:calc(var(--vault-space)*2) }
 .lm-setting-option svg { flex-shrink:0 }
 .lm-root.lm-dropdown-overlay { isolation:auto }
 .lm-dropdown-overlay {
@@ -488,11 +484,8 @@
   --explorer-control-pressed:color-mix(in srgb,var(--vault-selection) 60%,var(--vault-panel));
   user-select:none
 }
-.lm-dropdown-overlay .mantine-Menu-divider { border-color:var(--vault-separator) }
-.lm-dropdown-overlay .mantine-Menu-itemLabel { white-space:normal;overflow-wrap:anywhere }
-.lm-dropdown-overlay [role=menuitem][aria-current=true] { background:var(--vault-selection);font-weight:500 }
-.lm-dropdown-overlay [role=menuitem]:focus-visible { outline:var(--vault-focus-width) solid var(--vault-focus);outline-offset:calc(-1 * var(--vault-focus-width)) }
-.lm-setting-options { display:flex;flex-direction:column;gap:var(--vault-space);min-height:0;max-height:min(18rem,50dvh);overflow:auto;overscroll-behavior:contain }
+.lm-dropdown .mantine-Menu-divider { border-color:var(--vault-separator) }
+.lm-setting-options { display:flex;flex-direction:column;min-height:0;max-height:min(18rem,50dvh);overflow:auto;overscroll-behavior:contain }
 .lm-setting-options > [role=option] { flex-shrink:0 }
 .lm-settings-page {
   --settings-divider:color-mix(in srgb,var(--vault-control-border) 20%,transparent);
@@ -570,7 +563,7 @@
 .lm-setting-control { flex:0 1 18rem; min-width:0; max-width:100%; overflow-wrap:anywhere }
 .lm-setting-row[data-layout=inline]>.lm-setting-control { margin-inline-start:auto }
 .lm-root .lm-setting-input { --input-height:calc(var(--vault-space)*8);border-radius:var(--vault-radius-small);font-weight:500 }
-.lm-root .lm-setting-select { user-select:none;text-align:end;padding-inline-end:calc(var(--vault-space)*3);cursor:pointer;height:auto;min-height:var(--input-height);padding-block:var(--vault-space);white-space:normal;overflow-wrap:anywhere }
+.lm-root .lm-setting-select { user-select:none;text-align:start;padding-inline-end:calc(var(--vault-space)*8);cursor:pointer;height:auto;min-height:var(--input-height);padding-block:var(--vault-space);white-space:normal;overflow-wrap:anywhere }
 .lm-setting-control .mantine-Input-section { color:var(--vault-secondary) }
 .lm-setting-static-value { min-height:calc(var(--vault-space)*8);display:flex;align-items:center;justify-content:flex-end;padding-inline:calc(var(--vault-space)*3);font-weight:500 }
 .lm-setting-control .mantine-Switch-root { align-self:flex-end }
@@ -704,11 +697,11 @@
 .lm-root[data-window-chrome=true]>.lm-settings-page .lm-settings-group-header { padding-bottom:8px;border-color:var(--vault-separator) }
 .lm-root[data-window-chrome=true] .lm-setting-input { font-weight:400 }
 .lm-root[data-window-chrome=true] .lm-setting-select { text-align:start;padding-inline:calc(var(--vault-space)*2) calc(var(--vault-space)*8) }
-.lm-root[data-window-chrome=true] .lm-setting-picker .mantine-Input-section[data-position=left] {
-  inset-inline-start:auto;inset-inline-end:var(--vault-border);width:calc(var(--vault-space)*6);inset-block:var(--vault-border);
+.lm-root[data-window-chrome=true] .lm-setting-picker .mantine-Input-section[data-position=right] {
+  inset-inline-end:var(--vault-border);width:calc(var(--vault-space)*6);inset-block:var(--vault-border);
   box-shadow:var(--vault-surface-shadow);background:var(--vault-panel);color:var(--vault-text)
 }
-.lm-root[data-window-chrome=true] .lm-setting-picker:has(button:disabled) .mantine-Input-section[data-position=left] {
+.lm-root[data-window-chrome=true] .lm-setting-picker:has(button:disabled) .mantine-Input-section[data-position=right] {
   box-shadow:none;background:transparent;color:var(--vault-secondary)
 }
 .lm-root[data-window-chrome=true]>.lm-explorer .lm-explorer-tabs { min-height:26px;border-radius:0;box-shadow:var(--vault-surface-shadow);background:var(--vault-panel) }
@@ -908,7 +901,6 @@
   max-width:calc(100vw - 24px);
   padding:var(--mobile-choice-inset);
   max-height:min(calc(5 * var(--mobile-choice-row-height) + 2 * (var(--mobile-choice-inset) + var(--vault-border))),55dvh);
-  border-color:var(--vault-menu-border,color-mix(in srgb,var(--vault-separator) 65%,transparent));
   overflow-x:hidden;overflow-y:auto;overscroll-behavior-y:contain
 }
 .lm-mobile-choice-menu [role=menuitem] {
@@ -1020,17 +1012,17 @@
  font-size:max(14px,calc(var(--vault-ui-font-size) * 0.88))
 }
 .lm-vault-switcher-menu[data-compact] { font-size:max(14px,calc(var(--vault-ui-font-size) * 0.88)) }
-.lm-root .lm-explorer-menu[data-compact] [role=menuitem] { min-height:44px }
+.lm-root .lm-dropdown[data-compact] [role=menuitem] { min-height:44px }
 
 /* Settings owns field composition at its allocated width, in every theme. */
 @media(max-width:640px),(pointer:coarse) {
- .lm-root :is(.lm-explorer-menu,.lm-explorer-tab-menu) [role=menuitem] { min-height:44px }
+ .lm-root .lm-dropdown [role=menuitem] { min-height:44px }
  :is(.lm-settings-items,.lm-lime-settings) .mantine-Switch-body { min-height:44px;min-width:44px;align-items:center;justify-content:center }
 }
 
 /* Keep menu feedback quiet when motion is reduced, including the more specific tab menu. */
 @media(prefers-reduced-motion:reduce) {
- .lm-root :is(.lm-explorer-menu,.lm-explorer-tab-menu) [role=menuitem] { transition:none }
+ .lm-root .lm-dropdown [role=menuitem] { transition:none }
 }
 
 @container(max-width:640px) {

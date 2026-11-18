@@ -1,3 +1,4 @@
+import { ProductDropdown } from "./product-dropdown.js";
 import { Box, Button, Menu, Text } from "@mantine/core";
 import { Icon } from "./icons.js";
 import { ViewportMenu } from "./dropdown-overlay.js";
@@ -23,14 +24,14 @@ export function VaultSwitcher({ props, text, compact }: { props: VaultSwitcherPr
         disabled={props.busy} aria-label={text.switchVault} title={props.name || text.switchVault} leftSection={<Icon name="folder" />} rightSection={<Icon name="expand" />}>
         {props.name || text.switchVault}
       </Button></Menu.Target>
-      <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu lm-vault-switcher-menu" aria-label={text.recentVaults}>
+      <ProductDropdown className="lm-vault-switcher-menu" aria-label={text.recentVaults}>
         {props.entries.slice(0, 4).map(entry => <Menu.Item key={entry.reference} title={entry.label} disabled={props.busy}
           aria-current={entry.reference === props.activeReference ? "true" : undefined}
           rightSection={entry.reference === props.activeReference ? <Icon name="check" /> : undefined} onClick={() => props.onRecent(entry.reference)}>{entry.name}</Menu.Item>)}
         {props.historyError && <Menu.Item disabled={props.busy} onClick={props.onRetry} leftSection={<Icon name="refresh" />}>{text.historyUnavailable} · {text.retry}</Menu.Item>}
         {(props.entries.length > 0 || props.historyError) && <Menu.Divider />}
         <Menu.Item disabled={props.busy} onClick={props.onChange} leftSection={<Icon name="browse" />}>{text.switchVault}</Menu.Item>
-      </Menu.Dropdown>
+      </ProductDropdown>
     </ViewportMenu>
   </Box>;
 }

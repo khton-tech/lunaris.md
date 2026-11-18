@@ -1,3 +1,4 @@
+import { ProductDropdown } from "./product-dropdown.js";
 import { useId, useLayoutEffect, useRef, useState } from "react";
 import { ActionIcon, Box, Button, Group, Menu, Text, TextInput, UnstyledButton } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
@@ -68,10 +69,10 @@ export function BacklinksView({ props, theme }: { props: Props; theme: ReturnTyp
     <Group className="lm-explorer-actions lm-backlink-toolbar" gap={4} wrap="wrap">
       {props.note && <ViewportMenu position="bottom-start" offset={4} returnFocus>
         <Menu.Target><ActionIcon variant="subtle" className="lm-focus" title={label("sort")} aria-label={label("sort")}><Icon name="sort" /></ActionIcon></Menu.Target>
-        <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu">
+        <ProductDropdown>
           {([["name", "name"], ["name-desc", "nameDesc"], ["modified-desc", "newest"], ["modified-asc", "oldest"]] as const).map(([value, key]) =>
             <Menu.Item key={value} aria-current={props.sort === value ? "true" : undefined} rightSection={props.sort === value ? <Icon name="check" /> : undefined} onClick={() => props.onSort(value)}>{label(key)}</Menu.Item>)}
-        </Menu.Dropdown>
+        </ProductDropdown>
       </ViewportMenu>}
       {props.note && <>
         {action("collapse", "expand-all", props.onCollapse, props.collapse)}

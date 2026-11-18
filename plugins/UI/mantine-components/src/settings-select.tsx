@@ -1,3 +1,4 @@
+import { ProductDropdown } from "./product-dropdown.js";
 import { useEffect, useLayoutEffect } from "react";
 import { Combobox, InputBase, useCombobox } from "@mantine/core";
 import type { SettingsOption } from "@lunaris/settings";
@@ -39,16 +40,16 @@ export function SettingsSelect({ options, onChange, withinPortal = true, ...prop
         attributes={{ input: { "aria-describedby": props["aria-describedby"], "aria-invalid": props["aria-invalid"] } }}
         data-mantine-stop-propagation={store.dropdownOpened || undefined}
         classNames={{ wrapper: "lm-setting-picker", input: "lm-input lm-setting-input lm-setting-select" }}
-        leftSection={<Icon name="vault-switch" />} leftSectionWidth={32} leftSectionPointerEvents="none" rightSection={<span />} rightSectionWidth={0}
+        rightSection={<Icon name="vault-switch" />} rightSectionWidth={28} rightSectionPointerEvents="none"
         onClick={() => { if (!props.disabled) store.toggleDropdown(); }}>
         {selected?.label ?? props.value}
       </InputBase>
     </Combobox.Target>
-    <Combobox.Dropdown><Combobox.Options aria-label={props["aria-label"] ?? props.label}>
+    <ProductDropdown kind="listbox"><Combobox.Options aria-label={props["aria-label"] ?? props.label}>
       {options.map(option => <Combobox.Option key={option.value} value={option.value} active={option.value === props.value}
         aria-selected={option.value === props.value} data-checked={option.value === props.value || undefined}>
         <span>{option.label}</span>{option.value === props.value && <Icon name="check" />}
       </Combobox.Option>)}
-    </Combobox.Options></Combobox.Dropdown>
+    </Combobox.Options></ProductDropdown>
   </Combobox>;
 }

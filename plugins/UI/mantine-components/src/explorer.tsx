@@ -1,3 +1,4 @@
+import { ProductDropdown } from "./product-dropdown.js";
 import { createContext, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { ActionIcon, Badge, Box, Button, Group, Menu, Modal, Stack, Text, TextInput } from "@mantine/core";
@@ -401,9 +402,9 @@ function ExplorerView({ props, theme }: { props: ExplorerProps; theme: ReturnTyp
       <ActionIcon variant="subtle" aria-label={t.newFolder} title={t.newFolder} disabled={props.busy || props.loading || !!form} onClick={() => command("newFolder")}><Icon name="folder-plus" /></ActionIcon>
       <ViewportMenu disabled={props.busy || !!form || !props.onSort} compact={size.compact} position="bottom-start" offset={4} returnFocus>
         <Menu.Target><ActionIcon variant="subtle" aria-label={t.sort} title={t.sort} disabled={props.busy || !!form || !props.onSort}><Icon name="sort" /></ActionIcon></Menu.Target>
-        <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu">
+        <ProductDropdown>
           {(["asc", "desc"] as const).map(direction => <Menu.Item key={direction} aria-current={(props.sortDirection ?? "asc") === direction ? "true" : undefined} rightSection={(props.sortDirection ?? "asc") === direction ? <Icon name="check" /> : undefined} onClick={() => props.onSort?.(direction)}>{direction === "asc" ? t.sortAscending : t.sortDescending}</Menu.Item>)}
-        </Menu.Dropdown>
+        </ProductDropdown>
       </ViewportMenu>
       <ActionIcon variant="subtle" aria-label={t.expandAll} title={t.expandAll} disabled={props.busy || props.loading || props.expanding || !!form || !props.onExpandAll} onClick={() => { tree.current?.open(ROOT_ID); void props.onExpandAll?.(); }}><Icon name="expand-all" /></ActionIcon>
     </Group>

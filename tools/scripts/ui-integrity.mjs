@@ -24,6 +24,9 @@ for (const plugin of readdirSync(join(root, 'plugins/UI'), { withFileTypes: true
       ['Native product control', /<\s*(?:button|input|select|textarea)\b|\bNativeSelect\b/],
       ['Unbounded transition', /transition\s*:\s*["']?all\b/],
     ];
+    if (path !== join(root, 'plugins/UI/mantine-components/src/product-dropdown.tsx')) rules.push([
+      'Dropdown outside ProductDropdown', /<(?:Menu(?:\.Sub)?|Combobox)\.Dropdown\b/,
+    ]);
     if (plugin.name !== 'mantine-components') rules.push([
       'UI framework outside UIKit', /(?:from\s*|import\s*\(?)["'](?:react(?:-dom)?(?:\/[^"']*)?|@mantine\/[^"']+)["']/,
     ]);

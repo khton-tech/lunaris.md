@@ -1,3 +1,4 @@
+import { ProductDropdown } from "./product-dropdown.js";
 import { useId, useRef, useState } from "react";
 import { ActionIcon, Box, Button, Group, Loader, Menu, Stack, Text, TextInput } from "@mantine/core";
 import type { AccountAccessProps } from "./account-access.js";
@@ -27,10 +28,10 @@ export function AccountCatalog({ props: p }: { props: AccountAccessProps }) {
             {p.mode === "trash" ? <Button disabled={p.busy} leftSection={<Icon name="restore" />} onClick={() => p.onRestore(entry.id)}>{p.text.restore}</Button> :
               <ViewportMenu disabled={p.busy} position="bottom-end" offset={6} returnFocus>
                 <Menu.Target><ActionIcon className="lm-account-icon" variant="subtle" size="lg" disabled={p.busy} aria-label={`${p.text.vaultActions}: ${entry.name}`} title={p.text.vaultActions}><Icon name="actions" /></ActionIcon></Menu.Target>
-                <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu" aria-label={`${p.text.vaultActions}: ${entry.name}`}>
+                <ProductDropdown aria-label={`${p.text.vaultActions}: ${entry.name}`}>
                   <Menu.Label className="lm-account-server">{entry.name}</Menu.Label>
                   <Menu.Item disabled={p.busy} leftSection={<Icon name="trash" />} onClick={() => p.onTrash(entry.id)}>{p.text.delete}</Menu.Item>
-                </Menu.Dropdown>
+                </ProductDropdown>
               </ViewportMenu>}
           </Box>)}
         </Stack>}

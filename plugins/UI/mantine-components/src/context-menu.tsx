@@ -1,3 +1,4 @@
+import { ProductDropdown } from "./product-dropdown.js";
 import { Box, Menu, Paper } from "@mantine/core";
 import type { ComponentProps } from "@lunaris/components";
 import type { MenuItem } from "@lunaris/context-menu";
@@ -32,7 +33,7 @@ export function ContextMenuView({ props, theme }: { props: ContextMenuProps; the
         leftSection={icons ? undefined : <Icon name={item.icon ?? "folder"} />} rightSection={<Icon name="expand" />}>
         {icons ? <Icon name={item.icon ?? "folder"} /> : item.label}
       </Menu.Sub.Item></Menu.Sub.Target>
-      <Menu.Sub.Dropdown className="lm-context-menu">{render(item.children)}</Menu.Sub.Dropdown>
+      <ProductDropdown kind="submenu" className="lm-context-menu">{render(item.children)}</ProductDropdown>
     </Menu.Sub> : <Menu.Item key={item.id} className={icons ? "lm-island-control" : undefined} aria-label={item.label} title={item.label}
       leftSection={icons ? undefined : <Icon name={item.icon ?? "actions"} />} onClick={() => invoke(item.id)}>
       {icons ? <Icon name={item.icon ?? "actions"} /> : item.label}
@@ -44,7 +45,7 @@ export function ContextMenuView({ props, theme }: { props: ContextMenuProps; the
     <Menu opened hideDetached={false} onChange={opened => { if (!opened) close(); }} withinPortal={false} floatingStrategy="fixed" position="bottom-start" offset={0}
       middlewares={{ flip: true, shift: { padding: 4 } }} transitionProps={{ duration: 0 }} returnFocus={false} trapFocus closeOnItemClick={false} loop>
       <Menu.Target><Box aria-hidden="true" tabIndex={-1} className="lm-context-anchor" style={{ left: props.x, top: props.y }} /></Menu.Target>
-      <Menu.Dropdown className={islands.length ? "lm-context-menu lm-context-composite" : "lm-context-menu"} aria-label={props.label}>
+      <ProductDropdown className={islands.length ? "lm-context-menu lm-context-composite" : "lm-context-menu"} aria-label={props.label}>
         {islands.map(island => island.kind !== "action" && <Paper key={island.id} className="lm-context-island" role="group" aria-label={island.label} shadow="none"
           onKeyDownCapture={event => {
             if (!["ArrowLeft", "ArrowRight"].includes(event.key)) return;
@@ -53,8 +54,8 @@ export function ContextMenuView({ props, theme }: { props: ContextMenuProps; the
             if (index < 0 || (event.key === "ArrowRight" && controls[index]?.getAttribute("aria-haspopup") === "menu")) return;
             event.preventDefault(); event.stopPropagation(); controls[(index + (event.key === "ArrowRight" ? 1 : controls.length - 1)) % controls.length]?.focus();
           }}>{render(island.children, true)}</Paper>)}
-        {regular.length > 0 && (islands.length ? <Box className="lm-context-menu lm-context-actions">{render(regular)}</Box> : render(regular))}
-      </Menu.Dropdown>
+        {regular.length > 0 && (islands.length ? <Box className="lm-dropdown lm-context-menu lm-context-actions">{render(regular)}</Box> : render(regular))}
+      </ProductDropdown>
     </Menu>
   </Box>;
 }

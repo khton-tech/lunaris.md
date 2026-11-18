@@ -244,7 +244,7 @@ test('compact Workspace shows one live tab counter and switches through the shar
     assert.ok([...stylesheet.sheet.cssRules].some(rule =>
       rule.selectorText?.includes('.lm-mobile-choice-row[data-selected]::before') &&
       rule.style?.getPropertyValue('background') === 'var(--vault-accent-foreground)'));
-    assert.equal(menu().classList.contains('lm-explorer-tab-menu'), true);
+    assert.equal(menu().classList.contains('lm-dropdown'), true);
     const overlay = menu().closest('.lm-mobile-choice-overlay');
     assert.ok(overlay);
     assert.equal(s.surface.contains(menu()), false);

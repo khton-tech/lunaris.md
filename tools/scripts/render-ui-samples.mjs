@@ -14,6 +14,7 @@ const output = path.resolve(directory);
 const temp = await mkdtemp(path.join(tmpdir(), 'lunaris-render-'));
 const scenes = [
   ['server', 'monochrome', 1120, 740],
+  ['account-menu', 'monochrome', 1120, 740],
   ['package', 'windows-xp-dark', 844, 390],
   ['selector', 'monochrome', 1120, 740],
   ['create', 'windows-xp', 1120, 740],
@@ -113,7 +114,7 @@ function scenePlugins(view, theme) {
   let ui = createInterfaceSettings({ defaultThemeId: theme });
   const providers = [];
   const grants = {};
-  if (view === 'server') {
+  if (view === 'server' || view === 'account-menu') {
     ui = createAccountAccess({ allowLocal: true, art });
     providers.push(sampleProvider('sample.server', [AccountSession, AccountSessionChanged, AccountVaults, FilesystemSources], ctx => {
       const server = 'https://notes.example';
@@ -162,7 +163,15 @@ async function renderScene({ view, theme }) {
     if (!element) throw new Error('Missing fixture element ' + selector);
     return element;
   };
-  if (view === 'server') {
+  if (view === 'account-menu') {
+    required('.ln-vault-action:last-child .ln-vault-toggle').click();
+    await flush();
+    required('.lm-account-identity').click();
+    await flush();
+    await new Promise(resolve => setTimeout(resolve, 250));
+    const menu = required('.lm-dropdown [role=menuitem]').closest('.lm-dropdown').getBoundingClientRect();
+    if (!menu.height || menu.top < 0 || menu.bottom > innerHeight) throw new Error('Account menu outside the viewport.');
+  } else if (view === 'server') {
     required('.ln-vault-action:last-child .ln-vault-toggle').click();
     await flush();
     const list = required('.ln-vault-form .lm-account-access[data-embedded] .lm-account-list');

@@ -65,8 +65,8 @@ test('composed controls apply and persist explicit Vault preferences, preserve i
   const group = language.closest('.lm-settings-group');
   assert.equal(s.dom.window.document.getElementById(group.getAttribute('aria-labelledby')).textContent, 'Interface');
   const label = s.surface.querySelector(`label[for="${language.id}"]`); assert.equal(label.textContent, 'Language');
-  assert.equal(language.parentElement.querySelectorAll('[data-position="left"] svg').length, 1);
-  assert.equal(language.parentElement.querySelectorAll('[data-position="right"] svg').length, 0);
+  assert.equal(language.parentElement.querySelectorAll('[data-position="right"] svg').length, 1);
+  assert.equal(language.parentElement.querySelectorAll('svg').length, 1);
   assert.equal(s.surface.querySelector('select'), null);
   theme.click(); await flush();
   const options = s.dom.window.document.getElementById(theme.getAttribute('aria-controls'));

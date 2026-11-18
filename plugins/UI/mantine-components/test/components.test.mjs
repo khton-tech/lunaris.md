@@ -103,7 +103,7 @@ test('real Luna presets adapt settings controls and opened menus without replaci
     assert.equal(root.getAttribute('data-mantine-color-scheme'), id.endsWith('dark') ? 'dark' : 'light');
     const { colors } = s.themes.current().properties;
     assert.equal(content.style.getPropertyValue('--vault-link'), colors.link ?? colors.accentForeground);
-    const pickerIcon = picker.closest('.lm-setting-picker').querySelector('[data-position=left]');
+    const pickerIcon = picker.closest('.lm-setting-picker').querySelector('[data-position=right]');
     assert.equal(s.dom.window.getComputedStyle(pickerIcon).boxShadow, 'var(--vault-surface-shadow)');
     picker.click(); await settle();
     const option = s.dom.window.document.querySelector('[role=option][data-checked]');
@@ -684,7 +684,7 @@ test('Settings Select opens themed options, supports keyboard selection and Esca
   assert.equal(s.target.querySelector('input:not([type=hidden])'), null);
   trigger.focus(); trigger.click(); await settle(); assert.equal(trigger.getAttribute('aria-expanded'), 'true');
   const list = s.dom.window.document.getElementById(trigger.getAttribute('aria-controls'));
-  assert.ok(list.closest('.lm-setting-dropdown')); assert.ok(list.closest('.lm-dropdown-overlay')); assert.equal(s.target.contains(list), false);
+  assert.ok(list.closest('.lm-dropdown.lm-setting-dropdown')); assert.ok(list.closest('.lm-dropdown-overlay')); assert.equal(s.target.contains(list), false);
   assert.deepEqual([...list.querySelectorAll('[role=option]')].map(option => option.textContent.trim()), ['English', 'French']);
   trigger.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'ArrowDown', code: 'ArrowDown', bubbles: true })); await settle();
   trigger.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Enter', code: 'Enter', bubbles: true })); await settle();
