@@ -62,7 +62,11 @@ test('categories open one settings screen and section views survive props, local
 test('switching categories releases old sections and supports categories without controls', async () => {
   const s = await setup(); const view = panel(s, 'test.controls'); register(s); register(s, 'test.other', 'Other'); section(s); await s.open();
   category(s, 'Example').click(); await flush(); const old = s.surface.querySelector('[data-settings-section]');
+  const page = s.surface.querySelector('.lm-settings-page'); page.scrollTop = 420;
+  s.tools.settings.updateCategory('test.category', { title: 'Translated' }); await flush();
+  assert.equal(page.scrollTop, 420, 'updates within the current category preserve the reading position');
   category(s, 'Other').click(); await flush(); assert.equal(old.isConnected, false); assert.equal(view.releases.length, 1);
+  assert.equal(s.surface.querySelector('.lm-settings-page').scrollTop, 0);
   assert.match(s.surface.querySelector('.lm-settings-page').textContent, /No settings in this category/); await s.stop();
 });
 test('orphan and missing sections appear after late category/role registration, recover and leave on owner removal', async () => {

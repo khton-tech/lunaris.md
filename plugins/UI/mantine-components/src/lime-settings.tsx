@@ -104,6 +104,7 @@ function PackagePreview({ preview, props }: { preview: NonNullable<Props['previe
     footer={<>
       <Text size="sm" c="dimmed">{props.labels.pluginAccess}</Text>
       {preview.warning && <Text role="alert" size="sm" c="var(--vault-error)">{props.labels.warning}</Text>}
+      {props.error && <Text role="alert" size="sm" c="var(--vault-error)">{props.error}</Text>}
       <Group gap="xs" wrap="wrap" justify="flex-end">
         <Button size="compact-sm" variant="subtle" disabled={props.busy} onClick={props.onCancel}>{props.labels.cancel}</Button>
         {preview.installDisabled && <Button size="compact-sm" variant="subtle" disabled={props.busy || !props.available}
@@ -211,7 +212,7 @@ export function LimeSettings({ props, theme, overlay }: {
         </Group>
       </>}
     </Group>
-    {props.error && !details && <Text size="sm" c="var(--vault-error)" role="alert" style={{ overflowWrap: 'anywhere' }}>{props.error}</Text>}
+    {props.error && !dialogOpen && <Text size="sm" c="var(--vault-error)" role="alert" style={{ overflowWrap: 'anywhere' }}>{props.error}</Text>}
     {dialogOpen && createPortal(
       <div id={overlay.id} className="lm-root lm-lime-overlay" data-mantine-color-scheme={theme.scheme}
         data-window-chrome={theme.windowChrome} style={theme.contentStyle}>

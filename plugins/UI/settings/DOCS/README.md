@@ -32,7 +32,10 @@ do not cover options. Active Screen forwards the header declaration and compact
 state through the existing Workspace and Components contracts.
 
 Category selection survives panel collapse and switching active screens within one
-Vault. Changing categories releases old section views. Removing contributions or
+Vault. The controller passes the optional stable `categoryId` to the Mantine
+page role. Changing categories releases old section views and scrolls the new
+category to its heading. Edits, translations and theme changes within the same
+category preserve its scroll position. Removing contributions or
 roles updates the screen; missing/failing sections show localized placeholders and
 can recover. View cancellation releases owned scopes without calling closed SDK
 handles. Stale navigation callbacks cannot select a category in a new Vault.

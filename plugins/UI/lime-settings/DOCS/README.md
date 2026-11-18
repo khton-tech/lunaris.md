@@ -30,6 +30,10 @@ Unsupported platform metadata appears as a warning before confirmation. Details
 include ID, author, platforms, languages, repository, provided/required contracts
 and custom fields. Metadata remains escaped plain text.
 
+Preview and Details display errors in the open dialog. On short screens the
+whole dialog scrolls so its tabs, metadata and actions stay reachable. Package
+switches use the same themed track, thumb and focus indicator as Settings items.
+
 The package preview also lists compatible providers, their runtime states and
 requirements reachable through them. If the graph changes before confirmation,
 Lime requests a fresh preview. Removal confirmation shows affected active plugins.

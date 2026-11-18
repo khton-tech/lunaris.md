@@ -51,7 +51,10 @@ async function fixture({ composition = false } = {}) {
   await s.open(); s.tools.sidebar.select('lunaris.settings.navigation'); await flush();
   [...s.surface.querySelectorAll('.lm-settings-category')].find(element => element.textContent === 'Third-party plugins').click(); await flush();
   const button = text => [...s.dom.window.document.querySelectorAll('.lm-lime-settings button, .lm-lime-overlay button')].find(element => element.textContent === text);
-  return { ...s, calls, button, async setVault(vaultId) { state = { ...state, vaultId }; await publish(); await flush(); } };
+  return { ...s, calls, button,
+    async setVault(vaultId) { state = { ...state, vaultId }; await publish(); await flush(); },
+    async setError(error) { state = { ...state, error }; await publish(); await flush(); },
+  };
 }
 
 test('Lime composes inside real Settings/Workspace and confirms preview before installation', async () => {
@@ -85,6 +88,10 @@ test('Lime composes inside real Settings/Workspace and confirms preview before i
     assert.match(dialog.textContent, /test.transitive \/ api:test.missing/);
     assert.match(dialog.textContent, /No compatible provider installed/);
     assert.match(dialog.textContent, /author has not declared support/);
+    await s.setError('RUNTIME_FAILED');
+    assert.match(dialog.textContent, /environment needs recovery/);
+    assert.equal(view.querySelector('[role=alert]'), null);
+    await s.setError(null);
     assert.equal(s.button('Install plugin').closest('.lm-lime-panel'), null);
     s.button('Install plugin').click(); await flush(); assert.ok(s.calls.some(call => call[0] === 'install'));
     assert.equal(s.dom.window.document.querySelector('.lm-lime-overlay'), null);
