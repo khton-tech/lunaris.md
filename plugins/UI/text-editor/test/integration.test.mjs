@@ -426,11 +426,17 @@ test('wikilink preview keeps aliases editable and opens a newly created note', a
     const editorStyle = label().closest('.lm-text-editor').style;
     assert.equal(editorStyle.getPropertyValue('--vault-link-missing').toLowerCase(), '#909090');
     assert.notEqual(editorStyle.getPropertyValue('--vault-link-missing'), editorStyle.getPropertyValue('--vault-text'));
-    const linkColors = [...s.dom.window.document.styleSheets].flatMap(sheet => [...sheet.cssRules])
-      .filter(rule => rule.selectorText && label().matches(rule.selectorText))
+    const linkColors = node => [...s.dom.window.document.styleSheets].flatMap(sheet => [...sheet.cssRules])
+      .filter(rule => rule.selectorText && node.matches(rule.selectorText))
       .map(rule => rule.style.getPropertyValue('color'));
-    assert.ok(linkColors.some(color => color.startsWith('var(--vault-link-missing,')));
-    assert.equal(s.target.querySelector('.cm-document-link[title="./other.md"]').classList.contains('cm-document-link-missing'), false);
+    assert.ok(linkColors(label()).some(color => color.startsWith('var(--vault-link-missing,')));
+    const present = s.target.querySelector('.cm-document-link[title="./other.md"]');
+    assert.equal(present.classList.contains('cm-document-link-missing'), false);
+    assert.equal(s.themes.select('lunaris.base-theme-engine.windows-xp-dark').ok, true);
+    await flush();
+    assert.equal(s.target.querySelector('.cm-document-link[title="./other.md"]'), present);
+    assert.equal(editorStyle.getPropertyValue('--vault-link'), s.themes.current().properties.colors.link);
+    assert.ok(linkColors(present).some(color => color.startsWith('var(--vault-link,')));
     view.focus();
     view.dispatch({ selection: { anchor: source.indexOf('./other.md') + 1 } });
     await flush();
@@ -1273,13 +1279,14 @@ test('Workspace code cards retain source, theme inheritance and saving through f
   const s = await setup({ withLayout: true, initial: original });
   try {
     const view = s.cm();
-    for (const [appearance, text, secondary] of [['light', '#222222', '#555555'], ['dark', '#eeeeee', '#aaaaaa']]) {
-      s.themes.register({ id: `code.${appearance}`, name: appearance, properties: { appearance, colors: { text, textSecondary: secondary } } }, s.ctx.signal);
+    for (const [appearance, colors] of [['light', { text: '#222222', textSecondary: '#555555' }],
+      ['dark', { text: '#eeeeee', textSecondary: '#aaaaaa', accent: '#245edb', accentForeground: '#91bcff' }]]) {
+      s.themes.register({ id: `code.${appearance}`, name: appearance, properties: { appearance, colors } }, s.ctx.signal);
       s.themes.select(`code.${appearance}`); await flush();
       assert.equal(s.cm(), view);
       const label = view.dom.querySelector('.cm-preview-code-language');
       assert.equal(label.textContent, 'js');
-      assert.equal(s.dom.window.getComputedStyle(label).color, appearance === 'light' ? 'rgb(85, 85, 85)' : 'rgb(170, 170, 170)');
+      assert.equal(s.dom.window.getComputedStyle(label).color, appearance === 'light' ? 'rgb(85, 85, 85)' : 'rgb(145, 188, 255)');
       assert.equal(view.dom.querySelectorAll('.cm-preview-code-block').length, 3);
       assert.equal(s.target.querySelector('.lm-text-editor').style.backgroundColor, '');
       assert.equal(view.state.sliceDoc(), original);
@@ -1619,7 +1626,17 @@ test('backlinks compose with editor buffers, footer, pinned screen and undoable 
     root.querySelector('[aria-label="Sort order"]').click(); await new Promise(resolve => setTimeout(resolve, 50)); await flush();
     assert.ok(s.dom.window.document.querySelector('.lm-dropdown-overlay [role="menu"]')); assert.equal(root.querySelector('select'),null);
     root.querySelector('[aria-label="Backlinks in document"]').click(); await flush();
-    assert.ok(s.target.querySelector('.lm-text-editor .lm-backlinks[data-inline="true"]'));
+    const editorRoot = s.target.querySelector('.lm-text-editor');
+    const footer = editorRoot.querySelector('.lm-editor-footer');
+    assert.ok(footer.querySelector('.lm-backlinks[data-inline="true"]'));
+    const sheet = s.dom.window.document.createElement('style');
+    sheet.textContent = readFileSync(new URL('../../mantine-components/styles.css', import.meta.url), 'utf8').replace(/^@import .*$/gm, '');
+    s.dom.window.document.head.append(sheet);
+    const css = node => s.dom.window.getComputedStyle(node);
+    assert.equal(footer.style.maxWidth, editorRoot.querySelector('.lm-editor-heading').style.maxWidth);
+    assert.equal(css(editorRoot).overflow, 'hidden auto');
+    assert.equal(css(editorRoot.querySelector('.lm-editor-target')).overflow, 'visible');
+    assert.equal(css(footer.querySelector('.lm-backlink-results')).overflow, 'visible');
     root.querySelector('[aria-label="Open backlinks for this note"]').click(); await flush();
     assert.ok(s.screens.snapshot().activeId.includes('pinned'));
     const snapshot=s.backlinks.query(target); const source=snapshot.unlinked[0]; const occurrence=source.mentions[0];

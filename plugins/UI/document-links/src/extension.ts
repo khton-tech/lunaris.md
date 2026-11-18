@@ -97,12 +97,12 @@ export function linkInteraction(
       event.preventDefault(); open(link, view.state.sliceDoc()); return true;
     },
   })), EditorView.baseTheme({
-    ".cm-document-link": { cursor: "pointer", color: "var(--vault-accent, currentColor)", textDecoration: "underline" },
+    ".cm-document-link": { cursor: "pointer", color: "var(--vault-link, var(--vault-accent-foreground, currentColor))", textDecoration: "underline", textUnderlineOffset: "0.14em" },
     ".cm-document-link.cm-document-link-missing": { textDecorationStyle: "dashed" },
     // Markdown syntax highlighting can wrap the visible label in another span.
     ".cm-document-link.cm-document-link-missing, .cm-document-link.cm-document-link-missing span": {
       color: "var(--vault-link-missing, var(--vault-secondary, currentColor))",
     },
-    ".cm-document-link:focus-visible": { outline: "1px solid var(--vault-focus, currentColor)", outlineOffset: "2px" },
+    ".cm-document-link:focus-visible": { outline: "var(--vault-focus-width, 2px) solid var(--vault-focus, currentColor)", outlineOffset: "var(--vault-focus-offset, 2px)" },
   })];
 }

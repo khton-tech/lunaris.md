@@ -77,6 +77,7 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
   const container = useRef<HTMLDivElement>(null);
   const titleInput = useRef<HTMLInputElement>(null);
   const [title, setTitle] = useState(props.title);
+  const [pointerFocus, setPointerFocus] = useState(false);
   const committing = useRef<object | null>(null);
   const cancelTitleCommit = useRef(false);
   const currentTitle = useRef(props.title);
@@ -118,52 +119,58 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
       setTitle(props.title); event.currentTarget.blur();
     }
   }
+  const columnStyle = { maxWidth: props.contentWidth === "full" ? "none" : props.contentWidth ?? 698 };
+  const hasFeedback = !props.ready || !!(props.recoveryCandidates?.length || props.commandError || props.error || namingCopy || props.recoveryError || props.recoveryStatus);
   return <Box ref={container} className="lm-text-editor" data-compact={props.compact} data-workspace-scroll style={theme.contentStyle}>
     {props.ready && props.onContentWidthChange && !props.compact && <EditorWidthHandles key={props.documentKey} container={container}
       width={props.contentWidth ?? 698} label={props.resizeWidthLabel!} disabled={!props.canResizeWidth} onChange={props.onContentWidthChange} />}
-    {props.ready && <Box component="header" className="lm-editor-heading"
-      style={{ maxWidth: props.contentWidth === "full" ? "none" : props.contentWidth ?? 698 }}>
+    {props.ready && <Box component="header" className="lm-editor-heading lm-editor-column" style={columnStyle}>
       <TextInput ref={titleInput} className="lm-editor-title" aria-label={props.titleLabel} value={title} title={props.title}
         error={props.renameError || undefined} errorProps={{ role: "alert" }} classNames={{ error: "lm-editor-error" }}
         style={{ fontSize: props.contentFontSize }}
-        variant="unstyled" readOnly={!props.canRename} spellCheck={false} placeholder={props.titleLabel}
+        variant="unstyled" readOnly={!props.canRename} tabIndex={props.canRename ? 0 : -1}
+        spellCheck={false} placeholder={props.titleLabel} data-pointer-focus={pointerFocus || undefined}
+        onPointerDown={() => setPointerFocus(true)} onPointerCancel={() => setPointerFocus(false)}
+        onPointerUp={event => { if (event.currentTarget.ownerDocument.activeElement !== event.currentTarget) setPointerFocus(false); }}
         onChange={event => setTitle(event.currentTarget.value.replace(/[\r\n]+/g, ""))}
-        onBlur={commitTitle} onKeyDown={onTitleKeyDown} />
+        onBlur={() => { setPointerFocus(false); commitTitle(); }} onKeyDown={onTitleKeyDown} />
     </Box>}
-    {!!props.recoveryCandidates?.length && <Box role="group" aria-label={props.recoveryLabel}>
-      <Text size="sm">{props.recoveryLabel}</Text>
-      {props.recoveryCandidates.map(item => <Button key={item.id} size="compact-xs" variant="subtle" styles={{ root: { height: "auto", maxWidth: "100%" }, label: { whiteSpace: "pre-wrap", overflowWrap: "anywhere" } }} disabled={props.busy} onClick={() => props.onRecovery?.(item.id)}>{item.label}</Button>)}
-    </Box>}
-    {props.commandError && <Text size="sm" role="alert" className="lm-editor-error">{props.commandError}</Text>}
-    {!props.ready && <Text className="lm-editor-placeholder" size="sm" c="dimmed" role="status">{props.status || props.name}</Text>}
-    {props.error && <Group className="lm-editor-error" gap="xs">
-      <Text size="sm" role="alert">{props.error}</Text>
-      {props.ready && props.dirty && props.canRetrySave !== false && <Button size="compact-xs" onClick={props.onSave} disabled={props.busy}>{props.retryLabel}</Button>}
-      {props.copyBufferLabel && <Button size="compact-xs" variant="light" disabled={props.busy} onClick={props.onCopyBuffer}>{props.copyBufferLabel}</Button>}
-      {props.saveCopyLabel && <Button ref={saveCopyButton} size="compact-xs" variant="light" disabled={props.busy}
-        aria-expanded={namingCopy || undefined} onClick={() => props.onSaveCopy?.()}>{props.saveCopyLabel}</Button>}
-      <Button size="compact-xs" {...(props.copyBufferLabel ? { variant: "subtle" } : {})} disabled={props.busy} onClick={() => {
-        if (props.dirty) setConfirm(true); else props.onReload();
-      }}>{props.reloadLabel}</Button>
-      {confirm && <Group gap="xs">
-        <Button size="compact-xs" disabled={props.busy} onClick={() => { setConfirm(false); props.onReload(); }}>{props.discardLabel}</Button>
-        <Button size="compact-xs" onClick={() => setConfirm(false)}>{props.cancelLabel}</Button>
+    {hasFeedback && <Box className="lm-editor-feedback lm-editor-column" style={columnStyle}>
+      {!!props.recoveryCandidates?.length && <Box className="lm-editor-draft-choices" role="group" aria-label={props.recoveryLabel}>
+        <Text size="sm">{props.recoveryLabel}</Text>
+        {props.recoveryCandidates.map(item => <Button key={item.id} size="compact-xs" variant="subtle" styles={{ root: { height: "auto", maxWidth: "100%" }, label: { whiteSpace: "pre-wrap", overflowWrap: "anywhere" } }} disabled={props.busy} onClick={() => props.onRecovery?.(item.id)}>{item.label}</Button>)}
+      </Box>}
+      {props.commandError && <Text size="sm" role="alert" className="lm-editor-error">{props.commandError}</Text>}
+      {!props.ready && <Text className="lm-editor-placeholder" size="sm" c="dimmed" role="status">{props.status || props.name}</Text>}
+      {props.error && <Group className="lm-editor-error" gap="xs">
+        <Text size="sm" role="alert">{props.error}</Text>
+        {props.ready && props.dirty && props.canRetrySave !== false && <Button size="compact-xs" onClick={props.onSave} disabled={props.busy}>{props.retryLabel}</Button>}
+        {props.copyBufferLabel && <Button size="compact-xs" variant="light" disabled={props.busy} onClick={props.onCopyBuffer}>{props.copyBufferLabel}</Button>}
+        {props.saveCopyLabel && <Button ref={saveCopyButton} size="compact-xs" variant="light" disabled={props.busy}
+          aria-expanded={namingCopy || undefined} onClick={() => props.onSaveCopy?.()}>{props.saveCopyLabel}</Button>}
+        <Button size="compact-xs" {...(props.copyBufferLabel ? { variant: "subtle" } : {})} disabled={props.busy} onClick={() => {
+          if (props.dirty) setConfirm(true); else props.onReload();
+        }}>{props.reloadLabel}</Button>
+        {confirm && <Group gap="xs">
+          <Button size="compact-xs" disabled={props.busy} onClick={() => { setConfirm(false); props.onReload(); }}>{props.discardLabel}</Button>
+          <Button size="compact-xs" onClick={() => setConfirm(false)}>{props.cancelLabel}</Button>
+        </Group>}
       </Group>}
-    </Group>}
-    {namingCopy && <Group component="form" gap="xs" align="flex-start" onSubmit={event => {
-      event.preventDefault(); if (!props.busy && copyName.trim()) props.onSaveCopy?.(copyName);
-    }} onKeyDown={event => {
-      if (event.key !== "Escape" || event.nativeEvent.isComposing || props.busy) return;
-      event.preventDefault(); event.stopPropagation(); cancelCopyName();
-    }}>
-      <TextInput size="xs" label={props.saveCopyNameLabel} value={copyName} error={props.saveCopyNameError}
-        errorProps={{ role: "alert" }} disabled={props.busy} onChange={event => setCopyName(event.currentTarget.value)} />
-      <Button type="submit" size="compact-xs" disabled={props.busy || !copyName.trim()}>{props.saveLabel}</Button>
-      <Button type="button" size="compact-xs" variant="subtle" disabled={props.busy} onClick={cancelCopyName}>{props.cancelLabel}</Button>
-    </Group>}
-    {props.recoveryError && <Text size="sm" role="alert" className="lm-editor-error">{props.recoveryError}</Text>}
-    {props.recoveryStatus && <Text size="sm" role="status" c="dimmed">{props.recoveryStatus}</Text>}
+      {namingCopy && <Group component="form" gap="xs" align="flex-start" onSubmit={event => {
+        event.preventDefault(); if (!props.busy && copyName.trim()) props.onSaveCopy?.(copyName);
+      }} onKeyDown={event => {
+        if (event.key !== "Escape" || event.nativeEvent.isComposing || props.busy) return;
+        event.preventDefault(); event.stopPropagation(); cancelCopyName();
+      }}>
+        <TextInput size="xs" label={props.saveCopyNameLabel} value={copyName} error={props.saveCopyNameError}
+          errorProps={{ role: "alert" }} disabled={props.busy} onChange={event => setCopyName(event.currentTarget.value)} />
+        <Button type="submit" size="compact-xs" disabled={props.busy || !copyName.trim()}>{props.saveLabel}</Button>
+        <Button type="button" size="compact-xs" variant="subtle" disabled={props.busy} onClick={cancelCopyName}>{props.cancelLabel}</Button>
+      </Group>}
+      {props.recoveryError && <Text size="sm" role="alert" className="lm-editor-error">{props.recoveryError}</Text>}
+      {props.recoveryStatus && <Text size="sm" role="status" c="dimmed">{props.recoveryStatus}</Text>}
+    </Box>}
     <Box ref={target} className="lm-editor-target" hidden={!props.ready} aria-busy={props.busy} />
-    <Box ref={footer} hidden={!props.ready} style={{ width: "100%", maxWidth: props.contentWidth === "full" ? "none" : props.contentWidth ?? 698, marginInline: "auto" }} />
+    <Box ref={footer} className="lm-editor-footer lm-editor-column" hidden={!props.ready} style={columnStyle} />
   </Box>;
 }

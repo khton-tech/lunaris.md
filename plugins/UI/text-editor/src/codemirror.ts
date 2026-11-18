@@ -46,6 +46,7 @@ function appearance(theme: ThemeDefinition | null, preferences: Preferences) {
   const colors = properties?.colors as Record<string, unknown> | undefined;
   const typography = properties?.typography as Record<string, unknown> | undefined;
   const color = (key: string, fallback = "currentColor") => typeof colors?.[key] === "string" ? colors[key] as string : fallback;
+  const accentText = (fallback = color("text")) => color("accentForeground", color("accent", fallback));
   const fontSize = preferences.fontSize !== "theme" ? `${preferences.fontSize}px` : typeof typography?.fontSize === "number" ? `${typography.fontSize}${typeof typography.fontSizeUnit === "string" ? typography.fontSizeUnit : "px"}` : "14px";
   const selectionColor = color("selection", `color-mix(in srgb, ${color("text")} 25%, transparent)`);
   return [EditorView.theme({
@@ -55,10 +56,10 @@ function appearance(theme: ThemeDefinition | null, preferences: Preferences) {
       overflow: "auto", fontFamily: "inherit", lineHeight: preferences.lineHeight !== "theme" ? preferences.lineHeight : String(typeof typography?.lineHeight === "number" ? typography.lineHeight : 1.6), scrollbarWidth: "none" },
     ".cm-scroller::-webkit-scrollbar": { display: "none" },
     ".cm-content": { width: "calc(100% - 2 * var(--editor-gutter, 12px))", maxWidth: preferences.wrapLines && preferences.textWidth !== "full" ? `${preferences.textWidth}px` : "none", minWidth: "0", flexGrow: "0", margin: "0 auto",
-      padding: "var(--editor-padding-start, clamp(18px, 2cqi, 24px)) 0 max(var(--editor-padding-end, clamp(12px, 3cqi, 32px)), var(--editor-keyboard-padding, 0px), var(--workspace-dock-inset, 0px))",
+      padding: "var(--editor-padding-start, clamp(18px, 2cqi, 24px)) 0 max(var(--editor-padding-end, clamp(12px, 3cqi, 32px)), var(--editor-keyboard-padding, 0px), var(--editor-dock-clearance, var(--workspace-dock-inset, 0px)))",
       caretColor: color("caret"), minHeight: "100%" },
     ".cm-line": { padding: "0" },
-    ".cm-preview-code-language": { color: color("accent", color("textSecondary", color("text"))) },
+    ".cm-preview-code-language": { color: accentText(color("textSecondary", color("text"))) },
     ".cm-cursor, .cm-dropCursor": { borderLeftColor: color("caret") },
     // Match the focused layer's specificity so CM's default dark teal cannot win.
     "&.cm-editor .cm-selectionBackground, &.cm-editor.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground": { backgroundColor: selectionColor },
@@ -66,7 +67,7 @@ function appearance(theme: ThemeDefinition | null, preferences: Preferences) {
   }, { dark: properties?.appearance !== "light" }), syntaxHighlighting(HighlightStyle.define([
     { tag: tags.heading, color: color("text"), fontWeight: "600" },
     { tag: tags.emphasis, fontStyle: "italic" }, { tag: tags.strong, fontWeight: "700", fontSynthesis: "weight" },
-    { tag: tags.link, color: color("link", color("accent", color("text"))), textDecoration: "underline" },
+    { tag: tags.link, color: color("link", accentText()), textDecoration: "underline" },
     { tag: [tags.processingInstruction, tags.meta, tags.comment], color: color("textSecondary") },
     { tag: tags.strikethrough, textDecoration: "line-through" },
   ]))];

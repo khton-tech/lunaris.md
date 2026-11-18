@@ -40,7 +40,11 @@ phone reference. UIKit uses a smaller bold title with a compact line height and
 a bounded inset that clears the floating launcher. The Owner's scroll screenshot
 defines the shared vertical viewport for the title and body and the wider content
 gutters. UIKit owns this viewport. CodeMirror grows inside its target and uses
-the inherited content insets. Desktop keeps its internal CodeMirror scroller.
+the inherited content insets. Desktop normally keeps its internal CodeMirror
+scroller. With recovery controls or a document footer, the editor role owns a
+shared vertical viewport. Recovery choices, messages and form fields follow the
+same width and gutters as the title. Footers begin after the document and receive
+the compact dock's bottom clearance. CodeMirror owns horizontal scrolling.
 Opening a different document resets the shared viewport, while title updates,
 saves and theme updates keep the mounted view. Workspace retains the outer
 geometry and floating surfaces. Native acceptance covers long and short documents,

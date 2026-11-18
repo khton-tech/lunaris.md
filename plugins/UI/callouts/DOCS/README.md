@@ -127,12 +127,13 @@ surface mix (5%), thin boundary mix (25%), horizontal gutters and 0.4em corner
 radius. Start/end line decorations provide one continuous card outline; only
 outside edges have vertical padding, with additional space between title and body.
 Collapsed and title-only blocks carry both edges on the header. Nested content
-retains depth indentation. This replaces the quote-like left stripe and removes
+retains depth indentation, capped at one fifth of the document width to keep
+deeply nested text readable on narrow screens. This replaces the quote-like left stripe and removes
 header-line font weight inheritance from body content.
 
 Mantine retains ownership of header controls. Note uses the Lucide Pencil icon;
 other types retain their dedicated icons. Icons take the callout's semantic accent
-through the documented inherited --callout-color token (theme accent fallback).
+through the documented inherited --callout-color token (theme accent foreground fallback).
 The title remains plain text with a transparent editing button, no hover color
 change, no badge surface and no native edit tooltip; the accessible edit label
 and keyboard focus remain. Workspace and editor target ownership are unchanged.

@@ -66,22 +66,24 @@ export function BacklinksView({ props, theme }: { props: Props; theme: ReturnTyp
   return <Box className="lm-backlinks" data-inline={props.inline} style={theme.contentStyle}>
     <ToolPanelHeader title={props.title} />
     <Group className="lm-explorer-actions lm-backlink-toolbar" gap={4} wrap="wrap">
-      <ViewportMenu position="bottom-start" offset={4} returnFocus>
+      {props.note && <ViewportMenu position="bottom-start" offset={4} returnFocus>
         <Menu.Target><ActionIcon variant="subtle" className="lm-focus" title={label("sort")} aria-label={label("sort")}><Icon name="sort" /></ActionIcon></Menu.Target>
         <Menu.Dropdown className="lm-explorer-menu lm-explorer-tab-menu">
           {([["name", "name"], ["name-desc", "nameDesc"], ["modified-desc", "newest"], ["modified-asc", "oldest"]] as const).map(([value, key]) =>
             <Menu.Item key={value} aria-current={props.sort === value ? "true" : undefined} rightSection={props.sort === value ? <Icon name="check" /> : undefined} onClick={() => props.onSort(value)}>{label(key)}</Menu.Item>)}
         </Menu.Dropdown>
-      </ViewportMenu>
-      {action("collapse", "expand-all", props.onCollapse, props.collapse)}
-      {action("context", "editor", props.onContext, props.more)}
-      {action("filterToggle", "search", props.onFilter, props.filterVisible)}
+      </ViewportMenu>}
+      {props.note && <>
+        {action("collapse", "expand-all", props.onCollapse, props.collapse)}
+        {action("context", "editor", props.onContext, props.more)}
+        {action("filterToggle", "search", props.onFilter, props.filterVisible)}
+      </>}
       {action("refresh", "refresh", props.onRefresh, undefined, props.busy)}
-      {action("pin", "backlinks", props.onPin, undefined, !props.note)}
+      {props.note && action("pin", "backlinks", props.onPin)}
       {action("inDocument", "outline", props.onInline, props.inDocument, props.preferencesDisabled)}
     </Group>
     {!props.inline && props.note && <Text className="lm-backlink-note" size="xs" c="dimmed" title={props.note} style={{ overflowWrap: "anywhere" }}>{props.note}</Text>}
-    {props.filterVisible && <Box px="xs" pb={4}><TextInput size="sm" aria-label={label("filter")} placeholder={label("filter")} title={label("hint")} value={props.query}
+    {props.note && props.filterVisible && <Box px="xs" pb={4}><TextInput size="sm" aria-label={label("filter")} placeholder={label("filter")} title={label("hint")} value={props.query}
       onKeyDown={event => {
         if (event.key === "Escape" && !event.nativeEvent.isComposing) {
           event.preventDefault(); event.stopPropagation();
@@ -90,9 +92,9 @@ export function BacklinksView({ props, theme }: { props: Props; theme: ReturnTyp
       }} onChange={event => props.onQuery(event.currentTarget.value)} /></Box>}
     {props.status && <Text size="xs" c="dimmed" px="xs" role="status">{props.status}</Text>}
     {props.error && <Text size="sm" c="var(--vault-error)" px="xs" role="alert">{props.error}</Text>}
-    <Box className="lm-backlink-results" key={props.note}>
+    {props.note && (!props.status || props.linked.length > 0 || props.unlinked.length > 0) && <Box className="lm-backlink-results" key={props.note}>
       <Section title={label("linked")} groups={props.linked} props={props} initialOpen />
       <Section title={label("unlinked")} groups={props.unlinked} props={props} initialOpen={false} />
-    </Box>
+    </Box>}
   </Box>;
 }

@@ -181,6 +181,11 @@ test('callout card matches code-block boundaries and keeps normal body typograph
   assert.equal(style(header).borderTopLeftRadius,style(codeStart).borderTopLeftRadius);assert.equal(style(header).borderTopLeftRadius,'var(--vault-radius, 10px)');
   assert.equal(style(end).borderBottomRightRadius,style(codeEnd).borderBottomRightRadius);
   assert.equal(style(body).fontWeight,style(view.contentDOM).fontWeight);
+  s.themes.register({ id: 'test.callouts.dark', name: 'Dark', properties: { appearance: 'dark', colors: {
+    text: '#eeeeee', accent: '#245edb', accentForeground: '#91bcff',
+  } } }, s.ctx.signal);
+  s.themes.select('test.callouts.dark'); await flush();
+  assert.equal(style(s.target.querySelector('.cm-callout-start')).getPropertyValue('--callout-color'), '#91bcff');
   assert.equal(view.state.sliceDoc(),source);assert.equal(s.calls.filter(x=>x[0]==='write').length,0);
   s.edit('Start\n\n> [!note]- Folded\n> Body');view.dispatch({selection:{anchor:0}});await flush();
   const folded=s.target.querySelector('.cm-callout-start');assert.equal(folded.classList.contains('cm-callout-end'),true);

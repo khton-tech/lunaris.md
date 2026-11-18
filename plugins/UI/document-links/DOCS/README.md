@@ -19,7 +19,8 @@ External URLs go exclusively through ExternalLinks to the selected driver.
 
 CodeMirror owns document geometry and the existing live-preview presentation.
 This contribution adds link semantics, pointer/focus treatment and interactions,
-using existing theme tokens. It creates no application-shell controls/surfaces.
+using the theme's link color and focus geometry. Link text falls back to the
+accent foreground. The underline stays visible in both preview and source.
 Decoration positions use normalized editor line breaks; SDK snapshots preserve
 the source's CRLF convention, converted at the editor transaction boundary.
 

@@ -29,7 +29,7 @@ The existing Files/Settings panel header and navigation are the product referenc
 Workspace owns Sidebar geometry, card surface and overflow; the controller owns
 content only. ActiveScreen owns fixed-note tab placement. TextEditor's footer owns
 document width, surface and scroll position. Embedded roots remain transparent.
-The shared Mantine SettingsSelect supplies the themed sort dropdown, including
+The same viewport menu as Files supplies the themed sort dropdown, including
 opened options, keyboard focus and selection. Icons use the existing Lucide pack.
 
 Lunaris currently has one Sidebar, on the left; this feature reuses it instead of
@@ -40,6 +40,11 @@ creating a second application shell to imitate Obsidian's right sidebar.
 Automated integration covers the real editor and Workspace layout role, opened
 Combobox, footer placement, pinned screen, guarded navigation, link insertion,
 Undo and Vault switching. This establishes behavior, not native geometry.
+
+With no open note, the panel shows its localized status and keeps refresh and
+the inline preference available. Empty result counts appear once indexing
+finishes. Existing results stay available during a refresh. Inline groups share
+the editor's vertical scroll area and do not intercept scrolling at their edges.
 
 Manual checks remain: actual Sidebar composition; light/dark themes; long Russian
 and English file names; narrow/short windows and mobile drawer; opened sort menu;
