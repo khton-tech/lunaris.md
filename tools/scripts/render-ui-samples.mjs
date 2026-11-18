@@ -13,6 +13,8 @@ if (!binary || !directory) throw new Error('Provide a headless-shell executable 
 const output = path.resolve(directory);
 const temp = await mkdtemp(path.join(tmpdir(), 'lunaris-render-'));
 const scenes = [
+  ['server', 'monochrome', 1120, 740],
+  ['package', 'windows-xp-dark', 844, 390],
   ['selector', 'monochrome', 1120, 740],
   ['create', 'windows-xp', 1120, 740],
   ['create', 'everforest-dark', 390, 680],
@@ -97,13 +99,57 @@ async function documentScene(s, showDrawer) {
   }
 }
 
+function sampleProvider(id, tokens, activate) {
+  return definePlugin({ manifest: {
+    manifestVersion: 1, id, version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js',
+    provides: tokens.map(({ kind, id, version }) => ({ kind, id, version })), requires: [], permissions: [], optionalPermissions: [],
+  }, activate });
+}
+
+function scenePlugins(view, theme) {
+  const ok = value => ({ ok: true, value });
+  const unsupported = () => ({ ok: false, error: { code: 'UNSUPPORTED' } });
+  let ui = createInterfaceSettings({ defaultThemeId: theme });
+  const providers = [];
+  const grants = {};
+  if (view === 'server') {
+    ui = createAccountAccess({ allowLocal: true, art });
+    providers.push(sampleProvider('sample.server', [AccountSession, AccountSessionChanged, AccountVaults, FilesystemSources], ctx => {
+      const server = 'https://notes.example';
+      ctx.provide(AccountSession, {
+        current: () => ({ server, account: { id: 'sample', login: 'anna' }, epoch: '1' }),
+        connect: async () => ok({ protocol: 1, buildId: 'sample', registration: 'invitation', name: 'Архив команды' }),
+        register: unsupported, login: unsupported, logout: unsupported,
+      });
+      ctx.provide(AccountVaults, { list: async () => ok([{
+        id: 'shared', name: 'Рабочие материалы', state: 'active', location: { reference: 'shared', label: 'Архив команды' }, deletedAt: null, expiresAt: null,
+      }]), create: unsupported, trash: unsupported, restore: unsupported });
+      ctx.provide(FilesystemSources, { list: () => ['remote'], location: (_source, value) => ok(value),
+        capabilitiesFor: unsupported, remoteIdentity: unsupported, locationVisible: () => true });
+    }));
+    grants['lunaris.vault-selector'] = ['ui.dom', 'vault.access', 'account.access'];
+  } else if (view === 'package') {
+    ui = limeSettings;
+    providers.push(sampleProvider('sample.packages', [Lime, LimeChanged], ctx => {
+      ctx.provide(Lime, {
+        snapshot: () => ({ vaultId: 'vault-1', busy: false, safeMode: false, error: null, installations: [] }),
+        composition: unsupported, plan: unsupported, selectProvider: unsupported, applyComposition: unsupported,
+        cancelPreview: unsupported, install: unsupported, update: unsupported, enable: unsupported, disable: unsupported,
+        retry: unsupported, remove: unsupported, restore: unsupported,
+        preview: async () => ok({ ticket: 1, manifest: sampleManifest, digest: 'a'.repeat(64), platformWarning: false }),
+      });
+    }));
+  }
+  grants[ui.manifest.id] = ui.manifest.permissions;
+  return { plugins: [...providers, ui], entrypoints: [ui.manifest.id], grants };
+}
+
 // Runs only in a fresh file-backed rendering fixture. Set its initial state
 // before painting; there is no remote debugging connection or native UI.
 async function renderScene({ view, theme }) {
-  const plugin = createInterfaceSettings({ defaultThemeId: theme });
   const s = await setupWorkspace({
     surface: document.querySelector('#application-root'), art, settings: true, mobileMenu: true,
-    plugins: [plugin], entrypoints: [plugin.manifest.id], grants: { [plugin.manifest.id]: ['vault.access', 'config.access'] },
+    ...scenePlugins(view, theme),
     preferences: new Map([['locale', 'ru'], ['theme', theme]]),
   });
   if (s.session.snapshot().phase !== 'running') throw new Error(JSON.stringify(s.session.snapshot().incidents));
@@ -115,7 +161,28 @@ async function renderScene({ view, theme }) {
     if (!element) throw new Error('Missing fixture element ' + selector);
     return element;
   };
-  if (view === 'selector' || view === 'create') {
+  if (view === 'server') {
+    required('.ln-vault-action:last-child .ln-vault-toggle').click();
+    await flush();
+    const list = required('.ln-vault-form .lm-account-access[data-embedded] .lm-account-list');
+    const create = required('.lm-account-toolbar [aria-expanded]');
+    create.click();
+    await flush();
+    await new Promise(resolve => setTimeout(resolve, 250));
+    const form = document.getElementById(create.getAttribute('aria-controls'));
+    const panel = required('.ln-vault-main');
+    panel.scrollTop = panel.scrollHeight;
+    const region = panel.getBoundingClientRect();
+    const trash = required('.lm-account-toolbar > button:last-child').getBoundingClientRect();
+    const bounds = form.getBoundingClientRect();
+    const parent = form.closest('.ln-vault-disclosure').getBoundingClientRect();
+    if (!list.childElementCount || create.getAttribute('aria-expanded') !== 'true' || bounds.height <= 0
+      || bounds.left < region.left || bounds.right > region.right || bounds.top < create.getBoundingClientRect().bottom - 1
+      || bounds.bottom > trash.top + 1 || trash.bottom > parent.bottom + 1 || trash.bottom > region.bottom + 1) {
+      throw new Error(`Embedded catalog form y=${bounds.top}..${bounds.bottom}, trash y=${trash.top}..${trash.bottom}, disclosure bottom=${parent.bottom}, available bottom=${region.bottom}.`);
+    }
+    panel.scrollTop = 0;
+  } else if (view === 'selector' || view === 'create') {
     required('.ln-vault');
     if (view === 'create') required('.ln-vault-toggle').click();
   } else if (view === 'editor' || view === 'files') {
@@ -127,8 +194,25 @@ async function renderScene({ view, theme }) {
     await flush();
     required('.lm-settings-category').click();
     await flush();
+    if (view === 'package') {
+      required('.lm-lime-toolbar button[data-variant=filled]').click();
+      await flush();
+      await new Promise(resolve => setTimeout(resolve, 250));
+      const dialog = required('.lm-lime-overlay [role=dialog]');
+      const bounds = dialog.getBoundingClientRect();
+      const header = required('.lm-lime-dialog-header').getBoundingClientRect();
+      required('.lm-lime-tabs [role=tab][aria-selected=true]');
+      dialog.scrollTop = dialog.scrollHeight;
+      const footer = required('.lm-lime-dialog-footer').getBoundingClientRect();
+      if (bounds.top < 0 || bounds.bottom > innerHeight + 1 || bounds.left < 0 || bounds.right > innerWidth + 1
+        || header.top < bounds.top - 1 || header.bottom > bounds.bottom + 1
+        || footer.height <= 0 || footer.bottom > bounds.bottom + 1 || footer.top < bounds.top - 1) {
+        throw new Error('The package dialog or its actions are unreachable in the short viewport.');
+      }
+      dialog.scrollTop = 0;
+    }
     const fields = document.querySelectorAll('.lm-settings-items [role=combobox]');
-    if (fields.length !== 2) throw new Error('Missing interface preferences.');
+    if (view !== 'package' && fields.length !== 2) throw new Error('Missing interface preferences.');
     if (view === 'menu') {
       fields[1].click();
       await flush();
@@ -164,6 +248,13 @@ try {
   const source = `
     import { setupWorkspace, flush } from './tools/test/workspace-surface.mjs';
     import { createInterfaceSettings } from '@lunaris/interface-settings';
+    import { definePlugin } from '@lunaris/sdk';
+    import { AccountSession, AccountSessionChanged, AccountVaults } from '@lunaris/remote';
+    import { FilesystemSources } from '@lunaris/filesystem';
+    import { createAccountAccess } from '@lunaris/account-access';
+    import { Lime, LimeChanged } from '@lunaris/lime';
+    import limeSettings from '@lunaris/lime-settings';
+    import sampleManifest from './examples/pong-notification/manifest.json';
     import { catalogs as filesText } from './plugins/UI/file-explorer/src/catalog.ts';
     import { russian as editorText } from './plugins/UI/text-editor/src/locales/ru.ts';
     import { russian as statusText } from './plugins/UI/status-bar/src/locales/ru.ts';
@@ -173,6 +264,8 @@ try {
     import '@lunaris/mantine-components/styles.css';
     import art from './resources/ascii_art.txt';
     ${documentScene.toString()}
+    ${sampleProvider.toString()}
+    ${scenePlugins.toString()}
     (${renderScene.toString()})(window.sample).catch(error => {
       document.documentElement.dataset.sample = String(error);
     });`;
@@ -204,7 +297,7 @@ try {
     if (image.readUInt32BE(16) !== width || image.readUInt32BE(20) !== height) throw new Error('Unexpected image size for ' + name);
   }
   const menus = scenes.filter(([view]) => view === 'menu').length;
-  console.log(`Rendered ${scenes.length} UI samples. Verified ${menus} menu viewports. Title client/scroll heights (${titleBounds.join(' / ')}). Output: ${output}.`);
+  console.log(`Rendered ${scenes.length} UI samples. Verified the embedded catalog, package dialog, and ${menus} menu viewports. Title client/scroll heights (${titleBounds.join(' / ')}). Output: ${output}.`);
 } finally {
   await rm(temp, { recursive: true, force: true });
 }
