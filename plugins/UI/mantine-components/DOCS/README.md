@@ -1462,6 +1462,11 @@ unchanged. Native short/long-list and keyboard-open geometry remains manual.
 
 ## Embedded desktop server access
 
+The shared CardRow in the Vault selector and account catalog uses the recent
+Vault screenshot as its reference. Hover keeps the resting surface and changes
+the existing border. Recent Vault rows use one theme spacing unit above and
+below their content, with a 44px minimum and room for wrapping paths.
+
 AccountAccess 1.1 adds open({ target, owner, onBusyChange? }); open() retains the
 standalone screen. The target is a borrowed HTMLElement; owner cancellation
 aborts pending discovery and releases the view. An established connection outlives
