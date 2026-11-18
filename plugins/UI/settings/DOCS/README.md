@@ -5,8 +5,8 @@ the current Vault. The plugin exposes no API or events. Contributors register
 categories, groups and items through `@lunaris/settings`. Legacy sections can
 still contribute a Components role.
 
-The desktop Sidebar 1.2 action uses the bottom rail position. The compact
-layout provides the same action in `MobileMenu`. It opens the Settings view in
+The Sidebar 1.2 action uses the bottom rail position on desktop and in the
+compact drawer. It opens the Settings view in
 Workspace 1.6's `overlay` region. Desktop shows categories alongside the initial
 or selected page. Compact mode opens the category list and provides Back from
 each category. Closing returns to the underlying workspace and restores focus.
@@ -22,9 +22,10 @@ See [Mantine Modal](https://mantine.dev/core/modal/).
 
 Settings subscribes to `SettingsChanged`, `ComponentsChanged`, `LocaleChanged`
 and `VaultChanged`. It uses required Logger, Settings, Sidebar, Workspace,
-Components, Localization and Vault, plus optional MobileMenu. The shared web and
-desktop hosts already compose these integrations. Custom hosts need the Sidebar
-controller and Mantine roles for desktop, and MobileMenu for the compact action.
+Components, Localization and Vault. The shared web and desktop hosts already
+compose these integrations. The Sidebar controller and Mantine roles provide
+the action at both sizes. The compact drawer keeps its state behind Settings
+and restores focus to the rail action on close when it is still visible.
 Custom workspace layouts supply their own entry regions.
 
 Edits and localization or theme changes within one selected category preserve

@@ -191,12 +191,12 @@ test('compact Workspace shows one live tab counter and switches through the shar
     const dockActions = toolbar.querySelector('.lm-mobile-menu-items');
     assert.equal(s.dom.window.getComputedStyle(dockActions).flexGrow, '1');
     assert.equal(dockActions.style.getPropertyValue('--group-justify'), 'space-evenly');
-    const [back, forward, add, button, sidebar] = toolbar.querySelectorAll('button');
+    const [back, forward, add, button, menuPlaceholder] = toolbar.querySelectorAll('button');
     assert.deepEqual([...toolbar.querySelectorAll('button')].map(action => action.getAttribute('aria-label')),
-      ['Back', 'Forward', 'Add tab', 'Open tabs: 1', 'Sidebar']);
+      ['Back', 'Forward', 'Add tab', 'Open tabs: 1', 'Menu']);
     assert.equal(back.disabled, true);
     assert.equal(forward.disabled, true);
-    assert.equal(sidebar.disabled, false);
+    assert.equal(menuPlaceholder.disabled, true);
     assert.equal(button.textContent, '1');
     const glyph = s.dom.window.getComputedStyle(button.querySelector('.lm-mobile-page-count'));
     assert.equal(glyph.minInlineSize, '24px');
@@ -223,6 +223,7 @@ test('compact Workspace shows one live tab counter and switches through the shar
     s.tools.localization.setLocale('ru');
     await flush();
     assert.equal(button.getAttribute('aria-label'), 'Открытые вкладки: 2');
+    assert.equal(menuPlaceholder.getAttribute('aria-label'), 'Меню');
 
     button.focus();
     button.click();

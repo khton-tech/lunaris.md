@@ -300,7 +300,6 @@ interface RailProps {
   readonly label: string; readonly activeId: string | null;
   readonly tabs: readonly RailItem[];
   readonly actions?: readonly (RailItem & { readonly onPress: () => void })[];
-  readonly workspace?: { readonly compact?: boolean };
   readonly onSelect: (id: string) => void;
 }
 interface RailItem {
@@ -313,7 +312,7 @@ export function railProps(value: ComponentProps): RailProps {
   return value as unknown as RailProps;
 }
 export function SidebarRail({ props, theme }: { props: RailProps; theme: ReturnType<typeof resolveTheme> }) {
-  const ordered = [...props.tabs, ...(props.workspace?.compact ? [] : props.actions ?? [])].sort((a, b) =>
+  const ordered = [...props.tabs, ...(props.actions ?? [])].sort((a, b) =>
     Number(a.placement === "end") - Number(b.placement === "end") || (a.order ?? 0) - (b.order ?? 0));
   const buttons = useRef(new Map<string, HTMLButtonElement>()); const previous = useRef(props.activeId);
   useLayoutEffect(() => {

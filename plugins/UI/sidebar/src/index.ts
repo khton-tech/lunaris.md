@@ -30,12 +30,14 @@ export default definePlugin({ manifest, activate(ctx) {
   function refresh(): void {
     if (ctx.signal.aborted) return;
     const snapshot = sidebar.snapshot();
-    const nextMobileSignature = JSON.stringify([text("label"), snapshot.tabs.length > 0]);
+    const actions = snapshot.actions ?? [];
+    const mobileSidebarAvailable = snapshot.tabs.length > 0 || actions.length > 0;
+    const nextMobileSignature = JSON.stringify([text("label"), text("menu"), mobileSidebarAvailable]);
     if (menu && navigation && mobileSignature !== nextMobileSignature) {
-      const action = { label: text("label"), disabled: !snapshot.tabs.length, onPress: () => navigation.open() };
       const items: MobileMenuItem[] = [
-        { ...action, id: `${ctx.pluginId}.open`, icon: "sidebar", placement: "launcher" },
-        { ...action, id: `${ctx.pluginId}.dock`, icon: "menu", order: 50 },
+        { id: `${ctx.pluginId}.open`, label: text("label"), icon: "sidebar", placement: "launcher",
+          disabled: !mobileSidebarAvailable, onPress: () => navigation.open() },
+        { id: `${ctx.pluginId}.dock`, label: text("menu"), icon: "menu", order: 50, disabled: true, onPress: () => {} },
       ];
       let successful = true;
       for (const item of items) {
@@ -45,12 +47,11 @@ export default definePlugin({ manifest, activate(ctx) {
       }
       if (successful) mobileSignature = nextMobileSignature;
     }
-    const actions = snapshot.actions ?? [];
     if ((!snapshot.tabs.length && !actions.length) || !components.has("lunaris.sidebar-rail")) {
       release(panel); panel = undefined; panelKey = ""; panelInput = undefined; release(rail); rail = undefined; railSignature = ""; return;
     }
     const props = { label: text("label"), activeId: snapshot.activeId, tabs: snapshot.tabs.map(tab => ({ id: tab.id, title: tab.title, icon: tab.icon, placement: tab.placement ?? "start", order: tab.order })), actions, onSelect,
-      mobileSidebarAvailable: snapshot.tabs.length > 0 };
+      mobileSidebarAvailable };
     const nextRailSignature = JSON.stringify([props.label, props.activeId, props.tabs]);
     if (!rail) {
       rail = ctx.scope.child();

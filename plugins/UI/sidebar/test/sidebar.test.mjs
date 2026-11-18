@@ -98,7 +98,11 @@ test('mobile overlay preserves Sidebar selection and the composed editor when op
     assert.ok(toggle); assert.ok(dockToggle);
     assert.equal(root.querySelectorAll('.lm-workspace-mobile-toolbar button').length,1);
     assert.equal(root.hasAttribute('data-mobile-open'), false);
+    assert.equal(dockToggle.getAttribute('aria-label'), 'Menu');
+    assert.equal(dockToggle.disabled, true);
     dockToggle.click(); await flush();
+    assert.equal(root.hasAttribute('data-mobile-open'), false);
+    toggle.click(); await flush();
     assert.equal(root.hasAttribute('data-mobile-open'), true);
     assert.equal(main.parentElement.hasAttribute('inert'), true);
     button(s, 'Search').click(); await flush();

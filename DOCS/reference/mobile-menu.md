@@ -93,7 +93,7 @@ selection from the menu and Vault closure. Manual acceptance covers the
 top-left launcher and bottom action in the real container, both themes, portrait
 and landscape, scroll gestures, keyboard focus and the opened tab list.
 
-Both floating regions share scroll-direction visibility. The Sidebar layer and backdrop stack above both floating regions, which become inert and aria-hidden while the overlay is open. There is no main-area return button. Files closes WorkspaceSidebar after successful content selection. The Settings dock action opens the separate Workspace overlay. Tool switching itself keeps navigation available. Desktop selection remains intact. Native stacking and scroll/focus acceptance remain pending.
+Both floating regions share scroll-direction visibility. The Sidebar layer and backdrop stack above both floating regions, which become inert and aria-hidden while the overlay is open. There is no main-area return button. Files closes WorkspaceSidebar after successful content selection. The compact Sidebar rail opens Settings in the separate Workspace overlay. The dock menu icon is a disabled placeholder. Tool switching itself keeps navigation available. Desktop selection remains intact. Native stacking and scroll/focus acceptance remain pending.
 
 While the virtual keyboard occupies the viewport, Workspace hides and makes both
 floating targets inert. It preserves their mounted content, compact mode and

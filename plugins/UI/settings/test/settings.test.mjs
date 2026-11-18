@@ -201,7 +201,7 @@ test('declarative callback failures are contained, logged with the original erro
   assert.ok(s.logs.some(log => log[0] === 'error' && log[3]?.error === original)); await s.stop();
 });
 
-test('mobile Settings opens full screen from the dock and navigates between the list and category', async () => {
+test('mobile Settings opens from the Sidebar and navigates full screen between the list and category', async () => {
   const s = await setupWorkspace({ settings: true, mobileMenu: true });
   try {
     let width = 360; let resize;
@@ -213,9 +213,17 @@ test('mobile Settings opens full screen from the dock and navigates between the 
     s.dom.window.HTMLElement.prototype.getBoundingClientRect = () => new s.dom.window.DOMRect(0, 0, width, 720);
     const view = panel(s, 'test.controls'); register(s); section(s); await s.open();
     s.tools.settings.updateCategory('test.category', { title: 'Example', icon: 'palette' });
-    assert.ok(!s.surface.querySelector('.lm-sidebar-rail button[aria-label="Settings"]'));
-    const launcher = s.surface.querySelector('.lm-workspace-mobile-toolbar button[aria-label="Settings"]');
-    assert.ok(launcher); launcher.focus(); launcher.click(); await flush();
+    assert.equal(s.surface.querySelector('.lm-workspace-mobile-toolbar button[aria-label="Settings"]'), null);
+    const launcher = s.surface.querySelector('.lm-workspace-mobile-launcher button[aria-label="Sidebar"]');
+    assert.ok(launcher); assert.equal(launcher.disabled, false);
+    launcher.click(); await flush();
+    assert.equal(s.tools.navigation.isOpen(), true);
+    const settings = s.surface.querySelector('.lm-sidebar-rail button[aria-label="Settings"]');
+    assert.ok(settings); settings.click(); await flush();
+    await close(s); assert.ok(!dialog(s));
+    assert.equal(s.tools.navigation.isOpen(), true);
+    assert.ok(s.dom.window.document.activeElement === settings, 'Closing restores the Sidebar action');
+    settings.click(); await flush();
     assert.equal(dialog(s).hasAttribute('data-full-screen'), true);
     assert.ok(!s.surface.querySelector('.lm-settings-page'));
     const entry = category(s, 'Example'); assert.ok(entry);
@@ -241,6 +249,7 @@ test('mobile Settings opens full screen from the dock and navigates between the 
     assert.equal(s.tools.screens.snapshot().activeId, null);
     assert.equal(s.tools.navigation.isOpen(), false);
     await close(s); assert.ok(!dialog(s));
-    assert.ok(s.dom.window.document.activeElement === launcher, 'Mobile focus returns to the dock action');
+    assert.ok(s.dom.window.document.activeElement === s.surface.querySelector('.lm-workspace-main'),
+      'Closing after a layout change restores focus to the workspace');
   } finally { await s.stop(); }
 });

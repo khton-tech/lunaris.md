@@ -54,7 +54,7 @@ export const dependencies = {
   'interface-settings': ['startup', 'sdk', 'logging', 'config', 'settings', 'localization', 'themes', 'vault'],
   settings: ['sdk'],
   'settings-provider': ['sdk', 'logging', 'settings'],
-  'settings-plugin': ['workspace', 'sdk', 'logging', 'settings', 'sidebar', 'mobile-menu', 'components', 'localization', 'vault'],
+  'settings-plugin': ['workspace', 'sdk', 'logging', 'settings', 'sidebar', 'components', 'localization', 'vault'],
   'active-screen': ['sdk'],
   'active-screen-provider': ['sdk', 'logging', 'active-screen', 'vault'],
   'active-screen-plugin': ['sdk', 'logging', 'active-screen', 'workspace', 'mobile-menu', 'components', 'localization', 'vault', 'active-document', 'filesystem'],

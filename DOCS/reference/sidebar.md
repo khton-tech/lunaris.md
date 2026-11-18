@@ -111,7 +111,7 @@ show the left panel as a nonmodal overlay inside the owned layout. The rail rema
 available, Escape closes the overlay, and each region owns scrolling with hidden
 native scrollbar chrome. No portals escape the component target or host surface.
 
-The rail reserves width only while tabs or desktop actions are registered. Missing content
+The rail reserves width only while tabs or actions are registered. Missing content
 roles retain their tab and show a localized unavailable panel. Later/replacement
 roles mount automatically; renderer failures show a Workspace-owned failure
 placeholder and are retried on subsequent relevant updates. Removing the rail

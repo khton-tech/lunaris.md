@@ -11,9 +11,9 @@ Opening or switching Vaults selects the first tab in visual order.
 
 The controller registers `lunaris.sidebar-rail` in `left-rail` and the active tool's
 component role in `left-panel`. Repeating an active icon selects null and collapses
-the panel. Desktop rail actions invoke their callbacks independently of tool
-selection. The rail stays available while tabs or actions are registered. The
-compact drawer serves tabs, and Settings uses the mobile dock. Missing selected roles use a
+the panel. Rail actions invoke their callbacks independently of tool selection
+on desktop and in the compact drawer. The rail stays available while tabs or
+actions are registered. Missing selected roles use a
 localized unavailable placeholder; ComponentsChanged reacquires later roles.
 Tool-prop changes update only the selected panel. Rail props change with visible
 tab metadata or selection, and mobile open actions change with localized labels
@@ -33,7 +33,7 @@ Run `npm run sidebar:check` and the Tauri frontend build.
 
 ## Mobile overlay integration
 
-The existing WorkspaceLayout role owns a floating bottom action and edge-swipe
+The existing WorkspaceLayout role owns the floating top launcher and edge-swipe
 presentation at compact widths. Opening/closing that modal layer does not call
 Sidebar.select: this controller keeps the selected tool and its contributed
 content intact. Tab clicks still use the same public Sidebar contracts. Desktop
@@ -58,9 +58,9 @@ selects and persists Russian per Vault. Names and user content stay unchanged.
 Run `npm run ui-localization:check` for complete keys and matching placeholders.
 Native acceptance of long Russian labels, menus and narrow layouts is pending.
 
-Sidebar contributes two localized open actions through the optional MobileMenu
-API. Both open WorkspaceSidebar and update availability as tabs change. The
-launcher placement renders at top left. The dock placement renders the
-three-line menu icon after the tab counter at order 50, following the Owner's
-phone reference. Workspace owns the two surfaces and overlay geometry. See
+Sidebar contributes two localized controls through the optional MobileMenu
+API. The top-left launcher opens WorkspaceSidebar when tabs or actions are
+available. The bottom dock shows a disabled menu placeholder at order 50,
+following the Owner's compact Workspace reference. Workspace owns the two
+surfaces and overlay geometry. See
 the mobile menu reference for host ordering and replacement lifetime.

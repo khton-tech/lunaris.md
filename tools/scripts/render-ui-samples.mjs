@@ -234,11 +234,11 @@ async function renderScene({ view, theme }) {
     await documentScene(s, view === 'files');
   } else {
     await s.open();
-    const launcher = required(
-      '.lm-workspace-layout:not([data-compact]) .lm-sidebar-rail button[aria-haspopup="dialog"], ' +
-      '.lm-workspace-layout[data-compact] .lm-workspace-mobile-toolbar:not([hidden]) button[aria-label="Настройки"]',
-    );
-    launcher.click();
+    if (document.querySelector('.lm-workspace-layout[data-compact]')) {
+      required('.lm-workspace-mobile-launcher:not([hidden]) button[aria-label="Боковая панель"]').click();
+      await flush();
+    }
+    required('.lm-sidebar-rail button[aria-haspopup="dialog"]').click();
     await flush();
     required('.lm-settings-dialog .lm-settings-category').click();
     await flush();

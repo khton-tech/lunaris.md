@@ -1385,7 +1385,7 @@ heading metrics still come from CodeMirror.
 
 Floating geometry correction follows the Owner screenshot: no top/bottom padding is added to main for mobile controls. Workspace owns absolute overlay surfaces; the mobile menu role receives explicit density compact for the 32px launcher and comfortable for the 44px bottom actions. Launcher surface padding is 2px. Manual acceptance of overlap, scroll/focus and both themes remains pending.
 
-Both floating regions share scroll-direction visibility. The Sidebar layer and backdrop stack above both floating regions, which become inert and aria-hidden while the overlay is open. There is no main-area return button. Files closes WorkspaceSidebar after successful content selection. The Settings dock action opens the separate Workspace overlay. Tool switching itself keeps navigation available. Desktop selection remains intact. Native stacking and scroll/focus acceptance remain pending.
+Both floating regions share scroll-direction visibility. The Sidebar layer and backdrop stack above both floating regions, which become inert and aria-hidden while the overlay is open. There is no main-area return button. Files closes WorkspaceSidebar after successful content selection. The compact Sidebar rail opens Settings in the separate Workspace overlay. The dock menu icon is a disabled placeholder. Tool switching itself keeps navigation available. Desktop selection remains intact. Native stacking and scroll/focus acceptance remain pending.
 
 ## Persistent Settings navigation
 

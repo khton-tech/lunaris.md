@@ -3,7 +3,6 @@ import type { ResourceScope } from "@lunaris/sdk";
 import { Logger, scopeLogger } from "@lunaris/logging";
 import { Settings, SettingsChanged } from "@lunaris/settings";
 import { Sidebar } from "@lunaris/sidebar";
-import { MobileMenu } from "@lunaris/mobile-menu";
 import { Workspace } from "@lunaris/workspace";
 import { Components, ComponentsChanged } from "@lunaris/components";
 import { Localization, LocaleChanged } from "@lunaris/localization";
@@ -27,7 +26,6 @@ export default definePlugin({ manifest, activate(ctx) {
   const logger = scopeLogger(ctx.use(Logger), ctx.signal);
   const registry = ctx.use(Settings);
   const sidebar = ctx.use(Sidebar);
-  const menu = ctx.optional(MobileMenu);
   const workspace = ctx.use(Workspace);
   const components = ctx.use(Components);
   const localization = ctx.use(Localization);
@@ -73,7 +71,6 @@ export default definePlugin({ manifest, activate(ctx) {
     if (!result.ok) logger.error(ctx.pluginId, "Cannot refresh settings", { error: result.error });
   }
   const sidebarAction = () => ({ id: actionId, title: text("settings"), icon: "settings", placement: "end" as const, opensDialog: true, onPress: open });
-  const mobileAction = () => ({ id: actionId, label: text("settings"), icon: "settings", order: 60, onPress: open });
 
   ensure(components.register({ id: groupRole, mount: (target, props, signal) => mountSettingsGroup(ctx, registry, components, logger, target, props, signal) }, ctx.signal), "Cannot register settings group host.");
   ensure(components.register({ id: windowRole, mount: (target, props, signal) => {
@@ -82,13 +79,10 @@ export default definePlugin({ manifest, activate(ctx) {
       isCurrent: vaultId => opened === current && current?.vaultId === vaultId && vaults.current()?.id === vaultId, close });
   } }, ctx.signal), "Cannot register settings window host.");
   ensure(sidebar.registerAction(sidebarAction(), ctx.signal), "Cannot register settings action.");
-  if (menu) ensure(menu.register(mobileAction(), ctx.signal), "Cannot register mobile settings action.");
-  else logger.warn(ctx.pluginId, "Mobile settings action is unavailable");
 
   ctx.events.on(SettingsChanged, refresh);
   ctx.events.on(LocaleChanged, () => {
     ensure(sidebar.updateAction(sidebarAction()), "Cannot update settings action.");
-    if (menu) ensure(menu.update(mobileAction()), "Cannot update mobile settings action.");
     refresh();
   });
   ctx.events.on(VaultChanged, () => { if (opened && opened.vaultId !== vaults.current()?.id) close(); });

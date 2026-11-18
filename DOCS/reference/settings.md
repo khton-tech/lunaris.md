@@ -131,8 +131,9 @@ Controllers declare the services needed to apply and persist their own values.
 Status: implemented on 2026-11-07; native visual acceptance remains manual.
 
 Settings is an extensible UI foundation. The icon at the bottom of the desktop
-rail opens a modal with categories alongside the selected page. The mobile dock
-opens a full-screen category list with navigation into and back from each page.
+rail opens a modal with categories alongside the selected page. In the compact
+Sidebar drawer the same action opens a full-screen category list with
+navigation into and back from each page.
 Section headings organize contributed content. No categories or controls
 are hardcoded into the foundation. With no contributions, navigation shows
 "No settings available". The foundation itself supplies no concrete controls.
@@ -233,7 +234,7 @@ are implemented separately; the registry and Settings container remain unchanged
 The shared web and desktop host composes `lunaris.settings-provider` and
 `lunaris.settings`. Settings uses Sidebar 1.2 actions, Workspace 1.6 overlays,
 Components, Localization, Vault and required Logger through the SDK.
-The standard compact layout opens the same window through `MobileMenu`.
+The standard compact layout opens the same window through the Sidebar drawer.
 Workspace owns placement and the Vault view lifetime.
 
 Mantine supplies the following roles.
@@ -255,7 +256,7 @@ page own scrolling with hidden native scrollbar chrome. Labels are localized and
 styles use the active theme. See [Mantine Modal](https://mantine.dev/core/modal/)
 and [Mantine UI navbar compositions](https://ui.mantine.dev/category/navbars/).
 
-The window integrates the registry, Sidebar, MobileMenu, Workspace, Mantine,
+The window integrates the registry, Sidebar, Workspace, Mantine,
 Localization, Vault lifecycle and Logger through public contracts.
 The separate interface settings contribution connects Config, Themes and
 Localization without making the foundation depend on those preference controllers.
