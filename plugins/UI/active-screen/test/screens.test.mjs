@@ -243,7 +243,7 @@ test('compact Workspace shows one live tab counter and switches through the shar
     assert.equal(currentTab.querySelector('[aria-label="Закрыть вкладку — Новая вкладка"]').disabled, false);
     assert.ok([...stylesheet.sheet.cssRules].some(rule =>
       rule.selectorText?.includes('.lm-mobile-choice-row[data-selected]::before') &&
-      rule.style?.getPropertyValue('background') === 'var(--vault-accent)'));
+      rule.style?.getPropertyValue('background') === 'var(--vault-accent-foreground)'));
     assert.equal(menu().classList.contains('lm-explorer-tab-menu'), true);
     const overlay = menu().closest('.lm-mobile-choice-overlay');
     assert.ok(overlay);
