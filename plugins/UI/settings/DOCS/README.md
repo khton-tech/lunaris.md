@@ -28,7 +28,9 @@ Compact Workspace gives the upper navigation position to the Settings header.
 The public page role receives the compact state and uses Workspace's dock inset
 to keep scrollable controls above the floating toolbar. Settings groups request
 the themed viewport overlay for dropdowns so sticky headers and scroll boundaries
-do not cover options. Active Screen forwards the header declaration and compact
+do not cover options. The picker measures the available space around its field
+and keeps the options in one scrollable list. Opening reveals the current value
+and keyboard navigation continues from that option. Active Screen forwards the header declaration and compact
 state through the existing Workspace and Components contracts.
 
 Category selection survives panel collapse and switching active screens within one

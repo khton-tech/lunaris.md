@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 import { Combobox, InputBase, useCombobox } from "@mantine/core";
 import type { SettingsOption } from "@lunaris/settings";
 import { Icon } from "./icons.js";
@@ -14,14 +14,18 @@ interface Props {
 /** Menus share the owning component's themed viewport overlay by default. */
 export function SettingsSelect({ options, onChange, withinPortal = true, ...props }: Props) {
   const store = useCombobox({
-    onDropdownOpen: () => store.selectActiveOption(),
     onDropdownClose: () => store.resetSelectedOption(),
   });
+  const { dropdownOpened, selectActiveOption } = store;
+  // Mantine retains a hidden list. Reveal the committed option after opening it.
+  useLayoutEffect(() => { if (dropdownOpened) selectActiveOption(); }, [dropdownOpened, selectActiveOption]);
   const overlayTarget = useDropdownOverlay(store.dropdownOpened, () => store.closeDropdown());
   const portalTarget = withinPortal ? overlayTarget : undefined;
   useEffect(() => { if (props.disabled) store.closeDropdown(); }, [props.disabled]);
   const selected = options.find(option => option.value === props.value);
   return <Combobox store={store} size="sm" withinPortal={!!portalTarget} position="bottom-end" offset={4}
+    preventPositionChangeWhenVisible={false}
+    middlewares={{ flip: { padding: 8 }, shift: { padding: 8 }, size: { padding: 8 } }}
     {...(portalTarget ? { portalProps: { target: portalTarget }, floatingStrategy: "fixed", hideDetached: true, zIndex: 400 } : {})}
     transitionProps={{ duration: 0 }}
     classNames={{ dropdown: "lm-setting-dropdown", option: "lm-setting-option", options: "lm-setting-options" }}
@@ -40,7 +44,7 @@ export function SettingsSelect({ options, onChange, withinPortal = true, ...prop
         {selected?.label ?? props.value}
       </InputBase>
     </Combobox.Target>
-    <Combobox.Dropdown><Combobox.Options>
+    <Combobox.Dropdown><Combobox.Options aria-label={props["aria-label"] ?? props.label}>
       {options.map(option => <Combobox.Option key={option.value} value={option.value} active={option.value === props.value}
         aria-selected={option.value === props.value} data-checked={option.value === props.value || undefined}>
         <span>{option.label}</span>{option.value === props.value && <Icon name="check" />}
