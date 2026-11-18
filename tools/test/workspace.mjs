@@ -7,9 +7,6 @@ import settingsPlugin from "@lunaris/settings-plugin";
 import { ActiveScreen } from "@lunaris/active-screen";
 import activeScreenProvider from "@lunaris/active-screen-provider";
 import activeScreenPlugin from "@lunaris/active-screen-plugin";
-import { useBrowser } from './browser.mjs';
-import assert from 'node:assert/strict';
-import { JSDOM } from 'jsdom';
 import { definePlugin } from '@lunaris/sdk';
 import { TestScheduler } from '@lunaris/test';
 import { Logger } from '@lunaris/logging';
@@ -36,13 +33,26 @@ import { composeSlotSurface } from '../../hosts/tauri/dist/slots.js';
 
 const ok = value => ({ ok: true, value });
 const fail = code => ({ ok: false, error: { code, message: code } });
-export const flush = async () => { for (let i = 0; i < 4; i++) await new Promise(resolve => setImmediate(resolve)); };
+export const flush = async () => {
+  for (let i = 0; i < 4; i++) await new Promise(resolve => {
+    if (typeof setImmediate === 'function') setImmediate(resolve);
+    else setTimeout(resolve, 0);
+  });
+};
 const manifest = (id, provides = [], requires = [], permissions = []) => ({ manifestVersion: 1, id, version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js',
   provides: provides.map(t => ({ kind: t.kind, id: t.id, version: t.version })), requires: requires.map(t => ({ kind: t.kind, id: t.id, range: `^${t.version}` })), permissions, optionalPermissions: [] });
 
 export async function setupWorkspace(options = {}) {
   if (options.settings) options = { ...options, activeScreen: true, sidebar: true };
-  const dom = useBrowser(new JSDOM('<div id="app"></div>')); const surface = dom.window.document.getElementById('app');
+  let dom;
+  let surface = options.surface;
+  if (surface) {
+    dom = { window: surface.ownerDocument.defaultView };
+  } else {
+    const [{ useBrowser }, { JSDOM }] = await Promise.all([import('./browser.mjs'), import('jsdom')]);
+    dom = useBrowser(new JSDOM('<div id="app"></div>'));
+    surface = dom.window.document.getElementById('app');
+  }
   const logs = []; let current = options.current ?? null; let serial = 0; let ctx; let tools; let service;
   const preferences = options.preferences ?? new Map(); const preferenceWrites = [];
   const config = definePlugin({ manifest: manifest('test.config', [Config, ConfigChanged]), activate(context) {
@@ -93,7 +103,7 @@ export async function setupWorkspace(options = {}) {
     options.onActivate?.(tools, context);
     options.beforeLoaded?.(surface);
   } });
-  const startup = createStartupProvider(); const layout = composeSlotSurface(surface); const selector = createVaultSelector({ art: 'ASCII', hideWhenVaultOpen: true, restoreLastVault: false });
+  const startup = createStartupProvider(); const layout = composeSlotSurface(surface); const selector = createVaultSelector({ art: options.art ?? 'ASCII', hideWhenVaultOpen: true, restoreLastVault: false });
   const session = new HostSession({ scheduler: new TestScheduler(), load: async () => ({ ...layout, startup, pluginRuntime: options.pluginRuntime === true,
     plugins: [...(options.mobileMenu ? [mobileMenuPlugin] : []),...(options.plugins ?? []), ...(options.settings ? [settingsProvider, settingsPlugin] : []), ...(options.activeScreen ? [activeScreenProvider, activeScreenPlugin] : []), ...(options.sidebar ? [sidebarPlugin, sidebarProvider] : []), config, logger, vaults, localization, componentProvider, kit, themes, baseTheme, consumer, startup.plugin, selector, workspacePlugin, workspaceProvider, ...layout.plugins],
     entrypoints: [...(options.mobileMenu ? [mobileMenuPlugin.manifest.id] : []),startup.plugin.manifest.id, baseTheme.manifest.id, ...(options.noKit ? [] : [kit.manifest.id]), selector.manifest.id, workspacePlugin.manifest.id, ...(options.sidebar ? [sidebarPlugin.manifest.id] : []), ...(options.activeScreen ? [activeScreenPlugin.manifest.id] : []), ...(options.settings ? [settingsPlugin.manifest.id] : []), consumer.manifest.id, ...(options.entrypoints ?? [])],
@@ -102,8 +112,14 @@ export async function setupWorkspace(options = {}) {
   }) });
   await session.start(); await flush();
   return { dom, surface, session, logs, ctx, tools, service, preferences, preferenceWrites, async open() { await service.open(); await flush(); },
-    async stop() { await session.stop(); assert.equal(surface.childElementCount, 0);
-      assert.deepEqual(session.snapshot().kernel.diagnostics.filter(item => item.code === 'CLEANUP_FAILED'), [], logs.filter(log => log[0] === 'error').map(log => log[3]?.error?.stack).join('\n')); dom.window.close(); } };
+    async stop() {
+      await session.stop();
+      if (surface.childElementCount) throw new Error('Workspace fixture left mounted children.');
+      if (session.snapshot().kernel.diagnostics.some(item => item.code === 'CLEANUP_FAILED')) {
+        throw new Error(logs.filter(log => log[0] === 'error').map(log => log[3]?.error?.stack).join('\n') || 'Workspace cleanup failed.');
+      }
+      if (!options.surface) dom.window.close();
+    } };
 }
 export function panel(s, id = 'test.panel', options = {}) {
   const owner = s.ctx.scope.child(); const seen = []; const releases = [];
@@ -114,6 +130,6 @@ export function panel(s, id = 'test.panel', options = {}) {
     update(props); signal.addEventListener('abort', () => releases.push(props.workspace.vaultId), { once: true });
     return { update, dispose() { node.remove(); } };
   } }, owner.signal);
-  assert.equal(result.ok, true);
+  if (!result.ok) throw new Error('Cannot register fixture panel.', { cause: result.error });
   return { owner, seen, releases };
 }
