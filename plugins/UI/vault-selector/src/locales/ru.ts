@@ -1,6 +1,6 @@
 /** Russian product copy owned by this consumer. */
 export const russian = {
-  server: "Войти на сервер",
+  server: "Хранилища на сервере",
   logo: "Lunaris.md",
   recent: "Последние хранилища",
   empty: "Нет недавних хранилищ",

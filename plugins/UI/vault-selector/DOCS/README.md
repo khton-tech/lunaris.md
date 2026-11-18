@@ -122,8 +122,9 @@ ln-vault-toggle, animated disclosure and ln-vault-form surface as Create/Select.
 Only one disclosure is open. The target is registered explicitly, never discovered
 through DOM ancestry. The selector owns geometry, surface and overflow; the account
 role receives presentation embedded/content and renders transparent inner content.
-Its sequence is server address, sign-in or invitation-aware registration, then
-server Vaults. Change server returns to the first step. Reopening preserves account
+The **Server vaults** label identifies the destination throughout the sequence of
+server address, sign-in or invitation-aware registration, and the server vault list.
+Change server returns to the first step. Reopening preserves account
 and server context. Escape closes the disclosure and restores toggle focus; nested
 creation Escape is handled locally first. Pending work disables sibling actions.
 

@@ -260,7 +260,7 @@ test('closing a Vault restores the start screen without reopening the latest Vau
 test('server disclosure stays inside the local selector through address, registration and remote Vault opening', async () => {
   const s = setup({ server: true, hideWhenVaultOpen: true }); await s.ready();
   const selector = s.surface.querySelector('.ln-vault');
-  const toggle = find(s, 'Sign in to server'); assert.ok(toggle); assert.ok(toggle.classList.contains('ln-vault-toggle'));
+  const toggle = find(s, 'Server vaults'); assert.ok(toggle); assert.ok(toggle.classList.contains('ln-vault-toggle'));
   toggle.click(); await flush();
   const form = () => s.surface.querySelector('.lm-account-access');
   assert.ok(selector.contains(form()));
@@ -275,6 +275,10 @@ test('server disclosure stays inside the local selector through address, registr
   typeInput(form().querySelector('[autocomplete=off]'), 'invitation');
   form().querySelector('form').dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true })); await flush();
   assert.ok(selector.contains(form())); assert.ok(find(s, 'Remote notes'));
+  s.tools.localization.setLocale('ru'); await flush();
+  assert.equal(find(s, 'Хранилища на сервере'), toggle);
+  s.tools.localization.setLocale('en'); await flush();
+  assert.equal(find(s, 'Server vaults'), toggle);
   const create = form().querySelector('.lm-account-toolbar [aria-expanded]');
   create.click(); await flush();
   const name = form().querySelector('.lm-account-create input');
@@ -297,11 +301,11 @@ test('server disclosure stays inside the local selector through address, registr
 
 test('server disclosure blocks competing actions and ignores late connection results after its owner closes', async () => {
   const gate = deferred(); const s = setup({ server: true, connectGate: gate.promise }); await s.ready();
-  find(s, 'Sign in to server').click(); await flush();
+  find(s, 'Server vaults').click(); await flush();
   const form = s.surface.querySelector('.lm-account-access form');
   typeInput(form.querySelector('input'), 'https://notes.example');
   form.dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true })); await flush();
-  assert.equal(find(s, 'Create vault').disabled, true); assert.equal(find(s, 'Sign in to server').disabled, true);
+  assert.equal(find(s, 'Create vault').disabled, true); assert.equal(find(s, 'Server vaults').disabled, true);
   assert.ok(form.querySelector('.mantine-Loader-root'));
   assert.equal(form.querySelector('input').readOnly, true);
   assert.equal(form.querySelector('input').disabled, false);
@@ -317,12 +321,12 @@ test('server disclosure blocks competing actions and ignores late connection res
 
 test('embedded sign-in supports server navigation, Escape focus and theme replacement', async () => {
   const s = setup({ server: true }); await s.ready();
-  find(s, 'Sign in to server').click(); await flush();
+  find(s, 'Server vaults').click(); await flush();
   let input = s.surface.querySelector('.lm-account-access input'); typeInput(input, 'https://notes.example'); input.focus();
   input.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); await flush();
-  assert.equal(s.dom.window.document.activeElement, find(s, 'Sign in to server'));
+  assert.equal(s.dom.window.document.activeElement, find(s, 'Server vaults'));
   assert.equal(s.surface.querySelector('.lm-account-access'), null);
-  find(s, 'Sign in to server').click(); await flush();
+  find(s, 'Server vaults').click(); await flush();
   assert.equal(s.surface.querySelector('.lm-account-access input').value, 'https://notes.example');
   assert.ok(s.surface.querySelector('.ln-vault .lm-account-access'));
   const submit = () => s.surface.querySelector('.lm-account-access form').dispatchEvent(new s.dom.window.Event('submit', { bubbles: true, cancelable: true }));
