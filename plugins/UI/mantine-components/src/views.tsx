@@ -5,7 +5,6 @@ import type { SelectorProps, StartupProps, WorkspaceHeaderProps, WorkspaceEmptyP
 import type { resolveTheme } from "./theme.js";
 import { Icon } from "./icons.js";
 import { CardRow } from "./card-row.js";
-import { useVaultActionAlignment } from "./vault-action-alignment.js";
 
 export function WorkspaceHeader({ props, theme }: { props: WorkspaceHeaderProps; theme: ReturnType<typeof resolveTheme> }) {
   return <Box component="header" className="lm-workspace-header" style={theme.contentStyle} aria-busy={props.busy}>
@@ -131,32 +130,41 @@ function ServerForm({ props }: { props: SelectorProps }) {
   </Box>;
 }
 
+function displayLocation(label: string): string {
+  if (/^\\\\\?\\UNC\\/i.test(label)) return "\\\\" + label.slice(8);
+  return /^\\\\\?\\[a-z]:\\/i.test(label) ? label.slice(4) : label;
+}
+
 export function VaultSelector({ props, theme }: { props: SelectorProps; theme: ReturnType<typeof resolveTheme> }) {
-  const { main, content } = useVaultActionAlignment(".ln-vault-disclosure", ".ln-vault-form", !!props.onServer);
   return <Box component="section" className="ln-vault" style={theme.contentStyle} aria-busy={props.busy}>
-    <Paper component="aside" className="ln-vault-recents" aria-label={props.text.recent}>
-      <Title order={2}>{props.text.recent}</Title>
-      <Stack component="ul" gap="xs">
-        {props.entries.map(entry => <Box component="li" key={entry.reference}>
-          <CardRow className="lm-recent" label={entry.name} detail={entry.label} icon={<Icon name="folder" />}
-            disabled={props.busy} data-reference={entry.reference} aria-current={entry.reference === props.activeReference ? "true" : undefined}
-            onClick={() => props.onRecent(entry.reference)} />
-        </Box>)}
-      </Stack>
-      <Text hidden={props.entries.length > 0 || !!props.historyError}>{props.text.empty}</Text>
-      <Text role="status" hidden={!props.historyError}>{props.historyError}</Text>
-      <ActionButton hidden={!props.historyError} disabled={props.busy} onClick={props.onRetry}>{props.text.retry}</ActionButton>
-    </Paper>
-    <Paper ref={main} className="ln-vault-main">
-      <Box ref={content} className="ln-vault-content">
+    <Box className="ln-vault-home">
+      <Box component="header" className="ln-vault-brand">
         <Box component="pre" role="img" aria-label={props.text.logo}>{props.art}</Box>
-        <Text className="ln-vault-status" role="status" aria-live="polite">{props.status}</Text>
-        <Stack className="ln-vault-actions" gap="xs">
-          <ActionForm mode="create" props={props} /><ActionForm mode="select" props={props} />
-          {props.onServer && <ServerForm props={props} />}
-        </Stack>
-        <Text role="alert" hidden={props.mode !== null || !props.error}>{props.mode === null ? props.error : ""}</Text>
       </Box>
-    </Paper>
+      <Box className="ln-vault-columns">
+        <Box className="ln-vault-main">
+          {props.text.actions && <Title order={2}>{props.text.actions}</Title>}
+          <Text className="ln-vault-status" role="status" aria-live="polite">{props.status}</Text>
+          <Stack className="ln-vault-actions" gap="xs">
+            <ActionForm mode="create" props={props} /><ActionForm mode="select" props={props} />
+            {props.onServer && <ServerForm props={props} />}
+          </Stack>
+          <Text role="alert" hidden={props.mode !== null || !props.error}>{props.mode === null ? props.error : ""}</Text>
+        </Box>
+        <Paper component="aside" className="ln-vault-recents" aria-label={props.text.recent}>
+          <Title order={2}>{props.text.recent}</Title>
+          <Stack component="ul" gap="xs">
+            {props.entries.map(entry => <Box component="li" key={entry.reference}>
+              <CardRow className="lm-recent" label={entry.name} detail={displayLocation(entry.label)} icon={<Icon name="folder" />}
+                disabled={props.busy} data-reference={entry.reference} aria-current={entry.reference === props.activeReference ? "true" : undefined}
+                onClick={() => props.onRecent(entry.reference)} />
+            </Box>)}
+          </Stack>
+          <Text hidden={props.entries.length > 0 || !!props.historyError}>{props.text.empty}</Text>
+          <Text role="status" hidden={!props.historyError}>{props.historyError}</Text>
+          <ActionButton hidden={!props.historyError} disabled={props.busy} onClick={props.onRetry}>{props.text.retry}</ActionButton>
+        </Paper>
+      </Box>
+    </Box>
   </Box>;
 }

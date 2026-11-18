@@ -20,6 +20,8 @@ const scenes = [
   ['buttons', 'windows-xp', 1120, 740],
   ['buttons-disabled', 'monochrome', 1120, 740],
   ['package', 'windows-xp-dark', 844, 390],
+  ['history', 'rose-pine', 390, 680],
+  ['empty', 'monochrome', 390, 680],
   ['selector', 'monochrome', 1120, 740],
   ['create', 'windows-xp', 1120, 740],
   ['create', 'everforest-dark', 390, 680],
@@ -118,7 +120,7 @@ function scenePlugins(view, theme) {
   let ui = createInterfaceSettings({ defaultThemeId: theme });
   const providers = [];
   const grants = {};
-  if (view === 'server' || view === 'account-menu') {
+  if (['server','account-menu','selector','create','empty','history'].includes(view)) {
     ui = createAccountAccess({ allowLocal: true, art });
     providers.push(sampleProvider('sample.server', [AccountSession, AccountSessionChanged, AccountVaults, FilesystemSources], ctx => {
       const server = 'https://notes.example';
@@ -153,7 +155,16 @@ function scenePlugins(view, theme) {
 // Runs only in a fresh file-backed rendering fixture. Set its initial state
 // before painting; there is no remote debugging connection or native UI.
 async function renderScene({ view, theme }) {
+  const recentVaults = [
+    { name: 'Рабочие заметки', location: { reference: 'work', label: 'C:/Documents/Рабочие заметки' } },
+    { name: 'Личное', location: { reference: 'journal', label: 'D:/Заметки/Личное' } },
+    { name: 'Команда', location: { reference: 'team', label: 'https://notes.example · Команда' } },
+  ];
+  if (view === 'history') {
+    for (let i = 1; i <= 20; i++) recentVaults.push({ name: 'Архив ' + i, location: { reference: 'archive-' + i, label: '/Documents/Архивы/' + i } });
+  }
   const s = await setupWorkspace({
+    recentVaults: view === 'empty' ? [] : recentVaults,
     surface: document.querySelector('#application-root'), art, settings: true, mobileMenu: true,
     ...scenePlugins(view, theme),
     preferences: new Map([['locale', 'ru'], ['theme', theme]]),
@@ -184,7 +195,7 @@ async function renderScene({ view, theme }) {
     await flush();
     await new Promise(resolve => setTimeout(resolve, 250));
     const form = document.getElementById(create.getAttribute('aria-controls'));
-    const panel = required('.ln-vault-main');
+    const panel = required('.ln-vault');
     panel.scrollTop = panel.scrollHeight;
     const region = panel.getBoundingClientRect();
     const trash = required('.lm-account-toolbar > button:last-child').getBoundingClientRect();
@@ -196,8 +207,17 @@ async function renderScene({ view, theme }) {
       throw new Error(`Embedded catalog form y=${bounds.top}..${bounds.bottom}, trash y=${trash.top}..${trash.bottom}, disclosure bottom=${parent.bottom}, available bottom=${region.bottom}.`);
     }
     panel.scrollTop = 0;
-  } else if (view === 'selector' || view === 'create') {
-    required('.ln-vault');
+  } else if (['selector','create','history','empty'].includes(view)) {
+    const panel = required('.ln-vault');
+    const recent = required('.ln-vault-recents');
+    const actions = required('.ln-vault-main');
+    if (panel.scrollWidth > panel.clientWidth + 1) throw new Error('Vault home overflows horizontally.');
+    if (view === 'history') {
+      panel.scrollTop = panel.scrollHeight;
+      if (recent.querySelector('li:last-child').getBoundingClientRect().bottom > panel.getBoundingClientRect().bottom + 1) throw new Error('History end is unreachable.');
+      panel.scrollTop = 0;
+    }
+    if (innerWidth < 500 && actions.getBoundingClientRect().bottom > recent.getBoundingClientRect().top + 1) throw new Error('Narrow home columns overlap.');
     if (view === 'create') required('.ln-vault-toggle').click();
   } else if (view === 'editor' || view === 'files') {
     await s.open();

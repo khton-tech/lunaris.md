@@ -92,13 +92,13 @@ function setup(options = {}) {
 }
 const find = (s, label) => [...s.surface.querySelectorAll('button')].find(button => button.querySelector('.mantine-Button-label')?.textContent.trim() === label || button.getAttribute('aria-label') === label);
 
-test('host hands off runner to the two-panel selector only after loaded, without opening dialogs', async () => {
+test('host hands off runner to the Vault selector only after loaded, without opening dialogs', async () => {
   const s = setup(); await s.entered.promise;
   assert.equal(s.surface.querySelector('.ln-vault'), null); assert.equal(s.surface.querySelector('[role=status]').textContent, 'Starting plugins');
   s.finish.resolve(); await s.starting; await flush();
   assert.equal(s.surface.querySelectorAll('section').length, 1); assert.ok(s.surface.querySelector('.ln-vault'));
   assert.equal(s.surface.querySelector('pre').textContent, 'ASCII LOGO'); assert.equal(s.surface.querySelector('[data-slot-id="lunaris.runner.screen"]'), null);
-  assert.ok(s.surface.querySelector('.ln-vault-recents').nextElementSibling.classList.contains('ln-vault-main'));
+  assert.ok(s.surface.querySelector('.ln-vault-main').nextElementSibling.classList.contains('ln-vault-recents'));
   const palette = s.surface.querySelector('.ln-vault').style;
   assert.equal(palette.getPropertyValue('--vault-background'), '#0F0F0F');
   assert.equal(palette.getPropertyValue('--vault-panel'), '#1A1A1A');

@@ -1998,34 +1998,20 @@ test('XP mobile surfaces and controls use real light/dark presets and reset with
  } finally {s.dom.window.HTMLElement.prototype.getBoundingClientRect=original;await s.stop();}
 });
 
-test('vault selector reserves the full embedded surface as account content grows', async () => {
+test('recent Vaults show readable Windows locations and reopen their original reference', async () => {
   const s = await setup(); await s.start();
-  const observers = [];
-  s.dom.window.ResizeObserver = class {
-    constructor(callback) { this.callback = callback; this.nodes = []; observers.push(this); }
-    observe(node) { this.nodes.push(node); }
-    disconnect() {}
-  };
-  const mounted = s.components.mount('lunaris.vault-selector', s.target, { ...selector, mode: null, onServer() {}, serverExpanded: true }, s.ctx.signal);
-  assert.equal(mounted.ok, true);
-  const panel = s.target.querySelector('.ln-vault-main');
-  const body = s.target.querySelector('.ln-vault-content');
-  const surfaces = [...s.target.querySelectorAll('.ln-vault-form')];
-  const surface = surfaces.at(-1);
-  const observer = observers.find(item => item.nodes.includes(panel));
-  assert.ok(observer.nodes.includes(surface), 'observe the borrowed surface, not only nested HTML forms');
-  panel.style.padding = '0px';
-  for (const item of surfaces) item.style.margin = '0px';
-  let height = 400;
-  Object.defineProperty(panel, 'clientHeight', { get: () => 740 });
-  Object.defineProperty(body, 'offsetHeight', { get: () => 200 + height });
-  Object.defineProperty(surface, 'offsetHeight', { get: () => height });
-  Object.defineProperty(surface.closest('.ln-vault-disclosure'), 'offsetHeight', { get: () => height });
-  observer.callback();
-  assert.equal(panel.style.getPropertyValue('--vault-center-offset'), '140px');
-  height = 500; observer.callback();
-  assert.equal(panel.style.getPropertyValue('--vault-center-offset'), '40px');
-  height = 800; observer.callback();
-  assert.equal(panel.style.getPropertyValue('--vault-center-offset'), '0px', 'oversized content starts at the reachable top');
-  await s.stop();
+  const opened = [];
+  const entries = [
+    { reference: 'local', name: 'Notes', label: '\\\\?\\C:\\Notes' },
+    { reference: 'share', name: 'Notes', label: '\\\\?\\UNC\\server\\share' },
+    { reference: 'remote', name: 'Notes', label: 'https://notes.example · Notes' },
+  ];
+  try {
+    const mounted = s.components.mount('lunaris.vault-selector', s.target, { ...selector, entries, onRecent: id => opened.push(id) }, s.ctx.signal);
+    assert.ok(mounted.ok);
+    assert.deepEqual([...s.target.querySelectorAll('.lm-recent .lm-card-detail')].map(row => row.textContent),
+      ['C:\\Notes', '\\\\server\\share', entries[2].label]);
+    s.target.querySelectorAll('.lm-recent')[1].click();
+    assert.deepEqual(opened, ['share']);
+  } finally { await s.stop(); }
 });

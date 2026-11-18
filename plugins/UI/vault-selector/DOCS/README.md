@@ -18,8 +18,8 @@ Hosts can disable restoration with `restoreLastVault: false`. Tauri uses default
 restoration and `hideWhenVaultOpen: true` for workspace handoff. Integration uses
 existing VaultHistory and VaultChanged SDK contracts; no SDK changes are needed.
 
-The screen mounts only after `Startup` reports `loaded`. Recent Vaults occupy
-the left third; actions occupy the right two thirds, with the ASCII logo above.
+The screen mounts only after `Startup` reports `loaded`. The compact home places Vault actions
+and recent locations below a shared logo. The page owns vertical scrolling.
 Narrow surfaces stack actions before recents. The `lunaris.vault-selector` role
 is supplied by Mantine components; a compatible set may replace it.
 
@@ -88,7 +88,7 @@ duplicate submit, cancellation, retry, recent reopening, safe text, theme/locale
 refresh, replacement roles, access grants and late results after shutdown.
 Existing Vault/Config/native tests cover actual folder preparation and persistence.
 
-Manual acceptance in Tauri: confirm the 1:2 panel proportions, readable ASCII art,
+Manual acceptance in Tauri: confirm the responsive columns, readable ASCII art,
 Light/Dark themes, narrow-window stacking, long folder names, keyboard focus,
 native Browse cancellation and successful opening of empty/populated folders.
 Desktop automation is prohibited. Automated DOM checks do not verify native

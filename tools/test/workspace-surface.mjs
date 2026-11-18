@@ -83,7 +83,7 @@ export async function setupWorkspace(options, surface = options.surface) {
     context.provide(Vault, service);
     context.provide(VaultCreation, { create: (parent, name) => open({ reference: parent.reference + "/" + name, label: parent.label + "/" + name }, { name }) });
     context.provide(VaultLocations, { describe: async reference => ok({ reference, label: 'Folder' }), select: async () => ok({ reference: 'saved', label: 'Folder' }), open });
-    context.provide(VaultHistory, { list: async () => ok([{ location: { reference: 'saved', label: 'Folder' }, name: 'Notes' }]), open: () => service.open() });
+    context.provide(VaultHistory, { list: async () => ok(options.recentVaults ?? [{ location: { reference: 'saved', label: 'Folder' }, name: 'Notes' }]), open: () => service.open() });
   } });
   const consumer = definePlugin({ manifest: manifest('test.consumer', [], [Workspace, WorkspaceSidebar, Components, Themes, Localization, ...(options.pluginRuntime ? [LimeRuntime, LimeCompositionRuntime] : []), ...(options.mobileMenu ? [MobileMenu] : []), ...(options.settings ? [Settings] : []), ...(options.activeScreen ? [ActiveScreen] : []), ...(options.sidebar ? [Sidebar] : [])], ['ui.dom', ...(options.pluginRuntime ? ['runtime.manage'] : [])]), activate(context) {
     ctx = context; tools = { ...(options.mobileMenu ? { mobileMenu: context.use(MobileMenu) } : {}), ...(options.settings ? { settings: context.use(Settings) } : {}), ...(options.activeScreen ? { screens: context.use(ActiveScreen) } : {}), ...(options.sidebar ? { sidebar: context.use(Sidebar) } : {}), navigation: context.use(WorkspaceSidebar), workspace: context.use(Workspace), components: context.use(Components), themes: context.use(Themes), localization: context.use(Localization) };

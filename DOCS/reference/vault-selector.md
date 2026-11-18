@@ -9,13 +9,12 @@ Follow [UI guidelines](../UI_GUIDELINES.md).
 
 ## Interface
 
-Use two panels: recent Vaults on the left (one third), actions on the right
-(two thirds).
+Group actions on the left and recent Vaults on the right in a width-limited
+layout. Both sections share a header and a single scrolling surface.
 On narrow surfaces, stack actions before recents; permit wrapping and scrolling
 without clipping controls or long folder labels.
 
-Place the existing ASCII logo from `resources/ascii_art.txt` above the actions
-in the right panel. Supply the artwork through trusted host composition, as
+Place the existing ASCII logo from `resources/ascii_art.txt` above both sections. Supply the artwork through trusted host composition, as
 with Lunaris Runner; the selector must not read repository files directly.
 Preserve whitespace and monospace rendering, inherit the active theme, provide
 a localized accessible name, and keep the logo non-selectable. Adapt its size
