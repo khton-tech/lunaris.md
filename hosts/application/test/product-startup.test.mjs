@@ -7,14 +7,19 @@ import { composeApplication, HostSession } from '@lunaris/application-host';
 import { TestScheduler } from '@lunaris/test';
 import { definePlugin } from '@lunaris/sdk';
 import { Logger } from '@lunaris/logging';
+import { Components } from '@lunaris/components';
 
 test('complete browser composition prepares its real plugin graph before mounting', async () => {
   const dom = useBrowser(new JSDOM('<div id="app"></div>', { url: 'https://lunaris.test/' }));
   const previous = globalThis.indexedDB; globalThis.indexedDB = new IDBFactory();
-  const errors = [];
+  const errors = [], calloutWarnings = [];
   const logger = definePlugin({ manifest: { manifestVersion: 1, id: 'test.logger', version: '0.1.0', engine: '^0.1.0', sdk: '^0.1.0', entry: './index.js',
     provides: [{ kind: Logger.kind, id: Logger.id, version: Logger.version }], requires: [], permissions: [], optionalPermissions: [] }, activate(ctx) {
-    ctx.provide(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => { if (level === 'error') errors.push(args); return true; }])));
+    ctx.provide(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, (...args) => {
+      if (level === 'error') errors.push(args);
+      if (level === 'warn' && args[0] === 'lunaris.callouts') calloutWarnings.push(args[1]);
+      return true;
+    }])));
   } });
   const target = dom.window.document.getElementById('app'); let definition;
   const session = new HostSession({ scheduler: new TestScheduler(), async load() {
@@ -33,6 +38,7 @@ test('complete browser composition prepares its real plugin graph before mountin
     }
     assert.equal(session.snapshot().startup.state, 'loaded');
     assert.ok(target.childElementCount > 0);
+    assert.deepEqual(calloutWarnings, []);
     await session.stop();
     // First-run config creation probes an absent file through the real filesystem.
     assert.deepEqual(errors.filter(([id, , detail]) => !(id === 'lunaris.filesystem-provider' && detail?.code === 'NOT_FOUND' && detail?.data?.path === 'config.toml')), []);
@@ -57,12 +63,15 @@ for (const stalled of ['credentials', 'network']) test('desktop local storage st
   const credentials = definePlugin({ manifest: manifest('test.credentials', [SessionCredentials], [], ['credentials.native']), activate(ctx) {
     ctx.provide(SessionCredentials, { async load() { loadCalls++; assert.equal(session.snapshot().startup.state, 'loaded'); return stalled === 'credentials' ? pendingCredentials.promise : { ok: true, value: saved }; }, async save() { assert.fail(); }, async remove() { assert.fail(); } });
   } });
-  const local = definePlugin({ manifest: manifest('test.local', [], [ApplicationDirectory, Filesystem], ['filesystem.access', 'filesystem.app-config']), activate(ctx) { owner = ctx.signal; directory = ctx.use(ApplicationDirectory); fsApi = ctx.use(Filesystem); } });
+  const local = definePlugin({ manifest: manifest('test.local', [], [ApplicationDirectory, Filesystem, Components], ['filesystem.access', 'filesystem.app-config', 'ui.dom']), activate(ctx) {
+    owner = ctx.signal; directory = ctx.use(ApplicationDirectory); fsApi = ctx.use(Filesystem);
+    assert.ok(ctx.use(Components).has('lunaris.window-titlebar'), 'Platform views receive the themed caption on first activation');
+  } });
   const logger = definePlugin({ manifest: manifest('test.logger', [Logger]), activate(ctx) { ctx.provide(Logger, Object.fromEntries(['log', 'debug', 'info', 'warn', 'error'].map(level => [level, () => true]))); } });
   const session = new HostSession({ scheduler: new TestScheduler(), async load() {
     return composeApplication(dom.window.document.getElementById('app'), { art: 'L', mode: 'desktop', platformPlugins: [credentials], extensions: {
       excludeBuiltins: ['lunaris.logger', 'lunaris.browser-storage'], plugins: [logger, createBrowserStorage(), local], entrypoints: ['test.local'],
-      grants: { 'lunaris.browser-storage': createBrowserStorage().manifest.permissions, 'test.credentials': ['credentials.native'], 'test.local': ['filesystem.access', 'filesystem.app-config'] },
+      grants: { 'lunaris.browser-storage': createBrowserStorage().manifest.permissions, 'test.credentials': ['credentials.native'], 'test.local': local.manifest.permissions },
     } });
   } });
   try {

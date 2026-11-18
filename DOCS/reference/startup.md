@@ -119,15 +119,18 @@ older sequences. Before activation they retain current state without SDK calls.
 After disposal they return `false` and do not log or access SDK handles. Use a
 fresh controller for each application composition/recovery attempt.
 
-Tauri registers the provider first, starts it before product entrypoints, and
-supplies the controller as `ApplicationDefinition.startup`. The provider requires
+The shared application starts the provider before product views and supplies
+its controller as `ApplicationDefinition.startup`. The host selects the saved
+theme and registers the public component roles before activating views such
+as the desktop caption and editor callouts. The provider requires
 Logger and logs readiness, milestone changes and publication failures (with the
 original error). It renders nothing and subscribes to no events. A replacement
 uses the same public consumer contracts and a compatible trusted ingress.
 
 `ApplicationDefinition.view.duringStartup: true` mounts the isolated surface
-before entrypoint activation. Tauri slot composition opts in; existing custom
-views without this flag still mount after activation. The host shell is hidden
+before entrypoint activation. The standalone slot surface opts in. The composed
+web and desktop applications keep the host shell visible during activation
+and attach the prepared product surface afterwards. The host shell is hidden
 while product content is visible, with no persistent header or inspection toggle. Failures immediately hide product content, dispose
 the surface and stop plugins; existing mount deadlines and late-result cleanup
 also cover early mounts. An excluded entrypoint is rejected before mounting.
@@ -138,9 +141,8 @@ authoritative presenter when product scopes are unavailable.
 
 ## Integration and verification
 
-Integrated: Tauri host -> startup provider -> public SDK API/event; early slot
-surface -> system visibility/recovery controls. No driver-specific calls or
-kernel imports are added to product plugins. The
+The Tauri host supplies startup state through the provider's public SDK
+contracts. The host owns the loading and recovery surface. The
 [loading runner](../../plugins/UI/lunaris-runner/DOCS/README.md) now integrates
 Config/Localization/Slots and the component role. The initial
 [Mantine components](../../plugins/UI/mantine-components/DOCS/README.md) now supplies the
