@@ -273,7 +273,7 @@ test('editor title cancellation, composition and late rename results preserve th
       onRename: name => { calls.push(name); return pending.promise; }, status: '', error: '', ready: true, dirty: false, busy: false,
       saveLabel: 'Save', retryLabel: 'Retry', reloadLabel: 'Reload', discardLabel: 'Discard', cancelLabel: 'Cancel', onSave() {}, onReload() {}, onTarget() {} };
     const mounted = s.components.mount('lunaris.text-editor', s.target, props, s.ctx.signal);
-    const input = s.target.querySelector('.lm-editor-title input');
+    const input = s.target.querySelector('.lm-editor-title textarea');
     const sheet = s.dom.window.document.createElement('style');
     sheet.textContent = readFileSync(new URL('../styles.css', import.meta.url), 'utf8').replace(/^@import .*$/gm, '');
     s.dom.window.document.head.append(sheet);
@@ -282,7 +282,8 @@ test('editor title cancellation, composition and late rename results preserve th
     assert.equal(input.hasAttribute('data-pointer-focus'), true);
     assert.equal(s.dom.window.getComputedStyle(input).boxShadow.includes('--vault-focus-width'), false);
     input.blur(); await settle();
-    input.focus(); typeInput(input, 'Cancelled'); await settle();
+    input.focus(); typeInput(input, 'Cancelled\nsecond line'); await settle();
+    assert.equal(input.value, 'Cancelledsecond line');
     assert.equal(input.hasAttribute('data-pointer-focus'), false);
     assert.match(s.dom.window.getComputedStyle(input).boxShadow, /--vault-focus-width/);
     input.dispatchEvent(new s.dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })); await settle();
