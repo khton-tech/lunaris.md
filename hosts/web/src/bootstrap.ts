@@ -2,7 +2,6 @@ import { HostSession, composeApplication } from "@lunaris/application-host";
 import { createWebviewScheduler } from "@lunaris/application-host/scheduler";
 import { mountSystemView } from "@lunaris/application-host/view";
 import { bindBrowserInput } from "@lunaris/application-host/browser-input";
-import "@lunaris/application-host/shell.css";
 import "@lunaris/mantine-components/styles.css";
 import art from "../../../resources/ascii_art.txt?raw";
 

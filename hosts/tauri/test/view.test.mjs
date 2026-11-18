@@ -50,6 +50,10 @@ test('first HTML paint contains the runner artwork and hides recovery before Jav
   assert.equal(native.app.windows[0].backgroundColor, '#0F0F0F');
   const stylesheet = document.querySelector('link[rel=stylesheet]');
   assert.ok(stylesheet, 'Recovery styles must load before the application script.');
+  const web = new JSDOM(readFileSync(new URL('../../web/index.html', import.meta.url), 'utf8'));
+  const webSheet = web.window.document.head.querySelector('link[rel=stylesheet]');
+  assert.match(readFileSync(new URL(`../../web${webSheet.getAttribute('href')}`, import.meta.url), 'utf8'), /@lunaris\/application-host\/shell\.css/);
+  web.window.close();
   const css = readFileSync(new URL(`..${stylesheet.getAttribute('href')}`, import.meta.url), 'utf8');
   assert.match(css, /@import "@lunaris\/application-host\/shell\.css";/);
   const style = document.createElement('style'); style.textContent = shellCss; document.head.append(style);
