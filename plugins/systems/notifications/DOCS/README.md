@@ -25,10 +25,11 @@ The existing in-app client update notice supplies the product reference for a
 compact, themed message. [Mantine Notification](https://mantine.dev/core/notification/)
 supplies the desktop card structure. The desktop role pairs a Lucide icon with
 a strong title and wrapping secondary text. Long content scrolls within the
-allocated surface. In Luna themes, a wrapping caption can use up to 45% of the
-window height. Both the caption and the message can scroll within their rows.
-Other themes scroll the title and message together beside the icon. The icon is
-decorative and the message is a status region.
+allocated surface. On first paint, long titles use one line so the message also
+appears in the 64px window. The entire wrapped title and message can each be read
+by scrolling their respective rows. Luna themes place the icon in the caption;
+other themes keep it beside the text column. The icon is decorative and the
+message is a status region.
 
 `node tools/scripts/lime-pong.mjs` builds a package using the public API and runs
 it through the application plugin runtime with the real provider and Mantine role.
