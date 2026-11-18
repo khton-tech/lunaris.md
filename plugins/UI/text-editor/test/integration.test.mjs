@@ -266,7 +266,7 @@ test('Explorer focuses a new title and the empty workspace shows five recent fil
     assert.deepEqual(s.documents.current(), { vaultId: 'a', path: 'Unnamed 2.md' });
     assert.equal(s.disk.get('a/Unnamed.md').text, 'Existing note');
     assert.ok(panel.querySelector('[title="Unnamed 2.md"]'));
-    const title = s.target.querySelector('.lm-editor-heading input');
+    const title = s.target.querySelector('.lm-editor-heading textarea');
     assert.equal(s.dom.window.document.activeElement, title);
     assert.equal(title.value.slice(title.selectionStart, title.selectionEnd), 'Unnamed 2');
     typeInput(title, 'Named from tree');
@@ -1534,7 +1534,7 @@ for (const saveMode of ['manual save', 'autosave']) {
       return release.promise;
     } });
     try {
-      const title = s.target.querySelector('.lm-editor-title input');
+      const title = s.target.querySelector('.lm-editor-title textarea');
       const heading = title.closest('header.lm-editor-heading');
       assert.ok(heading?.parentElement.classList.contains('lm-text-editor'));
       assert.equal(heading.nextElementSibling, s.cm().dom.parentElement);
@@ -1550,7 +1550,7 @@ for (const saveMode of ['manual save', 'autosave']) {
       }
       await writing.promise;
       await flush();
-      assert.equal(s.target.querySelector('.lm-editor-title input'), title);
+      assert.equal(s.target.querySelector('.lm-editor-title textarea'), title);
       assert.equal(title.value, 'note');
       assert.equal(title.disabled, false);
       assert.equal(title.readOnly, true);
@@ -1572,7 +1572,7 @@ test('editor title renames the open document on disk and relocates the active bu
  const s=await setup();
  try{
   await flush();
-  const titleInput=s.target.querySelector('.lm-editor-title input');
+  const titleInput=s.target.querySelector('.lm-editor-title textarea');
   assert.ok(titleInput,s.target.textContent);
   const tab=s.target.querySelector('[role=tab][aria-selected=true]');
   assert.equal(titleInput.value,'note');assert.equal(titleInput.disabled,false);
@@ -1586,7 +1586,7 @@ test('editor title renames the open document on disk and relocates the active bu
   assert.deepEqual(s.documents.current(),{vaultId:'a',path:'renamed.md'});
   assert.equal(s.target.querySelector('[role=tab][aria-selected=true]'),tab);
   assert.equal(tab.textContent,'renamed');
-  assert.equal(s.target.querySelector('.lm-editor-title input').value,'renamed');
+  assert.equal(s.target.querySelector('.lm-editor-title textarea').value,'renamed');
  }finally{await s.stop();}
 });
 
@@ -1594,14 +1594,14 @@ test('editor title rejects empty names and path separators without moving the fi
  const s=await setup();
  try{
   await flush();
-  const titleInput=s.target.querySelector('.lm-editor-title input');
+  const titleInput=s.target.querySelector('.lm-editor-title textarea');
   for(const invalid of ['','  ','sub/name']){
    typeInput(titleInput,invalid);await flush();
    titleInput.dispatchEvent(new s.dom.window.FocusEvent('focusout',{bubbles:true}));await flush();await flush();
    assert.equal(s.calls.some(call=>call[0]==='move'),false,invalid);
    assert.equal(s.disk.has('a/note.md'),true);
   }
-  assert.equal(s.target.querySelector('.lm-editor-title input').value,'note');
+  assert.equal(s.target.querySelector('.lm-editor-title textarea').value,'note');
  }finally{await s.stop();}
 });
 

@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, useState } from "react";
-import { Box, Button, Group, Text, TextInput } from "@mantine/core";
+import { Box, Button, Group, Text, Textarea, TextInput } from "@mantine/core";
 import type { KeyboardEvent } from "react";
 import type { ComponentProps } from "@lunaris/components";
 import type { resolveTheme } from "./theme.js";
@@ -75,7 +75,7 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
   const [copyName, setCopyName] = useState("");
   const saveCopyButton = useRef<HTMLButtonElement>(null);
   const container = useRef<HTMLDivElement>(null);
-  const titleInput = useRef<HTMLInputElement>(null);
+  const titleInput = useRef<HTMLTextAreaElement>(null);
   const [title, setTitle] = useState(props.title);
   const [pointerFocus, setPointerFocus] = useState(false);
   const committing = useRef<object | null>(null);
@@ -111,7 +111,7 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
       if (!ok && committing.current === operation) setTitle(currentTitle.current);
     }).finally(() => { if (committing.current === operation) committing.current = null; });
   }
-  function onTitleKeyDown(event: KeyboardEvent<HTMLInputElement>): void {
+  function onTitleKeyDown(event: KeyboardEvent<HTMLTextAreaElement>): void {
     if (event.nativeEvent.isComposing) return;
     if (event.key === "Enter") { event.preventDefault(); event.currentTarget.blur(); }
     else if (event.key === "Escape") {
@@ -125,7 +125,8 @@ export function TextEditor({ props, theme }: { props: EditorProps; theme: Return
     {props.ready && props.onContentWidthChange && !props.compact && <EditorWidthHandles key={props.documentKey} container={container}
       width={props.contentWidth ?? 698} label={props.resizeWidthLabel!} disabled={!props.canResizeWidth} onChange={props.onContentWidthChange} />}
     {props.ready && <Box component="header" className="lm-editor-heading lm-editor-column" style={columnStyle}>
-      <TextInput ref={titleInput} className="lm-editor-title" aria-label={props.titleLabel} value={title} title={props.title}
+      <Textarea ref={titleInput} className="lm-editor-title" aria-label={props.titleLabel} value={title} title={props.title}
+        autosize minRows={1} resize="none" aria-multiline="false"
         error={props.renameError || undefined} errorProps={{ role: "alert" }} classNames={{ error: "lm-editor-error" }}
         style={{ fontSize: props.contentFontSize }}
         variant="unstyled" readOnly={!props.canRename} tabIndex={props.canRename ? 0 : -1}

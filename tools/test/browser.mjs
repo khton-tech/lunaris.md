@@ -21,7 +21,8 @@ export function useBrowser(dom) {
 /** Use the browser setter so React observes the simulated user edit. */
 export function typeInput(input, value) {
   const view = input.ownerDocument.defaultView;
-  Object.getOwnPropertyDescriptor(view.HTMLInputElement.prototype, 'value').set.call(input, value);
+  const control = input instanceof view.HTMLTextAreaElement ? view.HTMLTextAreaElement : view.HTMLInputElement;
+  Object.getOwnPropertyDescriptor(control.prototype, 'value').set.call(input, value);
   input.dispatchEvent(new view.Event('input', { bubbles: true }));
 }
 
@@ -33,7 +34,7 @@ export function mobileViewport(window, height = 720) {
     return query === '(pointer: coarse)' ? { ...media, matches: true } : media;
   };
   window.innerHeight = height;
-  const viewport = Object.assign(new window.EventTarget(), { height, width: window.innerWidth, offsetTop: 0, scale: 1 });
+  const viewport = Object.assign(new window.EventTarget(), { height, width: window.innerWidth, offsetTop: 0, offsetLeft: 0, scale: 1 });
   Object.defineProperty(window, 'visualViewport', { value: viewport, configurable: true });
   return viewport;
 }

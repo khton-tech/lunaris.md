@@ -16,8 +16,9 @@ the configured pixel width when wrapping, or `"full"` for full-width/unwrapped
 content. UIKit owns the title layout and CodeMirror owns document layout;
 Workspace retains outer geometry and surfaces. The editable file name appears
 as a heading above the document, following the editor before the FigCraft
-restyle. The existing Mantine role renders it and forwards renames through the
-same callback. Native alignment at wide/narrow sizes remains manual acceptance.
+restyle. Its Mantine textarea grows as the title wraps and readjusts when the
+column or font changes. A rename still accepts a single filename. Pasted line
+breaks are removed, Enter commits after composition, and Escape cancels.
 
 Strong Markdown emphasis uses weight 700 in both live preview and source syntax
 highlighting, including callout body text. Reference: the Owner's callout screenshot
