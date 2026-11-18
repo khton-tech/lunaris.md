@@ -19,6 +19,9 @@ as a heading above the document, following the editor before the FigCraft
 restyle. Its Mantine textarea grows as the title wraps and readjusts when the
 column or font changes. A rename still accepts a single filename. Pasted line
 breaks are removed, Enter commits after composition, and Escape cancels.
+In a desktop column, a title taller than the available space scrolls inside its
+field, preserving room for the document. Compact layouts grow the title in the
+shared document viewport.
 
 Strong Markdown emphasis uses weight 700 in both live preview and source syntax
 highlighting, including callout body text. Reference: the Owner's callout screenshot
